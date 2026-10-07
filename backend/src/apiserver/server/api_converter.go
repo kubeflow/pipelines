@@ -96,7 +96,7 @@ func toModelExperiment(apiExperiment *apiv2.Experiment) (*model.Experiment, erro
 // Converts internal experiment representation to its API counterpart.
 // Supports v2 API.
 // Note: returns nil if a parsing error occurs.
-func toApiExperiment(experiment *model.Experiment) *apiv2.Experiment {
+func toAPIExperiment(experiment *model.Experiment) *apiv2.Experiment {
 	if experiment == nil {
 		return &apiv2.Experiment{}
 	}
@@ -122,10 +122,10 @@ func toApiExperiment(experiment *model.Experiment) *apiv2.Experiment {
 
 // Converts an array of internal experiment representations to an array of API experiments.
 // Supports v2 API.
-func toApiExperiments(experiments []*model.Experiment) []*apiv2.Experiment {
+func toAPIExperiments(experiments []*model.Experiment) []*apiv2.Experiment {
 	apiExperiments := make([]*apiv2.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, toApiExperiment(experiment))
+		apiExperiments = append(apiExperiments, toAPIExperiment(experiment))
 	}
 	return apiExperiments
 }
@@ -173,7 +173,7 @@ func toModelPipeline(apiPipeline *apiv2.Pipeline) (*model.Pipeline, error) {
 // Supports v2 API.
 // Input pipeline must have UUID, Name, Namespace, and CreateAt set to non-default values.
 // Note: stores details inside the message if a parsing error occurs.
-func toApiPipeline(pipeline *model.Pipeline) *apiv2.Pipeline {
+func toAPIPipeline(pipeline *model.Pipeline) *apiv2.Pipeline {
 	if pipeline == nil {
 		return &apiv2.Pipeline{
 			PipelineId: "",
@@ -236,10 +236,10 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2.Pipeline {
 // Converts arrays of internal pipeline representations and pipeline version representations
 // to an array of API pipelines.
 // Supports v2 API.
-func toApiPipelines(pipelines []*model.Pipeline) []*apiv2.Pipeline {
+func toAPIPipelines(pipelines []*model.Pipeline) []*apiv2.Pipeline {
 	apiPipelines := make([]*apiv2.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, toApiPipeline(pipeline))
+		apiPipelines = append(apiPipelines, toAPIPipeline(pipeline))
 	}
 	return apiPipelines
 }
@@ -290,7 +290,7 @@ func toModelPipelineVersion(p *apiv2.PipelineVersion) (*model.PipelineVersion, e
 // Converts internal pipeline version representation to its API counterpart.
 // Supports v2 API.
 // Note: stores details inside the message if a parsing error occurs.
-func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2.PipelineVersion {
+func toAPIPipelineVersion(pv *model.PipelineVersion) *apiv2.PipelineVersion {
 	if pv == nil {
 		return &apiv2.PipelineVersion{
 			PipelineVersionId: "",
@@ -370,10 +370,10 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2.PipelineVersion {
 
 // Converts an array of internal pipeline version representations to an array of API pipeline versions.
 // Supports v2 API.
-func toApiPipelineVersions(pv []*model.PipelineVersion) []*apiv2.PipelineVersion {
+func toAPIPipelineVersions(pv []*model.PipelineVersion) []*apiv2.PipelineVersion {
 	apiVersions := make([]*apiv2.PipelineVersion, 0)
 	for _, version := range pv {
-		apiVersions = append(apiVersions, toApiPipelineVersion(version))
+		apiVersions = append(apiVersions, toAPIPipelineVersion(version))
 	}
 	return apiVersions
 }
@@ -490,7 +490,7 @@ func toModelTrigger(apiTrigger *apiv2.Trigger) *model.Trigger {
 // Converts internal trigger representation to its API counterpart.
 // Supports v2 API.
 // Note: returns nil if a parsing error occurs.
-func toApiTrigger(trigger *model.Trigger) *apiv2.Trigger {
+func toAPITrigger(trigger *model.Trigger) *apiv2.Trigger {
 	if trigger == nil {
 		return &apiv2.Trigger{}
 	}
@@ -557,7 +557,7 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 // Converts internal runtime config representation to its API counterpart.
 // Supports v2 API.
 // Note: returns nil if a parsing error occurs.
-func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2.RuntimeConfig {
+func toAPIRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2.RuntimeConfig {
 	apiRuntimeConfig := apiv2.RuntimeConfig{}
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return &apiRuntimeConfig
@@ -733,20 +733,18 @@ func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 // Converts internal representation of a run to its API counterpart.
 // Supports v2 API.
 // Note: adds error details to the message if a parsing error occurs.
-func toApiRun(r *model.Run) *apiv2.Run {
-	return toApiRunWithPipelineSourcePreference(r, false)
+func toAPIRun(r *model.Run) *apiv2.Run {
+	return toAPIRunWithPipelineSourcePreference(r, false)
 }
 
-// toApiRunWithPipelineSourcePreference converts a run to its API form.
+// toAPIRunWithPipelineSourcePreference converts a run to its API form.
 // When preferEmbeddedPipelineSpec is true and the run stores a pipeline
 // manifest, the response embeds pipeline_spec even if a pipeline version
 // reference is also present. Runtime clients authenticate with run-scoped
 // tokens and cannot call GetPipelineVersion.
-//
-//nolint:staticcheck // ST1003: matches existing toApi* naming in this package
-func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2.Run {
+func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2.Run {
 	r = r.ToV2()
-	runtimeConfig := toApiRuntimeConfig(r.PipelineSpec.RuntimeConfig)
+	runtimeConfig := toAPIRuntimeConfig(r.RuntimeConfig)
 	var apiRunErr error
 	if runtimeConfig == nil {
 		apiRunErr = util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")
@@ -792,13 +790,13 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		Description:    r.Description,
 		ServiceAccount: r.ServiceAccount,
 		RuntimeConfig:  runtimeConfig,
-		StorageState:   toApiRunStorageState(&r.StorageState),
-		State:          toApiRuntimeState(&r.RunDetails.State),
-		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
+		StorageState:   toAPIRunStorageState(&r.StorageState),
+		State:          toAPIRuntimeState(&r.State),
+		StateHistory:   toAPIRuntimeStatuses(r.StateHistory),
 		CreatedAt:      timestamppb.New(time.Unix(r.CreatedAtInSec, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(r.ScheduledAtInSec, 0)),
 		FinishedAt:     timestamppb.New(time.Unix(r.FinishedAtInSec, 0)),
-		RunDetails:     apiRd,
+		RunDetails:     apiRd, //nolint:staticcheck // Preserve run_details for legacy-compatible responses.
 		TaskCount:      taskCount,
 		Tasks:          apiTasks,
 	}
@@ -911,10 +909,10 @@ func generateAPITasks(tasks []*model.Task) ([]*apiv2.PipelineTask, error) {
 
 // Converts an array of internal pipeline version representations to an array of API pipeline versions.
 // Supports v2 API.
-func toApiRuns(runs []*model.Run) []*apiv2.Run {
+func toAPIRuns(runs []*model.Run) []*apiv2.Run {
 	apiRuns := make([]*apiv2.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(run))
+		apiRuns = append(apiRuns, toAPIRun(run))
 	}
 	return apiRuns
 }
@@ -1058,7 +1056,7 @@ func toModelJobEnabled(mode apiv2.RecurringRun_Mode) (bool, error) {
 // Enabled, Running, Succeeded -> ENABLED
 // Disabled -> DISABLED
 // Error -> STATUS_UNSPECIFIED.
-func toApiRecurringRunStatus(s string) apiv2.RecurringRun_Status {
+func toAPIRecurringRunStatus(s string) apiv2.RecurringRun_Status {
 	switch s {
 	case string(model.StatusStateEnabled), string(swapi.ScheduledWorkflowSucceeded), string(swapi.ScheduledWorkflowRunning), string(swapi.ScheduledWorkflowEnabled):
 		return apiv2.RecurringRun_ENABLED
@@ -1073,9 +1071,9 @@ func toApiRecurringRunStatus(s string) apiv2.RecurringRun_Status {
 
 // Converts recurring run's internal representation to its API counterpart.
 // Supports v2 API.
-func toApiRecurringRun(j *model.Job) *apiv2.RecurringRun {
+func toAPIRecurringRun(j *model.Job) *apiv2.RecurringRun {
 	j = j.ToV2()
-	runtimeConfig := toApiRuntimeConfig(j.PipelineSpec.RuntimeConfig)
+	runtimeConfig := toAPIRuntimeConfig(j.RuntimeConfig)
 	if runtimeConfig == nil {
 		return &apiv2.RecurringRun{
 			RecurringRunId: j.UUID,
@@ -1095,12 +1093,12 @@ func toApiRecurringRun(j *model.Job) *apiv2.RecurringRun {
 		DisplayName:    j.DisplayName,
 		ServiceAccount: j.ServiceAccount,
 		Description:    j.Description,
-		Status:         toApiRecurringRunStatus(j.Conditions),
+		Status:         toAPIRecurringRunStatus(j.Conditions),
 		CreatedAt:      timestamppb.New(time.Unix(j.CreatedAtInSec, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
-		Trigger:        toApiTrigger(&j.Trigger),
+		Trigger:        toAPITrigger(&j.Trigger),
 		RuntimeConfig:  runtimeConfig,
 		Namespace:      j.Namespace,
 		ExperimentId:   j.ExperimentId,
@@ -1149,10 +1147,10 @@ func toApiRecurringRun(j *model.Job) *apiv2.RecurringRun {
 
 // Converts an array of recurring run internal representations to an array of their API counterparts.
 // Supports v2 API.
-func toApiRecurringRuns(jobs []*model.Job) []*apiv2.RecurringRun {
+func toAPIRecurringRuns(jobs []*model.Job) []*apiv2.RecurringRun {
 	apiRecurringRuns := make([]*apiv2.RecurringRun, 0)
 	for _, job := range jobs {
-		apiRecurringRuns = append(apiRecurringRuns, toApiRecurringRun(job))
+		apiRecurringRuns = append(apiRecurringRuns, toAPIRecurringRun(job))
 	}
 	return apiRecurringRuns
 }
@@ -1173,7 +1171,7 @@ func toModelStorageState(state apiv2.Run_StorageState) (model.StorageState, erro
 
 // Converts internal storage state representation to its API run's counterpart.
 // Support v2 API.
-func toApiRunStorageState(s *model.StorageState) apiv2.Run_StorageState {
+func toAPIRunStorageState(s *model.StorageState) apiv2.Run_StorageState {
 	if string(*s) == "" {
 		return apiv2.Run_STORAGE_STATE_UNSPECIFIED
 	}
@@ -1196,7 +1194,7 @@ func toModelRuntimeState(state apiv2.RuntimeState) model.RuntimeState {
 
 // Converts internal runtime state representation to its API counterpart.
 // Support v2 API.
-func toApiRuntimeState(s *model.RuntimeState) apiv2.RuntimeState {
+func toAPIRuntimeState(s *model.RuntimeState) apiv2.RuntimeState {
 	return apiv2.RuntimeState(apiv2.RuntimeState_value[s.ToString()])
 }
 
@@ -1235,12 +1233,12 @@ func toModelRuntimeStatuses(s []*apiv2.RuntimeStatus) ([]*model.RuntimeStatus, e
 
 // Converts internal representation of a runtime status to its API counterpart.
 // Supports v2 API.
-func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2.RuntimeStatus {
+func toAPIRuntimeStatus(s *model.RuntimeStatus) *apiv2.RuntimeStatus {
 	if s == nil {
 		return nil
 	}
 	apiStatus := &apiv2.RuntimeStatus{
-		State: toApiRuntimeState(&s.State),
+		State: toAPIRuntimeState(&s.State),
 	}
 	if s.UpdateTimeInSec > 0 {
 		apiStatus.UpdateTime = &timestamppb.Timestamp{Seconds: s.UpdateTimeInSec}
@@ -1253,13 +1251,13 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2.RuntimeStatus {
 
 // Converts an array of API runtime statuses to an array of their internal representations.
 // Support v2 API.
-func toApiRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2.RuntimeStatus {
+func toAPIRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2.RuntimeStatus {
 	if len(s) == 0 {
 		return nil
 	}
 	statuses := make([]*apiv2.RuntimeStatus, 0)
 	for _, status := range s {
-		statuses = append(statuses, toApiRuntimeStatus(status))
+		statuses = append(statuses, toAPIRuntimeStatus(status))
 	}
 	return statuses
 }

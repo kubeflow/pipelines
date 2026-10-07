@@ -174,7 +174,7 @@
           },
           {
             "name": "namespace",
-            "description": "Optional input. Namespace of the pipeline. \nIt could be empty if default namespaces needs to be used or if multi-user \nsupport is turned off.",
+            "description": "Optional input. Namespace of the pipeline.\nIt could be empty if default namespaces needs to be used or if multi-user\nsupport is turned off.",
             "in": "query",
             "required": false,
             "type": "string"

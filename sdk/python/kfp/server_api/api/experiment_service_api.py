@@ -285,7 +285,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def experiment_service_delete_experiment(self, experiment_id, **kwargs):  # noqa: E501
-        """Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.  # noqa: E501
+        """Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -313,7 +313,7 @@ class ExperimentServiceApi(object):
         return self.experiment_service_delete_experiment_with_http_info(experiment_id, **kwargs)  # noqa: E501
 
     def experiment_service_delete_experiment_with_http_info(self, experiment_id, **kwargs):  # noqa: E501
-        """Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.  # noqa: E501
+        """Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True

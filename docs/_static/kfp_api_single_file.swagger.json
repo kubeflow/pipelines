@@ -539,7 +539,7 @@
         ]
       },
       "delete": {
-        "summary": "Deletes an experiment without deleting the experiment's runs and recurring \nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring \nruns before deleting the experiment.",
+        "summary": "Deletes an experiment without deleting the experiment's runs and recurring\nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring\nruns before deleting the experiment.",
         "operationId": "ExperimentService_DeleteExperiment",
         "responses": {
           "200": {
@@ -835,7 +835,7 @@
           },
           {
             "name": "namespace",
-            "description": "Optional input. Namespace of the pipeline. \nIt could be empty if default namespaces needs to be used or if multi-user \nsupport is turned off.",
+            "description": "Optional input. Namespace of the pipeline.\nIt could be empty if default namespaces needs to be used or if multi-user\nsupport is turned off.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -3236,7 +3236,7 @@
         },
         "pipeline_root": {
           "type": "string",
-          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. \nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts.\nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
         }
       },
       "description": "The runtime config."

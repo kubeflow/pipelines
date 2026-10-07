@@ -27,7 +27,7 @@ type ScheduledWorkflowType string
 
 const (
 	SWFv1      ScheduledWorkflowType = "v1beta1"
-	SWFv2      ScheduledWorkflowType = "v2"
+	SWFv2      ScheduledWorkflowType = "v2beta1"
 	SWFlegacy  ScheduledWorkflowType = "legacy"
 	SWFunknown ScheduledWorkflowType = "Unknown"
 

@@ -243,7 +243,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2.Crea
 	if s.options.CollectMetrics {
 		pipelineCount.Inc()
 	}
-	return toApiPipeline(createdPipeline), nil
+	return toAPIPipeline(createdPipeline), nil
 }
 
 // Fetches a pipeline.
@@ -273,7 +273,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2.GetPipe
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline %s. Check error stack", pipelineId)
 	}
-	return toApiPipeline(pipeline), nil
+	return toAPIPipeline(pipeline), nil
 }
 
 // Fetches a pipeline for a given name and namespace.
@@ -307,7 +307,7 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2.G
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline with name %s and namespace %s. Check error stack.", name, namespace)
 	}
-	return toApiPipeline(pipeline), nil
+	return toAPIPipeline(pipeline), nil
 }
 
 // Fetches pipelines for the given search query parameters.
@@ -362,7 +362,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2.ListP
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
 	}
-	return &apiv2.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+	return &apiv2.ListPipelinesResponse{Pipelines: toAPIPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
 }
 
 // extractTagFiltersFromFilterSpec parses a filter spec string, extracts any predicates
@@ -519,7 +519,7 @@ func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *
 		pipelineCount.Inc()
 		pipelineVersionCount.Inc()
 	}
-	return toApiPipeline(newPipeline), nil
+	return toAPIPipeline(newPipeline), nil
 }
 
 // Creates a pipeline version from. Not exported.
@@ -630,7 +630,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	if s.options.CollectMetrics {
 		pipelineVersionCount.Inc()
 	}
-	return toApiPipelineVersion(newPipelineVersion), nil
+	return toAPIPipelineVersion(newPipelineVersion), nil
 }
 
 // Fetches a pipeline version for given pipeline id.
@@ -657,7 +657,7 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2.
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version %s", request.GetPipelineVersionId())
 	}
-	return toApiPipelineVersion(pipelineVersion), nil
+	return toAPIPipelineVersion(pipelineVersion), nil
 }
 
 // Fetches an array of pipeline versions for given search query parameters.
@@ -716,7 +716,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 		return nil, util.Wrapf(err, "Failed to list pipeline versions for pipeline %s", pipelineId)
 	}
 	return &apiv2.ListPipelineVersionsResponse{
-		PipelineVersions: toApiPipelineVersions(pipelineVersions),
+		PipelineVersions: toAPIPipelineVersions(pipelineVersions),
 		NextPageToken:    nextPageToken,
 		TotalSize:        int32(totalSize),
 	}, nil
@@ -816,7 +816,7 @@ func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2.Upda
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to update pipeline %v. Check error stack", pipelineID)
 	}
-	return toApiPipeline(updatedPipeline), nil
+	return toAPIPipeline(updatedPipeline), nil
 }
 
 // UpdatePipelineVersion updates a pipeline version's mutable fields (display_name, tags).
@@ -850,7 +850,7 @@ func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *api
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to update pipeline version %v. Check error stack", pipelineVersionID)
 	}
-	return toApiPipelineVersion(updatedVersion), nil
+	return toAPIPipelineVersion(updatedVersion), nil
 }
 
 // Checks if a user can access a pipeline version.

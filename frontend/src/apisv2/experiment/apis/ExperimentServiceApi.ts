@@ -154,7 +154,7 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
   }
 
   /**
-   * Deletes an experiment without deleting the experiment\'s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment\'s runs and recurring  runs before deleting the experiment.
+   * Deletes an experiment without deleting the experiment\'s runs and recurring runs. To avoid unexpected behaviors, delete an experiment\'s runs and recurring runs before deleting the experiment.
    */
   async deleteExperimentRaw(
     requestParameters: DeleteExperimentRequest,
@@ -191,7 +191,7 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
   }
 
   /**
-   * Deletes an experiment without deleting the experiment\'s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment\'s runs and recurring  runs before deleting the experiment.
+   * Deletes an experiment without deleting the experiment\'s runs and recurring runs. To avoid unexpected behaviors, delete an experiment\'s runs and recurring runs before deleting the experiment.
    */
   async deleteExperiment(
     experiment_id: string,

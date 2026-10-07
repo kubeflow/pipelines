@@ -6,7 +6,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**experiment_service_archive_experiment**](ExperimentServiceApi.md#experiment_service_archive_experiment) | **POST** /apis/v2/experiments/{experiment_id}:archive | Archives an experiment and the experiment&#39;s runs and recurring runs.
 [**experiment_service_create_experiment**](ExperimentServiceApi.md#experiment_service_create_experiment) | **POST** /apis/v2/experiments | Creates a new experiment.
-[**experiment_service_delete_experiment**](ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring  runs before deleting the experiment.
+[**experiment_service_delete_experiment**](ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring runs before deleting the experiment.
 [**experiment_service_get_experiment**](ExperimentServiceApi.md#experiment_service_get_experiment) | **GET** /apis/v2/experiments/{experiment_id} | Finds a specific experiment by ID.
 [**experiment_service_list_experiments**](ExperimentServiceApi.md#experiment_service_list_experiments) | **GET** /apis/v2/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 [**experiment_service_unarchive_experiment**](ExperimentServiceApi.md#experiment_service_unarchive_experiment) | **POST** /apis/v2/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
@@ -167,7 +167,7 @@ Name | Type | Description  | Notes
 # **experiment_service_delete_experiment**
 > object experiment_service_delete_experiment(experiment_id)
 
-Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.
+Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.
 
 ### Example
 
@@ -206,7 +206,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     experiment_id = 'experiment_id_example' # str | The ID of the experiment to be deleted.
 
     try:
-        # Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.
+        # Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.
         api_response = api_instance.experiment_service_delete_experiment(experiment_id)
         pprint(api_response)
     except ApiException as e:

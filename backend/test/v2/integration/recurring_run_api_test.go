@@ -600,7 +600,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	}
 }
 
-func (s *RecurringRunApiTestSuite) checkHelloWorldRecurringRun(t *testing.T, recurringRun *recurring_run_model.V2RecurringRun, experimentID string, pipelineId string, pipelineVersionId string) {
+func (s *RecurringRunApiTestSuite) checkHelloWorldRecurringRun(t *testing.T, recurringRun *recurring_run_model.V2RecurringRun, experimentID string, pipelineID string, pipelineVersionID string) {
 	expectedRecurringRun := &recurring_run_model.V2RecurringRun{
 		RecurringRunID: recurringRun.RecurringRunID,
 		DisplayName:    "hello world",
@@ -609,8 +609,8 @@ func (s *RecurringRunApiTestSuite) checkHelloWorldRecurringRun(t *testing.T, rec
 		PipelineSpec:   recurringRun.PipelineSpec,
 		ExperimentID:   experimentID,
 		PipelineVersionReference: &recurring_run_model.V2PipelineVersionReference{
-			PipelineID:        pipelineId,
-			PipelineVersionID: pipelineVersionId,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		MaxConcurrency: 10,
 		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
@@ -828,14 +828,14 @@ func (s *RecurringRunApiTestSuite) cleanUp() {
 	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
 }
 
-func defaultV2RecurringRun(pipelineId, pipelineVersionId, experimentId string) *recurring_run_model.V2RecurringRun {
+func defaultV2RecurringRun(pipelineID, pipelineVersionID, experimentID string) *recurring_run_model.V2RecurringRun {
 	return &recurring_run_model.V2RecurringRun{
 		DisplayName:  "default-pipeline-name",
 		Description:  "This is a default pipeline",
-		ExperimentID: experimentId,
+		ExperimentID: experimentID,
 		PipelineVersionReference: &recurring_run_model.V2PipelineVersionReference{
-			PipelineID:        pipelineId,
-			PipelineVersionID: pipelineVersionId,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		MaxConcurrency: 10,
 		NoCatchup:      false,
