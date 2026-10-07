@@ -419,7 +419,7 @@ def test_k8s_mode_experiment_creation(kfp_client):
     experiment_description = getattr(experiment_details, 'description', None)
     assert experiment_description == "Test experiment created in K8s mode", "Experiment should have correct description"
 
-    # Validate run structure after asynchronous state reporting begins.
+    # Validate run structure
     run_details = wait_for_run_state(kfp_client, run_id)
     assert run_details.run_id == run_id, "Run should have correct ID"
     assert run_details.display_name == run_name, "Run should have correct name"

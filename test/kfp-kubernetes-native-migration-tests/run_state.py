@@ -11,23 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Wait for asynchronous run state without relaxing migration assertions."""
+"""Wait for asynchronous run-state persistence in migration tests."""
 
 import time
 
 
 def wait_for_run_state(client, run_id, timeout=60, poll_interval=1):
-    """Return the same run once its initially unspecified state is reported."""
+    """Wait for a reported run state without retrying failures."""
+    if timeout <= 0 or poll_interval <= 0:
+        raise ValueError('timeout and poll_interval must be positive')
+
     deadline = time.monotonic() + timeout
-    while True:
+    state = None
+    while time.monotonic() < deadline:
         run = client.get_run(run_id=run_id)
-        assert run.run_id == run_id, "Run should have correct ID"
-        # A persisted run may precede the first Workflow status report. The
-        # zero-valued API enum can therefore be omitted from the JSON response.
-        if getattr(run, 'state',
-                   None) not in (None, '', 'RUNTIME_STATE_UNSPECIFIED'):
+        state = getattr(run, 'state', None)
+        if state in ('FAILED', 'CANCELED'):
+            raise AssertionError(f'Run {run_id!r} entered {state}')
+        # An initial Workflow report can precede its Argo phase. The API
+        # omits the unspecified enum from JSON until a phase is persisted.
+        if state not in (None, '', 'RUNTIME_STATE_UNSPECIFIED'):
             return run
+
         remaining = deadline - time.monotonic()
-        assert remaining > 0, (
-            f"Run {run_id} did not report state within {timeout} seconds")
-        time.sleep(min(poll_interval, remaining))
+        if remaining > 0:
+            time.sleep(min(poll_interval, remaining))
+
+    raise TimeoutError(
+        f'Run {run_id!r} did not report a state within {timeout}s '
+        f'(last state: {state!r}). Check workflow-controller and '
+        'persistence-agent logs.')

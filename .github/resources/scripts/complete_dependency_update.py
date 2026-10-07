@@ -38,7 +38,6 @@ GO_MODULE_PATHS = (
     Path('backend/api/tools/go.mod'),
     Path('kubernetes_platform/go.mod'),
     Path('test/tools/project-cleaner/go.mod'),
-    Path('third_party/ml-metadata/go.mod'),
 )
 GO_OUTPUT_PATHS = GO_MODULE_PATHS + tuple(
     pin.path for pin in go.MANAGED_DOCKERFILES)
