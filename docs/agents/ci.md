@@ -2,6 +2,8 @@
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
+Root Go module replacements require their `go.mod` files in every Docker dependency-download layer. Keep the explicit manifest copies before `go mod download`; the repository script tests check this against all local replacements and tracked download Dockerfiles.
+
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
 - Namespace transfer regression tests run with backend CI, including MySQL/PostgreSQL history checks through `KFP_HISTORY_MYSQL_TEST_DSN` and `KFP_HISTORY_POSTGRES_TEST_DSN`. The same lanes exercise 2.18 archive conversion into populated native databases, including runtime parameters, cached artifact lineage, preview and repeat import. Tests allocate isolated databases/schemas and require create/drop permissions. Self-service HTTP and authorization tests cover bounded archives, preview/apply and namespace isolation; frontend CI covers the export/import page. Local engine integration subtests skip without their DSNs.
 - `presubmit-backend.yml` runs recurring-run transaction concurrency tests against disposable MySQL 8.0 and PostgreSQL 16 services using `KFP_RECURRING_MYSQL_TEST_DSN` and `KFP_RECURRING_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and independent connections; the configured test roles need permission to create and drop their test database/schema and observe session lock metadata. These checks cover storage transaction behavior, not a live KFP upgrade.
