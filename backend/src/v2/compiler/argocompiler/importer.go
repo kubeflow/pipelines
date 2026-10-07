@@ -154,7 +154,6 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 			Image:                    c.launcherImage,
 			Command:                  c.launcherCommand,
 			Args:                     args,
-			EnvFrom:                  []k8score.EnvFromSource{metadataEnvFrom},
 			Env:                      append(commonEnvs, mlPipelineAPIClientEnvVars()...),
 			Resources:                driverResources,
 			VolumeMounts:             volumeMounts,
