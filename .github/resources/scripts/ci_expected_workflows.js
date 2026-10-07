@@ -106,6 +106,9 @@ function invalidRunMetadata(run) {
   return null;
 }
 
+const MISSING_BASE_RECOVERY_DOCS =
+  'https://github.com/kubeflow/pipelines/blob/master/docs/agents/ci-passed.md#missing-base-merge-record';
+
 async function baseArrivedAt({github, owner, repo, baseSha}) {
   // A run tests the base revision that was live when it was created. For a
   // pull_request run, Actions checks out a synthetic merge commit whose SHA is
@@ -120,7 +123,14 @@ async function baseArrivedAt({github, owner, repo, baseSha}) {
   // merge method. A direct push of a pre-existing commit has no merged PR, so
   // its arrival cannot be established and the caller fails closed to pending
   // rather than ever passing stale evidence as fresh.
-  if (!baseSha) return null;
+  // Returns a discriminated result so the caller can tell a lookup failure, a
+  // missing merge record, and an unparseable merge timestamp apart, instead of
+  // collapsing all three to null:
+  //   {status: 'arrived', arrivedAt}  - a merged PR with a parseable merged_at
+  //   {status: 'missing'}             - no merged PR (e.g. a direct push)
+  //   {status: 'invalid'}             - a merged PR whose merged_at is unparseable
+  //   {status: 'error'}               - the lookup API call failed
+  if (!baseSha) return {status: 'missing'};
   try {
     const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
       owner, repo, commit_sha: baseSha, per_page: 100,
@@ -128,12 +138,13 @@ async function baseArrivedAt({github, owner, repo, baseSha}) {
     for (const pr of pulls) {
       if (pr.merged_at) {
         const arrived = Date.parse(pr.merged_at);
-        return Number.isFinite(arrived) ? arrived : null;
+        if (Number.isFinite(arrived)) return {status: 'arrived', arrivedAt: arrived};
+        return {status: 'invalid'};
       }
     }
-    return null;
+    return {status: 'missing'};
   } catch (error) {
-    return null;
+    return {status: 'error'};
   }
 }
 
@@ -169,6 +180,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   const failures = [];
   const pending = [];
   const missing = [];
+  let documentation = null;
   if (expected.length === 0) failures.push('No expected PR workflows; CI coverage cannot be established');
   // Fetch one head-scoped snapshot for all lanes, rather than one request
   // series per workflow on every constituent completion event.
@@ -239,13 +251,31 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     // arrived and tested an older base. Resolve the tie fail-closed (<=) so the
     // merge gate can never pass stale evidence as fresh; the PR stays pending
     // until a strictly later run.
-    if (liveBase && baseSha && (baseArrived === null || Date.parse(run.created_at) <= baseArrived)) {
-      pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
+    if (liveBase && baseSha) {
+      if (baseArrived.status === 'error') {
+        pending.push(`${workflow.path}: Cannot establish master arrival for base ${baseSha}: lookup failed. Retrying.`);
+      } else if (baseArrived.status === 'missing' || baseArrived.status === 'invalid') {
+        // A missing record and an unparseable merged_at are both permanent: no
+        // fresh CI run can establish arrival, so they need maintainer
+        // investigation. The base's provenance is repo-wide, not per-workflow,
+        // so the reason omits the workflow path and stays within the
+        // 140-character status description. The recovery docs link rides in
+        // the result documentation field, which reaches the CI Check logs
+        // without bloating the status description.
+        documentation = MISSING_BASE_RECOVERY_DOCS;
+        if (baseArrived.status === 'missing') {
+          pending.push(`no merged PR for base ${baseSha}. Maintainer investigation required.`);
+        } else {
+          pending.push(`malformed merged-PR record for base ${baseSha}. Maintainer investigation required.`);
+        }
+      } else if (baseArrived.status === 'arrived' && Date.parse(run.created_at) <= baseArrived.arrivedAt) {
+        pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
+      }
     }
   }
   const state = failures.length ? 'failure' : pending.length ? 'pending' : 'success';
   return {state, passed: state === 'success', reasons: [...failures, ...pending],
-    expected: expected.map(workflow => workflow.path), disabled, missing};
+    expected: expected.map(workflow => workflow.path), disabled, missing, documentation};
 }
 
 async function loadBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {

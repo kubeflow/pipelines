@@ -46,7 +46,8 @@ def verify(runs=None,
            base_sha=None,
            live_base=True,
            base_arrived_at='2026-09-07T13:00:00Z',
-           association_failure=False):
+           association_failure=False,
+           associated_prs=None):
     if runs is None:
         runs = [good_run()]
     if files is None:
@@ -92,10 +93,11 @@ def verify(runs=None,
         'registrationStartedAt': registration_started_at,
         'now': now,
     }
-    associated_prs = ([{
-        'number': 7,
-        'merged_at': base_arrived_at,
-    }] if base_sha else [])
+    if associated_prs is None:
+        associated_prs = ([{
+            'number': 7,
+            'merged_at': base_arrived_at,
+        }] if base_sha else [])
     return node(f'''
 const fixture = {json.dumps(fixture)};
 const requests = [];
@@ -542,17 +544,76 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         self.assertEqual(result['state'], 'success')
         self.assertEqual(result['associationCalls'], [])
 
-    def test_base_arrival_lookup_failure_fails_closed(self):
-        # If the base revision has no merged PR (a direct push), its arrival
-        # time cannot be established; the run cannot be proven fresh, so fail
-        # closed to pending rather than ever passing stale evidence as fresh.
+    def test_base_arrival_lookup_failure_is_distinct(self):
+        # A transient lookup failure must not read as stale CI: it emits a
+        # distinct pending reason that retries, not the stale-CI message.
         result = verify(
             base_sha='c' * 40,
             association_failure=True,
             runs=[good_run(created_at='2026-09-07T12:00:00Z')])
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
-        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+        self.assertIn('lookup failed', result['reasons'][0])
+        self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_missing_base_merge_record_requires_maintainer(self):
+        # A direct push leaves no merged PR for the base revision, so its
+        # arrival time cannot be established. Fresh CI cannot fix that; the
+        # reason must name the base SHA and request maintainer investigation
+        # instead of the stale-CI message.
+        result = verify(
+            base_sha='c' * 40,
+            associated_prs=[],
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('no merged PR for base ' + 'c' * 40,
+                      result['reasons'][0])
+        self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_invalid_base_merge_record_requires_maintainer(self):
+        # A merged PR whose merged_at is unparseable is a malformed record, not
+        # a missing one. It must get its own wording (and its own test): the
+        # reason names the base SHA, says the record is malformed, and still
+        # requests maintainer investigation, never the stale-CI message.
+        result = verify(
+            base_sha='c' * 40,
+            associated_prs=[{'number': 7, 'merged_at': 'not-a-date'}],
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('malformed merged-PR record for base ' + 'c' * 40,
+                      result['reasons'][0])
+        self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_missing_base_reason_fits_140_char_status(self):
+        # ci_passed.js slices the published status description to 140 chars.
+        # The missing/invalid reasons are emitted without the workflow-path
+        # prefix (the condition is repo-wide), so the full message must fit and
+        # the trailing "Maintainer investigation required." must survive. The
+        # longest real inventory path is used so an accidental re-introduction
+        # of the prefix would push the reason past the limit.
+        inventory = json.loads(
+            (ROOT / '.github/resources/ci-workflow-inventory.json').read_text())
+        longest = max(workflow['path'] for workflow in inventory['workflows'])
+        for associated_prs, fragment in [
+            ([], 'no merged PR for base '),
+            ([{'number': 7, 'merged_at': 'not-a-date'}],
+             'malformed merged-PR record for base '),
+        ]:
+            with self.subTest(fragment=fragment):
+                result = verify(
+                    base_sha='c' * 40,
+                    associated_prs=associated_prs,
+                    workflow_paths=[longest],
+                    runs=[good_run(path=longest,
+                                   created_at='2026-09-07T12:00:00Z')])
+                reason = result['reasons'][0]
+                self.assertLessEqual(len(reason), 140, reason)
+                self.assertIn(fragment + 'c' * 40, reason)
+                self.assertTrue(
+                    reason.endswith('Maintainer investigation required.'),
+                    reason)
 
     def test_latest_stale_success_cannot_outrank_fresh_failure(self):
         # The "latest-attempt ordering" attack (#14705): an old successful
