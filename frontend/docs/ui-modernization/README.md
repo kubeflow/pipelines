@@ -37,6 +37,15 @@ Capture `.visual/baseline` against the chosen baseline application first, or use
 
 `npm --prefix frontend run visual:current` from repository root writes to `frontend/.visual/current`. For direct `node frontend/scripts/visual-compare.mjs` invocation from repository root, pass `--out-dir frontend/.visual/current` explicitly. The cross-revision wrapper remains available as `frontend/scripts/visual-compare-run.sh <base-commit>`.
 
+The default routes target an application containing the run Timeline and export/import pages. The route set includes run Timeline (retry and cache-hit fixtures) and the export/import form. Captures verify the loaded forms; they do not execute metadata exports or imports. For revisions before those pages existed, use a compatible routes file for the baseline only:
+
+```sh
+BASE_ROUTES=/absolute/path/to/historical-routes.json \
+  frontend/scripts/visual-compare-run.sh <base-commit>
+```
+
+`ROUTES` selects the current routes; `BASE_ROUTES` defaults to the same file. Both accept paths relative to the invoking directory. Additional successful current screenshots are reported as added; failures still fail the comparison. A previously captured historical baseline can also be compared directly without recapturing unsupported routes.
+
 ## Verify
 
 From `frontend`:

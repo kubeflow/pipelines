@@ -146,7 +146,7 @@ it.each([
 });
 
 it.each([undefined, '', '2026-10-06T08:15:00.000Z'])(
-  'uses the selected clock for both captures (override: %s)',
+  'resolves per-side routes and the selected capture clock (override: %s)',
   (fixedTime) => {
     // The baseline retains its own Node version; current setup must happen only
     // once even though the current server and three comparison commands use it.
@@ -165,6 +165,7 @@ fi
     const captureArgs = path.join(root, 'capture-args');
     const inheritedEnv = { ...process.env };
     delete inheritedEnv.FIXED_TIME;
+    delete inheritedEnv.BASE_ROUTES;
     const result = spawnSync('/bin/bash', [wrapper, 'test-base'], {
       cwd: root,
       encoding: 'utf8',
@@ -185,6 +186,7 @@ fi
         CURRENT_SETUP_ONCE: path.join(root, 'current-node-setup'),
         ...(fixedTime === undefined ? {} : { FIXED_TIME: fixedTime }),
         ROUTES: 'frontend/scripts/custom-routes.json',
+        ...(fixedTime ? { BASE_ROUTES: 'frontend/scripts/legacy-routes.json' } : {}),
       },
     });
     expect(result.error).toBeUndefined();
@@ -195,7 +197,7 @@ fi
       expect(invocations[index]).toContain(`run visual:${mode} --`);
       expect(invocations[index]).toContain(`--out-dir ${root}/frontend/.visual/${mode}`);
       expect(invocations[index]).toContain(
-        `--routes ${fs.realpathSync(root)}/frontend/scripts/custom-routes.json`,
+        `--routes ${fs.realpathSync(root)}/frontend/scripts/${index === 0 && fixedTime ? 'legacy' : 'custom'}-routes.json`,
       );
       if (fixedTime === '') {
         expect(invocations[index]).not.toContain('--fixed-time');

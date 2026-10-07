@@ -19,6 +19,7 @@ if [[ -z "$BASE_COMMIT" ]]; then
   echo "  USE_MOCK        (default: 1)"
   echo "  SKIP_INSTALL    (default: 0)"
   echo "  ROUTES          (default: frontend/scripts/visual-compare.routes.json)"
+  echo "  BASE_ROUTES    (default: ROUTES; use a compatible manifest for older baselines)"
   echo "  FIXED_TIME      (default: 2026-09-26T12:00:00.000Z; empty uses the real clock)"
   exit 1
 fi
@@ -33,6 +34,10 @@ ROUTES="${ROUTES:-$ROOT/frontend/scripts/visual-compare.routes.json}"
 # Resolve caller-supplied routes before npm changes its working directory.
 if [[ "$ROUTES" != /* ]]; then
   ROUTES="$PWD/$ROUTES"
+fi
+BASE_ROUTES="${BASE_ROUTES:-$ROUTES}"
+if [[ "$BASE_ROUTES" != /* ]]; then
+  BASE_ROUTES="$PWD/$BASE_ROUTES"
 fi
 FIXED_TIME="${FIXED_TIME-2026-09-26T12:00:00.000Z}"
 clock_args=()
@@ -195,7 +200,7 @@ run_comparison_step() {
   fi
 }
 
-run_comparison_step "Baseline capture" visual:baseline -- --base-url "http://localhost:$BASE_PORT" --routes "$ROUTES" --out-dir "$OUT_DIR/baseline" ${clock_args[@]+"${clock_args[@]}"}
+run_comparison_step "Baseline capture" visual:baseline -- --base-url "http://localhost:$BASE_PORT" --routes "$BASE_ROUTES" --out-dir "$OUT_DIR/baseline" ${clock_args[@]+"${clock_args[@]}"}
 run_comparison_step "Current capture" visual:current -- --base-url "http://localhost:$CURRENT_PORT" --routes "$ROUTES" --out-dir "$OUT_DIR/current" ${clock_args[@]+"${clock_args[@]}"}
 run_comparison_step "Visual diff/report" visual:diff -- \
   --baseline-dir "$OUT_DIR/baseline" --current-dir "$OUT_DIR/current" \
