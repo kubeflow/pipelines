@@ -262,13 +262,17 @@ observe() {
     --expectations "$reports/$mode-baseline.json" --prediction-report "$reports/$mode-prediction.json" \
     --not-before "$(cat "$fixture_dir/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
     >"$reports/$mode-observed.json"; then
+    python3 "$helpers/capture_run_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --baseline "$reports/$mode-baseline.json" --observed "$reports/$mode-observed.json" \
+      --activation-start-file "$fixture_dir/activation-start.txt" --endpoint "$endpoint" \
+      --token-file "$state/token" >"$reports/$mode-failed-runs.json" || true
     python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
       --cases "$reports/$mode-baseline.json" >"$reports/$mode-failed-scheduler.json" || true
     return 1
   fi
   fixture --phase disable
   if ! drain "$mode"; then
-    python3 "$helpers/capture_run_diagnostics.py" --namespace "$namespace" \
+    python3 "$helpers/capture_run_diagnostics.py" --context "$context" --namespace "$namespace" \
       --baseline "$reports/$mode-baseline.json" --observed "$reports/$mode-observed.json" \
       --completion "$reports/$mode-completion.json" \
       --activation-start-file "$fixture_dir/activation-start.txt" --endpoint "$endpoint" \

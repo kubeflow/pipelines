@@ -142,6 +142,20 @@ class RunDiagnosticsTests(unittest.TestCase):
         self.assertEqual(report['reason'], 'invalid_or_incomplete_evidence')
         self.assertNotIn('private-payload', output.getvalue())
 
+    def test_database_logs_retain_only_list_error_codes(self):
+        logs = (
+            "private /api.v2beta1.RunService/ListRuns call failed Error 1038 (HY001): sensitive\n"
+            "private unrelated Error 1114 (HY000): sensitive\n")
+        with mock.patch.object(diag, 'collect_logs', return_value=logs):
+            report = diag.database_diagnostics('kind-kfp-readiness', self.start)
+        self.assertEqual(report['mysql_error_code_counts'], {'1038': 1})
+        self.assertNotIn('private', json.dumps(report))
+        self.assertNotIn('sensitive', json.dumps(report))
+        with mock.patch.object(
+                diag, 'collect_logs', side_effect=ValueError('private')):
+            report = diag.database_diagnostics('context', self.start)
+        self.assertEqual(report['reason'], 'api_log_collection_failed')
+
     def test_input_read_is_bounded(self):
         with mock.patch.object(
                 diag.Path,

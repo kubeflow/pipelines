@@ -10,10 +10,12 @@ drain. Only allowlisted metadata is retained, never raw API bodies or
 exception text.
 """
 import argparse
+from collections import Counter
 from datetime import datetime
 from datetime import timezone
 import json
 from pathlib import Path
+import re
 import time
 
 from kfp_http import Client
@@ -24,6 +26,7 @@ from live_schedule_check import list_runs
 from live_schedule_check import RUN_STATES
 from live_schedule_check import timestamp
 from live_schedule_check import validate_baseline
+from verify_live_audit import collect_logs
 
 MAX_INPUT = 4 * 1024 * 1024
 MAX_CASES = 3
@@ -187,9 +190,24 @@ def collect(client_factory, namespace, cases, observed, start, completion=None):
     return result
 
 
+def database_diagnostics(context, start):
+    """Keep only numeric MySQL codes from failed ListRuns log records."""
+    try:
+        logs = collect_logs(context, start)
+        codes = Counter(
+            code for line in logs.splitlines()
+            if '/ListRuns call failed' in line
+            for code in re.findall(r'Error ([0-9]{4}) \([0-9A-Z]{5}\)', line))
+        return dict(collection='complete', mysql_error_code_counts=dict(codes))
+    except (OSError, ValueError):
+        return dict(
+            collection='inconclusive', reason='api_log_collection_failed')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--namespace', required=True)
+    parser.add_argument('--context')
     parser.add_argument('--baseline', required=True)
     parser.add_argument('--observed', required=True)
     parser.add_argument('--completion')
@@ -197,6 +215,7 @@ def main():
     parser.add_argument('--endpoint', required=True)
     parser.add_argument('--token-file', required=True)
     args = parser.parse_args()
+    start = None
     try:
         cases, baseline_start = validate_baseline(
             load(args.baseline), args.namespace)
@@ -212,6 +231,9 @@ def main():
             scope='run_evidence_diagnostics_only',
             outcome='inconclusive',
             reason=reason(error))
+    if args.context and start is not None:
+        report['database_diagnostics'] = database_diagnostics(
+            args.context, start)
     print(json.dumps(report, sort_keys=True))
 
 
