@@ -69,6 +69,7 @@ on:
       - 'release/kfpr/core.py'
       - 'test_data/sdk_compiled_pipelines/valid/**'
       - 'backend/test/end2end/pipeline_e2e_test.go'
+      - 'test/kfp-kubernetes-native-migration-tests/**'
       - 'backend/test/v2/resources/env-var.yaml'
       - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
       - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'

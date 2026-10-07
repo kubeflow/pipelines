@@ -82,7 +82,10 @@ class ProfileRuntimeTests(unittest.TestCase):
     @unittest.skipUnless(
         shutil.which('kubectl'), 'kubectl is required for Kustomize rendering')
     def test_actual_deployment_uses_published_or_loaded_runtime(self):
-        for overlay in (None, 'default', 'artifact-proxy', 'postgresql'):
+        overlays = sorted((ROOT / '.github/resources/manifests/multiuser'
+                          ).glob('*/kustomization.yaml'))
+        self.assertTrue(overlays, 'No multi-user CI overlays found')
+        for overlay in [None, *overlays]:
             with self.subTest(overlay=overlay), tempfile.TemporaryDirectory(
             ) as directory:
                 specification = {
@@ -97,10 +100,7 @@ class ProfileRuntimeTests(unittest.TestCase):
                 }
                 expected = 'ghcr.io/kubeflow/kfp-profile-controller:master'
                 if overlay:
-                    configuration = yaml.safe_load((
-                        ROOT /
-                        f'.github/resources/manifests/multiuser/{overlay}/kustomization.yaml'
-                    ).read_text())
+                    configuration = yaml.safe_load(overlay.read_text())
                     specification['images'] = configuration['images']
                     expected = 'kind-registry:5000/profile-controller:ci'
                 path = Path(directory) / 'kustomization.yaml'
