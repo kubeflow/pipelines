@@ -716,5 +716,70 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
                     self._load_config()
 
 
+class TestCreateJobConfigPipelineVersionReference(parameterized.TestCase):
+    """`version_id` is optional; the server resolves the default version."""
+
+    def setUp(self):
+        super().setUp()
+        # __init__ contacts the cluster, and none of the code under test needs
+        # the state it sets up.
+        self.sdk_client = client.Client.__new__(client.Client)
+
+    def _job_config(self, pipeline_id, version_id):
+        return self.sdk_client._create_job_config(
+            params={},
+            pipeline_package_path=None,
+            pipeline_id=pipeline_id,
+            version_id=version_id,
+            enable_caching=None,
+            cache_key=None,
+            pipeline_root=None,
+        )
+
+    def test_pipeline_id_only_omits_version(self):
+        config = self._job_config(pipeline_id='p1', version_id=None)
+
+        self.assertEqual(config.pipeline_version_reference.pipeline_id, 'p1')
+        self.assertIsNone(config.pipeline_version_reference.pipeline_version_id)
+
+    def test_pipeline_id_only_is_omitted_on_the_wire(self):
+        # The server treats an absent pipeline_version_id as "use the default
+        # version", so it must not be serialized as an explicit null.
+        config = self._job_config(pipeline_id='p1', version_id=None)
+
+        payload = kfp_server_api.ApiClient().sanitize_for_serialization(
+            config.pipeline_version_reference)
+
+        self.assertEqual(payload, {'pipeline_id': 'p1'})
+
+    def test_pipeline_id_and_version_id(self):
+        config = self._job_config(pipeline_id='p1', version_id='v1')
+
+        self.assertEqual(config.pipeline_version_reference.pipeline_id, 'p1')
+        self.assertEqual(config.pipeline_version_reference.pipeline_version_id,
+                         'v1')
+
+    def test_version_id_without_pipeline_id_raises(self):
+        with self.assertRaisesRegex(ValueError,
+                                    '`pipeline_id` is also required'):
+            self._job_config(pipeline_id=None, version_id='v1')
+
+    def test_no_source_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Must specify either'):
+            self._job_config(pipeline_id=None, version_id=None)
+
+    def test_both_sources_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Must specify either'):
+            self.sdk_client._create_job_config(
+                params={},
+                pipeline_package_path='pipeline.yaml',
+                pipeline_id='p1',
+                version_id=None,
+                enable_caching=None,
+                cache_key=None,
+                pipeline_root=None,
+            )
+
+
 if __name__ == '__main__':
     unittest.main()
