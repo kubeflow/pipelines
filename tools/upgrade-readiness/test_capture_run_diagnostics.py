@@ -68,6 +68,19 @@ class RunDiagnosticsTests(unittest.TestCase):
         self.assertNotEqual(report['outcome'], 'passed')
         self.assertNotIn('must-not-leak', json.dumps(report))
 
+    def test_includes_ids_first_seen_during_drain(self):
+        client = Client([], {
+            'run': self.run,
+            'late': dict(self.run, run_id='late')
+        })
+        report = diag.collect(lambda: client, 'ns', [self.case], self.observed,
+                              self.start,
+                              dict(known_run_ids={'schedule': ['late', 'run']}))
+        direct = report['cases'][0]['direct']
+        self.assertEqual(direct['known_id_count'], 2)
+        self.assertEqual([r['requested_run_id'] for r in direct['records']],
+                         ['late', 'run'])
+
     def test_timestamp_and_baseline_exclusions_are_distinct(self):
         self.case['baseline_run_ids'] = ['run']
         self.start = diag.timestamp('2026-01-01T00:02:00Z')

@@ -99,7 +99,7 @@ def project(run, case, start):
         excluded_reasons=excluded)
 
 
-def collect(client_factory, namespace, cases, observed, start):
+def collect(client_factory, namespace, cases, observed, start, completion=None):
     if len(cases) > MAX_CASES:
         raise ValueError('case_limit')
     if not isinstance(observed, dict) or not isinstance(
@@ -149,7 +149,14 @@ def collect(client_factory, namespace, cases, observed, start):
                 collection='inconclusive',
                 reason='invalid_observation_identity')
             continue
-        ids = sorted({identifier(r['run_id']) for r in matches[0]['runs']})
+        ids = {identifier(r['run_id']) for r in matches[0]['runs']}
+        if completion is not None:
+            known = completion.get('known_run_ids',
+                                   {}).get(case['schedule_uid'], [])
+            if not isinstance(known, list) or len(known) > 10000:
+                raise ValueError('invalid_completion_ids')
+            ids.update(identifier(uid) for uid in known)
+        ids = sorted(ids)
         direct = dict(
             records=[],
             truncated=len(ids) > MAX_DIRECT_RECORDS,
@@ -185,6 +192,7 @@ def main():
     parser.add_argument('--namespace', required=True)
     parser.add_argument('--baseline', required=True)
     parser.add_argument('--observed', required=True)
+    parser.add_argument('--completion')
     parser.add_argument('--activation-start-file', required=True)
     parser.add_argument('--endpoint', required=True)
     parser.add_argument('--token-file', required=True)
@@ -197,7 +205,8 @@ def main():
         if start < baseline_start:
             raise ValueError('invalid_activation_start')
         report = collect(lambda: Client(args.endpoint, args.token_file),
-                         args.namespace, cases, load(args.observed), start)
+                         args.namespace, cases, load(args.observed), start,
+                         load(args.completion) if args.completion else None)
     except (ValueError, TypeError, KeyError, AttributeError, OSError) as error:
         report = dict(
             scope='run_evidence_diagnostics_only',

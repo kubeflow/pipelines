@@ -211,6 +211,8 @@ try:
         for case in cases:
             collect = source_run_evidence if mode == 'source' else run_evidence
             records = collect(client, fixture['namespace'], case, start)
+            known_ids.setdefault(case['schedule_uid'], set()).update(
+                run['run_id'] for run in records)
             record = {'scenario': case['scenario'], 'schedule_uid': case['schedule_uid'],
                       'service_account': case['service_account'], 'runs': records}
             evidence.append(record)
@@ -240,7 +242,9 @@ except Exception:
     (state / f'reports/{mode}-completion.json').write_text(json.dumps({
         'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'inconclusive',
         'reason': failure_reason, 'evidence_scope': 'last_successful_collection_per_case',
-        'cases': list(last_evidence.values()), 'diagnostics': diagnostics()}))
+        'cases': list(last_evidence.values()),
+        'known_run_ids': {uid: sorted(ids) for uid, ids in known_ids.items()},
+        'diagnostics': diagnostics()}))
     sys.exit('Fixture completion failed: disable schedules and establish successful expected runs before continuing.')
 PYDRAIN
 }
@@ -266,6 +270,7 @@ observe() {
   if ! drain "$mode"; then
     python3 "$helpers/capture_run_diagnostics.py" --namespace "$namespace" \
       --baseline "$reports/$mode-baseline.json" --observed "$reports/$mode-observed.json" \
+      --completion "$reports/$mode-completion.json" \
       --activation-start-file "$fixture_dir/activation-start.txt" --endpoint "$endpoint" \
       --token-file "$state/token" >"$reports/$mode-failed-runs.json" || true
     python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \

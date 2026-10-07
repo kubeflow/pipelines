@@ -542,6 +542,80 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
                         }],
                         passes=run_state == 'SUCCEEDED')
 
+    def test_drain_remembers_runs_first_seen_after_observation(self):
+        import time
+
+        import kfp_http
+        import live_schedule_check
+        import source_schedule_check
+
+        body = SCRIPT.read_text().split("<<'PYDRAIN'\n",
+                                        1)[1].split('\nPYDRAIN', 1)[0]
+        for phase in ('source', 'restored'):
+            for reappears in (False, True):
+                with self.subTest(
+                        phase=phase, reappears=reappears
+                ), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    (root / 'fixture').mkdir()
+                    (root / 'reports').mkdir()
+                    case = dict(
+                        scenario='default',
+                        schedule_uid='uid',
+                        service_account='runner',
+                        expected_outcome='run_succeeded')
+                    (root / 'fixture/state.json').write_text(
+                        json.dumps(dict(namespace='fixture', schedules=[case])))
+                    (root / 'fixture/activation-start.txt'
+                    ).write_text('2026-01-01T00:00:00Z')
+                    (root / f'reports/{phase}-baseline.json').write_text(
+                        json.dumps(dict(cases=[case])))
+                    (root / f'reports/{phase}-observed.json').write_text(
+                        json.dumps(
+                            dict(cases=[
+                                dict(
+                                    schedule_uid='uid',
+                                    runs=[dict(run_id='observed')])
+                            ])))
+                    clock = [0]
+
+                    def collect(*args):
+                        records = [dict(run_id='observed', state='SUCCEEDED')]
+                        if clock[0] == 0:
+                            records.append(dict(run_id='late', state='RUNNING'))
+                        elif reappears and clock[0] >= 10:
+                            records.append(
+                                dict(run_id='late', state='SUCCEEDED'))
+                        return records
+
+                    def sleep(seconds):
+                        clock[0] += seconds
+
+                    with mock.patch.object(sys, 'argv', ['drain', tmp, phase]), \
+                         mock.patch.object(time, 'monotonic', side_effect=lambda: clock[0]), \
+                         mock.patch.object(time, 'sleep', side_effect=sleep), \
+                         mock.patch.object(kfp_http, 'Client'), \
+                         mock.patch.object(live_schedule_check, 'run_evidence', side_effect=collect), \
+                         mock.patch.object(source_schedule_check, 'source_run_evidence', side_effect=collect), \
+                         mock.patch.object(source_schedule_check, 'diagnostics', return_value={}):
+                        if reappears:
+                            exec(compile(body, str(SCRIPT), 'exec'), {})
+                        else:
+                            with self.assertRaises(SystemExit):
+                                exec(compile(body, str(SCRIPT), 'exec'), {})
+                    report = json.loads(
+                        (root / f'reports/{phase}-completion.json').read_text())
+                    if reappears:
+                        self.assertEqual(report['outcome'], 'passed')
+                        self.assertEqual(clock[0], 10)
+                    else:
+                        self.assertEqual(report['outcome'], 'inconclusive')
+                        self.assertEqual(report['reason'],
+                                         'fixture_runs_not_drained')
+                        self.assertEqual(report['known_run_ids'],
+                                         {'uid': ['late', 'observed']})
+                        self.assertEqual(clock[0], 600)
+
     def run_drain(self, body, phase, records, *, passes, blocked=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
