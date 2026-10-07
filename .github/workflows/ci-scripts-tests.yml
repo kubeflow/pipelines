@@ -28,6 +28,7 @@ on:
       - '.github/resources/scripts/*.py'
       - '.github/resources/scripts/*.js'
       - '.github/resources/ci-workflow-inventory.json'
+      - 'test/presubmit-backend-test.sh'
       # Any trigger change must update the expected-workflow inventory.
       - '.github/workflows/**'
       - '.github/scripts/*.py'

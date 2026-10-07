@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / '.github/resources/scripts/download-go-modules.sh'
 WORKFLOW = ROOT / '.github/workflows/legacy-v2-api-integration-tests.yml'
 ACTION = ROOT / '.github/actions/test-and-report/action.yml'
+BACKEND_WORKFLOW = ROOT / '.github/workflows/presubmit-backend.yml'
 
 
 class GoModuleDownloadRetryTest(unittest.TestCase):
@@ -72,18 +73,33 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 os.execvpe(args[2], args[2:], environment)
             elif command == 'go':
                 if args != ['mod', 'download']:
+                    if os.environ.get('FAKE_BACKEND_MODE'):
+                        if args == ['env', 'GOPATH']:
+                            print(os.environ['FAKE_GOPATH'])
+                            sys.exit(0)
+                        if args == ['mod', 'tidy']:
+                            sys.exit(int(os.environ.get('FAKE_TIDY_EXIT', '0')))
+                        if args == ['list', './backend/...']:
+                            print('github.com/kubeflow/pipelines/backend/example')
+                            sys.exit(0)
+                        if args[:3] == ['test', '-v', '-cover']:
+                            sys.exit(int(os.environ.get('FAKE_TEST_EXIT', '0')))
                     sys.exit('Unexpected Go command: ' + repr(args))
                 counter = Path(os.environ['FAKE_GO_COUNT'])
                 count = int(counter.read_text()) + 1 if counter.exists() else 1
                 counter.write_text(str(count))
                 failures = int(os.environ.get('FAKE_GO_FAILURES', '0'))
                 sys.exit(17 if count <= failures else 0)
+            elif command == 'git':
+                if args != ['diff', '--exit-code', '--', 'go.mod', 'go.sum']:
+                    sys.exit('Unexpected Git command: ' + repr(args))
+                sys.exit(0)
             elif command == 'sleep':
                 sys.exit(0)
             else:
                 sys.exit('Unexpected fake command: ' + command)
             ''')
-        for name in ('go', 'sleep', 'timeout'):
+        for name in ('go', 'git', 'sleep', 'timeout'):
             executable = self.bin_directory / name
             executable.write_text(program, encoding='utf-8')
             executable.chmod(0o755)
@@ -196,9 +212,12 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
     def test_callers_download_before_setup_and_keep_tests_outside_retries(self):
         workflow = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))
         action = yaml.safe_load(ACTION.read_text(encoding='utf-8'))
+        backend = yaml.safe_load(BACKEND_WORKFLOW.read_text(encoding='utf-8'))
         callers = (
             (WORKFLOW, workflow['jobs']['api-integration-tests-v2']['steps'],
              'Set up Go', 'Create KFP cluster', 'API integration tests v2'),
+            (BACKEND_WORKFLOW, backend['jobs']['backend-tests']['steps'],
+             'Set up Go', 'Run Backend Tests', 'Run Backend Tests'),
             (ACTION, action['runs']['steps'],
              'Restore Go build and module caches', 'Configure API Access',
              'Run Tests'),
@@ -236,14 +255,61 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 self.assertEqual(len(self.events('go')), 3)
                 self.assert_one_outer_deadline()
 
-    def test_compiler_workflow_watches_shared_downloader_dependencies(self):
+    def test_backend_tidy_and_tests_run_once_after_downloads(self):
+        workflow = yaml.safe_load(BACKEND_WORKFLOW.read_text(encoding='utf-8'))
+        steps = workflow['jobs']['backend-tests']['steps']
+        test_step = next(
+            step for step in steps if step.get('name') == 'Run Backend Tests')
+        for tidy_status, test_status, expected in ((0, 0, 0), (23, 0, 23),
+                                                   (0, 29, 29)):
+            with self.subTest(tidy=tidy_status, tests=test_status):
+                result = self.run_download(
+                    environment={
+                        'FAKE_BACKEND_MODE': '1',
+                        'FAKE_GOPATH': str(self.directory),
+                        'FAKE_TIDY_EXIT': str(tidy_status),
+                        'FAKE_TEST_EXIT': str(test_status),
+                    },
+                    command=['bash', '-e', '-c', test_step['run']],
+                    cwd=ROOT,
+                )
+
+                self.assertEqual(result.returncode, expected, result.stderr)
+                go_commands = [event['args'] for event in self.events('go')]
+                expected_commands = [['env', 'GOPATH'], ['mod', 'tidy']]
+                if not tidy_status:
+                    expected_commands.extend([
+                        ['list', './backend/...'],
+                        [
+                            'test', '-v', '-cover',
+                            'github.com/kubeflow/pipelines/backend/example'
+                        ],
+                    ])
+                self.assertEqual(go_commands, expected_commands)
+                self.assertEqual(self.events('timeout'), [])
+                self.assertEqual(self.events('sleep'), [])
+                for event in self.events('go'):
+                    self.assertEqual(event['environment']['GOPROXY'],
+                                     'https://proxy.golang.org|direct')
+
+    def test_workflows_watch_shared_downloader_dependencies(self):
+        for name in ('compiler-tests.yml', 'presubmit-backend.yml'):
+            with self.subTest(workflow=name):
+                workflow = yaml.load(
+                    (ROOT / '.github/workflows' /
+                     name).read_text(encoding='utf-8'),
+                    Loader=yaml.BaseLoader)
+                paths = workflow['on']['pull_request']['paths']
+                self.assertIn(
+                    '.github/resources/scripts/download-go-modules.sh', paths)
+                self.assertIn('.github/resources/scripts/helper-functions.sh',
+                              paths)
         workflow = yaml.load(
-            (ROOT / '.github/workflows/compiler-tests.yml').read_text(
+            (ROOT / '.github/workflows/ci-scripts-tests.yml').read_text(
                 encoding='utf-8'),
             Loader=yaml.BaseLoader)
-        paths = workflow['on']['pull_request']['paths']
-        self.assertIn('.github/resources/scripts/download-go-modules.sh', paths)
-        self.assertIn('.github/resources/scripts/helper-functions.sh', paths)
+        self.assertIn('test/presubmit-backend-test.sh',
+                      workflow['on']['pull_request']['paths'])
 
 
 if __name__ == '__main__':

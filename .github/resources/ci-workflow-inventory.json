@@ -126,7 +126,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "841cf654825065233ec3e720781d5344e2a361bc3f6b02b0c82f9a48ead789ca",
+      "header_sha256": "a87cf7c4f4235bbe1152a68c38fef041ee47319da2e86238b8ae3bcef1a81a1b",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -148,6 +148,7 @@
           ".github/resources/scripts/*.py",
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
+          "test/presubmit-backend-test.sh",
           ".github/workflows/**",
           ".github/scripts/*.py",
           ".github/resources/scripts/*.sh",
@@ -590,11 +591,13 @@
     {
       "path": ".github/workflows/presubmit-backend.yml",
       "name": "KFP Backend Tests",
-      "header_sha256": "80eebdb054c5dbf5430feb4870891cc361c99677c26db49334c95b08a2753ed4",
+      "header_sha256": "388a9398f2d9580d3641b5a989edff8af18c0beb9b1b517ccf27e58d36d4e023",
       "pull_request": {
         "paths": [
           ".github/workflows/presubmit-backend.yml",
           ".github/actions/setup-go/**",
+          ".github/resources/scripts/download-go-modules.sh",
+          ".github/resources/scripts/helper-functions.sh",
           "go.mod",
           "go.sum",
           "backend/**",
