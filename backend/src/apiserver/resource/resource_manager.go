@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -734,6 +735,19 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	// Caller-supplied IDs can refer to imported history. Reject them before
+	// creating a workflow or invoking plugins, rather than at the SQL insert.
+	if run.UUID != "" {
+		existing, err := r.runStore.GetRun(run.UUID, false)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return nil, util.Wrapf(err, "Failed to check supplied run ID %s before creation", run.UUID)
+		}
+		if err == nil {
+			if err := importedRunMutationError(existing); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if !common.IsMultiUserMode() && run.RecurringRunId != "" && run.DisplayName != "" {
 		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
 		if err != nil {
@@ -1124,6 +1138,13 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete run %v as it does not exist", runId)
 	}
+	if run.ImportedFrom != "" {
+		if err := r.runStore.DeleteRun(runId); err != nil {
+			return util.Wrapf(err, "Failed to delete imported run %s", runId)
+		}
+		r.storedWorkflowIdentities.delete(runId)
+		return nil
+	}
 	if run.Namespace == "" {
 		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
@@ -1166,6 +1187,9 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	run, err := r.GetRun(t.RunUUID)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunUUID)
+	}
+	if err := importedRunMutationError(run); err != nil {
+		return nil, err
 	}
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
@@ -1272,6 +1296,9 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate run %s due to error fetching the run", runId)
 	}
+	if err := importedRunMutationError(run); err != nil {
+		return err
+	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate run %s due to error fetching its namespace", runId)
@@ -1297,6 +1324,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to error fetching the run", runId)
+	}
+	if err := importedRunMutationError(run); err != nil {
+		return err
 	}
 	if run.StorageState.ToV2() == model.StorageStateArchived {
 		return storage.NewArchivedRunRetryError(runId)
@@ -1638,6 +1668,13 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to run fetching error", runId)
 	}
+	if run.ImportedFrom != "" {
+		if r.logArchive == nil {
+			return util.NewFailedPreconditionError(errors.New("log archive is not configured"),
+				"Run %s is imported history. Configure access to its archived logs to read them", runId)
+		}
+		return r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
+	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error", runId)
@@ -1795,6 +1832,29 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
+	scheduledWorkflow, err := r.prepareJobWorkflow(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+	k8sNamespace := job.Namespace
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
+	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, util.NewUnavailableServerError(err, "Failed to create a recurring run during scheduling a workflow - try again later")
+		}
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
+	}
+	// Complete modelJob with info coming back from ScheduledWorkflow client.
+	swf := util.NewScheduledWorkflow(newScheduledWorkflow)
+	job.UUID = string(swf.UID)
+	job.K8SName = swf.Name
+	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
+
+	return r.jobStore.CreateJob(job)
+}
+
+// prepareJobWorkflow validates a schedule without creating Kubernetes or SQL resources.
+func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -1909,20 +1969,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
-	if err != nil {
-		if err, ok := err.(net.Error); ok && err.Timeout() {
-			return nil, util.NewUnavailableServerError(err, "Failed to create a recurring run during scheduling a workflow - try again later")
-		}
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
-	}
-	// Complete modelJob with info coming back from ScheduledWorkflow client.
-	swf := util.NewScheduledWorkflow(newScheduledWorkflow)
-	job.UUID = string(swf.UID)
-	job.K8SName = swf.Name
-	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
-
-	return r.jobStore.CreateJob(job)
+	return scheduledWorkflow, nil
 }
 
 // Enables or disables a recurring run with given id.
@@ -2046,6 +2093,28 @@ func (r *ResourceManager) reportWorkflowResource(
 	if len(execSpec.ExecutionNamespace()) == 0 {
 		return nil, util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
 	}
+	// If run already exists, simply update it
+	var updateError error
+	if run == nil {
+		run, updateError = r.GetRun(runId)
+	} else if run.UUID != runId {
+		return nil, util.NewInvalidInputError(
+			"Failed to report workflow: provided run does not match the workflow run ID")
+	}
+	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
+		// Fail closed: a transient run-store read error must not skip the
+		// generation fence below and fall through into the
+		// persisted-final-state deletion - with an empty-resourceVersion
+		// stale snapshot that would delete the live retried workflow.
+		// NotFound keeps its dedicated recovery paths (workflow GC and the
+		// grace-period handling further down).
+		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
+	}
+	if updateError == nil {
+		if err := importedRunMutationError(run); err != nil {
+			return nil, err
+		}
+	}
 	// Evaluate the effective status at return time because identity validation
 	// can replace a stale non-terminal snapshot with the terminal live workflow.
 	defer func() {
@@ -2075,23 +2144,6 @@ func (r *ResourceManager) reportWorkflowResource(
 				"workflow resource version changed before terminal report was persisted",
 			)
 		}
-	}
-	// If run already exists, simply update it
-	var updateError error
-	if run == nil {
-		run, updateError = r.GetRun(runId)
-	} else if run.UUID != runId {
-		return nil, util.NewInvalidInputError(
-			"Failed to report workflow: provided run does not match the workflow run ID")
-	}
-	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
-		// Fail closed: a transient run-store read error must not skip the
-		// generation fence below and fall through into the
-		// persisted-final-state deletion - with an empty-resourceVersion
-		// stale snapshot that would delete the live retried workflow.
-		// NotFound keeps its dedicated recovery paths (workflow GC and the
-		// grace-period handling further down).
-		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
 	}
 	var expectedWorkflowRuntimeManifest model.LargeText
 	var expectedPipelineRuntimeManifest model.LargeText
@@ -2485,6 +2537,11 @@ func (r *ResourceManager) reportWorkflowResource(
 				retryGeneration: run.RetryGeneration,
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
+	}
+	if len(run.Tasks) > 0 {
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
+		}
 	}
 	// Delete a fully persisted workflow only after the version check above:
 	// a stale snapshot carrying the persisted-final-state label must not
@@ -3405,7 +3462,21 @@ func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, err
 
 // UpdateTask updates a task entry.
 func (r *ResourceManager) UpdateTask(new *model.Task) (*model.Task, error) {
-	// Update task
+	if new == nil || new.UUID == "" {
+		return r.taskStore.UpdateTask(new)
+	}
+	existing, err := r.taskStore.GetTask(new.UUID)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.checkRunAllowsRuntimeWrites(existing.RunUUID); err != nil {
+		return nil, err
+	}
+	if new.RunUUID != "" && new.RunUUID != existing.RunUUID {
+		if err := r.checkRunAllowsRuntimeWrites(new.RunUUID); err != nil {
+			return nil, err
+		}
+	}
 	return r.taskStore.UpdateTask(new)
 }
 
@@ -3663,12 +3734,16 @@ func (r *ResourceManager) GetPipelineVersionTemplate(pipelineVersionId string) (
 // target namespace. If the returned error is nil, the authorization passes. Otherwise,
 // authorization fails with a non-nil error.
 func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	return r.isAuthorized(ctx, resourceAttributes, true)
+}
+
+func (r *ResourceManager) isAuthorized(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes, allowSharedRead bool) error {
 	if !common.IsMultiUserMode() {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
 
-	if common.IsMultiUserSharedReadMode() &&
+	if allowSharedRead && common.IsMultiUserSharedReadMode() &&
 		(resourceAttributes.Verb == common.RbacResourceVerbGet ||
 			resourceAttributes.Verb == common.RbacResourceVerbList) {
 		glog.Infof("Multi-user shared read mode is enabled. Request allowed: %+v", resourceAttributes)
@@ -3977,6 +4052,9 @@ func (r *ResourceManager) ListArtifactTasks(filterContexts []*model.FilterContex
 
 // CreateArtifactTask Creates an artifact-task relationship entry.
 func (r *ResourceManager) CreateArtifactTask(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	if err := r.checkArtifactTasksAllowRuntimeWrites([]*model.ArtifactTask{artifactTask}); err != nil {
+		return nil, err
+	}
 	newAT, err := r.artifactTaskStore.CreateArtifactTask(artifactTask)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact-task relationship")
@@ -3986,6 +4064,9 @@ func (r *ResourceManager) CreateArtifactTask(artifactTask *model.ArtifactTask) (
 
 // CreateArtifactTasks Creates multiple artifact-task relationship entries in bulk.
 func (r *ResourceManager) CreateArtifactTasks(artifactTasks []*model.ArtifactTask) ([]*model.ArtifactTask, error) {
+	if err := r.checkArtifactTasksAllowRuntimeWrites(artifactTasks); err != nil {
+		return nil, err
+	}
 	newATs, err := r.artifactTaskStore.CreateArtifactTasks(artifactTasks)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact-task relationships in bulk")
@@ -4016,6 +4097,9 @@ func (r *ResourceManager) CreateArtifact(artifact *model.Artifact) (*model.Artif
 // the artifact and artifact_task tables in sync and prevents orphaned artifacts if
 // the second insert fails after the artifact row has been written.
 func (r *ResourceManager) CreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	if err := r.checkArtifactTasksAllowRuntimeWrites([]*model.ArtifactTask{artifactTask}); err != nil {
+		return nil, nil, err
+	}
 	newArtifact, newArtifactTask, err := r.artifactStore.CreateArtifactWithTask(artifact, artifactTask)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifact and artifact-task")
@@ -4026,6 +4110,9 @@ func (r *ResourceManager) CreateArtifactWithTask(artifact *model.Artifact, artif
 // FindOrCreateArtifactWithTask reuses a matching artifact or creates one, then links it.
 // Used by CreateArtifact when reuse_if_exists is set so concurrent importers share one row.
 func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	if err := r.checkArtifactTasksAllowRuntimeWrites([]*model.ArtifactTask{artifactTask}); err != nil {
+		return nil, nil, err
+	}
 	newArtifact, newArtifactTask, err := r.artifactStore.FindOrCreateArtifactWithTask(artifact, artifactTask)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to find or create artifact and artifact-task")
@@ -4037,6 +4124,9 @@ func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact,
 // The slices are index-aligned, and the method is intentionally all-or-nothing so a
 // later artifact_task failure cannot leave earlier artifacts committed without links.
 func (r *ResourceManager) CreateArtifactsWithTasks(artifacts []*model.Artifact, artifactTasks []*model.ArtifactTask) ([]*model.Artifact, []*model.ArtifactTask, error) {
+	if err := r.checkArtifactTasksAllowRuntimeWrites(artifactTasks); err != nil {
+		return nil, nil, err
+	}
 	createdArtifacts, createdArtifactTasks, err := r.artifactStore.CreateArtifactsWithTasks(artifacts, artifactTasks)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
@@ -4068,6 +4158,98 @@ func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Art
 		return nil, util.Wrap(err, "Failed to get artifacts by URI")
 	}
 	return artifacts, nil
+}
+
+// podNamesFromTask returns the pod names recorded in task.Pods.
+func podNamesFromTask(task *model.Task) []string {
+	var names []string
+	for _, pod := range task.Pods {
+		podMap, ok := pod.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if name, ok := podMap["name"].(string); ok && name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+func containsString(values []string, want string) bool {
+	for _, v := range values {
+		if v == want {
+			return true
+		}
+	}
+	return false
+}
+
+// lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
+// and returns the resolved message from the most recently created pod. matched is true when at
+// least one node was attributed to this task by pod name.
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+	if task == nil {
+		return "", false
+	}
+	podNames := podNamesFromTask(task)
+	if len(podNames) == 0 {
+		return "", false
+	}
+	type podMatch struct {
+		msg        string
+		createTime int64
+	}
+	var matches []podMatch
+	for id, node := range nodes {
+		if !containsString(podNames, node.ID) {
+			continue
+		}
+		matches = append(matches, podMatch{msg: resolved[id], createTime: node.CreateTime})
+	}
+	if len(matches) == 0 {
+		return "", false
+	}
+	// Pick the message from the most recently created pod so that a recovered retry
+	// (no lifecycle event) overrides a stale failure from an earlier attempt.
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].createTime > matches[j].createTime
+	})
+	return matches[0].msg, true
+}
+
+// persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
+// to the provided tasks. tasks should be the hydrated tasks already loaded for the run
+// (e.g. from run.Tasks) to avoid an additional database query.
+func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec) error {
+	if execSpec == nil || execSpec.ExecutionStatus() == nil || len(tasks) == 0 {
+		return nil
+	}
+	nodes := execSpec.ExecutionStatus().NodeStatuses()
+	if len(nodes) == 0 {
+		return nil
+	}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	for _, task := range tasks {
+		msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+		if !matched {
+			continue
+		}
+		currentMsg := ""
+		if task.LifecycleMessage != nil {
+			currentMsg = string(*task.LifecycleMessage)
+		}
+		if currentMsg == msg {
+			continue
+		}
+		lm := model.LargeText(msg)
+		if _, err := r.taskStore.UpdateTask(&model.Task{
+			UUID:             task.UUID,
+			LifecycleMessage: &lm,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {

@@ -1343,6 +1343,37 @@ describe('RunDetailsV2', () => {
   });
 
   describe('topbar tabs', () => {
+    it.each(['timeline', 'waterfall'])(
+      'opens Timeline from the %s URL using existing task data',
+      async (tab) => {
+        renderRunDetailsWithSearch(`?tab=${tab}`);
+        expect(
+          await screen.findByRole('table', { name: 'Component timeline timings' }),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Timeline', exact: true })).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', { name: 'Waterfall', exact: true }),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it('opens Timeline and navigates back to a component in the graph', async () => {
+      const { rerenderWithSearch } = renderRunDetailsWithSearch('');
+      await userEvent.click(screen.getByRole('button', { name: 'Timeline', exact: true }));
+      expect(navigateSpy).toHaveBeenLastCalledWith(
+        { pathname: '/runs/details/1', search: 'tab=timeline' },
+        { replace: true },
+      );
+      rerenderWithSearch('?tab=timeline');
+      await screen.findByRole('table', { name: 'Component timeline timings' });
+      await userEvent.click(screen.getByRole('button', { name: 'train', exact: true }));
+      await userEvent.click(screen.getByRole('button', { name: 'Open task in graph' }));
+      expect(navigateSpy).toHaveBeenLastCalledWith({
+        pathname: '/runs/details/1',
+        search: 'task=train-task',
+      });
+    });
+
     it('switches to Detail tab', async () => {
       render(
         <CommonTestWrapper>

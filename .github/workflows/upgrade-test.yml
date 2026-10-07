@@ -22,6 +22,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'tools/upgrade-readiness/**'

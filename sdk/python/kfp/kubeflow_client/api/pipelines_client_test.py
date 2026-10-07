@@ -25,7 +25,6 @@ from kfp.kubeflow_client import constants
 from kfp.kubeflow_client.api.pipelines_client import PipelinesClient
 from kfp.kubeflow_client.backends.kubernetes.types import \
     KubernetesBackendConfig
-import kfp_server_api
 import pytest
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'

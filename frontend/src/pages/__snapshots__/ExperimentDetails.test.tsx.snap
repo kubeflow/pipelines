@@ -228,7 +228,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
         >
           <div
             class="indicator_fp4eggn"
-            style="left: -5px; width: 5px; display: block;"
+            style="left: -2.5px; width: 5px; display: block;"
           />
           <span
             style="display: inline-block; min-width: 20px; width: 20px;"
@@ -726,7 +726,7 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
         >
           <div
             class="indicator_fp4eggn"
-            style="left: -5px; width: 5px; display: block;"
+            style="left: -2.5px; width: 5px; display: block;"
           />
           <span
             style="display: inline-block; min-width: 20px; width: 20px;"
@@ -1222,7 +1222,7 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
         >
           <div
             class="indicator_fp4eggn"
-            style="left: -5px; width: 5px; display: block;"
+            style="left: -2.5px; width: 5px; display: block;"
           />
           <span
             style="display: inline-block; min-width: 20px; width: 20px;"

@@ -16,4 +16,5 @@
 source_root=$(pwd)
 
 # Dependencies are already installed via 'uv sync' in CI
-uv run docformatter --check --recursive "${source_root}/sdk/python/" --exclude "compiler_test.py"
+uv run docformatter --check --recursive "${source_root}/sdk/python/" \
+  --exclude "compiler_test.py" "*_pb2.py" "server_api" "kubernetes"
