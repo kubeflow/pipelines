@@ -397,7 +397,7 @@ class TestClient(parameterized.TestCase):
             experiment_name='foo', namespace='ns1')
         mock_get_url_prefix.assert_called_once()
 
-    @patch('kfp.server_api.V2beta1Experiment')
+    @patch('kfp.server_api.V2Experiment')
     @patch(
         'kfp.Client.get_experiment',
         side_effect=ValueError('No experiment is found with name'))

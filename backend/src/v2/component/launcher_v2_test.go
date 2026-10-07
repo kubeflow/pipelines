@@ -31,7 +31,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes/fake"
@@ -62,8 +62,8 @@ type finalizationFailureAPI struct {
 
 func (api *finalizationFailureAPI) UpdateTasksBulk(
 	ctx context.Context,
-	req *apiv2beta1.UpdateTasksBulkRequest,
-) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	req *apiv2.UpdateTasksBulkRequest,
+) (*apiv2.UpdateTasksBulkResponse, error) {
 	if api.updateTasksBulkErr != nil {
 		return nil, api.updateTasksBulkErr
 	}
@@ -72,8 +72,8 @@ func (api *finalizationFailureAPI) UpdateTasksBulk(
 
 func (api *finalizationFailureAPI) UpdateTask(
 	ctx context.Context,
-	req *apiv2beta1.UpdateTaskRequest,
-) (*apiv2beta1.PipelineTask, error) {
+	req *apiv2.UpdateTaskRequest,
+) (*apiv2.PipelineTask, error) {
 	if api.updateTaskErr != nil {
 		return nil, api.updateTaskErr
 	}
@@ -82,8 +82,8 @@ func (api *finalizationFailureAPI) UpdateTask(
 
 func (api *finalizationFailureAPI) GetRun(
 	ctx context.Context,
-	req *apiv2beta1.GetRunRequest,
-) (*apiv2beta1.Run, error) {
+	req *apiv2.GetRunRequest,
+) (*apiv2.Run, error) {
 	if api.getRunErr != nil {
 		return nil, api.getRunErr
 	}
@@ -92,9 +92,9 @@ func (api *finalizationFailureAPI) GetRun(
 
 func (api *finalizationFailureAPI) UpdateStatuses(
 	ctx context.Context,
-	run *apiv2beta1.Run,
+	run *apiv2.Run,
 	pipelineSpec *structpb.Struct,
-	currentTask *apiv2beta1.PipelineTask,
+	currentTask *apiv2.PipelineTask,
 ) error {
 	if api.updateStatusesErr != nil {
 		return api.updateStatusesErr
@@ -143,19 +143,19 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			baseAPI := kfpapi.NewMockAPI()
-			run := &apiv2beta1.Run{
+			run := &apiv2.Run{
 				RunId: "run",
-				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+				PipelineSource: &apiv2.Run_PipelineSpec{
 					PipelineSpec: &structpb.Struct{},
 				},
 			}
 			baseAPI.AddRun(run)
-			task := &apiv2beta1.PipelineTask{
+			task := &apiv2.PipelineTask{
 				TaskId: "task",
 				RunId:  run.GetRunId(),
-				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+				State:  apiv2.PipelineTask_SUCCEEDED,
 			}
-			_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+			_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 				Task:  task,
 				RunId: run.GetRunId(),
 			})
@@ -185,13 +185,13 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 				assert.Contains(t, err.Error(), expectedError)
 			}
 			if test.expectNotSucceeded {
-				persistedTask, getErr := baseAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+				persistedTask, getErr := baseAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 					TaskId: task.GetTaskId(),
 					RunId:  run.GetRunId(),
 				})
 				require.NoError(t, getErr)
-				assert.NotEqual(t, apiv2beta1.PipelineTask_SUCCEEDED, persistedTask.GetState())
-				assert.Equal(t, apiv2beta1.PipelineTask_FAILED, persistedTask.GetState())
+				assert.NotEqual(t, apiv2.PipelineTask_SUCCEEDED, persistedTask.GetState())
+				assert.Equal(t, apiv2.PipelineTask_FAILED, persistedTask.GetState())
 			}
 		})
 	}
@@ -244,40 +244,40 @@ func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
 	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "worker")
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-id"}
-	rootTask := &apiv2beta1.PipelineTask{
+	run := &apiv2.Run{RunId: "run-id"}
+	rootTask := &apiv2.PipelineTask{
 		TaskId:    "root-task",
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
 	}
-	childTask := &apiv2beta1.PipelineTask{
+	childTask := &apiv2.PipelineTask{
 		TaskId:    "worker-task",
 		RunId:     run.GetRunId(),
 		Name:      "worker",
-		State:     apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:      apiv2beta1.PipelineTask_RUNTIME,
+		State:     apiv2.PipelineTask_SUCCEEDED,
+		Type:      apiv2.PipelineTask_RUNTIME,
 		ScopePath: scopePath.DotNotation(),
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("done"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
 
 	mockAPI := kfpapi.NewMockAPI()
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
 		Task:  rootTask,
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
 		Task:  childTask,
 	})
@@ -293,7 +293,7 @@ func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedRootTask, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedRootTask, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: rootTask.GetTaskId(),
 		RunId:  run.GetRunId(),
 	})
@@ -303,7 +303,7 @@ func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
 	outputParam := updatedRootTask.GetOutputs().GetParameters()[0]
 	assert.Equal(t, "pipeline-output", outputParam.GetParameterKey())
 	assert.Equal(t, "done", outputParam.GetValue().GetStringValue())
-	assert.Equal(t, apiv2beta1.IOType_OUTPUT, outputParam.GetType())
+	assert.Equal(t, apiv2.IOType_OUTPUT, outputParam.GetType())
 	require.NotNil(t, outputParam.GetProducer())
 	assert.Equal(t, "worker", outputParam.GetProducer().GetTaskName())
 }
@@ -353,21 +353,21 @@ func TestPropagateOutputsUpDAGForTask_OmitsLinksPersistedByPriorAttempt(t *testi
 	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "worker")
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-retry"}
-	parentTask := &apiv2beta1.PipelineTask{
+	run := &apiv2.Run{RunId: "run-retry"}
+	parentTask := &apiv2.PipelineTask{
 		TaskId:    "root-task",
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
 	}
-	childTask := &apiv2beta1.PipelineTask{
+	childTask := &apiv2.PipelineTask{
 		TaskId:       "worker-task",
 		RunId:        run.GetRunId(),
 		Name:         "worker",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    scopePath.DotNotation(),
 		ParentTaskId: util.StringPointer(parentTask.GetTaskId()),
 	}
@@ -375,12 +375,12 @@ func TestPropagateOutputsUpDAGForTask_OmitsLinksPersistedByPriorAttempt(t *testi
 	baseAPI := kfpapi.NewMockAPI()
 	mockAPI := &uniqueLinkEnforcingMockAPI{MockAPI: baseAPI, seen: map[string]struct{}{}}
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
 		Task:  parentTask,
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
 		Task:  childTask,
 	})
@@ -391,22 +391,22 @@ func TestPropagateOutputsUpDAGForTask_OmitsLinksPersistedByPriorAttempt(t *testi
 		currentArtifactID = "artifact-current-attempt"
 	)
 	for _, artifactID := range []string{priorArtifactID, currentArtifactID} {
-		_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-			Artifact:    &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("s3://bucket/" + artifactID)},
+		_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+			Artifact:    &apiv2.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("s3://bucket/" + artifactID)},
 			TaskId:      childTask.GetTaskId(),
 			RunId:       run.GetRunId(),
 			ProducerKey: "model",
 		})
 		require.NoError(t, err)
 	}
-	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{{
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{{
 			ArtifactId: priorArtifactID,
 			TaskId:     parentTask.GetTaskId(),
 			RunId:      run.GetRunId(),
 			Key:        "pipeline-model",
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer:   &apiv2beta1.IOProducer{TaskName: "worker"},
+			Type:       apiv2.IOType_OUTPUT,
+			Producer:   &apiv2.IOProducer{TaskName: "worker"},
 		}},
 	})
 	require.NoError(t, err)
@@ -421,7 +421,7 @@ func TestPropagateOutputsUpDAGForTask_OmitsLinksPersistedByPriorAttempt(t *testi
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: parentTask.GetTaskId(),
 		RunId:  run.GetRunId(),
 	})
@@ -460,25 +460,25 @@ func TestExample_launcherV2WithMocks(t *testing.T) {
 	runID := "test-run-123"
 	taskID := "test-task-456"
 
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId:       runID,
 		DisplayName: "test-run",
-		State:       apiv2beta1.RuntimeState_RUNNING,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		State:       apiv2.RuntimeState_RUNNING,
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
-		Tasks: []*apiv2beta1.PipelineTask{},
+		Tasks: []*apiv2.PipelineTask{},
 	}
 	mockAPI.AddRun(run)
 
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId:  taskID,
 		RunId:   runID,
 		Name:    "test-task",
-		State:   apiv2beta1.PipelineTask_RUNNING,
-		Type:    apiv2beta1.PipelineTask_RUNTIME,
-		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		State:   apiv2.PipelineTask_RUNNING,
+		Type:    apiv2.PipelineTask_RUNTIME,
+		Inputs:  &apiv2.PipelineTask_InputOutputs{},
+		Outputs: &apiv2.PipelineTask_InputOutputs{},
 	}
 
 	// Step 3: Create executor input with inputs and outputs
@@ -749,38 +749,38 @@ func TestLauncherV2_TaskStatusUpdates(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
 
 	// Create test run
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId:       "run-123",
 		DisplayName: "test-run",
-		State:       apiv2beta1.RuntimeState_RUNNING,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		State:       apiv2.RuntimeState_RUNNING,
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
 	}
 	mockAPI.AddRun(run)
 
 	// Create test task
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId: "task-456",
 		RunId:  "run-123",
 		Name:   "test-task",
-		State:  apiv2beta1.PipelineTask_RUNNING,
+		State:  apiv2.PipelineTask_RUNNING,
 	}
-	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
 	require.NoError(t, err)
 
 	// Update task status
-	task.State = apiv2beta1.PipelineTask_SUCCEEDED
-	_, err = mockAPI.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	task.State = apiv2.PipelineTask_SUCCEEDED
+	_, err = mockAPI.UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: "task-456",
 		Task:   task,
 	})
 	require.NoError(t, err)
 
 	// Verify task was updated
-	updatedTask, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: "task-456"})
+	updatedTask, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: "task-456"})
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, updatedTask.State)
+	assert.Equal(t, apiv2.PipelineTask_SUCCEEDED, updatedTask.State)
 }
 
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
@@ -829,23 +829,23 @@ func Test_execute_Parameters(t *testing.T) {
 			clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
 
 			// Create test run and task
-			run := &apiv2beta1.Run{
+			run := &apiv2.Run{
 				RunId:       "test-run",
 				DisplayName: "test-run",
-				State:       apiv2beta1.RuntimeState_RUNNING,
-				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+				State:       apiv2.RuntimeState_RUNNING,
+				PipelineSource: &apiv2.Run_PipelineSpec{
 					PipelineSpec: &structpb.Struct{},
 				},
 			}
 			mockAPI.AddRun(run)
 
-			task := &apiv2beta1.PipelineTask{
+			task := &apiv2.PipelineTask{
 				TaskId:  "test-task",
 				RunId:   "test-run",
 				Name:    "test-task",
-				State:   apiv2beta1.PipelineTask_RUNNING,
-				Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
-				Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+				State:   apiv2.PipelineTask_RUNNING,
+				Inputs:  &apiv2.PipelineTask_InputOutputs{},
+				Outputs: &apiv2.PipelineTask_InputOutputs{},
 			}
 
 			// Create launcher options
@@ -1191,14 +1191,14 @@ func Test_executeV2(t *testing.T) {
 	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
 
 	// Create test run
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId:       "test-run-123",
 		DisplayName: "test-run",
-		State:       apiv2beta1.RuntimeState_RUNNING,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		State:       apiv2.RuntimeState_RUNNING,
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
-		Tasks: []*apiv2beta1.PipelineTask{},
+		Tasks: []*apiv2.PipelineTask{},
 	}
 	mockAPI.AddRun(run)
 
@@ -1207,18 +1207,18 @@ func Test_executeV2(t *testing.T) {
 		canonicalTaskName = "train-model"
 		displayTaskName   = "Train Model Display"
 	)
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId:  "test-task-456",
 		RunId:   "test-run-123",
 		Name:    canonicalTaskName,
-		State:   apiv2beta1.PipelineTask_RUNNING,
-		Type:    apiv2beta1.PipelineTask_RUNTIME,
-		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		State:   apiv2.PipelineTask_RUNNING,
+		Type:    apiv2.PipelineTask_RUNTIME,
+		Inputs:  &apiv2.PipelineTask_InputOutputs{},
+		Outputs: &apiv2.PipelineTask_InputOutputs{},
 	}
 
 	// Add task to mock API so it can be updated during execution
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
 	assert.NoError(t, err)
 
 	// Create task spec with a display name that differs from the canonical DAG key.
@@ -1283,7 +1283,7 @@ func Test_executeV2(t *testing.T) {
 	assert.Equal(t, "Training completed successfully", executorOutput.ParameterValues["output_message"].GetStringValue())
 
 	// Verify IOProducer.TaskName uses canonical task Name, not TaskInfo DisplayName.
-	updatedTask, err := mockAPI.GetTask(ctx, &apiv2beta1.GetTaskRequest{TaskId: task.GetTaskId(), RunId: task.GetRunId()})
+	updatedTask, err := mockAPI.GetTask(ctx, &apiv2.GetTaskRequest{TaskId: task.GetTaskId(), RunId: task.GetRunId()})
 	require.NoError(t, err)
 	require.NotEmpty(t, updatedTask.GetOutputs().GetParameters())
 	for _, param := range updatedTask.GetOutputs().GetParameters() {
@@ -1341,23 +1341,23 @@ func Test_executeV2_FailsWhenDeclaredOutputArtifactFileIsMissing(t *testing.T) {
 
 	mockAPI := kfpapi.NewMockAPI()
 	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId: "test-run-123",
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
 	}
 	mockAPI.AddRun(run)
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId:  "test-task-456",
 		RunId:   "test-run-123",
 		Name:    "train-model",
-		State:   apiv2beta1.PipelineTask_RUNNING,
-		Type:    apiv2beta1.PipelineTask_RUNTIME,
-		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		State:   apiv2.PipelineTask_RUNNING,
+		Type:    apiv2.PipelineTask_RUNTIME,
+		Inputs:  &apiv2.PipelineTask_InputOutputs{},
+		Outputs: &apiv2.PipelineTask_InputOutputs{},
 	}
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
 	require.NoError(t, err)
 
 	launcher, err := NewLauncherV2(
@@ -1409,8 +1409,8 @@ func TestUploadOutputArtifacts_SkipsUnsupportedURIsWithoutUploading(t *testing.T
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  NewMockObjectStoreClient(),
@@ -1448,8 +1448,8 @@ func TestUploadOutputArtifactsWithRetry_RetriesTransientUploadFailures(t *testin
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  mockObjectStore,
@@ -1486,8 +1486,8 @@ func TestUploadOutputArtifactsWithRetry_DoesNotRetryNonTransientFailures(t *test
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  mockObjectStore,
@@ -1531,8 +1531,8 @@ func TestUploadOutputArtifacts_PreservesArtifactListOutputs(t *testing.T) {
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  NewMockObjectStoreClient(),
@@ -1583,8 +1583,8 @@ func TestUploadOutputArtifacts_RegistersOCIOutputs(t *testing.T) {
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  NewMockObjectStoreClient(),
@@ -1618,8 +1618,8 @@ func TestUploadOutputArtifacts_PreservesCustomSchemaTitle(t *testing.T) {
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  NewMockObjectStoreClient(),
@@ -1631,7 +1631,7 @@ func TestUploadOutputArtifacts_PreservesCustomSchemaTitle(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, launcher.batchUpdater.artifacts, 1)
 	artifact := launcher.batchUpdater.artifacts[0].request.Artifact
-	assert.Equal(t, apiv2beta1.Artifact_Artifact, artifact.GetType())
+	assert.Equal(t, apiv2.Artifact_Artifact, artifact.GetType())
 	require.NotNil(t, artifact.GetMetadata())
 	assert.Equal(t, "google.VertexModel", artifact.GetMetadata()[artifactSchemaTitleMetadataKey].GetStringValue())
 }
@@ -1655,8 +1655,8 @@ func TestUploadOutputArtifacts_DoesNotLetExecutorLogsOverwriteRetryQualifiedURI(
 		},
 		options: LauncherV2Options{
 			Namespace: "default",
-			Run:       &apiv2beta1.Run{RunId: "run-1"},
-			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		batchUpdater: NewBatchUpdater(),
 		objectStore:  NewMockObjectStoreClient(),
@@ -1702,8 +1702,8 @@ func TestUploadExecutorLogsArtifact_RetriesWithSessionRefresh(t *testing.T) {
 		options: LauncherV2Options{
 			Namespace:   "default",
 			PublishLogs: "true",
-			Run:         &apiv2beta1.Run{RunId: "run-1"},
-			Task:        &apiv2beta1.PipelineTask{TaskId: "task-1"},
+			Run:         &apiv2.Run{RunId: "run-1"},
+			Task:        &apiv2.PipelineTask{TaskId: "task-1"},
 		},
 		clientManager: client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI),
 		batchUpdater:  NewBatchUpdater(),
@@ -1925,7 +1925,7 @@ func Test_retrieve_artifact_path(t *testing.T) {
 type recordingPluginDispatcher struct {
 	plugins.NoOpDispatcher
 	endCount      int
-	endStates     []apiv2beta1.PipelineTask_TaskState
+	endStates     []apiv2.PipelineTask_TaskState
 	endMetrics    []map[string]float64
 	endParameters []map[string]interface{}
 	endErr        error
@@ -1992,22 +1992,22 @@ func newLauncherForPluginLifecycleTestWithIO(
 	mockAPI := kfpapi.NewMockAPI()
 	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
 
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId: "plugin-run",
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: pipelineSpecStructForLauncherPluginTest(t),
 		},
 	}
 	mockAPI.AddRun(run)
 
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId: "plugin-task",
 		RunId:  run.GetRunId(),
 		Name:   "plugin-task",
-		State:  apiv2beta1.PipelineTask_RUNNING,
-		Type:   apiv2beta1.PipelineTask_RUNTIME,
+		State:  apiv2.PipelineTask_RUNNING,
+		Type:   apiv2.PipelineTask_RUNTIME,
 	}
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		Task: task, RunId: task.GetRunId(),
 	})
 	require.NoError(t, err)
@@ -2046,7 +2046,7 @@ func TestLauncherV2_PluginLifecycle_SuccessfulExecuteEndsOnceSucceeded(t *testin
 	require.NoError(t, err)
 	assert.Equal(t, 1, recorder.endCount, "launcher must close the plugin task exactly once after driver handoff")
 	require.Len(t, recorder.endStates, 1)
-	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, recorder.endStates[0])
+	assert.Equal(t, apiv2.PipelineTask_SUCCEEDED, recorder.endStates[0])
 }
 
 func TestLauncherV2_PluginLifecycle_OnTaskEndReceivesMetricsAndInputParams(t *testing.T) {
@@ -2116,7 +2116,7 @@ func TestLauncherV2_PluginLifecycle_OnTaskEndErrorPreservesExecutionError(t *tes
 	assert.NotContains(t, err.Error(), "plugin end failed")
 	assert.Equal(t, 1, recorder.endCount)
 	require.Len(t, recorder.endStates, 1)
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0])
+	assert.Equal(t, apiv2.PipelineTask_FAILED, recorder.endStates[0])
 }
 
 func TestLauncherV2_PluginLifecycle_FinalizationFailureEndsPluginAsFailed(t *testing.T) {
@@ -2137,15 +2137,15 @@ func TestLauncherV2_PluginLifecycle_FinalizationFailureEndsPluginAsFailed(t *tes
 	assert.Contains(t, err.Error(), "failed to update statuses")
 	assert.Equal(t, 1, recorder.endCount)
 	require.Len(t, recorder.endStates, 1)
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0],
+	assert.Equal(t, apiv2.PipelineTask_FAILED, recorder.endStates[0],
 		"OnTaskEnd must run after finalization and observe FAILED, not SUCCEEDED")
 
-	persisted, getErr := failingAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	persisted, getErr := failingAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: launcher.options.Task.GetTaskId(),
 		RunId:  launcher.options.Task.GetRunId(),
 	})
 	require.NoError(t, getErr)
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, persisted.GetState())
+	assert.Equal(t, apiv2.PipelineTask_FAILED, persisted.GetState())
 }
 
 func TestScalarMetricsFromExecutorOutput_UsesDeclaredTypeForSDKShapedRuntime(t *testing.T) {

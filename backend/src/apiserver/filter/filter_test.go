@@ -25,7 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	v2beta1crd "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/stretchr/testify/assert"
@@ -94,7 +94,7 @@ func TestValidNewFiltersMigrated(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -167,7 +167,7 @@ func TestValidNewFilters(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -212,7 +212,7 @@ func TestValidNewFiltersWithKeyMapMigrated(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -264,7 +264,7 @@ func TestValidNewFiltersWithKeyMap(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -346,7 +346,7 @@ func TestInvalidFiltersMigrated(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -422,7 +422,7 @@ func TestInvalidFilters(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -558,7 +558,7 @@ func TestAddToSelectMigrated(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -665,7 +665,7 @@ func TestAddToSelect(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv2beta1.Filter{}
+		filterProto := &apiv2.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -1137,12 +1137,12 @@ func TestFilterK8sPipelineVersions_SUBSTRING_AND(t *testing.T) {
 }
 
 func TestNewWithKeyMap(t *testing.T) {
-	filterProto := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
+	filterProto := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
 			{
 				Key:       "finished_at",
-				Operation: apiv2beta1.Predicate_GREATER_THAN,
-				Value:     &apiv2beta1.Predicate_StringValue{StringValue: "SomeTime"},
+				Operation: apiv2.Predicate_GREATER_THAN,
+				Value:     &apiv2.Predicate_StringValue{StringValue: "SomeTime"},
 			},
 		},
 	}
@@ -1241,10 +1241,10 @@ func TestFilter_ReplaceKeys_WithCaseInsensitive(t *testing.T) {
 }
 
 func TestAddToSelect_WithQuoting(t *testing.T) {
-	protoFilter := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
-			{Key: "CreatedAtInSec", Operation: apiv2beta1.Predicate_GREATER_THAN, Value: &apiv2beta1.Predicate_LongValue{LongValue: 100}},
-			{Key: "name", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_StringValue{StringValue: "test"}},
+	protoFilter := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
+			{Key: "CreatedAtInSec", Operation: apiv2.Predicate_GREATER_THAN, Value: &apiv2.Predicate_LongValue{LongValue: 100}},
+			{Key: "name", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_StringValue{StringValue: "test"}},
 		},
 	}
 	filter, err := New(protoFilter)

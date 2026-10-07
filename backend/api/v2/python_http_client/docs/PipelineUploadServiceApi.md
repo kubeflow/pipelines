@@ -1,0 +1,184 @@
+# kfp.server_api.PipelineUploadServiceApi
+
+All URIs are relative to *http://localhost*
+
+Method | HTTP request | Description
+------------- | ------------- | -------------
+[**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2/pipelines/upload | 
+[**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2/pipelines/upload_version | 
+
+
+# **upload_pipeline**
+> V2Pipeline upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags, code_source_url=code_source_url)
+
+
+
+### Example
+
+* Api Key Authentication (Bearer):
+```python
+from __future__ import print_function
+import time
+import kfp.server_api
+from kfp.server_api.rest import ApiException
+from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp.server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp.server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with kfp.server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp.server_api.PipelineUploadServiceApi(api_client)
+    uploadfile = '/path/to/file' # file | The pipeline to upload. Maximum size of 32MB is supported.
+name = 'name_example' # str |  (optional)
+display_name = 'display_name_example' # str |  (optional)
+description = 'description_example' # str |  (optional)
+namespace = 'namespace_example' # str |  (optional)
+tags = 'tags_example' # str | JSON-encoded map of key-value pairs for pipeline tags. (optional)
+code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline source code. (optional)
+
+    try:
+        api_response = api_instance.upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags, code_source_url=code_source_url)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling PipelineUploadServiceApi->upload_pipeline: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
+ **name** | **str**|  | [optional] 
+ **display_name** | **str**|  | [optional] 
+ **description** | **str**|  | [optional] 
+ **namespace** | **str**|  | [optional] 
+ **tags** | **str**| JSON-encoded map of key-value pairs for pipeline tags. | [optional] 
+ **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
+
+### Return type
+
+[**V2Pipeline**](V2Pipeline.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: multipart/form-data
+ - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** |  |  -  |
+**0** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **upload_pipeline_version**
+> V2PipelineVersion upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description, tags=tags, code_source_url=code_source_url)
+
+
+
+### Example
+
+* Api Key Authentication (Bearer):
+```python
+from __future__ import print_function
+import time
+import kfp.server_api
+from kfp.server_api.rest import ApiException
+from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp.server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp.server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with kfp.server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp.server_api.PipelineUploadServiceApi(api_client)
+    uploadfile = '/path/to/file' # file | The pipeline to upload. Maximum size of 32MB is supported.
+name = 'name_example' # str |  (optional)
+display_name = 'display_name_example' # str |  (optional)
+pipelineid = 'pipelineid_example' # str |  (optional)
+description = 'description_example' # str |  (optional)
+tags = 'tags_example' # str | JSON-encoded map of key-value pairs for pipeline version tags. (optional)
+code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline source code. (optional)
+
+    try:
+        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description, tags=tags, code_source_url=code_source_url)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling PipelineUploadServiceApi->upload_pipeline_version: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
+ **name** | **str**|  | [optional] 
+ **display_name** | **str**|  | [optional] 
+ **pipelineid** | **str**|  | [optional] 
+ **description** | **str**|  | [optional] 
+ **tags** | **str**| JSON-encoded map of key-value pairs for pipeline version tags. | [optional] 
+ **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
+
+### Return type
+
+[**V2PipelineVersion**](V2PipelineVersion.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: multipart/form-data
+ - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** |  |  -  |
+**0** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+

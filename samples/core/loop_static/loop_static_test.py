@@ -23,7 +23,7 @@ import kfp.server_api
 from loop_static import my_pipeline
 
 
-def verify(t: unittest.TestCase, run: kfp.server_api.V2beta1Run,
+def verify(t: unittest.TestCase, run: kfp.server_api.V2Run,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.state, 'SUCCEEDED')
     # assert DAG structure

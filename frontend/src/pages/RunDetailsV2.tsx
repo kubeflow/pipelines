@@ -27,17 +27,17 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isEqual } from 'lodash';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2Experiment } from 'src/apisv2/experiment';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { preserveDeepEqualData } from 'src/lib/v2/QueryUtils';
 import {
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-  V2beta1Run,
-  V2beta1RuntimeState,
-  V2beta1RunStorageState,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+  V2Run,
+  V2RuntimeState,
+  V2RunStorageState,
+} from 'src/apisv2/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
@@ -87,12 +87,12 @@ interface RunDetailsV2Info {
   pipeline_job: string;
   parsedPipelineSpec: PipelineSpec;
   retryTaskState?: RunTaskRetryState;
-  run: V2beta1Run;
+  run: V2Run;
   runRefreshError?: Error | null;
 }
 
 export interface RunTaskRetryState {
-  preRetryTasks?: V2beta1PipelineTask[];
+  preRetryTasks?: V2PipelineTask[];
   version: number;
 }
 
@@ -110,7 +110,7 @@ interface TerminalTaskReconciliation {
 }
 
 interface TaskReconciliationQueryState {
-  data?: V2beta1PipelineTask[];
+  data?: V2PipelineTask[];
   dataUpdateCount: number;
   error: unknown | null;
   errorUpdateCount: number;
@@ -121,7 +121,7 @@ function evaluateTerminalTaskReconciliation(
   reconciliation: TerminalTaskReconciliation | null,
   runId: string,
   retryRefreshVersion: number,
-  preRetryTasks: V2beta1PipelineTask[] | undefined,
+  preRetryTasks: V2PipelineTask[] | undefined,
 ): { completedAttemptCount: number; hasBaseline: boolean; needsReconciliation: boolean } {
   const reconciliationMatchesCurrentQuery =
     reconciliation?.runId === runId && reconciliation.retryRefreshVersion === retryRefreshVersion;
@@ -218,7 +218,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     error,
     data: tasks,
     refetch: refetchTasks,
-  } = useQuery<V2beta1PipelineTask[], Error>({
+  } = useQuery<V2PipelineTask[], Error>({
     queryKey: taskQueryKey,
     queryFn: () => listAllRunTasks(runId),
     placeholderData: (previousTasks) => previousTasks,
@@ -291,7 +291,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     terminalTaskSnapshot?.runId === runId &&
     terminalTaskSnapshot.retryRefreshVersion === retryRefreshVersion;
   const runtimeTaskSnapshotCompletedSuccessfully =
-    runtimeTaskSnapshotIsTerminal && run.state === V2beta1RuntimeState.SUCCEEDED;
+    runtimeTaskSnapshotIsTerminal && run.state === V2RuntimeState.SUCCEEDED;
 
   // The terminal run update stops active polling. Capture an operation-scoped baseline before the
   // first reconciliation fetch so the interval can accept a few eventually consistent snapshots
@@ -319,7 +319,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     data: experiment,
     isError: experimentIsError,
     error: experimentError,
-  } = useQuery<V2beta1Experiment, Error>({
+  } = useQuery<V2Experiment, Error>({
     queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
   });
@@ -651,7 +651,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 }
 
-function buildLinkedTaskElement(task: V2beta1PipelineTask): PipelineFlowElement {
+function buildLinkedTaskElement(task: V2PipelineTask): PipelineFlowElement {
   const isSubDag =
     task.type === PipelineTaskTaskType.DAG || task.type === PipelineTaskTaskType.LOOP;
   return {
@@ -662,7 +662,7 @@ function buildLinkedTaskElement(task: V2beta1PipelineTask): PipelineFlowElement 
   };
 }
 
-async function getExperiment(experimentId: string | null): Promise<V2beta1Experiment> {
+async function getExperiment(experimentId: string | null): Promise<V2Experiment> {
   if (experimentId) {
     return Apis.experimentServiceApiV2.getExperiment(experimentId);
   }
@@ -670,8 +670,8 @@ async function getExperiment(experimentId: string | null): Promise<V2beta1Experi
 }
 
 function updateToolBar(
-  run: V2beta1Run | undefined,
-  experiment: V2beta1Experiment | undefined,
+  run: V2Run | undefined,
+  experiment: V2Experiment | undefined,
   updateToolBarCallback: (toolbarProps: Partial<ToolbarProps>) => void,
 ) {
   const runMetadata = run;
@@ -707,7 +707,7 @@ function updateToolBar(
 function updateToolBarActions(
   buttons: Buttons,
   runIdFromParams: string,
-  run: V2beta1Run | undefined,
+  run: V2Run | undefined,
   runFinished: boolean,
   updateToolbar: (toolbarProps: Partial<ToolbarProps>) => void,
   refresh: () => void,
@@ -725,24 +725,23 @@ function updateToolBarActions(
     .retryRun(getRunIdList, true, retry)
     .cloneRun(getRunIdList, true)
     .terminateRun(getRunIdList, true, () => refresh());
-  !runMetadata || runMetadata.storage_state === V2beta1RunStorageState.ARCHIVED
+  !runMetadata || runMetadata.storage_state === V2RunStorageState.ARCHIVED
     ? buttons.restore('run', getRunIdList, true, () => refresh())
     : buttons.archive('run', getRunIdList, true, () => refresh());
 
   const actions = buttons.getToolbarActionMap();
   actions[ButtonKeys.TERMINATE_RUN].disabled =
-    (runMetadata && runMetadata.state === V2beta1RuntimeState.CANCELING) || runFinished;
-  actions[ButtonKeys.RETRY].disabled =
-    !runMetadata || runMetadata.state !== V2beta1RuntimeState.FAILED;
+    (runMetadata && runMetadata.state === V2RuntimeState.CANCELING) || runFinished;
+  actions[ButtonKeys.RETRY].disabled = !runMetadata || runMetadata.state !== V2RuntimeState.FAILED;
 
   updateToolbar({ actions });
 }
 
-function getActualStartTime(run?: V2beta1Run): Date | undefined {
+function getActualStartTime(run?: V2Run): Date | undefined {
   if (run?.state_history) {
     for (let i = run.state_history.length - 1; i >= 0; i--) {
       const entry = run.state_history[i];
-      if (entry.state === V2beta1RuntimeState.RUNNING && entry.update_time !== undefined) {
+      if (entry.state === V2RuntimeState.RUNNING && entry.update_time !== undefined) {
         return entry.update_time;
       }
     }
@@ -750,7 +749,7 @@ function getActualStartTime(run?: V2beta1Run): Date | undefined {
   return run?.scheduled_at;
 }
 
-function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
+function getDetailsFields(run?: V2Run): Array<KeyValue<string>> {
   const actualStart = getActualStartTime(run);
   const scheduledAt = run?.scheduled_at;
   const startDiffers =

@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -156,7 +156,7 @@ var _ = BeforeEach(func() {
 		TestStartTimeUTC: time.Now(),
 	}
 	randomName = testutil.NewTestResourceNameSuffix(GinkgoParallelProcess())
-	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
+	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2Pipeline, 0)
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)

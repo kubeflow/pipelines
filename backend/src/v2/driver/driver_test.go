@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
@@ -1861,10 +1861,10 @@ func Test_validateNonRoot(t *testing.T) {
 	validOpts := func() common.Options {
 		return common.Options{
 			PipelineName: "pipeline-1",
-			Run:          &apiv2beta1.Run{RunId: "run-1"},
+			Run:          &apiv2.Run{RunId: "run-1"},
 			Component:    &pipelinespec.ComponentSpec{},
 			Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-			ParentTask:   &apiv2beta1.PipelineTask{TaskId: "parent-task", ScopePath: "root"},
+			ParentTask:   &apiv2.PipelineTask{TaskId: "parent-task", ScopePath: "root"},
 		}
 	}
 	tests := []struct {
@@ -1889,7 +1889,7 @@ func Test_validateNonRoot(t *testing.T) {
 			name: "nil component spec returns error",
 			opts: common.Options{
 				PipelineName: "pipeline-1",
-				Run:          &apiv2beta1.Run{RunId: "run-1"},
+				Run:          &apiv2.Run{RunId: "run-1"},
 			},
 			wantErr: true,
 			errMsg:  "component spec is required",
@@ -1898,7 +1898,7 @@ func Test_validateNonRoot(t *testing.T) {
 			name: "missing task name returns error",
 			opts: common.Options{
 				PipelineName: "pipeline-1",
-				Run:          &apiv2beta1.Run{RunId: "run-1"},
+				Run:          &apiv2.Run{RunId: "run-1"},
 				Component:    &pipelinespec.ComponentSpec{},
 			},
 			wantErr: true,
@@ -1918,7 +1918,7 @@ func Test_validateNonRoot(t *testing.T) {
 			name: "missing parent task returns error",
 			opts: common.Options{
 				PipelineName: "pipeline-1",
-				Run:          &apiv2beta1.Run{RunId: "run-1"},
+				Run:          &apiv2.Run{RunId: "run-1"},
 				Component:    &pipelinespec.ComponentSpec{},
 				Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
 			},
@@ -1929,10 +1929,10 @@ func Test_validateNonRoot(t *testing.T) {
 			name: "missing parent task id returns error",
 			opts: common.Options{
 				PipelineName: "pipeline-1",
-				Run:          &apiv2beta1.Run{RunId: "run-1"},
+				Run:          &apiv2.Run{RunId: "run-1"},
 				Component:    &pipelinespec.ComponentSpec{},
 				Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-				ParentTask:   &apiv2beta1.PipelineTask{ScopePath: "root"},
+				ParentTask:   &apiv2.PipelineTask{ScopePath: "root"},
 			},
 			wantErr: true,
 			errMsg:  "parent task is required",
@@ -2101,7 +2101,7 @@ type recordingDispatcher struct {
 	appliedProperties map[string]string
 	startCount        int
 	endCount          int
-	endStates         []apiv2beta1.PipelineTask_TaskState
+	endStates         []apiv2.PipelineTask_TaskState
 	endErr            error
 	envErr            error
 }
@@ -2133,8 +2133,8 @@ func (r *recordingDispatcher) RetrieveUserContainerEnvVars(_ *plugins.TaskInfo) 
 }
 
 func TestApplyParentPluginCustomProperties_WithProperties(t *testing.T) {
-	parentTask := &apiv2beta1.PipelineTask{
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+	parentTask := &apiv2.PipelineTask{
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			CustomProperties: map[string]*structpb.Value{
 				"plugins.mlflow.run_id": structpb.NewStringValue("nested-run-123"),
 			},
@@ -2155,7 +2155,7 @@ func TestApplyParentPluginCustomProperties_NilParentTask(t *testing.T) {
 }
 
 func TestApplyParentPluginCustomProperties_NoCustomProperties(t *testing.T) {
-	parentTask := &apiv2beta1.PipelineTask{}
+	parentTask := &apiv2.PipelineTask{}
 	recorder := &recordingDispatcher{}
 	applyParentPluginCustomProperties(recorder, parentTask)
 
@@ -2183,7 +2183,7 @@ func TestContainer_PluginLifecycle_PostStartErrorEndsOnce(t *testing.T) {
 	assert.Equal(t, 1, recorder.startCount)
 	assert.Equal(t, 1, recorder.endCount)
 	require.Len(t, recorder.endStates, 1)
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0])
+	assert.Equal(t, apiv2.PipelineTask_FAILED, recorder.endStates[0])
 }
 
 func TestContainer_PluginLifecycle_SuccessfulHandoffLeavesOpen(t *testing.T) {
@@ -2249,13 +2249,13 @@ func TestContainer_PluginLifecycle_CacheHitEndsOnceCached(t *testing.T) {
 	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
 	opts.Task.CachingOptions = &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true}
 
-	cachedTask := &apiv2beta1.PipelineTask{
+	cachedTask := &apiv2.PipelineTask{
 		TaskId: "prior-cached-task",
 		RunId:  "prior-run",
 		Name:   "create-dataset",
-		State:  apiv2beta1.PipelineTask_SUCCEEDED,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{},
+		State:  apiv2.PipelineTask_SUCCEEDED,
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{},
 		},
 	}
 	tc.ClientManager = clientmanager.NewFakeClientManager(
@@ -2274,20 +2274,20 @@ func TestContainer_PluginLifecycle_CacheHitEndsOnceCached(t *testing.T) {
 	assert.Equal(t, 1, recorder.startCount)
 	assert.Equal(t, 1, recorder.endCount)
 	require.Len(t, recorder.endStates, 1)
-	assert.Equal(t, apiv2beta1.PipelineTask_CACHED, recorder.endStates[0])
+	assert.Equal(t, apiv2.PipelineTask_CACHED, recorder.endStates[0])
 }
 
 // forceCacheHitAPI returns a fixed cached task for every FindCachedTask lookup.
 type forceCacheHitAPI struct {
 	kfpapi.API
-	cachedTask *apiv2beta1.PipelineTask
+	cachedTask *apiv2.PipelineTask
 }
 
 func (f *forceCacheHitAPI) FindCachedTask(
 	_ context.Context,
-	_ *apiv2beta1.FindCachedTaskRequest,
-) (*apiv2beta1.FindCachedTaskResponse, error) {
-	return &apiv2beta1.FindCachedTaskResponse{Task: f.cachedTask}, nil
+	_ *apiv2.FindCachedTaskRequest,
+) (*apiv2.FindCachedTaskResponse, error) {
+	return &apiv2.FindCachedTaskResponse{Task: f.cachedTask}, nil
 }
 
 func TestContainer_PluginLifecycle_SkippedEndsOnce(t *testing.T) {
@@ -2317,7 +2317,7 @@ func TestContainer_PluginLifecycle_SkippedEndsOnce(t *testing.T) {
 	assert.Equal(t, 1, recorder.startCount)
 	assert.Equal(t, 1, recorder.endCount)
 	require.Len(t, recorder.endStates, 1)
-	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, recorder.endStates[0])
+	assert.Equal(t, apiv2.PipelineTask_SKIPPED, recorder.endStates[0])
 }
 
 func TestContainer_PluginLifecycle_PreStartFailureDoesNotCallEnd(t *testing.T) {
@@ -2366,7 +2366,7 @@ func TestContainer_PluginLifecycle_CustomPropertiesSetOnTask(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, execution.TaskID)
 
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: execution.TaskID,
 		RunId:  tc.Run.GetRunId(),
 	})
@@ -2378,31 +2378,31 @@ func TestContainer_PluginLifecycle_CustomPropertiesSetOnTask(t *testing.T) {
 
 func TestUpdateTaskAttemptLocalFieldsAfterCreate_PreservesStatusMetadata(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{RunId: "run-retry"}
+	run := &apiv2.Run{RunId: "run-retry"}
 	mockAPI.AddRun(run)
 
-	existingTask := &apiv2beta1.PipelineTask{
+	existingTask := &apiv2.PipelineTask{
 		TaskId:    "task-1",
 		RunId:     run.GetRunId(),
 		Name:      "train",
-		Type:      apiv2beta1.PipelineTask_RUNTIME,
-		State:     apiv2beta1.PipelineTask_FAILED,
+		Type:      apiv2.PipelineTask_RUNTIME,
+		State:     apiv2.PipelineTask_FAILED,
 		ScopePath: "root",
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			CustomProperties: map[string]*structpb.Value{
 				"plugins.mlflow.run_id": structpb.NewStringValue("old-run"),
 			},
 		},
 	}
-	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		Task:  existingTask,
 		RunId: run.GetRunId(),
 	})
 	require.NoError(t, err)
 
-	attemptFields := &apiv2beta1.PipelineTask{
-		State: apiv2beta1.PipelineTask_RUNNING,
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+	attemptFields := &apiv2.PipelineTask{
+		State: apiv2.PipelineTask_RUNNING,
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			CustomProperties: map[string]*structpb.Value{
 				"plugins.mlflow.run_id": structpb.NewStringValue("new-run"),
 			},
@@ -2421,7 +2421,7 @@ func TestUpdateTaskAttemptLocalFieldsAfterCreate_PreservesStatusMetadata(t *test
 		"new-run",
 		updated.GetStatusMetadata().GetCustomProperties()["plugins.mlflow.run_id"].GetStringValue(),
 	)
-	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, updated.GetState())
+	require.Equal(t, apiv2.PipelineTask_RUNNING, updated.GetState())
 }
 
 // A $(VAR) reference in a value expands from the entries before it, so the pod

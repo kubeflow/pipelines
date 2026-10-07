@@ -24,11 +24,11 @@ import {
   PipelineTaskTaskState,
   PipelineTaskTaskPodType,
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-  V2beta1Run,
-  V2beta1RuntimeState,
-} from 'src/apisv2beta1/run';
-import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+  V2PipelineTask,
+  V2Run,
+  V2RuntimeState,
+} from 'src/apisv2/run';
+import { V2Experiment, V2ExperimentStorageState } from 'src/apisv2/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Apis } from 'src/lib/Apis';
@@ -89,7 +89,7 @@ describe('RunDetailsV2', () => {
       parsedPipelineSpec: TEST_PIPELINE_SPEC,
     });
   }
-  const TEST_RUN: V2beta1Run = {
+  const TEST_RUN: V2Run = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
     scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
     finished_at: new Date(2018, 8, 7, 4, 3, 2),
@@ -102,16 +102,16 @@ describe('RunDetailsV2', () => {
       pipelineInfo: { name: 'native-test-pipeline' },
     },
     runtime_config: { parameters: { param1: 'value1' } },
-    state: V2beta1RuntimeState.SUCCEEDED,
+    state: V2RuntimeState.SUCCEEDED,
   };
-  const TEST_EXPERIMENT: V2beta1Experiment = {
+  const TEST_EXPERIMENT: V2Experiment = {
     created_at: '2021-01-24T18:03:08Z',
     description: 'All runs will be grouped here.',
     experiment_id: 'some-experiment-id',
     display_name: 'Default',
-    storage_state: V2beta1ExperimentStorageState.AVAILABLE,
+    storage_state: V2ExperimentStorageState.AVAILABLE,
   };
-  const TEST_TASKS: V2beta1PipelineTask[] = [
+  const TEST_TASKS: V2PipelineTask[] = [
     {
       task_id: 'root-task',
       run_id: RUN_ID,
@@ -173,7 +173,7 @@ describe('RunDetailsV2', () => {
   }
 
   function renderOrphanTaskFallback() {
-    const linkedTask: V2beta1PipelineTask = {
+    const linkedTask: V2PipelineTask = {
       task_id: 'orphan-task',
       name: 'orphan',
       run_id: RUN_ID,
@@ -402,7 +402,7 @@ describe('RunDetailsV2', () => {
   });
 
   it('recovers a fallback graph when polling supplies ancestry for the same task ID', async () => {
-    const initialTask: V2beta1PipelineTask = {
+    const initialTask: V2PipelineTask = {
       task_id: 'delayed-task',
       name: 'orphan',
       run_id: RUN_ID,
@@ -410,7 +410,7 @@ describe('RunDetailsV2', () => {
       state: PipelineTaskTaskState.RUNNING,
       type: PipelineTaskTaskType.RUNTIME,
     };
-    const resolvedTask: V2beta1PipelineTask = {
+    const resolvedTask: V2PipelineTask = {
       ...initialTask,
       name: 'preprocess',
       parent_task_id: 'root-task',
@@ -573,7 +573,7 @@ describe('RunDetailsV2', () => {
     const runningRun = {
       ...TEST_RUN,
       finished_at: undefined,
-      state: V2beta1RuntimeState.RUNNING,
+      state: V2RuntimeState.RUNNING,
     };
 
     render(
@@ -865,8 +865,8 @@ describe('RunDetailsV2', () => {
 
   it('derives the terminate action from the current run state', async () => {
     const props = generateProps();
-    const runningRun = { ...TEST_RUN, state: V2beta1RuntimeState.RUNNING };
-    const succeededRun = { ...TEST_RUN, state: V2beta1RuntimeState.SUCCEEDED };
+    const runningRun = { ...TEST_RUN, state: V2RuntimeState.RUNNING };
+    const succeededRun = { ...TEST_RUN, state: V2RuntimeState.SUCCEEDED };
     const view = render(
       <CommonTestWrapper>
         <RunDetailsV2
@@ -916,7 +916,7 @@ describe('RunDetailsV2', () => {
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
           onRetryStarted={onRetryStarted}
-          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
           {...props}
         />
       </CommonTestWrapper>,
@@ -943,7 +943,7 @@ describe('RunDetailsV2', () => {
           pipeline_job={v2YamlTemplateString}
           onRetryStarted={onRetryStarted}
           retryTaskState={{ version: 1 }}
-          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
           {...props}
         />
       </CommonTestWrapper>,
@@ -967,7 +967,7 @@ describe('RunDetailsV2', () => {
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
           retryTaskState={{ version: 1 }}
-          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
           {...generateProps()}
         />
       </CommonTestWrapper>,
@@ -995,7 +995,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
-          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
           {...generateProps()}
         />
       </CommonTestWrapper>,
@@ -1029,7 +1029,7 @@ describe('RunDetailsV2', () => {
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
           retryTaskState={{ version: 1 }}
-          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
           {...generateProps()}
         />
       </CommonTestWrapper>,
@@ -1080,7 +1080,7 @@ describe('RunDetailsV2', () => {
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
             retryTaskState={{ version: retryRefreshVersion, preRetryTasks: TEST_TASKS }}
-            run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+            run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
             {...generateProps()}
           />
         </QueryClientProvider>
@@ -1098,8 +1098,8 @@ describe('RunDetailsV2', () => {
   it('does not count a cancelled task request as an accepted reconciliation snapshot', async () => {
     vi.useFakeTimers();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const firstRequest = deferred<{ tasks: V2beta1PipelineTask[] }>();
-    const replacementRequest = deferred<{ tasks: V2beta1PipelineTask[] }>();
+    const firstRequest = deferred<{ tasks: V2PipelineTask[] }>();
+    const replacementRequest = deferred<{ tasks: V2PipelineTask[] }>();
     const unfinishedTasks = TEST_TASKS.map((task) =>
       task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
     );
@@ -1116,7 +1116,7 @@ describe('RunDetailsV2', () => {
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
             retryTaskState={{ version: 1 }}
-            run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+            run={{ ...TEST_RUN, state: V2RuntimeState.FAILED }}
             {...generateProps()}
           />
         </QueryClientProvider>
@@ -1211,7 +1211,7 @@ describe('RunDetailsV2', () => {
         <QueryClientProvider client={queryClient}>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            run={{ ...TEST_RUN, state: V2beta1RuntimeState.SUCCEEDED }}
+            run={{ ...TEST_RUN, state: V2RuntimeState.SUCCEEDED }}
             {...generateProps()}
           />
         </QueryClientProvider>
@@ -1257,8 +1257,8 @@ describe('RunDetailsV2', () => {
   it('refetches tasks once when an active run becomes terminal', async () => {
     const tasksSpy = vi.spyOn(Apis.runServiceApiV2, 'tasks');
     const props = generateProps();
-    const runningRun = { ...TEST_RUN, state: V2beta1RuntimeState.RUNNING };
-    const succeededRun = { ...TEST_RUN, state: V2beta1RuntimeState.SUCCEEDED };
+    const runningRun = { ...TEST_RUN, state: V2RuntimeState.RUNNING };
+    const succeededRun = { ...TEST_RUN, state: V2RuntimeState.SUCCEEDED };
     const view = render(
       <CommonTestWrapper>
         <RunDetailsV2
@@ -1308,8 +1308,8 @@ describe('RunDetailsV2', () => {
       .mockResolvedValueOnce({ tasks: unfinishedTasks })
       .mockResolvedValue({ tasks: TEST_TASKS });
     const props = generateProps();
-    const runningRun = { ...TEST_RUN, state: V2beta1RuntimeState.RUNNING };
-    const failedRun = { ...TEST_RUN, state: V2beta1RuntimeState.FAILED };
+    const runningRun = { ...TEST_RUN, state: V2RuntimeState.RUNNING };
+    const failedRun = { ...TEST_RUN, state: V2RuntimeState.FAILED };
     const view = render(
       <CommonTestWrapper>
         <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={runningRun} {...props} />
@@ -1421,7 +1421,7 @@ describe('RunDetailsV2', () => {
     });
 
     it('handles no creation time', async () => {
-      const noCreateTimeRun: V2beta1Run = {
+      const noCreateTimeRun: V2Run = {
         // created_at: new Date(2018, 8, 5, 4, 3, 2),
         scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
         finished_at: new Date(2018, 8, 7, 4, 3, 2),
@@ -1429,7 +1429,7 @@ describe('RunDetailsV2', () => {
         run_id: 'test-run-id',
         display_name: 'test run',
         description: 'test run description',
-        state: V2beta1RuntimeState.SUCCEEDED,
+        state: V2RuntimeState.SUCCEEDED,
       };
       render(
         <CommonTestWrapper>
@@ -1447,7 +1447,7 @@ describe('RunDetailsV2', () => {
     });
 
     it('handles no finish time', async () => {
-      const noFinsihTimeRun: V2beta1Run = {
+      const noFinsihTimeRun: V2Run = {
         created_at: new Date(2018, 8, 5, 4, 3, 2),
         scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
         // finished_at: new Date(2018, 8, 7, 4, 3, 2),
@@ -1455,7 +1455,7 @@ describe('RunDetailsV2', () => {
         run_id: 'test-run-id',
         display_name: 'test run',
         description: 'test run description',
-        state: V2beta1RuntimeState.SUCCEEDED,
+        state: V2RuntimeState.SUCCEEDED,
       };
       render(
         <CommonTestWrapper>
@@ -1474,13 +1474,13 @@ describe('RunDetailsV2', () => {
 
     it('shows actual retry start time from state_history when RUNNING entry has update_time', async () => {
       const retryTime = new Date(2018, 8, 8, 4, 3, 2);
-      const runWithHistory: V2beta1Run = {
+      const runWithHistory: V2Run = {
         ...TEST_RUN,
         scheduled_at: new Date(2018, 8, 6, 4, 3, 2),
         state_history: [
-          { state: V2beta1RuntimeState.RUNNING, update_time: new Date(2018, 8, 6, 4, 3, 2) },
-          { state: V2beta1RuntimeState.FAILED, update_time: new Date(2018, 8, 6, 5, 0, 0) },
-          { state: V2beta1RuntimeState.RUNNING, update_time: retryTime },
+          { state: V2RuntimeState.RUNNING, update_time: new Date(2018, 8, 6, 4, 3, 2) },
+          { state: V2RuntimeState.FAILED, update_time: new Date(2018, 8, 6, 5, 0, 0) },
+          { state: V2RuntimeState.RUNNING, update_time: retryTime },
         ],
       };
       render(
@@ -1501,10 +1501,10 @@ describe('RunDetailsV2', () => {
 
     it('falls back to scheduled_at when RUNNING entry has no update_time', async () => {
       const scheduledTime = new Date(2018, 8, 6, 4, 3, 2);
-      const runWithNoUpdateTime: V2beta1Run = {
+      const runWithNoUpdateTime: V2Run = {
         ...TEST_RUN,
         scheduled_at: scheduledTime,
-        state_history: [{ state: V2beta1RuntimeState.RUNNING, update_time: undefined }],
+        state_history: [{ state: V2RuntimeState.RUNNING, update_time: undefined }],
       };
       render(
         <CommonTestWrapper>
@@ -1524,10 +1524,10 @@ describe('RunDetailsV2', () => {
 
     it('does not show Scheduled at row when actual start equals scheduled_at', async () => {
       const sameTime = new Date(2018, 8, 6, 4, 3, 2);
-      const runSameTime: V2beta1Run = {
+      const runSameTime: V2Run = {
         ...TEST_RUN,
         scheduled_at: sameTime,
-        state_history: [{ state: V2beta1RuntimeState.RUNNING, update_time: sameTime }],
+        state_history: [{ state: V2RuntimeState.RUNNING, update_time: sameTime }],
       };
       render(
         <CommonTestWrapper>

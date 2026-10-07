@@ -21,10 +21,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
@@ -56,9 +56,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 		testContext.Pipeline.UploadParams = upload_params.NewUploadPipelineParams()
 		testContext.Pipeline.PipelineGeneratedName = "e2e-test-" + randomName
-		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
+		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2Pipeline, 0)
 		testContext.PipelineRun.CreatedRunIds = make([]string, 0)
-		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2beta1Pipeline)
+		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2Pipeline)
 		testContext.Pipeline.ExpectedPipeline.CreatedAt = strfmt.DateTime(testContext.TestStartTimeUTC)
 		var secrets []*v1.Secret
 		secret1 := &v1.Secret{
@@ -191,7 +191,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
-			createdExperiment := testutil.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+			createdExperiment := testutil.CreateExperimentWithParams(experimentClient, &experiment_model.V2Experiment{
 				DisplayName: "ProxyTest-" + randomName,
 				Namespace:   testutil.GetNamespace(),
 			})
@@ -206,7 +206,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
 			} else {
 				runState := testutil.GetPipelineRun(runClient, &createdRunID).State
-				expectedRunState := run_model.V2beta1RuntimeStateFAILED
+				expectedRunState := run_model.V2RuntimeStateFAILED
 				Expect(runState).To(Equal(&expectedRunState), fmt.Sprintf("Expected run with id=%s to fail with proxy=false", createdRunID))
 			}
 		})
@@ -231,7 +231,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				logger.Log("Fetching updated pipeline run details for run with id=%s", createdRunID)
 				updatedRun := testutil.GetPipelineRun(runClient, &createdRunID)
 				Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
-				Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
+				Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
 
 			})
 		}

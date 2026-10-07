@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -123,7 +123,7 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 // parseAPIFilter attempts to decode a url-encoded JSON-stringified api
 // filter object. An empty string is considered valid input, and equivalent to
 // the nil filter, which trivially does nothing.
-func parseAPIFilter(encoded string) (*apiv2beta1.Filter, error) {
+func parseAPIFilter(encoded string) (*apiv2.Filter, error) {
 	if encoded == "" {
 		return nil, nil
 	}
@@ -138,7 +138,7 @@ func parseAPIFilter(encoded string) (*apiv2beta1.Filter, error) {
 		return nil, err
 	}
 
-	f := &apiv2beta1.Filter{}
+	f := &apiv2.Filter{}
 	if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
 		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 	}
@@ -146,7 +146,7 @@ func parseAPIFilter(encoded string) (*apiv2beta1.Filter, error) {
 }
 
 // Validates list options for a given resource and listing parameters.
-// Filters are decoded using the v2beta1 schema.
+// Filters are decoded using the v2 schema.
 func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string) (*list.Options, error) {
 	defaultOpts := func() (*list.Options, error) {
 		if listable == nil {
@@ -202,7 +202,7 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 // snake_case naming convention for protobuf field names for Filter predicate values.
 // This function replaces specific JSON key names to maintain backward compatibility
 // with older APIs.
-// See Predicate.value in backend/api/v2beta1/filter.proto for these values.
+// See Predicate.value in backend/api/v2/filter.proto for these values.
 // Previously
 func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 	replacer := strings.NewReplacer(
@@ -217,8 +217,8 @@ func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 	return replacer.Replace(jsonStr), nil
 }
 
-// validateFilterV2Beta1Artifact creates filter context for artifacts based on namespace
-func validateFilterV2Beta1Artifact(namespace string) (*model.FilterContext, error) {
+// validateFilterV2Artifact creates filter context for artifacts based on namespace
+func validateFilterV2Artifact(namespace string) (*model.FilterContext, error) {
 	filterContext := &model.FilterContext{}
 	if namespace != "" {
 		filterContext.ReferenceKey = &model.ReferenceKey{
@@ -240,10 +240,10 @@ func validateNonEmptyIDFilters(ids []string, fieldName string) error {
 	return nil
 }
 
-// validateFilterV2Beta1ArtifactTask creates filter contexts for artifact-task relationships.
+// validateFilterV2ArtifactTask creates filter contexts for artifact-task relationships.
 // Empty-string IDs are rejected. At least one real ID filter is required; an empty
 // FilterContext is never emitted because that would produce an unscoped store query.
-func validateFilterV2Beta1ArtifactTask(taskIds, runIds, artifactIds []string) ([]*model.FilterContext, error) {
+func validateFilterV2ArtifactTask(taskIds, runIds, artifactIds []string) ([]*model.FilterContext, error) {
 	if err := validateNonEmptyIDFilters(taskIds, "task_ids"); err != nil {
 		return nil, err
 	}

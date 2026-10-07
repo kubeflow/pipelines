@@ -61,7 +61,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1UpdateTasksBulkResponse
+        :rtype: V2UpdateTasksBulkResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.batch_update_tasks_with_http_info(run_id, body, **kwargs)  # noqa: E501
@@ -95,7 +95,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1UpdateTasksBulkResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2UpdateTasksBulkResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -158,14 +158,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}/tasks:batchUpdate', 'POST',
+            '/apis/v2/runs/{run_id}/tasks:batchUpdate', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1UpdateTasksBulkResponse',  # noqa: E501
+            response_type='V2UpdateTasksBulkResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -185,7 +185,7 @@ class RunServiceApi(object):
         :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
         :type run_id: str
         :param task: (required)
-        :type task: V2beta1PipelineTask
+        :type task: V2PipelineTask
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -198,7 +198,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1PipelineTask
+        :rtype: V2PipelineTask
         """
         kwargs['_return_http_data_only'] = True
         return self.create_task_with_http_info(run_id, task, **kwargs)  # noqa: E501
@@ -215,7 +215,7 @@ class RunServiceApi(object):
         :param run_id: Required. Parent run ID. This is typically provided by the URL path. (required)
         :type run_id: str
         :param task: (required)
-        :type task: V2beta1PipelineTask
+        :type task: V2PipelineTask
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -232,7 +232,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1PipelineTask, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2PipelineTask, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -295,14 +295,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}/tasks', 'POST',
+            '/apis/v2/runs/{run_id}/tasks', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1PipelineTask',  # noqa: E501
+            response_type='V2PipelineTask',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -320,7 +320,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1FindCachedTaskRequest
+        :type body: V2FindCachedTaskRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -333,7 +333,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1FindCachedTaskResponse
+        :rtype: V2FindCachedTaskResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.find_cached_task_with_http_info(body, **kwargs)  # noqa: E501
@@ -348,7 +348,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1FindCachedTaskRequest
+        :type body: V2FindCachedTaskRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -365,7 +365,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1FindCachedTaskResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2FindCachedTaskResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -421,14 +421,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/tasks:findCached', 'POST',
+            '/apis/v2/tasks:findCached', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1FindCachedTaskResponse',  # noqa: E501
+            response_type='V2FindCachedTaskResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -461,7 +461,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1PipelineTask
+        :rtype: V2PipelineTask
         """
         kwargs['_return_http_data_only'] = True
         return self.get_task_with_http_info(run_id, task_id, **kwargs)  # noqa: E501
@@ -495,7 +495,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1PipelineTask, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2PipelineTask, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -554,14 +554,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}/tasks/{task_id}', 'GET',
+            '/apis/v2/runs/{run_id}/tasks/{task_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1PipelineTask',  # noqa: E501
+            response_type='V2PipelineTask',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -602,7 +602,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListTasksResponse
+        :rtype: V2ListTasksResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.list_tasks_with_http_info(run_id, **kwargs)  # noqa: E501
@@ -644,7 +644,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListTasksResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListTasksResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -711,14 +711,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}/tasks', 'GET',
+            '/apis/v2/runs/{run_id}/tasks', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListTasksResponse',  # noqa: E501
+            response_type='V2ListTasksResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -840,7 +840,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}:archive', 'POST',
+            '/apis/v2/runs/{run_id}:archive', 'POST',
             path_params,
             query_params,
             header_params,
@@ -865,7 +865,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param run: Run to be created. (required)
-        :type run: V2beta1Run
+        :type run: V2Run
         :param experiment_id: The ID of the parent experiment.
         :type experiment_id: str
         :param async_req: Whether to execute the request asynchronously.
@@ -880,7 +880,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Run
+        :rtype: V2Run
         """
         kwargs['_return_http_data_only'] = True
         return self.run_service_create_run_with_http_info(run, **kwargs)  # noqa: E501
@@ -895,7 +895,7 @@ class RunServiceApi(object):
         >>> result = thread.get()
 
         :param run: Run to be created. (required)
-        :type run: V2beta1Run
+        :type run: V2Run
         :param experiment_id: The ID of the parent experiment.
         :type experiment_id: str
         :param async_req: Whether to execute the request asynchronously.
@@ -914,7 +914,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Run, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Run, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -973,14 +973,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs', 'POST',
+            '/apis/v2/runs', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Run',  # noqa: E501
+            response_type='V2Run',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1102,7 +1102,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}', 'DELETE',
+            '/apis/v2/runs/{run_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -1144,7 +1144,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Run
+        :rtype: V2Run
         """
         kwargs['_return_http_data_only'] = True
         return self.run_service_get_run_with_http_info(run_id, **kwargs)  # noqa: E501
@@ -1180,7 +1180,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Run, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Run, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1238,14 +1238,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}', 'GET',
+            '/apis/v2/runs/{run_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Run',  # noqa: E501
+            response_type='V2Run',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1290,7 +1290,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListRunsResponse
+        :rtype: V2ListRunsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.run_service_list_runs_with_http_info(**kwargs)  # noqa: E501
@@ -1336,7 +1336,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListRunsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListRunsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1405,14 +1405,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs', 'GET',
+            '/apis/v2/runs', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListRunsResponse',  # noqa: E501
+            response_type='V2ListRunsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1534,7 +1534,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}:retry', 'POST',
+            '/apis/v2/runs/{run_id}:retry', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1663,7 +1663,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}:terminate', 'POST',
+            '/apis/v2/runs/{run_id}:terminate', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1792,7 +1792,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}:unarchive', 'POST',
+            '/apis/v2/runs/{run_id}:unarchive', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1821,7 +1821,7 @@ class RunServiceApi(object):
         :param task_id: (required)
         :type task_id: str
         :param task: (required)
-        :type task: V2beta1PipelineTask
+        :type task: V2PipelineTask
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -1834,7 +1834,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1PipelineTask
+        :rtype: V2PipelineTask
         """
         kwargs['_return_http_data_only'] = True
         return self.update_task_with_http_info(run_id, task_id, task, **kwargs)  # noqa: E501
@@ -1853,7 +1853,7 @@ class RunServiceApi(object):
         :param task_id: (required)
         :type task_id: str
         :param task: (required)
-        :type task: V2beta1PipelineTask
+        :type task: V2PipelineTask
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -1870,7 +1870,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1PipelineTask, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2PipelineTask, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1940,14 +1940,14 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/runs/{run_id}/tasks/{task_id}', 'PATCH',
+            '/apis/v2/runs/{run_id}/tasks/{task_id}', 'PATCH',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1PipelineTask',  # noqa: E501
+            response_type='V2PipelineTask',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

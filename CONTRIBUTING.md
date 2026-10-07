@@ -195,7 +195,7 @@ Scope is optional, it can be one of the following:
 * **frontend**: user interface or frontend server related, folder `frontend`, `frontend/server`
 * **backend**: Backend, folder `backend`
 * **sdk**: `kfp` python package, folder `sdk`
-* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2beta1/python_http_client`
+* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2/python_http_client`
 * **components**: Pipeline components, folder `components`
 * **deployment**: Kustomize or gcp marketplace manifests, folder `manifests`
 * **metadata**: Related to machine learning metadata (MLMD), folder `backend/metadata_writer`

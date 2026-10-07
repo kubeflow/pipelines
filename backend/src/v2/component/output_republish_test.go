@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -52,34 +52,34 @@ func TestParentNeedsOutputRepublish(t *testing.T) {
 	}
 
 	assert.False(t, ParentNeedsOutputRepublish(nil, paramDefs))
-	assert.False(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{}, nil))
-	assert.False(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{}, &pipelinespec.ComponentOutputsSpec{}))
-	assert.True(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{}, paramDefs))
-	assert.True(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+	assert.False(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{}, nil))
+	assert.False(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{}, &pipelinespec.ComponentOutputsSpec{}))
+	assert.True(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{}, paramDefs))
+	assert.True(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{
+		Outputs: &apiv2.PipelineTask_InputOutputs{},
 	}, paramDefs))
-	assert.False(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	assert.False(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "pipeline-output",
 				Value:        structpb.NewStringValue("v"),
 			}},
 		},
 	}, paramDefs))
 	// Artifacts present but declared parameter still missing.
-	assert.True(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+	assert.True(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 				ArtifactKey: "model",
-				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "art-1"}},
+				Artifacts:   []*apiv2.Artifact{{ArtifactId: "art-1"}},
 			}},
 		},
 	}, mixedDefs))
-	assert.False(t, ParentNeedsOutputRepublish(&apiv2beta1.PipelineTask{
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+	assert.False(t, ParentNeedsOutputRepublish(&apiv2.PipelineTask{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 				ArtifactKey: "model",
-				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "art-1"}},
+				Artifacts:   []*apiv2.Artifact{{ArtifactId: "art-1"}},
 			}},
 		},
 	}, artifactDefs))
@@ -104,16 +104,16 @@ func TestNestedLoopParameterOrdering(t *testing.T) {
 	scope, err := util.ScopePathFromDotNotation(spec, "root.inner")
 	require.NoError(t, err)
 	for attempt := 0; attempt < 32; attempt++ {
-		parent := &apiv2beta1.PipelineTask{Name: "root", ScopePath: "root", Type: apiv2beta1.PipelineTask_ROOT}
-		child := &apiv2beta1.PipelineTask{Name: "inner", Type: apiv2beta1.PipelineTask_LOOP,
-			TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(1)},
-			Outputs:        &apiv2beta1.PipelineTask_InputOutputs{},
+		parent := &apiv2.PipelineTask{Name: "root", ScopePath: "root", Type: apiv2.PipelineTask_ROOT}
+		child := &apiv2.PipelineTask{Name: "inner", Type: apiv2.PipelineTask_LOOP,
+			TypeAttributes: &apiv2.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(1)},
+			Outputs:        &apiv2.PipelineTask_InputOutputs{},
 		}
 		for _, key := range []string{"zeta", "alpha", "middle"} {
 			for _, index := range []int64{2, 0, 1} {
-				child.Outputs.Parameters = append(child.Outputs.Parameters, &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+				child.Outputs.Parameters = append(child.Outputs.Parameters, &apiv2.PipelineTask_InputOutputs_IOParameter{
 					ParameterKey: key, Value: structpb.NewNumberValue(float64(index)),
-					Producer: &apiv2beta1.IOProducer{Iteration: util.Int64Pointer(index)},
+					Producer: &apiv2.IOProducer{Iteration: util.Int64Pointer(index)},
 				})
 			}
 		}
@@ -132,67 +132,67 @@ func TestNestedLoopParameterOrdering(t *testing.T) {
 
 func TestOmitArtifactTasksAlreadyPresentOnTasks(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{RunId: "run-omit"}
+	run := &apiv2.Run{RunId: "run-omit"}
 	mockAPI.AddRun(run)
 
 	parentID := "parent"
 	ancestorID := "ancestor"
 	artifactID := "art-1"
 
-	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			TaskId: parentID,
 			RunId:  run.GetRunId(),
 			Name:   "nested",
-			State:  apiv2beta1.PipelineTask_RUNNING,
-			Type:   apiv2beta1.PipelineTask_DAG,
+			State:  apiv2.PipelineTask_RUNNING,
+			Type:   apiv2.PipelineTask_DAG,
 		},
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			TaskId: ancestorID,
 			RunId:  run.GetRunId(),
 			Name:   "root",
-			State:  apiv2beta1.PipelineTask_RUNNING,
-			Type:   apiv2beta1.PipelineTask_DAG,
+			State:  apiv2.PipelineTask_RUNNING,
+			Type:   apiv2.PipelineTask_DAG,
 		},
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact: &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact: &apiv2.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
 		TaskId:   parentID,
 		RunId:    run.GetRunId(),
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
-			{ArtifactId: artifactID, TaskId: parentID, RunId: run.GetRunId(), Key: "existing-model", Type: apiv2beta1.IOType_OUTPUT},
-			{ArtifactId: artifactID, TaskId: ancestorID, RunId: run.GetRunId(), Key: "existing-model", Type: apiv2beta1.IOType_OUTPUT},
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
+			{ArtifactId: artifactID, TaskId: parentID, RunId: run.GetRunId(), Key: "existing-model", Type: apiv2.IOType_OUTPUT},
+			{ArtifactId: artifactID, TaskId: ancestorID, RunId: run.GetRunId(), Key: "existing-model", Type: apiv2.IOType_OUTPUT},
 		},
 	})
 	require.NoError(t, err)
 
 	batchUpdater := NewBatchUpdater()
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: artifactID,
 		TaskId:     parentID,
 		Key:        "missing-model",
-		Type:       apiv2beta1.IOType_OUTPUT,
+		Type:       apiv2.IOType_OUTPUT,
 	})
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: artifactID,
 		TaskId:     parentID,
 		Key:        "existing-model",
-		Type:       apiv2beta1.IOType_OUTPUT,
+		Type:       apiv2.IOType_OUTPUT,
 	})
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: artifactID,
 		TaskId:     ancestorID,
 		Key:        "existing-model",
-		Type:       apiv2beta1.IOType_OUTPUT,
+		Type:       apiv2.IOType_OUTPUT,
 	})
 
 	require.NoError(t, batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(
@@ -205,65 +205,65 @@ func TestOmitArtifactTasksAlreadyPresentOnTasks(t *testing.T) {
 
 func TestOmitArtifactTasksAlreadyPresentOnTasks_KeepsDistinctSameKeyArtifacts(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{RunId: "run-omit-multi"}
+	run := &apiv2.Run{RunId: "run-omit-multi"}
 	mockAPI.AddRun(run)
 
 	parentID := "parent"
 	existingArtifactID := "art-existing"
 	missingArtifactID := "art-missing"
 
-	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			TaskId: parentID,
 			RunId:  run.GetRunId(),
 			Name:   "producer",
-			State:  apiv2beta1.PipelineTask_RUNNING,
-			Type:   apiv2beta1.PipelineTask_RUNTIME,
+			State:  apiv2.PipelineTask_RUNNING,
+			Type:   apiv2.PipelineTask_RUNTIME,
 		},
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact: &apiv2beta1.Artifact{ArtifactId: existingArtifactID, Name: "model-a", Uri: util.StringPointer("gs://bucket/a")},
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact: &apiv2.Artifact{ArtifactId: existingArtifactID, Name: "model-a", Uri: util.StringPointer("gs://bucket/a")},
 		TaskId:   parentID,
 		RunId:    run.GetRunId(),
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
-			{ArtifactId: existingArtifactID, TaskId: parentID, RunId: run.GetRunId(), Key: "models", Type: apiv2beta1.IOType_OUTPUT},
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
+			{ArtifactId: existingArtifactID, TaskId: parentID, RunId: run.GetRunId(), Key: "models", Type: apiv2.IOType_OUTPUT},
 		},
 	})
 	require.NoError(t, err)
 
 	batchUpdater := NewBatchUpdater()
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: existingArtifactID,
 		TaskId:     parentID,
 		Key:        "models",
-		Type:       apiv2beta1.IOType_OUTPUT,
+		Type:       apiv2.IOType_OUTPUT,
 	})
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: missingArtifactID,
 		TaskId:     parentID,
 		Key:        "models",
-		Type:       apiv2beta1.IOType_OUTPUT,
+		Type:       apiv2.IOType_OUTPUT,
 	})
 	iter0 := int64(0)
 	iter1 := int64(1)
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: "art-iter-0",
 		TaskId:     parentID,
 		Key:        "loop-out",
-		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+		Type:       apiv2.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2.IOProducer{TaskName: "producer", Iteration: &iter0},
 	})
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: "art-iter-1",
 		TaskId:     parentID,
 		Key:        "loop-out",
-		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter1},
+		Type:       apiv2.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2.IOProducer{TaskName: "producer", Iteration: &iter1},
 	})
 
 	require.NoError(t, batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(
@@ -279,7 +279,7 @@ func TestOmitArtifactTasksAlreadyPresentOnTasks_KeepsDistinctSameKeyArtifacts(t 
 
 func TestOmitArtifactTasksAlreadyPresentOnTasks_IteratorPartialRepair(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{RunId: "run-omit-iter"}
+	run := &apiv2.Run{RunId: "run-omit-iter"}
 	mockAPI.AddRun(run)
 
 	parentID := "parent"
@@ -287,19 +287,19 @@ func TestOmitArtifactTasksAlreadyPresentOnTasks_IteratorPartialRepair(t *testing
 	iter0 := int64(0)
 	iter1 := int64(1)
 
-	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			TaskId: parentID,
 			RunId:  run.GetRunId(),
 			Name:   "producer",
-			State:  apiv2beta1.PipelineTask_RUNNING,
-			Type:   apiv2beta1.PipelineTask_RUNTIME,
+			State:  apiv2.PipelineTask_RUNNING,
+			Type:   apiv2.PipelineTask_RUNTIME,
 		},
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact:       &apiv2beta1.Artifact{ArtifactId: sharedArtifactID, Name: "loop-0", Uri: util.StringPointer("gs://bucket/0")},
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact:       &apiv2.Artifact{ArtifactId: sharedArtifactID, Name: "loop-0", Uri: util.StringPointer("gs://bucket/0")},
 		TaskId:         parentID,
 		RunId:          run.GetRunId(),
 		ProducerKey:    "loop-out",
@@ -309,36 +309,36 @@ func TestOmitArtifactTasksAlreadyPresentOnTasks_IteratorPartialRepair(t *testing
 
 	batchUpdater := NewBatchUpdater()
 	// Exact duplicate of the seeded (artifact, task, type, iteration, key) — must be omitted.
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: sharedArtifactID,
 		TaskId:     parentID,
 		Key:        "loop-out",
-		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+		Type:       apiv2.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2.IOProducer{TaskName: "producer", Iteration: &iter0},
 	})
 	// Same artifact/task/type/key, different iteration — must be kept.
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: sharedArtifactID,
 		TaskId:     parentID,
 		Key:        "loop-out",
-		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter1},
+		Type:       apiv2.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2.IOProducer{TaskName: "producer", Iteration: &iter1},
 	})
 	// Same artifact/task/iteration/key, different I/O type — must be kept.
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: sharedArtifactID,
 		TaskId:     parentID,
 		Key:        "loop-out",
-		Type:       apiv2beta1.IOType_OUTPUT,
-		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+		Type:       apiv2.IOType_OUTPUT,
+		Producer:   &apiv2.IOProducer{TaskName: "producer", Iteration: &iter0},
 	})
 	// Same artifact/task/type/iteration, different key — must be kept.
-	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+	batchUpdater.QueueArtifactTask(&apiv2.ArtifactTask{
 		ArtifactId: sharedArtifactID,
 		TaskId:     parentID,
 		Key:        "other-out",
-		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+		Type:       apiv2.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2.IOProducer{TaskName: "producer", Iteration: &iter0},
 	})
 
 	require.NoError(t, batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(
@@ -356,9 +356,9 @@ func TestOmitArtifactTasksAlreadyPresentOnTasks_IteratorPartialRepair(t *testing
 		))
 	}
 	assert.ElementsMatch(t, []string{
-		fmt.Sprintf("%v|%d|%s", apiv2beta1.IOType_ITERATOR_OUTPUT, iter1, "loop-out"),
-		fmt.Sprintf("%v|%d|%s", apiv2beta1.IOType_OUTPUT, iter0, "loop-out"),
-		fmt.Sprintf("%v|%d|%s", apiv2beta1.IOType_ITERATOR_OUTPUT, iter0, "other-out"),
+		fmt.Sprintf("%v|%d|%s", apiv2.IOType_ITERATOR_OUTPUT, iter1, "loop-out"),
+		fmt.Sprintf("%v|%d|%s", apiv2.IOType_OUTPUT, iter0, "loop-out"),
+		fmt.Sprintf("%v|%d|%s", apiv2.IOType_ITERATOR_OUTPUT, iter0, "other-out"),
 	}, keptKeys)
 }
 
@@ -414,57 +414,57 @@ func TestRepublishPreservedChildOutputsToDAG_RestoresParentParamsFromSucceededSi
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-republish"}
+	run := &apiv2.Run{RunId: "run-republish"}
 	parentTaskID := "parent-dag"
 	successChildID := "success-child-task"
 	failedChildID := "failed-child-task"
 	parentTaskIDPtr := util.StringPointer(parentTaskID)
 
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId:    parentTaskID,
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
 		// Simulate retry reset: parent outputs cleared.
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs: &apiv2.PipelineTask_InputOutputs{},
 	}
-	successChild := &apiv2beta1.PipelineTask{
+	successChild := &apiv2.PipelineTask{
 		TaskId:       successChildID,
 		RunId:        run.GetRunId(),
 		Name:         "success-child",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.success-child",
 		ParentTaskId: parentTaskIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("kept"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "success-child"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "success-child"},
 			}},
 		},
 	}
-	failedChild := &apiv2beta1.PipelineTask{
+	failedChild := &apiv2.PipelineTask{
 		TaskId:       failedChildID,
 		RunId:        run.GetRunId(),
 		Name:         "failed-child",
-		State:        apiv2beta1.PipelineTask_FAILED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_FAILED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.failed-child",
 		ParentTaskId: parentTaskIDPtr,
-		Outputs:      &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs:      &apiv2.PipelineTask_InputOutputs{},
 	}
 
 	mockAPI := kfpapi.NewMockAPI()
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: successChild})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: successChild})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: failedChild})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: failedChild})
 	require.NoError(t, err)
 
 	parentScope, err := util.NewScopePathFromStruct(pipelineSpecStruct)
@@ -479,7 +479,7 @@ func TestRepublishPreservedChildOutputsToDAG_RestoresParentParamsFromSucceededSi
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: parentTaskID,
 		RunId:  run.GetRunId(),
 	})
@@ -545,60 +545,60 @@ func TestRepublishPreservedChildOutputsToDAG_PagesThroughChildren(t *testing.T) 
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-paginate"}
+	run := &apiv2.Run{RunId: "run-paginate"}
 	parentID := "parent"
 	parentIDPtr := util.StringPointer(parentID)
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId:    parentID,
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
-		Outputs:   &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs:   &apiv2.PipelineTask_InputOutputs{},
 	}
-	childA := &apiv2beta1.PipelineTask{
+	childA := &apiv2.PipelineTask{
 		TaskId:       "task-a",
 		RunId:        run.GetRunId(),
 		Name:         "child-a",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.child-a",
 		ParentTaskId: parentIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("a"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "child-a"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "child-a"},
 			}},
 		},
 	}
-	childB := &apiv2beta1.PipelineTask{
+	childB := &apiv2.PipelineTask{
 		TaskId:       "task-b",
 		RunId:        run.GetRunId(),
 		Name:         "child-b",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.child-b",
 		ParentTaskId: parentIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("b"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "child-b"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "child-b"},
 			}},
 		},
 	}
 
 	mockAPI := kfpapi.NewMockAPI()
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: childA})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: childA})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: childB})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: childB})
 	require.NoError(t, err)
 
 	parentScope, err := util.NewScopePathFromStruct(pipelineSpecStruct)
@@ -613,7 +613,7 @@ func TestRepublishPreservedChildOutputsToDAG_PagesThroughChildren(t *testing.T) 
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: parentID,
 		RunId:  run.GetRunId(),
 	})
@@ -682,41 +682,41 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsParamsWhenArtifactsAlreadyPr
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-partial"}
+	run := &apiv2.Run{RunId: "run-partial"}
 	parentID := "parent"
 	parentIDPtr := util.StringPointer(parentID)
 	artifactID := "art-model"
 
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId:    parentID,
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
 		// Partial prior republish: artifact link durable, parameter update missing.
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs: &apiv2.PipelineTask_InputOutputs{},
 	}
-	childTask := &apiv2beta1.PipelineTask{
+	childTask := &apiv2.PipelineTask{
 		TaskId:       "worker-task",
 		RunId:        run.GetRunId(),
 		Name:         "worker",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.worker",
 		ParentTaskId: parentIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("repaired"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 				ArtifactKey: "model",
-				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID, Name: "model"}},
-				Type:        apiv2beta1.IOType_OUTPUT,
-				Producer:    &apiv2beta1.IOProducer{TaskName: "worker"},
+				Artifacts:   []*apiv2.Artifact{{ArtifactId: artifactID, Name: "model"}},
+				Type:        apiv2.IOType_OUTPUT,
+				Producer:    &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
@@ -724,24 +724,24 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsParamsWhenArtifactsAlreadyPr
 	baseMock := kfpapi.NewMockAPI()
 	mockAPI := &uniqueLinkEnforcingMockAPI{MockAPI: baseMock, seen: map[string]struct{}{}}
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: childTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: childTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact: &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact: &apiv2.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
 		TaskId:   childTask.GetTaskId(),
 		RunId:    run.GetRunId(),
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{{
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{{
 			ArtifactId: artifactID,
 			TaskId:     parentID,
 			RunId:      run.GetRunId(),
 			Key:        "model",
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer:   &apiv2beta1.IOProducer{TaskName: "worker"},
+			Type:       apiv2.IOType_OUTPUT,
+			Producer:   &apiv2.IOProducer{TaskName: "worker"},
 		}},
 	})
 	require.NoError(t, err)
@@ -758,7 +758,7 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsParamsWhenArtifactsAlreadyPr
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: parentID,
 		RunId:  run.GetRunId(),
 	})
@@ -868,7 +868,7 @@ func TestRepublishPreservedChildOutputsToDAG_OmitsAncestorArtifactLinks(t *testi
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-nested-partial"}
+	run := &apiv2.Run{RunId: "run-nested-partial"}
 	rootID := "root-task"
 	nestedID := "nested-task"
 	workerID := "worker-task"
@@ -876,45 +876,45 @@ func TestRepublishPreservedChildOutputsToDAG_OmitsAncestorArtifactLinks(t *testi
 	rootIDPtr := util.StringPointer(rootID)
 	nestedIDPtr := util.StringPointer(nestedID)
 
-	rootTask := &apiv2beta1.PipelineTask{
+	rootTask := &apiv2.PipelineTask{
 		TaskId:    rootID,
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
-		Outputs:   &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs:   &apiv2.PipelineTask_InputOutputs{},
 	}
-	nestedTask := &apiv2beta1.PipelineTask{
+	nestedTask := &apiv2.PipelineTask{
 		TaskId:       nestedID,
 		RunId:        run.GetRunId(),
 		Name:         "nested",
-		State:        apiv2beta1.PipelineTask_RUNNING,
-		Type:         apiv2beta1.PipelineTask_DAG,
+		State:        apiv2.PipelineTask_RUNNING,
+		Type:         apiv2.PipelineTask_DAG,
 		ScopePath:    "root.nested",
 		ParentTaskId: rootIDPtr,
-		Outputs:      &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs:      &apiv2.PipelineTask_InputOutputs{},
 	}
-	workerTask := &apiv2beta1.PipelineTask{
+	workerTask := &apiv2.PipelineTask{
 		TaskId:       workerID,
 		RunId:        run.GetRunId(),
 		Name:         "worker",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.nested.worker",
 		ParentTaskId: nestedIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("nested-repaired"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 				ArtifactKey: "model",
-				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID, Name: "model"}},
-				Type:        apiv2beta1.IOType_OUTPUT,
-				Producer:    &apiv2beta1.IOProducer{TaskName: "worker"},
+				Artifacts:   []*apiv2.Artifact{{ArtifactId: artifactID, Name: "model"}},
+				Type:        apiv2.IOType_OUTPUT,
+				Producer:    &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
@@ -922,36 +922,36 @@ func TestRepublishPreservedChildOutputsToDAG_OmitsAncestorArtifactLinks(t *testi
 	baseMock := kfpapi.NewMockAPI()
 	mockAPI := &uniqueLinkEnforcingMockAPI{MockAPI: baseMock, seen: map[string]struct{}{}}
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: rootTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: rootTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: nestedTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: nestedTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: workerTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: workerTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact: &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact: &apiv2.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
 		TaskId:   workerID,
 		RunId:    run.GetRunId(),
 	})
 	require.NoError(t, err)
 	// Partial flush already wrote artifact links for nested and root.
-	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: artifactID,
 				TaskId:     nestedID,
 				RunId:      run.GetRunId(),
 				Key:        "nested-model",
-				Type:       apiv2beta1.IOType_OUTPUT,
-				Producer:   &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:       apiv2.IOType_OUTPUT,
+				Producer:   &apiv2.IOProducer{TaskName: "worker"},
 			},
 			{
 				ArtifactId: artifactID,
 				TaskId:     rootID,
 				RunId:      run.GetRunId(),
 				Key:        "root-model",
-				Type:       apiv2beta1.IOType_OUTPUT,
-				Producer:   &apiv2beta1.IOProducer{TaskName: "nested"},
+				Type:       apiv2.IOType_OUTPUT,
+				Producer:   &apiv2.IOProducer{TaskName: "nested"},
 			},
 		},
 	})
@@ -969,7 +969,7 @@ func TestRepublishPreservedChildOutputsToDAG_OmitsAncestorArtifactLinks(t *testi
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedNested, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedNested, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: nestedID,
 		RunId:  run.GetRunId(),
 	})
@@ -977,7 +977,7 @@ func TestRepublishPreservedChildOutputsToDAG_OmitsAncestorArtifactLinks(t *testi
 	require.Len(t, updatedNested.GetOutputs().GetParameters(), 1)
 	assert.Equal(t, "nested-repaired", updatedNested.GetOutputs().GetParameters()[0].GetValue().GetStringValue())
 
-	updatedRoot, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedRoot, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: rootID,
 		RunId:  run.GetRunId(),
 	})
@@ -1090,7 +1090,7 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsIncompleteAncestorWhenNested
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-nested-complete-root-incomplete"}
+	run := &apiv2.Run{RunId: "run-nested-complete-root-incomplete"}
 	rootID := "root-task"
 	nestedID := "nested-task"
 	workerID := "worker-task"
@@ -1098,59 +1098,59 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsIncompleteAncestorWhenNested
 	rootIDPtr := util.StringPointer(rootID)
 	nestedIDPtr := util.StringPointer(nestedID)
 
-	rootTask := &apiv2beta1.PipelineTask{
+	rootTask := &apiv2.PipelineTask{
 		TaskId:    rootID,
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
-		Outputs:   &apiv2beta1.PipelineTask_InputOutputs{},
+		Outputs:   &apiv2.PipelineTask_InputOutputs{},
 	}
 	// Immediate parent already has all declared outputs from a prior partial flush.
-	nestedTask := &apiv2beta1.PipelineTask{
+	nestedTask := &apiv2.PipelineTask{
 		TaskId:       nestedID,
 		RunId:        run.GetRunId(),
 		Name:         "nested",
-		State:        apiv2beta1.PipelineTask_RUNNING,
-		Type:         apiv2beta1.PipelineTask_DAG,
+		State:        apiv2.PipelineTask_RUNNING,
+		Type:         apiv2.PipelineTask_DAG,
 		ScopePath:    "root.nested",
 		ParentTaskId: rootIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "nested-out",
 				Value:        structpb.NewStringValue("nested-complete"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 				ArtifactKey: "nested-model",
-				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID, Name: "model"}},
-				Type:        apiv2beta1.IOType_OUTPUT,
-				Producer:    &apiv2beta1.IOProducer{TaskName: "worker"},
+				Artifacts:   []*apiv2.Artifact{{ArtifactId: artifactID, Name: "model"}},
+				Type:        apiv2.IOType_OUTPUT,
+				Producer:    &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
-	workerTask := &apiv2beta1.PipelineTask{
+	workerTask := &apiv2.PipelineTask{
 		TaskId:       workerID,
 		RunId:        run.GetRunId(),
 		Name:         "worker",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.nested.worker",
 		ParentTaskId: nestedIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("nested-complete"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
-			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 				ArtifactKey: "model",
-				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID, Name: "model"}},
-				Type:        apiv2beta1.IOType_OUTPUT,
-				Producer:    &apiv2beta1.IOProducer{TaskName: "worker"},
+				Artifacts:   []*apiv2.Artifact{{ArtifactId: artifactID, Name: "model"}},
+				Type:        apiv2.IOType_OUTPUT,
+				Producer:    &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
@@ -1158,27 +1158,27 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsIncompleteAncestorWhenNested
 	baseMock := kfpapi.NewMockAPI()
 	mockAPI := &uniqueLinkEnforcingMockAPI{MockAPI: baseMock, seen: map[string]struct{}{}}
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: rootTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: rootTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: nestedTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: nestedTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: workerTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: workerTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact:    &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact:    &apiv2.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
 		TaskId:      workerID,
 		RunId:       run.GetRunId(),
 		ProducerKey: "model",
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{{
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{{
 			ArtifactId: artifactID,
 			TaskId:     nestedID,
 			RunId:      run.GetRunId(),
 			Key:        "nested-model",
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer:   &apiv2beta1.IOProducer{TaskName: "worker"},
+			Type:       apiv2.IOType_OUTPUT,
+			Producer:   &apiv2.IOProducer{TaskName: "worker"},
 		}},
 	})
 	require.NoError(t, err)
@@ -1195,7 +1195,7 @@ func TestRepublishPreservedChildOutputsToDAG_RepairsIncompleteAncestorWhenNested
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedRoot, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedRoot, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: rootID,
 		RunId:  run.GetRunId(),
 	})
@@ -1213,7 +1213,7 @@ type uniqueLinkEnforcingMockAPI struct {
 	seen map[string]struct{}
 }
 
-func artifactTaskUniqueLinkKey(artifactTask *apiv2beta1.ArtifactTask) string {
+func artifactTaskUniqueLinkKey(artifactTask *apiv2.ArtifactTask) string {
 	iteration := int64(-1)
 	if artifactTask.GetProducer() != nil && artifactTask.GetProducer().Iteration != nil {
 		iteration = artifactTask.GetProducer().GetIteration()
@@ -1227,8 +1227,8 @@ func artifactTaskUniqueLinkKey(artifactTask *apiv2beta1.ArtifactTask) string {
 
 func (m *uniqueLinkEnforcingMockAPI) CreateArtifactTasks(
 	ctx context.Context,
-	req *apiv2beta1.CreateArtifactTasksBulkRequest,
-) (*apiv2beta1.CreateArtifactTasksBulkResponse, error) {
+	req *apiv2.CreateArtifactTasksBulkRequest,
+) (*apiv2.CreateArtifactTasksBulkResponse, error) {
 	for _, artifactTask := range req.GetArtifactTasks() {
 		key := artifactTaskUniqueLinkKey(artifactTask)
 		if _, exists := m.seen[key]; exists {
@@ -1284,48 +1284,48 @@ func TestRepublishPreservedChildOutputsToDAG_NoOpWhenParentAlreadyHasOutputs(t *
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-noop"}
+	run := &apiv2.Run{RunId: "run-noop"}
 	parentID := "parent"
 	parentIDPtr := util.StringPointer(parentID)
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId:    parentID,
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "pipeline-output",
 				Value:        structpb.NewStringValue("already-there"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
-	childTask := &apiv2beta1.PipelineTask{
+	childTask := &apiv2.PipelineTask{
 		TaskId:       "worker-task",
 		RunId:        run.GetRunId(),
 		Name:         "worker",
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ScopePath:    "root.worker",
 		ParentTaskId: parentIDPtr,
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
 				Value:        structpb.NewStringValue("new-value"),
-				Type:         apiv2beta1.IOType_OUTPUT,
-				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+				Type:         apiv2.IOType_OUTPUT,
+				Producer:     &apiv2.IOProducer{TaskName: "worker"},
 			}},
 		},
 	}
 
 	mockAPI := kfpapi.NewMockAPI()
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: childTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: childTask})
 	require.NoError(t, err)
 
 	parentScope, err := util.NewScopePathFromStruct(pipelineSpecStruct)
@@ -1340,7 +1340,7 @@ func TestRepublishPreservedChildOutputsToDAG_NoOpWhenParentAlreadyHasOutputs(t *
 	}, clientManager)
 	require.NoError(t, err)
 
-	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: parentID,
 		RunId:  run.GetRunId(),
 	})
@@ -1367,19 +1367,19 @@ func TestRepublishPreservedChildOutputsToDAG_NoOpWhenNoChildren(t *testing.T) {
 	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
 	require.NoError(t, err)
 
-	run := &apiv2beta1.Run{RunId: "run-empty"}
-	parentTask := &apiv2beta1.PipelineTask{
+	run := &apiv2.Run{RunId: "run-empty"}
+	parentTask := &apiv2.PipelineTask{
 		TaskId:    "parent",
 		RunId:     run.GetRunId(),
 		Name:      "root",
-		State:     apiv2beta1.PipelineTask_RUNNING,
-		Type:      apiv2beta1.PipelineTask_DAG,
+		State:     apiv2.PipelineTask_RUNNING,
+		Type:      apiv2.PipelineTask_DAG,
 		ScopePath: "root",
 	}
 
 	mockAPI := kfpapi.NewMockAPI()
 	mockAPI.AddRun(run)
-	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{RunId: run.GetRunId(), Task: parentTask})
 	require.NoError(t, err)
 
 	parentScope, err := util.NewScopePathFromStruct(pipelineSpecStruct)

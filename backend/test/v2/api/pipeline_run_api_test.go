@@ -20,12 +20,12 @@ import (
 	"strings"
 	"time"
 
-	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -158,13 +158,13 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFile)
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			invalidRuntimeStates := []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateCANCELED,
-				run_model.V2beta1RuntimeStateCANCELING,
-				run_model.V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED,
+			invalidRuntimeStates := []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateCANCELED,
+				run_model.V2RuntimeStateCANCELING,
+				run_model.V2RuntimeStateRUNTIMESTATEUNSPECIFIED,
 			}
-			var pipelineRunBeforeArchive *run_model.V2beta1Run
-			Eventually(func() *run_model.V2beta1Run {
+			var pipelineRunBeforeArchive *run_model.V2Run
+			Eventually(func() *run_model.V2Run {
 				pipelineRunBeforeArchive = testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
 				if pipelineRunBeforeArchive.State == nil {
 					return nil
@@ -173,16 +173,16 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			}, "30s", "1s").ShouldNot(BeNil(), "Expected pipeline run state to be reported before archiving")
 			Expect(*pipelineRunBeforeArchive.State).To(Not(BeElementOf(invalidRuntimeStates)))
 			archivePipelineRun(&createdPipelineRun.RunID)
-			var pipelineRunAfterArchive *run_model.V2beta1Run
-			Eventually(func() *run_model.V2beta1Run {
+			var pipelineRunAfterArchive *run_model.V2Run
+			Eventually(func() *run_model.V2Run {
 				pipelineRunAfterArchive = testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
-				if pipelineRunAfterArchive.State == nil || pipelineRunAfterArchive.StorageState == nil || *pipelineRunAfterArchive.StorageState != run_model.V2beta1RunStorageStateARCHIVED {
+				if pipelineRunAfterArchive.State == nil || pipelineRunAfterArchive.StorageState == nil || *pipelineRunAfterArchive.StorageState != run_model.V2RunStorageStateARCHIVED {
 					return nil
 				}
 				return pipelineRunAfterArchive
 			}, "30s", "1s").ShouldNot(BeNil(), "Expected archived pipeline run to keep a reported runtime state")
 			Expect(*pipelineRunAfterArchive.State).To(Not(BeElementOf(invalidRuntimeStates)))
-			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
+			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2RunStorageStateARCHIVED))
 
 		})
 
@@ -192,18 +192,18 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFile)
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			testutil.WaitForRunToBeInState(runClient, &createdPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}, nil)
+			testutil.WaitForRunToBeInState(runClient, &createdPipelineRun.RunID, []run_model.V2RuntimeState{run_model.V2RuntimeStateRUNNING, run_model.V2RuntimeStatePENDING}, nil)
 			archivePipelineRun(&createdPipelineRun.RunID)
-			var pipelineRunAfterArchive *run_model.V2beta1Run
-			Eventually(func() *run_model.V2beta1Run {
+			var pipelineRunAfterArchive *run_model.V2Run
+			Eventually(func() *run_model.V2Run {
 				pipelineRunAfterArchive = testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
 				if pipelineRunAfterArchive.State == nil || pipelineRunAfterArchive.StorageState == nil {
 					return nil
 				}
 				return pipelineRunAfterArchive
 			}, "30s", "1s").ShouldNot(BeNil(), "Expected archived pipeline run to retain state and storage state")
-			Expect(*pipelineRunAfterArchive.State).To(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}))
-			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
+			Expect(*pipelineRunAfterArchive.State).To(BeElementOf([]run_model.V2RuntimeState{run_model.V2RuntimeStateRUNNING, run_model.V2RuntimeStatePENDING}))
+			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2RunStorageStateARCHIVED))
 
 		})
 	})
@@ -219,7 +219,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			archivePipelineRun(&createdPipelineRun.RunID)
 			unArchivePipelineRun(&createdPipelineRun.RunID)
 			pipelineRunAfterUnArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
-			Expect(*pipelineRunAfterUnArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateAVAILABLE))
+			Expect(*pipelineRunAfterUnArchive.StorageState).To(Equal(run_model.V2RunStorageStateAVAILABLE))
 		})
 	})
 
@@ -234,8 +234,8 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 
 	Context("Get All pipeline run >", func() {
 		var listPipelineFile string
-		var listCreatedPipeline *pipeline_upload_model.V2beta1Pipeline
-		var listCreatedPipelineVersion *pipeline_model.V2beta1PipelineVersion
+		var listCreatedPipeline *pipeline_upload_model.V2Pipeline
+		var listCreatedPipelineVersion *pipeline_model.V2PipelineVersion
 		var listPipelineRuntimeInputs map[string]interface{}
 
 		BeforeEach(func() {
@@ -471,7 +471,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			pageSize := int32(1)
 			pageToken := ""
 			pagesVisited := 0
-			collectedRuns := make([]*run_model.V2beta1Run, 0)
+			collectedRuns := make([]*run_model.V2Run, 0)
 			for {
 				params := &runparams.RunServiceListRunsParams{
 					ExperimentID: &createdExperiment.ExperimentID,
@@ -723,8 +723,8 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 var _ = Describe("Verify Pipeline Run Negative Tests >", Label(constants.NEGATIVE, constants.PipelineRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	var pipelineFile string
-	var createdPipeline *pipeline_upload_model.V2beta1Pipeline
-	var createdPipelineVersion *pipeline_model.V2beta1PipelineVersion
+	var createdPipeline *pipeline_upload_model.V2Pipeline
+	var createdPipelineVersion *pipeline_model.V2PipelineVersion
 	var pipelineRuntimeInputs map[string]interface{}
 
 	BeforeEach(func() {
@@ -808,7 +808,7 @@ func configureCacheSettingAndGetPipelineFile(pipelineFilePath string, cacheDisab
 	return newPipelineFile.Name()
 }
 
-func uploadAPipeline(pipelineFile string, pipelineName *string) *pipeline_upload_model.V2beta1Pipeline {
+func uploadAPipeline(pipelineFile string, pipelineName *string) *pipeline_upload_model.V2Pipeline {
 	logger.Log("Create a pipeline")
 	testContext.Pipeline.UploadParams.SetName(pipelineName)
 	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
@@ -818,8 +818,8 @@ func uploadAPipeline(pipelineFile string, pipelineName *string) *pipeline_upload
 	return createdPipeline
 }
 
-func createExperiment(experimentName string) *experiment_model.V2beta1Experiment {
-	createdExperiment := testutil.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+func createExperiment(experimentName string) *experiment_model.V2Experiment {
+	createdExperiment := testutil.CreateExperimentWithParams(experimentClient, &experiment_model.V2Experiment{
 		DisplayName: experimentName,
 		Namespace:   testutil.GetNamespace(),
 	})
@@ -828,7 +828,7 @@ func createExperiment(experimentName string) *experiment_model.V2beta1Experiment
 }
 
 func createdExpectedRunAndVerify(
-	createdPipelineRun *run_model.V2beta1Run,
+	createdPipelineRun *run_model.V2Run,
 	pipelineID *string,
 	pipelineVersionID *string,
 	experimentID *string,
@@ -846,7 +846,7 @@ func createdExpectedRunAndVerify(
 	matcher.MatchPipelineRuns(createdPipelineRunFromDB, expectedPipelineRun)
 }
 
-func createPipelineRun(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
+func createPipelineRun(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2Run {
 	logger.Log("Create a pipeline run for pipeline with id=%s and versionId=%s", *pipelineID, *pipelineVersionID)
 	createRunRequest := &runparams.RunServiceCreateRunParams{Run: createPipelineRunPayload(pipelineID, pipelineVersionID, experimentID, inputParams)}
 	createdRun, createRunError := runClient.Create(createRunRequest)
@@ -876,28 +876,28 @@ func unArchivePipelineRun(pipelineRunID *string) {
 	logger.Log("Successfully unarchived run with runId=%s", *pipelineRunID)
 }
 
-func createPipelineRunPayload(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
+func createPipelineRunPayload(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2Run {
 	logger.Log("Create a pipeline run body")
-	return &run_model.V2beta1Run{
+	return &run_model.V2Run{
 		DisplayName:    runName,
 		Description:    runDescription,
 		ExperimentID:   testutil.ParsePointersToString(experimentID),
 		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        testutil.ParsePointersToString(pipelineID),
 			PipelineVersionID: testutil.ParsePointersToString(pipelineVersionID),
 		},
-		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+		RuntimeConfig: &run_model.V2RuntimeConfig{
 			Parameters: inputParams,
 		},
 	}
 }
 
-func createExpectedPipelineRun(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}, archived bool) *run_model.V2beta1Run {
+func createExpectedPipelineRun(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}, archived bool) *run_model.V2Run {
 	expectedRun := createPipelineRunPayload(pipelineID, pipelineVersionID, experimentID, inputParams)
-	storageState := run_model.V2beta1RunStorageStateAVAILABLE
+	storageState := run_model.V2RunStorageStateAVAILABLE
 	if archived {
-		storageState = run_model.V2beta1RunStorageStateARCHIVED
+		storageState = run_model.V2RunStorageStateARCHIVED
 	}
 	expectedRun.StorageState = &storageState
 	if experimentID == nil {

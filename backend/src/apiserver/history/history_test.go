@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"

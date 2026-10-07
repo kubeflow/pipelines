@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"time"
 
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	e2e_utils "github.com/kubeflow/pipelines/backend/test/end2end/utils"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -57,7 +57,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 		randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 		testContext.Pipeline.UploadParams = upload_params.NewUploadPipelineParams()
 		testContext.Pipeline.PipelineGeneratedName = "mlflow-e2e-" + randomName
-		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
+		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2Pipeline, 0)
 		testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	})
 
@@ -125,18 +125,18 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED),
 				"Pipeline run should succeed")
 
 			// Verify KFP plugins_output
-			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
+			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2PluginStatePLUGINSUCCEEDED)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify MLflow side
@@ -177,8 +177,8 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
@@ -231,18 +231,18 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED),
 				"Multi-task pipeline run should succeed")
 
 			// Verify KFP plugins_output
-			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
+			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2PluginStatePLUGINSUCCEEDED)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify parent MLflow run
@@ -278,17 +278,17 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED),
 				"Pipeline run should succeed even without plugins_input")
 
-			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
+			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2PluginStatePLUGINSUCCEEDED)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify the default MLflow experiment and parent run exist
@@ -316,14 +316,14 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED),
 				"Pipeline run should succeed when MLflow is disabled via plugins_input")
 
 			// No MLflow output should be present
@@ -351,18 +351,18 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED),
 				"Parallel-for pipeline run should succeed")
 
 			// Verify KFP plugins_output
-			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
+			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2PluginStatePLUGINSUCCEEDED)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify parent MLflow run is FINISHED
@@ -430,17 +430,17 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateFAILED),
 				"Pipeline run should be FAILED")
 
 			// Verify MLflow plugins_output still records the run
-			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
+			err := e2e_utils.VerifyPluginsOutput(updatedRun, run_model.V2PluginStatePLUGINSUCCEEDED)
 			Expect(err).NotTo(HaveOccurred())
 
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
@@ -476,13 +476,13 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateFAILED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateFAILED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Expect(updatedRun.State).NotTo(BeNil())
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED),
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateFAILED),
 				"Pipeline run should initially be FAILED")
 
 			rootRunID, err := e2e_utils.GetPluginsOutputEntryValue(updatedRun, "root_run_id")
@@ -504,7 +504,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 					return false
 				}
 				for _, runtimeStatus := range retriedRun.StateHistory[stateHistoryLengthBeforeRetry:] {
-					if runtimeStatus.State != nil && *runtimeStatus.State == run_model.V2beta1RuntimeStateRUNNING {
+					if runtimeStatus.State != nil && *runtimeStatus.State == run_model.V2RuntimeStateRUNNING {
 						return true
 					}
 				}
@@ -517,7 +517,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
 
 			// Verify plugins_output is still populated after retry
-			err = e2e_utils.VerifyPluginsOutput(retriedRun, run_model.V2beta1PluginStatePLUGINSUCCEEDED)
+			err = e2e_utils.VerifyPluginsOutput(retriedRun, run_model.V2PluginStatePLUGINSUCCEEDED)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify retry reused the existing parent run
@@ -533,7 +533,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			retriedRun = testutil.GetPipelineRun(runClient, &createdRun.RunID)
 			Eventually(func() bool {
 				retriedRun = testutil.GetPipelineRun(runClient, &createdRun.RunID)
-				return runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateFAILED)
+				return runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2RuntimeStateFAILED)
 			}, timeout*time.Second, 5*time.Second).Should(BeTrue(),
 				"Retried pipeline run should record a FAILED state after retry")
 
@@ -556,8 +556,8 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 			)
 
 			timeout := time.Duration(maxPipelineWaitTime)
-			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateSUCCEEDED,
+			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+				run_model.V2RuntimeStateSUCCEEDED,
 			}, &timeout)
 
 			updatedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
@@ -634,9 +634,9 @@ var _ = PDescribe("MLflow Integration > RetryRun >", Label(MLflow, FullRegressio
 })
 
 func runtimeStateAppearsAfter(
-	stateHistory []*run_model.V2beta1RuntimeStatus,
+	stateHistory []*run_model.V2RuntimeStatus,
 	startIndex int,
-	expectedState run_model.V2beta1RuntimeState,
+	expectedState run_model.V2RuntimeState,
 ) bool {
 	if startIndex < 0 || startIndex > len(stateHistory) {
 		return false

@@ -556,13 +556,13 @@ func TestLoadSamples_MultiUserMode_PipelinesVisibleWithoutNamespace(t *testing.T
 
 	// A client querying without a namespace (empty namespace) must still
 	// find the sample pipelines. This matches the artifact proxy test
-	// path: GET /apis/v2beta1/pipelines?page_size=1 with no namespace.
+	// path: GET /apis/v2/pipelines?page_size=1 with no namespace.
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
 	require.NoError(t, err, "sample pipeline must be findable with empty namespace")
 	require.NotNil(t, pipeline)
 
 	// Also verify via ListPipelines with an empty-namespace filter context,
-	// which is how the v2beta1 API handler builds the query.
+	// which is how the v2 API handler builds the query.
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""},
 	}

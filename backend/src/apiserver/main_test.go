@@ -594,7 +594,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "not an update path",
 			method:               http.MethodPut,
-			path:                 "/apis/v2beta1/experiments/123",
+			path:                 "/apis/v2/experiments/123",
 			reqBodyStr:           `{"tags":{}}`,
 			expectedStatus:       http.StatusOK,
 			expectedClearTags:    "",
@@ -603,7 +603,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "not a PUT/PATCH",
 			method:               http.MethodPost,
-			path:                 "/apis/v2beta1/pipelines/123",
+			path:                 "/apis/v2/pipelines/123",
 			reqBodyStr:           `{"tags":{}}`,
 			expectedStatus:       http.StatusOK,
 			expectedClearTags:    "",
@@ -612,7 +612,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "pipeline update with empty tags triggers header",
 			method:               http.MethodPatch,
-			path:                 "/apis/v2beta1/pipelines/123",
+			path:                 "/apis/v2/pipelines/123",
 			reqBodyStr:           `{"tags":{}}`,
 			expectedStatus:       http.StatusOK,
 			expectedClearTags:    "true",
@@ -621,7 +621,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "pipeline version update with empty tags triggers header",
 			method:               http.MethodPatch,
-			path:                 "/apis/v2beta1/pipelines/123/versions/456",
+			path:                 "/apis/v2/pipelines/123/versions/456",
 			reqBodyStr:           `{"tags":{}}`,
 			expectedStatus:       http.StatusOK,
 			expectedClearTags:    "true",
@@ -630,7 +630,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "non-empty tags does not trigger header",
 			method:               http.MethodPatch,
-			path:                 "/apis/v2beta1/pipelines/123",
+			path:                 "/apis/v2/pipelines/123",
 			reqBodyStr:           `{"tags":{"k":"v"}}`,
 			expectedStatus:       http.StatusOK,
 			expectedClearTags:    "",
@@ -639,7 +639,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "body exactly at limit is accepted and preserved",
 			method:               http.MethodPatch,
-			path:                 "/apis/v2beta1/pipelines/123",
+			path:                 "/apis/v2/pipelines/123",
 			reqBodyStr:           strings.Repeat("a", MaxUpdateRequestBodySize),
 			expectedStatus:       http.StatusOK,
 			expectedClearTags:    "",
@@ -648,7 +648,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "body one byte over limit is rejected with 413",
 			method:               http.MethodPatch,
-			path:                 "/apis/v2beta1/pipelines/123",
+			path:                 "/apis/v2/pipelines/123",
 			reqBodyReader:        strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)),
 			expectedStatus:       http.StatusRequestEntityTooLarge,
 			expectDownstreamCall: false,
@@ -657,7 +657,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:   "unknown content length over limit is rejected with 413",
 			method: http.MethodPatch,
-			path:   "/apis/v2beta1/pipelines/123",
+			path:   "/apis/v2/pipelines/123",
 			setupReq: func(r *http.Request) {
 				r.ContentLength = -1
 				r.Body = io.NopCloser(strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)))
@@ -669,7 +669,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 		{
 			name:                 "unrelated reader failure yields 400",
 			method:               http.MethodPatch,
-			path:                 "/apis/v2beta1/pipelines/123",
+			path:                 "/apis/v2/pipelines/123",
 			reqBodyReader:        errReader{err: errors.New("synthetic network error")},
 			expectedStatus:       http.StatusBadRequest,
 			expectDownstreamCall: false,
@@ -726,8 +726,8 @@ func TestClearTagsMiddleware(t *testing.T) {
 func TestClearTagsMiddlewareConfiguredLimit(t *testing.T) {
 	for _, method := range []string{http.MethodPatch, http.MethodPut} {
 		for _, path := range []string{
-			"/apis/v2beta1/pipelines/123",
-			"/apis/v2beta1/pipelines/123/versions/456",
+			"/apis/v2/pipelines/123",
+			"/apis/v2/pipelines/123/versions/456",
 		} {
 			for _, size := range []int{15, 16, 17} {
 				t.Run(fmt.Sprintf("%s/%s/%d", method, path, size), func(t *testing.T) {
@@ -769,7 +769,7 @@ func TestClearTagsMiddlewareInvalidLimit(t *testing.T) {
 				called = true
 			}))
 			rec := httptest.NewRecorder()
-			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/apis/v2beta1/pipelines/123", strings.NewReader(`{"tags":{}}`)))
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/apis/v2/pipelines/123", strings.NewReader(`{"tags":{}}`)))
 			assert.False(t, called)
 			assert.Equal(t, http.StatusInternalServerError, rec.Code)
 			assert.JSONEq(t, `{"code":13,"message":"Invalid server size-limit configuration; contact your administrator"}`, rec.Body.String())
@@ -814,11 +814,11 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 		path            string
 		expectedMethods []string
 	}{
-		{"/apis/v2beta1/pipelines/upload", nil},
-		{"/apis/v2beta1/pipelines/upload_version", nil},
-		{"/apis/v2beta1/healthz", nil},
-		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", []string{"GET"}},
-		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/apis/v2/pipelines/upload", nil},
+		{"/apis/v2/pipelines/upload_version", nil},
+		{"/apis/v2/healthz", nil},
+		{"/apis/v2/runs/{run_id}/nodes/{node_id}/log", []string{"GET"}},
+		{"/apis/v2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
 		{"/metrics", nil},
 	}
 
@@ -845,8 +845,8 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 	}{
 
 		{
-			name:          "v2beta1 healthz with database store",
-			path:          "/apis/v2beta1/healthz",
+			name:          "v2 healthz with database store",
+			path:          "/apis/v2/healthz",
 			pipelineStore: "database",
 			commitSHA:     `sha-"db"`,
 			tagName:       `tag-"db"`,
@@ -854,8 +854,8 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 			wantV2Store:   true,
 		},
 		{
-			name:          "v2beta1 healthz with kubernetes store",
-			path:          "/apis/v2beta1/healthz",
+			name:          "v2 healthz with kubernetes store",
+			path:          "/apis/v2/healthz",
 			pipelineStore: "kubernetes",
 			commitSHA:     `sha-"k8s"`,
 			tagName:       `tag-"k8s"`,
@@ -903,13 +903,13 @@ func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 		path       string
 		setHandler func(deps *HTTPRouterDeps, handler http.HandlerFunc)
 	}{
-		{"v2beta1 upload pipeline", http.MethodPost, "/apis/v2beta1/pipelines/upload",
+		{"v2 upload pipeline", http.MethodPost, "/apis/v2/pipelines/upload",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipeline = handler }},
-		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version",
+		{"v2 upload pipeline version", http.MethodPost, "/apis/v2/pipelines/upload_version",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineVersion = handler }},
-		{"v2beta1 run log", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/log",
+		{"v2 run log", http.MethodGet, "/apis/v2/runs/run-123/nodes/node-456/log",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLog = handler }},
-		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read",
+		{"v2 artifact read", http.MethodGet, "/apis/v2/runs/run-123/nodes/node-456/artifacts/my-artifact:read",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadArtifact = handler }},
 	}
 	for _, tt := range tests {
@@ -943,7 +943,7 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 
 	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database")
 
-	request := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/experiments", nil)
+	request := httptest.NewRequest(http.MethodGet, "/apis/v2/experiments", nil)
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, request)
 
@@ -980,6 +980,6 @@ func TestBuildHTTPRouter_RunLogRequiresGET(t *testing.T) {
 	deps.ReadRunLog = func(http.ResponseWriter, *http.Request) { t.Error("POST reached run log streaming handler") }
 	router := buildHTTPRouter(deps, http.NotFoundHandler(), "database")
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/apis/v2beta1/runs/run-id/nodes/node-id/log?follow=true", nil))
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/apis/v2/runs/run-id/nodes/node-id/log?follow=true", nil))
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 }

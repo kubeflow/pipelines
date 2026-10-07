@@ -389,7 +389,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 
 	// Disable jobs via resource_references
 	now := s.time.Now().Unix()
-	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Job's `experiment_id' instead.
+	// TODO(gkcalat): deprecate resource_references table once we migrate to v2 and switch to filtering on Job's `experiment_id' instead.
 	updateJobsSQL, updateJobsArgs, err := qb.
 		Update(q("jobs")).
 		SetMap(sq.Eq{

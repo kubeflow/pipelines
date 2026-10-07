@@ -120,7 +120,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -163,7 +163,7 @@ func TestReadArtifact_RunNotFound(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
-	url := "/apis/v2beta1/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:read"
+	url := "/apis/v2/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:read"
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -214,7 +214,7 @@ func TestReadArtifact_ChunkedResponse(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/large-artifact:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2/runs/%s/nodes/node-1/artifacts/large-artifact:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -296,7 +296,7 @@ func TestReadArtifact_ArtifactNotFound(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -407,7 +407,7 @@ func TestReadArtifact_Unauthorized(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
-	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil).WithContext(ctx)
 
 	req = mux.SetURLVars(req, map[string]string{

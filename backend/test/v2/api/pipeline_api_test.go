@@ -20,10 +20,10 @@ import (
 	"strings"
 	"time"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	upload_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	pipeline_model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	upload_model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -34,10 +34,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// toUploadModel converts a pipeline_model.V2beta1Pipeline to the upload_model equivalent
+// toUploadModel converts a pipeline_model.V2Pipeline to the upload_model equivalent
 // for tracking in testContext.Pipeline.CreatedPipelines (used for cleanup).
-func toUploadModel(p *pipeline_model.V2beta1Pipeline) *upload_model.V2beta1Pipeline {
-	return &upload_model.V2beta1Pipeline{
+func toUploadModel(p *pipeline_model.V2Pipeline) *upload_model.V2Pipeline {
+	return &upload_model.V2Pipeline{
 		PipelineID:  p.PipelineID,
 		Name:        p.Name,
 		DisplayName: p.DisplayName,
@@ -61,12 +61,12 @@ func newListPipelinesParams() *pipeline_params.PipelineServiceListPipelinesParam
 	}
 }
 
-func filterPipelinesByID(pipelines []*pipeline_model.V2beta1Pipeline, pipelineIDs ...string) []*pipeline_model.V2beta1Pipeline {
+func filterPipelinesByID(pipelines []*pipeline_model.V2Pipeline, pipelineIDs ...string) []*pipeline_model.V2Pipeline {
 	idSet := make(map[string]struct{}, len(pipelineIDs))
 	for _, pipelineID := range pipelineIDs {
 		idSet[pipelineID] = struct{}{}
 	}
-	filtered := make([]*pipeline_model.V2beta1Pipeline, 0, len(pipelineIDs))
+	filtered := make([]*pipeline_model.V2Pipeline, 0, len(pipelineIDs))
 	for _, pipeline := range pipelines {
 		if _, ok := idSet[pipeline.PipelineID]; ok {
 			filtered = append(filtered, pipeline)
@@ -81,7 +81,7 @@ const (
 )
 
 type pipelineVersionListResult struct {
-	Versions      []*pipeline_model.V2beta1PipelineVersion
+	Versions      []*pipeline_model.V2PipelineVersion
 	TotalSize     int
 	NextPageToken string
 }
@@ -220,7 +220,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			params := newListPipelinesParams()
 			params.PageSize = &pageSize
 
-			allPipelines := make([]*pipeline_model.V2beta1Pipeline, 0)
+			allPipelines := make([]*pipeline_model.V2Pipeline, 0)
 			pagesVisited := 0
 
 			for {
@@ -277,7 +277,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			sortBy := "name desc"
 			params := newListPipelinesParams()
 			params.SortBy = &sortBy
-			var pipelines []*pipeline_model.V2beta1Pipeline
+			var pipelines []*pipeline_model.V2Pipeline
 			Eventually(func() (int, error) {
 				listedPipelines, _, _, err := pipelineClient.List(params)
 				if err != nil {
@@ -309,7 +309,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			sortBy := "display_name asc"
 			params := newListPipelinesParams()
 			params.SortBy = &sortBy
-			var pipelines []*pipeline_model.V2beta1Pipeline
+			var pipelines []*pipeline_model.V2Pipeline
 			Eventually(func() (int, error) {
 				listedPipelines, _, _, err := pipelineClient.List(params)
 				if err != nil {
@@ -341,7 +341,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			sortBy := "display_name desc"
 			params := newListPipelinesParams()
 			params.SortBy = &sortBy
-			var pipelines []*pipeline_model.V2beta1Pipeline
+			var pipelines []*pipeline_model.V2Pipeline
 			Eventually(func() (int, error) {
 				listedPipelines, _, _, err := pipelineClient.List(params)
 				if err != nil {
@@ -694,7 +694,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			// Create a pipeline without any version (using Create API, not upload)
 			pipelineName := testContext.Pipeline.PipelineGeneratedName + "-no-versions"
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name:      pipelineName,
 					Namespace: utils.GetNamespace(),
 				},
@@ -820,10 +820,10 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			}
 
 			pageSize := int32(2)
-			var allVersions []*pipeline_model.V2beta1PipelineVersion
+			var allVersions []*pipeline_model.V2PipelineVersion
 			var pagesVisited int
 			Eventually(func() (int, error) {
-				allVersions = make([]*pipeline_model.V2beta1PipelineVersion, 0)
+				allVersions = make([]*pipeline_model.V2PipelineVersion, 0)
 				pagesVisited = 0
 				params := &pipeline_params.PipelineServiceListPipelineVersionsParams{
 					PipelineID: createdPipeline.PipelineID,
@@ -1373,7 +1373,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 		It("With just name", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -1388,7 +1388,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			description := "Test pipeline description"
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name:        pipelineName,
 					Description: description,
 				},
@@ -1404,7 +1404,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 		It("With name length of 100 chars", func() {
 			pipelineName := strings.ToLower(utils.GetRandomString(100))
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -1418,7 +1418,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 		It("With name containing ASCII characters", func() {
 			pipelineName := "test-pipeline-with-ascii-!@#$%"
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -1440,7 +1440,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			tags := map[string]string{"team": "ml-ops", "env": "dev"}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: tags,
 				},
@@ -1461,7 +1461,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 			description := "Pipeline with tags"
 			tags := map[string]string{"project": "kfp"}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name:        pipelineName,
 					Description: description,
 					Tags:        tags,
@@ -1477,7 +1477,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 		It("With empty tags map", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: map[string]string{},
 				},
@@ -1491,7 +1491,7 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 		It("Without tags (nil)", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -1513,13 +1513,13 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 				inputFileContent := utils.ParseFileToSpecs(pipelineSpecFilePath, true, nil)
 
 				createParams := &pipeline_params.PipelineServiceCreatePipelineAndVersionParams{
-					Body: &pipeline_model.V2beta1CreatePipelineAndVersionRequest{
-						Pipeline: &pipeline_model.V2beta1Pipeline{
+					Body: &pipeline_model.V2CreatePipelineAndVersionRequest{
+						Pipeline: &pipeline_model.V2Pipeline{
 							Name: testContext.Pipeline.PipelineGeneratedName,
 						},
-						PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+						PipelineVersion: &pipeline_model.V2PipelineVersion{
 							DisplayName: pipelineVersionName,
-							PackageURL: &pipeline_model.V2beta1URL{
+							PackageURL: &pipeline_model.V2URL{
 								PipelineURL: pipelineSpecFilePath,
 							},
 						},
@@ -1747,7 +1747,7 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			_, err = uploadPipelineVersion(pipelineSpecFilePath, uploadParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			var versions []*pipeline_model.V2beta1PipelineVersion
+			var versions []*pipeline_model.V2PipelineVersion
 			Eventually(func() (int, error) {
 				v, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
 					PipelineID: createdPipeline.PipelineID,
@@ -1869,7 +1869,7 @@ var _ = Describe("Create Pipeline Version API Tests >", Label(constants.POSITIVE
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			var versions []*pipeline_model.V2beta1PipelineVersion
+			var versions []*pipeline_model.V2PipelineVersion
 			Eventually(func() (int, error) {
 				v, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
 					PipelineID: createdPipeline.PipelineID,
@@ -1890,7 +1890,7 @@ var _ = Describe("Delete Pipeline API Tests >", Label(constants.POSITIVE, consta
 		It("Delete pipeline by ID that does not have any versions", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -1930,7 +1930,7 @@ var _ = Describe("Delete Pipeline API Tests >", Label(constants.POSITIVE, consta
 			Expect(err).NotTo(HaveOccurred())
 
 			// Remove from cleanup list since we already deleted it
-			remaining := make([]*upload_model.V2beta1Pipeline, 0)
+			remaining := make([]*upload_model.V2Pipeline, 0)
 			for _, p := range testContext.Pipeline.CreatedPipelines {
 				if p.PipelineID != createdPipeline.PipelineID {
 					remaining = append(remaining, p)
@@ -2009,13 +2009,13 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec file", func() {
 			pipelineVersionName := testContext.Pipeline.PipelineGeneratedName + "-v1"
 			createParams := &pipeline_params.PipelineServiceCreatePipelineAndVersionParams{
-				Body: &pipeline_model.V2beta1CreatePipelineAndVersionRequest{
-					Pipeline: &pipeline_model.V2beta1Pipeline{
+				Body: &pipeline_model.V2CreatePipelineAndVersionRequest{
+					Pipeline: &pipeline_model.V2Pipeline{
 						Name: testContext.Pipeline.PipelineGeneratedName,
 					},
-					PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+					PipelineVersion: &pipeline_model.V2PipelineVersion{
 						DisplayName: pipelineVersionName,
-						PackageURL: &pipeline_model.V2beta1URL{
+						PackageURL: &pipeline_model.V2URL{
 							PipelineURL: "/nonexistent/path/to/pipeline.yaml",
 						},
 					},
@@ -2028,13 +2028,13 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec url", func() {
 			pipelineVersionName := testContext.Pipeline.PipelineGeneratedName + "-v1"
 			createParams := &pipeline_params.PipelineServiceCreatePipelineAndVersionParams{
-				Body: &pipeline_model.V2beta1CreatePipelineAndVersionRequest{
-					Pipeline: &pipeline_model.V2beta1Pipeline{
+				Body: &pipeline_model.V2CreatePipelineAndVersionRequest{
+					Pipeline: &pipeline_model.V2Pipeline{
 						Name: testContext.Pipeline.PipelineGeneratedName,
 					},
-					PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+					PipelineVersion: &pipeline_model.V2PipelineVersion{
 						DisplayName: pipelineVersionName,
-						PackageURL: &pipeline_model.V2beta1URL{
+						PackageURL: &pipeline_model.V2URL{
 							PipelineURL: "https://invalid-url-that-does-not-exist.example.com/pipeline.yaml",
 						},
 					},
@@ -2055,7 +2055,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 		It("With 500 char name", func() {
 			longName := utils.GetRandomString(500)
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: longName,
 				},
 			}
@@ -2066,7 +2066,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 		It("With CJK characters in the name", func() {
 			cjkName := "\u4f60\u597d\u4e16\u754c-pipeline"
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: cjkName,
 				},
 			}
@@ -2284,7 +2284,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			tags := map[string]string{"team": "ml-ops"}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: tags,
 				},
@@ -2315,7 +2315,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 		It("Add tags to a pipeline that has no tags", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2346,7 +2346,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			initialTags := map[string]string{"team": "ml-ops", "env": "dev"}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: initialTags,
 				},
@@ -2373,7 +2373,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			initialTags := map[string]string{"team": "ml-ops"}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: initialTags,
 				},
@@ -2403,7 +2403,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 		It("Update tags and verify via list filter", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name:      pipelineName,
 					Namespace: utils.GetNamespace(),
 				},
@@ -2442,7 +2442,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 		It("Update tags with maximum allowed key and value lengths (63 chars)", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2467,7 +2467,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 		It("Update pipeline display_name along with tags", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2508,7 +2508,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Update tags with key exceeding 63 characters", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2529,7 +2529,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Update tags with value exceeding 63 characters", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2550,7 +2550,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Update tags with empty key should fail", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2570,7 +2570,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Update tags with key containing dot should fail", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2590,7 +2590,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Update tags exceeding maximum count of 20 should fail", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2614,7 +2614,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Update pipeline on a deleted pipeline should fail", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 				},
 			}
@@ -2641,7 +2641,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			tags := map[string]string{"team": "ml-ops", "env": "prod"}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: tags,
 				},
@@ -2705,7 +2705,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 			Expect(err).NotTo(HaveOccurred())
 
 			// Remove from cleanup list
-			remaining := make([]*upload_model.V2beta1Pipeline, 0)
+			remaining := make([]*upload_model.V2Pipeline, 0)
 			for _, p := range testContext.Pipeline.CreatedPipelines {
 				if p.PipelineID != createdPipeline.PipelineID {
 					remaining = append(remaining, p)
@@ -2727,7 +2727,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			longKey := utils.GetRandomString(64)
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: map[string]string{longKey: "value"},
 				},
@@ -2740,7 +2740,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			longValue := utils.GetRandomString(64)
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: map[string]string{"team": longValue},
 				},
@@ -2752,7 +2752,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("With empty tag key", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: map[string]string{"": "value"},
 				},
@@ -2764,7 +2764,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("With tag key containing dot", func() {
 			pipelineName := testContext.Pipeline.PipelineGeneratedName
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: map[string]string{"team.name": "ml-ops"},
 				},
@@ -2780,7 +2780,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 				tooManyTags[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
 			}
 			createParams := &pipeline_params.PipelineServiceCreatePipelineParams{
-				Pipeline: &pipeline_model.V2beta1Pipeline{
+				Pipeline: &pipeline_model.V2Pipeline{
 					Name: pipelineName,
 					Tags: tooManyTags,
 				},
@@ -3114,8 +3114,8 @@ func findPipelineInList(params *pipeline_params.PipelineServiceListPipelinesPara
 // and a separate displayName (which may contain uppercase letters).
 // Use this when testing display_name filters that require mixed-case values,
 // since Kubernetes backend requires metadata.name to be lowercase.
-func createPipelineWithDisplayName(name string, displayName string) *pipeline_model.V2beta1Pipeline {
-	pipeline := &pipeline_model.V2beta1Pipeline{
+func createPipelineWithDisplayName(name string, displayName string) *pipeline_model.V2Pipeline {
+	pipeline := &pipeline_model.V2Pipeline{
 		Name:        name,
 		DisplayName: displayName,
 		Description: "description",

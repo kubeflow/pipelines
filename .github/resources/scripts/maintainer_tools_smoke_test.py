@@ -62,7 +62,7 @@ class SnapshotTests(unittest.TestCase):
         hashes."""
         directories = self.api_source_directories()
         self.assertIn('sdk/python/kfp/server_api', directories)
-        self.assertIn('backend/api/v2beta1/python_http_client', directories)
+        self.assertIn('backend/api/v2/python_http_client', directories)
         self.assertIn(
             'snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}"',
             SCRIPT.read_text())
@@ -70,7 +70,7 @@ class SnapshotTests(unittest.TestCase):
             self.write(f'{directory}/generated.txt', 'source')
         for path in (
                 'sdk/python/kfp/server_api/api_client.py',
-                'backend/api/v2beta1/python_http_client/docs/RunServiceApi.md',
+                'backend/api/v2/python_http_client/docs/RunServiceApi.md',
         ):
             with self.subTest(path=path):
                 self.write(path, 'before')

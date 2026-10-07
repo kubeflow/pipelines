@@ -20,7 +20,7 @@ import (
 	"sort"
 
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -284,7 +284,7 @@ func (d *RunPluginDispatcherImpl) executePostAction(
 	if runCfg == nil {
 		glog.Warningf("%s %s skipped: resolved plugin config is nil for run %q", pluginName, hookName, run.RunID)
 		if po := run.PluginsOutput[pluginName]; po != nil {
-			po.State = apiv2beta1.PluginState_PLUGIN_FAILED
+			po.State = apiv2.PluginState_PLUGIN_FAILED
 			po.StateMessage = fmt.Sprintf("%s %s sync failed: config unavailable", pluginName, hookName)
 		}
 		persistenceErr := PersistPluginsOutput(run, d.runOutputStore)
@@ -298,7 +298,7 @@ func (d *RunPluginDispatcherImpl) executePostAction(
 
 	syncOK = false
 	if po := run.PluginsOutput[pluginName]; po != nil {
-		syncOK = po.State == apiv2beta1.PluginState_PLUGIN_SUCCEEDED
+		syncOK = po.State == apiv2.PluginState_PLUGIN_SUCCEEDED
 	}
 
 	if err := PersistPluginsOutput(run, d.runOutputStore); err != nil {

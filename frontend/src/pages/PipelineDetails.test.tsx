@@ -19,10 +19,10 @@ import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
-import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2Experiment } from 'src/apisv2/experiment';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
+import { V2RecurringRun } from 'src/apisv2/recurringrun';
+import { V2Run } from 'src/apisv2/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
@@ -96,11 +96,11 @@ describe('PipelineDetails', () => {
   const PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 
   let tree: PipelineDetailsWrapper | undefined;
-  let testV2Pipeline: V2beta1Pipeline = {};
-  let originalTestV2PipelineVersion: V2beta1PipelineVersion = {};
-  let newTestV2PipelineVersion: V2beta1PipelineVersion = {};
-  let testV2Run: V2beta1Run = {};
-  let testV2RecurringRun: V2beta1RecurringRun = {};
+  let testV2Pipeline: V2Pipeline = {};
+  let originalTestV2PipelineVersion: V2PipelineVersion = {};
+  let newTestV2PipelineVersion: V2PipelineVersion = {};
+  let testV2Run: V2Run = {};
+  let testV2RecurringRun: V2RecurringRun = {};
 
   function generateProps(
     versionId?: string,
@@ -192,7 +192,7 @@ describe('PipelineDetails', () => {
       Promise.resolve({
         experiment_id: 'test-experiment-id',
         display_name: 'test experiment',
-      } as V2beta1Experiment),
+      } as V2Experiment),
     );
     createGraphSpy.mockReturnValue([]);
   });

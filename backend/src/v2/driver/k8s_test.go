@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
@@ -18,13 +18,13 @@ import (
 )
 
 // mapToIOParameters converts a map of parameter values to a slice of IOParameter
-func mapToIOParameters(params map[string]*structpb.Value) []*apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+func mapToIOParameters(params map[string]*structpb.Value) []*apiv2.PipelineTask_InputOutputs_IOParameter {
 	if params == nil {
 		return nil
 	}
-	result := make([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(params))
+	result := make([]*apiv2.PipelineTask_InputOutputs_IOParameter, 0, len(params))
 	for key, value := range params {
-		result = append(result, &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		result = append(result, &apiv2.PipelineTask_InputOutputs_IOParameter{
 			ParameterKey: key,
 			Value:        value,
 		})

@@ -19,10 +19,7 @@ import { URL, URLSearchParams } from 'url';
 import { ViewerTensorboardConfig } from '../configs.js';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { AuthorizeFn } from '../helpers/auth.js';
-import {
-  AuthorizeResourcesEnum,
-  AuthorizeVerbEnum,
-} from '../src/generated/apisv2beta1/auth/index.js';
+import { AuthorizeResourcesEnum, AuthorizeVerbEnum } from '../src/generated/apisv2/auth/index.js';
 import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';

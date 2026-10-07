@@ -22,8 +22,8 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
@@ -40,7 +40,7 @@ func JSONFromYAML(pipelineFilePath string) []byte {
 }
 
 func ListPipelineVersions(client *api_server.PipelineClient, pipelineID string) (
-	[]*pipeline_model.V2beta1PipelineVersion, int, string, error,
+	[]*pipeline_model.V2PipelineVersion, int, string, error,
 ) {
 	logger.Log("Listing pipeline versions for pipeline %s", pipelineID)
 	parameters := &pipeline_params.PipelineServiceListPipelineVersionsParams{PipelineID: pipelineID}
@@ -54,8 +54,8 @@ func DeletePipelineVersion(client *api_server.PipelineClient, pipelineID string,
 }
 
 // GetLatestPipelineVersion - list all pipeline versions of a pipeline by ID and return the one with the latest createdAt date
-func GetLatestPipelineVersion(pipelineClient *api_server.PipelineClient, pipelineID *string) *pipeline_model.V2beta1PipelineVersion {
-	var pipelineVersion *pipeline_model.V2beta1PipelineVersion
+func GetLatestPipelineVersion(pipelineClient *api_server.PipelineClient, pipelineID *string) *pipeline_model.V2PipelineVersion {
+	var pipelineVersion *pipeline_model.V2PipelineVersion
 	gomega.EventuallyWithOffset(1, func(g gomega.Gomega) {
 		pipelineVersions, _, _, listPipelineVersionErr := ListPipelineVersions(pipelineClient, *pipelineID)
 		g.Expect(listPipelineVersionErr).NotTo(gomega.HaveOccurred(), "Failed to list pipeline versions for pipeline with id="+*pipelineID)
@@ -101,7 +101,7 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineID str
 // GetSortedPipelineVersionsByCreatedAt - Get a list of pipeline upload version for a specific pipeline, and sort the list by CreatedAt before returning it
 //
 // sortBy - ASC or DESC, If nil, then the default will be DESC
-func GetSortedPipelineVersionsByCreatedAt(client *api_server.PipelineClient, pipelineID string, sortBy *string) []*pipeline_model.V2beta1PipelineVersion {
+func GetSortedPipelineVersionsByCreatedAt(client *api_server.PipelineClient, pipelineID string, sortBy *string) []*pipeline_model.V2PipelineVersion {
 	versions, _, _, err := ListPipelineVersions(client, pipelineID)
 	if err != nil {
 		return nil

@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
@@ -394,17 +394,17 @@ func validateNonRoot(opts common.Options) error {
 // for each parameter in the executor input.
 func handleInputTaskParametersCreation(
 	parameterMetadata []resolver.ParameterMetadata,
-	task *apiV2beta1.PipelineTask,
-) (*apiV2beta1.PipelineTask, error) {
+	task *apiV2.PipelineTask,
+) (*apiV2.PipelineTask, error) {
 	if task == nil {
 		return nil, fmt.Errorf("task is nil")
 	}
 	if task.Inputs == nil {
-		task.Inputs = &apiV2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiV2beta1.PipelineTask_InputOutputs_IOParameter{},
+		task.Inputs = &apiV2.PipelineTask_InputOutputs{
+			Parameters: []*apiV2.PipelineTask_InputOutputs_IOParameter{},
 		}
 	} else if task.Inputs.Parameters == nil {
-		task.Inputs.Parameters = []*apiV2beta1.PipelineTask_InputOutputs_IOParameter{}
+		task.Inputs.Parameters = []*apiV2.PipelineTask_InputOutputs_IOParameter{}
 	}
 
 	for _, pm := range parameterMetadata {
@@ -420,9 +420,9 @@ func handleInputTaskParametersCreation(
 func updateTaskAttemptLocalFieldsAfterCreate(
 	ctx context.Context,
 	kfpAPI kfpapi.API,
-	createdTask *apiV2beta1.PipelineTask,
-	attemptTask *apiV2beta1.PipelineTask,
-) (*apiV2beta1.PipelineTask, error) {
+	createdTask *apiV2.PipelineTask,
+	attemptTask *apiV2.PipelineTask,
+) (*apiV2.PipelineTask, error) {
 	if createdTask == nil || attemptTask == nil {
 		return nil, fmt.Errorf("created task and attempt task are required")
 	}
@@ -433,7 +433,7 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	createdTask.State = attemptTask.GetState()
 	createdTask.EndTime = attemptTask.GetEndTime()
 	createdTask.StatusMetadata = attemptTask.GetStatusMetadata()
-	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),
 		Task:   createdTask,
 		RunId:  createdTask.GetRunId(),
@@ -452,16 +452,16 @@ func handleInputTaskArtifactsCreation(
 	ctx context.Context,
 	opts common.Options,
 	artifactMetadata []resolver.ArtifactMetadata,
-	task *apiV2beta1.PipelineTask,
+	task *apiV2.PipelineTask,
 	kfpAPI kfpapi.API,
 ) error {
-	var artifactTasks []*apiV2beta1.ArtifactTask
+	var artifactTasks []*apiV2.ArtifactTask
 	for _, am := range artifactMetadata {
 		for _, artifact := range am.ArtifactIO.Artifacts {
 			if artifact.ArtifactId == "" {
 				return fmt.Errorf("artifact id is required")
 			}
-			artifactTasks = append(artifactTasks, &apiV2beta1.ArtifactTask{
+			artifactTasks = append(artifactTasks, &apiV2.ArtifactTask{
 				ArtifactId: artifact.ArtifactId,
 				RunId:      opts.Run.GetRunId(),
 				TaskId:     task.TaskId,
@@ -479,7 +479,7 @@ func handleInputTaskArtifactsCreation(
 func createArtifactTasksWithRetryReconciliation(
 	ctx context.Context,
 	runID string,
-	artifactTasks []*apiV2beta1.ArtifactTask,
+	artifactTasks []*apiV2.ArtifactTask,
 	kfpAPI kfpapi.API,
 ) error {
 	if len(artifactTasks) == 0 {
@@ -511,14 +511,14 @@ func parameterValuesToInterfaces(parameterValues map[string]*structpb.Value) map
 
 // scalarMetricsFromTaskOutputs extracts numeric metric values from task API
 // outputs (including NumberValue-backed Metric artifacts from cache hits).
-func scalarMetricsFromTaskOutputs(outputs *apiV2beta1.PipelineTask_InputOutputs) map[string]float64 {
+func scalarMetricsFromTaskOutputs(outputs *apiV2.PipelineTask_InputOutputs) map[string]float64 {
 	if outputs == nil {
 		return nil
 	}
 	metrics := make(map[string]float64)
 	for _, artifactList := range outputs.GetArtifacts() {
 		for _, artifact := range artifactList.GetArtifacts() {
-			if artifact == nil || artifact.GetType() != apiV2beta1.Artifact_Metric {
+			if artifact == nil || artifact.GetType() != apiV2.Artifact_Metric {
 				continue
 			}
 			if artifact.NumberValue != nil && artifact.GetName() != "" {

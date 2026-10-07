@@ -30,7 +30,7 @@ class V2DeploymentContractTest(unittest.TestCase):
                 manifest = (ROOT / 'manifests/kustomize/base/pipeline' /
                             filename).read_text()
                 self.assertEqual(
-                    manifest.count('path: /apis/v2beta1/healthz'), count)
+                    manifest.count('path: /apis/v2/healthz'), count)
                 self.assertNotIn('/apis/v1beta1', manifest)
 
     def test_generation_and_release_only_generate_v2_clients(self):
@@ -38,7 +38,7 @@ class V2DeploymentContractTest(unittest.TestCase):
                      '.github/workflows/validate-generated-files.yml'):
             with self.subTest(path=path):
                 text = (ROOT / path).read_text()
-                self.assertIn('v2beta1', text)
+                self.assertIn('v2', text)
                 self.assertNotIn('v1beta1', text)
 
     def test_backend_dev_targets_submit_ir_from_existing_sources(self):
@@ -79,15 +79,14 @@ class V2DeploymentContractTest(unittest.TestCase):
                                        'Dockerfile.visualization',
                                        'visualizationserver.yaml'):
                         self.assertNotIn(identifier, text)
-        for path in ('backend/api/v2beta1/visualization.proto',
+        for path in ('backend/api/v2/visualization.proto',
                      'backend/Dockerfile.visualization',
                      'backend/src/apiserver/visualization/server.py',
-                     'frontend/src/apisv2beta1/visualization'):
+                     'frontend/src/apisv2/visualization'):
             with self.subTest(path=path):
                 self.assertFalse((ROOT / path).exists())
-        for path in (
-                'backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json',
-                'docs/_static/kfp_api_single_file.swagger.json'):
+        for path in ('backend/api/v2/swagger/kfp_api_single_file.swagger.json',
+                     'docs/_static/kfp_api_single_file.swagger.json'):
             with self.subTest(path=path):
                 text = (ROOT / path).read_text()
                 self.assertNotIn('VisualizationService', text)

@@ -322,7 +322,7 @@ def run_smoke(args, refs):
                                    stdout=log,
                                    stderr=subprocess.STDOUT)
         try:
-            base = "http://127.0.0.1:8888/apis/v2beta1"
+            base = "http://127.0.0.1:8888/apis/v2"
             deadline = time.monotonic() + 120
             while True:
                 if forward.poll() is not None:

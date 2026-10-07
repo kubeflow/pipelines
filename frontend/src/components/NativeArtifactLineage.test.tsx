@@ -13,7 +13,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import userEvent from '@testing-library/user-event';
-import { V2beta1IOType } from 'src/apisv2beta1/artifact';
+import { V2IOType } from 'src/apisv2/artifact';
 import { Apis } from 'src/lib/Apis';
 import { mockResizeObserver } from 'src/TestUtils';
 import NativeArtifactLineage from './NativeArtifactLineage';
@@ -34,7 +34,7 @@ const produced = {
   artifact_id: 'target',
   task_id: 'producer',
   run_id: 'run',
-  type: V2beta1IOType.OUTPUT,
+  type: V2IOType.OUTPUT,
   key: 'model',
 };
 
@@ -90,10 +90,10 @@ it('loads a bounded neighborhood, toggles inputs, recenters and goes back', asyn
               id: 'input',
               task_id: 'producer',
               artifact_id: 'dataset',
-              type: V2beta1IOType.COMPONENT_INPUT,
+              type: V2IOType.COMPONENT_INPUT,
               key: 'data',
             },
-            { id: 'other-output', artifact_id: 'not-an-input', type: V2beta1IOType.OUTPUT },
+            { id: 'other-output', artifact_id: 'not-an-input', type: V2IOType.OUTPUT },
           ],
         };
       return { artifact_tasks: artifacts?.[0] === 'target' ? [produced] : [] };
@@ -171,11 +171,11 @@ it('loads consumer outputs, keeps failed artifact identities usable, and resets'
     async (tasks, runs, artifacts) => {
       if (tasks)
         return {
-          artifact_tasks: [{ id: 'out', artifact_id: 'missing', type: V2beta1IOType.OUTPUT }],
+          artifact_tasks: [{ id: 'out', artifact_id: 'missing', type: V2IOType.OUTPUT }],
         };
       return {
         artifact_tasks:
-          artifacts?.[0] === 'target' ? [{ ...produced, type: V2beta1IOType.COMPONENT_INPUT }] : [],
+          artifacts?.[0] === 'target' ? [{ ...produced, type: V2IOType.COMPONENT_INPUT }] : [],
       };
     },
   );
@@ -197,7 +197,7 @@ it('draws separate directed branches and maps adjacent artifacts to their own ta
     artifact_id: 'target',
     task_id: task,
     run_id: 'run',
-    type: index < 2 ? V2beta1IOType.OUTPUT : V2beta1IOType.COMPONENT_INPUT,
+    type: index < 2 ? V2IOType.OUTPUT : V2IOType.COMPONENT_INPUT,
   }));
   const list = vi
     .spyOn(Apis.artifactServiceApiV2, 'artifactTasks')
@@ -211,13 +211,13 @@ it('draws separate directed branches and maps adjacent artifacts to their own ta
             id: `leaf-${task}`,
             artifact_id: `artifact-${task}`,
             task_id: task,
-            type: producer ? V2beta1IOType.COMPONENT_INPUT : V2beta1IOType.OUTPUT,
+            type: producer ? V2IOType.COMPONENT_INPUT : V2IOType.OUTPUT,
           },
           {
             id: `wrong-${task}`,
             artifact_id: `wrong-${task}`,
             task_id: task,
-            type: producer ? V2beta1IOType.OUTPUT : V2beta1IOType.COMPONENT_INPUT,
+            type: producer ? V2IOType.OUTPUT : V2IOType.COMPONENT_INPUT,
           },
         ],
         next_page_token: `more-${task}`,
@@ -266,7 +266,7 @@ it('uses named breadcrumbs to jump back and discard forward history', async () =
       if (tasks) {
         const next = tasks[0] === 'producer-target' ? 'dataset' : 'source';
         return {
-          artifact_tasks: [{ id: next, artifact_id: next, type: V2beta1IOType.COMPONENT_INPUT }],
+          artifact_tasks: [{ id: next, artifact_id: next, type: V2IOType.COMPONENT_INPUT }],
         };
       }
       const target = artifacts?.[0];

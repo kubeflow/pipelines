@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -31,7 +31,7 @@ func TestNestedLoopCollectedParametersFixture(t *testing.T) {
 	_, outer := tc.RunDagDriver("for-loop-2", tc.RootTask)
 	for outerIndex := int64(0); outerIndex < 3; outerIndex++ {
 		innerExecution, inner := tc.RunDagDriver("for-loop-4", outer, outerIndex)
-		require.Equal(t, apiv2beta1.PipelineTask_LOOP, inner.GetType())
+		require.Equal(t, apiv2.PipelineTask_LOOP, inner.GetType())
 		require.Equal(t, outerIndex, inner.GetTypeAttributes().GetIterationIndex())
 		require.Equal(t, 3, *innerExecution.IterationCount)
 		for innerIndex := int64(0); innerIndex < 3; innerIndex++ {

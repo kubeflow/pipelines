@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
@@ -27,19 +27,19 @@ func TestResolveArtifactComponentInputParameter_UsesMatchingIteration(t *testing
 			ComponentInputArtifact: "pipelinechannel--loop-item",
 		},
 	}
-	inputArtifacts := []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+	inputArtifacts := []*apiv2.PipelineTask_InputOutputs_IOArtifact{
 		{
 			ArtifactKey: "pipelinechannel--loop-item",
-			Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "artifact-0"}},
-			Producer: &apiv2beta1.IOProducer{
+			Artifacts:   []*apiv2.Artifact{{ArtifactId: "artifact-0"}},
+			Producer: &apiv2.IOProducer{
 				TaskName:  "loop-task",
 				Iteration: util.Int64Pointer(0),
 			},
 		},
 		{
 			ArtifactKey: "pipelinechannel--loop-item",
-			Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "artifact-1"}},
-			Producer: &apiv2beta1.IOProducer{
+			Artifacts:   []*apiv2.Artifact{{ArtifactId: "artifact-1"}},
+			Producer: &apiv2.IOProducer{
 				TaskName:  "loop-task",
 				Iteration: util.Int64Pointer(1),
 			},
@@ -60,18 +60,18 @@ func TestResolveArtifactComponentInputParameter_CollectsAllMatchingArtifacts(t *
 			ComponentInputArtifact: "model_list",
 		},
 	}
-	inputArtifacts := []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+	inputArtifacts := []*apiv2.PipelineTask_InputOutputs_IOArtifact{
 		{
 			ArtifactKey: "model_list",
-			Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "artifact-1"}},
-			Type:        apiv2beta1.IOType_COMPONENT_INPUT,
-			Producer:    &apiv2beta1.IOProducer{TaskName: "producer"},
+			Artifacts:   []*apiv2.Artifact{{ArtifactId: "artifact-1"}},
+			Type:        apiv2.IOType_COMPONENT_INPUT,
+			Producer:    &apiv2.IOProducer{TaskName: "producer"},
 		},
 		{
 			ArtifactKey: "model_list",
-			Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "artifact-2"}},
-			Type:        apiv2beta1.IOType_COMPONENT_INPUT,
-			Producer:    &apiv2beta1.IOProducer{TaskName: "producer"},
+			Artifacts:   []*apiv2.Artifact{{ArtifactId: "artifact-2"}},
+			Type:        apiv2.IOType_COMPONENT_INPUT,
+			Producer:    &apiv2.IOProducer{TaskName: "producer"},
 		},
 	}
 
@@ -85,9 +85,9 @@ func TestResolveArtifactComponentInputParameter_CollectsAllMatchingArtifacts(t *
 
 func TestResolveArtifacts_SkipsMissingOptionalComponentInput(t *testing.T) {
 	opts := common.Options{
-		ParentTask: &apiv2beta1.PipelineTask{
+		ParentTask: &apiv2.PipelineTask{
 			TaskId: "parent-task",
-			Inputs: &apiv2beta1.PipelineTask_InputOutputs{},
+			Inputs: &apiv2.PipelineTask_InputOutputs{},
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			Inputs: &pipelinespec.TaskInputsSpec{
@@ -116,19 +116,19 @@ func TestResolveArtifacts_SkipsMissingOptionalComponentInput(t *testing.T) {
 
 func TestResolveTaskOutputArtifact_EmptyLoopProducesEmptyCollection(t *testing.T) {
 	parentTaskID := "dag-parent"
-	parentTask := &apiv2beta1.PipelineTask{TaskId: parentTaskID, Name: "dag"}
-	producerTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{TaskId: parentTaskID, Name: "dag"}
+	producerTask := &apiv2.PipelineTask{
 		TaskId:       "loop-task",
 		Name:         "loop",
 		ParentTaskId: util.StringPointer(parentTaskID),
-		Type:         apiv2beta1.PipelineTask_LOOP,
-		TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+		Type:         apiv2.PipelineTask_LOOP,
+		TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 			IterationCount: util.Int64Pointer(0),
 		},
 	}
 	opts := common.Options{
 		ParentTask:     parentTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producerTask}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{producerTask}},
 		IterationIndex: -1,
 	}
 
@@ -143,22 +143,22 @@ func TestResolveTaskOutputArtifact_EmptyLoopProducesEmptyCollection(t *testing.T
 	require.NoError(t, err)
 	require.NotNil(t, producer)
 	require.NotNil(t, resolved)
-	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
+	assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, resolved.GetType())
 	assert.Empty(t, resolved.GetArtifacts())
 }
 
 func TestResolveTaskOutputArtifact_CollectionBoundary(t *testing.T) {
-	for _, taskType := range []apiv2beta1.PipelineTask_TaskType{apiv2beta1.PipelineTask_RUNTIME, apiv2beta1.PipelineTask_LOOP} {
+	for _, taskType := range []apiv2.PipelineTask_TaskType{apiv2.PipelineTask_RUNTIME, apiv2.PipelineTask_LOOP} {
 		t.Run(taskType.String(), func(t *testing.T) {
-			parent := &apiv2beta1.PipelineTask{TaskId: "outer", Name: "outer", Type: apiv2beta1.PipelineTask_LOOP}
-			producer := &apiv2beta1.PipelineTask{
+			parent := &apiv2.PipelineTask{TaskId: "outer", Name: "outer", Type: apiv2.PipelineTask_LOOP}
+			producer := &apiv2.PipelineTask{
 				TaskId: "producer", Name: "produce", Type: taskType,
 				ParentTaskId:   util.StringPointer("outer"),
-				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)},
-				Outputs:        &apiv2beta1.PipelineTask_InputOutputs{Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{iteratorArtifact("result", 0, "artifact")}},
+				TypeAttributes: &apiv2.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)},
+				Outputs:        &apiv2.PipelineTask_InputOutputs{Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{iteratorArtifact("result", 0, "artifact")}},
 			}
 			_, resolved, ioType, err := resolveInputArtifact(common.Options{
-				ParentTask: parent, IterationIndex: 0, Run: &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producer}},
+				ParentTask: parent, IterationIndex: 0, Run: &apiv2.Run{Tasks: []*apiv2.PipelineTask{producer}},
 			}, "input", &pipelinespec.TaskInputsSpec_InputArtifactSpec{
 				Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact{
 					TaskOutputArtifact: &pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec{ProducerTask: "produce", OutputArtifactKey: "result"},
@@ -167,10 +167,10 @@ func TestResolveTaskOutputArtifact_CollectionBoundary(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, resolved.GetArtifacts(), 1)
 			assert.Equal(t, "artifact", resolved.GetArtifacts()[0].GetArtifactId())
-			if taskType == apiv2beta1.PipelineTask_LOOP {
-				assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, ioType)
+			if taskType == apiv2.PipelineTask_LOOP {
+				assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, ioType)
 			} else {
-				assert.Equal(t, apiv2beta1.IOType_TASK_OUTPUT_INPUT, ioType)
+				assert.Equal(t, apiv2.IOType_TASK_OUTPUT_INPUT, ioType)
 			}
 		})
 	}
@@ -180,7 +180,7 @@ func TestFindArtifactByProducerKeyInList_WrapsSingletonIteratorOutput(t *testing
 	resolved, err := findArtifactByProducerKeyInList(
 		"result",
 		"producer",
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+		[]*apiv2.PipelineTask_InputOutputs_IOArtifact{
 			iteratorArtifact("result", 0, "artifact-1"),
 		},
 		true,
@@ -188,7 +188,7 @@ func TestFindArtifactByProducerKeyInList_WrapsSingletonIteratorOutput(t *testing
 
 	require.NoError(t, err)
 	require.NotNil(t, resolved)
-	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
+	assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, resolved.GetType())
 	require.Len(t, resolved.GetArtifacts(), 1)
 	assert.Equal(t, "artifact-1", resolved.GetArtifacts()[0].GetArtifactId())
 }
@@ -197,7 +197,7 @@ func TestFindArtifactByProducerKeyInList_OrdersIteratorOutputs(t *testing.T) {
 	resolved, err := findArtifactByProducerKeyInList(
 		"result",
 		"producer",
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+		[]*apiv2.PipelineTask_InputOutputs_IOArtifact{
 			iteratorArtifact("result", 2, "artifact-2"),
 			iteratorArtifact("result", 0, "artifact-0"),
 			iteratorArtifact("result", 1, "artifact-1"),
@@ -207,7 +207,7 @@ func TestFindArtifactByProducerKeyInList_OrdersIteratorOutputs(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resolved)
-	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
+	assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, resolved.GetType())
 	require.Len(t, resolved.GetArtifacts(), 3)
 	assert.Equal(t, "artifact-0", resolved.GetArtifacts()[0].GetArtifactId())
 	assert.Equal(t, "artifact-1", resolved.GetArtifacts()[1].GetArtifactId())
@@ -218,12 +218,12 @@ func iteratorArtifact(
 	key string,
 	iteration int64,
 	artifactID string,
-) *apiv2beta1.PipelineTask_InputOutputs_IOArtifact {
-	return &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+) *apiv2.PipelineTask_InputOutputs_IOArtifact {
+	return &apiv2.PipelineTask_InputOutputs_IOArtifact{
 		ArtifactKey: key,
-		Type:        apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID}},
-		Producer: &apiv2beta1.IOProducer{
+		Type:        apiv2.IOType_ITERATOR_OUTPUT,
+		Artifacts:   []*apiv2.Artifact{{ArtifactId: artifactID}},
+		Producer: &apiv2.IOProducer{
 			TaskName:  "producer",
 			Iteration: util.Int64Pointer(iteration),
 		},

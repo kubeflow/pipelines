@@ -89,7 +89,7 @@ function isClusterRunning() {
 async function isKfpHealthy() {
   try {
     await new Promise((resolve, reject) => {
-      const req = http.get(`http://localhost:${FRONTEND_SERVER_PORT}/apis/v2beta1/healthz`, (res) => {
+      const req = http.get(`http://localhost:${FRONTEND_SERVER_PORT}/apis/v2/healthz`, (res) => {
         resolve(res.statusCode === 200);
       });
       req.on('error', reject);

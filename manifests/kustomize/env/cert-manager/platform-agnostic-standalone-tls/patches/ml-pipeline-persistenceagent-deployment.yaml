@@ -12,7 +12,7 @@ spec:
           args:
             - "--mlPipelineAPIServerName=ml-pipeline.kubeflow.svc.cluster.local"
             - "--mlPipelineAPIServerHttpPort=8888"
-            - "--mlPipelineAPIServerBasePath=/apis/v2beta1"
+            - "--mlPipelineAPIServerBasePath=/apis/v2"
           env:
             - name: NAMESPACE
               valueFrom:

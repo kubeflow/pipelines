@@ -37,7 +37,7 @@ class InlineObject1(object):
         'name': 'str',
         'description': 'str',
         'created_at': 'datetime',
-        'package_url': 'V2beta1Url',
+        'package_url': 'V2Url',
         'code_source_url': 'str',
         'pipeline_spec': 'object',
         'error': 'GoogleRpcStatus',
@@ -190,7 +190,7 @@ class InlineObject1(object):
 
 
         :return: The package_url of this InlineObject1.  # noqa: E501
-        :rtype: V2beta1Url
+        :rtype: V2Url
         """
         return self._package_url
 
@@ -200,7 +200,7 @@ class InlineObject1(object):
 
 
         :param package_url: The package_url of this InlineObject1.  # noqa: E501
-        :type package_url: V2beta1Url
+        :type package_url: V2Url
         """
 
         self._package_url = package_url

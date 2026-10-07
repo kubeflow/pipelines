@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -36,7 +36,7 @@ type failingNonParentGetTaskAPI struct {
 	parentTaskID string
 }
 
-func (f *failingNonParentGetTaskAPI) GetTask(ctx context.Context, req *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (f *failingNonParentGetTaskAPI) GetTask(ctx context.Context, req *apiv2.GetTaskRequest) (*apiv2.PipelineTask, error) {
 	if req.GetTaskId() != f.parentTaskID {
 		return nil, fmt.Errorf("boom")
 	}
@@ -48,7 +48,7 @@ type runScopedGetTaskAPI struct {
 	parentTaskID string
 }
 
-func (f *runScopedGetTaskAPI) GetTask(ctx context.Context, req *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (f *runScopedGetTaskAPI) GetTask(ctx context.Context, req *apiv2.GetTaskRequest) (*apiv2.PipelineTask, error) {
 	if req.GetTaskId() != f.parentTaskID && req.GetRunId() == "" {
 		return nil, fmt.Errorf("run-scoped task lookup requires run id")
 	}
@@ -89,15 +89,15 @@ func TestContainer_PostCreateErrorUpdatesExistingTask(t *testing.T) {
 		t.Fatal("expected execution task ID to be empty or populated")
 	}
 
-	fullView := apiv2beta1.GetRunRequest_FULL
-	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{
 		RunId: tc.Run.GetRunId(),
 		View:  &fullView,
 	})
 	if err != nil {
 		t.Fatalf("failed to refresh run: %v", err)
 	}
-	var children []*apiv2beta1.PipelineTask
+	var children []*apiv2.PipelineTask
 	for _, task := range run.GetTasks() {
 		if task.GetParentTaskId() == tc.RootTask.GetTaskId() {
 			children = append(children, task)
@@ -111,7 +111,7 @@ func TestContainer_PostCreateErrorUpdatesExistingTask(t *testing.T) {
 	if execution != nil && execution.TaskID != "" && task.GetTaskId() != execution.TaskID {
 		t.Fatalf("expected execution task ID %q, got %q", execution.TaskID, task.GetTaskId())
 	}
-	if task.GetState() != apiv2beta1.PipelineTask_FAILED {
+	if task.GetState() != apiv2.PipelineTask_FAILED {
 		t.Fatalf("expected failed task state, got %v", task.GetState())
 	}
 	if task.GetEndTime() == nil {
@@ -154,8 +154,8 @@ func TestContainer_K8sOpPostCreateErrorUpdatesExistingTask(t *testing.T) {
 		t.Fatal("expected failed kubernetes platform op to keep the created task ID")
 	}
 
-	fullView := apiv2beta1.GetRunRequest_FULL
-	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{
 		RunId: tc.Run.GetRunId(),
 		View:  &fullView,
 	})
@@ -163,7 +163,7 @@ func TestContainer_K8sOpPostCreateErrorUpdatesExistingTask(t *testing.T) {
 		t.Fatalf("failed to refresh run: %v", err)
 	}
 
-	var failedTask *apiv2beta1.PipelineTask
+	var failedTask *apiv2.PipelineTask
 	for _, task := range run.GetTasks() {
 		if task.GetTaskId() == execution.TaskID {
 			failedTask = task
@@ -173,7 +173,7 @@ func TestContainer_K8sOpPostCreateErrorUpdatesExistingTask(t *testing.T) {
 	if failedTask == nil {
 		t.Fatalf("expected to find failed task %q in run", execution.TaskID)
 	}
-	if failedTask.GetState() != apiv2beta1.PipelineTask_FAILED {
+	if failedTask.GetState() != apiv2.PipelineTask_FAILED {
 		t.Fatalf("expected failed task state, got %v", failedTask.GetState())
 	}
 	if failedTask.GetEndTime() == nil {
@@ -218,14 +218,14 @@ func TestContainer_CreatePVCInvalidSizeFinalizesFailedTask(t *testing.T) {
 		t.Fatal("expected the failed create-PVC execution to retain its task ID")
 	}
 
-	failedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	failedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: execution.TaskID,
 		RunId:  tc.Run.GetRunId(),
 	})
 	if err != nil {
 		t.Fatalf("failed to reload create-PVC task: %v", err)
 	}
-	if failedTask.GetState() != apiv2beta1.PipelineTask_FAILED {
+	if failedTask.GetState() != apiv2.PipelineTask_FAILED {
 		t.Fatalf("expected failed task state, got %v", failedTask.GetState())
 	}
 	if failedTask.GetEndTime() == nil {
@@ -271,11 +271,11 @@ func TestContainer_K8sOpUsesRunScopedGetTaskRefresh(t *testing.T) {
 		t.Fatal("expected successful kubernetes platform op to return a task id")
 	}
 
-	task, err := tc.MockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.MockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	if err != nil {
 		t.Fatalf("failed to load task %q: %v", execution.TaskID, err)
 	}
-	if task.GetState() != apiv2beta1.PipelineTask_SUCCEEDED {
+	if task.GetState() != apiv2.PipelineTask_SUCCEEDED {
 		t.Fatalf("expected succeeded task state, got %v", task.GetState())
 	}
 }

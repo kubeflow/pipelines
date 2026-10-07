@@ -21,7 +21,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -38,17 +38,17 @@ import (
 )
 
 var (
-	commonApiRecurringRun = &apiv2beta1.RecurringRun{
+	commonApiRecurringRun = &apiv2.RecurringRun{
 		DisplayName:    "job1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: &structpb.Struct{}},
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: &structpb.Struct{}},
 		ExperimentId:   "123e4567-e89b-12d3-a456-426655440000",
 	}
 )
@@ -78,18 +78,18 @@ func TestListRecurringRuns_MultiUser(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -98,43 +98,43 @@ func TestListRecurringRuns_MultiUser(t *testing.T) {
 		ExperimentId: experiment.UUID,
 	}
 
-	_, err := server.CreateRecurringRun(ctx, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	_, err := server.CreateRecurringRun(ctx, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	expectedRecurringRun := &apiv2beta1.RecurringRun{
+	expectedRecurringRun := &apiv2.RecurringRun{
 		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "recurring_run_1",
 		ServiceAccount: "pipeline-runner",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		Namespace:      "ns1",
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
 		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
 			},
 		},
-		Status:       apiv2beta1.RecurringRun_ENABLED,
+		Status:       apiv2.RecurringRun_ENABLED,
 		ExperimentId: experiment.UUID,
 	}
 
-	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
+	expectedRecurringRunsList := []*apiv2.RecurringRun{expectedRecurringRun}
 
 	// List API should fail in multi-user mode for empty requests
-	actualRecurringRunsList, err := server.ListRecurringRuns(ctx, &apiv2beta1.ListRecurringRunsRequest{})
+	actualRecurringRunsList, err := server.ListRecurringRuns(ctx, &apiv2.ListRecurringRunsRequest{})
 	assert.NotNil(t, err)
 	assert.Nil(t, actualRecurringRunsList)
 
-	actualRecurringRunsList2, err := server.ListRecurringRuns(ctx, &apiv2beta1.ListRecurringRunsRequest{
+	actualRecurringRunsList2, err := server.ListRecurringRuns(ctx, &apiv2.ListRecurringRunsRequest{
 		ExperimentId: experiment.UUID,
 	})
 	actualRecurringRunsList2.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
@@ -243,18 +243,18 @@ func TestCreateRecurringRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -263,27 +263,27 @@ func TestCreateRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	recurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	recurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	expectedRecurringRun := &apiv2beta1.RecurringRun{
+	expectedRecurringRun := &apiv2.RecurringRun{
 		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "recurring_run_1",
 		ServiceAccount: "pipeline-runner",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		Namespace:      "ns1",
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
 		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
-		Status:         apiv2beta1.RecurringRun_ENABLED,
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		Status:         apiv2.RecurringRun_ENABLED,
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -305,18 +305,18 @@ func TestGetRecurringRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -325,27 +325,27 @@ func TestGetRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	expectedRecurringRun := &apiv2beta1.RecurringRun{
+	expectedRecurringRun := &apiv2.RecurringRun{
 		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "recurring_run_1",
 		ServiceAccount: "pipeline-runner",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		Namespace:      "ns1",
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
 		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
-		Status:         apiv2beta1.RecurringRun_ENABLED,
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		Status:         apiv2.RecurringRun_ENABLED,
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -354,7 +354,7 @@ func TestGetRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	recurringRun, err := server.GetRecurringRun(nil, &apiv2beta1.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	recurringRun, err := server.GetRecurringRun(nil, &apiv2.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 	recurringRun.RuntimeConfig.Parameters = map[string]*structpb.Value{
 		"param1": structpb.NewStringValue("world"),
@@ -370,18 +370,18 @@ func TestListRecurringRuns(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -390,38 +390,38 @@ func TestListRecurringRuns(t *testing.T) {
 		ExperimentId: experiment.UUID,
 	}
 
-	_, err := server.CreateRecurringRun(context.Background(), &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	_, err := server.CreateRecurringRun(context.Background(), &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	expectedRecurringRun := &apiv2beta1.RecurringRun{
+	expectedRecurringRun := &apiv2.RecurringRun{
 		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "recurring_run_1",
 		ServiceAccount: "pipeline-runner",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		Namespace:      "ns1",
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
 		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
 			},
 		},
-		Status:       apiv2beta1.RecurringRun_ENABLED,
+		Status:       apiv2.RecurringRun_ENABLED,
 		ExperimentId: experiment.UUID,
 	}
 
-	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
+	expectedRecurringRunsList := []*apiv2.RecurringRun{expectedRecurringRun}
 
-	actualRecurringRunsList, err := server.ListRecurringRuns(context.Background(), &apiv2beta1.ListRecurringRunsRequest{})
+	actualRecurringRunsList, err := server.ListRecurringRuns(context.Background(), &apiv2.ListRecurringRunsRequest{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(actualRecurringRunsList.RecurringRuns))
 	actualRecurringRunsList.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
@@ -429,7 +429,7 @@ func TestListRecurringRuns(t *testing.T) {
 	}
 	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList.RecurringRuns)
 
-	actualRecurringRunsList2, err := server.ListRecurringRuns(context.Background(), &apiv2beta1.ListRecurringRunsRequest{
+	actualRecurringRunsList2, err := server.ListRecurringRuns(context.Background(), &apiv2.ListRecurringRunsRequest{
 		ExperimentId: experiment.UUID,
 	})
 	actualRecurringRunsList2.RecurringRuns[0].RuntimeConfig.Parameters = map[string]*structpb.Value{
@@ -448,18 +448,18 @@ func TestEnableRecurringRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -468,10 +468,10 @@ func TestEnableRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	_, err = server.EnableRecurringRun(nil, &apiv2beta1.EnableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	_, err = server.EnableRecurringRun(nil, &apiv2.EnableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 }
 
@@ -483,18 +483,18 @@ func TestDisableRecurringRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -503,10 +503,10 @@ func TestDisableRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	_, err = server.DisableRecurringRun(nil, &apiv2beta1.DisableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	_, err = server.DisableRecurringRun(nil, &apiv2.DisableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 }
 
@@ -518,18 +518,18 @@ func TestDeleteRecurringRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	apiRecurringRun := &apiv2beta1.RecurringRun{
+	apiRecurringRun := &apiv2.RecurringRun{
 		DisplayName:    "recurring_run_1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Mode:           apiv2.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+		Trigger: &apiv2.Trigger{
+			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
@@ -538,14 +538,14 @@ func TestDeleteRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(context.Background(), &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(context.Background(), &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	_, err = server.DeleteRecurringRun(context.Background(), &apiv2beta1.DeleteRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	_, err = server.DeleteRecurringRun(context.Background(), &apiv2.DeleteRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 
 	// Verify the recurring run is gone.
-	_, err = server.GetRecurringRun(context.Background(), &apiv2beta1.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	_, err = server.GetRecurringRun(context.Background(), &apiv2.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }

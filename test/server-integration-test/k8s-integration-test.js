@@ -111,12 +111,12 @@ async function testListPods() {
     // Or check ml-pipeline pods directly via system info
 
     // First, let's see what's running by checking healthz which uses K8s
-    const health = await request('GET', '/apis/v2beta1/healthz');
+    const health = await request('GET', '/apis/v2/healthz');
     assert(health.status === 200, `Health check failed: ${health.status}`);
 
     // The server itself is a pod, let's find pipeline-related pods
     // We'll use a creative approach: check if there are any runs
-    const runs = await request('GET', '/apis/v2beta1/runs?page_size=1');
+    const runs = await request('GET', '/apis/v2/runs?page_size=1');
 
     if (runs.body.runs && runs.body.runs.length > 0) {
       const run = runs.body.runs[0];
@@ -355,7 +355,7 @@ async function main() {
 
   // Verify server is up
   try {
-    const health = await request('GET', '/apis/v2beta1/healthz');
+    const health = await request('GET', '/apis/v2/healthz');
     if (health.status !== 200) {
       log(`\nWarning: Health check returned ${health.status}`, 'yellow');
     }

@@ -48,7 +48,7 @@ def kfp_client():
 @pytest.fixture(scope="session")
 def api_base():
     """KFP API base URL for direct HTTP requests."""
-    return f"{KFP_ENDPOINT}/apis/v2beta1"
+    return f"{KFP_ENDPOINT}/apis/v2"
 
 
 @pytest.fixture(scope="session")

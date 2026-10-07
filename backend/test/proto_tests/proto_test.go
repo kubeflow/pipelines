@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	specPB "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	pb "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	pb "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 )
 
 // This is the commit that contains the proto generated files

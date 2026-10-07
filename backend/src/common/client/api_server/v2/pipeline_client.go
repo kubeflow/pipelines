@@ -20,9 +20,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
@@ -31,14 +31,14 @@ import (
 )
 
 type PipelineInterface interface {
-	Create(params *params.PipelineServiceCreatePipelineParams) (*model.V2beta1Pipeline, error)
-	CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error)
-	Get(params *params.PipelineServiceGetPipelineParams) (*model.V2beta1Pipeline, error)
+	Create(params *params.PipelineServiceCreatePipelineParams) (*model.V2Pipeline, error)
+	CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2Pipeline, error)
+	Get(params *params.PipelineServiceGetPipelineParams) (*model.V2Pipeline, error)
 	Delete(params *params.PipelineServiceDeletePipelineParams) error
 	// GetTemplate(params *params.GetTemplateParams) (template.Template, error)
-	List(params *params.PipelineServiceListPipelinesParams) ([]*model.V2beta1Pipeline, int, string, error)
+	List(params *params.PipelineServiceListPipelinesParams) ([]*model.V2Pipeline, int, string, error)
 	ListAll(params *params.PipelineServiceListPipelinesParams, maxResultSize int) (
-		[]*model.V2beta1Pipeline, error)
+		[]*model.V2Pipeline, error)
 }
 
 type PipelineClient struct {
@@ -92,7 +92,7 @@ func NewMultiUserPipelineClient(clientConfig clientcmd.ClientConfig, userToken s
 	}, nil
 }
 
-func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipelineParams) (*model.V2beta1Pipeline,
+func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipelineParams) (*model.V2Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -114,7 +114,7 @@ func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipeline
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) CreatePipelineAndVersion(parameters *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2beta1Pipeline,
+func (c *PipelineClient) CreatePipelineAndVersion(parameters *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -136,7 +136,7 @@ func (c *PipelineClient) CreatePipelineAndVersion(parameters *params.PipelineSer
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) Get(parameters *params.PipelineServiceGetPipelineParams) (*model.V2beta1Pipeline,
+func (c *PipelineClient) Get(parameters *params.PipelineServiceGetPipelineParams) (*model.V2Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -203,7 +203,7 @@ func (c *PipelineClient) DeletePipelineVersion(parameters *params.PipelineServic
 }
 
 func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesParams) (
-	[]*model.V2beta1Pipeline, int, string, error) {
+	[]*model.V2Pipeline, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -226,17 +226,17 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesPar
 }
 
 func (c *PipelineClient) ListAll(parameters *params.PipelineServiceListPipelinesParams, maxResultSize int) (
-	[]*model.V2beta1Pipeline, error) {
+	[]*model.V2Pipeline, error) {
 	return listAllForPipeline(c, parameters, maxResultSize)
 }
 
 func listAllForPipeline(client PipelineInterface, parameters *params.PipelineServiceListPipelinesParams,
-	maxResultSize int) ([]*model.V2beta1Pipeline, error) {
+	maxResultSize int) ([]*model.V2Pipeline, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.V2beta1Pipeline, 0)
+	allResults := make([]*model.V2Pipeline, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
@@ -255,7 +255,7 @@ func listAllForPipeline(client PipelineInterface, parameters *params.PipelineSer
 	return allResults, nil
 }
 
-func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServiceCreatePipelineVersionParams) (*model.V2beta1PipelineVersion,
+func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServiceCreatePipelineVersionParams) (*model.V2PipelineVersion,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -278,7 +278,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServic
 }
 
 func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineServiceListPipelineVersionsParams) (
-	[]*model.V2beta1PipelineVersion, int, string, error) {
+	[]*model.V2PipelineVersion, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -300,7 +300,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 	return response.Payload.PipelineVersions, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
-func (c *PipelineClient) GetByName(parameters *params.PipelineServiceGetPipelineByNameParams) (*model.V2beta1Pipeline,
+func (c *PipelineClient) GetByName(parameters *params.PipelineServiceGetPipelineByNameParams) (*model.V2Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -323,7 +323,7 @@ func (c *PipelineClient) GetByName(parameters *params.PipelineServiceGetPipeline
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) UpdatePipeline(parameters *params.PipelineServiceUpdatePipelineParams) (*model.V2beta1Pipeline,
+func (c *PipelineClient) UpdatePipeline(parameters *params.PipelineServiceUpdatePipelineParams) (*model.V2Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -346,7 +346,7 @@ func (c *PipelineClient) UpdatePipeline(parameters *params.PipelineServiceUpdate
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) UpdatePipelineVersion(parameters *params.PipelineServiceUpdatePipelineVersionParams) (*model.V2beta1PipelineVersion,
+func (c *PipelineClient) UpdatePipelineVersion(parameters *params.PipelineServiceUpdatePipelineVersionParams) (*model.V2PipelineVersion,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -369,7 +369,7 @@ func (c *PipelineClient) UpdatePipelineVersion(parameters *params.PipelineServic
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGetPipelineVersionParams) (*model.V2beta1PipelineVersion,
+func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGetPipelineVersionParams) (*model.V2PipelineVersion,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)

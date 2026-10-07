@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	runModel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	runModel "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -66,7 +66,7 @@ func TestCacheDiagnosticsContinuesAfterErrors(t *testing.T) {
 		t.Fatalf("unexpected command: %s", call)
 		return nil, nil, nil
 	}
-	d.collect([]string{"", "run-1", "run-1", "invalid,value"}, func(id string, timeout time.Duration) (*runModel.V2beta1Run, error) {
+	d.collect([]string{"", "run-1", "run-1", "invalid,value"}, func(id string, timeout time.Duration) (*runModel.V2Run, error) {
 		require.Equal(t, "run-1", id)
 		require.Positive(t, timeout)
 		require.LessOrEqual(t, timeout, cacheDiagnosticCallBudget)
@@ -107,7 +107,7 @@ func TestCacheDiagnosticsDeadline(t *testing.T) {
 		return nil, nil, ctx.Err()
 	}
 	started := time.Now()
-	d.collect([]string{"run-1", "run-2"}, func(string, time.Duration) (*runModel.V2beta1Run, error) { return nil, errors.New("unavailable") })
+	d.collect([]string{"run-1", "run-2"}, func(string, time.Duration) (*runModel.V2Run, error) { return nil, errors.New("unavailable") })
 	require.Less(t, time.Since(started), time.Second)
 	require.Equal(t, 1, calls)
 	data, err := os.ReadFile(filepath.Join(d.dir, "errors.txt"))
@@ -210,7 +210,7 @@ func TestCacheDiagnosticsMissingWorkflowStillCollectsPods(t *testing.T) {
 					return nil, nil, nil
 				}
 			}
-			d.collect(ids, func(string, time.Duration) (*runModel.V2beta1Run, error) {
+			d.collect(ids, func(string, time.Duration) (*runModel.V2Run, error) {
 				return nil, errors.New("run API unavailable")
 			})
 			data, err := os.ReadFile(filepath.Join(d.dir, "pod-0-main-previous-false.log"))
@@ -267,7 +267,7 @@ func TestCacheDiagnosticsPrioritizesUnfinishedPodsBeforeLimit(t *testing.T) {
 		}
 		return []byte(`{"items":[]}`), nil, nil
 	}
-	d.collect([]string{"run-1"}, func(string, time.Duration) (*runModel.V2beta1Run, error) { return nil, nil })
+	d.collect([]string{"run-1"}, func(string, time.Duration) (*runModel.V2Run, error) { return nil, nil })
 	require.Len(t, events, cacheDiagnosticMaxPods)
 	require.Len(t, logs, cacheDiagnosticMaxPods)
 	require.Equal(t, []string{"stalled-first", "stalled-second", "completed-0"}, logs[:3])
@@ -295,7 +295,7 @@ func TestCacheDiagnosticsTotalOutputBudget(t *testing.T) {
 		}
 		return []byte(strings.Repeat("x", cacheDiagnosticMaxBytes+1)), []byte(strings.Repeat("warning", 1<<14)), nil
 	}
-	d.collect([]string{"run-1"}, func(string, time.Duration) (*runModel.V2beta1Run, error) { return nil, nil })
+	d.collect([]string{"run-1"}, func(string, time.Duration) (*runModel.V2Run, error) { return nil, nil })
 	require.Less(t, calls, cacheDiagnosticMaxPods, "stop commands when aggregate budget is consumed")
 	before := calls
 	d.capture("after-budget.txt", "get", "pods")

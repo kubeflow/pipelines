@@ -16,30 +16,30 @@ import { FetchAPI } from 'src/generated/openapi/runtime';
 import {
   Configuration as ExperimentConfigurationV2,
   ExperimentServiceApi as ExperimentServiceApiV2,
-} from 'src/apisv2beta1/experiment';
+} from 'src/apisv2/experiment';
 import {
   ArtifactServiceApi as ArtifactServiceApiV2,
   Configuration as ArtifactConfigurationV2,
-} from 'src/apisv2beta1/artifact';
+} from 'src/apisv2/artifact';
 import {
   Configuration as RecurringRunConfiguration,
   RecurringRunServiceApi,
-} from 'src/apisv2beta1/recurringrun';
+} from 'src/apisv2/recurringrun';
 import {
   Configuration as PipelineConfigurationV2,
-  V2beta1Pipeline,
-  V2beta1PipelineVersion,
+  V2Pipeline,
+  V2PipelineVersion,
   PipelineServiceApi as PipelineServiceApiV2,
-} from 'src/apisv2beta1/pipeline';
+} from 'src/apisv2/pipeline';
 import {
   Configuration as RunConfigurationV2,
   RunServiceApi as RunServiceApiV2,
-} from 'src/apisv2beta1/run';
+} from 'src/apisv2/run';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
 import { StoragePath, StorageService } from './StoragePath';
 
-const v2beta1Prefix = 'apis/v2beta1';
+const v2Prefix = 'apis/v2';
 
 export interface ListRequest {
   filter?: string;
@@ -185,7 +185,7 @@ export class Apis {
    * Retrieve various information about the build.
    */
   public static async getBuildInfo(): Promise<BuildInfo> {
-    return await this._fetchAndParse<BuildInfo>('/healthz', v2beta1Prefix);
+    return await this._fetchAndParse<BuildInfo>('/healthz', v2Prefix);
   }
 
   /**
@@ -364,7 +364,7 @@ export class Apis {
     pipelineData: File,
     namespace?: string,
     codeSourceUrl?: string,
-  ): Promise<V2beta1Pipeline> {
+  ): Promise<V2Pipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
     let query = `name=${encodeURIComponent(pipelineName)}&display_name=${encodeURIComponent(
@@ -378,7 +378,7 @@ export class Apis {
       query = `${query}&code_source_url=${encodeURIComponent(codeSourceUrl)}`;
     }
 
-    return await this._fetchAndParse<V2beta1Pipeline>('/pipelines/upload', v2beta1Prefix, query, {
+    return await this._fetchAndParse<V2Pipeline>('/pipelines/upload', v2Prefix, query, {
       body: fd,
       cache: 'no-cache',
       method: 'POST',
@@ -392,12 +392,12 @@ export class Apis {
     versionData: File,
     description?: string,
     codeSourceUrl?: string,
-  ): Promise<V2beta1PipelineVersion> {
+  ): Promise<V2PipelineVersion> {
     const fd = new FormData();
     fd.append('uploadfile', versionData, versionData.name);
-    return await this._fetchAndParse<V2beta1PipelineVersion>(
+    return await this._fetchAndParse<V2PipelineVersion>(
       '/pipelines/upload_version',
-      v2beta1Prefix,
+      v2Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
         `&display_name=${encodeURIComponent(versionDisplayName)}` +
         (description ? `&description=${encodeURIComponent(description)}` : '') +

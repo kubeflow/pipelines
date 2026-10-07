@@ -12,34 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1IOType } from 'src/apisv2beta1/artifact';
+import { V2IOType } from 'src/apisv2/artifact';
 
 export const OUTPUT_ARTIFACT_TASK_TYPES = [
-  V2beta1IOType.OUTPUT,
-  V2beta1IOType.ITERATOR_OUTPUT,
-  V2beta1IOType.ONE_OF_OUTPUT,
-  V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
+  V2IOType.OUTPUT,
+  V2IOType.ITERATOR_OUTPUT,
+  V2IOType.ONE_OF_OUTPUT,
+  V2IOType.TASK_FINAL_STATUS_OUTPUT,
 ] as const;
 
 export const INPUT_ARTIFACT_TASK_TYPES = [
-  V2beta1IOType.COMPONENT_DEFAULT_INPUT,
-  V2beta1IOType.TASK_OUTPUT_INPUT,
-  V2beta1IOType.COMPONENT_INPUT,
-  V2beta1IOType.RUNTIME_VALUE_INPUT,
-  V2beta1IOType.COLLECTED_INPUTS,
-  V2beta1IOType.ITERATOR_INPUT,
-  V2beta1IOType.ITERATOR_INPUT_RAW,
+  V2IOType.COMPONENT_DEFAULT_INPUT,
+  V2IOType.TASK_OUTPUT_INPUT,
+  V2IOType.COMPONENT_INPUT,
+  V2IOType.RUNTIME_VALUE_INPUT,
+  V2IOType.COLLECTED_INPUTS,
+  V2IOType.ITERATOR_INPUT,
+  V2IOType.ITERATOR_INPUT_RAW,
 ] as const;
 
-const OUTPUT_ARTIFACT_TASK_TYPE_SET: ReadonlySet<V2beta1IOType> = new Set(
-  OUTPUT_ARTIFACT_TASK_TYPES,
-);
-const INPUT_ARTIFACT_TASK_TYPE_SET: ReadonlySet<V2beta1IOType> = new Set(INPUT_ARTIFACT_TASK_TYPES);
+const OUTPUT_ARTIFACT_TASK_TYPE_SET: ReadonlySet<V2IOType> = new Set(OUTPUT_ARTIFACT_TASK_TYPES);
+const INPUT_ARTIFACT_TASK_TYPE_SET: ReadonlySet<V2IOType> = new Set(INPUT_ARTIFACT_TASK_TYPES);
 
-export function isOutputArtifactTaskType(type?: V2beta1IOType): boolean {
+export function isOutputArtifactTaskType(type?: V2IOType): boolean {
   return type !== undefined && OUTPUT_ARTIFACT_TASK_TYPE_SET.has(type);
 }
 
-export function isInputArtifactTaskType(type?: V2beta1IOType): boolean {
+export function isInputArtifactTaskType(type?: V2IOType): boolean {
   return type !== undefined && INPUT_ARTIFACT_TASK_TYPE_SET.has(type);
 }

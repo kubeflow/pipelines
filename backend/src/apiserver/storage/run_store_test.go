@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"

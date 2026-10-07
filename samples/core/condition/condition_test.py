@@ -25,7 +25,7 @@ from ml_metadata.proto import Execution
 from .condition_v2 import condition as condition_v2
 
 
-def verify_heads(t: unittest.TestCase, run: kfp.server_api.V2beta1Run,
+def verify_heads(t: unittest.TestCase, run: kfp.server_api.V2Run,
                  tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.state, 'SUCCEEDED')
     t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
@@ -33,7 +33,7 @@ def verify_heads(t: unittest.TestCase, run: kfp.server_api.V2beta1Run,
                        tasks['condition-1'].children.keys())
 
 
-def verify_tails(t: unittest.TestCase, run: kfp.server_api.V2beta1Run,
+def verify_tails(t: unittest.TestCase, run: kfp.server_api.V2Run,
                  tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.state, 'SUCCEEDED')
     t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())

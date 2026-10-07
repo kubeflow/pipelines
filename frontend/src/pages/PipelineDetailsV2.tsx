@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { useState } from 'react';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
@@ -31,9 +31,9 @@ interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
   setSubDagLayers: (layers: string[]) => void;
-  pipeline: V2beta1Pipeline | null;
-  selectedVersion: V2beta1PipelineVersion | undefined;
-  versions: V2beta1PipelineVersion[];
+  pipeline: V2Pipeline | null;
+  selectedVersion: V2PipelineVersion | undefined;
+  versions: V2PipelineVersion[];
   handleVersionSelected: (versionId: string) => Promise<void>;
 }
 

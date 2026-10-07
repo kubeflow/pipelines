@@ -212,8 +212,8 @@ async function testStaticServing() {
 async function testHealthEndpoints() {
   log('\n🏥 Health Endpoints', 'cyan');
 
-  await test('GET /apis/v2beta1/healthz returns healthy', async () => {
-    const res = await request('GET', '/apis/v2beta1/healthz');
+  await test('GET /apis/v2/healthz returns healthy', async () => {
+    const res = await request('GET', '/apis/v2/healthz');
     // May return 200 with status or proxy error if backend not fully ready
     assertTrue(res.status === 200 || res.status === 502, `Status should be 200 or 502, got ${res.status}`);
     if (res.status === 200) {
@@ -222,38 +222,38 @@ async function testHealthEndpoints() {
     }
   });
 
-  await test('GET /apis/v2beta1/healthz returns healthy', async () => {
-    const res = await request('GET', '/apis/v2beta1/healthz');
+  await test('GET /apis/v2/healthz returns healthy', async () => {
+    const res = await request('GET', '/apis/v2/healthz');
     assertTrue(res.status === 200 || res.status === 502, `Status should be 200 or 502, got ${res.status}`);
   });
 }
 
 async function testAPIProxyV2() {
-  log('\n🔌 API Proxy (v2beta1)', 'cyan');
+  log('\n🔌 API Proxy (v2)', 'cyan');
 
-  await test('GET /apis/v2beta1/pipelines returns pipeline list', async () => {
-    const res = await request('GET', '/apis/v2beta1/pipelines?page_size=5');
+  await test('GET /apis/v2/pipelines returns pipeline list', async () => {
+    const res = await request('GET', '/apis/v2/pipelines?page_size=5');
     assertEqual(res.status, 200, 'Status code');
     const data = JSON.parse(res.body);
     assertTrue(Array.isArray(data.pipelines) || data.pipelines === undefined, 'Should return pipelines array or empty');
   });
 
-  await test('GET /apis/v2beta1/experiments returns experiment list', async () => {
-    const res = await request('GET', '/apis/v2beta1/experiments?page_size=5');
+  await test('GET /apis/v2/experiments returns experiment list', async () => {
+    const res = await request('GET', '/apis/v2/experiments?page_size=5');
     assertEqual(res.status, 200, 'Status code');
     const data = JSON.parse(res.body);
     assertTrue(Array.isArray(data.experiments) || data.experiments === undefined, 'Should return experiments array or empty');
   });
 
-  await test('GET /apis/v2beta1/runs returns run list', async () => {
-    const res = await request('GET', '/apis/v2beta1/runs?page_size=5');
+  await test('GET /apis/v2/runs returns run list', async () => {
+    const res = await request('GET', '/apis/v2/runs?page_size=5');
     assertEqual(res.status, 200, 'Status code');
     const data = JSON.parse(res.body);
     assertTrue(Array.isArray(data.runs) || data.runs === undefined, 'Should return runs array or empty');
   });
 
-  await test('GET /apis/v2beta1/recurringruns returns recurring run list', async () => {
-    const res = await request('GET', '/apis/v2beta1/recurringruns?page_size=5');
+  await test('GET /apis/v2/recurringruns returns recurring run list', async () => {
+    const res = await request('GET', '/apis/v2/recurringruns?page_size=5');
     assertEqual(res.status, 200, 'Status code');
     const data = JSON.parse(res.body);
     assertTrue(Array.isArray(data.recurringRuns) || data.recurring_runs === undefined, 'Should return recurring runs array or empty');

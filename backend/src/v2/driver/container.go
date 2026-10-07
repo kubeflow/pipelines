@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
@@ -71,7 +71,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		return nil, driverErr
 	}
 
-	parentTask, driverErr := clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+	parentTask, driverErr := clientManager.KFPAPIClient().GetTask(ctx, &apiV2.GetTaskRequest{
 		TaskId: opts.ParentTask.GetTaskId(),
 		RunId:  opts.Run.GetRunId(),
 	})
@@ -80,27 +80,27 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 	opts.ParentTask = parentTask
 
-	taskToCreate := &apiV2beta1.PipelineTask{
+	taskToCreate := &apiV2.PipelineTask{
 		Name:         opts.TaskName,
 		DisplayName:  opts.Task.GetTaskInfo().GetName(),
 		RunId:        opts.Run.GetRunId(),
-		Type:         apiV2beta1.PipelineTask_RUNTIME,
-		State:        apiV2beta1.PipelineTask_RUNNING,
+		Type:         apiV2.PipelineTask_RUNTIME,
+		State:        apiV2.PipelineTask_RUNNING,
 		ParentTaskId: util.StringPointer(opts.ParentTask.TaskId),
 		ScopePath:    opts.ScopePath.DotNotation(),
 		CreateTime:   timestamppb.Now(),
-		Pods: []*apiV2beta1.PipelineTask_TaskPod{
+		Pods: []*apiV2.PipelineTask_TaskPod{
 			{
 				Name: opts.PodName,
 				Uid:  opts.PodUID,
-				Type: apiV2beta1.PipelineTask_DRIVER,
+				Type: apiV2.PipelineTask_DRIVER,
 			},
 		},
 	}
 	// Set iteration identity before fallible resolution so retry cleanup
 	// CreateTask matches the existing logical task key.
 	if iterationIndex != nil {
-		taskToCreate.TypeAttributes = &apiV2beta1.PipelineTask_TypeAttributes{
+		taskToCreate.TypeAttributes = &apiV2.PipelineTask_TypeAttributes{
 			IterationIndex: util.Int64Pointer(int64(*iterationIndex)),
 		}
 	}
@@ -113,7 +113,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			taskIDToUpdate := taskToCreate.GetTaskId()
 			if taskIDToUpdate == "" && execution != nil && execution.TaskID != "" {
 				taskIDToUpdate = execution.TaskID
-				existingTask, getTaskErr := clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+				existingTask, getTaskErr := clientManager.KFPAPIClient().GetTask(ctx, &apiV2.GetTaskRequest{
 					TaskId: taskIDToUpdate,
 					RunId:  taskToCreate.GetRunId(),
 				})
@@ -127,21 +127,21 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			failedEndTime := timestamppb.Now()
 			statusMetadata := taskToCreate.GetStatusMetadata()
 			if statusMetadata == nil {
-				statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+				statusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 			}
 			statusMetadata.Message = driverErr.Error()
-			failedAttemptFields := &apiV2beta1.PipelineTask{
+			failedAttemptFields := &apiV2.PipelineTask{
 				Pods:           taskToCreate.GetPods(),
-				State:          apiV2beta1.PipelineTask_FAILED,
+				State:          apiV2.PipelineTask_FAILED,
 				EndTime:        failedEndTime,
 				StatusMetadata: statusMetadata,
 			}
-			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
+			taskToCreate.State = apiV2.PipelineTask_FAILED
 			taskToCreate.EndTime = failedEndTime
 			taskToCreate.StatusMetadata = statusMetadata
 			// We encountered an error in driver before we got the chance to create the task.
 			if taskIDToUpdate == "" {
-				createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+				createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 					Task:  taskToCreate,
 					RunId: taskToCreate.GetRunId(),
 				})
@@ -170,16 +170,16 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		}
 
 		driverTerminal := driverErr != nil ||
-			taskToCreate.GetState() == apiV2beta1.PipelineTask_CACHED ||
-			taskToCreate.GetState() == apiV2beta1.PipelineTask_SKIPPED ||
-			taskToCreate.GetState() == apiV2beta1.PipelineTask_FAILED ||
-			taskToCreate.GetState() == apiV2beta1.PipelineTask_SUCCEEDED
+			taskToCreate.GetState() == apiV2.PipelineTask_CACHED ||
+			taskToCreate.GetState() == apiV2.PipelineTask_SKIPPED ||
+			taskToCreate.GetState() == apiV2.PipelineTask_FAILED ||
+			taskToCreate.GetState() == apiV2.PipelineTask_SUCCEEDED
 		if !driverTerminal {
 			return
 		}
 
-		fullView := apiV2beta1.GetRunRequest_FULL
-		refreshedRun, getRunErr := clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{RunId: opts.Run.GetRunId(), View: &fullView})
+		fullView := apiV2.GetRunRequest_FULL
+		refreshedRun, getRunErr := clientManager.KFPAPIClient().GetRun(ctx, &apiV2.GetRunRequest{RunId: opts.Run.GetRunId(), View: &fullView})
 		if getRunErr != nil {
 			glog.Errorf("failed to refresh run: %v", getRunErr)
 			if driverErr == nil {
@@ -264,14 +264,14 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		)
 	}
 
-	var inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter
+	var inputParams []*apiV2.PipelineTask_InputOutputs_IOParameter
 	if opts.KubernetesExecutorConfig != nil {
 		inputParams = parentTask.GetInputs().GetParameters()
 	}
 
 	// Generate a fingerprint and check if we have a cache hit.
 	var fingerPrint string
-	var cachedTask *apiV2beta1.PipelineTask
+	var cachedTask *apiV2.PipelineTask
 	if !opts.CacheDisabled {
 		// Generate fingerprint
 		// Start by getting the names of the PVCs that need to be mounted.
@@ -319,13 +319,13 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		if pluginStartResult != nil {
 			statusMetadata := taskToCreate.GetStatusMetadata()
 			if statusMetadata == nil {
-				statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+				statusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 			}
 			statusMetadata.CustomProperties = stringMapToStructValues(pluginStartResult.CustomProperties)
 			taskToCreate.StatusMetadata = statusMetadata
 		}
 	}
-	endPluginTask := func(state apiV2beta1.PipelineTask_TaskState, metrics map[string]float64, params map[string]interface{}) {
+	endPluginTask := func(state apiV2.PipelineTask_TaskState, metrics map[string]float64, params map[string]interface{}) {
 		if !pluginStarted {
 			return
 		}
@@ -340,7 +340,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	// leave pluginStarted true so the launcher owns OnTaskEnd.
 	defer func() {
 		if driverErr != nil {
-			endPluginTask(apiV2beta1.PipelineTask_FAILED, nil, pluginInputParams)
+			endPluginTask(apiV2.PipelineTask_FAILED, nil, pluginInputParams)
 		}
 	}()
 	// Use cache and skip launcher if all conditions met:
@@ -358,11 +358,11 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			if driverErr != nil {
 				return execution, driverErr
 			}
-			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+			taskToCreate.State = apiV2.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
 			*execution.Cached = true
-			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
 			})
@@ -370,13 +370,13 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				return execution, fmt.Errorf("failed to update task: %w", createErr)
 			}
 			taskToCreate = createdTask
-			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+			taskToCreate.State = apiV2.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
 			if taskToCreate.StatusMetadata == nil {
-				taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+				taskToCreate.StatusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 			}
-			if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+			if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 				TaskId: taskToCreate.GetTaskId(),
 				Task:   taskToCreate,
 				RunId:  taskToCreate.GetRunId(),
@@ -391,10 +391,10 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			}
 
 			// Artifacts are not embedded in tasks like parameters, we need to create separate ArtifactTasks for each output.
-			var artifactTasks []*apiV2beta1.ArtifactTask
+			var artifactTasks []*apiV2.ArtifactTask
 			for _, cachedOutput := range cachedOutputs.GetArtifacts() {
 				for _, artifact := range cachedOutput.Artifacts {
-					artifactTasks = append(artifactTasks, &apiV2beta1.ArtifactTask{
+					artifactTasks = append(artifactTasks, &apiV2.ArtifactTask{
 						ArtifactId: artifact.GetArtifactId(),
 						RunId:      createdTask.RunId,
 						TaskId:     createdTask.TaskId,
@@ -425,7 +425,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			}
 			execution.TaskID = createdTask.TaskId
 			endPluginTask(
-				apiV2beta1.PipelineTask_CACHED,
+				apiV2.PipelineTask_CACHED,
 				scalarMetricsFromTaskOutputs(cachedOutputs),
 				pluginInputParams,
 			)
@@ -442,11 +442,11 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 
 	if !execution.WillTrigger() {
-		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
+		taskToCreate.State = apiV2.PipelineTask_SKIPPED
 	}
 
 	glog.Infof("Creating task %s in pod %s", opts.TaskName, opts.Namespace)
-	attemptLocalFields := &apiV2beta1.PipelineTask{
+	attemptLocalFields := &apiV2.PipelineTask{
 		Pods:             taskToCreate.GetPods(),
 		Inputs:           taskToCreate.GetInputs(),
 		CacheFingerprint: taskToCreate.GetCacheFingerprint(),
@@ -454,7 +454,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		EndTime:          taskToCreate.GetEndTime(),
 		StatusMetadata:   taskToCreate.GetStatusMetadata(),
 	}
-	createdTask, driverErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+	createdTask, driverErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 		Task:  taskToCreate,
 		RunId: taskToCreate.GetRunId(),
 	})
@@ -477,7 +477,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	// If this Task is a condition branch and the condition was not met, skip it.
 	if !execution.WillTrigger() {
 		endPluginTask(
-			apiV2beta1.PipelineTask_SKIPPED,
+			apiV2.PipelineTask_SKIPPED,
 			nil,
 			pluginInputParams,
 		)
@@ -579,33 +579,33 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 }
 
 func cloneCachedOutputsForTask(
-	outputs *apiV2beta1.PipelineTask_InputOutputs,
+	outputs *apiV2.PipelineTask_InputOutputs,
 	taskName string,
 	iterationIndex *int,
-) (*apiV2beta1.PipelineTask_InputOutputs, error) {
+) (*apiV2.PipelineTask_InputOutputs, error) {
 	if outputs == nil {
 		return nil, nil
 	}
-	clonedOutputs, ok := proto.Clone(outputs).(*apiV2beta1.PipelineTask_InputOutputs)
+	clonedOutputs, ok := proto.Clone(outputs).(*apiV2.PipelineTask_InputOutputs)
 	if !ok {
 		return nil, fmt.Errorf("failed to clone cached task outputs")
 	}
 	for _, parameterOutput := range clonedOutputs.GetParameters() {
-		parameterOutput.Producer = &apiV2beta1.IOProducer{TaskName: taskName}
+		parameterOutput.Producer = &apiV2.IOProducer{TaskName: taskName}
 		if iterationIndex != nil {
-			parameterOutput.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
+			parameterOutput.Type = apiV2.IOType_ITERATOR_OUTPUT
 			parameterOutput.Producer.Iteration = util.Int64Pointer(int64(*iterationIndex))
 		} else {
-			parameterOutput.Type = apiV2beta1.IOType_OUTPUT
+			parameterOutput.Type = apiV2.IOType_OUTPUT
 		}
 	}
 	for _, artifactOutput := range clonedOutputs.GetArtifacts() {
-		artifactOutput.Producer = &apiV2beta1.IOProducer{TaskName: taskName}
+		artifactOutput.Producer = &apiV2.IOProducer{TaskName: taskName}
 		if iterationIndex != nil {
-			artifactOutput.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
+			artifactOutput.Type = apiV2.IOType_ITERATOR_OUTPUT
 			artifactOutput.Producer.Iteration = util.Int64Pointer(int64(*iterationIndex))
 		} else {
-			artifactOutput.Type = apiV2beta1.IOType_OUTPUT
+			artifactOutput.Type = apiV2.IOType_OUTPUT
 		}
 	}
 	return clonedOutputs, nil
@@ -619,7 +619,7 @@ func pipelineTaskInputsToExecutorInputs(inputMetadata *resolver.InputMetadata) (
 		if p.ParameterIO.GetValue() == nil {
 			return nil, fmt.Errorf("parameter %s has no value", p.Key)
 		}
-		if p.ParameterIO.GetType() == apiV2beta1.IOType_ITERATOR_INPUT {
+		if p.ParameterIO.GetType() == apiV2.IOType_ITERATOR_INPUT {
 			// first check if p.Key is already present in parameters
 			if _, ok := parameters[p.Key]; ok {
 				// if present, then append to the existing value
@@ -654,7 +654,7 @@ func pipelineTaskInputsToExecutorInputs(inputMetadata *resolver.InputMetadata) (
 	return executorInput, nil
 }
 
-func convertArtifactsToArtifactList(artifacts []*apiV2beta1.Artifact, downloadedToWorkspace bool) (*pipelinespec.ArtifactList, error) {
+func convertArtifactsToArtifactList(artifacts []*apiV2.Artifact, downloadedToWorkspace bool) (*pipelinespec.ArtifactList, error) {
 	if len(artifacts) == 0 {
 		return &pipelinespec.ArtifactList{}, nil
 	}
@@ -662,7 +662,7 @@ func convertArtifactsToArtifactList(artifacts []*apiV2beta1.Artifact, downloaded
 	// Check if all artifacts are metrics
 	allMetrics := true
 	for _, artifact := range artifacts {
-		if artifact.Type != apiV2beta1.Artifact_Metric {
+		if artifact.Type != apiV2.Artifact_Metric {
 			allMetrics = false
 			break
 		}
@@ -748,7 +748,7 @@ func convertArtifactsToArtifactList(artifacts []*apiV2beta1.Artifact, downloaded
 }
 
 func convertArtifactToRuntimeArtifact(
-	artifact *apiV2beta1.Artifact,
+	artifact *apiV2.Artifact,
 ) (*pipelinespec.RuntimeArtifact, error) {
 	if artifact.GetName() == "" && artifact.GetUri() == "" {
 		return nil, fmt.Errorf("artifact name or uri cannot be empty")

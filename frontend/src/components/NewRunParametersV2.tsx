@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
-import { V2beta1RuntimeConfig } from 'src/apisv2beta1/run';
+import { V2RuntimeConfig } from 'src/apisv2/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import {
@@ -73,7 +73,7 @@ interface NewRunParametersProps {
   pipelineRoot?: string;
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
-  clonedRuntimeConfig?: V2beta1RuntimeConfig;
+  clonedRuntimeConfig?: V2RuntimeConfig;
   initialParameterState?: InitialParameterState;
   handlePipelineRootChange?: (pipelineRoot?: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;

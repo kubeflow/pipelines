@@ -46,7 +46,7 @@ class RecurringRunServiceApi(object):
         >>> result = thread.get()
 
         :param recurring_run: The recurring run to be created. (required)
-        :type recurring_run: V2beta1RecurringRun
+        :type recurring_run: V2RecurringRun
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -59,7 +59,7 @@ class RecurringRunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1RecurringRun
+        :rtype: V2RecurringRun
         """
         kwargs['_return_http_data_only'] = True
         return self.recurring_run_service_create_recurring_run_with_http_info(recurring_run, **kwargs)  # noqa: E501
@@ -74,7 +74,7 @@ class RecurringRunServiceApi(object):
         >>> result = thread.get()
 
         :param recurring_run: The recurring run to be created. (required)
-        :type recurring_run: V2beta1RecurringRun
+        :type recurring_run: V2RecurringRun
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -91,7 +91,7 @@ class RecurringRunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1RecurringRun, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2RecurringRun, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -147,14 +147,14 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/recurringruns', 'POST',
+            '/apis/v2/recurringruns', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1RecurringRun',  # noqa: E501
+            response_type='V2RecurringRun',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -276,7 +276,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/recurringruns/{recurring_run_id}', 'DELETE',
+            '/apis/v2/recurringruns/{recurring_run_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -398,7 +398,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/recurringruns/{recurring_run_id}:disable', 'POST',
+            '/apis/v2/recurringruns/{recurring_run_id}:disable', 'POST',
             path_params,
             query_params,
             header_params,
@@ -520,7 +520,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/recurringruns/{recurring_run_id}:enable', 'POST',
+            '/apis/v2/recurringruns/{recurring_run_id}:enable', 'POST',
             path_params,
             query_params,
             header_params,
@@ -558,7 +558,7 @@ class RecurringRunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1RecurringRun
+        :rtype: V2RecurringRun
         """
         kwargs['_return_http_data_only'] = True
         return self.recurring_run_service_get_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
@@ -590,7 +590,7 @@ class RecurringRunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1RecurringRun, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2RecurringRun, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -642,14 +642,14 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/recurringruns/{recurring_run_id}', 'GET',
+            '/apis/v2/recurringruns/{recurring_run_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1RecurringRun',  # noqa: E501
+            response_type='V2RecurringRun',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -690,7 +690,7 @@ class RecurringRunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListRecurringRunsResponse
+        :rtype: V2ListRecurringRunsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.recurring_run_service_list_recurring_runs_with_http_info(**kwargs)  # noqa: E501
@@ -732,7 +732,7 @@ class RecurringRunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListRecurringRunsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListRecurringRunsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -795,14 +795,14 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/recurringruns', 'GET',
+            '/apis/v2/recurringruns', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListRecurringRunsResponse',  # noqa: E501
+            response_type='V2ListRecurringRunsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

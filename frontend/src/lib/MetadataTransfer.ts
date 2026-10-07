@@ -60,7 +60,7 @@ export async function exportMetadata(
 ): Promise<Blob> {
   const query = new URLSearchParams({ namespace });
   const response = await checkedResponse(
-    await fetch(`apis/v2beta1/transfer/export?${query}`, {
+    await fetch(`apis/v2/transfer/export?${query}`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@ export async function importMetadata(
     name_prefix: namePrefix,
   });
   const response = await checkedResponse(
-    await fetch(`apis/v2beta1/transfer/import?${query}`, {
+    await fetch(`apis/v2/transfer/import?${query}`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },

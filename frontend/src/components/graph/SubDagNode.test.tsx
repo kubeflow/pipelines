@@ -18,7 +18,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import SubDagNode from './SubDagNode';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
 describe('SubDagNode', () => {

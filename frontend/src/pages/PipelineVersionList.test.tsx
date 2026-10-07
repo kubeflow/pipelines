@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { range } from 'lodash';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2PipelineVersion } from 'src/apisv2/pipeline';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import TestUtils from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -94,7 +94,7 @@ describe('PipelineVersionList', () => {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           display_name: 'pipelineversion1',
           name: 'pipelineversion1',
-        } as V2beta1PipelineVersion,
+        } as V2PipelineVersion,
       ],
     });
     await renderPipelineVersionList();
@@ -109,7 +109,7 @@ describe('PipelineVersionList', () => {
           display_name: 'pipelineversion1',
           name: 'pipelineversion1',
           description: 'pipelineversion1 description',
-        } as V2beta1PipelineVersion,
+        } as V2PipelineVersion,
       ],
     });
     await renderPipelineVersionList();
@@ -123,7 +123,7 @@ describe('PipelineVersionList', () => {
         {
           display_name: 'pipelineversion1',
           name: 'pipelineversion1',
-        } as V2beta1PipelineVersion,
+        } as V2PipelineVersion,
       ],
     });
     await renderPipelineVersionList();
@@ -138,7 +138,7 @@ describe('PipelineVersionList', () => {
           error: 'oops! could not load pipeline',
           display_name: 'pipeline1',
           name: 'pipeline1',
-        } as V2beta1PipelineVersion,
+        } as V2PipelineVersion,
       ],
     });
     await renderPipelineVersionList();

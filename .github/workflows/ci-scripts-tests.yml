@@ -59,10 +59,11 @@ on:
       # Inputs read by the v2 deployment contract and profile-controller tests.
       - 'manifests/kustomize/**'
       - '.github/resources/manifests/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/Dockerfile.visualization'
       - 'backend/src/apiserver/visualization/**'
-      - 'frontend/src/apisv2beta1/visualization/**'
+      - 'frontend/src/apisv2/visualization/**'
       - 'docs/_static/kfp_api_single_file.swagger.json'
       - 'Makefile'
       - 'backend/src/v2/Makefile'

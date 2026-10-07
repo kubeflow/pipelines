@@ -15,11 +15,11 @@
  */
 
 import { isFunction } from 'lodash';
-import { V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRunStatus, V2Trigger } from 'src/apisv2/recurringrun';
 import { Column, Row } from 'src/components/CustomTable';
 import { ListRequest } from './Apis';
 import { hasFinishedV2 } from './StatusUtils';
-import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2Run } from 'src/apisv2/run';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -76,16 +76,16 @@ export async function errorToMessage(error: any): Promise<string> {
 }
 
 export function enabledDisplayStringV2(
-  trigger: V2beta1Trigger | undefined,
-  status: V2beta1RecurringRunStatus,
+  trigger: V2Trigger | undefined,
+  status: V2RecurringRunStatus,
 ): string {
   if (trigger) {
     switch (status) {
-      case V2beta1RecurringRunStatus.ENABLED:
+      case V2RecurringRunStatus.ENABLED:
         return 'Yes';
-      case V2beta1RecurringRunStatus.DISABLED:
+      case V2RecurringRunStatus.DISABLED:
         return 'No';
-      case V2beta1RecurringRunStatus.STATUS_UNSPECIFIED:
+      case V2RecurringRunStatus.STATUS_UNSPECIFIED:
         return 'Unknown';
       default:
         return '-';
@@ -110,13 +110,13 @@ function getDuration(start: Date, end: Date): string {
   return `${sign}${hours}:${minutes}:${seconds}`;
 }
 
-export function getRunDurationV2(run?: V2beta1Run): string {
+export function getRunDurationV2(run?: V2Run): string {
   return !run || !run.created_at || !run.finished_at || !hasFinishedV2(run.state)
     ? '-'
     : getDuration(new Date(run.created_at), new Date(run.finished_at));
 }
 
-export function getRunDurationFromRunV2(run?: V2beta1Run): string {
+export function getRunDurationFromRunV2(run?: V2Run): string {
   return run && run.created_at && run.finished_at
     ? getDuration(new Date(run.created_at), new Date(run.finished_at))
     : '-';

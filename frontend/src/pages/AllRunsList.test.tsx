@@ -19,7 +19,7 @@ import { act, render } from '@testing-library/react';
 import { vi } from 'vitest';
 import { RoutePage } from 'src/components/Router';
 import { ButtonKeys } from 'src/lib/Buttons';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2RunStorageState } from 'src/apisv2/run';
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -168,6 +168,6 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     renderAllRunsList();
-    expect(lastRunListProps.storageState).toBe(V2beta1RunStorageState.AVAILABLE.toString());
+    expect(lastRunListProps.storageState).toBe(V2RunStorageState.AVAILABLE.toString());
   });
 });

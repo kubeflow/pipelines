@@ -280,7 +280,7 @@ server locally.
 
 Once the cluster is provisioned and the API server is running, you can access:
 
-- **API server**: [http://localhost:8888](http://localhost:8888) (e.g. [http://localhost:8888/apis/v2beta1/pipelines](http://localhost:8888/apis/v2beta1/pipelines))
+- **API server**: [http://localhost:8888](http://localhost:8888) (e.g. [http://localhost:8888/apis/v2/pipelines](http://localhost:8888/apis/v2/pipelines))
 - **KFP web interface**: [http://localhost:3000](http://localhost:3000)
 
 **Connect to the database directly:**

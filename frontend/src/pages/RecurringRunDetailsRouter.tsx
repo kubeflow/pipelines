@@ -17,7 +17,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
-import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRun } from 'src/apisv2/recurringrun';
 import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -35,7 +35,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     isLoading: recurringRunIsLoading,
     error: recurringRunError,
     data: recurringRun,
-  } = useQuery<V2beta1RecurringRun, Error>({
+  } = useQuery<V2RecurringRun, Error>({
     queryKey: queryKeys.v2RecurringRunDetail(recurringRunId),
     queryFn: () => {
       if (!recurringRunId) {

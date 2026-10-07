@@ -19,9 +19,9 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_client"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_client/healthz_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/healthz_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/healthz_client/healthz_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/healthz_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/client-go/tools/clientcmd"
@@ -49,7 +49,7 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *t
 	}, nil
 }
 
-func (c *HealthzClient) GetHealthz() (*model.V2beta1GetHealthzResponse, error) {
+func (c *HealthzClient) GetHealthz() (*model.V2GetHealthzResponse, error) {
 	parameters := params.NewHealthzServiceGetHealthzParamsWithTimeout(api_server.APIServerDefaultTimeout)
 	response, err := c.apiClient.HealthzService.HealthzServiceGetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {

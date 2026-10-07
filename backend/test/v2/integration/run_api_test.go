@@ -25,10 +25,10 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"sigs.k8s.io/yaml"
 
-	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	experiment_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -150,11 +150,11 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        helloWorldPipelineVersion.PipelineID,
 			PipelineVersionID: helloWorldPipelineVersion.PipelineVersionID,
 		},
@@ -182,11 +182,11 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	err = yaml.Unmarshal(argParamsBytes, pipelineSpec)
 	assert.Nil(t, err)
 
-	createRunRequest = &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+	createRunRequest = &run_params.RunServiceCreateRunParams{Run: &run_model.V2Run{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
 		PipelineSpec: pipelineSpec,
-		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+		RuntimeConfig: &run_model.V2RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"param1": "goodbye",
 				"param2": "world",
@@ -309,7 +309,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].DisplayName)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, *runs[0].StorageState)
+	assert.Equal(t, run_model.V2RunStorageStateARCHIVED, *runs[0].StorageState)
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
 	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(10*time.Second))
@@ -324,11 +324,11 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2Run{
 		DisplayName:  "long running",
 		Description:  "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ExperimentID: helloWorldExperiment.ExperimentID,
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        longRunningPipelineVersion.PipelineID,
 			PipelineVersionID: longRunningPipelineVersion.PipelineVersionID,
 		},
@@ -348,7 +348,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	s.checkTerminatedRunDetail(t, longRunningRun, helloWorldExperiment.ExperimentID, longRunningPipelineVersion.PipelineID, longRunningPipelineVersion.PipelineVersionID)
 }
 
-func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
+func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2Run, experimentID string, pipelineID string, pipelineVersionID string) {
 
 	// A terminate request moves the run from CANCELING to CANCELED as the
 	// workflow controller reacts. Depending on timing before this Get, either is
@@ -358,15 +358,15 @@ func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 	// test-owned fields (like the already-copied CreatedAt/StateHistory).
 	if assert.NotNil(t, run.State, "terminated run should have a State") {
 		assert.Contains(t,
-			[]run_model.V2beta1RuntimeState{
-				run_model.V2beta1RuntimeStateCANCELING,
-				run_model.V2beta1RuntimeStateCANCELED,
+			[]run_model.V2RuntimeState{
+				run_model.V2RuntimeStateCANCELING,
+				run_model.V2RuntimeStateCANCELED,
 			},
 			*run.State,
 			"terminated run should be CANCELING or CANCELED")
 	}
 
-	expectedRun := &run_model.V2beta1Run{
+	expectedRun := &run_model.V2Run{
 		RunID:          run.RunID,
 		DisplayName:    "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
@@ -379,7 +379,7 @@ func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 		PluginsInput:   run.PluginsInput,
 		PluginsOutput:  run.PluginsOutput,
 		ExperimentID:   experimentID,
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
 		},
@@ -391,9 +391,9 @@ func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 	assert.Equal(t, expectedRun, run)
 }
 
-func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
+func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.V2Run, experimentID string, pipelineID string, pipelineVersionID string) {
 
-	expectedRun := &run_model.V2beta1Run{
+	expectedRun := &run_model.V2Run{
 		RunID:          run.RunID,
 		DisplayName:    "hello world",
 		Description:    "this is hello world",
@@ -405,7 +405,7 @@ func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 		PluginsInput:   run.PluginsInput,
 		PluginsOutput:  run.PluginsOutput,
 		ExperimentID:   experimentID,
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
 		},
@@ -417,7 +417,7 @@ func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 	assert.Equal(t, expectedRun, run)
 }
 
-func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string) {
+func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2Run, experimentID string) {
 
 	// Compare the pipeline spec first.
 	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
@@ -431,7 +431,7 @@ func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedBytes), string(actualBytes))
 
-	expectedRun := &run_model.V2beta1Run{
+	expectedRun := &run_model.V2Run{
 		RunID:          run.RunID,
 		DisplayName:    "argument parameter",
 		Description:    "this is argument parameter",
@@ -442,7 +442,7 @@ func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 		PipelineSpec:   run.PipelineSpec,
 		PluginsInput:   run.PluginsInput,
 		PluginsOutput:  run.PluginsOutput,
-		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+		RuntimeConfig: &run_model.V2RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"param1": "goodbye",
 				"param2": "world",

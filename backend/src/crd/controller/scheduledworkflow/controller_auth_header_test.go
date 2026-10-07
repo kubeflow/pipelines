@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	util "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"

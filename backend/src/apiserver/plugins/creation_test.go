@@ -18,14 +18,14 @@ import (
 	"context"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func creationPluginOutput(parentID string) *apiv2beta1.PluginOutput {
-	return &apiv2beta1.PluginOutput{Entries: map[string]*apiv2beta1.MetadataValue{
+func creationPluginOutput(parentID string) *apiv2.PluginOutput {
+	return &apiv2.PluginOutput{Entries: map[string]*apiv2.MetadataValue{
 		EntryRootRunID: {Value: structpb.NewStringValue(parentID)},
 	}}
 }
@@ -55,7 +55,7 @@ type discardedCreationHandler struct {
 func (h *discardedCreationHandler) OnRunEnd(_ context.Context, run *PersistedRun, _ interface{}) (bool, error) {
 	h.ended = append(h.ended, run)
 	if h.endBool {
-		run.PluginsOutput[h.name].State = apiv2beta1.PluginState_PLUGIN_FAILED
+		run.PluginsOutput[h.name].State = apiv2.PluginState_PLUGIN_FAILED
 	}
 	return h.endBool, h.endErr
 }

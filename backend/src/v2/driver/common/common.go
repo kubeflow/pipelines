@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -37,11 +37,11 @@ type Options struct {
 	// required, pipeline context name
 	PipelineName string
 	// required, KFP run ID
-	Run *apiv2beta1.Run
+	Run *apiv2.Run
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
 	// required
-	ParentTask *apiv2beta1.PipelineTask
+	ParentTask *apiv2.PipelineTask
 	// required
 	ScopePath util.ScopePath
 
@@ -125,7 +125,7 @@ func IsLoopArgument(name string) bool {
 	return strings.HasSuffix(nameWithoutPrefix, "loop-item") || strings.HasPrefix(nameWithoutPrefix, "loop-item")
 }
 
-func IsRuntimeIterationTask(task *apiv2beta1.PipelineTask) bool {
+func IsRuntimeIterationTask(task *apiv2.PipelineTask) bool {
 	return task != nil && task.TypeAttributes != nil && task.TypeAttributes.IterationIndex != nil
 }
 

@@ -24,8 +24,8 @@
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import { vi } from 'vitest';
-import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Experiment, V2ExperimentStorageState } from 'src/apisv2/experiment';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { PageProps } from 'src/pages/Page';
 
@@ -39,14 +39,14 @@ export const ORIGINAL_TEST_PIPELINE_NAME = 'test pipeline';
 export const ORIGINAL_TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 export const ORIGINAL_TEST_PIPELINE_VERSION_NAME = 'test pipeline version';
 
-export const ORIGINAL_TEST_PIPELINE: V2beta1Pipeline = {
+export const ORIGINAL_TEST_PIPELINE: V2Pipeline = {
   created_at: new Date(2018, 8, 5, 4, 3, 2),
   description: '',
   display_name: ORIGINAL_TEST_PIPELINE_NAME,
   pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
 };
 
-export const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
+export const ORIGINAL_TEST_PIPELINE_VERSION: V2PipelineVersion = {
   description: '',
   display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
   pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
@@ -54,11 +54,11 @@ export const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   pipeline_spec: JsYaml.load(v2XGYamlTemplateString) as object,
 };
 
-export const NEW_EXPERIMENT: V2beta1Experiment = {
+export const NEW_EXPERIMENT: V2Experiment = {
   created_at: new Date('2022-07-26T17:44:28Z'),
   experiment_id: 'new-experiment-id',
   display_name: 'new-experiment',
-  storage_state: V2beta1ExperimentStorageState.AVAILABLE,
+  storage_state: V2ExperimentStorageState.AVAILABLE,
 };
 
 export function generatePropsNoPipelineDef(experimentId: string | null): PageProps {

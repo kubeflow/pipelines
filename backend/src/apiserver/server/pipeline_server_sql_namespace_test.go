@@ -17,7 +17,7 @@ package server
 import (
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -83,7 +83,7 @@ func TestGetPipelineByName_SQLNamespaceIsolation(t *testing.T) {
 			var gotID string
 			var err error
 			pipeline, getErr := createPipelineServer(resourceManager, nil).GetPipelineByName(userContext(),
-				&apiv2beta1.GetPipelineByNameRequest{Name: "same-name", Namespace: tc.namespace})
+				&apiv2.GetPipelineByNameRequest{Name: "same-name", Namespace: tc.namespace})
 			gotID, err = pipeline.GetPipelineId(), getErr
 			if tc.wantCode != codes.OK {
 				require.Error(t, err)

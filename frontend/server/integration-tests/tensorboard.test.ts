@@ -16,6 +16,7 @@ import { vi, describe, it, expect, afterEach, beforeEach, SpyInstance } from 'vi
 import express from 'express';
 import * as fs from 'fs';
 import { Server } from 'http';
+import { once } from 'events';
 import * as path from 'path';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
@@ -101,6 +102,13 @@ describe('/apps/tensorboard', () => {
   let k8sDeleteCustomObjectSpy: SpyInstance;
   let k8sCreateCustomObjectSpy: SpyInstance;
   let kfpApiServer: Server;
+
+  async function getListeningPort(): Promise<number> {
+    if (!kfpApiServer.listening) await once(kfpApiServer, 'listening');
+    const address = kfpApiServer.address();
+    if (!address || typeof address === 'string') throw new Error('Expected upstream TCP address');
+    return address.port;
+  }
 
   function newGetTensorboardResponse({
     name = 'viewer-example',
@@ -212,7 +220,7 @@ describe('/apps/tensorboard', () => {
       const receivedQueries: unknown[] = [];
       const receivedIdentities: unknown[] = [];
       kfpApiServer = express()
-        .get('/apis/v2beta1/auth', (req, res) => {
+        .get('/apis/v2/auth', (req, res) => {
           receivedQueries.push(req.query);
           receivedIdentities.push(req.headers['x-kubeflow-userid']);
           // A reader may get viewers, but cannot create or delete them.
@@ -223,12 +231,13 @@ describe('/apps/tensorboard', () => {
             res.status(403).json({ error: 'Permission denied' });
           }
         })
-        .listen(3001);
+        .listen(0);
+      const port = await getListeningPort();
       app = new UIServer(
         loadConfigs(argv, {
           ENABLE_AUTHZ: 'true',
           KUBEFLOW_USERID_HEADER: 'x-kubeflow-userid',
-          ML_PIPELINE_SERVICE_PORT: '3001',
+          ML_PIPELINE_SERVICE_PORT: `${port}`,
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),
       );
@@ -284,19 +293,19 @@ describe('/apps/tensorboard', () => {
         .expect(200);
     });
 
-    function setupMockKfpApiService({ port = 3001 }: { port?: number } = {}) {
+    async function setupMockKfpApiService() {
       const receivedHeaders: any[] = [];
       kfpApiServer = express()
-        .get('/apis/v2beta1/auth', (req, res) => {
+        .get('/apis/v2/auth', (req, res) => {
           receivedHeaders.push(req.headers);
           res.status(200).send('{}'); // Authorized
         })
-        .listen(port);
-      return { receivedHeaders, host: 'localhost', port };
+        .listen(0);
+      return { receivedHeaders, host: 'localhost', port: await getListeningPort() };
     }
 
     it('authorizes user requests from KFP auth api', async () => {
-      const { receivedHeaders, host, port } = setupMockKfpApiService();
+      const { receivedHeaders, host, port } = await setupMockKfpApiService();
       app = new UIServer(
         loadConfigs(argv, {
           ENABLE_AUTHZ: 'true',
@@ -312,13 +321,13 @@ describe('/apps/tensorboard', () => {
       expect(receivedHeaders).toHaveLength(1);
       expect(receivedHeaders[0]).toMatchObject({
         accept: '*/*',
-        host: 'localhost:3001',
+        host: `localhost:${port}`,
         'x-goog-authenticated-user-email': 'accounts.google.com:user@google.com',
       });
     });
 
     it('uses configured KUBEFLOW_USERID_HEADER for user identity', async () => {
-      const { receivedHeaders, host, port } = setupMockKfpApiService();
+      const { receivedHeaders, host, port } = await setupMockKfpApiService();
       app = new UIServer(
         loadConfigs(argv, {
           ENABLE_AUTHZ: 'true',
@@ -340,9 +349,8 @@ describe('/apps/tensorboard', () => {
       const errorSpy = vi.spyOn(console, 'error');
       errorSpy.mockImplementation(() => {});
 
-      const apiServerPort = 3001;
       kfpApiServer = express()
-        .get('/apis/v2beta1/auth', (_, res) => {
+        .get('/apis/v2/auth', (_, res) => {
           res.status(400).send(
             JSON.stringify({
               error: 'User xxx is not unauthorized to list viewers',
@@ -350,7 +358,8 @@ describe('/apps/tensorboard', () => {
             }),
           );
         })
-        .listen(apiServerPort);
+        .listen(0);
+      const apiServerPort = await getListeningPort();
       app = new UIServer(
         loadConfigs(argv, {
           ENABLE_AUTHZ: 'true',

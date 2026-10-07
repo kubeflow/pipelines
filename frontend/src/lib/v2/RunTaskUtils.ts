@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PipelineTaskTaskType, V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskType, V2PipelineTask, V2Run } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { listAllPages } from './PaginationUtils';
 
 const MAX_PAGE_SIZE = 200;
 
-export function listAllRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
+export function listAllRunTasks(runId: string): Promise<V2PipelineTask[]> {
   return listAllPages(async (pageToken) => {
     const response = await Apis.runServiceApiV2.tasks(
       runId,
@@ -32,7 +32,7 @@ export function listAllRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
   }, 'Task service');
 }
 
-export function getTaskDisplayName(task: V2beta1PipelineTask, fallback = 'Task'): string {
+export function getTaskDisplayName(task: V2PipelineTask, fallback = 'Task'): string {
   // Replace only the launcher's generic label; preserve custom loop display names.
   if (task.type === PipelineTaskTaskType.LOOP && task.display_name === 'Loop' && task.name) {
     return `${task.name} (Loop)`;
@@ -40,6 +40,6 @@ export function getTaskDisplayName(task: V2beta1PipelineTask, fallback = 'Task')
   return task.display_name || task.name || fallback;
 }
 
-export function getRunDisplayName(run: V2beta1Run, fallback = 'Run'): string {
+export function getRunDisplayName(run: V2Run, fallback = 'Run'): string {
   return run.display_name || run.run_id || fallback;
 }

@@ -113,16 +113,16 @@ jobs:
         working-directory: ./backend/src/crd/kubernetes
         run: make generate manifests
 
-      - name: Generate backend proto code v2beta1
+      - name: Generate backend proto code v2
         working-directory: ./backend/api
         env:
-          API_VERSION: v2beta1
+          API_VERSION: v2
         run: make generate
 
-      - name: Generate backend proto code v2beta1
+      - name: Generate backend proto code v2
         working-directory: ./backend/api
         env:
-          API_VERSION: v2beta1
+          API_VERSION: v2
         run: make generate-kfp-server-api-package
 
       - name: Check for Changes

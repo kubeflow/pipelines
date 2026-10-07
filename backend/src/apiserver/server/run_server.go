@@ -21,7 +21,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -95,7 +95,7 @@ type BaseRunServer struct {
 
 type RunServer struct {
 	*BaseRunServer
-	apiv2beta1.UnimplementedRunServiceServer
+	apiv2.UnimplementedRunServiceServer
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerOptions) *RunServer {
@@ -279,8 +279,8 @@ func (s *BaseRunServer) retryRun(ctx context.Context, runId string) error {
 }
 
 // Creates a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRunRequest) (*apiv2beta1.Run, error) {
+// Supports v2 behavior.
+func (s *RunServer) CreateRun(ctx context.Context, request *apiv2.CreateRunRequest) (*apiv2.Run, error) {
 	if s.options.CollectMetrics {
 		createRunRequests.Inc()
 	}
@@ -310,8 +310,8 @@ func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRun
 }
 
 // Fetches a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
+// Supports v2 behavior.
+func (s *RunServer) GetRun(ctx context.Context, request *apiv2.GetRunRequest) (*apiv2.Run, error) {
 	if s.options.CollectMetrics {
 		getRunRequests.Inc()
 	}
@@ -319,7 +319,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 	// Determine if we should hydrate tasks based on view parameter
 	// Default view (or unspecified) means no task hydration, only task count
 	// FULL view means full task hydration
-	hydrateTasks := request.View != nil && *request.View == apiv2beta1.GetRunRequest_FULL
+	hydrateTasks := request.View != nil && *request.View == apiv2.GetRunRequest_FULL
 
 	run, err := s.getRunWithHydration(ctx, request.RunId, hydrateTasks)
 	if err != nil {
@@ -345,8 +345,8 @@ func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, h
 }
 
 // Fetches runs given query parameters.
-// Supports v2beta1 behavior.
-func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
+// Supports v2 behavior.
+func (s *RunServer) ListRuns(ctx context.Context, r *apiv2.ListRunsRequest) (*apiv2.ListRunsResponse, error) {
 	if s.options.CollectMetrics {
 		listRunRequests.Inc()
 	}
@@ -360,23 +360,23 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 	// Determine if we should hydrate tasks based on view parameter
 	// Default view (or unspecified) means no task hydration, only task count
 	// FULL view means full task hydration
-	hydrateTasks := r.View != nil && *r.View == apiv2beta1.ListRunsRequest_FULL
+	hydrateTasks := r.View != nil && *r.View == apiv2.ListRunsRequest_FULL
 
 	runs, runsCount, nextPageToken, err := s.listRunsWithHydration(ctx, r.GetPageToken(), pageSize, r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId(), hydrateTasks)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs")
 	}
-	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
+	return &apiv2.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
 }
 
-func listRunsPageSizeForView(pageSize int, view *apiv2beta1.ListRunsRequest_ViewMode) int {
+func listRunsPageSizeForView(pageSize int, view *apiv2.ListRunsRequest_ViewMode) int {
 	if pageSize == 0 {
 		pageSize = defaultPageSize
 	}
 	if pageSize < 0 {
 		return pageSize
 	}
-	if view == nil || *view != apiv2beta1.ListRunsRequest_FULL {
+	if view == nil || *view != apiv2.ListRunsRequest_FULL {
 		return pageSize
 	}
 
@@ -394,8 +394,8 @@ func listRunsPageSizeForView(pageSize int, view *apiv2beta1.ListRunsRequest_View
 }
 
 // Archives a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveRunRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2.ArchiveRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveRunRequests.Inc()
 	}
@@ -407,8 +407,8 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveR
 }
 
 // Un-archives a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.UnarchiveRunRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2.UnarchiveRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveRunRequests.Inc()
 	}
@@ -420,8 +420,8 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.Unarch
 }
 
 // Deletes a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRunRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2.DeleteRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
 	}
@@ -435,8 +435,8 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 }
 
 // Terminates a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.TerminateRunRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2.TerminateRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
 	}
@@ -448,8 +448,8 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.Termin
 }
 
 // Retries a run.
-// Supports v2beta1 behavior.
-func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *RunServer) RetryRun(ctx context.Context, request *apiv2.RetryRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		retryRunRequests.Inc()
 	}
@@ -463,7 +463,7 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 }
 
 // CreateTask Creates an API Task
-func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (s *RunServer) CreateTask(ctx context.Context, request *apiv2.CreateTaskRequest) (*apiv2.PipelineTask, error) {
 	runID := request.GetRunId()
 	if runID == "" {
 		return nil, util.NewInvalidInputError("Run ID is required")
@@ -503,7 +503,7 @@ func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTa
 
 // UpdateTask updates an existing task with the specified task ID and details provided in the request.
 // It validates input, ensures authorization, and returns the updated task details or an error if the update fails.
-func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2.UpdateTaskRequest) (*apiv2.PipelineTask, error) {
 	runID := request.GetRunId()
 	taskID := request.GetTaskId()
 	task := request.GetTask()
@@ -562,7 +562,7 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTa
 }
 
 // UpdateTasksBulk updates multiple tasks in bulk.
-func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2.UpdateTasksBulkRequest) (*apiv2.UpdateTasksBulkResponse, error) {
 	if request == nil || len(request.GetTasks()) == 0 {
 		return nil, util.NewInvalidInputError("UpdateTasksBulkRequest must contain at least one task")
 	}
@@ -608,8 +608,8 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.Upd
 		}
 	}
 
-	response := &apiv2beta1.UpdateTasksBulkResponse{
-		Tasks: make(map[string]*apiv2beta1.PipelineTask),
+	response := &apiv2.UpdateTasksBulkResponse{
+		Tasks: make(map[string]*apiv2.PipelineTask),
 	}
 
 	for _, taskID := range taskIDs {
@@ -646,7 +646,7 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.Upd
 }
 
 // GetTask retrieves the details of a specific task based on its ID and performs authorization checks.
-func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (s *RunServer) GetTask(ctx context.Context, request *apiv2.GetTaskRequest) (*apiv2.PipelineTask, error) {
 	runID := request.GetRunId()
 	taskID := request.GetTaskId()
 	if runID == "" {
@@ -681,7 +681,7 @@ func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequ
 
 // ListTasks retrieves tasks for a specified run and can optionally narrow the results to a parent task.
 // It validates authorization, processes pagination options, and ensures parent-scoped reads stay within the run.
-func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasksRequest) (*apiv2beta1.ListTasksResponse, error) {
+func (s *RunServer) ListTasks(ctx context.Context, request *apiv2.ListTasksRequest) (*apiv2.ListTasksResponse, error) {
 	runID := request.GetRunId()
 	parentID := request.GetParentId()
 
@@ -725,7 +725,7 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 		return nil, util.Wrap(err, "Failed to get task children")
 	}
 
-	apiTasks := make([]*apiv2beta1.PipelineTask, len(tasks))
+	apiTasks := make([]*apiv2.PipelineTask, len(tasks))
 	for i, task := range tasks {
 		taskChildren := childTasksByParent[task.UUID]
 		taskChildren = filterTaskChildrenByRun(taskChildren, task.RunUUID)
@@ -735,14 +735,14 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 		}
 	}
 
-	return &apiv2beta1.ListTasksResponse{
+	return &apiv2.ListTasksResponse{
 		Tasks:         apiTasks,
 		NextPageToken: nextPageToken,
 		TotalSize:     int32(totalSize),
 	}, nil
 }
 
-func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.FindCachedTaskRequest) (*apiv2beta1.FindCachedTaskResponse, error) {
+func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2.FindCachedTaskRequest) (*apiv2.FindCachedTaskResponse, error) {
 	if request == nil {
 		return nil, util.NewInvalidInputError("FindCachedTaskRequest is required")
 	}
@@ -799,14 +799,14 @@ func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.Find
 		return nil, util.Wrap(err, "Failed to find cached task")
 	}
 	if task == nil {
-		return &apiv2beta1.FindCachedTaskResponse{}, nil
+		return &apiv2.FindCachedTaskResponse{}, nil
 	}
 
 	apiTask, err := toAPITask(task, nil)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert cached task to API")
 	}
-	return &apiv2beta1.FindCachedTaskResponse{Task: apiTask}, nil
+	return &apiv2.FindCachedTaskResponse{Task: apiTask}, nil
 }
 
 func (s *RunServer) validateParentTaskOwnership(parentTaskID *string, runID string) error {

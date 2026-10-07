@@ -176,7 +176,7 @@ func TestReadRunLog_StreamsBeforePodExit(t *testing.T) {
 				logs := &streamArchive{LogArchiveInterface: archive.NewLogArchive("/logs", "main.log")}
 				manager := resource.NewResourceManager(&streamClientManager{ClientManagerInterface: clients, logs: logs}, &resource.ResourceManagerOptions{})
 				router := mux.NewRouter()
-				router.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", NewRunLogServer(manager).ReadRunLog)
+				router.HandleFunc("/apis/v2/runs/{run_id}/nodes/{node_id}/log", NewRunLogServer(manager).ReadRunLog)
 				handlerDone := make(chan []int, 1)
 				apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					tracked := &statusTrackingResponse{ResponseWriter: w}
@@ -192,7 +192,7 @@ func TestReadRunLog_StreamsBeforePodExit(t *testing.T) {
 				defer apiServer.Close()
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiServer.URL+"/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log?follow=true", nil)
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiServer.URL+"/apis/v2/runs/"+run.UUID+"/nodes/node-1/log?follow=true", nil)
 				require.NoError(t, err)
 				response, err := apiServer.Client().Do(req)
 				require.NoError(t, err, "headers and a short line must arrive while the pod is still running")

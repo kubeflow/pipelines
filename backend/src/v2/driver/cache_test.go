@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -250,11 +250,11 @@ func TestGetFingerPrintsAndIDUsesFindCachedTask(t *testing.T) {
 	execution := &Execution{
 		ExecutorInput: &pipelinespec.ExecutorInput{},
 	}
-	cachedTask := &apiv2beta1.PipelineTask{
+	cachedTask := &apiv2.PipelineTask{
 		TaskId:           "cached-task-id",
 		RunId:            "cached-run-id",
 		CacheFingerprint: "existing-cache-fingerprint",
-		State:            apiv2beta1.PipelineTask_SUCCEEDED,
+		State:            apiv2.PipelineTask_SUCCEEDED,
 	}
 	opts := &common.Options{
 		Component: &pipelinespec.ComponentSpec{},
@@ -270,7 +270,7 @@ func TestGetFingerPrintsAndIDUsesFindCachedTask(t *testing.T) {
 		Namespace: "default",
 	}
 	api := &fakeCacheLookupAPI{
-		findCachedTaskResponse: &apiv2beta1.FindCachedTaskResponse{
+		findCachedTaskResponse: &apiv2.FindCachedTaskResponse{
 			Task: cachedTask,
 		},
 	}
@@ -287,20 +287,20 @@ func TestGetFingerPrintsAndIDUsesFindCachedTask(t *testing.T) {
 
 func TestCloneCachedOutputsForTaskRestampsProducers(t *testing.T) {
 	iterationIndex := 3
-	outputs := &apiv2beta1.PipelineTask_InputOutputs{
-		Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	outputs := &apiv2.PipelineTask_InputOutputs{
+		Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 			{
 				ParameterKey: "result",
-				Producer: &apiv2beta1.IOProducer{
+				Producer: &apiv2.IOProducer{
 					TaskName:  "cached-task",
 					Iteration: proto.Int64(0),
 				},
 			},
 		},
-		Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+		Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{
 			{
 				ArtifactKey: "model",
-				Producer: &apiv2beta1.IOProducer{
+				Producer: &apiv2.IOProducer{
 					TaskName:  "cached-task",
 					Iteration: proto.Int64(0),
 				},
@@ -322,106 +322,106 @@ func TestCloneCachedOutputsForTaskRestampsProducers(t *testing.T) {
 }
 
 func TestCloneCachedOutputsForTaskNormalizesOutputTypesToCurrentContext(t *testing.T) {
-	loopOutputs := &apiv2beta1.PipelineTask_InputOutputs{
-		Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	loopOutputs := &apiv2.PipelineTask_InputOutputs{
+		Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
 			ParameterKey: "result",
-			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-			Producer:     &apiv2beta1.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
+			Type:         apiv2.IOType_ITERATOR_OUTPUT,
+			Producer:     &apiv2.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
 		}},
-		Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+		Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{{
 			ArtifactKey: "model",
-			Type:        apiv2beta1.IOType_ITERATOR_OUTPUT,
-			Producer:    &apiv2beta1.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
+			Type:        apiv2.IOType_ITERATOR_OUTPUT,
+			Producer:    &apiv2.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
 		}},
 	}
 
 	nonLoopOutputs, err := cloneCachedOutputsForTask(loopOutputs, "current-task", nil)
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.IOType_OUTPUT, nonLoopOutputs.GetParameters()[0].GetType())
-	assert.Equal(t, apiv2beta1.IOType_OUTPUT, nonLoopOutputs.GetArtifacts()[0].GetType())
+	assert.Equal(t, apiv2.IOType_OUTPUT, nonLoopOutputs.GetParameters()[0].GetType())
+	assert.Equal(t, apiv2.IOType_OUTPUT, nonLoopOutputs.GetArtifacts()[0].GetType())
 
 	iterationIndex := 2
 	loopOutputsRestamped, err := cloneCachedOutputsForTask(loopOutputs, "current-task", &iterationIndex)
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetParameters()[0].GetType())
-	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetArtifacts()[0].GetType())
+	assert.Equal(t, apiv2.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetParameters()[0].GetType())
+	assert.Equal(t, apiv2.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetArtifacts()[0].GetType())
 	assert.Equal(t, int64(iterationIndex), *loopOutputsRestamped.GetParameters()[0].GetProducer().Iteration)
 }
 
 type fakeCacheLookupAPI struct {
-	findCachedTaskRequest  *apiv2beta1.FindCachedTaskRequest
-	findCachedTaskResponse *apiv2beta1.FindCachedTaskResponse
+	findCachedTaskRequest  *apiv2.FindCachedTaskRequest
+	findCachedTaskResponse *apiv2.FindCachedTaskResponse
 }
 
-func (f *fakeCacheLookupAPI) GetRun(context.Context, *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
+func (f *fakeCacheLookupAPI) GetRun(context.Context, *apiv2.GetRunRequest) (*apiv2.Run, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) ListRuns(context.Context, *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
-	return &apiv2beta1.ListRunsResponse{}, nil
+func (f *fakeCacheLookupAPI) ListRuns(context.Context, *apiv2.ListRunsRequest) (*apiv2.ListRunsResponse, error) {
+	return &apiv2.ListRunsResponse{}, nil
 }
 
-func (f *fakeCacheLookupAPI) CreateTask(context.Context, *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (f *fakeCacheLookupAPI) CreateTask(context.Context, *apiv2.CreateTaskRequest) (*apiv2.PipelineTask, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) UpdateTask(context.Context, *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (f *fakeCacheLookupAPI) UpdateTask(context.Context, *apiv2.UpdateTaskRequest) (*apiv2.PipelineTask, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) UpdateTasksBulk(context.Context, *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+func (f *fakeCacheLookupAPI) UpdateTasksBulk(context.Context, *apiv2.UpdateTasksBulkRequest) (*apiv2.UpdateTasksBulkResponse, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) GetTask(context.Context, *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+func (f *fakeCacheLookupAPI) GetTask(context.Context, *apiv2.GetTaskRequest) (*apiv2.PipelineTask, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) ListTasks(context.Context, *apiv2beta1.ListTasksRequest) (*apiv2beta1.ListTasksResponse, error) {
-	return &apiv2beta1.ListTasksResponse{}, nil
+func (f *fakeCacheLookupAPI) ListTasks(context.Context, *apiv2.ListTasksRequest) (*apiv2.ListTasksResponse, error) {
+	return &apiv2.ListTasksResponse{}, nil
 }
 
-func (f *fakeCacheLookupAPI) FindCachedTask(_ context.Context, req *apiv2beta1.FindCachedTaskRequest) (*apiv2beta1.FindCachedTaskResponse, error) {
-	f.findCachedTaskRequest = proto.Clone(req).(*apiv2beta1.FindCachedTaskRequest)
+func (f *fakeCacheLookupAPI) FindCachedTask(_ context.Context, req *apiv2.FindCachedTaskRequest) (*apiv2.FindCachedTaskResponse, error) {
+	f.findCachedTaskRequest = proto.Clone(req).(*apiv2.FindCachedTaskRequest)
 	if f.findCachedTaskResponse == nil {
-		return &apiv2beta1.FindCachedTaskResponse{}, nil
+		return &apiv2.FindCachedTaskResponse{}, nil
 	}
-	return proto.Clone(f.findCachedTaskResponse).(*apiv2beta1.FindCachedTaskResponse), nil
+	return proto.Clone(f.findCachedTaskResponse).(*apiv2.FindCachedTaskResponse), nil
 }
 
-func (f *fakeCacheLookupAPI) CreateArtifact(context.Context, *apiv2beta1.CreateArtifactRequest) (*apiv2beta1.Artifact, error) {
+func (f *fakeCacheLookupAPI) CreateArtifact(context.Context, *apiv2.CreateArtifactRequest) (*apiv2.Artifact, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) CreateArtifactsBulk(context.Context, *apiv2beta1.CreateArtifactsBulkRequest) (*apiv2beta1.CreateArtifactsBulkResponse, error) {
+func (f *fakeCacheLookupAPI) CreateArtifactsBulk(context.Context, *apiv2.CreateArtifactsBulkRequest) (*apiv2.CreateArtifactsBulkResponse, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) ListArtifactsByURI(context.Context, string, string) ([]*apiv2beta1.Artifact, error) {
+func (f *fakeCacheLookupAPI) ListArtifactsByURI(context.Context, string, string) ([]*apiv2.Artifact, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) ListArtifactTasks(context.Context, *apiv2beta1.ListArtifactTasksRequest) (*apiv2beta1.ListArtifactTasksResponse, error) {
+func (f *fakeCacheLookupAPI) ListArtifactTasks(context.Context, *apiv2.ListArtifactTasksRequest) (*apiv2.ListArtifactTasksResponse, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) CreateArtifactTask(context.Context, *apiv2beta1.CreateArtifactTaskRequest) (*apiv2beta1.ArtifactTask, error) {
+func (f *fakeCacheLookupAPI) CreateArtifactTask(context.Context, *apiv2.CreateArtifactTaskRequest) (*apiv2.ArtifactTask, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) CreateArtifactTasks(context.Context, *apiv2beta1.CreateArtifactTasksBulkRequest) (*apiv2beta1.CreateArtifactTasksBulkResponse, error) {
+func (f *fakeCacheLookupAPI) CreateArtifactTasks(context.Context, *apiv2.CreateArtifactTasksBulkRequest) (*apiv2.CreateArtifactTasksBulkResponse, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) GetPipelineVersion(context.Context, *apiv2beta1.GetPipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+func (f *fakeCacheLookupAPI) GetPipelineVersion(context.Context, *apiv2.GetPipelineVersionRequest) (*apiv2.PipelineVersion, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) FetchPipelineSpecFromRun(context.Context, *apiv2beta1.Run) (*structpb.Struct, error) {
+func (f *fakeCacheLookupAPI) FetchPipelineSpecFromRun(context.Context, *apiv2.Run) (*structpb.Struct, error) {
 	return nil, nil
 }
 
-func (f *fakeCacheLookupAPI) UpdateStatuses(context.Context, *apiv2beta1.Run, *structpb.Struct, *apiv2beta1.PipelineTask) error {
+func (f *fakeCacheLookupAPI) UpdateStatuses(context.Context, *apiv2.Run, *structpb.Struct, *apiv2.PipelineTask) error {
 	return nil
 }
 

@@ -147,7 +147,7 @@ class ReportServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/scheduledworkflows', 'POST',
+            '/apis/v2/scheduledworkflows', 'POST',
             path_params,
             query_params,
             header_params,
@@ -273,7 +273,7 @@ class ReportServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/workflows', 'POST',
+            '/apis/v2/workflows', 'POST',
             path_params,
             query_params,
             header_params,

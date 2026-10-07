@@ -14,13 +14,13 @@
 
 package util
 
-import apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+import apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 
 // OutputIOTypeForIteration returns ITERATOR_OUTPUT when an iteration index is
 // present so hydration can group loop outputs by iteration; otherwise OUTPUT.
-func OutputIOTypeForIteration(iterationIndex *int64) apiv2beta1.IOType {
+func OutputIOTypeForIteration(iterationIndex *int64) apiv2.IOType {
 	if iterationIndex != nil {
-		return apiv2beta1.IOType_ITERATOR_OUTPUT
+		return apiv2.IOType_ITERATOR_OUTPUT
 	}
-	return apiv2beta1.IOType_OUTPUT
+	return apiv2.IOType_OUTPUT
 }

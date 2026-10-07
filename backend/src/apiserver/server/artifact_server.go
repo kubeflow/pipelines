@@ -17,7 +17,7 @@ package server
 import (
 	"context"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -29,7 +29,7 @@ import (
 
 type ArtifactServer struct {
 	resourceManager *resource.ResourceManager
-	apiv2beta1.UnimplementedArtifactServiceServer
+	apiv2.UnimplementedArtifactServiceServer
 }
 
 // NewArtifactServer creates a new ArtifactServer.
@@ -38,7 +38,7 @@ func NewArtifactServer(resourceManager *resource.ResourceManager) *ArtifactServe
 }
 
 // CreateArtifact creates a new artifact.
-func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1.CreateArtifactRequest) (*apiv2beta1.Artifact, error) {
+func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2.CreateArtifactRequest) (*apiv2.Artifact, error) {
 	err := s.validateCreateArtifactRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact due to validation error")
@@ -77,7 +77,7 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 	modelArtifact.Namespace = namespace
 
 	// Build the IOProducer with task name
-	producer := &apiv2beta1.IOProducer{
+	producer := &apiv2.IOProducer{
 		TaskName: task.Name,
 	}
 	outputType := util.OutputIOTypeForIteration(request.IterationIndex)
@@ -87,7 +87,7 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 		producer.Iteration = request.IterationIndex
 	}
 
-	artifactTask := &apiv2beta1.ArtifactTask{
+	artifactTask := &apiv2.ArtifactTask{
 		TaskId: task.UUID,
 		RunId:  task.RunUUID,
 		// An artifact at creation is an output of the associated task.
@@ -115,7 +115,7 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 }
 
 // CreateArtifactsBulk creates multiple artifacts in bulk.
-func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2beta1.CreateArtifactsBulkRequest) (*apiv2beta1.CreateArtifactsBulkResponse, error) {
+func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2.CreateArtifactsBulkRequest) (*apiv2.CreateArtifactsBulkResponse, error) {
 	if request == nil || len(request.GetArtifacts()) == 0 {
 		return nil, util.NewInvalidInputError("CreateArtifactsBulkRequest must contain at least one artifact")
 	}
@@ -196,7 +196,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		modelArtifact.Namespace = namespace
 
 		// Build the IOProducer with task name
-		producer := &apiv2beta1.IOProducer{
+		producer := &apiv2.IOProducer{
 			TaskName: task.Name,
 		}
 		outputType := util.OutputIOTypeForIteration(artifactReq.IterationIndex)
@@ -206,7 +206,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 			producer.Iteration = artifactReq.IterationIndex
 		}
 
-		artifactTask := &apiv2beta1.ArtifactTask{
+		artifactTask := &apiv2.ArtifactTask{
 			TaskId: task.UUID,
 			RunId:  task.RunUUID,
 			// An artifact at creation is an output of the associated task.
@@ -228,8 +228,8 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		return nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
 	}
 
-	response := &apiv2beta1.CreateArtifactsBulkResponse{
-		Artifacts: make([]*apiv2beta1.Artifact, 0, len(createdArtifacts)),
+	response := &apiv2.CreateArtifactsBulkResponse{
+		Artifacts: make([]*apiv2.Artifact, 0, len(createdArtifacts)),
 	}
 	for i, artifact := range createdArtifacts {
 		apiArtifact, err := toAPIArtifact(artifact)
@@ -313,7 +313,7 @@ func (s *ArtifactServer) validateArtifactTaskNamespaceOwnership(task *model.Task
 }
 
 // GetArtifact finds a specific artifact by ID.
-func (s *ArtifactServer) GetArtifact(ctx context.Context, request *apiv2beta1.GetArtifactRequest) (*apiv2beta1.Artifact, error) {
+func (s *ArtifactServer) GetArtifact(ctx context.Context, request *apiv2.GetArtifactRequest) (*apiv2.Artifact, error) {
 	artifactID := request.GetArtifactId()
 	if artifactID == "" {
 		return nil, util.NewInvalidInputError("Artifact ID is required")
@@ -337,7 +337,7 @@ func (s *ArtifactServer) GetArtifact(ctx context.Context, request *apiv2beta1.Ge
 }
 
 // ListArtifacts finds all artifacts within the specified namespace.
-func (s *ArtifactServer) ListArtifacts(ctx context.Context, request *apiv2beta1.ListArtifactRequest) (*apiv2beta1.ListArtifactResponse, error) {
+func (s *ArtifactServer) ListArtifacts(ctx context.Context, request *apiv2.ListArtifactRequest) (*apiv2.ListArtifactResponse, error) {
 	// Handle namespace and authorization
 	namespace := s.resourceManager.ReplaceNamespace(request.GetNamespace())
 
@@ -357,7 +357,7 @@ func (s *ArtifactServer) ListArtifacts(ctx context.Context, request *apiv2beta1.
 		if err != nil {
 			return nil, util.Wrap(err, "Get artifacts by URI failed")
 		}
-		return &apiv2beta1.ListArtifactResponse{
+		return &apiv2.ListArtifactResponse{
 			Artifacts: toAPIArtifacts(artifacts),
 			TotalSize: int32(len(artifacts)),
 		}, nil
@@ -368,7 +368,7 @@ func (s *ArtifactServer) ListArtifacts(ctx context.Context, request *apiv2beta1.
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext, err := validateFilterV2Beta1Artifact(namespace)
+	filterContext, err := validateFilterV2Artifact(namespace)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed")
 	}
@@ -378,7 +378,7 @@ func (s *ArtifactServer) ListArtifacts(ctx context.Context, request *apiv2beta1.
 		return nil, util.Wrap(err, "List artifacts failed")
 	}
 
-	return &apiv2beta1.ListArtifactResponse{
+	return &apiv2.ListArtifactResponse{
 		Artifacts:     toAPIArtifacts(artifacts),
 		TotalSize:     int32(totalSize),
 		NextPageToken: nextPageToken,
@@ -391,7 +391,7 @@ func exactURIEqualsFilter(filterSpec string) (string, bool) {
 	if filterSpec == "" {
 		return "", false
 	}
-	filter := &apiv2beta1.Filter{}
+	filter := &apiv2.Filter{}
 	if err := protojson.Unmarshal([]byte(filterSpec), filter); err != nil {
 		return "", false
 	}
@@ -399,7 +399,7 @@ func exactURIEqualsFilter(filterSpec string) (string, bool) {
 		return "", false
 	}
 	predicate := filter.GetPredicates()[0]
-	if predicate.GetKey() != "uri" || predicate.GetOperation() != apiv2beta1.Predicate_EQUALS {
+	if predicate.GetKey() != "uri" || predicate.GetOperation() != apiv2.Predicate_EQUALS {
 		return "", false
 	}
 	uri := predicate.GetStringValue()
@@ -410,7 +410,7 @@ func exactURIEqualsFilter(filterSpec string) (string, bool) {
 }
 
 // CreateArtifactTask creates an artifact-task relationship.
-func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2beta1.CreateArtifactTaskRequest) (*apiv2beta1.ArtifactTask, error) {
+func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2.CreateArtifactTaskRequest) (*apiv2.ArtifactTask, error) {
 	if request == nil || request.GetArtifactTask() == nil {
 		return nil, util.NewInvalidInputError("CreateArtifactTaskRequest and artifact_task are required")
 	}
@@ -424,7 +424,7 @@ func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2b
 	if at.GetRunId() == "" {
 		return nil, util.NewInvalidInputError("artifact_task.run_id is required")
 	}
-	if at.GetType() == apiv2beta1.IOType_UNSPECIFIED {
+	if at.GetType() == apiv2.IOType_UNSPECIFIED {
 		return nil, util.NewInvalidInputError("artifact_task.type is required")
 	}
 	if at.GetProducer() == nil {
@@ -479,7 +479,7 @@ func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2b
 }
 
 // ListArtifactTasks lists artifact-task relationships.
-func (s *ArtifactServer) ListArtifactTasks(ctx context.Context, request *apiv2beta1.ListArtifactTasksRequest) (*apiv2beta1.ListArtifactTasksResponse, error) {
+func (s *ArtifactServer) ListArtifactTasks(ctx context.Context, request *apiv2.ListArtifactTasksRequest) (*apiv2.ListArtifactTasksResponse, error) {
 	opts, err := validatedListOptions(&model.ArtifactTask{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
@@ -509,14 +509,14 @@ func (s *ArtifactServer) ListArtifactTasks(ctx context.Context, request *apiv2be
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	filterContexts, err := validateFilterV2Beta1ArtifactTask(request.TaskIds, request.RunIds, request.ArtifactIds)
+	filterContexts, err := validateFilterV2ArtifactTask(request.TaskIds, request.RunIds, request.ArtifactIds)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed")
 	}
 
 	// Convert IOType from proto to model if provided
 	var ioType *model.IOType
-	if request.Type != apiv2beta1.IOType_UNSPECIFIED {
+	if request.Type != apiv2.IOType_UNSPECIFIED {
 		modelIOType := model.IOType(request.Type)
 		ioType = &modelIOType
 	}
@@ -526,7 +526,7 @@ func (s *ArtifactServer) ListArtifactTasks(ctx context.Context, request *apiv2be
 		return nil, util.Wrap(err, "List artifact tasks failed")
 	}
 
-	return &apiv2beta1.ListArtifactTasksResponse{
+	return &apiv2.ListArtifactTasksResponse{
 		ArtifactTasks: toAPIArtifactTasks(artifactTasks),
 		TotalSize:     int32(totalSize),
 		NextPageToken: nextPageToken,
@@ -534,7 +534,7 @@ func (s *ArtifactServer) ListArtifactTasks(ctx context.Context, request *apiv2be
 }
 
 // CreateArtifactTasksBulk creates multiple artifact-task relationships in bulk.
-func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *apiv2beta1.CreateArtifactTasksBulkRequest) (*apiv2beta1.CreateArtifactTasksBulkResponse, error) {
+func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *apiv2.CreateArtifactTasksBulkRequest) (*apiv2.CreateArtifactTasksBulkResponse, error) {
 	if request == nil || len(request.GetArtifactTasks()) == 0 {
 		return nil, util.NewInvalidInputError("CreateArtifactTasksBulkRequest must contain at least one artifact task")
 	}
@@ -553,7 +553,7 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		if apiAT.GetRunId() == "" {
 			return nil, util.NewInvalidInputError("artifact_task.run_id is required")
 		}
-		if apiAT.GetType() == apiv2beta1.IOType_UNSPECIFIED {
+		if apiAT.GetType() == apiv2.IOType_UNSPECIFIED {
 			return nil, util.NewInvalidInputError("artifact_task.type is required")
 		}
 		if apiAT.GetProducer() == nil {
@@ -620,7 +620,7 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		return nil, util.Wrap(err, "Failed to create artifact-tasks in bulk")
 	}
 
-	return &apiv2beta1.CreateArtifactTasksBulkResponse{
+	return &apiv2.CreateArtifactTasksBulkResponse{
 		ArtifactTasks: toAPIArtifactTasks(createdArtifactTasks),
 	}, nil
 }
@@ -634,7 +634,7 @@ func withRunScopedTokenAudience(ctx context.Context, runID string) context.Conte
 	return auth.WithRequestedRunID(ctx, runID)
 }
 
-func singleRunIDFromCreateArtifactRequests(requests []*apiv2beta1.CreateArtifactRequest) string {
+func singleRunIDFromCreateArtifactRequests(requests []*apiv2.CreateArtifactRequest) string {
 	if len(requests) == 0 {
 		return ""
 	}
@@ -801,7 +801,7 @@ func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskID
 	return nil
 }
 
-func (s *ArtifactServer) validateCreateArtifactRequest(request *apiv2beta1.CreateArtifactRequest) error {
+func (s *ArtifactServer) validateCreateArtifactRequest(request *apiv2.CreateArtifactRequest) error {
 	if request == nil {
 		return util.NewInvalidInputError("CreateArtifactRequest is nil")
 	}
@@ -815,7 +815,7 @@ func (s *ArtifactServer) validateCreateArtifactRequest(request *apiv2beta1.Creat
 	if artifact.GetNamespace() == "" {
 		return util.NewInvalidInputError("Artifact namespace is required")
 	}
-	if request.GetArtifact().GetType() == apiv2beta1.Artifact_TYPE_UNSPECIFIED {
+	if request.GetArtifact().GetType() == apiv2.Artifact_TYPE_UNSPECIFIED {
 		return util.NewInvalidInputError("Artifact type is required")
 	}
 	if request.GetArtifact().GetName() == "" {
@@ -831,12 +831,12 @@ func (s *ArtifactServer) validateCreateArtifactRequest(request *apiv2beta1.Creat
 		return util.NewInvalidInputError("Producer key is required")
 	}
 	// Metrics validation
-	if request.GetArtifact().GetType() == apiv2beta1.Artifact_Metric &&
+	if request.GetArtifact().GetType() == apiv2.Artifact_Metric &&
 		request.GetArtifact().NumberValue == nil {
 		return util.NewInvalidInputError("number_value is required for a Metric artifact")
 	}
-	if (request.GetArtifact().GetType() == apiv2beta1.Artifact_ClassificationMetric ||
-		request.GetArtifact().GetType() == apiv2beta1.Artifact_SlicedClassificationMetric) &&
+	if (request.GetArtifact().GetType() == apiv2.Artifact_ClassificationMetric ||
+		request.GetArtifact().GetType() == apiv2.Artifact_SlicedClassificationMetric) &&
 		request.GetArtifact().GetMetadata() == nil {
 		return util.NewInvalidInputError("No metric or metadata was found for %s artifact", request.GetArtifact().GetType())
 	}

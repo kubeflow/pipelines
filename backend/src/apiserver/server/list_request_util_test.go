@@ -21,7 +21,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -48,30 +48,30 @@ func getFakeModelToken() string {
 	return base64.StdEncoding.EncodeToString(expectedJson)
 }
 
-func TestValidateFilterV2Beta1ArtifactTask_RejectsEmptyIDs(t *testing.T) {
-	_, err := validateFilterV2Beta1ArtifactTask(nil, []string{""}, nil)
+func TestValidateFilterV2ArtifactTask_RejectsEmptyIDs(t *testing.T) {
+	_, err := validateFilterV2ArtifactTask(nil, []string{""}, nil)
 	require.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "run_ids must not contain empty values")
 
-	_, err = validateFilterV2Beta1ArtifactTask([]string{""}, nil, nil)
+	_, err = validateFilterV2ArtifactTask([]string{""}, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "task_ids must not contain empty values")
 
-	_, err = validateFilterV2Beta1ArtifactTask(nil, nil, []string{""})
+	_, err = validateFilterV2ArtifactTask(nil, nil, []string{""})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "artifact_ids must not contain empty values")
 }
 
-func TestValidateFilterV2Beta1ArtifactTask_RejectsNoFilters(t *testing.T) {
-	_, err := validateFilterV2Beta1ArtifactTask(nil, nil, nil)
+func TestValidateFilterV2ArtifactTask_RejectsNoFilters(t *testing.T) {
+	_, err := validateFilterV2ArtifactTask(nil, nil, nil)
 	require.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "At least one filter")
 }
 
-func TestValidateFilterV2Beta1ArtifactTask_BuildsFilters(t *testing.T) {
-	filters, err := validateFilterV2Beta1ArtifactTask([]string{"task-1"}, []string{"run-1"}, []string{"artifact-1"})
+func TestValidateFilterV2ArtifactTask_BuildsFilters(t *testing.T) {
+	filters, err := validateFilterV2ArtifactTask([]string{"task-1"}, []string{"run-1"}, []string{"artifact-1"})
 	require.NoError(t, err)
 	require.Len(t, filters, 3)
 	assert.Equal(t, model.TaskResourceType, filters[0].Type)
@@ -285,11 +285,11 @@ func TestParseAPIFilter_DecodesEncodedStringMigrated(t *testing.T) {
 	in := "%7B%22predicates%22%3A%5B%7B%22operation%22%3A%22EQUALS%22%2C%22key%22%3A%22testkey%22%2C%22stringValue%22%3A%22testvalue%22%7D%5D%7D"
 
 	// The above should correspond the following filter:
-	want := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
+	want := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
 			{
-				Key: "testkey", Operation: apiv2beta1.Predicate_EQUALS,
-				Value: &apiv2beta1.Predicate_StringValue{StringValue: "testvalue"},
+				Key: "testkey", Operation: apiv2.Predicate_EQUALS,
+				Value: &apiv2.Predicate_StringValue{StringValue: "testvalue"},
 			},
 		},
 	}
@@ -309,11 +309,11 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	in := "%7B%22predicates%22%3A%5B%7B%22operation%22%3A%22EQUALS%22%2C%22key%22%3A%22testkey%22%2C%22stringValue%22%3A%22testvalue%22%7D%5D%7D"
 
 	// The above should correspond the following filter:
-	want := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
+	want := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
 			{
-				Key: "testkey", Operation: apiv2beta1.Predicate_EQUALS,
-				Value: &apiv2beta1.Predicate_StringValue{StringValue: "testvalue"},
+				Key: "testkey", Operation: apiv2.Predicate_EQUALS,
+				Value: &apiv2.Predicate_StringValue{StringValue: "testvalue"},
 			},
 		},
 	}

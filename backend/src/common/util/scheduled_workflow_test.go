@@ -338,7 +338,7 @@ func TestScheduledWorkflow_GetVersion(t *testing.T) {
 			expected:   SWFv1,
 		},
 		{
-			name:       "v2beta1 returns SWFv2",
+			name:       "v2 returns SWFv2",
 			apiVersion: "kubeflow.org/v2beta1",
 			kind:       "ScheduledWorkflow",
 			expected:   SWFv2,

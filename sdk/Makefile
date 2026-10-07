@@ -38,7 +38,7 @@ endif
 generate-python:
 	$(MAKE) -C ../api python
 	$(MAKE) -C ../kubernetes_platform python
-	$(MAKE) -C ../backend/api API_VERSION=v2beta1 generate-kfp-server-api-package
+	$(MAKE) -C ../backend/api API_VERSION=v2 generate-kfp-server-api-package
 
 # Build Python package using either pre-built image (fast) or source build (accurate).
 # Use USE_PREBUILT_IMAGE=false to build from source for guaranteed accuracy.

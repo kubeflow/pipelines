@@ -151,14 +151,14 @@ test(
         },
       };
       await routeProductionBundle(page, {
-        '/apis/v2beta1/runs/timeline-layout-test': {
+        '/apis/v2/runs/timeline-layout-test': {
           run_id: 'timeline-layout-test',
           state: 'SUCCEEDED',
           created_at: at(0),
           finished_at: at(400),
           pipeline_spec: pipelineSpec,
         },
-        '/apis/v2beta1/runs/timeline-layout-test/tasks': { tasks },
+        '/apis/v2/runs/timeline-layout-test/tasks': { tasks },
       });
       await page.goto('http://kfp.test/#/runs/details/timeline-layout-test?tab=timeline');
       const timeline = page.getByRole('region', { name: 'Run timeline' });
