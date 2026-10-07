@@ -14,6 +14,7 @@
 # limitations under the License.
 """Execute the production publisher with GitHub API fixtures."""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -40,6 +41,7 @@ let pr = {
   user: {login: 'outsider'}, author_association: 'CONTRIBUTOR', labels: [],
   ...options.pr,
 };
+let baseTip = options.baseTip || 'b'.repeat(40);
 const eventPR = structuredClone(pr);
 if (options.oldHead) eventPR.head.sha = 'old-head';
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
@@ -53,6 +55,7 @@ let description = options.initialDescription;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => ({data: {total_count: 0, workflow_runs: []}});
+methods.associated = {};
 const statusHistory = options.statusHistory || [];
 if (options.initialStatus) statusHistory.push({context: 'ci-passed',
   created_at: options.registrationStartedAt || new Date().toISOString()});
@@ -96,7 +99,9 @@ jobs:
       calls.push(['remove-label', request.name]);
       if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
     }},
-  repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses, createCommitStatus: async request => {
+  repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses,
+    listPullRequestsAssociatedWithCommit: methods.associated,
+    createCommitStatus: async request => {
     statusHistory.push({context: 'ci-passed', created_at: options.registrationStartedAt || new Date().toISOString()});
     status = request.state;
     description = request.description;
@@ -112,6 +117,7 @@ jobs:
       if (options.drift === 'closed') pr.state = 'closed';
     }
   }},
+  git: {getRef: async () => ({data: {object: {sha: baseTip}}})},
 }, paginate: async (method, params) => {
   if (method === methods.statuses) return statusHistory;
   if (method === methods.files) return [{filename: 'frontend/src/mlmd/Api.ts'}];
@@ -119,6 +125,10 @@ jobs:
   if (method === methods.timeline) {
     if (options.apiFailure) throw Error('API unavailable');
     return options.retarget ? [{event: 'base_ref_changed', created_at: '2026-09-07T12:00:00Z'}] : [];
+  }
+  if (method === methods.associated) {
+    if (options.associationFailure) throw Error('Associated PRs API unavailable');
+    return [{number: 7, merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z'}];
   }
   if (method === methods.runs) {
     if (options.missing) return [];
@@ -137,6 +147,7 @@ github.paginate.iterator = async function* () {
 };
 (async () => {
   let error;
+  const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
   for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
   context.runId = 99 + cycle;
   try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
@@ -149,7 +160,8 @@ github.paginate.iterator = async function* () {
       pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls}));
+  const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
+  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run([
@@ -258,7 +270,9 @@ const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked',
   number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
   labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
 }));
-const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
+const github = {paginate: async () => prs, rest: {pulls: {list: {}}, git: {
+  getRef: async () => ({data: {object: {sha: 'b'.repeat(40)}}}),
+}, repos: {
   getCombinedStatusForRef: async ({ref}) => {
     requests.push(ref);
     const state = ref.endsWith('success') ? 'success' : ref;
@@ -307,6 +321,108 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             'success', 'failure', 'pending', 'missing', 'untrusted',
             'stale-success', 'legacy-success', 'retarget-success'
         ])
+
+    def test_recovery_revokes_green_when_base_tip_advances(self):
+        script = r"""
+const {recoveryCandidates} = require(process.argv[1]);
+const crypto = require('node:crypto');
+const B1 = 'a'.repeat(40);
+const B2 = 'c'.repeat(40);
+const publishedStamp = crypto.createHash('sha256')
+  .update(JSON.stringify(['master', B1])).digest('hex');
+async function run(liveTip) {
+  const pr = {number: 42, head: {sha: 'H'}, base: {ref: 'master', sha: B1},
+    labels: [], author_association: 'NONE'};
+  const github = {rest: {pulls: {list: {}},
+    git: {getRef: async () => ({data: {object: {sha: liveTip}}})},
+    repos: {getCombinedStatusForRef: async ({ref}) => ({
+      data: {statuses: [{context: 'ci-passed', state: 'success',
+        description: 'Expected CI and all checks passed; base policy ' + publishedStamp + '.'}]}
+    })}}};
+  github.paginate = async () => [pr];
+  github.paginate.iterator = async function* (method, params) {
+    yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+    yield await github.rest.repos.getCombinedStatusForRef(params);
+  };
+  return recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}});
+}
+(async () => {
+  const advancedStamp = crypto.createHash('sha256')
+    .update(JSON.stringify(['master', B2])).digest('hex');
+  const noAdvance = await run(B1);
+  const advanced = await run(B2);
+  console.log(JSON.stringify({noAdvance, advanced, publishedStamp, advancedStamp}));
+})().catch(e => {console.error(e); process.exit(1);});
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertNotEqual(actual['publishedStamp'], actual['advancedStamp'])
+        self.assertEqual(actual['noAdvance'], [])
+        self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'H'}])
+
+    def test_base_advance_revokes_stale_green_across_full_reconciliation(self):
+        B1 = 'a' * 40
+        B2 = 'c' * 40
+        published_stamp = hashlib.sha256(
+            json.dumps(['master', B1],
+                       separators=(',', ':')).encode()).hexdigest()
+        initial = ('Expected CI and all checks passed; base policy ' +
+                   published_stamp + '.')
+        # The PR's frozen base is B1 but master has advanced to B2. Its stored
+        # ci-passed success is stamped B1, and the run was created before B2
+        # became reachable on master. Reconciliation must revoke the green
+        # (pending) using the run's immutable creation time against B2's push
+        # arrival time, and the next sweep must STILL select the PR. Cover both
+        # the run-scoped association (already mutated to B2) and the
+        # empty-pull_requests fallback.
+        for run_pull_requests in ([], [{
+                'number': 7,
+                'base': {
+                    'ref': 'master',
+                    'sha': B2,
+                },
+        }]):
+            with self.subTest(run_pull_requests=run_pull_requests):
+                result = exercise({
+                    'schedule': True,
+                    'verifyRecovery': True,
+                    'baseTip': B2,
+                    'baseArrivedAt': '2026-09-07T12:00:00Z',
+                    'pr': {
+                        'base': {
+                            'sha': B1,
+                            'ref': 'master',
+                            'repo': {
+                                'full_name': 'kubeflow/pipelines',
+                            },
+                        },
+                    },
+                    'initialStatus': 'success',
+                    'initialDescription': initial,
+                    'runPatch': {
+                        'pull_requests': run_pull_requests,
+                    },
+                })
+                # Discovery: the stale success (stamped B1) is selected because
+                # the live tip B2 no longer matches the stored stamp.
+                self.assertEqual(result['recoveryBefore'], [{
+                    'number': 7,
+                    'head': 'head'
+                }], result)
+                # Reconciliation revokes the green instead of re-stamping it.
+                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+                self.assert_last_status(result, 'pending')
+                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+                self.assertIn(['remove-label', 'ci-passed'], result['calls'])
+                # Next sweep still selects the PR: it is not green.
+                self.assertEqual(result['recoveryAfter'], [{
+                    'number': 7,
+                    'head': 'head'
+                }], result)
 
     def test_success_records_the_validated_base_policy(self):
         result = exercise()

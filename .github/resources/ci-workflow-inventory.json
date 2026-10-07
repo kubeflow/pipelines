@@ -126,7 +126,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "976b6300a1b67e5cdcd7d5d2dc516687e432b2d1748532ad500697c089540f43",
+      "header_sha256": "21c7eb92db8acafa621445203ae7c5718b1c3aab0eca792dea1af66562022040",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -206,6 +206,7 @@
           "go.mod",
           "go.sum",
           "test/install-argo-cli.sh",
+          "test/kfp-kubernetes-native-migration-tests/**",
           "third_party/argo/COMPATIBILITY_VERSION",
           "third_party/argo/Makefile",
           "third_party/argo/UPGRADE.md",
