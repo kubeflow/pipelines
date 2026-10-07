@@ -934,6 +934,9 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 	sqlBuilder := qb.
 		Select(dialect.QuoteAll(q, taskColumns)...).
 		From(q("tasks")).
+		Where(sq.Expr("EXISTS (SELECT 1 FROM " + q("run_details") + " WHERE " +
+			q("run_details") + "." + q("UUID") + " = " + q("tasks") + "." + q("RunUUID") + " AND (" +
+			q("run_details") + "." + q("ImportedFrom") + " IS NULL OR " + q("run_details") + "." + q("ImportedFrom") + " = ''))")).
 		Where(sq.Eq{
 			q("Fingerprint"): fingerprint,
 			q("State"):       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
