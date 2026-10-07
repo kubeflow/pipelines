@@ -33,7 +33,7 @@ with open(os.environ['CALL_LOG'], 'a') as log:
     log.write(json.dumps([name] + args) + '\\n')
 if name == 'ko':
     print(os.environ['KO_DOCKER_REPO'] + '@sha256:' + 'a' * 64)
-elif name == 'go':
+elif name == 'go' and args[0] == 'build':
     output = Path(args[args.index('-o') + 1])
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text('#!/bin/sh\\nprintf "workflow\\\\n"\\n')
@@ -42,6 +42,13 @@ elif name == 'kfp' and args[:2] == ['dsl', 'compile']:
     Path(args[args.index('--output') + 1]).write_text('pipelineInfo: {name: test}')
 elif name == 'kubectl' and 'rollout' in args and os.environ.get('FAIL_ROLLOUT'):
     sys.exit(1)
+elif name == 'docker':
+    sys.exit('Unit test targets must not start external services')
+elif name == 'inotifywait':
+    marker = Path(os.environ['WATCH_MARKER'])
+    if marker.exists():
+        sys.exit(1)
+    marker.touch()
 '''
 
 
@@ -88,6 +95,53 @@ class V2DevWorkflowTest(unittest.TestCase):
             )
             calls = [json.loads(line) for line in log.read_text().splitlines()]
             return result, calls
+
+    def test_unit_targets_run_without_external_services(self):
+        for target, go_args in (
+            ('test', ['test', './...']),
+            ('test-update',
+             ['test', './compiler/argocompiler', '--args', '--update']),
+            ('test-watch', ['test', './...']),
+        ):
+            with self.subTest(
+                    target=target), tempfile.TemporaryDirectory() as directory:
+                cwd = Path(directory)
+                bin_dir = cwd / 'bin'
+                bin_dir.mkdir()
+                for name in ('go', 'docker', 'inotifywait'):
+                    tool = bin_dir / name
+                    tool.write_text(TOOL_STUB)
+                    tool.chmod(0o755)
+                log = cwd / 'calls.jsonl'
+                result = subprocess.run(
+                    [
+                        'make',
+                        '-f',
+                        str(ROOT / 'backend/src/v2/Makefile'),
+                        target,
+                    ],
+                    cwd=cwd,
+                    env={
+                        **os.environ,
+                        'PATH':
+                            str(bin_dir) + os.pathsep + os.environ['PATH'],
+                        'CALL_LOG':
+                            str(log),
+                        'WATCH_MARKER':
+                            str(cwd / 'watched'),
+                    },
+                    text=True,
+                    capture_output=True,
+                    timeout=30,
+                )
+                self.assertEqual(result.returncode, 0,
+                                 result.stdout + result.stderr)
+                calls = [
+                    json.loads(line) for line in log.read_text().splitlines()
+                ]
+                self.assertEqual([c for c in calls if c[0] == 'go'],
+                                 [['go'] + go_args])
+                self.assertFalse(any(c[0] == 'docker' for c in calls), calls)
 
     def test_submits_ir_after_configuring_published_runtime_images(self):
         result, calls = self.run_pipeline()
