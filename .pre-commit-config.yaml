@@ -18,7 +18,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, master]
   - repo: https://github.com/PyCQA/flake8
-    rev: 7.3.0
+    rev: 7.4.1
     hooks:
       - id: flake8
         args:
@@ -65,7 +65,7 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.13.2
+    rev: v2.14.0
     hooks:
       - id: golangci-lint
         name: golangci-lint

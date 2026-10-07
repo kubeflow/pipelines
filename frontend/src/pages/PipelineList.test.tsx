@@ -213,6 +213,28 @@ describe('PipelineList', () => {
     vi.resetAllMocks();
   });
 
+  it('opens namespace transfer from the accessible More actions menu', async () => {
+    await renderPipelineList();
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const item = screen.getByRole('menuitem', { name: 'Import / export namespace data…' });
+    expect(item).toHaveAttribute('href', RoutePage.METADATA_TRANSFER);
+    await userEvent.click(item);
+    await waitFor(() => expect(screen.queryByRole('menuitem')).not.toBeInTheDocument());
+  });
+
+  it('closes More actions with Escape and returns focus to its trigger', async () => {
+    await renderPipelineList();
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    await userEvent.click(trigger);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menuitem')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
   it('renders an empty list with empty state message', async () => {
     await renderPipelineList();
     await waitForPipelinesLoad();
