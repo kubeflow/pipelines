@@ -193,6 +193,11 @@ if mode == 'source':
              for case in fixture['schedules']]
 else:
     cases = json.loads((state / f'reports/{mode}-baseline.json').read_text())['cases']
+known_ids = {}
+if mode != 'source':
+    observed = json.loads((state / f'reports/{mode}-observed.json').read_text())
+    known_ids = {case['schedule_uid']: {run['run_id'] for run in case['runs']}
+                 for case in observed['cases']}
 last_evidence = {}
 failure_reason = 'collection_failed'
 try:
@@ -217,7 +222,9 @@ try:
             elif any(run['state'] in FAILED_STATES for run in records):
                 failure_reason = 'fixture_run_did_not_succeed'
                 raise ValueError(failure_reason)
-            elif not records or any(run['state'] != 'SUCCEEDED' for run in records):
+            elif (not records or any(run['state'] != 'SUCCEEDED' for run in records) or
+                  not known_ids.get(case['schedule_uid'], set()).issubset(
+                      {run['run_id'] for run in records})):
                 complete = False
         if complete:
             (state / f'reports/{mode}-completion.json').write_text(json.dumps({
@@ -256,7 +263,15 @@ observe() {
     return 1
   fi
   fixture --phase disable
-  drain "$mode"
+  if ! drain "$mode"; then
+    python3 "$helpers/capture_run_diagnostics.py" --namespace "$namespace" \
+      --baseline "$reports/$mode-baseline.json" --observed "$reports/$mode-observed.json" \
+      --activation-start-file "$fixture_dir/activation-start.txt" --endpoint "$endpoint" \
+      --token-file "$state/token" >"$reports/$mode-failed-runs.json" || true
+    python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --cases "$reports/$mode-baseline.json" >"$reports/$mode-failed-scheduler.json" || true
+    return 1
+  fi
 }
 
 if [[ "$phase" == source ]]; then

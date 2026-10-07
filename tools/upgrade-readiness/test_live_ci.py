@@ -50,6 +50,30 @@ class LiveCITests(unittest.TestCase):
             observation.index('-failed-scheduler.json'),
             observation.index('fixture --phase disable'))
 
+    def test_drain_failure_remains_failure_after_diagnostics(self):
+        script = SCRIPT.read_text()
+        function = script[script.index('observe() {'):script
+                          .index('if [[ "$phase" == source ]]')]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'activation-start.txt').write_text('2026-01-01T00:00:00Z')
+            program = '''set -euo pipefail
+state=$1; reports=$1; fixture_dir=$1; helpers=helpers
+context=context; namespace=fixture; endpoint=http://127.0.0.1:8888
+mint_token() { :; }
+fixture() { :; }
+drain() { return 1; }
+python3() { printf '%s\\n' "$*" >>"$state/calls"; }
+''' + function + '\nobserve restored\n'
+            result = subprocess.run(['bash', '-c', program, 'test', tmp],
+                                    text=True,
+                                    capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            calls = (root / 'calls').read_text()
+            self.assertIn('capture_run_diagnostics.py', calls)
+            self.assertTrue((root / 'restored-failed-runs.json').exists())
+            self.assertTrue((root / 'restored-failed-scheduler.json').exists())
+
     def test_api_policy_cutover_waits_for_actual_pods_and_fails_closed(self):
         script = SCRIPT.read_text()
         function = script[script.index('configure_api() {'):script
@@ -174,6 +198,7 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
         scenarios = [
             ('late_success', 360, None),
             ('timeout', 900, 'fixture_runs_not_drained'),
+            ('missing_observed', 0, 'fixture_runs_not_drained'),
             ('failed', 0, 'fixture_run_did_not_succeed'),
             ('blocked', 0, 'blocked_schedule_created_run'),
             ('collection', 0, 'collection_failed'),
@@ -199,6 +224,19 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
                 ]
                 (root / 'reports/restored-baseline.json').write_text(
                     json.dumps(dict(cases=cases)))
+                (root / 'reports/restored-observed.json').write_text(
+                    json.dumps(
+                        dict(cases=[
+                            dict(
+                                schedule_uid=case['schedule_uid'],
+                                runs=[] if case['scenario'] == 'denied' else [
+                                    dict(
+                                        run_id=(
+                                            'missing-' if scenario ==
+                                            'missing_observed' else 'run-') +
+                                        case['scenario'])
+                                ]) for case in cases
+                        ])))
                 clock = [0]
 
                 def collect(client, namespace, case, start):
@@ -243,6 +281,10 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
                         self.assertEqual(clock[0], 600)
                         self.assertEqual(report['cases'][0]['runs'][0]['state'],
                                          'RUNNING')
+                    elif scenario == 'missing_observed':
+                        self.assertEqual(clock[0], 600)
+                        self.assertEqual(report['cases'][0]['runs'][0]['state'],
+                                         'SUCCEEDED')
                     elif scenario == 'failed':
                         self.assertEqual(report['cases'][0]['runs'][0]['state'],
                                          'FAILED')
@@ -521,6 +563,8 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
              'fixture/activation-start.txt').write_text('2026-01-01T00:00:00Z')
             (root / f'reports/{phase}-baseline.json').write_text(
                 json.dumps({'cases': [case]}))
+            (root / f'reports/{phase}-observed.json').write_text(
+                json.dumps({'cases': [dict(schedule_uid='uid', runs=records)]}))
             with mock.patch(
                     'sys.argv',
                 ['drain', directory, phase
