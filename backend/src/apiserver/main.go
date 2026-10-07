@@ -87,6 +87,7 @@ var (
 	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
 	disableWebhook                = flag.Bool("disableWebhook", false, "Set this if pipelinesStoreKubernetes is on but using a global webhook in a separate pod")
 	globalKubernetesWebhookMode   = flag.Bool("globalKubernetesWebhookMode", false, "Set this to run exclusively in Kubernetes Webhook mode")
+	adoptLegacyRecurringRuns      = flag.Bool("adopt-legacy-recurring-runs", false, "Adopt stored pre-2.18 recurring runs once, then exit without serving requests. Stop schedule writers and controllers first.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -201,6 +202,9 @@ func initCerts() (*tls.Config, error) {
 
 func main() {
 	flag.Parse()
+	if *adoptLegacyRecurringRuns && *globalKubernetesWebhookMode {
+		glog.Fatal("Legacy recurring-run adoption cannot run in global Kubernetes webhook mode")
+	}
 
 	if err := initConfig(); err != nil {
 		glog.Fatalf("Failed to initialize config: %v", err)
@@ -260,7 +264,7 @@ func main() {
 	defer clientManager.Close()
 	webhookOnlyMode := *globalKubernetesWebhookMode
 
-	if (*usePipelinesKubernetesStorage && !*disableWebhook) || webhookOnlyMode {
+	if !*adoptLegacyRecurringRuns && ((*usePipelinesKubernetesStorage && !*disableWebhook) || webhookOnlyMode) {
 		if *disableWebhook && webhookOnlyMode {
 			glog.Fatalf("Invalid configuration: globalKubernetesWebhookMode is enabled but the webhook is disabled")
 		}
@@ -309,6 +313,14 @@ func main() {
 			DefaultHostUsers:     parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
 		},
 	)
+	if *adoptLegacyRecurringRuns {
+		receipt, err := resourceManager.AdoptLegacyRecurringRuns(backgroundCtx)
+		if err != nil {
+			glog.Fatalf("Legacy recurring-run adoption failed; keep scheduling stopped and retry after resolving the reported problem: %v", err)
+		}
+		glog.Infof("recurring_run_adoption id=%s ready=%t adopted_count=%d adopted_at=%d", receipt.ID, receipt.Ready, receipt.AdoptedCount, receipt.CompletedAt)
+		return
+	}
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)

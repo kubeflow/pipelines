@@ -125,40 +125,104 @@ The runner separately needs its normal pipeline execution permissions.
 
 ## Upgrade and revocation
 
-Before upgrading, block recurring-run creation and recreation for all clients.
-Keep this block until every old API server replica has stopped and its in-flight
-persistence-agent reports have drained. During a rolling upgrade, an old API can
-still overwrite a new schedule's stored inputs from its editable Kubernetes CR,
-even when the schedule is disabled and already has API-owned scheduling state.
+### One-time adoption for existing multi-user installations
 
-Upgrade the API server and the ScheduledWorkflow controller together and apply
-the complete release manifests, including the controller's pipeline-read grants.
-Also wait for old controller pods to stop before adding custom-account grants or
-enabling replacement schedules.
+KFP 2.18 provides an explicit, offline `--adopt-legacy-recurring-runs` command.
+It accepts existing **database-stored schedule definitions as the upgrade
+baseline**, initializes their API-owned scheduling progress once, and restores
+the corresponding CRs to API routing. Enabled schedules remain enabled; disabled
+schedules remain disabled. Existing executions do not need to finish. Normal
+service-account, pipeline, namespace, concurrency, and execution-policy checks
+still apply to subsequent submissions. This does not add controller permission
+to use custom service accounts.
 
-Review existing schedules before granting controller access to an account.
-Schedules created before service-account authorization, or whose inputs were
-previously changed through Kubernetes, must be reviewed and recreated through the
-API to establish authorized inputs. Multi-user schedules created only as Kubernetes
-CRs, without a corresponding API job, must also be recreated through the API.
-**Every pre-existing multi-user schedule without API-owned scheduling state must
-be reviewed and recreated before its next execution.** It will otherwise stop
-submitting runs, including when the UI still shows it enabled. Audit mode does not
-bypass this requirement. Disabled schedules also require recreation before use.
-The API does not initialize trusted counters from an existing CR's status.
+This is a fix-forward compatibility policy, **not proof that each historical
+creator was entitled to submit the stored definition**. An unauthorized definition
+persisted before the upgrade can survive adoption if it passes current execution
+checks. Installations responding to a suspected compromise should investigate and
+recreate affected definitions instead. Ordinary upgrades do not require per-user
+review or schedule recreation. CR-only schedules without an API job are not
+adopted and still require API creation by an authorized caller.
 
-An old `jobs` row is not sufficient evidence of authorized inputs: earlier
-controller reports could overwrite its parameters, trigger, catch-up policy and
-concurrency settings from the CR. Automatically seeding an index and timestamp
-would trust those settings without reviewing them. Preserve the original pipeline
-and parameters from an independently reviewed source when recreating a schedule;
-do not blindly copy its current CR or database row.
-Unresolvable namespaces or missing/replaced Kubernetes objects fail closed.
+Adoption checks exact CR identity and reconciles its last submitted index/time
+with retained execution records. It accounts for one persisted submission whose
+controller acknowledgement was interrupted. Active workflows must have matching,
+non-terminal API run records so they cannot escape concurrency accounting.
+Inconsistent identities or progress stop the command without partially inserting
+states. Resolve the reported inconsistency and retry; do not reset counters or
+delete active run records to make it pass.
 
-### Inventory before completing the upgrade
+The command writes all states and a receipt in one database transaction, then
+synchronizes Kubernetes from that saved state. Until synchronization completes,
+the receipt has `Ready=false` and the upgraded API refuses recurring-run
+submissions. A retry resumes this synchronization without reimporting CR edits.
+After `Ready=true`, rerunning the command is a no-op, including if a scheduling
+state was subsequently deleted. This is one adoption per installation, not a
+general-purpose state-repair or recurring migration service.
 
-Each multi-user API replica logs `recurring_run_migration action=recreate` at
-startup for every job missing trusted scheduling state, including disabled jobs.
+### Cutover
+
+Use a maintenance window for **API availability and schedule submissions**, not
+for running tasks to drain. Back up the database and ScheduledWorkflow objects
+together. Record the API/controller replica counts, pause GitOps/autoscaling that
+could restore old replicas, and stop direct schedule edits during the cutover.
+The command does not itself stop remote writers; all replicas and installations
+sharing this database must honor the same cutoff.
+
+1. Stop the ScheduledWorkflow controller and wait for its pods to exit. This
+   prevents new scheduled submissions without changing each job's enabled flag.
+2. Stop every old API replica and wait for termination and outstanding database
+   transactions to finish. Do not overlap old and upgraded API writers: an old
+   persistence-report handler can still overwrite stored execution inputs.
+3. Apply the complete 2.18 configuration, images, and RBAC **with API and
+   ScheduledWorkflow controller replicas kept at zero**. Retain the controller's
+   restriction against direct `workflows/create`, its pipeline-read permissions,
+   and any deliberately approved custom-account grants. Do not start an old
+   controller against the adopted state.
+4. Run one adoption Job at a time, using the upgraded API binary with the normal API service account,
+   database/Kubernetes configuration, environment, and mounted Secrets, adding
+   `--adopt-legacy-recurring-runs`. It opens no API or webhook listeners, loads no
+   samples, and exits after adoption. The standard image invocation is:
+
+   ```bash
+   /bin/apiserver --config=/config --adopt-legacy-recurring-runs -logtostderr=true
+   ```
+
+   Use an isolated Kubernetes Job based on the upgraded API deployment's pod
+   configuration. Override its command with `/bin/apiserver` and the arguments
+   above, set `restartPolicy: Never` and `backoffLimit: 0`, and remove the API
+   container's startup/readiness/liveness probes because it does not serve HTTP.
+   Retain configuration flags needed by custom deployments, such as
+   `--pipelinesStoreKubernetes`; do not combine with `--globalKubernetesWebhookMode`.
+   Ensure sidecars do not prevent Job completion. Do not expose this command as
+   an unauthenticated HTTP endpoint or run it automatically on every API startup.
+5. Require successful exit and the log
+   `recurring_run_adoption id=legacy-2.18 ready=true adopted_count=...` before
+   resuming scheduling. If it fails after recording state, leave the controller
+   stopped and rerun the same command after resolving its diagnostic. Never
+   remove the receipt to force another adoption.
+6. Restore the upgraded API replicas and wait for readiness, then restore the
+   upgraded controller replicas. Verify an enabled schedule submits its next
+   tick, a disabled schedule stays disabled, and no duplicate execution appears.
+   Resume normal schedule edits and deployment automation.
+
+The pause covers pod shutdown/startup, schema preparation, inventory and CR
+synchronization; its duration depends on deployment and inventory size, not the
+duration of pipeline tasks. A workflow whose persistence report had not reached
+the database will block adoption with its identity. With the controller still
+stopped, the upgraded API and persistence agent can recover its record; then
+stop API writers again and retry adoption. Do not bypass that check or wait for
+all tasks to finish. Once adoption has committed, roll forward with the upgraded
+components. Rolling back to old writable APIs can reopen the original defect.
+
+Running pods are not terminated by this procedure. Calls they make to the API
+during its outage still depend on their normal retry behavior; adoption does not
+provide zero-downtime API transport or transparently replay failed client calls.
+
+### Inventory and status
+
+Each multi-user API replica logs `recurring_run_migration action=adopt_or_recreate`
+at startup for every job missing trusted scheduling state, including disabled jobs.
 The messages contain its ID, namespace, ScheduledWorkflow name and enabled state;
 they omit execution inputs. A final `affected_jobs` count summarizes the inventory.
 An `inventory_failed` error means the inventory is incomplete, not that no jobs
@@ -193,25 +257,21 @@ WHERE s."JobUUID" IS NULL
 ORDER BY j."UUID";
 ```
 
-Match database IDs to Kubernetes UIDs. A CR without a matching API job also
-requires recreation. The SQL result alone cannot inventory CR-only schedules.
-Before the first upgraded API startup, all existing jobs require review; the new
-state table does not exist yet.
+Match database IDs to Kubernetes UIDs. A CR without a matching API job requires
+API creation. Before the first upgraded API/adoption command has prepared the
+schema, the state and receipt tables do not exist yet. The command logs its
+durable adoption count and timestamp; the `recurring_run_adoptions` table contains
+`ID`, `AdoptedCount`, `CompletedAt` (Unix seconds when the SQL snapshot committed),
+`JobIDs` (JSON inventory), and `Ready`. Inspect it with a read-only database
+connection. An absent receipt means adoption has not committed; `Ready=false`
+means synchronization must resume; `Ready=true` seals the adopted baseline.
 
-Also review and recreate every schedule created or recreated while old and new
-API replicas overlapped, including disabled schedules. Use the rollout window and
-creation records to identify them. The startup logs and SQL inventory above omit
-those that already have scheduling-state rows.
-
-After all old API replicas and their in-flight reports have drained, resume
-creation. Disable the old schedule through the API, review its intended inputs
-and account, and recreate it through the API. KFP 2.18 continues to support V1 workflows
-where the namespace policy permits them, as well as V2 PipelineSpec IR. Keep the replacement
-disabled until the old controller pods have stopped and existing executions have
-been accounted for. Disabling a schedule does not terminate its runs. Do not insert
-scheduling-state rows or reset counters directly in the database to bypass review.
-Repeat the inventory after recreation and remove obsolete disabled schedules
-through the API when their history is no longer needed.
+Jobs that already have scheduling state are not readopted. If an earlier rollout
+overlapped old and new API writers, separately investigate definitions those old
+writers could have modified; adoption cannot identify or undo that history.
+Missing states after a completed receipt are errors to investigate, not a reason
+to reopen adoption. KFP 2.18 continues to support V1 workflows where namespace
+policy permits them, as well as V2 PipelineSpec IR.
 
 A schedule without a pipeline version ID can execute future default versions of
 its referenced pipeline. Trust publishers of that pipeline to supply code running under the

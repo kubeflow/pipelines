@@ -35,6 +35,9 @@ func (r *ResourceManager) PrepareRecurringRun(ctx context.Context, run *model.Ru
 	if !common.IsMultiUserMode() || run.RecurringRunId == "" {
 		return nil
 	}
+	if err := r.requireRecurringRunAdoptionReady(ctx); err != nil {
+		return err
+	}
 	job, err := r.GetJob(run.RecurringRunId)
 	if err != nil {
 		return util.Wrap(err, "Failed to resolve the authorized recurring run; create schedules through the KFP API")

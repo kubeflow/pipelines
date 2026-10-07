@@ -1953,7 +1953,8 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enable))),
 	)
-	if err != nil {
+	// A missing CR must not prevent revoking the stored standing authorization.
+	if err != nil && (enable || !apierrors.IsNotFound(err)) {
 		return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
 	}
 
