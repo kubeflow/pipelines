@@ -18,6 +18,7 @@ import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, matchPath } from 'react-router';
 import { NavigationProps } from 'src/lib/Navigation';
+import MetadataTransferPage from 'src/pages/MetadataTransfer';
 import Page404 from 'src/pages/404';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
@@ -129,6 +130,7 @@ export const RoutePage = {
   RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.recurringRunId}`,
   START: '/start',
   FRONTEND_FEATURES: '/frontend_features',
+  METADATA_TRANSFER: '/export-import',
 };
 
 export const RoutePageFactory = {
@@ -281,6 +283,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: LegacyRunExecutionRoute },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
+    { path: RoutePage.METADATA_TRANSFER, Component: MetadataTransferPage },
   ];
 
   if (!buildInfo?.apiServerMultiUser) {
