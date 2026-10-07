@@ -120,6 +120,72 @@ func TestClassifyPodFailure_TierFollowsPhaseForEveryCategory(t *testing.T) {
 	}
 }
 
+func TestClassifyPodFailure_ConflictingMarkers(t *testing.T) {
+	tests := []struct {
+		name     string
+		message  string
+		phase    string
+		wantCat  FailureCategory
+		wantTier FailureTier
+	}{
+		{
+			name:     "imagepullbackoff in pod name is admission",
+			message:  `pods "train-imagepullbackoff" is forbidden: violates PodSecurity "restricted"`,
+			phase:    "Failed",
+			wantCat:  FailureCategoryAdmission,
+			wantTier: FailureTierTerminal,
+		},
+		{
+			name:     "kyverno in scheduling detail stays scheduling",
+			message:  "Unschedulable: 0/3 nodes are available for pod kyverno-runner",
+			phase:    "Pending",
+			wantCat:  FailureCategoryScheduling,
+			wantTier: FailureTierWarning,
+		},
+		{
+			name:     "imagepullbackoff in webhook name is admission",
+			message:  `admission webhook "imagepullbackoff.validate.io" denied the request`,
+			phase:    "Failed",
+			wantCat:  FailureCategoryAdmission,
+			wantTier: FailureTierTerminal,
+		},
+		{
+			name:     "error in image-pull detail stays image-pull",
+			message:  "ErrImagePull: error looking up image ghcr.io/example/missing:v1",
+			phase:    "Pending",
+			wantCat:  FailureCategoryImagePull,
+			wantTier: FailureTierWarning,
+		},
+		{
+			name:     "kyverno in runtime detail stays runtime",
+			message:  "OOMKilled: container kyverno-controller exceeded memory limit",
+			phase:    "Failed",
+			wantCat:  FailureCategoryRuntime,
+			wantTier: FailureTierTerminal,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ClassifyPodFailure(tt.message, tt.phase)
+			assert.Equal(t, tt.wantCat, got.Category, "category")
+			assert.Equal(t, tt.wantTier, got.Tier, "tier")
+		})
+	}
+}
+
+func TestClassifyPodFailure_InputNormalization(t *testing.T) {
+	t.Run("whitespace-only message returns tier none regardless of phase", func(t *testing.T) {
+		got := ClassifyPodFailure("   ", "Failed")
+		assert.Equal(t, FailureCategoryUnknown, got.Category)
+		assert.Equal(t, FailureTierNone, got.Tier)
+	})
+	t.Run("phase with surrounding spaces is trimmed before matching", func(t *testing.T) {
+		got := ClassifyPodFailure("OOMKilled", " Failed ")
+		assert.Equal(t, FailureCategoryRuntime, got.Category)
+		assert.Equal(t, FailureTierTerminal, got.Tier)
+	})
+}
+
 func TestClassifyPodFailure_ImagePullNotClassifiedAsRuntime(t *testing.T) {
 	got := ClassifyPodFailure("ErrImagePull: error looking up image", "Pending")
 	assert.Equal(t, FailureCategoryImagePull, got.Category)

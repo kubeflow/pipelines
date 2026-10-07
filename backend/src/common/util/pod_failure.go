@@ -16,20 +16,23 @@ package util
 
 import "strings"
 
-// FailureCategory is an engine-neutral class for a pod lifecycle failure.
-// Values match KEP-12843 so later persistence and UI code can share them.
+// FailureCategory classifies the root cause of a pod lifecycle failure.
 type FailureCategory string
 
 const (
-	FailureCategoryImagePull  FailureCategory = "image-pull"
+	// FailureCategoryImagePull covers ErrImagePull, ImagePullBackOff, "Back-off pulling image", and "Failed to pull image".
+	FailureCategoryImagePull FailureCategory = "image-pull"
+	// FailureCategoryScheduling covers Unschedulable, FailedScheduling, "Insufficient cpu", and "Insufficient memory".
 	FailureCategoryScheduling FailureCategory = "scheduling"
-	FailureCategoryRuntime    FailureCategory = "runtime"
-	FailureCategoryAdmission  FailureCategory = "admission"
-	FailureCategoryUnknown    FailureCategory = "unknown"
+	// FailureCategoryRuntime covers OOMKilled, CrashLoopBackOff, and a bare Error reason.
+	FailureCategoryRuntime FailureCategory = "runtime"
+	// FailureCategoryAdmission covers `pods "..." is forbidden`, Forbidden, admission webhook, PodSecurity, and Kyverno.
+	FailureCategoryAdmission FailureCategory = "admission"
+	// FailureCategoryUnknown is any message that does not match a known category.
+	FailureCategoryUnknown FailureCategory = "unknown"
 )
 
-// FailureTier is derived only from the node phase.
-// A Pending image-pull and a Failed image-pull share a category and differ in tier.
+// FailureTier is derived only from the node phase. A Pending image-pull and a Failed image-pull share a category and differ in tier.
 type FailureTier string
 
 const (
@@ -47,13 +50,33 @@ type PodFailure struct {
 	Tier     FailureTier
 }
 
-var imagePullMarkers = []string{
+// imagePullReasonCodes map to FailureCategoryImagePull.
+// Matched against the reason only, so a pod or webhook name cannot trigger them.
+var imagePullReasonCodes = []string{
 	"errimagepull",
 	"imagepullbackoff",
+}
+
+// imagePullPhrases map to FailureCategoryImagePull.
+var imagePullPhrases = []string{
 	"back-off pulling image",
 	"failed to pull image",
 }
 
+// admissionPhrases map to FailureCategoryAdmission.
+var admissionPhrases = []string{
+	"is forbidden",
+	"admission webhook",
+}
+
+// admissionReasonTokens map to FailureCategoryAdmission.
+// Matched against the reason only, so a pod name in the detail cannot trigger them.
+var admissionReasonTokens = []string{
+	"kyverno",
+	"podsecurity",
+}
+
+// schedulingMarkers map to FailureCategoryScheduling.
 var schedulingMarkers = []string{
 	"unschedulable",
 	"failedscheduling",
@@ -61,14 +84,8 @@ var schedulingMarkers = []string{
 	"insufficient memory",
 }
 
-var admissionMarkers = []string{
-	"is forbidden",
-	"admission webhook",
-	"podsecurity",
-	"kyverno",
-}
-
-var runtimeMarkers = []string{
+// runtimeReasonCodes map to FailureCategoryRuntime.
+var runtimeReasonCodes = []string{
 	"oomkilled",
 	"crashloopbackoff",
 }
@@ -83,44 +100,52 @@ func ClassifyPodFailure(message, phase string) PodFailure {
 		return PodFailure{Category: FailureCategoryUnknown, Tier: FailureTierNone}
 	}
 	return PodFailure{
-		Category: categoryForMessage(message),
-		Tier:     tierForPhase(phase),
+		Category: getFailureCategoryForMessage(message),
+		Tier:     getFailureTierForPhase(phase),
 	}
 }
 
-func categoryForMessage(message string) FailureCategory {
+func getFailureCategoryForMessage(message string) FailureCategory {
 	lower := strings.ToLower(message)
 	reason := strings.ToLower(lifecycleMessageReason(message))
-	if matchesMarker(lower, reason, imagePullMarkers) {
+
+	// image-pull is checked before runtime: ErrImagePull messages contain "error".
+	if hasExactReason(reason, imagePullReasonCodes) || containsAny(lower, imagePullPhrases) {
 		return FailureCategoryImagePull
 	}
-	if matchesMarker(lower, reason, admissionMarkers) || reason == "forbidden" {
+	if containsAny(lower, admissionPhrases) || reason == "forbidden" || containsAny(reason, admissionReasonTokens) {
 		return FailureCategoryAdmission
 	}
-	if matchesMarker(lower, reason, schedulingMarkers) {
+	if containsAny(lower, schedulingMarkers) {
 		return FailureCategoryScheduling
-	}
-	if matchesMarker(lower, reason, runtimeMarkers) {
-		return FailureCategoryRuntime
 	}
 	// A bare Error reason is a runtime failure. "Error (exit code N)" has no
 	// colon, so its reason is the whole string and does not match.
-	if reason == "error" {
+	if hasExactReason(reason, runtimeReasonCodes) || reason == "error" {
 		return FailureCategoryRuntime
 	}
 	return FailureCategoryUnknown
 }
 
-func matchesMarker(message, reason string, markers []string) bool {
-	for _, marker := range markers {
-		if reason == marker || strings.Contains(message, marker) {
+func hasExactReason(reason string, codes []string) bool {
+	for _, code := range codes {
+		if reason == code {
 			return true
 		}
 	}
 	return false
 }
 
-func tierForPhase(phase string) FailureTier {
+func containsAny(s string, parts []string) bool {
+	for _, part := range parts {
+		if strings.Contains(s, part) {
+			return true
+		}
+	}
+	return false
+}
+
+func getFailureTierForPhase(phase string) FailureTier {
 	switch strings.ToLower(strings.TrimSpace(phase)) {
 	case "failed", "error":
 		return FailureTierTerminal
