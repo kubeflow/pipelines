@@ -106,27 +106,27 @@ function invalidRunMetadata(run) {
   return null;
 }
 
-async function runTestsBase({github, owner, repo, baseSha, headSha}) {
-  // A run is fresh evidence for base `baseSha` only if `baseSha` is an ancestor
-  // of the commit the run actually executed (its immutable head_sha). GitHub
-  // rewrites run.pull_requests base data to the PR's CURRENT base over time, so
-  // neither a run-scoped association nor the current pullRequest.base.sha proves
-  // which base a run tested. Compare the content-addressed commit hashes
-  // instead, and fail closed when ancestry cannot be established.
-  if (!baseSha || !headSha) return false;
+async function baseLandedAt({github, owner, repo, baseSha}) {
+  // A run tests the base revision that was live when it was created. For a
+  // pull_request run, Actions checks out a synthetic merge commit whose SHA is
+  // NOT exposed on the run object, so it cannot be compared directly. The
+  // merge commit contains the validated base iff the run was created at or
+  // after that base landed on the base branch. GitHub squash-merges set
+  // committer.date to the merge time, so the base commit's committer timestamp
+  // is immutable evidence of when the base became reachable. Returns a
+  // millisecond timestamp, or null when it cannot be established (the caller
+  // fails closed to pending rather than ever passing stale evidence as fresh).
+  if (!baseSha) return null;
   try {
-    const {data} = await github.rest.repos.compareCommits({owner, repo,
-      base: baseSha, head: headSha});
-    // behind_by === 0 means `head` contains every commit in `base`; a status of
-    // `ahead` or `identical` confirms the base is an ancestor rather than a
-    // diverged or trailing history.
-    return data?.behind_by === 0 && (data?.status === 'ahead' || data?.status === 'identical');
+    const {data} = await github.rest.repos.getCommit({owner, repo, ref: baseSha});
+    const landed = Date.parse(data?.commit?.committer?.date);
+    return Number.isFinite(landed) ? landed : null;
   } catch (error) {
-    return false;
+    return null;
   }
 }
 
-async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, inventory,
+async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, liveBase, inventory,
   workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
@@ -165,12 +165,12 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     owner, repo, event: 'pull_request', head_sha: pullRequest.head.sha, per_page: 100,
   });
   if (runs.length >= 1000) throw new Error('Workflow run history truncated for this PR head');
-  // Freshness is a property of (base, head), not of any individual run: every
-  // candidate run is filtered to run.head_sha === pullRequest.head.sha, so each
-  // ran the same immutable commit and the ancestry proof is identical for all
-  // of them. Prove it once rather than once per workflow.
-  const headTestsBase = baseSha ? await runTestsBase({github, owner, repo, baseSha,
-    headSha: pullRequest.head.sha}) : true;
+  // Freshness keys off the LIVE base tip. A run tested the validated base iff
+  // it was created at or after that base landed; resolve the landing time once
+  // here (it depends only on baseSha, not on any individual run). When the base
+  // is frozen (release branches), skip the check entirely to preserve existing
+  // behavior.
+  const baseLanded = liveBase && baseSha ? await baseLandedAt({github, owner, repo, baseSha}) : null;
   for (const workflow of expected) {
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
@@ -216,14 +216,17 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     if (association?.base?.ref && association.base.ref !== pullRequest.base.ref) {
       failures.push(`${workflow.path}: workflow ran for a different base branch`);
     }
-    // A run is fresh evidence only if the validated base revision is an
-    // ancestor of the commit the run actually executed (its immutable
-    // head_sha). The run-scoped base association and pullRequest.base.sha are
-    // MUTABLE (GitHub rewrites them to the PR's current base), so neither can
-    // prove which base a run tested: head reuse or an old-run rerun would
-    // otherwise pass stale evidence as fresh. Fail closed -- the PR stays
-    // pending until fresh CI runs against the current base.
-    if (baseSha && !headTestsBase) {
+    // The run-scoped base association and pullRequest.base.sha are MUTABLE
+    // (GitHub rewrites them to the PR's current base), so neither proves which
+    // base a run tested. Instead, a run is fresh for the live base only when it
+    // was created at or after the base landed; the run's immutable creation
+    // time is compared against the base commit's immutable committer timestamp
+    // (run.created_at is validated by invalidRunMetadata above). Both values
+    // are second-granularity, so an equal instant is ambiguous: the run may
+    // have been created sub-second before the base landed and tested an older
+    // base. Resolve the tie fail-closed (<=) so the merge gate can never pass
+    // stale evidence as fresh; the PR stays pending until a strictly later run.
+    if (liveBase && baseSha && (baseLanded === null || Date.parse(run.created_at) <= baseLanded)) {
       pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
     }
   }

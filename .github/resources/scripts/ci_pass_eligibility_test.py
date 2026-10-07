@@ -99,12 +99,10 @@ jobs:
       if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
     }},
   repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses,
-    compareCommits: async ({base, head}) => {
-      calls.push(['compare', base, head]);
-      if (options.compareFailure) throw Error('Compare API unavailable');
-      return {data: options.compareStale ?
-        {status: 'behind', ahead_by: 0, behind_by: 1, total_commits: 1} :
-        {status: 'ahead', ahead_by: 1, behind_by: 0, total_commits: 1}};
+    getCommit: async ({ref}) => {
+      calls.push(['get-commit', ref]);
+      if (options.commitFailure) throw Error('Commit API unavailable');
+      return {data: {commit: {committer: {date: options.baseCommittedAt || '2026-09-07T10:00:00Z'}}}};
     }, createCommitStatus: async request => {
     statusHistory.push({context: 'ci-passed', created_at: options.registrationStartedAt || new Date().toISOString()});
     status = request.state;
@@ -392,7 +390,7 @@ async function run(liveTip) {
                     'schedule': True,
                     'verifyRecovery': True,
                     'baseTip': B2,
-                    'compareStale': True,
+                    'baseCommittedAt': '2026-09-07T12:00:00Z',
                     'pr': {
                         'base': {
                             'sha': B1,

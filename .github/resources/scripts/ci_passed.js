@@ -167,11 +167,16 @@ async function freshAfter(github, context, pr) {
 
 async function evidence(github, context, pr, root) {
   const baseSha = await baseRevision(github, context, pr);
+  // Only the live master tip advances behind the publisher's back; release
+  // branches keep their frozen base.sha behavior (see baseRevision). The
+  // freshness check is scoped to the live base so release branches are
+  // unchanged.
+  const liveBase = pr.base.ref === 'master';
   const [inventory, cutoff] = await Promise.all([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, baseSha, ...inventory, freshAfter: cutoff};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.

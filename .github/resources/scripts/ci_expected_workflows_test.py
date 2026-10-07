@@ -44,7 +44,9 @@ def verify(runs=None,
            registration_started_at=None,
            now=0,
            base_sha=None,
-           compare=None):
+           live_base=True,
+           base_committed_at='2026-09-07T13:00:00Z',
+           get_commit_failure=False):
     if runs is None:
         runs = [good_run()]
     if files is None:
@@ -53,13 +55,6 @@ def verify(runs=None,
         trigger = {'branches': ['master'], 'paths': ['frontend/**']}
     if workflow_paths is None:
         workflow_paths = ['.github/workflows/frontend.yml']
-    if compare is None:
-        compare = {
-            'status': 'ahead',
-            'ahead_by': 1,
-            'behind_by': 0,
-            'total_commits': 1
-        }
     fixture = {
         'runs': runs,
         'files': files,
@@ -92,6 +87,7 @@ def verify(runs=None,
             'header_sha256': 'header',
         } for path in workflow_paths],
         'baseSha': base_sha,
+        'liveBase': live_base,
         'freshAfter': fresh_after,
         'registrationStartedAt': registration_started_at,
         'now': now,
@@ -99,13 +95,15 @@ def verify(runs=None,
     return node(f'''
 const fixture = {json.dumps(fixture)};
 const requests = [];
-const compares = [];
-const compareData = {json.dumps(compare)};
+const getCommitCalls = [];
+const baseCommitDate = {json.dumps(base_committed_at)};
+const getCommitFailure = {json.dumps(get_commit_failure)};
 const github = {{
   rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}},
-    repos: {{compareCommits: async ({{base, head}}) => {{
-      compares.push({{base, head}});
-      return {{data: compareData}};
+    repos: {{getCommit: async ({{ref}}) => {{
+      getCommitCalls.push(ref);
+      if (getCommitFailure) throw Error('Commit API unavailable');
+      return {{data: {{commit: {{committer: {{date: baseCommitDate}}}}}}}};
     }}}}}},
   paginate: async (route, options) => {{
     requests.push({{route, options}});
@@ -113,7 +111,7 @@ const github = {{
   }},
 }};
 gate.verifyExpectedWorkflows({{...fixture, github, owner: 'owner', repo: 'repo'}})
-  .then(result => console.log(JSON.stringify({{...result, requests, compares}})))
+  .then(result => console.log(JSON.stringify({{...result, requests, getCommitCalls}})))
   .catch(error => console.log(JSON.stringify({{error: error.message}})));
 ''')
 
@@ -413,51 +411,54 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                 self.assertEqual(result['state'], 'failure')
                 self.assertFalse(result['passed'])
 
-    def test_head_reuse_does_not_pass_stale_run_as_fresh(self):
-        # Head H succeeded against B1; master advanced B1 -> B2; the branch then
-        # returned to H (H -> H2 -> H). GitHub has mutated the old run's
-        # association to report the current base B2, but H predates B2. The
-        # immutable head_sha ancestry check must reject it as stale even though
-        # the mutable association now matches.
+    def test_run_created_before_base_landed_is_stale(self):
+        # The run succeeded against an earlier base; master has since advanced
+        # to base_sha. GitHub may have mutated the run's association to report
+        # the current base, but the run was CREATED before the new base landed,
+        # so its merge-ref CI could not have tested it. The immutable creation
+        # time, not the mutated association, decides freshness.
         result = verify(
             base_sha='c' * 40,
-            compare={
-                'status': 'behind',
-                'ahead_by': 0,
-                'behind_by': 1,
-                'total_commits': 1
-            },
             runs=[
-                good_run(pull_requests=[{
-                    'number': 7,
-                    'base': {
-                        'ref': 'master',
-                        'sha': 'c' * 40
-                    },
-                }])
+                good_run(
+                    created_at='2026-09-07T12:00:00Z',
+                    pull_requests=[{
+                        'number': 7,
+                        'base': {
+                            'ref': 'master',
+                            'sha': 'c' * 40
+                        },
+                    }])
             ])
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
         self.assertIn('awaiting a fresh CI run', result['reasons'][0])
-        self.assertEqual(result['compares'], [{
-            'base': 'c' * 40,
-            'head': 'head'
-        }])
+        self.assertEqual(result['getCommitCalls'], ['c' * 40])
 
-    def test_rerunning_old_execution_is_not_fresh(self):
-        # Rerunning an old successful execution preserves its execution SHA but
-        # its association base is mutated to the current base. The preserved
-        # head_sha ancestry, not the mutated association, decides freshness.
+    def test_run_created_in_same_second_as_base_fails_closed(self):
+        # created_at and committer.date are both second-granularity, so an equal
+        # instant cannot prove the run was created after the base landed: it may
+        # have been created sub-second before and tested an older base. The tie
+        # must resolve fail-closed to pending, never fresh, so the merge gate
+        # cannot pass stale evidence as fresh.
         result = verify(
             base_sha='c' * 40,
-            compare={
-                'status': 'behind',
-                'ahead_by': 0,
-                'behind_by': 1,
-                'total_commits': 1
-            },
+            base_committed_at='2026-09-07T13:00:00Z',
+            runs=[good_run(created_at='2026-09-07T13:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_rerunning_old_execution_is_not_fresh(self):
+        # Rerunning an old successful execution preserves its original
+        # GITHUB_SHA/GITHUB_REF and original creation time, while its
+        # association base may be mutated to the current base. The preserved
+        # creation time, not the mutated association, decides freshness.
+        result = verify(
+            base_sha='c' * 40,
             runs=[
                 good_run(
+                    created_at='2026-09-07T12:00:00Z',
                     run_attempt=2,
                     pull_requests=[{
                         'number': 7,
@@ -470,64 +471,82 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
 
-    def test_empty_association_fails_closed_on_head_ancestry(self):
-        # Forked PRs can carry an empty pull_requests array. The fallback must
-        # still use head_sha ancestry rather than the current PR base, and fail
-        # closed (pending, never fresh) when the head predates the base.
+    def test_empty_association_fails_closed_when_run_predates_base(self):
+        # Forked PRs can carry an empty pull_requests array. The freshness check
+        # must still key off the run's immutable creation time rather than the
+        # current PR base, and fail closed (pending, never fresh) when the run
+        # was created before the base landed.
         result = verify(
             base_sha='c' * 40,
-            compare={
-                'status': 'behind',
-                'ahead_by': 0,
-                'behind_by': 1,
-                'total_commits': 1
-            },
-            runs=[good_run(pull_requests=[])])
+            runs=[good_run(created_at='2026-09-07T12:00:00Z',
+                           pull_requests=[])])
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
-        self.assertEqual(result['compares'], [{
-            'base': 'c' * 40,
-            'head': 'head'
-        }])
+        self.assertEqual(result['getCommitCalls'], ['c' * 40])
 
-    def test_head_containing_base_is_fresh(self):
-        # Positive control: a head whose ancestry genuinely contains the
-        # validated base is accepted as fresh evidence and passes.
+    def test_source_branch_behind_base_with_fresh_merge_ci_is_fresh(self):
+        # A pull_request run's head_sha is the SOURCE commit, but CI checks out
+        # the synthetic merge commit. A source branch is normally behind its
+        # base (compare(base, head) is "diverged"), yet merge-ref CI that ran
+        # after the base landed DID test the base. This must pass, not pend:
+        # source-branch currency is a separate policy question from whether the
+        # run tested the current base.
         result = verify(
             base_sha='c' * 40,
-            compare={
-                'status': 'ahead',
-                'ahead_by': 1,
-                'behind_by': 0,
-                'total_commits': 1
-            },
-            runs=[good_run()])
+            base_committed_at='2026-09-07T11:00:00Z',
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
         self.assertTrue(result['passed'])
         self.assertEqual(result['state'], 'success')
-        self.assertEqual(result['compares'], [{
-            'base': 'c' * 40,
-            'head': 'head'
-        }])
+        self.assertEqual(result['getCommitCalls'], ['c' * 40])
+
+    def test_run_created_after_base_landed_is_fresh(self):
+        # Positive control: a run created after the base landed tested a merge
+        # commit containing the base, so it is accepted as fresh evidence.
+        result = verify(
+            base_sha='c' * 40,
+            base_committed_at='2026-09-07T11:00:00Z',
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
+        self.assertEqual(result['getCommitCalls'], ['c' * 40])
+
+    def test_release_branch_frozen_base_skips_live_freshness_check(self):
+        # Release branches keep their frozen base.sha behavior: the live-tip
+        # freshness check must not apply, so a run created long before the
+        # (frozen) base is still accepted and the base commit is never looked up.
+        result = verify(
+            base_sha='c' * 40,
+            live_base=False,
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
+        self.assertEqual(result['getCommitCalls'], [])
+
+    def test_base_landing_lookup_failure_fails_closed(self):
+        # If the base commit's landing time cannot be established, the run
+        # cannot be proven fresh; fail closed to pending rather than ever
+        # passing stale evidence as fresh.
+        result = verify(
+            base_sha='c' * 40,
+            get_commit_failure=True,
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
 
     def test_latest_stale_success_cannot_outrank_fresh_failure(self):
         # Jeff's "latest-attempt ordering" attack (#14705): an old successful
-        # run against a base the head no longer contains sorts latest by
-        # attempt time, so the ordering selects it over a genuinely fresh
-        # failed execution. The immutable head_sha freshness check must
-        # downgrade that stale success to pending so it never aggregates to
-        # success.
+        # run created before the base landed sorts latest by attempt time (a
+        # rerun), so the ordering selects it over a competing failed execution.
+        # The freshness check must downgrade that stale success to pending so it
+        # never aggregates to success.
         result = verify(
             base_sha='c' * 40,
-            compare={
-                'status': 'behind',
-                'ahead_by': 0,
-                'behind_by': 1,
-                'total_commits': 1
-            },
             runs=[
                 # Stale success: LATER attempt time, association already
-                # mutated to the current base, but the head predates it.
+                # mutated to the current base, but created before it landed.
                 good_run(
+                    created_at='2026-09-07T12:00:00Z',
                     run_started_at='2026-09-07T14:00:00Z',
                     pull_requests=[{
                         'number': 7,
@@ -536,19 +555,17 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                             'sha': 'c' * 40
                         },
                     }]),
-                # Fresh failure: EARLIER attempt time, genuinely failed.
+                # Competing failure: EARLIER attempt time, genuinely failed.
                 good_run(
                     id=101,
                     conclusion='failure',
+                    created_at='2026-09-07T12:00:00Z',
                     run_started_at='2026-09-07T12:00:00Z')
             ])
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
         self.assertIn('awaiting a fresh CI run', result['reasons'][0])
-        self.assertEqual(result['compares'], [{
-            'base': 'c' * 40,
-            'head': 'head'
-        }])
+        self.assertEqual(result['getCommitCalls'], ['c' * 40])
 
     def test_failure_dominates_stale_pending_across_workflows(self):
         # Cross-workflow ordering lock: a stale success in one workflow only
@@ -559,15 +576,14 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         ]
         result = verify(
             base_sha='c' * 40,
-            compare={
-                'status': 'behind',
-                'ahead_by': 0,
-                'behind_by': 1,
-                'total_commits': 1
-            },
             workflow_paths=paths,
-            runs=[good_run(),
-                  good_run(path=paths[1], conclusion='failure')])
+            runs=[
+                good_run(created_at='2026-09-07T12:00:00Z'),
+                good_run(
+                    path=paths[1],
+                    conclusion='failure',
+                    created_at='2026-09-07T12:00:00Z')
+            ])
         self.assertEqual(result['state'], 'failure')
         self.assertFalse(result['passed'])
         self.assertIn('completed/failure', result['reasons'][0])
