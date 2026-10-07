@@ -574,6 +574,11 @@ message PipelineTask {
   // Latest pod lifecycle diagnostic from the execution engine.
   // Read-only via REST; the persistence agent clears this field automatically on recovery.
   optional string lifecycle_message = 19;
+
+  // Classified category of lifecycle_message.
+  // One of image-pull, scheduling, runtime, admission, or unknown.
+  // Empty when lifecycle_message is empty.
+  optional string lifecycle_category = 20;
 }
 
 message CreateRunRequest {

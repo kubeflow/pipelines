@@ -551,6 +551,51 @@ func TestUpdateTask_LifecycleMessageSetAndCleared(t *testing.T) {
 	assert.Nil(t, cleared.LifecycleMessage)
 }
 
+func TestUpdateTask_LifecycleCategorySetAndCleared(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-0",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		TypeAttrs:        map[string]interface{}{},
+	})
+	require.NoError(t, err)
+
+	category := string(util.FailureCategoryImagePull)
+	updated, err := taskStore.UpdateTask(&model.Task{
+		UUID:              created.UUID,
+		LifecycleCategory: &category,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updated.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *updated.LifecycleCategory)
+
+	renamed, err := taskStore.UpdateTask(&model.Task{
+		UUID: created.UUID,
+		Name: "keep-category",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "keep-category", renamed.Name)
+	require.NotNil(t, renamed.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *renamed.LifecycleCategory)
+
+	clearedCategory := ""
+	cleared, err := taskStore.UpdateTask(&model.Task{
+		UUID:              created.UUID,
+		LifecycleCategory: &clearedCategory,
+	})
+	require.NoError(t, err)
+	assert.Nil(t, cleared.LifecycleCategory)
+}
+
 func TestUpdateTask_MergesParameters(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()

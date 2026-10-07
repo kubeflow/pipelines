@@ -3619,6 +3619,10 @@
         "lifecycle_message": {
           "type": "string",
           "description": "Latest pod lifecycle diagnostic from the execution engine.\nRead-only via REST; the persistence agent clears this field automatically on recovery."
+        },
+        "lifecycle_category": {
+          "type": "string",
+          "description": "Classified category of lifecycle_message.\nOne of image-pull, scheduling, runtime, admission, or unknown.\nEmpty when lifecycle_message is empty."
         }
       },
       "description": "Runtime information of a task execution used by task APIs and Run.tasks."

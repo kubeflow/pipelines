@@ -1282,6 +1282,35 @@ func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
 	assert.Nil(t, unset.LifecycleMessage)
 }
 
+func TestToModelAndAPITask_LifecycleCategory(t *testing.T) {
+	category := "image-pull"
+	apiTask := &apiv2beta1.PipelineTask{
+		TaskId:            "task-1",
+		RunId:             "run-1",
+		LifecycleCategory: &category,
+	}
+	modelTask, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	require.NotNil(t, modelTask.LifecycleCategory)
+	assert.Equal(t, "image-pull", *modelTask.LifecycleCategory)
+
+	exported, err := toAPITask(modelTask, nil)
+	require.NoError(t, err)
+	require.NotNil(t, exported.LifecycleCategory)
+	assert.Equal(t, "image-pull", exported.GetLifecycleCategory())
+
+	clear := ""
+	apiTask.LifecycleCategory = &clear
+	cleared, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	require.NotNil(t, cleared.LifecycleCategory)
+	assert.Equal(t, "", *cleared.LifecycleCategory)
+
+	unset, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "task-2", RunId: "run-1"})
+	require.NoError(t, err)
+	assert.Nil(t, unset.LifecycleCategory)
+}
+
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string

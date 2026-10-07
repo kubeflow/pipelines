@@ -4185,18 +4185,19 @@ func containsString(values []string, want string) bool {
 }
 
 // lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
-// and returns the resolved message from the most recently created pod. matched is true when at
-// least one node was attributed to this task by pod name.
-func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+// and returns the resolved message and phase from the most recently created pod. matched is true
+// when at least one node was attributed to this task by pod name.
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg, phase string, matched bool) {
 	if task == nil {
-		return "", false
+		return "", "", false
 	}
 	podNames := podNamesFromTask(task)
 	if len(podNames) == 0 {
-		return "", false
+		return "", "", false
 	}
 	type podMatch struct {
 		msg        string
+		phase      string
 		createTime int64
 	}
 	var matches []podMatch
@@ -4204,17 +4205,17 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		if !containsString(podNames, node.ID) {
 			continue
 		}
-		matches = append(matches, podMatch{msg: resolved[id], createTime: node.CreateTime})
+		matches = append(matches, podMatch{msg: resolved[id], phase: node.State, createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
-		return "", false
+		return "", "", false
 	}
 	// Pick the message from the most recently created pod so that a recovered retry
 	// (no lifecycle event) overrides a stale failure from an earlier attempt.
 	sort.Slice(matches, func(i, j int) bool {
 		return matches[i].createTime > matches[j].createTime
 	})
-	return matches[0].msg, true
+	return matches[0].msg, matches[0].phase, true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
@@ -4230,21 +4231,31 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
 	for _, task := range tasks {
-		msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved)
 		if !matched {
 			continue
+		}
+		// An empty message is recovery: clear the category instead of storing "unknown".
+		category := ""
+		if msg != "" {
+			category = string(util.ClassifyPodFailure(msg, phase).Category)
 		}
 		currentMsg := ""
 		if task.LifecycleMessage != nil {
 			currentMsg = string(*task.LifecycleMessage)
 		}
-		if currentMsg == msg {
+		currentCategory := ""
+		if task.LifecycleCategory != nil {
+			currentCategory = *task.LifecycleCategory
+		}
+		if currentMsg == msg && currentCategory == category {
 			continue
 		}
 		lm := model.LargeText(msg)
 		if _, err := r.taskStore.UpdateTask(&model.Task{
-			UUID:             task.UUID,
-			LifecycleMessage: &lm,
+			UUID:              task.UUID,
+			LifecycleMessage:  &lm,
+			LifecycleCategory: &category,
 		}); err != nil {
 			return err
 		}

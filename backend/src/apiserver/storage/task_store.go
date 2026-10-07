@@ -61,6 +61,7 @@ var taskColumns = []string{
 	"ScopePath",
 	"LogicalKey",
 	"LifecycleMessage",
+	"LifecycleCategory",
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -132,13 +133,20 @@ func nilOrLargeText(lm *model.LargeText) interface{} {
 	return string(*lm)
 }
 
+func nilOrString(value *string) interface{} {
+	if value == nil || *value == "" {
+		return nil
+	}
+	return *value
+}
+
 // scanTaskRow scans a single row into a model.Task. It expects the column order to match taskColumns.
 func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, error) {
 	var uuid, namespace, runUUID, fingerprint string
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
-	var lifecycleMessage sql.NullString
+	var lifecycleMessage, lifecycleCategory sql.NullString
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -161,6 +169,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&scopePath,
 		&logicalKey,
 		&lifecycleMessage,
+		&lifecycleCategory,
 	); err != nil {
 		return nil, err
 	}
@@ -186,6 +195,11 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	if lifecycleMessage.Valid {
 		lm := model.LargeText(lifecycleMessage.String)
 		lifecycleMessagePtr = &lm
+	}
+	var lifecycleCategoryPtr *string
+	if lifecycleCategory.Valid {
+		category := lifecycleCategory.String
+		lifecycleCategoryPtr = &category
 	}
 	var inputParameters model.JSONSlice
 	if inputParams.Valid {
@@ -218,27 +232,28 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		logicalKeyNew = &logicalKey.String
 	}
 	return &model.Task{
-		UUID:             uuid,
-		Namespace:        namespace,
-		RunUUID:          runUUID,
-		Pods:             podsNew,
-		CreatedAtInSec:   createdAtInSec.Int64,
-		StartedInSec:     startedInSec.Int64,
-		FinishedInSec:    finishedInSec.Int64,
-		Fingerprint:      fingerprint,
-		Name:             name.String,
-		DisplayName:      displayName.String,
-		ParentTaskUUID:   parentTaskIDNew,
-		State:            model.TaskStatus(taskState),
-		StatusMetadata:   statusMetadataNew,
-		StateHistory:     stateHistoryNew,
-		InputParameters:  inputParameters,
-		OutputParameters: outputParameters,
-		Type:             model.TaskType(taskType),
-		TypeAttrs:        typeAttrsData,
-		ScopePath:        scopePathStr,
-		LogicalKey:       logicalKeyNew,
-		LifecycleMessage: lifecycleMessagePtr,
+		UUID:              uuid,
+		Namespace:         namespace,
+		RunUUID:           runUUID,
+		Pods:              podsNew,
+		CreatedAtInSec:    createdAtInSec.Int64,
+		StartedInSec:      startedInSec.Int64,
+		FinishedInSec:     finishedInSec.Int64,
+		Fingerprint:       fingerprint,
+		Name:              name.String,
+		DisplayName:       displayName.String,
+		ParentTaskUUID:    parentTaskIDNew,
+		State:             model.TaskStatus(taskState),
+		StatusMetadata:    statusMetadataNew,
+		StateHistory:      stateHistoryNew,
+		InputParameters:   inputParameters,
+		OutputParameters:  outputParameters,
+		Type:              model.TaskType(taskType),
+		TypeAttrs:         typeAttrsData,
+		ScopePath:         scopePathStr,
+		LogicalKey:        logicalKeyNew,
+		LifecycleMessage:  lifecycleMessagePtr,
+		LifecycleCategory: lifecycleCategoryPtr,
 	}, nil
 }
 
@@ -657,27 +672,28 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		Insert(q(tableName)).
 		SetMap(
 			sq.Eq{
-				q("UUID"):             newTask.UUID,
-				q("Namespace"):        newTask.Namespace,
-				q("RunUUID"):          newTask.RunUUID,
-				q("pods"):             podsString,
-				q("CreatedAtInSec"):   newTask.CreatedAtInSec,
-				q("StartedInSec"):     newTask.StartedInSec,
-				q("FinishedInSec"):    newTask.FinishedInSec,
-				q("Fingerprint"):      newTask.Fingerprint,
-				q("Name"):             newTask.Name,
-				q("DisplayName"):      newTask.DisplayName,
-				q("ParentTaskUUID"):   newTask.ParentTaskUUID,
-				q("ScopePath"):        newTask.ScopePath,
-				q("State"):            newTask.State,
-				q("StatusMetadata"):   statusMetadataString,
-				q("StateHistory"):     stateHistoryString,
-				q("InputParameters"):  inputParamsString,
-				q("OutputParameters"): outputParamsString,
-				q("Type"):             newTask.Type,
-				q("TypeAttrs"):        typeAttrsString,
-				q("LogicalKey"):       newTask.LogicalKey,
-				q("LifecycleMessage"): nilOrLargeText(newTask.LifecycleMessage),
+				q("UUID"):              newTask.UUID,
+				q("Namespace"):         newTask.Namespace,
+				q("RunUUID"):           newTask.RunUUID,
+				q("pods"):              podsString,
+				q("CreatedAtInSec"):    newTask.CreatedAtInSec,
+				q("StartedInSec"):      newTask.StartedInSec,
+				q("FinishedInSec"):     newTask.FinishedInSec,
+				q("Fingerprint"):       newTask.Fingerprint,
+				q("Name"):              newTask.Name,
+				q("DisplayName"):       newTask.DisplayName,
+				q("ParentTaskUUID"):    newTask.ParentTaskUUID,
+				q("ScopePath"):         newTask.ScopePath,
+				q("State"):             newTask.State,
+				q("StatusMetadata"):    statusMetadataString,
+				q("StateHistory"):      stateHistoryString,
+				q("InputParameters"):   inputParamsString,
+				q("OutputParameters"):  outputParamsString,
+				q("Type"):              newTask.Type,
+				q("TypeAttrs"):         typeAttrsString,
+				q("LogicalKey"):        newTask.LogicalKey,
+				q("LifecycleMessage"):  nilOrLargeText(newTask.LifecycleMessage),
+				q("LifecycleCategory"): nilOrString(newTask.LifecycleCategory),
 			},
 		).
 		ToSql()
@@ -1226,6 +1242,13 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 			setMap[q("LifecycleMessage")] = string(*new.LifecycleMessage)
 		}
 	}
+	if new.LifecycleCategory != nil {
+		if *new.LifecycleCategory == "" {
+			setMap[q("LifecycleCategory")] = nil
+		} else {
+			setMap[q("LifecycleCategory")] = *new.LifecycleCategory
+		}
+	}
 
 	if len(setMap) == 0 {
 		// Nothing to update; commit transaction and return current record
@@ -1334,14 +1357,15 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		updateSQL, updateArgs, err := qb.
 			Update(q(tableName)).
 			SetMap(sq.Eq{
-				q("State"):            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
-				q("StartedInSec"):     retryStartedAt,
-				q("FinishedInSec"):    0,
-				q("StatusMetadata"):   nil,
-				q("pods"):             emptyJSONArray,
-				q("OutputParameters"): emptyJSONArray,
-				q("StateHistory"):     string(historyBytes),
-				q("LifecycleMessage"): nil,
+				q("State"):             model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				q("StartedInSec"):      retryStartedAt,
+				q("FinishedInSec"):     0,
+				q("StatusMetadata"):    nil,
+				q("pods"):              emptyJSONArray,
+				q("OutputParameters"):  emptyJSONArray,
+				q("StateHistory"):      string(historyBytes),
+				q("LifecycleMessage"):  nil,
+				q("LifecycleCategory"): nil,
 			}).
 			Where(sq.Eq{q("UUID"): task.UUID}).
 			ToSql()
