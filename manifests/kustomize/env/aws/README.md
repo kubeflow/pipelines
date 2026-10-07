@@ -68,13 +68,13 @@ Three files need your values:
 | File | What to change |
 | --- | --- |
 | `params.env` | The RDS endpoint, port and region |
-| `db-users-secret.yaml` | The IAM database user for each component |
-| `patches/*-sa.yaml` | The account id and role name for each service account |
+| `db-users-secret.yaml` | The API server's IAM database user |
+| `patches/ml-pipeline-apiserver-sa.yaml` | The account id and role name for the API server's service account |
 
-`mysql-secret` stays in place. Its password is unused once this is on -- both
-components authenticate with a token, and each logs a warning if a password is
+`mysql-secret` stays in place. Its password is unused once this is on -- the
+API server authenticates with a token, and logs a warning if a password is
 still configured -- but it is what a rollback to password authentication needs,
-so keep it until you are sure you will not want one. The deployments reference
+so keep it until you are sure you will not want one. The deployment references
 it optionally, so removing it will not stop pods from starting.
 
 Then:

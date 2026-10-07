@@ -105,7 +105,34 @@ func PostgreSQLConfig(t Target) (*pgx.ConnConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid PostgreSQL connection parameters for %s: %w", t.Host, err)
 	}
+	if t.TLS != nil {
+		if err := requireEncryptedRoutes(config); err != nil {
+			return nil, err
+		}
+	}
 	return config, nil
+}
+
+// requireEncryptedRoutes rejects a configuration in which any route the driver
+// may take is unencrypted.
+//
+// sslmode=verify-full is what was asked for, but the driver never encrypts a
+// Unix socket whatever sslmode says, and a host list can mix a socket in among
+// TCP hosts as a fallback. The resolved routes are what the driver will
+// actually dial, so they are what is checked: a connection whose CA bundle is
+// configured must not quietly go out in the clear.
+func requireEncryptedRoutes(config *pgx.ConnConfig) error {
+	if config.TLSConfig == nil {
+		return fmt.Errorf("database TLS is configured by DB_TLS_CA_PATH, but the PostgreSQL host %q resolves to an unencrypted route; "+
+			"a Unix socket cannot be used, because the driver does not encrypt one whatever sslmode asks for", config.Host)
+	}
+	for _, fallback := range config.Fallbacks {
+		if fallback.TLSConfig == nil {
+			return fmt.Errorf("database TLS is configured by DB_TLS_CA_PATH, but the PostgreSQL parameters allow falling back to an unencrypted route to %q; "+
+				"remove it, because the driver does not encrypt a Unix socket whatever sslmode asks for", fallback.Host)
+		}
+	}
+	return nil
 }
 
 // PostgreSQLConnector applies opts and returns the connector.
