@@ -27,7 +27,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const archiveFormatV1 = "kfp-namespace-transfer-mlmd-2.18/v1"
 const archiveFormat = "kfp-namespace-transfer-mlmd-2.18/v2"
 const maxRecords = 100000
 
@@ -428,7 +427,7 @@ func validateID(id string) bool {
 }
 
 func validateBundle(b *Bundle) error {
-	if b.Format != archiveFormat && b.Format != archiveFormatV1 {
+	if b.Format != archiveFormat {
 		return util.NewInvalidInputError("archive is not a compatible release-2.18 namespace transfer")
 	}
 	if _, err := uuid.Parse(b.Source); err != nil {
@@ -649,9 +648,6 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 	}
 	if err := restoreRuntimeParameters(&b); err != nil {
 		return result, err
-	}
-	if b.Format == archiveFormatV1 && len(b.Runs) > 0 {
-		result.Warnings = append(result.Warnings, "Version 1 archives did not preserve V2 runtime parameter overrides; imported history may omit those values. Re-export with the current API server to preserve them.")
 	}
 	if namespace != b.Namespace || (namespace == "" && b.RuntimeNamespace != e.RuntimeNamespace) {
 		return result, util.NewInvalidInputError("destination namespace must match archive namespace")

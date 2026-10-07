@@ -6,7 +6,6 @@ package transfer
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -94,24 +93,31 @@ func TestRuntimeParametersRejectIncompleteArchiveBeforeWrites(t *testing.T) {
 	}
 }
 
-func TestRuntimeParametersV1HistoryCompatibility(t *testing.T) {
+func TestRuntimeParametersRejectUnsupportedFormatBeforeWrites(t *testing.T) {
 	source := fixture(t, testDB(t))
 	data, err := source.Export(context.Background(), "team", ExportOptions{})
 	require.NoError(t, err)
-	var archive Bundle
-	require.NoError(t, json.Unmarshal(data, &archive))
-	archive.Format = archiveFormatV1
-	archive.RuntimeParameters = nil
-	destination := &Engine{DB: testDB(t), RuntimeNamespace: "team", Metadata: &Metadata{RPC: &emptyRPC{}}, Schedules: &fakeSchedules{}}
-	_, err = destination.Import(context.Background(), "team", signRuntimeArchive(t, archive), ImportOptions{})
-	require.ErrorContains(t, err, "re-export")
-	require.Zero(t, destination.Schedules.(*fakeSchedules).writes)
-	archive.Schedules = nil
-	archive.Runs[0].Run.RecurringRunId = ""
-	archive.References = nil
-	result, err := destination.Import(context.Background(), "team", signRuntimeArchive(t, archive), ImportOptions{})
-	require.NoError(t, err)
-	require.Contains(t, strings.Join(result.Warnings, " "), "did not preserve V2 runtime parameter overrides")
+	for _, withSchedules := range []bool{false, true} {
+		var archive Bundle
+		require.NoError(t, json.Unmarshal(data, &archive))
+		archive.Format = "kfp-namespace-transfer-mlmd-2.18/v1"
+		archive.RuntimeParameters = nil
+		if !withSchedules {
+			archive.Schedules = nil
+			archive.Runs[0].Run.RecurringRunId = ""
+			archive.References = nil
+		}
+		destination := &Engine{DB: testDB(t), RuntimeNamespace: "team", Metadata: &Metadata{RPC: &emptyRPC{}}, Schedules: &fakeSchedules{}}
+		for _, dry := range []bool{true, false} {
+			_, err = destination.Import(context.Background(), "team", signRuntimeArchive(t, archive), ImportOptions{DryRun: dry})
+			require.ErrorContains(t, err, "Unsupported archive format")
+		}
+		require.Zero(t, destination.Schedules.(*fakeSchedules).writes)
+		require.Zero(t, destination.Metadata.RPC.(*emptyRPC).writes)
+		var count int64
+		require.NoError(t, destination.DB.Model(&model.Experiment{}).Count(&count).Error)
+		require.Zero(t, count)
+	}
 }
 
 func TestRuntimeParametersExportRejectsMalformedOverrides(t *testing.T) {

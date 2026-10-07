@@ -23,21 +23,12 @@ func captureRuntimeParameters(b *Bundle) *RuntimeParameters {
 }
 
 func restoreRuntimeParameters(b *Bundle) error {
-	if b.Format == archiveFormatV1 {
-		if b.RuntimeParameters != nil {
-			return util.NewInvalidInputError("Version 1 archives cannot contain runtime_parameters")
-		}
-		if len(b.Schedules) > 0 {
-			return util.NewInvalidInputError("Version 1 archives omitted schedule runtime parameters; re-export with the current API server before importing schedules")
-		}
-		return nil
-	}
 	if b.Format != archiveFormat {
 		return util.NewInvalidInputError("Unsupported archive format")
 	}
 	values := b.RuntimeParameters
 	if values == nil || len(values.Runs) != len(b.Runs) || len(values.Schedules) != len(b.Schedules) {
-		return util.NewInvalidInputError("Version 2 archives require runtime_parameters for every run and schedule")
+		return util.NewInvalidInputError("Archives require runtime_parameters for every run and schedule")
 	}
 	valid := func(value string, present bool) error {
 		if !present {
@@ -71,12 +62,8 @@ func restoreRuntimeParameters(b *Bundle) error {
 	return nil
 }
 
-// Preserve old receipts when overrides are empty, but bind every nonempty V2
-// override explicitly because model JSON otherwise omits the embedded field.
+// Bind runtime overrides explicitly because model JSON omits the embedded field.
 func runtimeParametersDigest(value any, parameters string) any {
-	if parameters == "" {
-		return value
-	}
 	return struct {
 		Value             any
 		RuntimeParameters string
