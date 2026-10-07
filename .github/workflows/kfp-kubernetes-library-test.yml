@@ -9,6 +9,7 @@ on:
       - 'uv.lock'
       - '.github/workflows/kfp-kubernetes-library-test.yml'
       - '.github/actions/setup-python/**'
+      - '.github/actions/protobuf/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'kubernetes_platform/**'
@@ -43,4 +44,4 @@ jobs:
         uses: ./.github/actions/protobuf
 
       - name: Run tests
-        run: uv run pytest ./kubernetes_platform/python/test
+        run: uv run pytest ./sdk/python/test/kubernetes

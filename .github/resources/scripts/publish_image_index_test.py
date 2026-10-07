@@ -63,6 +63,36 @@ def index(arches):
     }
 
 
+class ParsePlatformsTest(unittest.TestCase):
+
+    def test_supported_platform_subsets_and_order(self):
+        cases = (
+            ('linux/amd64', {'linux/amd64'}),
+            ('linux/arm64', {'linux/arm64'}),
+            ('linux/amd64,linux/arm64', PLATFORMS),
+            ('linux/arm64,linux/amd64', PLATFORMS),
+            ('linux/amd64,linux/amd64', {'linux/amd64'}),
+        )
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(publication.parse_platforms(value), expected)
+
+    def test_empty_malformed_or_unsupported_platforms(self):
+        for value in ('', ' ', ',', ',linux/amd64', 'linux/amd64,',
+                      'linux/amd64,,linux/arm64', 'linux/amd64, linux/arm64',
+                      'linux/arm64/v8', 'windows/amd64', 'linux/386'):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, 'Expected platforms'):
+                    publication.parse_platforms(value)
+
+    def test_invalid_publication_platforms_fail_before_loading_sources(self):
+        args = argparse.Namespace(platforms='linux/amd64,')
+        with mock.patch.object(publication, 'load_sources') as load_sources:
+            with self.assertRaisesRegex(ValueError, 'Expected platforms'):
+                publication.publish(args)
+        load_sources.assert_not_called()
+
+
 class PublicationTest(unittest.TestCase):
 
     def setUp(self):
@@ -127,7 +157,7 @@ class PublicationTest(unittest.TestCase):
             publication.validate_index(original, PLATFORMS),
             publication.validate_index(reordered, PLATFORMS))
 
-    def test_inverse_proxy_single_platform(self):
+    def test_single_platform_inventory(self):
         publication.validate_index(index(['amd64']), {'linux/amd64'})
 
     def test_missing_index_platform(self):

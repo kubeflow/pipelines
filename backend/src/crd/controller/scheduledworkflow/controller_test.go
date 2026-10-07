@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
@@ -27,6 +28,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -103,7 +109,7 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 				},
 			})
 
-			submitted, workflowName, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+			submitted, workflowName, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 				context.Background(), swf, 100, 200)
 
 			if tt.expectError != "" {
@@ -156,11 +162,12 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *test
 		},
 	})
 
-	submitted, workflowName, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, workflowName, scheduledEpoch, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(t, err)
 	assert.True(t, submitted)
+	assert.Equal(t, int64(100), scheduledEpoch)
 	// No Argo workflow may be created directly; the run must go through the CreateRun
 	// API so the referenced pipeline is resolved and compiled at trigger time.
 	assert.Nil(t, executionClient.createdWorkflow)
@@ -319,4 +326,219 @@ func TestCrdPluginsInputToProto(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid plugins_input entry")
 	})
+}
+
+func TestSubmitNewWorkflowIfNotAlreadySubmitted_MultiUserUsesPersistedRun(t *testing.T) {
+	for _, embedded := range []bool{false, true} {
+		name := "pipeline reference"
+		if embedded {
+			name = "embedded workflow"
+		}
+		t.Run(name, func(t *testing.T) {
+			executionClient := &fakeExecutionClient{}
+			runClient := &fakeRunServiceClient{response: &api.Run{DisplayName: "fake-run", ScheduledAt: timestamppb.New(time.Unix(80, 0))}}
+			controller := &Controller{
+				workflowClient:     client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
+				runClient:          runClient,
+				multiUser:          true,
+				tokenSrc:           &fakeTokenSource{token: "controller-token"},
+				userIdentityHeader: "kubeflow-userid",
+				userIdentityValue:  "system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow",
+			}
+			swf := newTestSWFForAPIPath()
+			swf.Spec.ExperimentId = "untrusted-experiment"
+			swf.Spec.PipelineId = "untrusted-pipeline"
+			swf.Spec.PipelineVersionId = "untrusted-version"
+			swf.Spec.ServiceAccount = "privileged-account"
+			swf.Spec.Workflow.PipelineRoot = "s3://untrusted-root"
+			// Invalid inputs must not even be parsed on the multi-user path.
+			swf.Spec.Workflow.Parameters = []swfapi.Parameter{{Name: "command", Value: "invalid json"}}
+			swf.Spec.PluginsInput = map[string]apiextensionsv1.JSON{
+				"plugin": {Raw: []byte("invalid json")},
+			}
+			if embedded {
+				swf.Spec.Workflow.Spec = "invalid embedded workflow"
+			}
+
+			submitted, name, scheduledAt, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+			require.NoError(t, err)
+			assert.True(t, submitted)
+			assert.Equal(t, "fake-run", name)
+			assert.Equal(t, int64(80), scheduledAt, "the API owns the actual scheduled time")
+			assert.Nil(t, executionClient.createdWorkflow, "multi-user schedules must never create workflows directly")
+			want := &api.CreateRunRequest{Run: &api.Run{
+				RecurringRunId: string(swf.UID),
+				DisplayName:    swf.NextResourceName(),
+				ScheduledAt:    timestamppb.New(time.Unix(100, 0)),
+			}}
+			assert.True(t, proto.Equal(want, runClient.capturedRequest), "unexpected request: %v", runClient.capturedRequest)
+			md, ok := metadata.FromOutgoingContext(runClient.capturedCtx)
+			require.True(t, ok)
+			assert.Equal(t, []string{"Bearer controller-token"}, md.Get("authorization"))
+			assert.Equal(t, []string{controller.userIdentityValue}, md.Get("kubeflow-userid"))
+		})
+	}
+}
+
+func TestSubmitNextWorkflowUsesAPIScheduledTimeInMultiUserMode(t *testing.T) {
+	for _, multiUser := range []bool{false, true} {
+		name := "single user"
+		if multiUser {
+			name = "multi user"
+		}
+		t.Run(name, func(t *testing.T) {
+			runClient := &fakeRunServiceClient{response: &api.Run{
+				DisplayName: "scheduled-run", ScheduledAt: timestamppb.New(time.Unix(80, 0)),
+			}}
+			controller := &Controller{
+				workflowClient: client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
+				runClient:      runClient, multiUser: multiUser, location: time.UTC,
+			}
+			swf := newTestSWFForAPIPath()
+			swf.Spec.Enabled = true
+			swf.CreationTimestamp = metav1.NewTime(time.Unix(100, 0))
+			swf.Spec.PeriodicSchedule = &swfapi.PeriodicSchedule{IntervalSecond: 60}
+			submitted, scheduledAt, err := controller.submitNextWorkflowIfNeeded(context.Background(), swf, 0, 200)
+			require.NoError(t, err)
+			require.True(t, submitted)
+			wantTime := int64(160)
+			if multiUser {
+				wantTime = 80
+			}
+			require.Equal(t, wantTime, scheduledAt)
+			swf.UpdateStatus(submitted, scheduledAt, nil, nil, time.UTC)
+			require.Equal(t, wantTime, swf.Status.Trigger.LastTriggeredTime.Unix())
+		})
+	}
+}
+
+func TestMultiUserSubmissionRejectsMissingOrInvalidAPIScheduledTime(t *testing.T) {
+	for name, timestamp := range map[string]*timestamppb.Timestamp{
+		"missing": nil,
+		"invalid": {Seconds: 253402300800},
+	} {
+		t.Run(name, func(t *testing.T) {
+			controller := &Controller{
+				workflowClient: client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
+				runClient: &fakeRunServiceClient{response: &api.Run{
+					DisplayName: "scheduled-run", ScheduledAt: timestamp,
+				}},
+				multiUser: true,
+			}
+			submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), newTestSWFForAPIPath(), 100, 200)
+			require.ErrorContains(t, err, "no valid scheduled time")
+			require.False(t, submitted)
+		})
+	}
+}
+
+func TestSubmitGenericScheduleWithoutMultiUserFlagUsesAPI(t *testing.T) {
+	executionClient := &fakeExecutionClient{}
+	runClient := &fakeRunClient{}
+	controller := &Controller{
+		workflowClient: client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
+		runClient:      runClient,
+	}
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "api-schedule", Namespace: "ns1", UID: "schedule-uid"},
+		Spec:       swfapi.ScheduledWorkflowSpec{Enabled: true, ExperimentId: "experiment-id", ServiceAccount: "runner"},
+	})
+	submitted, _, scheduledEpoch, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+	require.NoError(t, err)
+	require.True(t, submitted)
+	require.Equal(t, int64(100), scheduledEpoch)
+	require.Nil(t, executionClient.createdWorkflow)
+	require.NotNil(t, runClient.createRunRequest)
+	require.Equal(t, "schedule-uid", runClient.createRunRequest.Run.RecurringRunId)
+}
+
+// workflowLookupInformer lets tests distinguish API reconciliation from recovery
+// based only on the presence of a namespace-editable Workflow.
+type workflowLookupInformer struct {
+	fakeExecutionInformer
+	getCalls    int
+	lookupError error
+}
+
+func (f *workflowLookupInformer) Get(namespace, name string) (commonutil.ExecutionSpec, bool, error) {
+	f.getCalls++
+	return nil, false, f.lookupError
+}
+
+type reconciliationRunClient struct {
+	api.RunServiceClient
+	request  *api.CreateRunRequest
+	response *api.Run
+	err      error
+}
+
+func (f *reconciliationRunClient) CreateRun(ctx context.Context, request *api.CreateRunRequest, opts ...grpc.CallOption) (*api.Run, error) {
+	f.request = request
+	return f.response, f.err
+}
+
+func TestExistingWorkflowRequiresMultiUserAPIReconciliation(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		multiUser   bool
+		lookupError error
+		apiError    error
+	}{
+		{name: "multi-user uses API result", multiUser: true},
+		{name: "multi-user propagates denial", multiUser: true, apiError: status.Error(codes.PermissionDenied, "recurring run authorization denied")},
+		{name: "multi-user propagates failure", multiUser: true, apiError: status.Error(codes.Unavailable, "API unavailable")},
+		{name: "multi-user ignores workflow lookup failure", multiUser: true, lookupError: errors.New("workflow cache unavailable")},
+		{name: "single-user recovers existing workflow"},
+		{name: "single-user propagates workflow lookup failure", lookupError: errors.New("workflow cache unavailable")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			informer := &workflowLookupInformer{lookupError: tc.lookupError}
+			executionClient := &fakeExecutionClient{}
+			runClient := &reconciliationRunClient{
+				response: &api.Run{DisplayName: "persisted-run", ScheduledAt: timestamppb.New(time.Unix(80, 0))},
+				err:      tc.apiError,
+			}
+			controller := &Controller{
+				workflowClient: client.NewWorkflowClient(executionClient, informer),
+				runClient:      runClient, multiUser: tc.multiUser,
+			}
+			swf := newTestSWFForAPIPath()
+			submitted, name, scheduledAt, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+			require.Nil(t, executionClient.createdWorkflow)
+			if tc.multiUser {
+				require.NotNil(t, runClient.request, "existing Workflows must not bypass API authorization and reconciliation")
+				require.Zero(t, informer.getCalls)
+				wantRequest := &api.CreateRunRequest{Run: &api.Run{
+					RecurringRunId: string(swf.UID), DisplayName: swf.NextResourceName(),
+					ScheduledAt: timestamppb.New(time.Unix(100, 0)),
+				}}
+				require.True(t, proto.Equal(wantRequest, runClient.request))
+				if tc.apiError != nil {
+					require.ErrorIs(t, err, tc.apiError)
+					require.False(t, submitted)
+					require.Empty(t, name)
+					return
+				}
+				require.NoError(t, err)
+				require.True(t, submitted)
+				require.Equal(t, "persisted-run", name)
+				require.Equal(t, int64(80), scheduledAt)
+				swf.UpdateStatus(submitted, scheduledAt, nil, nil, time.UTC)
+				require.Equal(t, int64(80), swf.Status.Trigger.LastTriggeredTime.Unix())
+			} else {
+				require.Nil(t, runClient.request)
+				require.Equal(t, 1, informer.getCalls)
+				if tc.lookupError != nil {
+					require.ErrorIs(t, err, tc.lookupError)
+					require.False(t, submitted)
+					require.Empty(t, name)
+					return
+				}
+				require.NoError(t, err)
+				require.True(t, submitted)
+				require.Equal(t, swf.NextResourceName(), name)
+				require.Equal(t, int64(100), scheduledAt)
+			}
+		})
+	}
 }

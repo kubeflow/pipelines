@@ -24,6 +24,7 @@ from .core import prompt_choice
 from .core import prompt_required
 from .core import release_version_bump_command
 from .core import ReleaseContext
+from .core import ReleaseMetadata
 from .core import REPO
 from .core import sdk_workflow_command
 from .core import underline_links
@@ -41,7 +42,9 @@ class Step:
     handler: str
 
 
-def manual_checklist(step_id: str, metadata) -> str:
+def manual_checklist(step_id: str,
+                     metadata: ReleaseMetadata,
+                     consolidated: bool | None = None) -> str:
     """Return manual checkpoint text for status output."""
     if step_id == 'create-backend-release' and metadata.major >= 3:
         return underline_links(
@@ -55,15 +58,22 @@ def manual_checklist(step_id: str, metadata) -> str:
    https://github.com/kubeflow/pipelines/blob/{metadata.release_branch}/docs/operator-guides/supported-platforms.md'''
         )
     if step_id == 'confirm-rtd':
-        return underline_links(f'''ReadTheDocs manual checkpoint:
+        checklist = f'''ReadTheDocs manual checkpoint:
 1. Open https://app.readthedocs.org/projects/kubeflow-pipelines/
 2. Confirm {metadata.release_branch} build succeeded.
 3. Set Default version to {metadata.release_branch}.
-4. Set Default branch to {metadata.release_branch}.
+4. Set Default branch to {metadata.release_branch}.'''
+        if consolidated is not True:
+            if consolidated is None:
+                checklist += f'''
+
+For split-package SDK tags only (skip when {metadata.sdk_tag} contains
+sdk/python/kfp/server_api):'''
+            checklist += f'''
 5. Open https://app.readthedocs.org/projects/kfp-kubernetes/
-6. Add or resync version kfp-kubernetes-{metadata.major}.{metadata.minor}.
-7. Confirm kfp-kubernetes-{metadata.major}.{metadata.minor} build succeeded.
-8. Set Default version to kfp-kubernetes-{metadata.major}.{metadata.minor}.''')
+6. Confirm kfp-kubernetes-{metadata.major}.{metadata.minor} build succeeded.
+7. Set Default version to kfp-kubernetes-{metadata.major}.{metadata.minor}.'''
+        return underline_links(checklist)
     if step_id == 'confirm-website-and-slack':
         compatibility_steps = ''
         slack_step = 4
@@ -625,6 +635,25 @@ def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
 def _refresh_uv_release_packages(context: ReleaseContext) -> None:
     """Regenerate the workspace lock, requirements exports, and local release
     dists."""
+    if (context.root / 'sdk/python/kfp/server_api/__init__.py').is_file():
+        context.runner.run(['make', '-C', 'sdk', 'generate-python'],
+                           cwd=context.root)
+        context.runner.run(['uv', 'lock'], cwd=context.root)
+        export_command = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
+        context.runner.run(
+            export_command +
+            ['--format', 'requirements-txt', '-o', 'requirements.txt'],
+            cwd=context.root)
+        context.runner.run(
+            export_command + [
+                '--package', 'kfp', '--format', 'requirements-txt', '-o',
+                'sdk/python/requirements.txt'
+            ],
+            cwd=context.root)
+        context.runner.run(
+            ['uv', 'build', '--package', 'kfp', '--out-dir', 'sdk/python/dist'],
+            cwd=context.root)
+        return
     context.runner.run(
         ['make', 'API_VERSION=v2beta1', 'generate-kfp-server-api-package'],
         cwd=context.root / 'backend/api')
@@ -659,6 +688,7 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
     metadata = context.metadata
     root = context.root
     uses_uv = (root / 'uv.lock').exists()
+    consolidated = (root / 'sdk/python/kfp/server_api/__init__.py').is_file()
 
     # Update SDK version files
     if context.runner.dry_run:
@@ -667,12 +697,14 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
         _replace(root / 'sdk/python/kfp/version.py',
                  r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
                  f"__version__ = '{metadata.tag}'")
-        _replace(root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py',
-                 r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
-                 f"__version__ = '{metadata.tag}'")
-        if uses_uv:
+        if not consolidated:
+            _replace(
+                root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py',
+                r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
+                f"__version__ = '{metadata.tag}'")
+        if uses_uv and not consolidated:
             _update_uv_package_versions(root, metadata.tag)
-        else:
+        elif not uses_uv and not consolidated:
             _replace(root / 'api/v2alpha1/python/setup.py',
                      r"VERSION\s*=\s*['\"]([^'\"]+)['\"]",
                      f"VERSION = '{metadata.tag}'")
@@ -694,8 +726,9 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
             _replace(root / 'kubernetes_platform/python/requirements.in',
                      r'kfp>=[^,\n]+,<\d+', f'kfp>={metadata.tag},<{next_major}')
         _update_sdk_docs_versions(root / 'docs/sdk/versions.json', metadata.tag)
-        _update_kfp_kubernetes_docs_versions(
-            root / 'kubernetes_platform/python/docs/conf.py', metadata.tag)
+        if not consolidated:
+            _update_kfp_kubernetes_docs_versions(
+                root / 'kubernetes_platform/python/docs/conf.py', metadata.tag)
         _update_sdk_release_notes(
             root / 'sdk/RELEASE.md',
             metadata.tag,
@@ -753,10 +786,51 @@ def step_create_sdk_tag(context: ReleaseContext) -> None:
         cwd=context.root)
 
 
+def _sdk_release_is_consolidated(context: ReleaseContext) -> bool:
+    """Inspect the published SDK tag, not the CLI's checkout or version."""
+    contents = context.runner.capture([
+        'gh', 'api',
+        f'repos/{REPO}/contents/sdk/python/kfp?ref={context.metadata.sdk_tag}',
+        '--jq', '.[].name'
+    ],
+                                      cwd=context.root).splitlines()
+    if 'version.py' not in contents:
+        raise RuntimeError(
+            f'Cannot determine packaging layout for {context.metadata.sdk_tag}. '
+            'Verify that create-sdk-tag completed and the tag contains the SDK.'
+        )
+    return 'server_api' in contents
+
+
 def step_create_sdk_release(context: ReleaseContext) -> None:
-    """Create the SDK GitHub release after packages are published."""
+    """Create SDK release notes for the target tag's packaging layout."""
     metadata = context.metadata
-    notes = f'''Release of:
+    if context.runner.dry_run:
+        print(f'[dry-run] would create SDK GitHub release: {metadata.sdk_tag}')
+        print(
+            '[dry-run] installation instructions will follow the SDK tag layout'
+        )
+        return
+    if _sdk_release_is_consolidated(context):
+        notes = f'''Release of the unified KFP SDK, including Kubernetes configuration,
+the server API client, and pipeline-spec bindings.
+
+To install the KFP SDK:
+
+```
+pip install kfp=={metadata.tag}
+```
+
+When migrating from the split SDK, remove the legacy distributions before
+installing the unified wheel:
+
+```
+python -m pip uninstall -y kfp-pipeline-spec kfp-server-api kfp-kubernetes
+python -m pip install --upgrade --force-reinstall kfp=={metadata.tag}
+```
+'''
+    else:
+        notes = f'''Release of:
 
 - KFP SDK
 - KFP Kubernetes
@@ -771,12 +845,10 @@ pip install kfp-server-api=={metadata.tag}
 pip install kfp=={metadata.tag}
 pip install kfp-kubernetes=={metadata.tag}
 ```
-
+'''
+    notes += f'''
 For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}/sdk/RELEASE.md.
 '''
-    if context.runner.dry_run:
-        print(f'[dry-run] would create SDK GitHub release: {metadata.sdk_tag}')
-        return
     existing_release = context.runner.run(
         ['gh', 'release', 'view', metadata.sdk_tag, '--repo', REPO],
         check=False)
@@ -808,9 +880,6 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
     context.runner.run(create_command)
 
 
-PYPI_PACKAGES = ['kfp-pipeline-spec', 'kfp-server-api', 'kfp', 'kfp-kubernetes']
-
-
 def _is_pypi_version_published(package: str, version: str) -> bool:
     request = urllib.request.Request(
         f'https://pypi.org/pypi/{package}/{version}/json')
@@ -823,13 +892,15 @@ def _is_pypi_version_published(package: str, version: str) -> bool:
     return response.status == 200
 
 
-def _wait_for_pypi_packages(version: str,
-                            sleep: Callable[[float],
-                                            None] = time.sleep) -> list[str]:
-    missing = PYPI_PACKAGES
+def _wait_for_pypi_packages(
+    version: str,
+    packages: list[str],
+    sleep: Callable[[float], None] = time.sleep,
+) -> list[str]:
+    missing = packages
     for _ in range(30):
         missing = [
-            package for package in PYPI_PACKAGES
+            package for package in packages
             if not _is_pypi_version_published(package, version)
         ]
         if not missing:
@@ -846,12 +917,17 @@ def step_publish_sdks(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner and metadata.
     """
+    packages = []
+    if not context.runner.dry_run:
+        packages = ['kfp'] if _sdk_release_is_consolidated(context) else [
+            'kfp-pipeline-spec', 'kfp-server-api', 'kfp', 'kfp-kubernetes'
+        ]
     context.runner.run(sdk_workflow_command(context.metadata))
     watch_latest_workflow_run(context.runner, 'publish-packages.yml',
                               context.metadata.release_branch)
     if context.runner.dry_run:
         return
-    missing = _wait_for_pypi_packages(context.metadata.tag)
+    missing = _wait_for_pypi_packages(context.metadata.tag, packages)
     if not missing:
         return
     print(
@@ -862,44 +938,53 @@ def step_publish_sdks(context: ReleaseContext) -> None:
             sdk_workflow_command(context.metadata, packages=package))
         watch_latest_workflow_run(context.runner, 'publish-packages.yml',
                                   context.metadata.release_branch)
-    missing = _wait_for_pypi_packages(context.metadata.tag)
+    missing = _wait_for_pypi_packages(context.metadata.tag, packages)
     if missing:
         raise RuntimeError(
             f'PyPI packages are still missing for {context.metadata.tag}.')
 
 
 def step_create_kfp_kubernetes_docs_branch(context: ReleaseContext) -> None:
-    """Create kfp-kubernetes docs branch for ReadTheDocs.
+    """Create a separate docs branch only for split-package SDK tags.
 
     Args:
       context: Release context with runner, metadata, and root path.
     """
+    if context.runner.dry_run:
+        print('[dry-run] would create the Kubernetes docs branch only if '
+              f'{context.metadata.sdk_tag} uses split packages')
+        return
+    if _sdk_release_is_consolidated(context):
+        print(
+            'Skipping separate Kubernetes docs: included in unified SDK docs.')
+        return
+    if context.runner.capture(['git', 'status', '--short'],
+                              cwd=context.root).strip():
+        raise RuntimeError(
+            'git working tree is dirty; commit or stash changes before '
+            'creating the Kubernetes docs branch')
     metadata = context.metadata
     root = context.root
     branch = f'kfp-kubernetes-{metadata.major}.{metadata.minor}'
     pkg_root = root / 'kubernetes_platform/python'
-    branch_exists = False
     branch_action = ''
-    if not context.runner.dry_run:
-        remote_branch = context.runner.run(
-            ['git', 'ls-remote', '--exit-code', '--heads', 'upstream', branch],
-            cwd=root,
-            check=False)
-        branch_exists = remote_branch.returncode == 0
-        if branch_exists:
-            branch_action = prompt_choice(
-                f'{branch} already exists on upstream. Reuse, replace, or force-push',
-                ['reuse', 'replace', 'force-push'],
-                default='reuse',
-            )
-            if branch_action == 'reuse':
-                print(
-                    f'Reusing upstream/{branch}; skipping docs branch creation.'
-                )
-                return
-            if branch_action == 'replace':
-                context.runner.run(['git', 'push', 'upstream', f':{branch}'],
-                                   cwd=root)
+    remote_branch = context.runner.run(
+        ['git', 'ls-remote', '--exit-code', '--heads', 'upstream', branch],
+        cwd=root,
+        check=False)
+    branch_exists = remote_branch.returncode == 0
+    if branch_exists:
+        branch_action = prompt_choice(
+            f'{branch} already exists on upstream. Reuse, replace, or force-push',
+            ['reuse', 'replace', 'force-push'],
+            default='reuse',
+        )
+        if branch_action == 'reuse':
+            print(f'Reusing upstream/{branch}; skipping docs branch creation.')
+            return
+        if branch_action == 'replace':
+            context.runner.run(['git', 'push', 'upstream', f':{branch}'],
+                               cwd=root)
 
     context.runner.run(['git', 'fetch', 'upstream', metadata.release_branch],
                        cwd=root)
@@ -915,19 +1000,14 @@ def step_create_kfp_kubernetes_docs_branch(context: ReleaseContext) -> None:
     context.runner.run(
         ['git', 'checkout', '-B' if branch_exists else '-b', branch], cwd=root)
 
-    # Move .readthedocs.yml to root and remove .gitignore - guarded in dry-run
-    if context.runner.dry_run:
-        print('[dry-run] would copy ReadTheDocs config to repository root')
-        print('[dry-run] would remove kubernetes_platform/.gitignore')
-    else:
-        rtd_config_src = pkg_root / 'docs/.readthedocs.yml'
-        rtd_config_dst = root / '.readthedocs.yml'
-        if rtd_config_src.exists():
-            rtd_config_dst.write_text(rtd_config_src.read_text())
+    rtd_config_src = pkg_root / 'docs/.readthedocs.yml'
+    rtd_config_dst = root / '.readthedocs.yml'
+    if rtd_config_src.exists():
+        rtd_config_dst.write_text(rtd_config_src.read_text())
 
-        gitignore = root / 'kubernetes_platform/.gitignore'
-        if gitignore.exists():
-            gitignore.unlink()
+    gitignore = root / 'kubernetes_platform/.gitignore'
+    if gitignore.exists():
+        gitignore.unlink()
 
     context.runner.run([
         'git', 'add',
@@ -963,6 +1043,7 @@ def step_confirm_rtd(context: ReleaseContext) -> None:
         print('[dry-run] ReadTheDocs confirmation skipped')
         return
 
+    consolidated = _sdk_release_is_consolidated(context)
     token = os.environ.get('RTD_TOKEN', '').strip()
     if token:
         print('Using Read the Docs API token from RTD_TOKEN.')
@@ -974,13 +1055,18 @@ def step_confirm_rtd(context: ReleaseContext) -> None:
     try:
         client = rtd.ReadTheDocsClient(token)
         print('Updating ReadTheDocs projects...')
-        rtd.update_release_docs(client, metadata.tag, metadata.release_branch)
+        rtd.update_release_docs(
+            client,
+            metadata.tag,
+            metadata.release_branch,
+            consolidated=consolidated)
         print('ReadTheDocs projects updated and verified.')
     except rtd.ReadTheDocsError as error:
         print(f'ReadTheDocs automation failed: {error}')
-        print(manual_checklist('confirm-rtd', metadata))
+        print(manual_checklist('confirm-rtd', metadata, consolidated))
         confirm('Fall back to manual ReadTheDocs mode?')
-        confirm('Have both ReadTheDocs projects been updated and verified?')
+        confirm(
+            'Have the required ReadTheDocs projects been updated and verified?')
 
 
 def step_create_backend_release(context: ReleaseContext) -> None:
@@ -1161,7 +1247,7 @@ def build_steps(release_type: str, include_backend: bool,
             Step('publish-sdks', 'Run SDK publication workflow',
                  'step_publish_sdks'),
             Step('create-kfp-kubernetes-docs-branch',
-                 'Create kfp-kubernetes docs branch',
+                 'Create Kubernetes docs branch for split SDK releases',
                  'step_create_kfp_kubernetes_docs_branch'),
             Step('confirm-rtd', 'Confirm ReadTheDocs updates',
                  'step_confirm_rtd'),

@@ -927,7 +927,7 @@ def _pop_input_from_task_spec(
 
     Args:
       task_spec: The pipeline task spec to update in place.
-      input_name: The name of the input, which could be an artifact or paremeter.
+      input_name: The name of the input, which could be an artifact or parameter.
     """
     task_spec.inputs.artifacts.pop(input_name)
     task_spec.inputs.parameters.pop(input_name)

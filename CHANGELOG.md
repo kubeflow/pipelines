@@ -1,5 +1,24 @@
 Changelog
 
+## Unreleased
+
+### Upgrade notes
+
+- **Recurring-run security:** multi-user recurring runs created before API-owned
+  scheduling state must be reviewed and recreated through the API. Otherwise they
+  stop submitting executions, even when shown as enabled. API startup logs now
+  enumerate affected jobs. See the [migration inventory and procedure](docs/operator-guides/scheduled-service-accounts.md#inventory-before-completing-the-upgrade).
+  Upgrade the API and controller together and apply the multi-user RBAC; generic
+  schedules alone do not replace an upgraded controller in multi-user mode.
+  Block recurring-run creation and recreation until all old API replicas and their
+  in-flight reports have drained. Schedules created during mixed-version API
+  operation also require review and recreation, even if they have scheduling
+  state and are omitted from the migration inventory.
+- **Recurring-run parameters:** API-path schedules now expand scheduling macros
+  inside nested list/struct parameters and support `[[Index]]`, matching embedded
+  workflow scheduling. Review nested values containing literal `[[…]]` or
+  `{{$.…}}` before recreating schedules; these sequences may now be substituted.
+
 ## 2.17.1 (2026-08-26)
 
 ### Bug Fixes
@@ -722,7 +741,7 @@ Changelog
 - adding myself as a reviewer ([#12325](https://github.com/kubeflow/pipelines/pull/12325))
 ### Ci
 
-- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))# 
+- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))#
 
 ### [2.14.3](https://github.com/kubeflow/pipelines/compare/2.14.0...2.14.3) (2025-08-28)
 

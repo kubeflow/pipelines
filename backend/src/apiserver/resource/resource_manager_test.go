@@ -46,6 +46,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swfclientv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -61,8 +62,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type duplicateRecurringRunStore struct {
@@ -265,6 +268,7 @@ func testWorkflowWithoutStatus() *util.Workflow {
 }
 
 type retryDuringTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	manager  *ResourceManager
 	runID    string
 	retryErr error
@@ -288,6 +292,7 @@ func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
 }
 
 type countingTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunEndCalls int
 }
 
@@ -1547,10 +1552,10 @@ func TestGetPipelineByNameAndNamespace(t *testing.T) {
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineSpec)
-func TestGetLatestPipelineVersion(t *testing.T) {
+func TestGetDefaultPipelineVersion(t *testing.T) {
 	store, manager, p, pv := initWithPipeline(t)
 	defer store.Close()
-	actualTemplate, err := manager.GetLatestPipelineVersion(p.UUID)
+	actualTemplate, err := manager.GetDefaultPipelineVersion(p.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, pv, actualTemplate)
 
@@ -1570,7 +1575,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 	pv2.UUID = pv2expected.UUID
 	pv2.CreatedAtInSec = pv2expected.CreatedAtInSec
 	pv2.Status = model.PipelineVersionReady
-	actualTemplate2, err := manager.GetLatestPipelineVersion(p.UUID)
+	actualTemplate2, err := manager.GetDefaultPipelineVersion(p.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, pv2, actualTemplate2)
 }
@@ -3531,9 +3536,8 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		DisplayName: "j1",
 		K8SName:     "job-",
 		Namespace:   "ns1",
-		// Since there is no pipeline version or service account specified, the API server will select the service
-		// account when compiling the run, not within the ScheduledWorkflow.
-		ServiceAccount: "",
+		// Persist the effective account authorized when the follow-latest schedule is created.
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -4013,6 +4017,80 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	expectedRun.RunDetails.WorkflowRuntimeManifest = run.RunDetails.WorkflowRuntimeManifest
 	expectedRun.PipelineRuntimeManifest = run.PipelineRuntimeManifest
 	assert.Equal(t, expectedRun.ToV2(), run.ToV2())
+}
+
+func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "executor-pod",
+		Uid:  "uid-1",
+		Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          run.UUID,
+		Name:             "train",
+		DisplayName:      "train",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Fingerprint:      "fp-train",
+		Pods:             pods,
+		TypeAttrs:        model.JSONData{},
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"executor-pod": {
+					ID:          "executor-pod",
+					Name:        "executor-pod",
+					DisplayName: "train",
+					Phase:       v1alpha1.NodePending,
+					Message:     `Back-off pulling image "ghcr.io/example/missing:v1"`,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
+
+	workflow.Status.Nodes["executor-pod"] = v1alpha1.NodeStatus{
+		ID:          "executor-pod",
+		Name:        "executor-pod",
+		DisplayName: "train",
+		Phase:       v1alpha1.NodeRunning,
+		Message:     "ContainerCreating: Container is creating",
+	}
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+	got, err = manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Nil(t, got.LifecycleMessage, "lifecycle message should be cleared after transient startup message")
 }
 
 type runStoreWithBeforeWorkflowUpdateHook struct {
@@ -7390,6 +7468,9 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
+	retainedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	retainedWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+
 	// Pre-create a run as if it was already submitted for this recurring run trigger.
 	// This simulates a race where one replica already persisted the run.
 	preExistingRun := &model.Run{
@@ -7403,7 +7484,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			State:                   model.RuntimeStatePending,
-			WorkflowRuntimeManifest: model.LargeText(v2SpecHelloWorld),
+			WorkflowRuntimeManifest: model.LargeText(retainedWorkflow.ToStringForStore()),
 		},
 	}
 	_, err := manager.runStore.CreateRun(preExistingRun)
@@ -7418,7 +7499,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		PipelineSpec:   job.PipelineSpec,
 	}
 	returned, err := manager.CreateRun(context.Background(), duplicateRun)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "pre-existing-run-uuid", returned.UUID, "should return existing run, not create a new one")
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no new Argo Workflow should be submitted")
 }
@@ -7692,6 +7773,7 @@ func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
 }
 
 type retryHookCountingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunRetryCalls int
 }
 
@@ -8569,4 +8651,151 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
 	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
+}
+
+func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task := &model.Task{Name: "train", Pods: pods}
+	nodes := map[string]util.NodeStatus{
+		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
+	}
+	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
+	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, `Back-off pulling image "bad"`, msg)
+}
+
+func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
+	// A task with no recorded pods should never match even if DisplayName overlaps.
+	task := &model.Task{Name: "train", DisplayName: "train"}
+	nodes := map[string]util.NodeStatus{
+		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
+	}
+	resolved := map[string]string{"parent": "ImagePullBackOff"}
+	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
+	// Only the failing iteration's pod should be attributed; the healthy iteration must not
+	// inherit the aggregate node's message via DisplayName.
+	failPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "loop-pod-0", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	healthyPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "loop-pod-1", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	failTask := &model.Task{Name: "loop(0)", DisplayName: "loop", Pods: failPods}
+	healthyTask := &model.Task{Name: "loop(1)", DisplayName: "loop", Pods: healthyPods}
+	nodes := map[string]util.NodeStatus{
+		"node-0": {ID: "loop-pod-0", DisplayName: "loop(0)", State: "Failed"},
+		"node-1": {ID: "loop-pod-1", DisplayName: "loop(1)", State: "Running"},
+	}
+	resolved := map[string]string{"node-0": "ImagePullBackOff", "node-1": ""}
+
+	msg0, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
+	assert.True(t, matched0)
+	assert.Equal(t, "ImagePullBackOff", msg0)
+
+	msg1, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
+	assert.True(t, matched1)
+	assert.Equal(t, "", msg1)
+}
+
+func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
+	task := &model.Task{Name: "other"}
+	nodes := map[string]util.NodeStatus{
+		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
+	}
+	resolved := map[string]string{"node-1": "ImagePullBackOff"}
+	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	lm := model.LargeText("old")
+	task := &model.Task{Name: "train", Pods: pods, LifecycleMessage: &lm}
+	nodes := map[string]util.NodeStatus{
+		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
+	}
+	resolved := map[string]string{"node-1": ""}
+	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, "", msg)
+}
+
+// The guard must refuse whether or not the default version resolves.
+func TestDeletePipeline_DanglingDefaultVersionStillBlocksNonCascade(t *testing.T) {
+	initEnvVars()
+	viper.Set(common.PodNamespace, "ns")
+	defer viper.Set(common.PodNamespace, "")
+
+	const pipelineID = "3d0f7b3a-0000-4000-8000-00000000000d"
+
+	scheme := k8sruntime.NewScheme()
+	require.NoError(t, k8sapi.AddToScheme(scheme))
+
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8sapi.Pipeline{
+			ObjectMeta: v1.ObjectMeta{UID: pipelineID, Name: "p", Namespace: "ns"},
+			Spec:       k8sapi.PipelineSpec{DefaultVersionName: "deleted-version"},
+		},
+		&k8sapi.PipelineVersion{
+			ObjectMeta: v1.ObjectMeta{
+				UID: "3d0f7b3a-0000-4000-8000-00000000000e", Name: "p-v1", Namespace: "ns",
+				Labels: map[string]string{"pipelines.kubeflow.org/pipeline-id": pipelineID},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: k8sapi.GroupVersion.String(), Kind: "Pipeline", Name: "p", UID: pipelineID,
+				}},
+			},
+			Spec: k8sapi.PipelineVersionSpec{
+				VersionName: "v1", PipelineName: "p",
+				PipelineSpec: k8sapi.IRSpec{Value: map[string]interface{}{
+					"pipelineInfo":  map[string]interface{}{"name": "p"},
+					"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+					"schemaVersion": "2.1.0",
+					"sdkVersion":    "kfp-2.13.0",
+				}},
+			},
+		},
+		&k8sapi.PipelineVersion{
+			ObjectMeta: v1.ObjectMeta{
+				UID: "3d0f7b3a-0000-4000-8000-00000000000f", Name: "p-v2", Namespace: "ns",
+				Labels: map[string]string{"pipelines.kubeflow.org/pipeline-id": pipelineID},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: k8sapi.GroupVersion.String(), Kind: "Pipeline", Name: "p", UID: pipelineID,
+				}},
+			},
+			Spec: k8sapi.PipelineVersionSpec{
+				VersionName: "v2", PipelineName: "p",
+				PipelineSpec: k8sapi.IRSpec{Value: map[string]interface{}{
+					"pipelineInfo":  map[string]interface{}{"name": "p"},
+					"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+					"schemaVersion": "2.1.0",
+					"sdkVersion":    "kfp-2.13.0",
+				}},
+			},
+		},
+	).Build()
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.pipelineStore = storage.NewPipelineStoreKubernetes(k8sClient, k8sClient)
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	err := manager.DeletePipeline(pipelineID, false)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Set cascade=true")
+
+	_, err = manager.GetPipeline(pipelineID)
+	assert.NoError(t, err, "the pipeline must survive a refused delete")
 }

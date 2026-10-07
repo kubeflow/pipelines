@@ -51,11 +51,13 @@ jobs:
       sha: ${{ steps.commit.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.src_branch }}
           path: release-source
-      - name: Validate release line and source version
+      - name: Validate release line, source version, and image inventory
         env:
           TARGET_TAG: ${{ inputs.target_tag }}
         run: |
@@ -110,9 +112,6 @@ jobs:
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
-          - name: kfp-inverse-proxy-agent
-            dockerfile: proxy/Dockerfile
-            context: ./proxy
 
         arch:
           - arch_name: amd64
@@ -121,10 +120,6 @@ jobs:
           - arch_name: arm64
             runs_on: ubuntu-24.04-arm
             platform: linux/arm64
-
-        exclude:
-          - image: { name: kfp-inverse-proxy-agent }
-            arch: { arch_name: arm64 }
 
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
@@ -160,14 +155,13 @@ jobs:
           - image: kfp-viewer-crd-controller
           - image: kfp-launcher
           - image: kfp-driver
-          - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
       source_sha: ${{ needs.resolve-source.outputs.sha }}
-      expected_platforms: ${{ matrix.component.image == 'kfp-inverse-proxy-agent' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+      expected_platforms: linux/amd64,linux/arm64
       set_latest: ${{ inputs.set_latest }}
 
   validate-release-images:
@@ -188,15 +182,28 @@ jobs:
       actions: read
       packages: read
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout publication workflow policy
+        uses: actions/checkout@v7
         with:
-          ref: ${{ needs.resolve-source.outputs.sha }}
+          ref: ${{ github.workflow_sha }}
+      - name: List required published image records
+        id: image-records
+        shell: bash
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output published-image-files
       - name: Download this release attempt's verified index references
+        id: published-images
         uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: published-index-*-${{ github.run_attempt }}
-          path: published-indexes
+          path: ${{ runner.temp }}/published-indexes
           merge-multiple: 'true'
+          required-files: ${{ steps.image-records.outputs.required-files }}
+      # Keep the workflow's download policy until all records are present.
+      # They live outside the workspace so checkout cleanup preserves them.
+      - name: Checkout product source for native validation
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-source.outputs.sha }}
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -210,16 +217,17 @@ jobs:
           SOURCE_SHA: ${{ needs.resolve-source.outputs.sha }}
           TARGET_TAG: ${{ inputs.target_tag }}
           ARCHITECTURE: ${{ matrix.architecture }}
+          IMAGE_RECORDS: ${{ steps.published-images.outputs.download-path }}
         run: |
           python3 .github/resources/scripts/release_image_validation.py native \
-            --records published-indexes --source-sha "$SOURCE_SHA" \
+            --records "$IMAGE_RECORDS" --source-sha "$SOURCE_SHA" \
             --target-tag "$TARGET_TAG" --architecture "$ARCHITECTURE" \
             --output "$RUNNER_TEMP/release-image-validation/images.json"
       - name: Validate published release on native ARM64
         if: matrix.architecture == 'arm64'
         uses: ./.github/actions/arm64-smoke
         with:
-          image_records: published-indexes
+          image_records: ${{ steps.published-images.outputs.download-path }}
           source_sha: ${{ needs.resolve-source.outputs.sha }}
       - name: Upload native release image evidence
         if: always()

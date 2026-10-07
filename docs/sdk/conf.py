@@ -19,10 +19,12 @@
 # http://www.sphinx-doc.org/en/master/config
 
 import functools
+import inspect
 import os
 import sys
 from typing import List, Optional
 
+from kfp import kubernetes
 import sphinx
 from sphinx import application  # noqa
 
@@ -32,6 +34,16 @@ from sphinx import application  # noqa
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../sdk/python'))
+
+# Document component signatures and docstrings, not their callable wrappers.
+for component in (kubernetes.CreatePVC, kubernetes.DeletePVC):
+    function = component.pipeline_func
+    signature = inspect.signature(function)
+    function.__signature__ = signature.replace(parameters=[
+        parameter for parameter in signature.parameters.values()
+        if parameter.name in component.component_spec.inputs
+    ])
+    setattr(kubernetes, function.__name__, function)
 
 # -- Project information -----------------------------------------------------
 project = 'Kubeflow Pipelines'
@@ -237,7 +249,8 @@ epub_exclude_files = ['search.html']
 
 # # -- Extension configuration -------------------------------------------------
 readme_path = os.path.join(
-    os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'sdk',
+    os.path.abspath(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'sdk',
     'python', 'README.md')
 
 

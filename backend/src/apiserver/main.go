@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/webhook"
+	_ "github.com/kubeflow/pipelines/backend/src/common/dbcreds/all"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -95,6 +96,8 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
+	ExportTransfer        http.HandlerFunc
+	ImportTransfer        http.HandlerFunc
 	UploadPipeline        http.HandlerFunc
 	UploadPipelineVersion http.HandlerFunc
 	ReadRunLog            http.HandlerFunc
@@ -505,7 +508,10 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
 
+	transferServer := server.NewTransferServer(resourceManager)
 	handlerDeps := HTTPRouterDeps{
+		ExportTransfer:        transferServer.Export,
+		ImportTransfer:        transferServer.Import,
 		UploadPipeline:        sharedPipelineUploadServer.UploadPipeline,
 		UploadPipelineVersion: sharedPipelineUploadServer.UploadPipelineVersion,
 		ReadRunLog:            runLogServer.ReadRunLog,
@@ -566,6 +572,12 @@ func newHealthzResponse(pipelineStore string) healthzResponse {
 // registered. It does not start a listener, making it testable in isolation.
 func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string) *mux.Router {
 	topMux := mux.NewRouter()
+	if handlerDeps.ExportTransfer != nil {
+		topMux.HandleFunc("/apis/v2beta1/transfer/export", handlerDeps.ExportTransfer)
+	}
+	if handlerDeps.ImportTransfer != nil {
+		topMux.HandleFunc("/apis/v2beta1/transfer/import", handlerDeps.ImportTransfer)
+	}
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
@@ -710,6 +722,9 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
+	if err := validateServiceAccountAuthorizationMode(); err != nil {
+		return err
+	}
 	if err := common.InitializeWorkflowIdentityMode(); err != nil {
 		return err
 	}
@@ -725,6 +740,9 @@ func initConfig() error {
 		}
 		if _, err := common.GetPluginLimitsConfig(); err != nil {
 			glog.Fatalf("Invalid plugin limits configuration: %v", err)
+		}
+		if err := validateServiceAccountAuthorizationMode(); err != nil {
+			glog.Fatalf("Invalid service-account authorization configuration: %v", err)
 		}
 	})
 
@@ -826,4 +844,15 @@ func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, stri
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
 	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
+}
+
+func validateServiceAccountAuthorizationMode() error {
+	mode, err := common.GetServiceAccountAuthorizationMode()
+	if err != nil {
+		return err
+	}
+	if mode == "audit" {
+		glog.Warning("KFP_SECURITY_SERVICE_ACCOUNT_MODE=audit: service-account policy denials are allowed; this restores the security exposure addressed by service-account authorization. Migrate to enforce before 3.0.0, when audit mode is planned for removal (https://github.com/kubeflow/pipelines/issues/14367).")
+	}
+	return nil
 }

@@ -60,6 +60,7 @@ var taskColumns = []string{
 	"TypeAttrs",
 	"ScopePath",
 	"LogicalKey",
+	"LifecycleMessage",
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -122,12 +123,22 @@ func NewTaskStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorIn
 	}
 }
 
+// nilOrLargeText converts a *model.LargeText pointer to an interface{} suitable for SQL:
+// nil pointer → nil (SQL NULL), non-nil pointer → the string value.
+func nilOrLargeText(lm *model.LargeText) interface{} {
+	if lm == nil {
+		return nil
+	}
+	return string(*lm)
+}
+
 // scanTaskRow scans a single row into a model.Task. It expects the column order to match taskColumns.
 func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, error) {
 	var uuid, namespace, runUUID, fingerprint string
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
+	var lifecycleMessage sql.NullString
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -149,6 +160,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&typeAttrs,
 		&scopePath,
 		&logicalKey,
+		&lifecycleMessage,
 	); err != nil {
 		return nil, err
 	}
@@ -169,6 +181,11 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		if err := json.Unmarshal([]byte(pods.String), &podsNew); err != nil {
 			return nil, err
 		}
+	}
+	var lifecycleMessagePtr *model.LargeText
+	if lifecycleMessage.Valid {
+		lm := model.LargeText(lifecycleMessage.String)
+		lifecycleMessagePtr = &lm
 	}
 	var inputParameters model.JSONSlice
 	if inputParams.Valid {
@@ -221,6 +238,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		TypeAttrs:        typeAttrsData,
 		ScopePath:        scopePathStr,
 		LogicalKey:       logicalKeyNew,
+		LifecycleMessage: lifecycleMessagePtr,
 	}, nil
 }
 
@@ -659,6 +677,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				q("Type"):             newTask.Type,
 				q("TypeAttrs"):        typeAttrsString,
 				q("LogicalKey"):       newTask.LogicalKey,
+				q("LifecycleMessage"): nilOrLargeText(newTask.LifecycleMessage),
 			},
 		).
 		ToSql()
@@ -915,6 +934,9 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 	sqlBuilder := qb.
 		Select(dialect.QuoteAll(q, taskColumns)...).
 		From(q("tasks")).
+		Where(sq.Expr("EXISTS (SELECT 1 FROM " + q("run_details") + " WHERE " +
+			q("run_details") + "." + q("UUID") + " = " + q("tasks") + "." + q("RunUUID") + " AND (" +
+			q("run_details") + "." + q("ImportedFrom") + " IS NULL OR " + q("run_details") + "." + q("ImportedFrom") + " = ''))")).
 		Where(sq.Eq{
 			q("Fingerprint"): fingerprint,
 			q("State"):       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
@@ -1197,6 +1219,14 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}
 
+	if new.LifecycleMessage != nil {
+		if *new.LifecycleMessage == "" {
+			setMap[q("LifecycleMessage")] = nil
+		} else {
+			setMap[q("LifecycleMessage")] = string(*new.LifecycleMessage)
+		}
+	}
+
 	if len(setMap) == 0 {
 		// Nothing to update; commit transaction and return current record
 		if err := tx.Commit(); err != nil {
@@ -1311,6 +1341,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 				q("pods"):             emptyJSONArray,
 				q("OutputParameters"): emptyJSONArray,
 				q("StateHistory"):     string(historyBytes),
+				q("LifecycleMessage"): nil,
 			}).
 			Where(sq.Eq{q("UUID"): task.UUID}).
 			ToSql()

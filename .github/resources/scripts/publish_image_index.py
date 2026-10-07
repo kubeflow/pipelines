@@ -32,6 +32,15 @@ MANIFEST_TYPES = {
 }
 
 
+def parse_platforms(value):
+    """Parse the supported comma-separated publication platforms."""
+    platforms = set(value.split(','))
+    if not platforms or not platforms <= {'linux/amd64', 'linux/arm64'}:
+        raise ValueError(
+            'Expected platforms must be linux/amd64 and/or linux/arm64')
+    return platforms
+
+
 def digest(value):
     if not isinstance(value, str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',
                                                       value):
@@ -112,10 +121,7 @@ def inspect(reference):
 
 
 def publish(args):
-    platforms = set(args.platforms.split(','))
-    if not platforms or not platforms <= {'linux/amd64', 'linux/arm64'}:
-        raise ValueError(
-            'Expected platforms must be linux/amd64 and/or linux/arm64')
+    platforms = parse_platforms(args.platforms)
     records = load_sources(args.digests, args.source_sha, platforms)
     sources = []
     source_inventory = set()

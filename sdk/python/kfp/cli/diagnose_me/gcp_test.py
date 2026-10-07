@@ -73,7 +73,7 @@ class GoogleCloudTest(unittest.TestCase):
             'gcloud', 'services', 'list', '--format', 'json', '--project',
             'test_project'
         ])
-        # verify human_readable removes json fromat flag
+        # verify human_readable removes json format flag
         gcp.execute_gcloud_command(
             gcp._command_string[gcp.Commands.GET_APIS].split(' '),
             project_id='test_project',
