@@ -33,6 +33,8 @@ on:
       - 'uv.lock'
       - '.github/workflows/compiler-tests.yml'
       - '.github/actions/test-and-report/**'
+      - '.github/resources/scripts/download-go-modules.sh'
+      - '.github/resources/scripts/helper-functions.sh'
       - 'backend/src/v2/compiler/**'
       - 'test_data/**'
       - '!**/*.md'

@@ -225,13 +225,15 @@
     {
       "path": ".github/workflows/compiler-tests.yml",
       "name": "Workflow Compiler Tests",
-      "header_sha256": "2c822d62bca4caf454449991a451a07b7f6c329dcdd2169ae5822edb69ab6d19",
+      "header_sha256": "4bc98b63cea6c9a5189a38cf540570447244f955764535c21147149e3cbf6a9e",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/compiler-tests.yml",
           ".github/actions/test-and-report/**",
+          ".github/resources/scripts/download-go-modules.sh",
+          ".github/resources/scripts/helper-functions.sh",
           "backend/src/v2/compiler/**",
           "test_data/**",
           "!**/*.md",
