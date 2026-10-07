@@ -970,11 +970,10 @@ class Client:
         from_template = pipeline_id is not None or version_id is not None
         if from_spec == from_template:
             raise ValueError(
-                'Must specify either `pipeline_pacakge_path` or both `pipeline_id` and `version_id`.'
-            )
-        if (pipeline_id is None) != (version_id is None):
+                'Must specify either `pipeline_package_path` or `pipeline_id`.')
+        if version_id is not None and pipeline_id is None:
             raise ValueError(
-                'To run a pipeline from an existing template, both `pipeline_id` and `version_id` are required.'
+                'To run a specific pipeline version, `pipeline_id` is also required.'
             )
 
         if params is None:
@@ -992,7 +991,9 @@ class Client:
             pipeline_spec = pipeline_doc.to_dict()
 
         pipeline_version_reference = None
-        if pipeline_id is not None and version_id is not None:
+        if pipeline_id is not None:
+            # version_id is optional: the server resolves the pipeline's default
+            # version when it is omitted.
             pipeline_version_reference = kfp_server_api.V2beta1PipelineVersionReference(
                 pipeline_id=pipeline_id, pipeline_version_id=version_id)
 

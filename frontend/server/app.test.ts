@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { vi, describe, it, expect, afterAll, afterEach, beforeEach, Mock } from 'vitest';
+import { vi, describe, it, expect, afterAll, afterEach, beforeEach } from 'vitest';
 import express from 'express';
 
 import requests from 'supertest';
@@ -19,7 +19,7 @@ import requests from 'supertest';
 import { UIServer } from './app.js';
 import { loadConfigs } from './configs.js';
 import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper.js';
-import { Server } from 'http';
+import { createServer, IncomingHttpHeaders, Server } from 'http';
 import { commonSetup } from './integration-tests/test-helper.js';
 
 const mockedFetch = vi.fn();
@@ -36,7 +36,7 @@ describe('UIServer apis', () => {
   let app: UIServer;
   const tagName = '1.0.0';
   const commitHash = 'abcdefg';
-  const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
+  const { argv } = commonSetup({ tagName, commitHash });
 
   async function waitForListening(server: Server): Promise<void> {
     if (server.listening) {
@@ -233,6 +233,75 @@ describe('UIServer apis', () => {
         .get('/pipeline/apis/v1beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
         .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
     });
+  });
+
+  describe('metadata transfer proxy', () => {
+    let upstream: Server;
+    afterEach(async () => {
+      if (upstream) await new Promise<void>((resolve) => upstream.close(() => resolve()));
+    });
+
+    it.each([
+      ['', 'import'],
+      ['/pipeline', 'import'],
+      ['', 'export'],
+      ['/pipeline', 'export'],
+    ])(
+      'preserves raw archive bytes and identity through %s transfer/%s',
+      async (basePath, operation) => {
+        // Exceed Express's usual 100 KiB JSON parser limit, and include an integer
+        // that parsing and reserializing in JavaScript would round.
+        const archive = '{"id":9007199254740993,"padding":"' + 'x'.repeat(256 * 1024) + '"}';
+        const body = operation === 'import' ? archive : '{}';
+        let receivedBody = '';
+        let receivedURL: string | undefined;
+        let receivedHeaders: IncomingHttpHeaders = {};
+        upstream = createServer((req, res) => {
+          receivedURL = req.url;
+          receivedHeaders = req.headers;
+          const chunks: Buffer[] = [];
+          req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          req.on('end', () => {
+            receivedBody = Buffer.concat(chunks).toString('utf8');
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Content-Disposition': 'attachment; filename="kfp-transfer.json"',
+              'Cache-Control': 'no-store',
+            });
+            res.end(archive);
+          });
+        }).listen(0);
+        await waitForListening(upstream);
+        const address = upstream.address();
+        if (!address || typeof address === 'string')
+          throw new Error('Expected upstream TCP address');
+        app = new UIServer(
+          loadConfigs(argv, {
+            ML_PIPELINE_SERVICE_HOST: 'localhost',
+            ML_PIPELINE_SERVICE_PORT: String(address.port),
+          }),
+        );
+        const path = `/apis/v2beta1/transfer/${operation}?namespace=team&dry_run=true`;
+        const response = await requests(app.app)
+          .post(basePath + path)
+          .set('Content-Type', 'application/json')
+          .set('Kubeflow-Userid', 'test-user@example.org')
+          .set('Authorization', 'Bearer test-token')
+          .set('Cookie', 'authservice_session=test-session')
+          .send(body)
+          .expect(200);
+        expect(receivedURL).toBe(path);
+        expect(receivedBody).toBe(body);
+        expect(receivedHeaders['kubeflow-userid']).toBe('test-user@example.org');
+        expect(receivedHeaders.authorization).toBe('Bearer test-token');
+        expect(receivedHeaders.cookie).toBe('authservice_session=test-session');
+        expect(response.text).toBe(archive);
+        expect(response.headers['content-disposition']).toBe(
+          'attachment; filename="kfp-transfer.json"',
+        );
+        expect(response.headers['cache-control']).toBe('no-store');
+      },
+    );
   });
 
   describe('/system', () => {

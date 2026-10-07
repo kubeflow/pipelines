@@ -18,6 +18,6 @@ Never edit generated files. Update their source and regenerate them.
 - `backend/api/v2beta1/python_http_client` is generated from `kfp_api_single_file.swagger.json` with `cd backend/api && make generate-kfp-server-api-package`.
 - v1beta1 Python HTTP client generation omits OpenAPI API/model test stubs and their unused tox configuration; the generated package excludes the stubs and the repository does not execute them.
 - Frontend CI runs `bash scripts/check-spec-generation.sh` from `frontend` with `protoc` installed. It generates pipeline and Kubernetes platform types in a temporary directory and compiles both with the installed TypeScript/compiler dependencies. The individual generation scripts accept `PROTO_OUT_DIR` for isolated verification; ordinary generation still writes the committed source directories.
-- `pipeline.upload.swagger.json` is manually maintained.
+- `pipeline.upload.swagger.json` and `backend/api/v2beta1/transfer.openapi.yaml` are manually maintained HTTP contracts; transfer archives use raw authenticated HTTP rather than generated gRPC clients.
 - Schema changes require both `make -C api python` and `make -C api golang`.
 - On SELinux hosts, protoc generation can require temporarily setting SELinux to permissive mode.

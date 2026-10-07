@@ -17,6 +17,8 @@ package resource
 import (
 	"database/sql"
 
+	"gorm.io/gorm"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
@@ -233,4 +235,8 @@ func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
 func newFakeObjectStore() storage.ObjectStore {
 	bucket := memblob.OpenBucket(nil)
 	return storage.NewBlobObjectStore(bucket, "pipelines")
+}
+
+func (f *FakeClientManager) TransferDB() (*gorm.DB, error) {
+	return storage.OpenTransferDB(f.db, "sqlite")
 }

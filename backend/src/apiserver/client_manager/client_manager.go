@@ -1813,3 +1813,8 @@ func ignoreAlreadyExistError(dialect sqldrv.DBDialect, err error) error {
 	}
 	return err
 }
+
+// TransferDB reuses the API server connection pool for namespace transfers.
+func (c *ClientManager) TransferDB() (*gorm.DB, error) {
+	return storage.OpenTransferDB(c.db, c.dbDialect.Name())
+}
