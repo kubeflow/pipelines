@@ -205,6 +205,10 @@ type Run struct {
 	ExperimentId   string `gorm:"column:ExperimentUUID;type:varchar(64); not null; index:experimentuuid_createatinsec,priority:1; index:experimentuuid_conditions_finishedatinsec,priority:1"`
 	RecurringRunId string `gorm:"column:JobUUID; default:null;"`
 
+	// ImportedFrom identifies historical runs whose execution belongs to another installation.
+	ImportedFrom string `gorm:"column:ImportedFrom; type:varchar(191); default:null;"`
+	ImportDigest string `gorm:"column:ImportDigest; type:varchar(64); default:null;"`
+
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 	ServiceAccount string       `gorm:"column:ServiceAccount; not null;"`
 

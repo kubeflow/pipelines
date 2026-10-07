@@ -28,7 +28,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -448,4 +450,95 @@ func TestSubmitGenericScheduleWithoutMultiUserFlagUsesAPI(t *testing.T) {
 	require.Nil(t, executionClient.createdWorkflow)
 	require.NotNil(t, runClient.createRunRequest)
 	require.Equal(t, "schedule-uid", runClient.createRunRequest.Run.RecurringRunId)
+}
+
+// workflowLookupInformer lets tests distinguish API reconciliation from recovery
+// based only on the presence of a namespace-editable Workflow.
+type workflowLookupInformer struct {
+	fakeExecutionInformer
+	getCalls    int
+	lookupError error
+}
+
+func (f *workflowLookupInformer) Get(namespace, name string) (commonutil.ExecutionSpec, bool, error) {
+	f.getCalls++
+	return nil, false, f.lookupError
+}
+
+type reconciliationRunClient struct {
+	api.RunServiceClient
+	request  *api.CreateRunRequest
+	response *api.Run
+	err      error
+}
+
+func (f *reconciliationRunClient) CreateRun(ctx context.Context, request *api.CreateRunRequest, opts ...grpc.CallOption) (*api.Run, error) {
+	f.request = request
+	return f.response, f.err
+}
+
+func TestExistingWorkflowRequiresMultiUserAPIReconciliation(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		multiUser   bool
+		lookupError error
+		apiError    error
+	}{
+		{name: "multi-user uses API result", multiUser: true},
+		{name: "multi-user propagates denial", multiUser: true, apiError: status.Error(codes.PermissionDenied, "recurring run authorization denied")},
+		{name: "multi-user propagates failure", multiUser: true, apiError: status.Error(codes.Unavailable, "API unavailable")},
+		{name: "multi-user ignores workflow lookup failure", multiUser: true, lookupError: errors.New("workflow cache unavailable")},
+		{name: "single-user recovers existing workflow"},
+		{name: "single-user propagates workflow lookup failure", lookupError: errors.New("workflow cache unavailable")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			informer := &workflowLookupInformer{lookupError: tc.lookupError}
+			executionClient := &fakeExecutionClient{}
+			runClient := &reconciliationRunClient{
+				response: &api.Run{DisplayName: "persisted-run", ScheduledAt: timestamppb.New(time.Unix(80, 0))},
+				err:      tc.apiError,
+			}
+			controller := &Controller{
+				workflowClient: client.NewWorkflowClient(executionClient, informer),
+				runClient:      runClient, multiUser: tc.multiUser,
+			}
+			swf := newTestSWFForAPIPath()
+			submitted, name, scheduledAt, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+			require.Nil(t, executionClient.createdWorkflow)
+			if tc.multiUser {
+				require.NotNil(t, runClient.request, "existing Workflows must not bypass API authorization and reconciliation")
+				require.Zero(t, informer.getCalls)
+				wantRequest := &api.CreateRunRequest{Run: &api.Run{
+					RecurringRunId: string(swf.UID), DisplayName: swf.NextResourceName(),
+					ScheduledAt: timestamppb.New(time.Unix(100, 0)),
+				}}
+				require.True(t, proto.Equal(wantRequest, runClient.request))
+				if tc.apiError != nil {
+					require.ErrorIs(t, err, tc.apiError)
+					require.False(t, submitted)
+					require.Empty(t, name)
+					return
+				}
+				require.NoError(t, err)
+				require.True(t, submitted)
+				require.Equal(t, "persisted-run", name)
+				require.Equal(t, int64(80), scheduledAt)
+				swf.UpdateStatus(submitted, scheduledAt, nil, nil, time.UTC)
+				require.Equal(t, int64(80), swf.Status.Trigger.LastTriggeredTime.Unix())
+			} else {
+				require.Nil(t, runClient.request)
+				require.Equal(t, 1, informer.getCalls)
+				if tc.lookupError != nil {
+					require.ErrorIs(t, err, tc.lookupError)
+					require.False(t, submitted)
+					require.Empty(t, name)
+					return
+				}
+				require.NoError(t, err)
+				require.True(t, submitted)
+				require.Equal(t, swf.NextResourceName(), name)
+				require.Equal(t, int64(100), scheduledAt)
+			}
+		})
+	}
 }

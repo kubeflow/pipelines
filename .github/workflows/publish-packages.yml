@@ -5,198 +5,116 @@ on:
       tag:
         type: string
         required: true
-        description: "Tag associated with the release (e.g.: 2.14.0)"
+        description: "Tag associated with the release"
       packages:
         type: choice
         required: true
-        description: "Which package(s) to publish"
+        description: "Publish kfp; separate packages are supported only for legacy tags"
         options:
           - all
+          - kfp
           - kfp-pipeline-spec
           - kfp-server-api
-          - kfp
           - kfp-kubernetes
       dry_run:
         type: boolean
         required: true
         default: true
-        description: "Dry run - build packages without publishing to PyPI"
+        description: "Build and validate without publishing to PyPI"
 
 env:
   PYTHON_VERSION: "3.11"
   UV_VERSION: "0.10.3"
-  # Twine 7 validates current Hatch metadata and requires Python >=3.10.
   TWINE_VERSION: "7.0.0"
   TWINE_PYTHON_VERSION: "3.12"
 
 jobs:
-  publish-kfp-pipeline-spec:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-pipeline-spec' }}
+  select-packages:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      packages: ${{ steps.select.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag }}
+      - name: Select distributions owned by the source tag
+        id: select
+        env:
+          SELECTED_PACKAGE: ${{ inputs.packages }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          packages = [{"name": "kfp", "path": "sdk/python"}]
+          if not Path("sdk/python/kfp/server_api/__init__.py").is_file():
+              packages.extend([
+                  {"name": "kfp-pipeline-spec", "path": "api/v2alpha1/python"},
+                  {"name": "kfp-server-api", "path": "backend/api/v2beta1/python_http_client"},
+                  {"name": "kfp-kubernetes", "path": "kubernetes_platform/python"},
+              ])
+          selected = os.environ["SELECTED_PACKAGE"]
+          if selected != "all":
+              packages = [package for package in packages if package["name"] == selected]
+          if not packages:
+              raise SystemExit(f"{selected} is not a distribution in this tag; select kfp.")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"packages={json.dumps(packages)}\n")
+          PY
+
+  publish:
+    needs: select-packages
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.select-packages.outputs.packages) }}
     permissions:
       contents: read
       id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      # The selected tag may predate repository-local uv actions.
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      # A selected legacy tag need not contain local actions or uv metadata.
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
 
-      - name: Build kfp-pipeline-spec
+      - name: Build selected distribution
+        env:
+          PACKAGE_NAME: ${{ matrix.package.name }}
+          PACKAGE_PATH: ${{ matrix.package.path }}
         run: |
-          make -C api python
-          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check api/v2alpha1/python/dist/*
+          case "$PACKAGE_NAME" in
+            kfp) make -C sdk python ;;
+            kfp-pipeline-spec) make -C api python ;;
+            kfp-kubernetes) make -C kubernetes_platform python ;;
+            kfp-server-api)
+              uv build "$PACKAGE_PATH" --out-dir "$PACKAGE_PATH/dist"
+              ;;
+            *) echo "Unsupported distribution: $PACKAGE_NAME" >&2; exit 1 ;;
+          esac
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" \
+            twine check "$PACKAGE_PATH"/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: api/v2alpha1/python/dist/
+          packages-dir: ${{ matrix.package.path }}/dist/
           print-hash: true
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
         uses: actions/upload-artifact@v7
         with:
-          name: kfp-pipeline-spec-dist
-          path: api/v2alpha1/python/dist/
-
-  publish-kfp-server-api:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-server-api' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.tag }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: ${{ env.UV_VERSION }}
-
-      - name: Build kfp-server-api
-        run: |
-          rm -rf backend/api/v2beta1/python_http_client/dist
-          # A source-path build supports pyproject.toml and legacy setup.py tags.
-          uv build backend/api/v2beta1/python_http_client --out-dir backend/api/v2beta1/python_http_client/dist
-          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check backend/api/v2beta1/python_http_client/dist/*
-
-      - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: backend/api/v2beta1/python_http_client/dist/
-          print-hash: true
-
-      - name: Upload artifacts (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: kfp-server-api-dist
-          path: backend/api/v2beta1/python_http_client/dist/
-
-  publish-kfp:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp' }}
-    # Uncomment once all packages in PyPi are configured to be released from this repo.
-    # needs: [publish-kfp-pipeline-spec, publish-kfp-server-api]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.tag }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: ${{ env.UV_VERSION }}
-
-      - name: Build kfp
-        run: |
-          make -C sdk python
-          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check sdk/python/dist/*
-
-      - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: sdk/python/dist/
-          print-hash: true
-
-      - name: Upload artifacts (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: kfp-dist
-          path: sdk/python/dist/
-
-  publish-kfp-kubernetes:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-kubernetes' }}
-    # Uncomment once all packages in PyPi are configured to be released from this repo.
-    # needs: [publish-kfp-pipeline-spec, publish-kfp]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.tag }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: ${{ env.UV_VERSION }}
-
-      - name: Build kfp-kubernetes
-        run: |
-          make -C kubernetes_platform python
-          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check kubernetes_platform/python/dist/*
-
-      - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: kubernetes_platform/python/dist/
-          print-hash: true
-
-      - name: Upload artifacts (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: kfp-kubernetes-dist
-          path: kubernetes_platform/python/dist/
+          name: ${{ matrix.package.name }}-dist
+          path: ${{ matrix.package.path }}/dist/

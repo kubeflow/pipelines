@@ -22,23 +22,28 @@ For supported python versions, see the [pyproject.toml](https://github.com/kubef
 
 ### Development Setup
 
-Install all workspace packages in editable mode with development dependencies:
+Install the unified SDK in editable mode with development dependencies:
 
 ```bash
 uv sync --extra dev
 ```
 
 This command will:
-- Install all 4 KFP packages (`kfp`, `kfp-kubernetes`, `kfp-pipeline-spec`, `kfp-server-api`) in editable mode
+- Install `kfp`, including pipeline-spec, Kubernetes configuration, and the server API client
 - Install development dependencies (pytest, linters, type checkers, etc.)
 - Create or update the `uv.lock` lockfile for reproducible builds
 
 Before running tests, generate the proto files:
 
 ```bash
-make -C api python
-make -C kubernetes_platform python
+make -C sdk generate-python
 ```
+
+CI retains explicit generation before building and testing. Generated bindings
+are committed so installing directly from Git also works; regenerate rather than
+editing them. `make -C sdk python` runs all Python generators and builds the single
+wheel and sdist. Both artifacts contain their generated modules; installing a
+release or rebuilding its sdist does not require Docker, Java, or protoc.
 
 ### Testing
 We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:
@@ -51,6 +56,21 @@ To run tests in parallel for faster execution, you can run the tests using the `
 ```sh
 uv run pytest -n auto
 ```
+
+#### Runtime command regressions
+
+`test/presubmit-tests-sdk.sh` builds a fresh SDK wheel and runs the runtime
+regressions against it in isolated uv environments. Other regression cases keep
+their Git source override so Docker containers can install the SDK.
+
+For a direct runtime-only run, build with `uv build --package kfp --wheel`,
+set `KFP_PACKAGE_PATH` to the absolute path of the resulting `kfp-*.whl`, and run
+`uv run pytest sdk/python/test/runtime -m regression`. These tests require the
+wheel; they never fall back to the published SDK. The generated `--no-deps`
+installation and `_KFP_RUNTIME=true` executor invocation remain unchanged.
+The package inventory is compared before and after bootstrap: only `kfp` may
+be added, independently of the installer dependencies uv seeds for each Python
+version.
 
 ### Code Style
 Dependencies for code style checks/changes are managed in [pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/pyproject.toml) via the `dev`, `lint`, and `test` extras.

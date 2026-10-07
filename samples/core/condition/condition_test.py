@@ -19,13 +19,13 @@ import unittest
 from kfp.samples.test.utils import KfpTask
 from kfp.samples.test.utils import run_pipeline_func
 from kfp.samples.test.utils import TestCase
-import kfp_server_api
+import kfp.server_api
 from ml_metadata.proto import Execution
 
 from .condition_v2 import condition as condition_v2
 
 
-def verify_heads(t: unittest.TestCase, run: kfp_server_api.V2beta1Run,
+def verify_heads(t: unittest.TestCase, run: kfp.server_api.V2beta1Run,
                  tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.state, 'SUCCEEDED')
     t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
@@ -33,7 +33,7 @@ def verify_heads(t: unittest.TestCase, run: kfp_server_api.V2beta1Run,
                        tasks['condition-1'].children.keys())
 
 
-def verify_tails(t: unittest.TestCase, run: kfp_server_api.V2beta1Run,
+def verify_tails(t: unittest.TestCase, run: kfp.server_api.V2beta1Run,
                  tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.state, 'SUCCEEDED')
     t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
