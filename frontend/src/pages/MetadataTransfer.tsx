@@ -190,7 +190,7 @@ export function MetadataTransferForm({
             Import metadata
           </Typography>
           <Typography variant='body2'>
-            Choose an archive from the same Pipelines generation and namespace. Validate it before
+            Choose a native or supported 2.18 archive from the same namespace. Validate it before
             importing into this installation. Existing records are never overwritten.
           </Typography>
           <Box>

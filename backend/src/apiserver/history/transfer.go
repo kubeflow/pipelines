@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const TransferFormat = "kfp-namespace-transfer/v1"
+const TransferFormat = "kfp-namespace-transfer/v2"
 const MaxTransferRuns = 1000
 const MaxTransferObjects = 10000
 const MaxTransferRows = 20000
@@ -27,9 +27,10 @@ const MaxTransferRows = 20000
 // for single-user installations whose experiment namespace is empty.
 type NamespaceBundle struct {
 	Bundle
-	Namespace        string      `json:"namespace"`
-	RuntimeNamespace string      `json:"runtime_namespace"`
-	Schedules        []model.Job `json:"schedules"`
+	Namespace         string                      `json:"namespace"`
+	RuntimeNamespace  string                      `json:"runtime_namespace"`
+	Schedules         []model.Job                 `json:"schedules"`
+	RuntimeParameters *transfer.RuntimeParameters `json:"runtime_parameters,omitempty"`
 }
 
 // InstallationID is created once, including under concurrent API replicas.
@@ -165,6 +166,16 @@ func ExportNamespace(ctx context.Context, db *gorm.DB, namespace, runtimeNamespa
 			return nil, err
 		}
 	}
+	b.RuntimeParameters = &transfer.RuntimeParameters{Runs: map[string]string{}, Schedules: map[string]string{}}
+	for _, e := range b.Entries {
+		b.RuntimeParameters.Runs[e.Run.UUID] = string(e.Run.RuntimeConfig.Parameters)
+	}
+	for _, j := range b.Schedules {
+		b.RuntimeParameters.Schedules[j.UUID] = string(j.RuntimeConfig.Parameters)
+	}
+	if _, err := restoreNativeRuntimeParameters(b); err != nil {
+		return nil, err
+	}
 	return b, ValidateNamespace(b, namespace, runtimeNamespace)
 }
 
@@ -298,7 +309,19 @@ func PrepareTransfer(ctx context.Context, db *gorm.DB, b *NamespaceBundle, opts 
 			job.NoCatchup = true
 			value = job
 		}
-		checksum, err := digest([]any{opts.NamePrefix, value})
+		// Include the shadowed V2 runtime parameters in repeat-conflict detection.
+		identity := []any{opts.NamePrefix, value}
+		switch v := value.(type) {
+		case model.Job:
+			if v.RuntimeConfig.Parameters != "" {
+				identity = append(identity, v.RuntimeConfig.Parameters)
+			}
+		case Entry:
+			if v.Run.RuntimeConfig.Parameters != "" {
+				identity = append(identity, v.Run.RuntimeConfig.Parameters)
+			}
+		}
+		checksum, err := digest(identity)
 		if err != nil {
 			return "", err
 		}

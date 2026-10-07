@@ -48,11 +48,33 @@ definitions stable until the transfer is complete.
 Imported resource IDs may change, especially when Kubernetes assigns catalog or
 schedule IDs. Relationships inside the archive are mapped to the destination IDs.
 The destination keeps its own default-experiment setting, migration state and
-runtime configuration. Namespace remapping and cross-generation imports are not
-supported. Source and destination must use the same database engine and matching
-release schemas. Use the transfer implementation from the
-same storage generation: master/native archives and release-2.18/MLMD archives
-are different formats.
+runtime configuration. Namespace remapping is not supported.
+
+Native-storage destinations also accept `kfp-namespace-transfer-mlmd-2.18/v2`
+archives exported by the 2.18 transfer feature. Use the same upload, validation
+and import steps; the destination converts supported legacy history and lineage
+without connecting to the source database or MLMD service. Review conversion
+warnings during validation. Legacy context relationships become native ownership;
+mutable context bookkeeping is not copied. The source installation does not need a native-storage
+upgrade. Importing native archives into 2.18 is not supported.
+
+Use the updated source exporter for v2 archives: older v1 archives omitted V2
+runtime parameter overrides. A v1 archive containing schedules is rejected;
+update the exporter and export again. History-only v1 imports display a warning
+that those overrides are unavailable. V2 archives preserve the original runtime
+parameter JSON for runs and schedules.
+
+
+Native-to-native archives still require matching database engines and schemas.
+The 2.18 adapter instead validates the supported archive record format and
+converts it to the destination schema. Unknown fields or relationships that cannot
+be represented safely are rejected rather than discarded. If validation reports
+that a lineage owner is outside the archive, export a wider completed-history
+window including its producer runs. Destination archive and history-row limits
+still apply. Pinned Kubernetes catalog defaults require a Kubernetes-catalog
+destination. If an existing Kubernetes pipeline has no explicit default and the
+archive adds versions plus an unpinned schedule, pin the destination default
+before retrying so validation can check the definition that will execute.
 
 ## Schedules and historical runs
 

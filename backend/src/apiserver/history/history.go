@@ -147,11 +147,13 @@ func find[T any](db *gorm.DB, column string, ids []string, out *[]T) error {
 }
 
 func createRecord(db *gorm.DB, row any) error {
-	values, _, err := persistedValues(db, row)
+	values, stmt, err := persistedValues(db, row)
 	if err != nil {
 		return err
 	}
-	err = db.Model(row).Omit(clause.Associations).Create(values).Error
+	// Values already use database column names. A model schema can resolve a
+	// column name to an ignored hydrated field (for example Run.StateHistory).
+	err = db.Table(stmt.Table).Create(values).Error
 	driver := db.Name()
 	if driver == "postgres" {
 		driver = "pgx"
@@ -625,7 +627,11 @@ func importValidated(ctx context.Context, db *gorm.DB, bundle *Bundle, opts Impo
 		}
 		for _, entry := range bundle.Entries {
 			sortEntry(&entry)
-			checksum, err := digest(entry)
+			var identity any = entry
+			if entry.Run.RuntimeConfig.Parameters != "" {
+				identity = []any{entry, entry.Run.RuntimeConfig.Parameters}
+			}
+			checksum, err := digest(identity)
 			if err != nil {
 				return err
 			}

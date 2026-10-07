@@ -132,6 +132,7 @@ func TestTransferScheduleLifecycleAndCatalog(t *testing.T) {
 			require.NoError(t, db.Find(&jobs).Error)
 			require.Len(t, jobs, 1)
 			job := jobs[0]
+			require.JSONEq(t, `{"text":"world"}`, string(job.RuntimeConfig.Parameters))
 			swf, err := cs.ScheduledworkflowV1beta1().ScheduledWorkflows("team").Get(ctx, job.K8SName, metav1.GetOptions{})
 			require.NoError(t, err)
 			require.Equal(t, job.UUID, string(swf.UID))

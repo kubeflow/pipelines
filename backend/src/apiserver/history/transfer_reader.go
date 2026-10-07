@@ -74,6 +74,20 @@ func readTransferRows[T any](query *gorm.DB, out *[]T, budget *transfer.ExportBu
 				}
 			}
 		}
+		// V2 overrides are shadowed in model JSON; charge their explicit wire
+		// representation before retaining the row in the archive.
+		var runtimeEntry map[string]string
+		switch record := any(value).(type) {
+		case model.Run:
+			runtimeEntry = map[string]string{record.UUID: string(record.RuntimeConfig.Parameters)}
+		case model.Job:
+			runtimeEntry = map[string]string{record.UUID: string(record.RuntimeConfig.Parameters)}
+		}
+		if runtimeEntry != nil {
+			if err := budget.Add(runtimeEntry); err != nil {
+				return err
+			}
+		}
 		if err := budget.Add(value); err != nil {
 			return err
 		}

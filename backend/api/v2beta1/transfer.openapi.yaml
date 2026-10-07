@@ -8,7 +8,7 @@ info:
   description: >-
     Self-service namespace export/import using the installation's normal HTTP
     authentication. Archives contain definitions and metadata, never artifact
-    output bytes. Native and MLMD storage generations use different archive formats.
+    output bytes. Native imports also accept supported 2.18 MLMD namespace archives.
 paths:
   /apis/v2beta1/transfer/export:
     post:
@@ -63,8 +63,9 @@ paths:
         Requires list/create permissions for experiments, pipelines, runs and jobs,
         and applicable service-account permissions. Native storage also requires
         artifact list/create permissions. The archive must match the
-        destination namespace and storage generation. Validation does not create
-        Kubernetes resources or write MLMD. Apply stages disabled schedules and
+        destination namespace. Supported 2.18 MLMD archives are converted to native
+        history before validation; other cross-generation formats are rejected.
+        Validation does not create Kubernetes resources or write metadata. Apply stages disabled schedules and
         metadata before the SQL commit; retries reuse matching transfer-owned data.
         There is no distributed transaction. The maximum upload is 256 MiB.
       parameters:
