@@ -79,7 +79,7 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
     def validate_image(self, image: str) -> None:
         if 'python' not in image:
             warnings.warn(
-                f'You may be attemping to run a task that uses custom or non-Python base image "{image}" in a Python environment. This may result in incorrect dependencies and/or incorrect behavior. Consider using the "DockerRunner" to run this task in a container.',
+                f'You may be attempting to run a task that uses custom or non-Python base image "{image}" in a Python environment. This may result in incorrect dependencies and/or incorrect behavior. Consider using the "DockerRunner" to run this task in a container.',
                 RuntimeWarning,
             )
 

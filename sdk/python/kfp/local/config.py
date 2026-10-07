@@ -194,7 +194,7 @@ class DockerRunner:
 
         if excess_args:
             raise ValueError(
-                f"The following docker run arguments should not be specififed: {', '.join(excess_args)}"
+                f"The following docker run arguments should not be specified: {', '.join(excess_args)}"
             )
 
         self.container_run_args = container_run_args
