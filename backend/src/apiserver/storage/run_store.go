@@ -63,6 +63,8 @@ var runColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"ImportedFrom",
+	"ImportDigest",
 }
 
 // runListColumns is a lightweight version of runColumns for List endpoints.
@@ -102,6 +104,8 @@ var runListColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"ImportedFrom",
+	"ImportDigest",
 }
 
 var runMetricsColumns = []string{
@@ -610,6 +614,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
+		var importedFrom, importDigest *string
 
 		// Check how many columns are in the result set
 		columns, err := rows.Columns()
@@ -617,7 +622,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			return nil, util.NewInternalServerError(err, "failed to get columns from rows")
 		}
 
-		// Prepare scan destinations: 32 base columns + 3 aggregated + 1 optional metric sort
+		// Prepare base columns, 3 aggregated columns, and an optional metric sort.
 		scanDest := []interface{}{
 			&uuid,
 			&experimentUUID,
@@ -651,6 +656,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryGeneration,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
+			&importedFrom,
+			&importDigest,
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
@@ -725,6 +732,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ServiceAccount: serviceAccount,
 			Description:    description,
 			RecurringRunId: jID,
+			ImportedFrom:   importedFrom,
+			ImportDigest:   importDigest,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
 				ScheduledAtInSec:        scheduledAtInSec.Int64,

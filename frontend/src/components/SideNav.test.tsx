@@ -68,6 +68,11 @@ function renderSideNav(
 }
 
 describe('SideNav', () => {
+  it('keeps namespace transfer out of the sidebar', () => {
+    renderSideNav(RoutePage.METADATA_TRANSFER);
+    expect(screen.queryByRole('link', { name: 'Export / Import' })).not.toBeInTheDocument();
+  });
+
   let localStorageHasKeySpy: ReturnType<typeof vi.spyOn>;
   let localStorageIsCollapsedSpy: ReturnType<typeof vi.spyOn>;
 
