@@ -68,6 +68,24 @@ def _warn_local_only_noops(
         )
 
 
+def _retry_delay(
+    attempt: int,
+    backoff_duration: float,
+    backoff_factor: float,
+    backoff_max_duration: float,
+) -> float:
+    """Returns the seconds to wait before retrying after ``attempt`` failed.
+
+    Mirrors Argo Workflows: a non-positive ``backoff_factor`` disables
+    exponential growth, so every retry waits ``backoff_duration``.
+    """
+    if backoff_factor > 0:
+        delay = backoff_duration * (backoff_factor**attempt)
+    else:
+        delay = backoff_duration
+    return min(delay, backoff_max_duration)
+
+
 def execute_single_task(
     task_name: str,
     task_spec: pipeline_spec_pb2.PipelineTaskSpec,
@@ -125,7 +143,7 @@ def execute_single_task(
     max_retries = retry_policy.max_retry_count if retry_policy.max_retry_count > 0 else 0
     backoff_duration = retry_policy.backoff_duration.seconds if retry_policy.HasField(
         'backoff_duration') else 0
-    backoff_factor = retry_policy.backoff_factor if retry_policy.backoff_factor > 0 else 2.0
+    backoff_factor = retry_policy.backoff_factor
     backoff_max_duration = retry_policy.backoff_max_duration.seconds if retry_policy.HasField(
         'backoff_max_duration') else 3600
 
@@ -168,8 +186,12 @@ def execute_single_task(
                                     f'{task_name}: {exc}')
             return outputs, task_status
 
-        delay = backoff_duration * (backoff_factor**attempt)
-        delay = min(delay, backoff_max_duration)
+        delay = _retry_delay(
+            attempt=attempt,
+            backoff_duration=backoff_duration,
+            backoff_factor=backoff_factor,
+            backoff_max_duration=backoff_max_duration,
+        )
         logging.info(f'Task {task_name} failed (attempt {attempt + 1}/'
                      f'{max_retries + 1}). Retrying in {delay:.1f}s...')
         time.sleep(delay)

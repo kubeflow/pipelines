@@ -52,6 +52,8 @@
 
 ## Bug fixes and other changes
 
+* fix(sdk): preserve an explicit `backoff_factor=0.0` in `set_retry` at compile time and in local execution. Fixes #13804
+
 # 2.15.2
 
 ## Bug fixes and other changes

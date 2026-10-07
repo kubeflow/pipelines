@@ -675,6 +675,23 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
                          1209600)
 
+    def test_to_proto_defaults(self):
+        retry_policy_proto = structures.RetryPolicy().to_proto()
+        self.assertEqual(retry_policy_proto.max_retry_count, 0)
+        self.assertEqual(retry_policy_proto.backoff_duration.seconds, 0)
+        self.assertEqual(retry_policy_proto.backoff_factor, 2.0)
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
+
+    def test_to_proto_backoff_factor_zero(self):
+        retry_policy_struct = structures.RetryPolicy(
+            max_retry_count=3,
+            backoff_duration='30s',
+            backoff_factor=0.0,
+            backoff_max_duration='120s')
+
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.backoff_factor, 0.0)
+
     def test_to_proto_with_policy(self):
         _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
         retry_policy_struct = structures.RetryPolicy(

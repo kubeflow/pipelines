@@ -1739,6 +1739,31 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.backoff_factor, 1.0)
         self.assertEqual(retry_policy.backoff_max_duration.seconds, 10800)
 
+    def test_set_retry_backoff_factor_zero(self):
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_retry(
+                num_retries=3,
+                backoff_duration='30s',
+                backoff_factor=0.0,
+                backoff_max_duration='120s',
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 3)
+        self.assertEqual(retry_policy.backoff_duration.seconds, 30)
+        self.assertEqual(retry_policy.backoff_factor, 0.0)
+        self.assertEqual(retry_policy.backoff_max_duration.seconds, 120)
+
     def test_set_retry_with_policy(self):
 
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')

@@ -623,7 +623,7 @@ class PipelineTask:
         Args:
             num_retries : Number of times to retry on failure.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
-            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
+            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. A value of ``0`` disables exponential growth, so every retry waits ``backoff_duration``. Defaults to ``2.0``.
             backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
             policy: Controls which failure types trigger a retry. Only supported
                 when using Argo Workflows as the pipeline execution engine. One of
