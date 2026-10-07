@@ -64,8 +64,8 @@ service ExperimentService {
     };
   }
 
-  // Deletes an experiment without deleting the experiment's runs and recurring 
-  // runs. To avoid unexpected behaviors, delete an experiment's runs and recurring 
+  // Deletes an experiment without deleting the experiment's runs and recurring
+  // runs. To avoid unexpected behaviors, delete an experiment's runs and recurring
   // runs before deleting the experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {

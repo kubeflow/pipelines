@@ -55,7 +55,7 @@ func TestCreateExperiment(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	result, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2.Experiment{
 		ExperimentId:     DefaultFakeUUID,
@@ -75,7 +75,7 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
-	_, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to add experiment to experiment table")
 }
@@ -86,7 +86,7 @@ func TestCreateExperiment_EmptyName(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "", Description: "first experiment"}
 	clientManager.DB().Close()
-	_, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Invalid input error: Experiment must have a non-empty name")
 }
@@ -253,9 +253,9 @@ func TestGetExperiment(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperiment(nil, &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	result, err := server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2.Experiment{
 		ExperimentId:     createResult.ExperimentId,
@@ -275,10 +275,10 @@ func TestGetExperiment_Failed(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.GetExperiment(nil, &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	_, err = server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to get experiment")
 }
@@ -342,9 +342,9 @@ func TestListExperiments(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.ListExperiments(nil, &apiV2.ListExperimentsRequest{})
+	result, err := server.ListExperiments(context.Background(), &apiV2.ListExperimentsRequest{})
 	expectedExperiment := []*apiV2.Experiment{{
 		ExperimentId:     createResult.ExperimentId,
 		DisplayName:      "ex1",
@@ -368,7 +368,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(manager)
 	experiment := &apiV2.Experiment{DisplayName: "exp2"}
-	experiment2, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	experiment2, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
 	// Create a generic run object
@@ -391,7 +391,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	genericRun.DisplayName = "run1"
 	genericRun.ExperimentId = experiment1.UUID
-	_, err = runServer.CreateRun(nil, &apiV2.CreateRunRequest{Run: genericRun})
+	_, err = runServer.CreateRun(context.Background(), &apiV2.CreateRunRequest{Run: genericRun})
 	assert.Nil(t, err)
 
 	// Create a run in experiment 2
@@ -400,7 +400,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	genericRun.DisplayName = "run2"
 	genericRun.ExperimentId = experiment2.ExperimentId
-	_, err = runServer.CreateRun(nil, &apiV2.CreateRunRequest{Run: genericRun})
+	_, err = runServer.CreateRun(context.Background(), &apiV2.CreateRunRequest{Run: genericRun})
 	assert.Nil(t, err)
 
 	// Expected runs, note that because run 2 in experiment 2
@@ -444,10 +444,10 @@ func TestListExperiments_Failed(t *testing.T) {
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	_, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.ListExperiments(nil, &apiV2.ListExperimentsRequest{})
+	_, err = server.ListExperiments(context.Background(), &apiV2.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed")
 }
@@ -555,14 +555,14 @@ func TestDeleteExperiments_SingleUser(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
 	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
-	resultExperiment, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	resultExperiment, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	_, err = server.DeleteExperiment(nil, &apiV2.DeleteExperimentRequest{ExperimentId: "ex2"})
+	_, err = server.DeleteExperiment(context.Background(), &apiV2.DeleteExperimentRequest{ExperimentId: "ex2"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
-	_, err = server.DeleteExperiment(nil, &apiV2.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
+	_, err = server.DeleteExperiment(context.Background(), &apiV2.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
 	assert.Nil(t, err)
 }
 
@@ -598,10 +598,10 @@ func TestGetExperiment_JsonOmitEmpty(t *testing.T) {
 		Description: "test description",
 	}
 
-	result, err := server.CreateExperiment(nil, &apiV2.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	getResult, err := server.GetExperiment(nil, &apiV2.GetExperimentRequest{ExperimentId: result.ExperimentId})
+	getResult, err := server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: result.ExperimentId})
 	assert.Nil(t, err)
 
 	// Convert to JSON using the custom marshaler used by runtime servers

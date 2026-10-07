@@ -122,7 +122,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2.
 		experimentCount.Inc()
 	}
 
-	apiExperiment := toApiExperiment(newExperiment)
+	apiExperiment := toAPIExperiment(newExperiment)
 	if apiExperiment == nil {
 		return nil, util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to create experiment")
 	}
@@ -149,7 +149,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2.Get
 		return nil, util.Wrap(err, "Failed to fetch experiment")
 	}
 
-	apiExperiment := toApiExperiment(experiment)
+	apiExperiment := toAPIExperiment(experiment)
 	if apiExperiment == nil {
 		return nil, util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to fetch experiment")
 	}
@@ -194,7 +194,7 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2.L
 		return nil, util.Wrap(err, "List experiments failed")
 	}
 	return &apiv2.ListExperimentsResponse{
-		Experiments:   toApiExperiments(experiments),
+		Experiments:   toAPIExperiments(experiments),
 		TotalSize:     totalSize,
 		NextPageToken: nextPageToken,
 	}, nil

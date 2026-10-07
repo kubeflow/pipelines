@@ -92,7 +92,7 @@ func (s RuntimeState) IsValid() bool {
 	}
 }
 
-// Converts to v2-compatible internal representation of runtime state.
+// ToV2 converts to the v2-compatible internal representation of runtime state.
 // This should be called before converting to v2 API type or writing to a store.
 func (s RuntimeState) ToV2() RuntimeState {
 	switch s.toUpper() {
@@ -165,7 +165,7 @@ func (s StorageState) IsValid() bool {
 	}
 }
 
-// Converts to v2-compatible internal representation of storage state.
+// ToV2 converts to the v2-compatible internal representation of storage state.
 // This should be called before converting to v2 API type or writing to a store.
 func (s StorageState) ToV2() StorageState {
 	switch s.toUpper() {
@@ -230,7 +230,7 @@ type Run struct {
 	TaskCount int `gorm:"-"` // Not persisted in DB, populated from task query
 }
 
-// Converts to v2-compatible internal representation of run.
+// ToV2 converts to the v2-compatible internal representation of a run.
 // This should be called before converting to v2 API type or writing to a store.
 func (r *Run) ToV2() *Run {
 	for _, ref := range r.ResourceReferences {

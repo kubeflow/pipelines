@@ -4,6 +4,7 @@
 import contextlib
 import io
 from pathlib import Path
+import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 from unittest import mock
@@ -603,6 +604,45 @@ class InlineCommandTest(unittest.TestCase):
         self.assertIn('go env GOPATH', script)
         self.assertNotIn('check-release-needed-tools.sh', script)
         self.assertNotIn('make release-in-place', command)
+
+    def test_release_version_bump_selects_api_from_release_source(self):
+        for canonical in (True, False):
+            with self.subTest(
+                    canonical=canonical), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                api = root / 'backend/api'
+                (api / 'v2beta1').mkdir(parents=True)
+                if canonical:
+                    (api / 'v2').mkdir()
+                for relative in ('hack/generator.sh',
+                                 'build_kfp_server_api_python_package.sh'):
+                    generator = api / relative
+                    generator.parent.mkdir(parents=True, exist_ok=True)
+                    generator.write_text('#!/bin/bash\n'
+                                         'printf "%s\\n" "$API_VERSION"\n')
+                    generator.chmod(0o755)
+
+                command = core.release_version_bump_command(
+                    root, 'release-3.2', '3.1.1')
+                script = command[-1]
+                selection = script[script.index(
+                    'if [ -d "$REPO_ROOT/backend/api/v2" ]; then'):]
+                # Execute the real version selection and both generator calls
+                # without running unrelated release prerequisites or Docker.
+                result = subprocess.run(
+                    ['bash', '-ec', selection],
+                    timeout=10,
+                    env={
+                        'REPO_ROOT': str(root),
+                        'API_VERSION': 'stale'
+                    },
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                expected = 'v2' if canonical else 'v2beta1'
+                self.assertEqual(result.stdout.splitlines(),
+                                 [expected, expected])
 
     def test_release_version_bump_command_can_use_master_image(self):
         command = core.release_version_bump_command(

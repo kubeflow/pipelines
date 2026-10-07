@@ -37,22 +37,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var (
-	commonApiRecurringRun = &apiv2.RecurringRun{
-		DisplayName:    "job1",
-		Mode:           apiv2.RecurringRun_ENABLE,
-		MaxConcurrency: 1,
-		Trigger: &apiv2.Trigger{
-			Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &apiv2.CronSchedule{
-				StartTime: timestamppb.New(time.Unix(1, 0)),
-				Cron:      "1 * * * *",
-			}},
-		},
-		PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: &structpb.Struct{}},
-		ExperimentId:   "123e4567-e89b-12d3-a456-426655440000",
-	}
-)
-
 func createJobServer(resourceManager *resource.ResourceManager) *JobServer {
 	return &JobServer{
 		BaseJobServer: &BaseJobServer{
@@ -263,7 +247,7 @@ func TestCreateRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	recurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	recurringRun, err := server.CreateRecurringRun(context.Background(), &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
 	expectedRecurringRun := &apiv2.RecurringRun{
@@ -325,7 +309,7 @@ func TestGetRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(context.Background(), &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
 	expectedRecurringRun := &apiv2.RecurringRun{
@@ -354,7 +338,7 @@ func TestGetRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	recurringRun, err := server.GetRecurringRun(nil, &apiv2.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	recurringRun, err := server.GetRecurringRun(context.Background(), &apiv2.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 	recurringRun.RuntimeConfig.Parameters = map[string]*structpb.Value{
 		"param1": structpb.NewStringValue("world"),
@@ -468,10 +452,10 @@ func TestEnableRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(context.Background(), &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	_, err = server.EnableRecurringRun(nil, &apiv2.EnableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	_, err = server.EnableRecurringRun(context.Background(), &apiv2.EnableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 }
 
@@ -503,10 +487,10 @@ func TestDisableRecurringRun(t *testing.T) {
 		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
 	}
 
-	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	createdRecurringRun, err := server.CreateRecurringRun(context.Background(), &apiv2.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
 	assert.Nil(t, err)
 
-	_, err = server.DisableRecurringRun(nil, &apiv2.DisableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	_, err = server.DisableRecurringRun(context.Background(), &apiv2.DisableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 }
 

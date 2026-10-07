@@ -449,7 +449,7 @@ func TestGetRun(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	returnedRun, err := server.CreateRun(nil, &apiv2.CreateRunRequest{Run: run})
+	returnedRun, err := server.CreateRun(context.Background(), &apiv2.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRun := &apiv2.Run{
@@ -477,7 +477,7 @@ func TestGetRun(t *testing.T) {
 		},
 	}
 
-	newRun, err := server.GetRun(nil, &apiv2.GetRunRequest{RunId: returnedRun.RunId})
+	newRun, err := server.GetRun(context.Background(), &apiv2.GetRunRequest{RunId: returnedRun.RunId})
 	assert.Nil(t, err)
 	assert.EqualValues(t, expectedRun, newRun)
 }
@@ -502,7 +502,7 @@ func TestListRuns(t *testing.T) {
 			},
 		},
 	}
-	createdRun, err := server.CreateRun(nil, &apiv2.CreateRunRequest{Run: run})
+	createdRun, err := server.CreateRun(context.Background(), &apiv2.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRun := &apiv2.Run{
@@ -532,7 +532,7 @@ func TestListRuns(t *testing.T) {
 		},
 	}
 
-	listRunsResponse, err := server.ListRuns(nil, &apiv2.ListRunsRequest{
+	listRunsResponse, err := server.ListRuns(context.Background(), &apiv2.ListRunsRequest{
 		ExperimentId: experiment.UUID,
 	})
 	assert.Nil(t, err)

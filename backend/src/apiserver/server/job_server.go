@@ -200,7 +200,7 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2.Creat
 	if s.options.CollectMetrics {
 		jobCount.Inc()
 	}
-	apiRecurringRun := toApiRecurringRun(newRecurringRun)
+	apiRecurringRun := toAPIRecurringRun(newRecurringRun)
 	if apiRecurringRun == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representation to its API counterpart"), "Failed to create a recurring run")
 	}
@@ -217,7 +217,7 @@ func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2.GetRecur
 		return nil, util.Wrap(err, "Failed to fetch a recurring run")
 	}
 
-	apiRecurringRun := toApiRecurringRun(recurringRun)
+	apiRecurringRun := toAPIRecurringRun(recurringRun)
 	if apiRecurringRun == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representation to its API counterpart"), "Failed to fetch a recurring run")
 	}
@@ -239,7 +239,7 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2.ListRecurrin
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
-	apiRecurringRuns := toApiRecurringRuns(jobs)
+	apiRecurringRuns := toAPIRecurringRuns(jobs)
 	if apiRecurringRuns == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representations to their API counterparts"), "Failed to list recurring runs")
 	}

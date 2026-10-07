@@ -204,10 +204,10 @@ BeforeEach(func() {
 It("Should validate specific behavior", func() {
     // 1. Arrange: Setup test data
     logger.Log("Starting test: %s", testDescription)
-    
+
     // 2. Act: Execute the operation
     result := performAPICall(testData)
-    
+
     // 3. Assert: Validate results
     Expect(result).To(Equal(expectedResult))
     Expect(result.Status).To(Equal("SUCCESS"))

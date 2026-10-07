@@ -34,7 +34,6 @@ import (
 const (
 	pipelineUploadFieldName      = "uploadfile"
 	pipelineUploadPath           = "pipelines/upload"
-	pipelineUploadServerBasePath = "/api/v2/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v2/%s"
 	pipelineUploadContentTypeKey = "Content-Type"
 	pipelineVersionUploadPath    = "pipelines/upload_version"
 )

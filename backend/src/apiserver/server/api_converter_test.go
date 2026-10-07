@@ -447,7 +447,7 @@ func TestToApiPipeline(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pipeline := toApiPipeline(tt.pipeline)
+			pipeline := toAPIPipeline(tt.pipeline)
 			assert.Equal(t, tt.expectedPipeline, pipeline)
 		})
 	}
@@ -492,7 +492,7 @@ func TestToApiPipelines(t *testing.T) {
 			CreatedAtInSec: 1,
 		},
 	}
-	apiPipelines := toApiPipelines(modelPipelines)
+	apiPipelines := toAPIPipelines(modelPipelines)
 	expectedPipelines := []*apiv2.Pipeline{
 		{
 			PipelineId:  "p1",
@@ -547,7 +547,7 @@ func TestToApiPipelines(t *testing.T) {
 	assert.Equal(t, expectedPipelines, apiPipelines)
 
 	modelPipelines2 := make([]*model.Pipeline, 0)
-	apiPipelines2 := toApiPipelines(modelPipelines2)
+	apiPipelines2 := toAPIPipelines(modelPipelines2)
 	expectedPipelines2 := make([]*apiv2.Pipeline, 0)
 	assert.Equal(t, expectedPipelines2, apiPipelines2)
 }
@@ -593,8 +593,8 @@ func TestToApiExperiments(t *testing.T) {
 		Description:           "My name is experiment5",
 		StorageState:          "this is invalid storage state",
 	}
-	apiExps := toApiExperiments([]*model.Experiment{exp1, exp2, exp3, exp4, nil, exp5})
-	expectedApiExps := []*apiv2.Experiment{
+	apiExps := toAPIExperiments([]*model.Experiment{exp1, exp2, exp3, exp4, nil, exp5})
+	expectedAPIExps := []*apiv2.Experiment{
 		{
 			ExperimentId:     "exp1",
 			DisplayName:      "experiment1",
@@ -637,7 +637,7 @@ func TestToApiExperiments(t *testing.T) {
 			StorageState:     apiv2.Experiment_StorageState(apiv2.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"]),
 		},
 	}
-	assert.Equal(t, expectedApiExps, apiExps)
+	assert.Equal(t, expectedAPIExps, apiExps)
 }
 
 func TestToMapProtoStructParameters(t *testing.T) {
@@ -696,10 +696,10 @@ func TestHistoricalParametersRemainVisible(t *testing.T) {
 				Parameters:    `[{"name":"text","value":"historical"}]`,
 				RuntimeConfig: model.RuntimeConfig{Parameters: tc.runtimeParameters},
 			}
-			run := toApiRun(&model.Run{PipelineSpec: spec})
+			run := toAPIRun(&model.Run{PipelineSpec: spec})
 			require.NotNil(t, run.GetRuntimeConfig())
 			assert.Equal(t, tc.want, run.GetRuntimeConfig().GetParameters()["text"].GetStringValue())
-			job := toApiRecurringRun(&model.Job{PipelineSpec: spec})
+			job := toAPIRecurringRun(&model.Job{PipelineSpec: spec})
 			require.NotNil(t, job.GetRuntimeConfig())
 			assert.Equal(t, tc.want, job.GetRuntimeConfig().GetParameters()["text"].GetStringValue())
 		})
@@ -811,14 +811,14 @@ func TestToApiRecurringRun(t *testing.T) {
 		},
 		Status: apiv2.RecurringRun_DISABLED,
 	}
-	apiRecurringRun := toApiRecurringRun(modelJob)
+	apiRecurringRun := toAPIRecurringRun(modelJob)
 	// Compare the string representation of ApiRuns, since these structs have internal fields
 	// used only by protobuff, and may be different. The .String() method marshal all
 	// exported fields into string format.
 	// See https://github.com/stretchr/testify/issues/758
 	assert.Equal(t, expectedRecurringRun.String(), apiRecurringRun.String())
 
-	apiRecurringRun2 := toApiRecurringRun(modelJob2)
+	apiRecurringRun2 := toAPIRecurringRun(modelJob2)
 	// Compare the string representation of ApiRuns, since these structs have internal fields
 	// used only by protobuff, and may be different. The .String() method marshal all
 	// exported fields into string format.
@@ -872,7 +872,7 @@ func TestToModelJobEnabled(t *testing.T) {
 	require.ErrorContains(t, err, "Recurring run's mode is invalid")
 }
 
-func Test_toApiRuntimeState(t *testing.T) {
+func Test_toAPIRuntimeState(t *testing.T) {
 	tests := []struct {
 		name       string
 		modelState model.RuntimeState
@@ -916,8 +916,8 @@ func Test_toApiRuntimeState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := toApiRuntimeState(&tt.modelState); got != tt.want {
-				t.Errorf("toApiRuntimeStateV1() = %v, want %v", tt.want, got)
+			if got := toAPIRuntimeState(&tt.modelState); got != tt.want {
+				t.Errorf("toAPIRuntimeStateV1() = %v, want %v", tt.want, got)
 			}
 		})
 	}
@@ -1079,7 +1079,7 @@ func Test_toModelRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
-func Test_toApiRuntimeStatus(t *testing.T) {
+func Test_toAPIRuntimeStatus(t *testing.T) {
 	tests := []struct {
 		name        string
 		modelStatus *model.RuntimeStatus
@@ -1185,13 +1185,13 @@ func Test_toApiRuntimeStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := toApiRuntimeStatus(tt.modelStatus)
+			got := toAPIRuntimeStatus(tt.modelStatus)
 			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
-func Test_toApiRuntimeStatuses(t *testing.T) {
+func Test_toAPIRuntimeStatuses(t *testing.T) {
 	arg := []*model.RuntimeStatus{
 		nil,
 		{
@@ -1248,7 +1248,7 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 			Error:      util.ToRpcStatus(util.NewInvalidInputError("Invalid input: %s", "sample value")),
 		},
 	}
-	got := toApiRuntimeStatuses(arg)
+	got := toAPIRuntimeStatuses(arg)
 	assert.Equal(t, expected, got)
 }
 
@@ -1315,7 +1315,7 @@ func TestToModelRun(t *testing.T) {
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2.RuntimeState_FAILED,
 				Error:          util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-				RunDetails: &apiv2.RunDetails{
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify legacy run_details conversion remains compatible.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -1408,7 +1408,7 @@ func TestToModelRun(t *testing.T) {
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2.RuntimeState_RUNNING,
-				RunDetails: &apiv2.RunDetails{
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify legacy run_details conversion remains compatible.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -1480,7 +1480,7 @@ func TestToModelRun(t *testing.T) {
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2.RuntimeState_FAILED,
 				Error:          util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-				RunDetails: &apiv2.RunDetails{
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify legacy run_details conversion remains compatible.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -1513,7 +1513,7 @@ func TestToModelRun(t *testing.T) {
 	}
 }
 
-func Test_toApiRun(t *testing.T) {
+func Test_toAPIRun(t *testing.T) {
 	tests := []struct {
 		name    string
 		arg     *model.Run
@@ -1718,7 +1718,7 @@ func Test_toApiRun(t *testing.T) {
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2.RuntimeState_FAILED,
-				RunDetails: &apiv2.RunDetails{
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify legacy run_details conversion remains compatible.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -1787,7 +1787,7 @@ func Test_toApiRun(t *testing.T) {
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
-				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify legacy run_details conversion remains compatible. //nolint:staticcheck // Verify backward-compatible legacy run details.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -1872,7 +1872,7 @@ func Test_toApiRun(t *testing.T) {
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
-				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify legacy run_details conversion remains compatible. //nolint:staticcheck // Verify backward-compatible legacy run details.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -1888,7 +1888,7 @@ func Test_toApiRun(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := toApiRun(tt.arg)
+			got := toAPIRun(tt.arg)
 			if tt.wantErr {
 				assert.Contains(t, got.Error.Message, tt.errMsg)
 				if tt.want.GetRuntimeConfig() != nil && got.GetRuntimeConfig() != nil {
@@ -2063,7 +2063,7 @@ func TestToApiExperimentStorageState(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			state := testCase.state
-			result := toApiExperimentStorageState(&state)
+			result := toAPIExperimentStorageState(&state)
 			assert.Equal(t, testCase.expected, result)
 		})
 	}
@@ -2389,7 +2389,7 @@ func TestValidatePluginsOutput(t *testing.T) {
 		})
 	}
 }
-func Test_toApiRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
+func Test_toAPIRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
 	run := &model.Run{
 		UUID:           "run-task-error",
 		ExperimentId:   "exp-task-error",
@@ -2423,7 +2423,7 @@ func Test_toApiRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
 		},
 	}
 
-	got := toApiRun(run)
+	got := toAPIRun(run)
 	if assert.NotNil(t, got) {
 		assert.Equal(t, run.UUID, got.GetRunId())
 		assert.Equal(t, run.ExperimentId, got.GetExperimentId())
@@ -2446,7 +2446,7 @@ func TestToApiPipelineVersion_OnlyPipelineSpecURI(t *testing.T) {
 		PipelineId:      "pipeline-1",
 		PipelineSpecURI: "http://package/v1",
 	}
-	result := toApiPipelineVersion(pv)
+	result := toAPIPipelineVersion(pv)
 	assert.Empty(t, result.CodeSourceUrl)
 	assert.NotNil(t, result.PackageUrl)
 	assert.Equal(t, "http://package/v1", result.PackageUrl.PipelineUrl)
@@ -2461,13 +2461,13 @@ func TestToApiPipelineVersion_OnlyCodeSourceUrl(t *testing.T) {
 		PipelineId:     "pipeline-1",
 		CodeSourceUrl:  "http://repo/v1",
 	}
-	result := toApiPipelineVersion(pv)
+	result := toAPIPipelineVersion(pv)
 	assert.Equal(t, "http://repo/v1", result.CodeSourceUrl)
 	assert.Nil(t, result.PackageUrl)
 }
 
 func TestToApiPipelineVersions_Empty(t *testing.T) {
-	result := toApiPipelineVersions([]*model.PipelineVersion{})
+	result := toAPIPipelineVersions([]*model.PipelineVersion{})
 	assert.NotNil(t, result)
 	assert.Empty(t, result)
 }
@@ -2482,7 +2482,7 @@ func TestToApiPipelineVersions_SingleVersion(t *testing.T) {
 			PipelineId:     "pipeline-1",
 		},
 	}
-	result := toApiPipelineVersions(versions)
+	result := toAPIPipelineVersions(versions)
 	assert.NotNil(t, result)
 	assert.Equal(t, 1, len(result))
 	assert.Equal(t, "version-1", result[0].PipelineVersionId)
@@ -2504,7 +2504,7 @@ func TestToApiPipelineVersions_MultipleVersions(t *testing.T) {
 			PipelineId:     "pipeline-1",
 		},
 	}
-	result := toApiPipelineVersions(versions)
+	result := toAPIPipelineVersions(versions)
 	assert.NotNil(t, result)
 	assert.Equal(t, 2, len(result))
 	assert.Equal(t, "version-1", result[0].PipelineVersionId)
@@ -3065,7 +3065,7 @@ func TestToApiRunPluginsFields(t *testing.T) {
 				PluginsOutputString: testLargeTextPtr(outputJSON),
 			},
 		}
-		got := toApiRun(modelRun)
+		got := toAPIRun(modelRun)
 		require.Len(t, got.PluginsInput, 2)
 		require.Contains(t, got.PluginsInput, "mlflow")
 		assert.Equal(t, testPluginsExperimentName, got.PluginsInput["mlflow"].Fields["experiment_name"].GetStringValue())
@@ -3090,7 +3090,7 @@ func TestToApiRunPluginsFields(t *testing.T) {
 			},
 			RunDetails: model.RunDetails{},
 		}
-		got := toApiRun(modelRun)
+		got := toAPIRun(modelRun)
 		assert.Nil(t, got.PluginsInput)
 		assert.Nil(t, got.PluginsOutput)
 	})
@@ -3107,7 +3107,7 @@ func TestToApiRunPluginsFields(t *testing.T) {
 				PluginsOutputString: testLargeTextPtr(`{"mlflow":{"entries":{"run_url":{"value":"` + testPluginsUnsafeJavaScriptURL + `","renderType":"URL"}}}}`),
 			},
 		}
-		got := toApiRun(modelRun)
+		got := toAPIRun(modelRun)
 		require.NotNil(t, got.Error)
 		assert.Nil(t, got.PluginsOutput)
 	})
@@ -3208,7 +3208,7 @@ func TestToApiRecurringRunPluginsInput(t *testing.T) {
 				PipelineVersionId: "pv1",
 			},
 		}
-		got := toApiRecurringRun(modelJob)
+		got := toAPIRecurringRun(modelJob)
 		require.Len(t, got.PluginsInput, 2)
 		require.Contains(t, got.PluginsInput, "mlflow")
 		assert.Equal(t, testPluginsRecurringExperimentName, got.PluginsInput["mlflow"].Fields["experiment_name"].GetStringValue())
@@ -3229,7 +3229,7 @@ func TestToApiRecurringRunPluginsInput(t *testing.T) {
 				PipelineVersionId: "pv1",
 			},
 		}
-		got := toApiRecurringRun(modelJob)
+		got := toAPIRecurringRun(modelJob)
 		assert.Nil(t, got.PluginsInput)
 	})
 }

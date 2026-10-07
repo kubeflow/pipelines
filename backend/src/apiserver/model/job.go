@@ -55,7 +55,7 @@ func (s StatusState) ToString() string {
 	return string(s.ToV2())
 }
 
-// Converts to v2-compatible internal representation of job status.
+// ToV2 converts to the v2-compatible internal representation of job status.
 // This should be called before converting to v2 API type or writing to a store.
 func (s StatusState) ToV2() StatusState {
 	switch s.toUpper() {
@@ -98,7 +98,7 @@ type Job struct {
 	PluginsInputString *LargeText `gorm:"column:PluginsInput; default:null;"`
 }
 
-// Converts to v2-compatible internal representation of job.
+// ToV2 converts to the v2-compatible internal representation of a job.
 // This should be called before converting to v2 API type.
 func (j *Job) ToV2() *Job {
 	for _, ref := range j.ResourceReferences {
