@@ -17,6 +17,11 @@ on:
 
   workflow_dispatch:
     inputs:
+      run_custom_roles:
+        description: 'Run isolated custom-role API/UI authorization acceptance'
+        type: boolean
+        required: false
+        default: false
       run_readiness_schedules:
         description: 'Run isolated scheduling acceptance after candidate policy review'
         type: boolean
@@ -203,3 +208,37 @@ jobs:
       - name: Remove isolated readiness cluster
         if: ${{ always() }}
         run: kind delete cluster --name kfp-readiness
+
+  custom-role-acceptance:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_custom_roles }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CLUSTER_NAME: kfp-custom-roles
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: 'v1.36.1'
+          cluster_name: kfp-custom-roles
+      - uses: ./.github/actions/deploy
+        with:
+          cluster_name: kfp-custom-roles
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: 'false'
+      - name: Exercise custom roles against candidate API and UI
+        run: bash .github/resources/scripts/custom-role-acceptance.sh
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: custom-role-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/custom-roles/report.json
+          if-no-files-found: ignore
+      - name: Remove isolated cluster
+        if: ${{ always() }}
+        run: kind delete cluster --name kfp-custom-roles
