@@ -49,11 +49,23 @@ definitions stable until the transfer is complete.
 Imported resource IDs may change, especially when Kubernetes assigns catalog or
 schedule IDs. Relationships inside the archive are mapped to the destination IDs.
 The destination keeps its own default-experiment setting, migration state and
-runtime configuration. Namespace remapping and cross-generation imports are not
+runtime configuration. When importing into 2.18, namespace remapping and cross-generation imports are not
 supported. Source and destination must use the same database engine and matching
 release schemas. Use the transfer implementation from the
 same storage generation: master/native archives and release-2.18/MLMD archives
 are different formats.
+
+## Archive version compatibility
+
+Updated 2.18 exporters produce `kfp-namespace-transfer-mlmd-2.18/v2` archives.
+These explicitly preserve V2 runtime parameter overrides for runs and schedules.
+Use an updated importer in the destination. Older v1 archives omitted these values:
+imports containing schedules are rejected with instructions to export again, and
+history-only imports warn that the original overrides are unavailable.
+
+The native-storage importer can support this format through its separate legacy
+adapter; native archives still cannot be imported into 2.18. Consult the
+destination's transfer guide for its supported formats and conversion limits.
 
 ## Schedules and historical runs
 

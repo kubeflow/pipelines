@@ -47,3 +47,10 @@ type Summary struct {
 	DryRun   bool     `json:"dry_run"`
 	Warnings []string `json:"warnings"`
 }
+
+// RuntimeParameters preserves V2 overrides hidden by the legacy model's
+// anonymously embedded Parameters fields when encoding an archive.
+type RuntimeParameters struct {
+	Runs      map[string]string `json:"runs"`
+	Schedules map[string]string `json:"schedules"`
+}
