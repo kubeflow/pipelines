@@ -42,7 +42,7 @@ dependencies = [
   "requests==2.33.0",
   "requests-toolbelt>=0.8.0,<2",
   "tabulate>=0.8.6,<1",
-  "urllib3==2.7.0",
+  "urllib3>=2.8.0,<3",
 ]
 
 [project.optional-dependencies]

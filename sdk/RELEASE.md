@@ -52,6 +52,10 @@
 
 ## Bug fixes and other changes
 
+* Relax the `urllib3` pin from `==2.7.0` to `>=2.8.0,<3` to resolve
+  GHSA-8988-9cw3-xx77, GHSA-vxq7-64xx-v4gw and GHSA-gh4c-6fx4-qh6g.
+  [\#14684](https://github.com/kubeflow/pipelines/issues/14684)
+
 # 2.15.2
 
 ## Bug fixes and other changes
