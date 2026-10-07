@@ -499,3 +499,97 @@ func TestWorkflow_Save_StalledCheckerDoesNotBlockReporting(t *testing.T) {
 	assert.True(t, checker.called)
 	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"), "workflow must still be reported after the checker timed out")
 }
+
+func TestWorkflow_Save_PersistedFinalWorkflowStillForgetsTracking(t *testing.T) {
+	// The persisted-final shortcut returns before reporting. Tracking state
+	// must still be dropped there, otherwise a workflow that was adopted and
+	// persisted as terminal by the API server while this agent still saw it
+	// running would keep its consumed grace period until the run is retried.
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{}
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "MY_UUID",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase:      workflowapi.WorkflowFailed,
+			FinishedAt: metav1.Now(),
+		},
+	})
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	require.NoError(t, saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20))
+	assert.Nil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"), "the persisted-final shortcut must still skip reporting")
+	assert.True(t, checker.forgotten, "tracking state must be dropped even when the shortcut is taken")
+	assert.False(t, checker.called)
+	assert.Equal(t, "MY_NAMESPACE", checker.namespace)
+	assert.Equal(t, "MY_NAME", checker.workflowName)
+}
+
+func TestWorkflow_Save_RetryAfterPersistedCompletionStartsFreshGracePeriod(t *testing.T) {
+	// End-to-end through the saver with a real checker: a running workflow
+	// consumes its grace period, is then observed already persisted as
+	// terminal (so the saver takes the shortcut), and is finally retried in
+	// place while the previous attempt's failing pod is still in the pod
+	// cache. The retried attempt must not be terminated by the old clock.
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+
+	stalePod := newWorkflowPod("failing-pod", "MY_NAME", "bad-image:latest", "ImagePullBackOff")
+	stalePod.Namespace = "MY_NAMESPACE"
+	podLister, _ := newTestPodLister(stalePod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	newWorkflow := func(phase workflowapi.WorkflowPhase, resourceVersion string, extraLabels, annotations map[string]string) util.ExecutionSpec {
+		labels := map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"}
+		for k, v := range extraLabels {
+			labels[k] = v
+		}
+		return util.NewWorkflow(&workflowapi.Workflow{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:       "MY_NAMESPACE",
+				Name:            "MY_NAME",
+				UID:             testWorkflowUID("MY_NAME"),
+				ResourceVersion: resourceVersion,
+				Labels:          labels,
+				Annotations:     annotations,
+			},
+			Status: workflowapi.WorkflowStatus{Phase: phase, FinishedAt: metav1.Now()},
+		})
+	}
+
+	// Attempt 1 is running with a failing pod; the grace period starts.
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", newWorkflow(workflowapi.WorkflowRunning, "100", nil, nil))
+	require.NoError(t, saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20))
+	assert.Len(t, checker.failureStart, 1)
+	clock.advance(5 * time.Minute)
+
+	// The live workflow finished and was already persisted by the API server;
+	// the saver takes the persisted-final shortcut.
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", newWorkflow(workflowapi.WorkflowFailed, "101",
+		map[string]string{util.LabelKeyWorkflowPersistedFinalState: "true"}, nil))
+	require.NoError(t, saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20))
+	assert.Empty(t, checker.failureStart, "terminal workflow must drop tracking even on the shortcut path")
+
+	// The run is retried in place while the old pod is still cached.
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", newWorkflow(workflowapi.WorkflowRunning, "102", nil,
+		map[string]string{util.AnnotationKeyRetryGeneration: "1"}))
+	require.NoError(t, saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "the retried attempt must not inherit the previous attempt's failure clock")
+	require.Len(t, checker.failureStart, 1)
+	assert.Equal(t, "1", checker.failureStart["MY_NAMESPACE/MY_NAME"].retryGeneration)
+}

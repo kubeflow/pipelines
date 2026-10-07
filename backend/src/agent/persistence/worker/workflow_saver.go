@@ -78,6 +78,15 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		log.Infof("Skip syncing Workflow (%v): workflow does not have a Run ID label.", name)
 		return nil
 	}
+	// Drop any image pull failure tracking state as soon as the workflow is
+	// seen in a final state. This must happen before the persisted-final
+	// shortcut below: the API server may have adopted and persisted the
+	// terminal workflow while this agent still saw it running, in which case
+	// every later sync takes the shortcut and the state would otherwise
+	// survive until a retry of the run inherits the consumed grace period.
+	if s.imagePullFailureChecker != nil && wf.ExecutionStatus().IsInFinalState() {
+		s.imagePullFailureChecker.Forget(namespace, name)
+	}
 	if wf.PersistedFinalState() && time.Now().Unix()-wf.ExecutionStatus().FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
 		// Skip persisting the workflow if the workflow is finished
 		// and the workflow hasn't being passing the TTL
@@ -85,16 +94,11 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return nil
 	}
 
-	// Check for image pull failures on workflows that are still running, and
-	// drop any tracking state once the workflow has finished. The check is
-	// bounded by a timeout so a stalled termination request cannot block
-	// reporting; errors are logged and reporting proceeds regardless.
-	if s.imagePullFailureChecker != nil {
-		if wf.ExecutionStatus().IsInFinalState() {
-			s.imagePullFailureChecker.Forget(namespace, name)
-		} else {
-			s.checkImagePullFailures(wf)
-		}
+	// Check for image pull failures on workflows that are still running. The
+	// check is bounded by a timeout so a stalled termination request cannot
+	// block reporting; errors are logged and reporting proceeds regardless.
+	if s.imagePullFailureChecker != nil && !wf.ExecutionStatus().IsInFinalState() {
+		s.checkImagePullFailures(wf)
 	}
 
 	// Save this Workflow to the database.
