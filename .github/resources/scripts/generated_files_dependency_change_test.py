@@ -120,6 +120,7 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
                     '.github/workflows/validate-generated-files.yml').read_text(
                         encoding='utf-8')
         self.assertIn("- 'go.mod'", workflow)
+        self.assertIn("- 'backend/api/hack/**'", workflow)
         self.assertIn(
             "- 'backend/api/build_kfp_server_api_python_package.sh'",
             workflow,

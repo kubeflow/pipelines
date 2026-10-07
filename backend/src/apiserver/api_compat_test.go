@@ -23,12 +23,17 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/reflection"
+	reflectionv1 "google.golang.org/grpc/reflection/grpc_reflection_v1"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 // Sharing gRPC method handlers requires identical wire and JSON contracts. Any
@@ -180,7 +185,16 @@ func (compatibilityExperimentServer) CreateExperiment(ctx context.Context, reque
 	return request.Experiment, nil
 }
 
-func TestLegacyGRPCClientUsesCanonicalHandler(t *testing.T) {
+func legacyMessage(t *testing.T, name string) *dynamicpb.Message {
+	t.Helper()
+	descriptor, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(legacyRPCPackage + name))
+	require.NoError(t, err)
+	message, ok := descriptor.(protoreflect.MessageDescriptor)
+	require.True(t, ok)
+	return dynamicpb.NewMessage(message)
+}
+
+func TestLegacyGRPCWireAndImportShimsUseCanonicalHandler(t *testing.T) {
 	var intercepted atomic.Int32
 	rpc := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, request interface{}, info *grpc.UnaryServerInfo, next grpc.UnaryHandler) (interface{}, error) {
 		intercepted.Add(1)
@@ -190,6 +204,7 @@ func TestLegacyGRPCClientUsesCanonicalHandler(t *testing.T) {
 		return next(ctx, request)
 	}))
 	api.RegisterExperimentServiceServer(compatibleServiceRegistrar{rpc}, compatibilityExperimentServer{})
+	reflection.Register(rpc)
 	listener := bufconn.Listen(1024 * 1024)
 	go rpc.Serve(listener)
 	t.Cleanup(rpc.Stop)
@@ -199,10 +214,15 @@ func TestLegacyGRPCClientUsesCanonicalHandler(t *testing.T) {
 	deadline, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 	ctx := metadata.NewOutgoingContext(deadline, metadata.Pairs("authorization", "Bearer token"))
-	oldClient := legacy.NewExperimentServiceClient(connection)
 	newClient := api.NewExperimentServiceClient(connection)
+	// These messages use the immutable pre-promotion schema, not Go aliases.
+	// Invoke the legacy wire name explicitly so this tests already-built clients.
+	oldRequest := legacyMessage(t, "CreateExperimentRequest")
+	require.NoError(t, protojson.Unmarshal([]byte(`{"experiment":{"display_name":"experiment","namespace":"tenant"}}`), oldRequest))
+	oldResponse := legacyMessage(t, "Experiment")
+	oldMethod := "/" + legacyRPCPackage + "ExperimentService/CreateExperiment"
 	var headers metadata.MD
-	oldResponse, err := oldClient.CreateExperiment(ctx, &legacy.CreateExperimentRequest{Experiment: &legacy.Experiment{DisplayName: "experiment", Namespace: "tenant"}}, grpc.Header(&headers))
+	err = connection.Invoke(ctx, oldMethod, oldRequest, oldResponse, grpc.Header(&headers))
 	require.NoError(t, err)
 	require.Equal(t, []string{"shared-handler"}, headers.Get("compatibility"))
 	newResponse, err := newClient.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: &api.Experiment{DisplayName: "experiment", Namespace: "tenant"}})
@@ -212,9 +232,33 @@ func TestLegacyGRPCClientUsesCanonicalHandler(t *testing.T) {
 	newJSON, err := protojson.Marshal(newResponse)
 	require.NoError(t, err)
 	require.JSONEq(t, string(newJSON), string(oldJSON))
-	_, err = oldClient.CreateExperiment(ctx, &legacy.CreateExperimentRequest{})
+	// Recompiled legacy Go imports delegate directly to the canonical client.
+	aliasedResponse, err := legacy.NewExperimentServiceClient(connection).CreateExperiment(ctx, &legacy.CreateExperimentRequest{Experiment: &legacy.Experiment{DisplayName: "experiment", Namespace: "tenant"}})
+	require.NoError(t, err)
+	require.True(t, proto.Equal(newResponse, aliasedResponse))
+	err = connection.Invoke(ctx, oldMethod, legacyMessage(t, "CreateExperimentRequest"), legacyMessage(t, "Experiment"))
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
-	_, err = oldClient.CreateExperiment(deadline, &legacy.CreateExperimentRequest{})
+	err = connection.Invoke(deadline, oldMethod, legacyMessage(t, "CreateExperimentRequest"), legacyMessage(t, "Experiment"))
 	require.Equal(t, codes.Unauthenticated, status.Code(err))
-	require.Equal(t, int32(4), intercepted.Load())
+	require.Equal(t, int32(5), intercepted.Load())
+
+	stream, err := reflectionv1.NewServerReflectionClient(connection).ServerReflectionInfo(deadline)
+	require.NoError(t, err)
+	require.NoError(t, stream.Send(&reflectionv1.ServerReflectionRequest{
+		MessageRequest: &reflectionv1.ServerReflectionRequest_FileContainingSymbol{FileContainingSymbol: legacyRPCPackage + "ExperimentService"},
+	}))
+	response, err := stream.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, response.GetFileDescriptorResponse())
+	found := false
+	for _, encoded := range response.GetFileDescriptorResponse().FileDescriptorProto {
+		file := new(descriptorpb.FileDescriptorProto)
+		require.NoError(t, proto.Unmarshal(encoded, file))
+		if file.GetName() == "backend/api/v2beta1/experiment.proto" {
+			found = true
+			require.Equal(t, strings.TrimSuffix(legacyRPCPackage, "."), file.GetPackage())
+		}
+	}
+	require.True(t, found, "reflection must expose the frozen legacy contract")
+	require.NoError(t, stream.CloseSend())
 }

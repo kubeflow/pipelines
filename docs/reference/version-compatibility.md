@@ -9,6 +9,9 @@ names through compatibility adapters to the same v2 handlers. Existing request
 and response fields, filters, and pagination tokens are unchanged; HTTP
 requests are forwarded internally without redirects. Python `V2beta1…` model
 imports remain aliases of `V2…` models, including direct model-module imports.
+Legacy Go import paths are also aliases/forwarders to v2: recompiled callers use
+canonical endpoints and protobuf message identities, while already-built clients
+continue to use the legacy wire routes. There is only one client implementation.
 Upgrade the backend before adopting clients that call `/apis/v2`; older servers
 do not necessarily expose it. This is not a compatibility promise for removed
 v1 APIs or other breaking changes in the release.

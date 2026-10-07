@@ -6,14 +6,18 @@
 services use `kubeflow.pipelines.backend.api.v2`, and generated clients use
 `V2…` model names.
 
-`v2beta1` is a frozen compatibility contract, not a second implementation:
+`v2beta1` is a thin compatibility layer, not a second implementation:
 
 - `/apis/v2beta1/...` is internally rewritten to `/apis/v2/...` before routing,
   including uploads, health checks, log/artifact streams, and data transfer.
   There are no HTTP redirects or additional upstream requests.
 - The old gRPC service names register the same v2 handlers. Authentication,
-  validation, persistence, and error handling remain shared. Legacy descriptors
-  and Go clients are retained for existing callers and gRPC reflection.
+  validation, persistence, and error handling remain shared. A small frozen
+  descriptor snapshot supports legacy reflection and independent wire tests.
+- Old Go client import paths and exported names are generated aliases and
+  forwarding functions to v2, not duplicate clients or message implementations.
+  Recompiled callers use canonical v2 endpoints and protobuf identities;
+  already-built clients still work through the legacy server aliases.
 - Generated Python `V2beta1…` imports, including module-qualified imports under
   `kfp.server_api.models.v2beta1_*`, are aliases of the canonical `V2…` classes.
   They serialize the same fields and use the v2 endpoints.
@@ -26,9 +30,10 @@ renamed by the backend API promotion. Old clients can call the new server;
 new v2 clients require a server that exposes v2 (upgrade the server first).
 
 Make schema changes under `backend/api/v2`. The descriptor parity regression
-in `backend/src/apiserver/api_compat_test.go` protects the shared-handler
-assumption. Incompatible future changes require explicit compatibility
-adapters rather than changes to the frozen legacy contract.
+in `backend/src/apiserver/api_compat_test.go` compares v2 against the frozen
+`v2beta1/legacy_descriptor.pb` snapshot, protecting the shared-handler assumption.
+Incompatible future changes require explicit compatibility adapters rather than
+changes to that historical baseline. There is no second editable proto tree.
 
 ## Generate Go clients and OpenAPI definitions
 
@@ -47,6 +52,8 @@ USE_PREBUILT_IMAGE=false make -C backend/api generate
 ```
 
 Outputs live under `backend/api/v2/{go_client,go_http_client,swagger}`.
+The same command regenerates the legacy Go import shims from those outputs.
+`make -C backend/api generate-compat` regenerates just the shims without Docker.
 `swagger/pipeline.upload.swagger.json` and `transfer.openapi.yaml` are manually
 maintained HTTP contracts. All other Swagger and client outputs are generated;
 do not edit them directly. `generate-from-scratch` is an alias for the source

@@ -157,5 +157,8 @@ sed -i -- 's/Tags map\[string\]string `json:"tags,omitempty"`/Tags map[string]st
     backend/api/${API_VERSION}/go_http_client/pipeline_client/pipeline_service/pipeline_service_update_pipeline_responses.go \
     backend/api/${API_VERSION}/go_http_client/pipeline_client/pipeline_service/pipeline_service_update_pipeline_version_responses.go
 
+# Generate legacy import shims from the canonical implementation.
+go run ./backend/api/hack/generate_compat
+
 # Execute the //go:generate directives in the generated code.
 cd backend/api && go generate ./...
