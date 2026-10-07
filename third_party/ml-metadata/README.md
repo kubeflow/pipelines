@@ -52,7 +52,7 @@ After submitting the changes from above command, find all the modules with `gith
 1. Run `go get github.com/kubeflow/pipelines/third_party/ml-metadata@latest`.
 1. `go mod tidy`
 
-To learn more, refer to [Upgrading or downgrading a dependency](https://go.dev/doc/modules/managing-dependencies#upgrading). 
+To learn more, refer to [Upgrading or downgrading a dependency](https://go.dev/doc/modules/managing-dependencies#upgrading).
 
 ### Build JS client from proto
 
