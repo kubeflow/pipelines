@@ -107,6 +107,7 @@ updates:
       - "/components/google-cloud"
       - "/docs"
       - "/release"
+      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
       - "/sdk/python"
     schedule:
       interval: weekly

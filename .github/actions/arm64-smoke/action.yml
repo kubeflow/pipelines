@@ -2,7 +2,7 @@ name: Native ARM64 pipeline smoke
 description: Deploy the standalone profile and prove driver and launcher execution on ARM64
 inputs:
   image_records:
-    description: Directory containing the seven source-matched image JSON records
+    description: Directory containing the source-matched image JSON records
     required: true
   source_sha:
     description: Commit SHA used to build the images and checked-out manifests

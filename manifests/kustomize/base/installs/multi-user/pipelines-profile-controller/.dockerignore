@@ -1,0 +1,5 @@
+*
+!Dockerfile
+!requirements.txt
+!sync.py
+!runtime_smoke.py

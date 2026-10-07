@@ -21,6 +21,9 @@ images:
   - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
     newName: kind-registry:5000/viewer-crd-controller
     newTag: latest
+  - name: ghcr.io/kubeflow/kfp-profile-controller
+    newName: kind-registry:5000/profile-controller
+    newTag: ci
 patches:
   - path: ../pipeline-crd-rbac.yaml
     target:

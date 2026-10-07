@@ -17,3 +17,8 @@ labels:
 - includeSelectors: true
   pairs:
     app: kubeflow-pipelines-profile-controller
+
+# The master publisher creates this new image; release.sh selects release tags.
+images:
+- name: ghcr.io/kubeflow/kfp-profile-controller
+  newTag: master

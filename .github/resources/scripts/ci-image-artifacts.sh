@@ -20,6 +20,7 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "persistenceagent"
   "frontend"
   "viewer-crd-controller"
+  "profile-controller"
 )
 RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
 ALL_CI_IMAGE_ARTIFACTS=(
