@@ -221,6 +221,15 @@ unextracted.
 
 ### TensorBoard proxy signing secret
 
+#### Standard manifests: automatic initialization
+
+With the complete default manifests, no manual key generation or Secret editing
+is required. Apply the release manifests and wait for the UI Deployment rollout;
+Kubernetes starts the UI once the signing key is available. The
+[2.18 upgrade checklist](upgrade-2.18.md#prepare-the-ui-signing-key) gives the
+normal upgrade steps and first-adoption impact. The custom configuration and
+recovery sections below are not additional steps for every installation.
+
 The frontend signs scoped TensorBoard proxy paths with
 `TENSORBOARD_PROXY_SIGNING_SECRET`. The default Kustomize installation initializes
 a dedicated random key in the `ml-pipeline-ui-tensorboard-proxy` Secret and
@@ -241,17 +250,15 @@ only orders old and new UI pods. The non-optional `secretKeyRef` for
 briefly show `CreateContainerConfigError` while the Job populates the empty
 Secret; kubelet retries and starts the container when the key exists. This is
 expected and does not require an init container or Secret-read RBAC for the UI.
-Wait for the initializer Job to complete and then for the UI rollout before
-routing traffic. An existing valid shared key lets new UI pods start immediately,
-without waiting for the idempotent Job.
-If initialization fails, check the Job status, its get/update permissions, and
-whether an existing key is valid UTF-8 of at least 32 bytes with no NUL characters.
-An invalid existing key is never replaced automatically. After correcting a failed
-initialization, delete the failed Job and reapply the manifests to retry. If the Secret was deleted, restore it from
-backup before starting replacement UI pods. If restoration is impossible,
-reapply the manifests to recreate the empty Secret, delete the existing
-initializer Job, and reapply again to generate a new key. Restart all UI replicas
-together after regeneration. Reapplying alone does not rerun a completed Job.
+Wait for the UI rollout before routing traffic. An existing valid shared key
+lets new UI pods start immediately, without waiting for the idempotent Job.
+
+#### Custom overlays and GitOps
+
+Custom overlays must retain the initializer Job and its RBAC, the named Secret,
+the UI's required Secret reference, and `Recreate` for first adoption. Updating
+only the UI image does not install these resources. If you already override the
+deployment with an externally managed key, see the configuration below.
 
 The Secret manifest intentionally omits `data` and `stringData`. Keep those
 fields absent when using automatic initialization, and preserve the Secret
@@ -270,6 +277,8 @@ pruned after upgrades; do not delete the signing Secret. If an overlay changes
 the Job pod template, also add or change a literal in its ConfigMap generator to
 force a new Job name.
 
+#### Externally managed signing keys
+
 To use an externally managed key, provide a dedicated random secret of at least
 32 UTF-8 bytes with no NUL characters and override the deployment's reference if
 necessary:
@@ -287,8 +296,10 @@ Do not reuse `MINIO_SECRET_KEY` or another application credential. The frontend
 refuses to start if the configured signing secret is shorter than 32 UTF-8 bytes
 or matches `MINIO_SECRET_KEY`.
 
-**Upgrade and rotation:** the first upgrade from a storage-derived or
-process-local key briefly interrupts the UI and invalidates existing TensorBoard
+#### Key rotation and URL lifetime
+
+The first upgrade from a storage-derived or process-local key briefly interrupts
+the UI and invalidates existing TensorBoard
 proxy URLs. Wait for the upgrade to complete, then reopen TensorBoard from the
 UI to obtain a new URL. Subsequent UI restarts and rolling updates keep URLs
 valid while the shared key remains unchanged. Deliberately replacing or losing
@@ -300,6 +311,26 @@ Outside the default manifests, leaving `TENSORBOARD_PROXY_SIGNING_SECRET` unset
 still generates a process-local key. This supports local development, but URLs
 expire on process restart and replicas cannot share URLs. Configure a shared key
 before enabling multiple replicas or rolling updates in custom deployments.
+
+#### Signing-key startup and recovery
+
+If UI startup remains blocked, inspect the initializer Job's status and logs and
+its get/update permissions on `ml-pipeline-ui-tensorboard-proxy`. The Job name
+includes a generated hash; use its name from the rendered manifests or installed
+Jobs rather than assuming a fixed suffix. A brief `CreateContainerConfigError`
+while the key is absent is normal; a failed Job or persistent error is not.
+Do not delete or regenerate the key as the first troubleshooting step.
+
+Check whether an existing key is valid UTF-8 of at least 32 bytes with no NUL
+characters, without printing its value in logs or support reports. An invalid
+existing key is never replaced automatically. After correcting a failed
+initialization, delete the failed Job and reapply the manifests to retry.
+
+If the Secret was deleted, restore it from backup before starting replacement UI
+pods. If restoration is impossible, reapply the manifests to recreate the empty
+Secret, delete the existing initializer Job, and reapply again to generate a new
+key. Restart all UI replicas together after regeneration; existing TensorBoard
+proxy URLs are invalidated. Reapplying alone does not rerun a completed Job.
 
 #### Enabling rolling UI updates
 

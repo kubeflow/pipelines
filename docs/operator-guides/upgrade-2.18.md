@@ -9,8 +9,9 @@ testing is complete.
 :::{warning}
 Do not upgrade only the container images. Multi-user installations need coordinated
 API server, ScheduledWorkflow controller, and RBAC changes. Existing recurring
-runs can stop submitting even while the UI shows them enabled, and the UI cannot
-start until its signing-key Secret is populated.
+runs can stop submitting even while the UI shows them enabled. The complete
+manifests also initialize the UI signing key automatically; image-only upgrades
+omit that setup.
 :::
 
 ## Required migration actions
@@ -20,7 +21,7 @@ start until its signing-key Secret is populated.
 | Legacy multi-user schedules | Jobs without API-owned scheduling state no longer execute. This includes disabled jobs when later enabled. Audit mode does not bypass the requirement. | Inventory, review, and recreate them through the API before their next execution. See [schedule migration](scheduled-service-accounts.md#upgrade-and-revocation). |
 | API, controller, and RBAC | Multi-user scheduled executions go through the API under the controller's identity. Custom accounts require scoped authorization for both the creator and controller. | Apply the complete release manifests together, retain `--multiUser=true` and removal of controller `workflows/create`, and update custom roles. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
 | Pipeline-name lookups | Multi-user Kubernetes-native storage no longer falls back to the installation namespace when a namespace is omitted. Private SDK lookups also need an explicit namespace. | Update SDK and REST callers; do not rely on `Client(namespace=...)` to scope `get_pipeline_id()`. See [lookup migration](#make-pipeline-lookup-namespaces-explicit). |
-| UI signing key | Default manifests inject one persistent key into every UI replica through a required Secret field. First adoption briefly interrupts the UI and invalidates old TensorBoard URLs. | Deploy the initializer and its RBAC, preserve the Secret, wait for initialization and UI rollout, then reopen TensorBoard. See [UI startup](#prepare-the-ui-signing-key). |
+| UI signing key | The complete default manifests automatically create or reuse a persistent signing key and start the UI when it is available. First adoption briefly interrupts the UI and invalidates old TensorBoard URLs. | Apply the complete manifests, wait for the UI rollout, then reopen TensorBoard. No manual key generation is needed. Custom overlays and GitOps have separate checks. See [UI startup](#prepare-the-ui-signing-key). |
 
 ## Plan the multi-user rollout
 
@@ -83,26 +84,48 @@ private references must remain in the owning namespace. See the
 
 ## Prepare the UI signing key
 
-The default manifests create `ml-pipeline-ui-tensorboard-proxy` and an initializer
-Job with narrowly scoped Secret permissions. All UI replicas read its
-`signing-secret` field through a non-optional `secretKeyRef`. Include these
-resources when updating custom overlays; an image-only update is insufficient.
+### Standard manifests: automatic setup
 
-Wait for the rendered initializer Job to complete, then wait for the UI Deployment
-rollout. Its Job name includes a generated hash, so use the name from the rendered
-manifests or installed Jobs rather than assuming a fixed suffix. A temporary
-`CreateContainerConfigError` while the key is absent is expected; a failed Job or
-persistent error requires investigation before routing UI traffic.
+You do not need to generate a key, copy it into a Secret, or manually order the
+initializer and UI startup. Applying the complete release manifests includes the
+Secret, initializer Job, and its narrowly scoped permissions. The initializer
+generates the key only when it is absent and preserves an existing valid key.
+The UI waits for the required Secret field and then starts automatically.
 
-Preserve the Secret and generated key data across applies, GitOps reconciliation,
-and backups. Do not prune or force-recreate it, or replace the key with an object
-store credential. Retain `Recreate` for first adoption; enable rolling updates only
-after every UI pod uses the same persistent key. Reopen TensorBoard from the UI
-after the first migration because previously issued proxy URLs are invalidated.
+After applying the complete manifests as part of the rollout above, wait for the
+UI Deployment. For the default `kubeflow` namespace:
 
-Follow the [signing-key guide](server-config.md#tensorboard-proxy-signing-secret)
-for external Secret configuration, initialization failures, GitOps settings,
-rotation, and the two-phase switch to rolling updates.
+```bash
+kubectl -n kubeflow rollout status deployment/ml-pipeline-ui
+```
+
+Use your installation namespace if different. First adoption briefly interrupts
+the UI and invalidates old TensorBoard proxy URLs; reopen TensorBoard from the UI
+after the rollout. Keep the default `Recreate` strategy for this first upgrade.
+Subsequent restarts reuse the key; ordinary manifest reapplication does not rotate
+it. Include the signing Secret in your normal backups.
+
+A brief `CreateContainerConfigError` while the initializer creates the key is
+expected and clears automatically. If startup remains blocked, follow
+[signing-key troubleshooting](server-config.md#signing-key-startup-and-recovery);
+do not delete or regenerate the key as the first troubleshooting step.
+
+### Additional checks only for customized deployments
+
+- **Custom overlays or image-only upgrades:** include the signing Secret,
+  initializer Job and RBAC, and required UI Secret reference from the complete
+  release manifests. Retain `Recreate` for first adoption; changing only images
+  is insufficient.
+- **GitOps:** preserve the generated Secret data; do not prune, replace, or
+  force-recreate the signing Secret. Use the
+  [GitOps guidance](server-config.md#custom-overlays-and-gitops) if your reconciler
+  treats generated key data as drift.
+- **Externally managed keys:** use the
+  [external-key configuration](server-config.md#externally-managed-signing-keys),
+  not an object-store credential.
+- **Rolling UI updates:** optional after shared-key adoption, not a prerequisite
+  for this upgrade. Follow the separate
+  [two-phase procedure](server-config.md#enabling-rolling-ui-updates).
 
 ## Verify before reopening access
 
