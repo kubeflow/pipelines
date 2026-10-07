@@ -20,7 +20,6 @@ omit that setup.
 | --- | --- | --- |
 | Legacy multi-user schedules | Jobs without API-owned scheduling state no longer execute. This includes disabled jobs when later enabled. Audit mode does not bypass the requirement. | Inventory, review, and recreate them through the API before their next execution. See [schedule migration](scheduled-service-accounts.md#upgrade-and-revocation). |
 | API, controller, and RBAC | Multi-user scheduled executions go through the API under the controller's identity. Custom accounts require scoped authorization for both the creator and controller. | Apply the complete release manifests together, retain `--multiUser=true` and removal of controller `workflows/create`, and update custom roles. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
-| Pipeline-name lookups | Multi-user Kubernetes-native storage no longer falls back to the installation namespace when a namespace is omitted. Private SDK lookups also need an explicit namespace. | Update SDK and REST callers; do not rely on `Client(namespace=...)` to scope `get_pipeline_id()`. See [lookup migration](#make-pipeline-lookup-namespaces-explicit). |
 | UI signing key | The complete default manifests automatically create or reuse a persistent signing key and start the UI when it is available. First adoption briefly interrupts the UI and invalidates old TensorBoard URLs. | Apply the complete manifests, wait for the UI rollout, then reopen TensorBoard. No manual key generation is needed. Custom overlays and GitOps have separate checks. See [UI startup](#prepare-the-ui-signing-key). |
 
 ## Plan the multi-user rollout
@@ -57,26 +56,48 @@ includes inventory queries, account-specific grants, revocation behavior, and
 recovery limits. KFP 2.18 retains V1 workflows where namespace policy permits;
 this migration is not a requirement to convert every pipeline to V2.
 
-## Make pipeline lookup namespaces explicit
+(make-pipeline-lookup-namespaces-explicit)=
+## Custom API integrations: pipeline-name lookup compatibility
 
-This is a client-call change, not a cluster-wide pipeline migration. Existing
-pipeline and version IDs do not need to be recreated. Review callers that find
-pipelines **by name**, especially wrappers that hide the lookup:
+This is a **targeted compatibility warning for custom API integrations**, not a
+general operator upgrade task or a requirement to update ordinary SDK/CLI calls.
+It applies to integrations calling the pipeline-by-name endpoint directly, or
+through generated REST/gRPC clients, and relying on an omitted namespace:
 
-| Caller | What to check | Safe migration |
-| --- | --- | --- |
-| SDK `get_pipeline_id(name)` | An omitted namespace searches shared pipelines, not the client's default profile. A miss returns `None`. | Pass the private pipeline's namespace and handle `None` before submitting another request. |
-| SDK `upload_pipeline_version(..., pipeline_name=...)` and its `from_pipeline_func` wrapper | Older clients resolve the parent name only in shared pipelines. | Resolve the private parent explicitly, then pass `pipeline_id=` as below. |
-| CLI `kfp pipeline create-version --pipeline-name ...` or `kfp run create --pipeline-name ...` | Older clients search shared pipelines even when global `--namespace` is set. | Use the intended `--pipeline-id` from the UI or an explicitly scoped SDK lookup. For a private run, also select an experiment in the owning namespace. |
-| Direct REST/generated-client pipeline-by-name request | Multi-user Kubernetes-native storage no longer supplies the installation namespace when the request omits one. | Send the owning namespace in the request. A missing namespace is a client error; a permission denial requires reviewing access, not retrying a different namespace. |
+- With multi-user Kubernetes-native storage, an omitted namespace is rejected
+  instead of falling back to the KFP installation namespace.
+- With SQL storage, an omitted namespace searches only shared pipelines, not
+  private pipelines in other namespaces. Same-named private pipelines can no
+  longer be returned by a request for a shared pipeline.
 
-Intentional shared lookups keep their existing scope; do not add a private
-namespace to them automatically. Deployments configured with
-`REQUIRE_NAMESPACE_FOR_PIPELINES=true` reject omitted namespaces rather than
-allowing shared lookup. ID-based calls still require the normal authorization.
+For custom integrations, search for `/apis/v2beta1/pipelines/names/`, generated
+`pipeline_service_get_pipeline_by_name` methods, or `GetPipelineByName` calls.
+Supply the owning namespace when requesting a private pipeline. A missing
+namespace error requires correcting the request; a permission denial requires
+reviewing access, not trying other namespaces. Check successful calls too, since
+a same-named shared pipeline may exist. Verify the intended authorized result
+using two profiles with the same pipeline name.
 
-With an SDK that provides the 2.18 `namespace` argument, pass the owning namespace
-for a private pipeline even if the client already has a default:
+The high-level SDK's `get_pipeline_id()` and the CLI commands that use it call
+filtered `ListPipelines`, **not this endpoint**. They did not rely on these unsafe
+backend defaults and do not need a compatibility migration for these fixes.
+Repository review found no handwritten UI caller of the affected endpoint; the
+API integration tests already supply a namespace. This does not establish which
+external integrations are deployed in a particular installation.
+
+Existing pipeline and version IDs do not need to be recreated. Intentional shared
+SQL lookups retain their scope, and ID-based calls retain normal authorization.
+The independent `REQUIRE_NAMESPACE_FOR_PIPELINES=true` setting rejects omitted
+namespaces rather than allowing shared lookup.
+
+(private-pipeline-client-convenience)=
+### Optional SDK/CLI convenience for private pipelines
+
+Separate from the backend fixes, some clients' version-upload helpers and CLI
+`--pipeline-name` operations search only shared pipelines and offer no pipeline
+namespace selector. This is an existing usability limitation, not a new upgrade
+breakage. The client/global experiment namespace does not select their lookup
+scope. To use a private pipeline, resolve its ID explicitly and pass that ID:
 
 ```python
 import kfp
@@ -97,25 +118,17 @@ client.upload_pipeline_version(
 ```
 
 `get_pipeline_id()` does not inherit the client namespace. Omitting the argument
-searches shared pipelines; it is not a cross-namespace private lookup. Upgrade
-older clients before relying on this argument. For direct pipeline-by-name REST
-requests against multi-user Kubernetes-native storage, supply the namespace query
-parameter explicitly; omission now fails instead of selecting the API server's
-installation namespace. Test with two profiles containing the same pipeline name
-and verify that each caller resolves only its intended, authorized pipeline.
-
-To find likely callers in application source, search for `get_pipeline_id`,
-`upload_pipeline_version`, `--pipeline-name`, and generated-client
-`get_pipeline_by_name` / `GetPipelineByName` calls. Review scripts and notebooks
-as well as services. This is a source-review starting point, not an exhaustive
-inventory of running clients. A wrong shared lookup can return a same-named
-shared pipeline, not just `None`, so review successful by-name callers too.
+searches shared pipelines; it is not a cross-namespace private lookup. For CLI
+commands, use the resolved `--pipeline-id`; a private run also needs an experiment
+in the owning namespace. A wrong shared lookup can return a same-named shared
+pipeline rather than `None`.
 
 If a client offers `namespace=` on version uploads or `--pipeline-namespace` on
 CLI by-name operations, it can make the scope explicit directly. Check that
 client's API documentation or command `--help` before using those options;
 server upgrades do not upgrade installed SDKs or CLI tools. The explicit lookup
 followed by an ID-based call above works without those convenience options.
+Adding those options is not a prerequisite for the backend security fixes.
 
 Private uploads also need their own explicit `namespace=` argument, and stored
 private references must remain in the owning namespace. See the
