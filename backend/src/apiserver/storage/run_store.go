@@ -764,6 +764,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		run = run.ToV2()
 		runs = append(runs, run)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return runs, nil
 }
 
