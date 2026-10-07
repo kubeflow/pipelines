@@ -1444,7 +1444,7 @@ requires-dist = [
     { name = "protobuf", specifier = ">=6.33.5,<7.0" },
     { name = "python-dateutil" },
     { name = "pyyaml", specifier = ">=5.3,<7" },
-    { name = "requests", specifier = "==2.33.0" },
+    { name = "requests", specifier = ">=2.33.0,<3" },
     { name = "requests-toolbelt", specifier = ">=0.8.0,<2" },
     { name = "six", specifier = ">=1.10" },
     { name = "tabulate", specifier = ">=0.8.6,<1" },
