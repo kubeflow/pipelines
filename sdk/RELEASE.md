@@ -52,6 +52,10 @@
 
 ## Bug fixes and other changes
 
+* Fix `kfp run create --watch` and `kfp run get --watch` stopping on a `PAUSED`
+  run and reporting it as finished. A paused run can be resumed, so watching
+  now continues until the run reaches a terminal state.
+
 # 2.15.2
 
 ## Bug fixes and other changes
