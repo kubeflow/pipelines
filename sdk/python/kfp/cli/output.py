@@ -19,7 +19,7 @@ import json
 from typing import Any, Dict
 
 import click
-import kfp_server_api
+import kfp.server_api
 import tabulate
 
 KFP_TABLE_FORMAT = 'custom-simple'
@@ -67,7 +67,7 @@ class ExperimentData:
 
 
 def transform_experiment(
-        exp: kfp_server_api.V2beta1Experiment) -> Dict[str, Any]:
+        exp: kfp.server_api.V2beta1Experiment) -> Dict[str, Any]:
     return dataclasses.asdict(
         ExperimentData(
             id=exp.experiment_id,
@@ -84,7 +84,7 @@ class PipelineData:
 
 
 def transform_pipeline(
-        pipeline: kfp_server_api.V2beta1Pipeline) -> Dict[str, Any]:
+        pipeline: kfp.server_api.V2beta1Pipeline) -> Dict[str, Any]:
     return dataclasses.asdict(
         PipelineData(
             id=pipeline.pipeline_id,
@@ -102,7 +102,7 @@ class PipelineVersionData:
 
 
 def transform_pipeline_version(
-        pipeline_version: kfp_server_api.V2beta1PipelineVersion
+        pipeline_version: kfp.server_api.V2beta1PipelineVersion
 ) -> Dict[str, Any]:
     return dataclasses.asdict(
         PipelineVersionData(
@@ -122,7 +122,7 @@ class RunData:
     storage_state: str
 
 
-def transform_run(run: kfp_server_api.V2beta1Run) -> Dict[str, Any]:
+def transform_run(run: kfp.server_api.V2beta1Run) -> Dict[str, Any]:
     return dataclasses.asdict((RunData(
         id=run.run_id,
         name=run.display_name,
@@ -142,7 +142,7 @@ class RecurringRunData:
 
 
 def transform_recurring_run(
-        recurring_run: kfp_server_api.V2beta1RecurringRun) -> Dict[str, Any]:
+        recurring_run: kfp.server_api.V2beta1RecurringRun) -> Dict[str, Any]:
     return dataclasses.asdict(
         RecurringRunData(
             id=recurring_run.recurring_run_id,

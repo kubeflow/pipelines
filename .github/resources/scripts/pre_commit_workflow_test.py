@@ -20,6 +20,7 @@ import subprocess
 import tempfile
 import unittest
 
+import tomllib
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -69,6 +70,28 @@ class PreCommitWorkflowTest(unittest.TestCase):
     def test_workflow_fails_closed_when_the_event_base_is_unavailable(self):
         self.assertIn('Unable to resolve the event base commit', self.workflow)
         self.assertNotIn('git rev-parse HEAD^', self.workflow)
+
+    def test_isort_hook_matches_sdk_lint_dependency(self) -> None:
+        """Keep local and CI import formatting on the same pinned version."""
+        project = tomllib.loads(
+            (REPOSITORY_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+        isort_dependencies = [
+            dependency for dependency in project['project']
+            ['optional-dependencies']['lint']
+            if dependency.startswith('isort==')
+        ]
+        self.assertEqual(len(isort_dependencies), 1)
+        hooks = [(repository, hook)
+                 for repository in yaml.safe_load(self.config)['repos']
+                 for hook in repository['hooks']
+                 if hook['id'] == 'isort']
+        self.assertEqual(len(hooks), 1)
+        repository, hook = hooks[0]
+        self.assertEqual(repository['repo'], 'local')
+        self.assertEqual(hook['language'], 'python')
+        self.assertEqual(hook['additional_dependencies'], isort_dependencies)
+        self.assertEqual(
+            shlex.split(hook['entry']), ['isort', '--profile', 'google'])
 
     def test_config_changes_execute_each_applicable_hook_family(self):
         steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
