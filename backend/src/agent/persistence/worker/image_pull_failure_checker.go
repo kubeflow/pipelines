@@ -52,7 +52,9 @@ type ImagePullFailureChecker interface {
 	// considered, since pod labels are user-controlled. The termination patch
 	// is conditioned on the workflow UID and resource version the decision was
 	// made against, so a run that was retried or recreated in the meantime is
-	// left alone.
+	// left alone. Failure tracking is scoped to the workflow UID and its
+	// retry-generation annotation, so a retried attempt never inherits the
+	// grace period consumed by the attempt it replaces.
 	CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error
 	// Forget drops any failure tracking state held for the workflow. Callers
 	// should invoke it once a workflow reaches a final state or no longer exists
@@ -76,9 +78,23 @@ type imagePullFailureChecker struct {
 	now             func() time.Time
 
 	mu sync.Mutex
-	// failureStart records when an image pull failure was first observed on a
-	// pod, keyed by workflow (namespace/name) and then by pod UID.
-	failureStart map[string]map[types.UID]time.Time
+	// failureStart records when an image pull failure was first observed on
+	// each pod, keyed by workflow (namespace/name). The entry also records the
+	// workflow attempt it was observed for so a retry starts a fresh clock.
+	failureStart map[string]*trackedWorkflow
+}
+
+// trackedWorkflow holds the failure tracking state for one attempt of a
+// workflow. KFP retries reuse the workflow name, either by updating the
+// object in place (same UID, new retry-generation annotation) or by
+// recreating it (new UID). In both cases the previous attempt's failing pods
+// may still be present in the pod informer cache for a while, so the state is
+// discarded whenever the attempt identity changes.
+type trackedWorkflow struct {
+	uid             types.UID
+	retryGeneration string
+	// pods maps each failing pod's UID to when its failure was first observed.
+	pods map[types.UID]time.Time
 }
 
 // NewImagePullFailureChecker creates a new checker. The podLister should be
@@ -94,7 +110,7 @@ func NewImagePullFailureChecker(
 		executionClient: executionClient,
 		gracePeriod:     gracePeriod,
 		now:             time.Now,
-		failureStart:    make(map[string]map[types.UID]time.Time),
+		failureStart:    make(map[string]*trackedWorkflow),
 	}
 }
 
@@ -128,7 +144,7 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 		return fmt.Errorf("failed to list pods for workflow %s/%s: %w", namespace, workflowName, err)
 	}
 
-	expired := c.trackFailures(namespace, workflowName, workflow.UID, pods)
+	expired := c.trackFailures(workflow, pods)
 	if expired == nil {
 		return nil
 	}
@@ -158,13 +174,23 @@ func (c *imagePullFailureChecker) Forget(namespace string, workflowName string) 
 // needs the stronger termination mechanism.
 // Pods that no longer report a failure, or are no longer listed, have their
 // tracking dropped so a recovered pod starts a fresh grace period next time.
-func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, workflowUID types.UID, pods []*corev1.Pod) *expiredImagePullFailure {
+// State recorded for a different attempt of the workflow (another UID or
+// retry generation) is discarded, so pods left over from the previous attempt
+// cannot fail the new one with an already expired clock.
+func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pods []*corev1.Pod) *expiredImagePullFailure {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	namespace, workflowName, workflowUID := workflow.Namespace, workflow.Name, workflow.UID
+	retryGeneration := workflow.Annotations[util.AnnotationKeyRetryGeneration]
 	key := workflowKey(namespace, workflowName)
 	previous := c.failureStart[key]
-	current := make(map[types.UID]time.Time)
+	if previous != nil && (previous.uid != workflowUID || previous.retryGeneration != retryGeneration) {
+		log.Infof("Workflow %s/%s is a new attempt (uid %q -> %q, retry generation %q -> %q); resetting image pull failure tracking",
+			namespace, workflowName, previous.uid, workflowUID, previous.retryGeneration, retryGeneration)
+		previous = nil
+	}
+	current := &trackedWorkflow{uid: workflowUID, retryGeneration: retryGeneration, pods: make(map[types.UID]time.Time)}
 	now := c.now()
 
 	var expired *expiredImagePullFailure
@@ -186,11 +212,13 @@ func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, 
 			continue
 		}
 
-		start, seen := previous[pod.UID]
-		if !seen {
-			start = now
+		start := now
+		if previous != nil {
+			if seen, ok := previous.pods[pod.UID]; ok {
+				start = seen
+			}
 		}
-		current[pod.UID] = start
+		current.pods[pod.UID] = start
 
 		elapsed := now.Sub(start)
 		if elapsed < c.gracePeriod {
@@ -204,7 +232,7 @@ func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, 
 		}
 	}
 
-	if len(current) == 0 {
+	if len(current.pods) == 0 {
 		delete(c.failureStart, key)
 	} else {
 		c.failureStart[key] = current

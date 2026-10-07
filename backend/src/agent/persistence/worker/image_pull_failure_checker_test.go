@@ -687,3 +687,80 @@ func TestCheckAndTerminate_StalledPatchIsCanceledByContext(t *testing.T) {
 	assert.Equal(t, 1, fakeExecInterface.patchCount)
 	assert.Len(t, checker.failureStart, 1, "a failed termination keeps the tracking state for the next attempt")
 }
+
+func TestCheckAndTerminate_RetryGenerationChangeResetsTracking(t *testing.T) {
+	// An in-place retry keeps the workflow UID but stamps a new retry
+	// generation. If the workflow informer observes the retry before the pod
+	// informer observes the deletion of the previous attempt's failing pod,
+	// the checker must not reuse that pod's expired failure clock against the
+	// new attempt.
+	stalePod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	podLister, _ := newTestPodLister(stalePod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	first := testWorkflowMeta("my-workflow")
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), first))
+	clock.advance(5 * time.Minute)
+
+	retried := testWorkflowMeta("my-workflow") // same UID
+	retried.ResourceVersion = "101"
+	retried.Annotations = map[string]string{util.AnnotationKeyRetryGeneration: "1"}
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), retried))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "the new attempt must get a fresh grace period")
+	require.Len(t, checker.failureStart, 1)
+	assert.Equal(t, "1", checker.failureStart["default/my-workflow"].retryGeneration)
+
+	// Within the same attempt the clock keeps counting, so if the stale pod
+	// really does keep failing for a full grace period the attempt is failed.
+	clock.advance(5 * time.Minute)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), retried))
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
+}
+
+func TestCheckAndTerminate_RetryGenerationBumpResetsTracking(t *testing.T) {
+	// A second retry of an already retried run moves from one non-empty
+	// generation to the next; that must reset tracking just like the first.
+	podLister, _ := newTestPodLister(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff"))
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	gen1 := testWorkflowMeta("my-workflow")
+	gen1.Annotations = map[string]string{util.AnnotationKeyRetryGeneration: "1"}
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), gen1))
+	clock.advance(5 * time.Minute)
+
+	gen2 := testWorkflowMeta("my-workflow")
+	gen2.ResourceVersion = "102"
+	gen2.Annotations = map[string]string{util.AnnotationKeyRetryGeneration: "2"}
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), gen2))
+	assert.Equal(t, 0, fakeExecInterface.patchCount)
+}
+
+func TestCheckAndTerminate_RecreatedWorkflowResetsTracking(t *testing.T) {
+	// A retry that recreates the workflow yields a new UID. Pods of the old
+	// attempt are no longer owned by the workflow, and a failing pod of the new
+	// attempt starts its own grace period rather than inheriting the old one.
+	oldPod := newWorkflowPod("old-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	podLister, indexer := newTestPodLister(oldPod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	clock.advance(5 * time.Minute)
+
+	recreated := testWorkflowMeta("my-workflow")
+	recreated.UID = "recreated-uid"
+	newPod := newWorkflowPod("new-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	newPod.OwnerReferences[0].UID = recreated.UID
+	require.NoError(t, indexer.Add(newPod))
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), recreated))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "the recreated attempt must get a fresh grace period")
+	require.Len(t, checker.failureStart, 1)
+	tracked := checker.failureStart["default/my-workflow"]
+	assert.Equal(t, recreated.UID, tracked.uid)
+	assert.Len(t, tracked.pods, 1, "only the new attempt's pod is tracked")
+	_, trackedNew := tracked.pods[newPod.UID]
+	assert.True(t, trackedNew)
+}
