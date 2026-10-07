@@ -56,16 +56,19 @@ async function baseRevision(github, context, pr) {
   return sha;
 }
 
-async function basePolicyStamp(github, context, pr) {
-  const sha = await baseRevision(github, context, pr);
+function basePolicyStamp(baseRef, baseSha) {
+  // Bind green evidence to the exact checked-in workflow policy. The base
+  // revision is resolved ONCE per cycle and threaded through every site, so
+  // this helper must never re-resolve the live tip (re-resolving can stamp a
+  // green with a base whose evidence was validated against another revision).
   return require('node:crypto').createHash('sha256')
-    .update(JSON.stringify([pr.base.ref, sha])).digest('hex');
+    .update(JSON.stringify([baseRef, baseSha])).digest('hex');
 }
 
-async function successDescription(github, context, pr) {
-  // Bind green evidence to the exact checked-in workflow policy. Legacy
-  // statuses and statuses from another base must be reconsidered by recovery.
-  const stamp = await basePolicyStamp(github, context, pr);
+function successDescription(pr, baseSha) {
+  // Legacy statuses and statuses from another base must be reconsidered by
+  // recovery. baseSha is the single validated revision resolved by the caller.
+  const stamp = basePolicyStamp(pr.base.ref, baseSha);
   return `Expected CI and all checks passed; base policy ${stamp}.`;
 }
 
@@ -80,7 +83,7 @@ async function recoveryCandidates({github, context}) {
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
     if (status?.state === 'success' &&
-        status.description === await successDescription(github, context, pr)) continue;
+        status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -194,7 +197,7 @@ async function evidence(github, context, pr, root) {
       result = await verifyExpectedWorkflows({...args, registrationStartedAt: new Date(start).toISOString()});
     }
   }
-  return result;
+  return {...result, baseSha};
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
@@ -231,6 +234,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
     let state = 'failure';
+    let validatedBaseSha;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
       'PR changed or is closed; complete current-head CI and retry.';
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
@@ -238,6 +242,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
         evidence(github, context, pr, root),
         verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
+      validatedBaseSha = workflows.baseSha;
       core.info(JSON.stringify({workflows, checks}));
       const results = [workflows, checks];
       state = results.some(result => result.state === 'failure') ? 'failure' :
@@ -255,7 +260,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? await successDescription(github, context, pr) : reason);
+      state === 'success' ? successDescription(pr, validatedBaseSha) : reason);
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {

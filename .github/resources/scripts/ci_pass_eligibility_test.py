@@ -55,6 +55,7 @@ let description = options.initialDescription;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => ({data: {total_count: 0, workflow_runs: []}});
+methods.associated = {};
 const statusHistory = options.statusHistory || [];
 if (options.initialStatus) statusHistory.push({context: 'ci-passed',
   created_at: options.registrationStartedAt || new Date().toISOString()});
@@ -99,11 +100,8 @@ jobs:
       if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
     }},
   repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses,
-    getCommit: async ({ref}) => {
-      calls.push(['get-commit', ref]);
-      if (options.commitFailure) throw Error('Commit API unavailable');
-      return {data: {commit: {committer: {date: options.baseCommittedAt || '2026-09-07T10:00:00Z'}}}};
-    }, createCommitStatus: async request => {
+    listPullRequestsAssociatedWithCommit: methods.associated,
+    createCommitStatus: async request => {
     statusHistory.push({context: 'ci-passed', created_at: options.registrationStartedAt || new Date().toISOString()});
     status = request.state;
     description = request.description;
@@ -127,6 +125,10 @@ jobs:
   if (method === methods.timeline) {
     if (options.apiFailure) throw Error('API unavailable');
     return options.retarget ? [{event: 'base_ref_changed', created_at: '2026-09-07T12:00:00Z'}] : [];
+  }
+  if (method === methods.associated) {
+    if (options.associationFailure) throw Error('Associated PRs API unavailable');
+    return [{number: 7, merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z'}];
   }
   if (method === methods.runs) {
     if (options.missing) return [];
@@ -371,13 +373,12 @@ async function run(liveTip) {
         initial = ('Expected CI and all checks passed; base policy ' +
                    published_stamp + '.')
         # The PR's frozen base is B1 but master has advanced to B2. Its stored
-        # ci-passed success is stamped B1 and its run's head_sha predates B2.
-        # GitHub has also mutated the run association to the current base B2,
-        # so v2's mutable-base comparison would wrongly accept the stale run as
-        # fresh. Reconciliation must revoke the green (pending) using the
-        # immutable head_sha ancestry instead, and the next sweep must STILL
-        # select the PR. Cover both the run-scoped association (already mutated
-        # to B2) and the empty-pull_requests fallback.
+        # ci-passed success is stamped B1, and the run was created before B2
+        # became reachable on master. Reconciliation must revoke the green
+        # (pending) using the run's immutable creation time against B2's push
+        # arrival time, and the next sweep must STILL select the PR. Cover both
+        # the run-scoped association (already mutated to B2) and the
+        # empty-pull_requests fallback.
         for run_pull_requests in ([], [{
                 'number': 7,
                 'base': {
@@ -390,7 +391,7 @@ async function run(liveTip) {
                     'schedule': True,
                     'verifyRecovery': True,
                     'baseTip': B2,
-                    'baseCommittedAt': '2026-09-07T12:00:00Z',
+                    'baseArrivedAt': '2026-09-07T12:00:00Z',
                     'pr': {
                         'base': {
                             'sha': B1,

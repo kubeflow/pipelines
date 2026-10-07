@@ -106,21 +106,32 @@ function invalidRunMetadata(run) {
   return null;
 }
 
-async function baseLandedAt({github, owner, repo, baseSha}) {
+async function baseArrivedAt({github, owner, repo, baseSha}) {
   // A run tests the base revision that was live when it was created. For a
   // pull_request run, Actions checks out a synthetic merge commit whose SHA is
   // NOT exposed on the run object, so it cannot be compared directly. The
   // merge commit contains the validated base iff the run was created at or
-  // after that base landed on the base branch. GitHub squash-merges set
-  // committer.date to the merge time, so the base commit's committer timestamp
-  // is immutable evidence of when the base became reachable. Returns a
-  // millisecond timestamp, or null when it cannot be established (the caller
-  // fails closed to pending rather than ever passing stale evidence as fresh).
+  // after that base became reachable on the base branch. A commit's own
+  // timestamps do not record that arrival: a commit can be prepared well
+  // before it is pushed (fast-forward integration), so neither committer.date
+  // nor author.date proves when the branch advanced to it. The authoritative
+  // provenance is the merge record: when the base revision landed through a
+  // pull request, that PR's merged_at is when the ref advanced, regardless of
+  // merge method. A direct push of a pre-existing commit has no merged PR, so
+  // its arrival cannot be established and the caller fails closed to pending
+  // rather than ever passing stale evidence as fresh.
   if (!baseSha) return null;
   try {
-    const {data} = await github.rest.repos.getCommit({owner, repo, ref: baseSha});
-    const landed = Date.parse(data?.commit?.committer?.date);
-    return Number.isFinite(landed) ? landed : null;
+    const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+      owner, repo, commit_sha: baseSha, per_page: 100,
+    });
+    for (const pr of pulls) {
+      if (pr.merged_at) {
+        const arrived = Date.parse(pr.merged_at);
+        return Number.isFinite(arrived) ? arrived : null;
+      }
+    }
+    return null;
   } catch (error) {
     return null;
   }
@@ -166,11 +177,12 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   });
   if (runs.length >= 1000) throw new Error('Workflow run history truncated for this PR head');
   // Freshness keys off the LIVE base tip. A run tested the validated base iff
-  // it was created at or after that base landed; resolve the landing time once
-  // here (it depends only on baseSha, not on any individual run). When the base
-  // is frozen (release branches), skip the check entirely to preserve existing
-  // behavior.
-  const baseLanded = liveBase && baseSha ? await baseLandedAt({github, owner, repo, baseSha}) : null;
+  // it was created at or after that base became reachable; resolve the arrival
+  // time once here (it depends only on baseSha, not on any individual run).
+  // When the base is frozen (release branches), skip the check entirely to
+  // preserve existing behavior.
+  const baseArrived = liveBase && baseSha ?
+    await baseArrivedAt({github, owner, repo, baseSha}) : null;
   for (const workflow of expected) {
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
@@ -219,14 +231,15 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     // The run-scoped base association and pullRequest.base.sha are MUTABLE
     // (GitHub rewrites them to the PR's current base), so neither proves which
     // base a run tested. Instead, a run is fresh for the live base only when it
-    // was created at or after the base landed; the run's immutable creation
-    // time is compared against the base commit's immutable committer timestamp
-    // (run.created_at is validated by invalidRunMetadata above). Both values
-    // are second-granularity, so an equal instant is ambiguous: the run may
-    // have been created sub-second before the base landed and tested an older
-    // base. Resolve the tie fail-closed (<=) so the merge gate can never pass
-    // stale evidence as fresh; the PR stays pending until a strictly later run.
-    if (liveBase && baseSha && (baseLanded === null || Date.parse(run.created_at) <= baseLanded)) {
+    // was created after that base became reachable on the base branch; the
+    // run's immutable creation time is compared against the push event that
+    // introduced the base (run.created_at is validated by invalidRunMetadata
+    // above). Both values are second-granularity, so an equal instant is
+    // ambiguous: the run may have been created sub-second before the base
+    // arrived and tested an older base. Resolve the tie fail-closed (<=) so the
+    // merge gate can never pass stale evidence as fresh; the PR stays pending
+    // until a strictly later run.
+    if (liveBase && baseSha && (baseArrived === null || Date.parse(run.created_at) <= baseArrived)) {
       pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
     }
   }
