@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -2785,4 +2786,36 @@ func TestListRuns_RejectsRetiredMetricSort(t *testing.T) {
 	_, err := list.NewOptions(&model.Run{}, 10, "metric:accuracy", nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Invalid sorting field")
+}
+
+// SQLite evaluates this overflow while advancing rows, after Query succeeds.
+func TestScanRowsToRuns_IterationError(t *testing.T) {
+	db, _, store := initializeRunStore()
+	defer db.Close()
+	columns := append(append([]string{}, runColumns...), "NULL")
+	valid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
+	columns[0] = "abs(-9223372036854775808)"
+	invalid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
+	for _, tc := range []struct{ name, query string }{
+		{"before first row", invalid},
+		{"after valid row", valid + " UNION ALL " + invalid},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rows, err := db.Query(tc.query)
+			require.NoError(t, err)
+			defer rows.Close()
+			runs, err := store.scanRowsToRuns(rows)
+			require.Error(t, rows.Err(), "fixture must fail during row iteration")
+			require.ErrorIs(t, err, rows.Err())
+			require.Nil(t, runs, "incomplete query results must not be returned as successful runs")
+		})
+	}
+	t.Run("successful empty result", func(t *testing.T) {
+		rows, err := db.Query(valid + " AND 1 = 0")
+		require.NoError(t, err)
+		defer rows.Close()
+		runs, err := store.scanRowsToRuns(rows)
+		require.NoError(t, err)
+		require.Empty(t, runs)
+	})
 }
