@@ -567,8 +567,7 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
             runs=[good_run(created_at='2026-09-07T12:00:00Z')])
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
-        self.assertIn('no merged PR for base ' + 'c' * 40,
-                      result['reasons'][0])
+        self.assertIn('no merged PR for base ' + 'c' * 40, result['reasons'][0])
         self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
 
     def test_invalid_base_merge_record_requires_maintainer(self):
@@ -578,7 +577,10 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         # requests maintainer investigation, never the stale-CI message.
         result = verify(
             base_sha='c' * 40,
-            associated_prs=[{'number': 7, 'merged_at': 'not-a-date'}],
+            associated_prs=[{
+                'number': 7,
+                'merged_at': 'not-a-date'
+            }],
             runs=[good_run(created_at='2026-09-07T12:00:00Z')])
         self.assertEqual(result['state'], 'pending')
         self.assertFalse(result['passed'])
@@ -598,16 +600,20 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         longest = max(workflow['path'] for workflow in inventory['workflows'])
         for associated_prs, fragment in [
             ([], 'no merged PR for base '),
-            ([{'number': 7, 'merged_at': 'not-a-date'}],
-             'malformed merged-PR record for base '),
+            ([{
+                'number': 7,
+                'merged_at': 'not-a-date'
+            }], 'malformed merged-PR record for base '),
         ]:
             with self.subTest(fragment=fragment):
                 result = verify(
                     base_sha='c' * 40,
                     associated_prs=associated_prs,
                     workflow_paths=[longest],
-                    runs=[good_run(path=longest,
-                                   created_at='2026-09-07T12:00:00Z')])
+                    runs=[
+                        good_run(
+                            path=longest, created_at='2026-09-07T12:00:00Z')
+                    ])
                 reason = result['reasons'][0]
                 self.assertLessEqual(len(reason), 140, reason)
                 self.assertIn(fragment + 'c' * 40, reason)
