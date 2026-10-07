@@ -34,18 +34,15 @@ fi
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="$DIR/../.."
-if [[ "$API_VERSION" == "v2beta1" ]]; then
-    # Python distributions share the SDK release version, not the backend version.
-    VERSION="$(python3 - "$REPO_ROOT/sdk/python/kfp/version.py" <<'PY'
+package_name=kfp.server_api
+# Python modules share the SDK release version, not the backend version.
+VERSION="$(python3 - "$REPO_ROOT/sdk/python/kfp/version.py" <<'PY'
 import runpy
 import sys
 
 print(runpy.run_path(sys.argv[1])["__version__"])
 PY
 )"
-else
-    VERSION="$(cat "$REPO_ROOT/VERSION")"
-fi
 if [ -z "$VERSION" ]; then
     echo "ERROR: the package version must not be empty"
     exit 1
@@ -55,7 +52,7 @@ codegen_file=/tmp/openapi-generator-cli.jar
 # Browse all versions in: https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/
 codegen_uri="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar"
 if ! [ -f "$codegen_file" ]; then
-    curl -L "$codegen_uri" -o "$codegen_file"
+    curl --fail --location --retry 3 "$codegen_uri" -o "$codegen_file"
 fi
 
 pushd "$(dirname "$0")"
@@ -67,11 +64,14 @@ swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
 
+# Generated test stubs have no assertions and instantiate invalid empty models.
+# Real API coverage lives in SDK tests and python_http_client_smoke.
+generator_options=(--global-property apiTests=false,modelTests=false)
 
 echo "Generating python code from swagger json in $DIR."
 java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$swagger_file" -o "$DIR" \
-    -c <(echo '{
-    "packageName": "'"kfp_server_api"'",
+    "${generator_options[@]}" -c <(echo '{
+    "packageName": "'"$package_name"'",
     "packageVersion": "'"$VERSION"'",
     "packageUrl": "https://github.com/kubeflow/pipelines"
 }')
@@ -85,79 +85,78 @@ rm -f $CURRENT_DIR/$API_VERSION/python_http_client/.travis.yml
 # real GoogleRpcStatus model. Drop the broken import so the package is
 # importable without a missing googlerpc_status module.
 CLIENT_ROOT="$CURRENT_DIR/$API_VERSION/python_http_client"
-python3 - "$CLIENT_ROOT" "$API_VERSION" <<'PY'
+python3 - "$CLIENT_ROOT" "$package_name" <<'PY'
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
-bad_import = "from kfp_server_api.models.googlerpc_status import GooglerpcStatus\n"
+package_name = sys.argv[2]
+package_root = root.joinpath(*package_name.split("."))
+bad_import = f"from {package_name}.models.googlerpc_status import GooglerpcStatus\n"
 for path in [
-    root / "kfp_server_api" / "__init__.py",
-    root / "kfp_server_api" / "models" / "__init__.py",
+    package_root / "__init__.py",
+    package_root / "models" / "__init__.py",
 ]:
     text = path.read_text()
     if bad_import in text:
         path.write_text(text.replace(bad_import, ""))
 readme = root / "README.md"
 if readme.exists():
-    text = readme.read_text().replace(
-        " - [GooglerpcStatus](docs/GooglerpcStatus.md)\n", "")
-    if sys.argv[2] == "v2beta1":
-        text = text.replace("Python 2.7 and 3.4+", "Python 3.11 or later")
-    readme.write_text(text)
+    readme.write_text(
+        readme.read_text().replace(
+            " - [GooglerpcStatus](docs/GooglerpcStatus.md)\n",
+            "",
+        )
+    )
+if package_name == "kfp.server_api":
+    import re
+    initializer = package_root / "__init__.py"
+    initializer.write_text(re.sub(
+        r'^__version__ = .*$',
+        'from kfp.version import __version__',
+        initializer.read_text(),
+        flags=re.MULTILINE,
+    ))
+    sdk_installation = """## Installation & Usage
+
+This client is included in the unified `kfp` distribution and requires
+Python 3.11 or later:
+
+```sh
+python -m pip install kfp
+```
+
+From a source checkout, install `sdk/python` from the repository root, not this
+generated documentation directory. See the [SDK installation and migration
+instructions](../../../../sdk/python/README.md).
+
+```python
+from kfp import server_api
+```
+
+"""
+    text, replacements = re.subn(
+        r'## Requirements\..*?(?=## Getting Started)',
+        sdk_installation,
+        readme.read_text(),
+        count=1,
+        flags=re.DOTALL,
+    )
+    if replacements != 1:
+        raise RuntimeError("Generated README is missing its installation section")
+    readme.write_text(text.replace("# kfp.server-api\n", "# kfp.server_api\n", 1))
 PY
 
 echo "Copying LICENSE to $DIR"
 cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 
-# TODO: Update the codegen Mustache templates in v2beta1/python_http_client_template/
-# to generate pyproject.toml instead of setup.py.
-# For now, use the codegen-generated setup.py for building, then restore
-# pyproject.toml for uv workspace resolution.
-
-echo "Building the python package in $DIR."
-pushd "$DIR"
-python3 setup.py --quiet sdist
-popd
-
-# For v2beta1, replace codegen-generated setup.py with pyproject.toml for uv
-# workspace resolution, but keep requirements.txt for tox compatibility.
-if [[ "$API_VERSION" == "v2beta1" ]]; then
-    rm -f "$DIR/setup.py"
-    cat > "$DIR/pyproject.toml" << PYPROJECT
-[project]
-name = "kfp-server-api"
-version = "$VERSION"
-description = "Kubeflow Pipelines API"
-readme = { text = "This file contains REST API specification for Kubeflow Pipelines. The file is autogenerated from the swagger definition.", content-type = "text/plain" }
-license = { text = "Apache-2.0" }
-requires-python = ">=3.11"
-authors = [
-  { name = "The Kubeflow Authors" }
-]
-keywords = ["OpenAPI", "OpenAPI-Generator", "Kubeflow Pipelines API"]
-dependencies = [
-  "urllib3>=1.15",
-  # TODO: drop six once openapi-generator templates are updated to remove
-  # Python 2 compatibility code (six is used by the generated client code).
-  "six>=1.10",
-  "certifi",
-  "python-dateutil",
-]
-
-[project.urls]
-Homepage = "https://github.com/kubeflow/pipelines"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-PYPROJECT
-fi
-
-echo "Run the following commands to update the package on PyPI"
-echo "python3 -m pip install twine"
-echo "python3 -m twine upload --username kubeflow-pipelines $DIR/dist/*"
-
-echo "Please also push local changes to github.com/kubeflow/pipelines"
+# Generate only SDK-owned modules, never a second distribution.
+SDK_CLIENT="$REPO_ROOT/sdk/python/kfp/server_api"
+rm -rf "$SDK_CLIENT"
+mv "$DIR/kfp/server_api" "$SDK_CLIENT"
+rm -rf "$DIR/kfp" "$DIR/test" "$DIR/.openapi-generator"
+rm -f "$DIR/setup.py" "$DIR/setup.cfg" "$DIR/tox.ini" \
+    "$DIR/requirements.txt" "$DIR/test-requirements.txt" \
+    "$DIR/git_push.sh" "$DIR/.gitignore" "$DIR/.openapi-generator-ignore"
 
 popd

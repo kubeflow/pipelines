@@ -155,6 +155,9 @@ type Task struct {
 	TypeAttrs        JSONData   `gorm:"column:TypeAttrs; not null; type:json;"`
 	ScopePath        string     `gorm:"column:ScopePath; type:text; default:null;"`
 	LogicalKey       *string    `gorm:"column:LogicalKey; type:varchar(64); default:null; uniqueIndex:idx_tasks_logical_key;"`
+	// LifecycleMessage is the latest pod lifecycle diagnostic (e.g. "Back-off pulling image…").
+	// nil means "leave this field unchanged" in UpdateTask; a non-nil pointer (including empty) is written.
+	LifecycleMessage *LargeText `gorm:"column:LifecycleMessage; default:null;"`
 
 	// Recovery state is internal and is never populated from public task metadata.
 	DriverRetryGeneration   *int64               `gorm:"column:DriverRetryGeneration; default:null; index:idx_task_driver_retry,priority:2;"`
@@ -231,6 +234,7 @@ var taskAPIToModelFieldMap = map[string]string{
 	"inputs":            "InputParameters",
 	"outputs":           "OutputParameters",
 	"scope_path":        "ScopePath",
+	"lifecycle_message": "LifecycleMessage",
 }
 
 func (t Task) GetField(name string) (string, string, bool) {
@@ -286,6 +290,11 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.TypeAttrs
 	case "ScopePath":
 		return t.ScopePath
+	case "LifecycleMessage":
+		if t.LifecycleMessage != nil {
+			return *t.LifecycleMessage
+		}
+		return LargeText("")
 	default:
 		return nil
 	}

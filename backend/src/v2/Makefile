@@ -29,17 +29,16 @@ GOARCH_VALUE?=amd64
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
 KO_VERSION?=v0.8.3
-MLMD_VERSION=$$(cat ../third_party/ml-metadata/VERSION)
 
 ###### Common targets ######
 
 # make test runs all go unit tests
 .PHONY: test
-test: mlmd # a MLMD server running in background is required by some tests
+test:
 	go test ./...
 
 .PHONY: test-update
-test-update: mlmd
+test-update:
 	# Updating compiled argo YAML golden files...
 	go test ./compiler/argocompiler --args --update
 
@@ -47,7 +46,7 @@ test-update: mlmd
 # install inotifywait by:
 # sudo apt-get install inotify-tools
 .PHONY: test-watch
-test-watch: mlmd
+test-watch:
 	while inotifywait --exclude .swp -e modify -r .; do \
 		go test ./...; \
 	done
@@ -132,22 +131,6 @@ image-%-dev: FORCE
 	@cat build/$*-image.txt
 install-ko: FORCE
 	go install github.com/google/ko@$(KO_VERSION)
-
-# Run a temporary MLMD server, useful for development / testing.
-# This needs to be run in background when running go unit tests.
-.PHONY: mlmd
-mlmd:
-	@if docker ps | grep mlmd; then echo "MLMD container is already running."; else \
-	docker run --name mlmd \
-		--detach \
-		--rm \
-		-p 8080:8080 \
-		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
-		--entrypoint /bin/bash \
-		"gcr.io/tfx-oss-public/ml_metadata_store_server:${MLMD_VERSION}" \
-		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config' \
-		&& echo "MLMD container starts to run."; \
-		fi
 
 # Add the FORCE as a dependency if a target should be run each time.
 FORCE: ;

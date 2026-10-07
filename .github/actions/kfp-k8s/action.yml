@@ -1,5 +1,5 @@
-name: "Install kfp-server-api, kfp & kfp-kubernetes"
-description: "Install kfp-server-api, kfp & kfp-kubernetes from source"
+name: "Build and install the unified KFP SDK"
+description: "Generate Python bindings before building and installing kfp"
 inputs:
   build_version:
     required: true
@@ -12,52 +12,25 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Build & install kfp-server-api dist
-      id: install-kfp-server-api
-      shell: bash
-      working-directory: backend/api/v2beta1/python_http_client
-      run: |
-        rm -rf dist/
-        uv build --out-dir dist/
-        uv pip install dist/*.whl
-
-    - name: Build kfp dist
+    - name: Generate bindings and build kfp
       id: install-kfp
       shell: bash
-      working-directory: sdk/python
       run: |
-        rm -rf dist/
-        uv build --out-dir dist/
-        uv pip install dist/*.whl
-
-    - name: Generate kfp-kubernetes python proto files from source
-      id: generate-kfp-kubernetes-proto-files
-      shell: bash
-      if: ${{ steps.install-kfp.outcome == 'success' && steps.install-kfp-server-api.outcome == 'success'  }}
-      working-directory: ./kubernetes_platform
-      run: make clean python USE_FIND_LINKS=true
+        rm -rf sdk/python/dist/
+        make -C sdk python
+        uv pip install --reinstall sdk/python/dist/*.whl
 
     - name: Generate kfp-kubernetes golang proto files from source
       id: generate-kfp-kubernetes-go-proto-files
       shell: bash
-      if: ${{ steps.install-kfp.outcome == 'success' && steps.install-kfp-server-api.outcome == 'success'  && inputs.generate_golang_proto == 'true' }}
+      if: ${{ inputs.generate_golang_proto == 'true' }}
       working-directory: ./kubernetes_platform
       run: make golang
-
-    # kfp and kfp-server-api are installed transitively
-    # Use the locally built distributions for unpublished package versions.
-    - name: Install kfp & kfp-kubernetes from source
-      id: install-kfp-kubernetes
-      shell: bash
-      if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
-      run: |
-        uv pip install -e ./kubernetes_platform/python --find-links=backend/api/v2beta1/python_http_client/dist --find-links=sdk/python/dist --find-links=api/v2alpha1/python/dist
 
     # testing reinstalling kfp package from source with no deps
     - name: Reinstall kfp from source with no deps
       id: reinstall-kfp
       shell: bash
-      if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
       working-directory: ./sdk/python
       run: |
         uv pip install . --reinstall --no-deps

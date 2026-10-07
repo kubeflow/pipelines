@@ -168,11 +168,8 @@ def _get_packages_to_install_command(
     index_url_options = make_index_url_options(pip_index_urls,
                                                pip_trusted_hosts)
 
-    # Install packages before KFP. This allows us to
-    # control where we source kfp-pipeline-spec.
-    # This is particularly useful for development and
-    # CI use-case when you want to install the spec
-    # from source.
+    # Install explicit user packages before the SDK, which may be installed
+    # without dependencies for lightweight component execution.
     if packages_to_install:
         user_packages_pip_install_command = make_pip_install_command(
             install_parts=packages_to_install,

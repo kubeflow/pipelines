@@ -527,7 +527,7 @@ def check_placeholder_references_valid_io_name(
         arg: The placeholder argument for checking.
 
     Raises:
-        ValueError: if any placeholder references a nonexistant input or
+        ValueError: if any placeholder references a nonexistent input or
             output.
         TypeError: if any argument is neither a str nor a placeholder
             instance.
@@ -539,17 +539,17 @@ def check_placeholder_references_valid_io_name(
     elif isinstance(arg, placeholders.PRIMITIVE_INPUT_PLACEHOLDERS):
         if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{arg.__class__.__name__}" references nonexistant input: "{arg.input_name}".'
+                f'Argument "{arg.__class__.__name__}" references nonexistent input: "{arg.input_name}".'
             )
     elif isinstance(arg, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
         if arg.output_name not in outputs_dict:
             raise ValueError(
-                f'Argument "{arg.__class__.__name__}" references nonexistant output: "{arg.output_name}".'
+                f'Argument "{arg.__class__.__name__}" references nonexistent output: "{arg.output_name}".'
             )
     elif isinstance(arg, placeholders.IfPresentPlaceholder):
         if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{arg.__class__.__name__}" references nonexistant input: "{arg.input_name}".'
+                f'Argument "{arg.__class__.__name__}" references nonexistent input: "{arg.input_name}".'
             )
 
         all_normalized_args: List[placeholders.CommandLineElement] = []
@@ -786,7 +786,7 @@ class ComponentSpec:
         Returns:
             A PipelineSpec proto representing the compiled component.
         """
-        # import here to aviod circular module dependency
+        # import here to avoid circular module dependency
         from kfp.compiler import compiler_utils
         from kfp.compiler import pipeline_spec_builder as builder
         from kfp.dsl import pipeline_channel

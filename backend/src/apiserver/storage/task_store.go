@@ -65,6 +65,7 @@ var taskColumns = []string{
 	"DriverStoppedGeneration",
 	"DriverCheckpoint",
 	"DriverCachedOutputs",
+	"LifecycleMessage",
 }
 
 // Bulk reads retain column order while omitting private recovery payloads.
@@ -141,6 +142,15 @@ func NewTaskStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorIn
 	}
 }
 
+// nilOrLargeText converts a *model.LargeText pointer to an interface{} suitable for SQL:
+// nil pointer → nil (SQL NULL), non-nil pointer → the string value.
+func nilOrLargeText(lm *model.LargeText) interface{} {
+	if lm == nil {
+		return nil
+	}
+	return string(*lm)
+}
+
 // scanTaskRow scans a single row into a model.Task. It expects the column order to match taskColumns.
 func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, error) {
 	var uuid, namespace, runUUID, fingerprint string
@@ -149,6 +159,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	var taskState, taskType int32
 	var driverGeneration, driverAttempt, driverStoppedGeneration *int64
 	var driverCheckpoint, driverCachedOutputs *string
+	var lifecycleMessage sql.NullString
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -175,6 +186,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&driverStoppedGeneration,
 		&driverCheckpoint,
 		&driverCachedOutputs,
+		&lifecycleMessage,
 	); err != nil {
 		return nil, err
 	}
@@ -195,6 +207,11 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		if err := json.Unmarshal([]byte(pods.String), &podsNew); err != nil {
 			return nil, err
 		}
+	}
+	var lifecycleMessagePtr *model.LargeText
+	if lifecycleMessage.Valid {
+		lm := model.LargeText(lifecycleMessage.String)
+		lifecycleMessagePtr = &lm
 	}
 	var inputParameters model.JSONSlice
 	if inputParams.Valid {
@@ -252,6 +269,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		DriverStoppedGeneration: driverStoppedGeneration,
 		DriverCheckpoint:        driverCheckpoint,
 		DriverCachedOutputs:     driverCachedOutputs,
+		LifecycleMessage:        lifecycleMessagePtr,
 	}, nil
 }
 
@@ -820,6 +838,7 @@ func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Tas
 			q("DriverStoppedGeneration"): nil,
 			q("DriverCheckpoint"):        newTask.DriverCheckpoint,
 			q("DriverCachedOutputs"):     newTask.DriverCachedOutputs,
+			q("LifecycleMessage"):        nilOrLargeText(newTask.LifecycleMessage),
 		},
 	).
 		ToSql()
@@ -1082,6 +1101,9 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 	sqlBuilder := qb.
 		Select(taskColumnsWithoutRecovery(q)...).
 		From(q("tasks")).
+		Where(sq.Expr("EXISTS (SELECT 1 FROM " + q("run_details") + " WHERE " +
+			q("run_details") + "." + q("UUID") + " = " + q("tasks") + "." + q("RunUUID") + " AND (" +
+			q("run_details") + "." + q("ImportedFrom") + " IS NULL OR " + q("run_details") + "." + q("ImportedFrom") + " = ''))")).
 		Where(sq.Eq{
 			q("Fingerprint"): fingerprint,
 			q("State"):       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
@@ -1403,6 +1425,14 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}
 
+	if new.LifecycleMessage != nil {
+		if *new.LifecycleMessage == "" {
+			setMap[q("LifecycleMessage")] = nil
+		} else {
+			setMap[q("LifecycleMessage")] = string(*new.LifecycleMessage)
+		}
+	}
+
 	if len(setMap) == 0 {
 		// Nothing to update; commit transaction and return current record
 		if err := tx.Commit(); err != nil {
@@ -1527,6 +1557,7 @@ func (s *TaskStore) ResetTasksForRetry(runID string, generation int64, taskIDs [
 				q("DriverStoppedGeneration"): nil,
 				q("DriverCheckpoint"):        nil,
 				q("DriverCachedOutputs"):     nil,
+				q("LifecycleMessage"):        nil,
 				q("pods"):                    emptyJSONArray,
 				q("OutputParameters"):        emptyJSONArray,
 				q("StateHistory"):            string(historyBytes),

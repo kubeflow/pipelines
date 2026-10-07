@@ -40,13 +40,14 @@ WORKDIR /workspace
 COPY pyproject.toml uv.lock ./
 COPY sdk/python ./sdk/python
 COPY kubernetes_platform/python ./kubernetes_platform/python
+COPY kubernetes_platform/proto ./kubernetes_platform/proto
 COPY api/Makefile ./api/Makefile
 COPY api/v2alpha1/python ./api/v2alpha1/python
 COPY api/v2alpha1/pipeline_spec.proto ./api/v2alpha1/pipeline_spec.proto
-COPY backend/api/v2beta1/python_http_client ./backend/api/v2beta1/python_http_client
 # Ensure clean checkouts include generated pipeline spec Python module.
 RUN make -C api fetch-protos && \
-    python3 /workspace/api/v2alpha1/python/generate_proto.py
+    python3 /workspace/api/v2alpha1/python/generate_proto.py && \
+    python3 /workspace/kubernetes_platform/python/generate_proto.py
 RUN uv sync --frozen --no-dev
 ENV PATH="/workspace/.venv/bin:$PATH"
 

@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).parents[3]
@@ -27,6 +29,41 @@ CI_SCRIPTS_WORKFLOW = ROOT / '.github' / 'workflows' / 'ci-scripts-tests.yml'
 
 
 class CiImageArtifactsTest(unittest.TestCase):
+
+    def test_inventory_cli_runs_from_its_own_directory(self):
+        result = subprocess.run(
+            ['bash', ARTIFACTS_SCRIPT.name, 'published-image-files'],
+            cwd=ARTIFACTS_SCRIPT.parent,
+            env={
+                **os.environ, 'PYTHONSAFEPATH': '1'
+            },
+            capture_output=True,
+            text=True,
+            check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        from arm64_smoke import IMAGES
+        self.assertEqual(
+            set(result.stdout.splitlines()),
+            {f'{image}.json' for image in IMAGES})
+
+    def test_failed_inventory_does_not_emit_partial_actions_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'output'
+            output.write_text('previous=value\n')
+            result = subprocess.run([
+                'bash',
+                str(ARTIFACTS_SCRIPT), '--github-output',
+                'platform-digest-files', 'not-a-platform'
+            ],
+                                    env={
+                                        **os.environ, 'GITHUB_OUTPUT':
+                                            str(output)
+                                    },
+                                    capture_output=True,
+                                    text=True,
+                                    check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(output.read_text(), 'previous=value\n')
 
     def test_artifact_list_matches_image_build_matrix(self):
         result = subprocess.run(

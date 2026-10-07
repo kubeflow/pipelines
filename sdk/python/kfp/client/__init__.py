@@ -17,6 +17,10 @@ __all__ = [
     'Client',
 ]
 
+# The credential classes below are re-exported for backwards compatibility,
+# so they are unused within this module.
+# nopycln: file
+
 from kfp.client.client import Client
 from kfp.client.set_volume_credentials import \
     ServiceAccountTokenVolumeCredentials

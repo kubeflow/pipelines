@@ -1884,6 +1884,11 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 		task.ScopePath = apiTask.GetScopePath()
 	}
 
+	if apiTask.LifecycleMessage != nil {
+		lm := model.LargeText(apiTask.GetLifecycleMessage())
+		task.LifecycleMessage = &lm
+	}
+
 	return task, nil
 }
 
@@ -2122,6 +2127,11 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	// Convert scope_path from model string to API string (both use dot notation)
 	if modelTask.ScopePath != "" {
 		apiTask.ScopePath = modelTask.ScopePath
+	}
+
+	if modelTask.LifecycleMessage != nil && *modelTask.LifecycleMessage != "" {
+		msg := string(*modelTask.LifecycleMessage)
+		apiTask.LifecycleMessage = &msg
 	}
 
 	return apiTask, nil

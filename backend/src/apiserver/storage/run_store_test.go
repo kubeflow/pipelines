@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -1534,7 +1535,7 @@ func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
 	// subquery (UUID + sort key, ORDER BY + LIMIT) is the innermost layer, and
 	// the refs/tasks/metrics aggregation runs only over the paged rows. The
 	// outer ORDER BY re-sorts the final result without LIMIT (already applied).
-	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "DriverRetryTasksPresent", "DriverRetryFinalizedGeneration", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."DriverRetryTasksPresent", rd."DriverRetryFinalizedGeneration", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "DriverRetryTasksPresent", "DriverRetryFinalizedGeneration" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "DriverRetryTasksPresent", "DriverRetryFinalizedGeneration", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."DriverRetryTasksPresent", rd."DriverRetryFinalizedGeneration", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "DriverRetryTasksPresent", "DriverRetryFinalizedGeneration", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
 	assert.Equal(t, expectedSQL, sqlStr,
 		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
 
@@ -2785,4 +2786,36 @@ func TestListRuns_RejectsRetiredMetricSort(t *testing.T) {
 	_, err := list.NewOptions(&model.Run{}, 10, "metric:accuracy", nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Invalid sorting field")
+}
+
+// SQLite evaluates this overflow while advancing rows, after Query succeeds.
+func TestScanRowsToRuns_IterationError(t *testing.T) {
+	db, _, store := initializeRunStore()
+	defer db.Close()
+	columns := append(append([]string{}, runColumns...), "NULL")
+	valid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
+	columns[0] = "abs(-9223372036854775808)"
+	invalid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
+	for _, tc := range []struct{ name, query string }{
+		{"before first row", invalid},
+		{"after valid row", valid + " UNION ALL " + invalid},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rows, err := db.Query(tc.query)
+			require.NoError(t, err)
+			defer rows.Close()
+			runs, err := store.scanRowsToRuns(rows)
+			require.Error(t, rows.Err(), "fixture must fail during row iteration")
+			require.ErrorIs(t, err, rows.Err())
+			require.Nil(t, runs, "incomplete query results must not be returned as successful runs")
+		})
+	}
+	t.Run("successful empty result", func(t *testing.T) {
+		rows, err := db.Query(valid + " AND 1 = 0")
+		require.NoError(t, err)
+		defer rows.Close()
+		runs, err := store.scanRowsToRuns(rows)
+		require.NoError(t, err)
+		require.Empty(t, runs)
+	})
 }

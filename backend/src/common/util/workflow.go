@@ -1103,11 +1103,13 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 		rev[id] = NodeStatus{
 			ID:          RetrievePodName(*w.Workflow, node),
 			DisplayName: node.DisplayName,
+			Type:        string(node.Type),
 			State:       string(node.Phase),
 			StartTime:   node.StartedAt.Unix(),
 			CreateTime:  node.StartedAt.Unix(),
 			FinishTime:  node.FinishedAt.Unix(),
 			Children:    node.Children,
+			Message:     node.Message,
 		}
 	}
 	return rev
