@@ -65,6 +65,7 @@ import (
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -4714,7 +4715,7 @@ func TestGetNamespaceFromRunID_PrefersPersistedRunNamespace(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	namespace, err := manager.getNamespaceFromRunId(run.UUID)
+	namespace, err := manager.getNamespaceFromRunID(run.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, "run-namespace", namespace)
 }
@@ -7871,7 +7872,7 @@ func TestRetryRun_AdoptionFiresPluginRetryHook(t *testing.T) {
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
 	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0, PluginsOutput = ? WHERE UUID = ?`,
-		`{"mlflow":{"runId":"abc"}}`, runDetail.UUID)
+		`{"mlflow":{"runID":"abc"}}`, runDetail.UUID)
 	require.NoError(t, err)
 
 	run, err := manager.GetRun(runDetail.UUID)
@@ -8662,27 +8663,22 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 	dagTask, err := store.TaskStore().CreateTask(&model.Task{
 		RunUUID:     run.UUID,
 		Namespace:   namespace,
-		UUID:        "uuid-1",
+		UUID:        string(uuid.NewUUID()),
 		Name:        "parent-dag",
 		Fingerprint: "fp-dag",
 		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
 		Pods:        model.JSONSlice{map[string]interface{}{"name": "dag-driver-pod"}},
+		Type:        model.TaskType(apiv2beta1.PipelineTask_DAG),
 		TypeAttrs:   model.JSONData{},
 	})
 	require.NoError(t, err)
 
-	// Seed a RUNNING task for this run
-	strandedTask, err := store.TaskStore().CreateTask(&model.Task{
-		RunUUID:        run.UUID,
-		Namespace:      namespace,
-		UUID:        "uuid-2",
-		Name:           "stranded",
-		Fingerprint:    "fp1",
-		ParentTaskUUID: &dagTask.UUID,
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
-		Pods:           model.JSONSlice{map[string]interface{}{"name": "my-pod-name"}},
-		TypeAttrs:      model.JSONData{},
-	})
+	// Seed a RUNNING task for this run, inserting manually to bypass FakeUUIDGenerator unique constraint collision
+	_, err = store.DB().Exec("INSERT INTO tasks (UUID, Namespace, RunUUID, pods, State, Name, Fingerprint, ParentTaskUUID, Type, TypeAttrs, CreatedAtInSec) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"uuid-2", namespace, run.UUID, "[{\"name\":\"my-pod-name\"}]", model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), "stranded", "fp1", dagTask.UUID, 0, "{}", 1)
+	require.NoError(t, err)
+
+	strandedTask, err := store.TaskStore().GetTask("uuid-2")
 	require.NoError(t, err)
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{

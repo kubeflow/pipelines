@@ -10,15 +10,16 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runId string, execSpec util.ExecutionSpec) {
+func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runID string, execSpec util.ExecutionSpec, isFinalState bool) {
 	nodeStatuses := execSpec.ExecutionStatus().NodeStatuses()
 	if len(nodeStatuses) == 0 {
 		return
 	}
 
-	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runId}}, &list.Options{})
+	opts, _ := list.NewOptions(&model.Task{}, 1000, "", nil)
+	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID}}, opts)
 	if err != nil {
-		glog.Warningf("Failed to list tasks for run %s during stranded task reconciliation: %v", runId, err)
+		glog.Warningf("Failed to list tasks for run %s during stranded task reconciliation: %v", runID, err)
 		return
 	}
 
@@ -27,6 +28,10 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runId stri
 	for _, task := range tasks {
 		if task.State != model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
 			continue
+		}
+
+		if task.Type == model.TaskType(apiv2beta1.PipelineTask_DAG) {
+			continue // DAG states are determined by their children, not their driver pods
 		}
 
 		if len(task.Pods) == 0 {
@@ -51,7 +56,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runId stri
 			continue
 		}
 
-		if isTerminalNodeState(nodeStatus.State) {
+		if isTerminalNodeState(nodeStatus.State, isFinalState) {
 			glog.Infof("Reconciling stranded task %s (pod: %s) which is RUNNING but its engine node is %s", task.UUID, podName, nodeStatus.State)
 
 			// Map engine state to MLMD state
@@ -84,16 +89,17 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runId stri
 
 	// 2. If we reconciled any task, we must aggregate the DAG states to ensure parent DAGs fail before exit handlers run.
 	if reconciledAny {
-		r.aggregateDAGTaskStatuses(runId)
+		r.aggregateDAGTaskStatuses(runID)
 	}
 }
 
 // aggregateDAGTaskStatuses traverses the DAG tree from bottom to top, updating parent task states.
-func (r *ResourceManager) aggregateDAGTaskStatuses(runId string) {
+func (r *ResourceManager) aggregateDAGTaskStatuses(runID string) {
 	// Re-fetch tasks since some might have been updated by reconciliation
-	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runId}}, &list.Options{})
+	opts, _ := list.NewOptions(&model.Task{}, 1000, "", nil)
+	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID}}, opts)
 	if err != nil {
-		glog.Warningf("Failed to list tasks for run %s during DAG aggregation: %v", runId, err)
+		glog.Warningf("Failed to list tasks for run %s during DAG aggregation: %v", runID, err)
 		return
 	}
 
@@ -154,6 +160,14 @@ func (r *ResourceManager) aggregateDAGTaskStatuses(runId string) {
 	}
 }
 
-func isTerminalNodeState(state string) bool {
-	return state == "Failed" || state == "Error" || state == "Succeeded" || state == "Skipped" || state == "Omitted"
+func isTerminalNodeState(state string, isFinalState bool) bool {
+	if state == "Failed" || state == "Error" || state == "Skipped" || state == "Omitted" {
+		return true
+	}
+	// For Succeeded, we only reconcile if the workflow itself is in a final state,
+	// to avoid racing with the launcher reporting success and outputs.
+	if state == "Succeeded" && isFinalState {
+		return true
+	}
+	return false
 }
