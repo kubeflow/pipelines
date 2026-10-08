@@ -13,11 +13,13 @@ import unittest
 from unittest import mock
 
 from live_adoption_check import AdoptionError
+from live_adoption_check import command_diagnostics
 from live_adoption_check import command_failure
 from live_adoption_check import kube
 from live_adoption_check import offline_job
 from live_adoption_check import require_stopped
 from live_adoption_check import snapshot
+from live_adoption_check import sql_diagnostics
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
 from live_adoption_check import validate_idempotent
@@ -138,6 +140,45 @@ set_api_env() {""" + helper + offline
         with mock.patch('live_adoption_check.get', return_value=deployment):
             with self.assertRaisesRegex(AdoptionError, 'writers_not_stopped'):
                 require_stopped()
+
+    def test_unknown_mysql_code_and_exec_failure_keep_only_structural_data(
+            self):
+        payload = 'SECRET-server-query-identity'
+        info = command_diagnostics(
+            mock.Mock(
+                returncode=1,
+                stdout='',
+                stderr='ERROR 2002 (hy000): Cannot connect ' + payload))
+        self.assertEqual(info['mysql_error'], 2002)
+        self.assertNotIn(payload, json.dumps(info))
+        info = command_diagnostics(
+            mock.Mock(
+                returncode=127,
+                stdout='',
+                stderr='OCI runtime exec failed: executable file not found in $PATH '
+                + payload))
+        self.assertEqual(info['signatures'],
+                         ['executable_missing', 'runtime_exec'])
+        self.assertEqual(info['exit_code'], 127)
+        self.assertNotIn(payload, json.dumps(info))
+
+    def test_probes_are_bounded_and_do_not_expose_output(self):
+        with mock.patch(
+                'live_adoption_check.subprocess.run',
+                return_value=mock.Mock(
+                    returncode=0, stdout='SECRET', stderr='')) as run:
+            evidence = sql_diagnostics()
+        self.assertEqual(
+            set(evidence),
+            {'exec', 'client', 'connection', 'connection_tcp', 'jobs_identity'})
+        self.assertNotIn('SECRET', json.dumps(evidence))
+        for call in run.call_args_list:
+            self.assertEqual(call.kwargs['timeout'], 30)
+            self.assertIn('deployment/mysql', call.args[0])
+        queries = [call.args[0][-1] for call in run.call_args_list]
+        self.assertIn('SELECT 1', queries)
+        self.assertIn("SELECT JSON_OBJECT('UUID', UUID) FROM jobs LIMIT 1",
+                      queries)
 
     def test_sql_diagnostics_identify_stage_without_echoing_payload(self):
         self.assertEqual(

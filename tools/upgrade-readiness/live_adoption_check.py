@@ -45,11 +45,77 @@ SQL_OPERATIONS = {
 def command_failure(operation, stderr):
     # Never include backend messages: they can contain queries or credentials.
     if operation in SQL_OPERATIONS:
-        code = re.search(r'ERROR ([0-9]+) \([A-Z0-9]+\)', stderr)
+        code = re.search(r'\bERROR\s+([0-9]{4})\b', stderr, re.IGNORECASE)
         category = MYSQL_ERRORS.get(code.group(1),
                                     'command') if code else 'command'
         return 'fixture_sql_' + operation + '_' + category + '_failed'
     return 'fixture_kubernetes_operation_failed'
+
+
+def command_diagnostics(result):
+    # Structural metadata and fixed signatures only, including exec failures
+    # which do not use MySQL's numbered ERROR format.
+    text = (result.stderr + '\n' + result.stdout).lower()
+    signatures = {
+        'executable_missing':
+            ('executable file not found', 'not found in $path'),
+        'exec_upgrade':
+            ('unable to upgrade connection', 'upgrade request required'),
+        'container_missing':
+            ('container not found', 'container is not running'),
+        'permission_denied': ('permission denied', 'forbidden'),
+        'authentication': ('access denied', 'authentication failed'),
+        'cli_option': ('unknown option', 'unknown flag', 'unknown variable'),
+        'connection':
+            ('connection refused', "can't connect", 'connection reset'),
+        'defaults_file': ('defaults file', 'my.cnf'),
+        'runtime_exec':
+            ('oci runtime exec failed', 'failed to exec in container'),
+        'pod_missing': ('pods "mysql', 'no pods found'),
+    }
+    code = re.search(r'\berror\s+([0-9]{4})\b', text)
+    return dict(
+        exit_code=result.returncode,
+        stdout_bytes=len(result.stdout.encode()),
+        stderr_bytes=len(result.stderr.encode()),
+        mysql_error=int(code.group(1)) if code else None,
+        signatures=sorted(name for name, fragments in signatures.items()
+                          if any(fragment in text for fragment in fragments)))
+
+
+def sql_diagnostics():
+    probes = (
+        ('exec', ['/bin/true']),
+        ('client', ['mysql', '--version']),
+        ('connection', [
+            'mysql', '-uroot', '--batch', '--skip-column-names', '--raw', '-e',
+            'SELECT 1'
+        ]),
+        ('connection_tcp', [
+            'mysql', '-uroot', '--protocol=TCP', '--host=127.0.0.1', '--batch',
+            '--skip-column-names', '--raw', '-e', 'SELECT 1'
+        ]),
+        ('jobs_identity', [
+            'mysql', '-uroot', '--batch', '--skip-column-names', '--raw',
+            'mlpipeline', '-e',
+            "SELECT JSON_OBJECT('UUID', UUID) FROM jobs LIMIT 1"
+        ]),
+    )
+    results = {}
+    for name, command in probes:
+        try:
+            result = subprocess.run([
+                'kubectl', '--context', CONTEXT, '--request-timeout=20s', '-n',
+                'kubeflow', 'exec', 'deployment/mysql', '--', *command
+            ],
+                                    text=True,
+                                    capture_output=True,
+                                    timeout=30,
+                                    check=False)
+            results[name] = command_diagnostics(result)
+        except (OSError, subprocess.TimeoutExpired):
+            results[name] = {'collection': 'unavailable'}
+    return results
 
 
 def kube(*args, value=None, operation='kubernetes'):
@@ -61,7 +127,9 @@ def kube(*args, value=None, operation='kubernetes'):
         timeout=45,
         check=False)
     if result.returncode:
-        raise AdoptionError(command_failure(operation, result.stderr))
+        error = AdoptionError(command_failure(operation, result.stderr))
+        error.command_diagnostics = command_diagnostics(result)
+        raise error
     if len(result.stdout) > 4 * 1024 * 1024:
         raise AdoptionError('fixture_collection_limit_exceeded')
     return result.stdout
@@ -433,6 +501,9 @@ def main():
         # Never expose backend payloads, SQL errors, manifests or credentials.
         report['reason'] = str(error) if type(error) is AdoptionError else \
             'adoption_validation_or_collection_failed'
+        if report['reason'].startswith('fixture_sql_'):
+            report['failed_command'] = getattr(error, 'command_diagnostics', {})
+            report['sql_probes'] = sql_diagnostics()
     write_object(state / 'reports' / ('adoption-' + args.phase + '.json'),
                  report)
     return 0 if report['outcome'] == 'passed' else 1
