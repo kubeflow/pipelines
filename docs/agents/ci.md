@@ -70,3 +70,15 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   payloads, and workflow specifications, but reports retain namespace, resource,
   service-account and run identifiers. Use only the synthetic CI cluster and
   review report contents before sharing; these artifacts are not anonymized.
+
+- The manual `run_readiness_adoption=true` input adds a separate populated
+  2.17.2-to-candidate adoption job. It retains real completed source history,
+  one enabled schedule with a persisted suspended Workflow, and two disabled
+  schedules. It deploys candidate images with API and controllers stopped, runs
+  the offline adoption Job twice, compares SQL receipt/progress and stored
+  definitions, then checks active-run concurrency and successful continuation.
+  This supplements the unchanged legacy rejection/recreation lane. A suspended
+  Workflow tests nonterminal run accounting; it does not establish retry behavior
+  for running task containers making API calls during the maintenance window.
+  Only sanitized phase summaries under `reports/` are uploaded; SQL snapshots,
+  manifests, credentials and adoption logs remain in the disposable runner.

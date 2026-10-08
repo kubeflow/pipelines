@@ -468,3 +468,16 @@ plugin mutation. A post-plugin denial can leave that tick pending, as with other
 plugin failures; correct the policy or plugin output and retry the pending tick.
 Expired-retry recovery may acknowledge an already-running execution without
 starting another execution; changing policy does not stop that running workload.
+
+### Populated adoption CI coverage
+
+The opt-in upgrade workflow input `run_readiness_adoption=true` exercises the
+offline command against real 2.17.2 history in an isolated Kind cluster. It checks
+SQL definitions and progress, enabled/disabled schedules, receipt idempotency,
+and absence of duplicate workflow indices. An actual persisted source Workflow
+is suspended across cutover: the candidate must count it against concurrency,
+finish it after resumption, and successfully execute the next tick. This is
+separate from the unadopted-schedule rejection/recreation tests. It does not test
+API retries inside already-running task containers or claim zero-downtime
+execution. Record the candidate SHA and hosted result before claiming live
+adoption acceptance.
