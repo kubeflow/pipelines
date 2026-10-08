@@ -206,7 +206,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
     pr = await resolve(github, context, recovery);
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
-    if (sha) await github.rest.repos.createCommitStatus({
+    if (sha && context.payload.pull_request?.merged !== true) await github.rest.repos.createCommitStatus({
       ...context.repo, sha, context: 'ci-passed', state: 'failure',
       description: 'Cannot identify the PR for this head; inspect CI Check and retry.',
     });
@@ -218,6 +218,8 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
+  // A merged PR must keep its published status; never publish pending over it.
+  if (pr.merged) return;
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
   if (pr.state !== 'open' || blocked(pr)) return;
   const result = await evidence(github, context, pr, root);
@@ -233,6 +235,8 @@ async function finalize({github, context, core, number, head, before, pollPassed
   try {
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
+    // Preserve the status on merge; closure without merge still invalidates below.
+    if (pr.merged) return;
     let state = 'failure';
     let validatedBaseSha;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
