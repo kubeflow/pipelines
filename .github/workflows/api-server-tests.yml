@@ -174,6 +174,8 @@ jobs:
         id: test-run
         env:
           ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.2' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
+          # Exercise literal v2beta1 paths on these already-deployed PR clusters.
+          LEGACY_API_COMPATIBILITY_TESTS: ${{ (matrix.argo_version == 'v4.1.2' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false') || matrix.pod_to_pod_tls_enabled == 'true' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -330,6 +332,7 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         env:
           LOCAL_API_SERVER: "true"
+          LEGACY_API_COMPATIBILITY_TESTS: ${{ matrix.cache_enabled == 'false' && matrix.db_type == 'mysql' }}
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}
