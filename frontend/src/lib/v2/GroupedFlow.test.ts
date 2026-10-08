@@ -49,6 +49,23 @@ describe('buildGroupedFlow', () => {
     }
   });
 
+  it('matches rem-sized cards and group headers with the application root font', () => {
+    const resolve = (layers: string[], maxNodes?: number) =>
+      convertSubDagToFlowElements(nestedArtifactSpec, layers, maxNodes);
+    const graph = buildGroupedFlow(
+      resolve(['root']),
+      ['root'],
+      resolve,
+      new Set(['task.workflow']),
+      { nodeScale: 13 / 16 },
+    );
+    const group = graph.nodes.find((node) => node.id === 'task.workflow')!;
+    const leaf = graph.nodes.find((node) => node.id === 'task.deploy')!;
+    expect(group.height).toBe(39);
+    expect(group.data.headerHeight).toBe(leaf.height);
+    expect(leaf.width).toBe(182);
+  });
+
   it('keeps dependency edges on group boundaries and artifacts in their owning scope', () => {
     const graph = staticGraph();
     expect(graph.edges).toEqual(
@@ -189,13 +206,9 @@ describe('buildGroupedFlow', () => {
     expect(graph.nodes.length).toBeLessThanOrEqual(500);
     const deferred = graph.nodes.find((node) => node.data.expansionDeferred)!;
     expect(deferred).toBeDefined();
-    const manuallyExpanded = buildGroupedFlow(
-      resolve(['root']),
-      ['root'],
-      resolve,
-      new Set(),
-      new Set([deferred.id]),
-    );
+    const manuallyExpanded = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
+      expanded: new Set([deferred.id]),
+    });
     expect(manuallyExpanded.nodes.find((node) => node.id === deferred.id)?.data.collapsed).toBe(
       false,
     );

@@ -158,6 +158,24 @@ it('places bulk controls before Layers and expands/collapses all descendants', (
   expect(options.onLayersUpdate).not.toHaveBeenCalled();
 });
 
+it('sizes group headers like regular nodes under the application root font', () => {
+  const previous = document.documentElement.style.fontSize;
+  document.documentElement.style.fontSize = '13px';
+  try {
+    render(
+      <CommonTestWrapper>
+        <DagCanvas {...props()} />
+      </CommonTestWrapper>,
+    );
+    expect(screen.getAllByTestId('subdag-header')[0]).toHaveStyle({ height: '39px' });
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
+    expect(document.querySelector('[data-id="task.workflow"]')).toHaveStyle({ height: '39px' });
+    expect(document.querySelector('[data-id="task.deploy"]')).toHaveStyle({ height: '39px' });
+  } finally {
+    document.documentElement.style.fontSize = previous;
+  }
+});
+
 it('supports keyboard collapse and expansion', async () => {
   render(
     <CommonTestWrapper>

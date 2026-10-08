@@ -81,6 +81,11 @@ export default function DagCanvas({
   getSubDagElements,
   selectedNodeLayers = layers,
 }: DagCanvasProps) {
+  // Node cards use rem-based Tailwind dimensions. Match their actual size in
+  // both the application's 13px root font and standalone Storybook's 16px root.
+  const [nodeScale] = useState(
+    () => (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16,
+  );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
   const [expansion, setExpansion] = useState({
@@ -92,16 +97,13 @@ export default function DagCanvas({
   const grouped = useMemo(
     () =>
       getSubDagElements
-        ? buildGroupedFlow(
-            elements,
-            layers,
-            getSubDagElements,
-            expansion.collapsed,
-            expansion.expanded,
-            expansion.allCollapsed,
-          )
+        ? buildGroupedFlow(elements, layers, getSubDagElements, expansion.collapsed, {
+            expanded: expansion.expanded,
+            collapseAll: expansion.allCollapsed,
+            nodeScale,
+          })
         : undefined,
-    [elements, layers, getSubDagElements, expansion],
+    [elements, layers, getSubDagElements, expansion, nodeScale],
   );
   const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
     setExpansion((previous) => {

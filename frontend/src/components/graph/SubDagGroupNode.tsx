@@ -35,7 +35,7 @@ export default function SubDagGroupNode({
         <div
           data-testid='subdag-header'
           className='flex items-stretch bg-white'
-          style={{ height: GROUP_HEADER_HEIGHT }}
+          style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT }}
         >
           <div className='w-8 pl-2 h-full flex flex-col justify-center flex-shrink-0'>
             <SubDagTypeIcon kind={data.groupKind || 'Sub-DAG'} />
@@ -61,7 +61,7 @@ export default function SubDagGroupNode({
               event.stopPropagation();
               data.expand(id);
             }}
-            style={{ background: 'transparent', border: 0, padding: 0, width: 32 }}
+            style={{ background: 'transparent', border: 0, padding: 0, width: '2rem' }}
           >
             {collapsed ? <ExpandMoreIcon fontSize='small' /> : <ExpandLessIcon fontSize='small' />}
           </button>
