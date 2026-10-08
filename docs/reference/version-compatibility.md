@@ -16,8 +16,8 @@ Upgrade the backend before adopting clients that call `/apis/v2`; older servers
 do not necessarily expose it. This is not a compatibility promise for removed
 v1 APIs or other breaking changes in the release.
 
-This backend API promotion does not change PipelineSpec IR (`v2alpha1`) or
-Kubernetes-native pipeline CRDs (`pipelines.kubeflow.org/v2beta1`).
+PipelineSpec IR (`v2alpha1`) and Kubernetes-native pipeline CRDs
+(`pipelines.kubeflow.org/v2beta1`) have independent version lifecycles.
 See the [backend API guide](https://github.com/kubeflow/pipelines/blob/master/backend/api/README.md).
 
 Use matching SDK and runtime releases when adopting new features: support may

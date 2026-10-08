@@ -380,6 +380,7 @@ class PythonPackagingTest(unittest.TestCase):
                     models = output.joinpath(*config['packageName'].split('.'), 'models')
                     models.mkdir(parents=True)
                     (models / '__init__.py').touch()
+                    (models / 'v2_run.py').write_text('class V2Run: pass\\n')
                     (output / 'test').mkdir()
                     (models.parent / '__init__.py').write_text(
                         '__version__ = ' + repr(config['packageVersion']) + '\\n')

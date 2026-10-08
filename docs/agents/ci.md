@@ -81,6 +81,7 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 
 - `sdk-upgrade.yml` uses a fresh environment with all four split distributions at 2.17.0, uninstalls the three retired distributions, then force-reinstalls the single source-built `kfp` wheel. The order prevents old installation records from deleting newly installed shared modules. Check imports, absence of retired distribution metadata, and `pip check`; never use the already-installed uv workspace as an upgrade fixture.
 
+- Upgrade preparation explicitly sets `-useLegacyAPIPrefix=true` so current Go clients and readiness checks reach the old server through `/apis/v2beta1`. Verification uses the default `/apis/v2` transport. Port-forward or preparation failure blocks branch deployment and verification; cleanup still runs.
 - Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
 
 - SDK and pre-commit import formatting must use the same isort pin and Google profile. When hook configuration changes, run both the base-to-head check and the representative-file smoke command from `pre-commit.yml`; the smoke command includes files outside the PR diff. Run the hook chain twice to confirm the formatters agree.

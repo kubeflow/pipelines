@@ -18,7 +18,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-import { UIConfigs } from './configs.js';
+import { UIConfigs, legacyApiVersion2Prefix } from './configs.js';
 import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
@@ -154,7 +154,7 @@ function createUIServer(options: UIConfigs) {
   // originalUrl for logging; no client-visible redirect is necessary.
   app.use((req, _res, next) => {
     for (const prefix of ['', basePath]) {
-      const legacy = `${prefix}/apis/v2beta1`;
+      const legacy = `${prefix}/${legacyApiVersion2Prefix}`;
       if (
         req.url === legacy ||
         req.url.startsWith(`${legacy}/`) ||

@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// Captured from the v2beta1 generated descriptors at commit 2953513cf.
+// Frozen legacy schema, pinned by the SHA-256 assertion in descriptors_test.go.
 // This snapshot must not be regenerated from v2: it is the independent
 // compatibility baseline for already-compiled legacy clients.
 //
@@ -48,7 +48,7 @@ func (r descriptorResolver) FindDescriptorByName(name protoreflect.FullName) (pr
 func registerDescriptors(data []byte, registry *protoregistry.Files) error {
 	set := new(descriptorpb.FileDescriptorSet)
 	if err := proto.Unmarshal(data, set); err != nil {
-		return fmt.Errorf("decode frozen v2beta1 descriptors: %w", err)
+		return fmt.Errorf("decode frozen v2beta1 descriptors: %w; restore legacy_descriptor.pb matching the SHA-256 in descriptors_test.go", err)
 	}
 	pending := make(map[string]*descriptorpb.FileDescriptorProto, len(set.File))
 	for _, file := range set.File {
@@ -62,7 +62,7 @@ func registerDescriptors(data []byte, registry *protoregistry.Files) error {
 			return nil
 		}
 		if visiting[name] {
-			return fmt.Errorf("dependency cycle in frozen v2beta1 descriptor %s", name)
+			return fmt.Errorf("dependency cycle in frozen v2beta1 descriptor %s; restore the checksum-pinned legacy_descriptor.pb", name)
 		}
 		visiting[name] = true
 		for _, dependency := range file.Dependency {
@@ -72,10 +72,10 @@ func registerDescriptors(data []byte, registry *protoregistry.Files) error {
 		}
 		descriptor, err := protodesc.NewFile(file, descriptorResolver{local: registry})
 		if err != nil {
-			return fmt.Errorf("resolve frozen v2beta1 descriptor %s: %w", name, err)
+			return fmt.Errorf("resolve frozen v2beta1 descriptor %s: %w; verify the snapshot checksum and load its external protobuf dependencies", name, err)
 		}
 		if err := registry.RegisterFile(descriptor); err != nil {
-			return fmt.Errorf("register frozen v2beta1 descriptor %s: %w", name, err)
+			return fmt.Errorf("register frozen v2beta1 descriptor %s: %w; remove duplicate legacy descriptor registration", name, err)
 		}
 		delete(pending, name)
 		return nil

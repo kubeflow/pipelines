@@ -29,8 +29,8 @@ registers the old gRPC service names against the same canonical handlers.
 Already-built clients do not need to be regenerated.
 
 `legacy_descriptor.pb` is a frozen 34,519-byte `FileDescriptorSet`, captured
-from the ten v2beta1 generated Go file descriptors at commit `2953513cf` before
-removing them. It contains schema metadata only, not executable client/server
+from the ten legacy v2beta1 file descriptors. Its SHA-256 is pinned by
+`TestFrozenDescriptorSnapshot` in `descriptors_test.go`. It contains schema metadata only, not executable client/server
 logic. `descriptors.go` registers this snapshot for legacy gRPC reflection and
 uses generic dynamic protobuf types to preserve legacy `Any` type URLs, resolving
 external dependencies from the canonical API. Do not regenerate the

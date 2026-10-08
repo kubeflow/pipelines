@@ -18,6 +18,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	legacy "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -130,7 +131,7 @@ func TestLegacyHTTPGatewayMiddleware(t *testing.T) {
 	}
 }
 
-func TestLegacyHTTPBodyLimitAndRouteBoundaries(t *testing.T) {
+func TestLegacyHTTPBodyLimit(t *testing.T) {
 	t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "5")
 	for _, prefix := range []string{canonicalAPIPath, legacyAPIPath} {
 		router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +141,9 @@ func TestLegacyHTTPBodyLimitAndRouteBoundaries(t *testing.T) {
 		router.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, prefix+"/pipelines/pipeline", strings.NewReader(`{"tags":{}}`)))
 		require.Equal(t, http.StatusRequestEntityTooLarge, response.Code)
 	}
+}
+
+func TestLegacyHTTPRouteBoundaries(t *testing.T) {
 	deps := newNoOpHTTPRouterDeps()
 	deps.ReadRunLog = func(http.ResponseWriter, *http.Request) { t.Error("POST reached the streaming handler") }
 	router := buildHTTPRouter(deps, http.NotFoundHandler(), "database")
@@ -148,6 +152,10 @@ func TestLegacyHTTPBodyLimitAndRouteBoundaries(t *testing.T) {
 		router.ServeHTTP(response, httptest.NewRequest(http.MethodPost, path, nil))
 		require.Equal(t, http.StatusNotFound, response.Code)
 	}
+}
+
+func TestLegacyHTTPHealthMatchesCanonical(t *testing.T) {
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.NotFoundHandler(), "database")
 	canonicalHealth, legacyHealth := httptest.NewRecorder(), httptest.NewRecorder()
 	router.ServeHTTP(canonicalHealth, httptest.NewRequest(http.MethodGet, canonicalAPIPath+"/healthz", nil))
 	router.ServeHTTP(legacyHealth, httptest.NewRequest(http.MethodGet, legacyAPIPath+"/healthz", nil))
@@ -194,13 +202,14 @@ func legacyMessage(t *testing.T, name string) *dynamicpb.Message {
 	return dynamicpb.NewMessage(message)
 }
 
-func TestLegacyGRPCWireAndImportShimsUseCanonicalHandler(t *testing.T) {
-	var intercepted atomic.Int32
+func compatibilityRPCConnection(t *testing.T) (*grpc.ClientConn, *atomic.Int32) {
+	t.Helper()
+	intercepted := new(atomic.Int32)
 	rpc := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, request interface{}, info *grpc.UnaryServerInfo, next grpc.UnaryHandler) (interface{}, error) {
 		intercepted.Add(1)
-		require.Equal(t, "/"+canonicalRPCPackage+"ExperimentService/CreateExperiment", info.FullMethod)
+		assert.Equal(t, "/"+canonicalRPCPackage+"ExperimentService/CreateExperiment", info.FullMethod)
 		_, ok := request.(*api.CreateExperimentRequest)
-		require.True(t, ok, "legacy bytes must decode into the canonical request")
+		assert.True(t, ok, "legacy bytes must decode into the canonical request")
 		return next(ctx, request)
 	}))
 	api.RegisterExperimentServiceServer(compatibleServiceRegistrar{rpc}, compatibilityExperimentServer{})
@@ -211,6 +220,11 @@ func TestLegacyGRPCWireAndImportShimsUseCanonicalHandler(t *testing.T) {
 	connection, err := grpc.NewClient("passthrough:///compatibility", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }))
 	require.NoError(t, err)
 	t.Cleanup(func() { connection.Close() })
+	return connection, intercepted
+}
+
+func TestLegacyGRPCWireAndImportShimsUseCanonicalHandler(t *testing.T) {
+	connection, intercepted := compatibilityRPCConnection(t)
 	deadline, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 	ctx := metadata.NewOutgoingContext(deadline, metadata.Pairs("authorization", "Bearer token"))
@@ -222,7 +236,7 @@ func TestLegacyGRPCWireAndImportShimsUseCanonicalHandler(t *testing.T) {
 	oldResponse := legacyMessage(t, "Experiment")
 	oldMethod := "/" + legacyRPCPackage + "ExperimentService/CreateExperiment"
 	var headers metadata.MD
-	err = connection.Invoke(ctx, oldMethod, oldRequest, oldResponse, grpc.Header(&headers))
+	err := connection.Invoke(ctx, oldMethod, oldRequest, oldResponse, grpc.Header(&headers))
 	require.NoError(t, err)
 	require.Equal(t, []string{"shared-handler"}, headers.Get("compatibility"))
 	newResponse, err := newClient.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: &api.Experiment{DisplayName: "experiment", Namespace: "tenant"}})
@@ -236,12 +250,26 @@ func TestLegacyGRPCWireAndImportShimsUseCanonicalHandler(t *testing.T) {
 	aliasedResponse, err := legacy.NewExperimentServiceClient(connection).CreateExperiment(ctx, &legacy.CreateExperimentRequest{Experiment: &legacy.Experiment{DisplayName: "experiment", Namespace: "tenant"}})
 	require.NoError(t, err)
 	require.True(t, proto.Equal(newResponse, aliasedResponse))
-	err = connection.Invoke(ctx, oldMethod, legacyMessage(t, "CreateExperimentRequest"), legacyMessage(t, "Experiment"))
+	require.Equal(t, int32(3), intercepted.Load())
+}
+
+func TestLegacyGRPCValidationAndAuthentication(t *testing.T) {
+	connection, intercepted := compatibilityRPCConnection(t)
+	deadline, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	ctx := metadata.NewOutgoingContext(deadline, metadata.Pairs("authorization", "Bearer token"))
+	oldMethod := "/" + legacyRPCPackage + "ExperimentService/CreateExperiment"
+	err := connection.Invoke(ctx, oldMethod, legacyMessage(t, "CreateExperimentRequest"), legacyMessage(t, "Experiment"))
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	err = connection.Invoke(deadline, oldMethod, legacyMessage(t, "CreateExperimentRequest"), legacyMessage(t, "Experiment"))
 	require.Equal(t, codes.Unauthenticated, status.Code(err))
-	require.Equal(t, int32(5), intercepted.Load())
+	require.Equal(t, int32(2), intercepted.Load())
+}
 
+func TestLegacyGRPCReflection(t *testing.T) {
+	connection, _ := compatibilityRPCConnection(t)
+	deadline, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
 	stream, err := reflectionv1.NewServerReflectionClient(connection).ServerReflectionInfo(deadline)
 	require.NoError(t, err)
 	require.NoError(t, stream.Send(&reflectionv1.ServerReflectionRequest{

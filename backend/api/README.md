@@ -22,11 +22,10 @@ services use `kubeflow.pipelines.backend.api.v2`, and generated clients use
   `kfp.server_api.models.v2beta1_*`, are aliases of the canonical `V2…` classes.
   They serialize the same fields and use the v2 endpoints.
 - Request/response fields, resource names, filter syntax, and page tokens are
-  unchanged. This promotion does not restore previously removed v1 APIs.
+  unchanged. Removed v1 APIs are not supported.
 
 PipelineSpec IR (`api/v2alpha1`) and Kubernetes CRDs
-(`pipelines.kubeflow.org/v2beta1`) have separate version lifecycles and are not
-renamed by the backend API promotion. Old clients can call the new server;
+(`pipelines.kubeflow.org/v2beta1`) have version lifecycles independent of the backend API. Old clients can call the new server;
 new v2 clients require a server that exposes v2 (upgrade the server first).
 
 Make schema changes under `backend/api/v2`. The descriptor parity regression

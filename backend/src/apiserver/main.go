@@ -433,7 +433,7 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 func isPipelineUpdatePath(path string) bool {
 	// v2 UpdatePipeline:        PATCH /apis/v2/pipelines/{pipeline_id}
 	// v2 UpdatePipelineVersion: PATCH /apis/v2/pipelines/{pipeline_id}/versions/{version_id}
-	return strings.HasPrefix(path, "/apis/v2/pipelines/")
+	return strings.HasPrefix(path, canonicalAPIPath+"/pipelines/")
 }
 
 func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Config) {
@@ -577,27 +577,27 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	topMux.PathPrefix(legacyAPIPath + "/").Handler(legacyAPIHandler(topMux))
 	topMux.Path(legacyAPIPath).Handler(legacyAPIHandler(topMux))
 	if handlerDeps.ExportTransfer != nil {
-		topMux.HandleFunc("/apis/v2/transfer/export", handlerDeps.ExportTransfer)
+		topMux.HandleFunc(canonicalAPIPath+"/transfer/export", handlerDeps.ExportTransfer)
 	}
 	if handlerDeps.ImportTransfer != nil {
-		topMux.HandleFunc("/apis/v2/transfer/import", handlerDeps.ImportTransfer)
+		topMux.HandleFunc(canonicalAPIPath+"/transfer/import", handlerDeps.ImportTransfer)
 	}
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	// API v2
-	topMux.HandleFunc("/apis/v2/pipelines/upload", handlerDeps.UploadPipeline)
-	topMux.HandleFunc("/apis/v2/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
-	topMux.HandleFunc("/apis/v2/healthz", func(w http.ResponseWriter, r *http.Request) {
+	topMux.HandleFunc(canonicalAPIPath+"/pipelines/upload", handlerDeps.UploadPipeline)
+	topMux.HandleFunc(canonicalAPIPath+"/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
+	topMux.HandleFunc(canonicalAPIPath+"/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSONResponse(w, newHealthzResponse(pipelineStore))
 	})
 
 	// log streaming is provided via HTTP.
-	topMux.HandleFunc("/apis/v2/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLog).Methods(http.MethodGet)
+	topMux.HandleFunc(canonicalAPIPath+"/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLog).Methods(http.MethodGet)
 
 	// Artifact reading endpoints (implemented with streaming for memory efficiency)
-	topMux.HandleFunc("/apis/v2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
+	topMux.HandleFunc(canonicalAPIPath+"/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
 
 	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
 
