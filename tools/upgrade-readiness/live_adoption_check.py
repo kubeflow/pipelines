@@ -357,25 +357,52 @@ def prepare_active(state, fixture):
     client.post(
         '/apis/v2beta1/recurringruns/' + case['schedule_uid'] + ':enable', {})
     deadline = time.monotonic() + 180
+    observation = {}
     while time.monotonic() < deadline:
         current = snapshot()
         fresh = [w for w in current['workflows'] if w['uid'] not in old]
+        schedule = next((s for s in current['schedules']
+                         if s['uid'] == case['schedule_uid']), {})
+        job = next(
+            (j for j in current['jobs'] if j['UUID'] == case['schedule_uid']),
+            {})
+        observation = dict(
+            fresh_workflow_count=len(fresh),
+            schedule_enabled=schedule.get('enabled') is True,
+            job_enabled=bool(job.get('Enabled')),
+            schedule_index=int(
+                schedule.get('trigger', {}).get('lastWorkflowIndex', 0)),
+            persisted_run_found=False,
+            persisted_run_nonterminal=False,
+            controller_acknowledged=False)
         if fresh:
             require(len(fresh) == 1, 'multiple_active_workflows')
             workflow = fresh[0]
             kube('-n', NAMESPACE, 'patch', 'workflow/' + workflow['name'],
                  '--type=merge', '-p', '{"spec":{"suspend":true}}')
-            if (any(r['UUID'] == workflow['run_id'] and
-                    str(r['State'] or r['Conditions']).upper() not in TERMINAL
-                    for r in current['runs']) and
-                    any(s['uid'] == case['schedule_uid'] and
-                        int(s['trigger'].get('lastWorkflowIndex',
-                                             0)) == workflow['index']
-                        for s in current['schedules'])):
+            run = next(
+                (r for r in current['runs'] if r['UUID'] == workflow['run_id']),
+                None)
+            observation.update(
+                workflow_index=workflow['index'],
+                workflow_has_run_id=bool(workflow['run_id']),
+                workflow_suspended=workflow['suspended'],
+                workflow_phase=workflow['phase']
+                if workflow['phase'] in ('Pending', 'Running', 'Succeeded',
+                                         'Failed', 'Error') else 'unset',
+                persisted_run_found=run is not None,
+                persisted_run_nonterminal=run is not None and
+                str(run['State'] or run['Conditions']).upper() not in TERMINAL,
+                controller_acknowledged=observation['schedule_index'] ==
+                workflow['index'])
+            if (observation['persisted_run_nonterminal'] and
+                    observation['controller_acknowledged']):
                 write_object(state / 'active.json', workflow)
-                return
+                return observation
         time.sleep(3)
-    raise AdoptionError('source_active_run_not_persisted')
+    error = AdoptionError('source_active_run_not_persisted')
+    error.source_observation = observation
+    raise error
 
 
 def main():
@@ -396,7 +423,7 @@ def main():
         outcome='inconclusive')
     try:
         if args.phase == 'active':
-            prepare_active(state, fixture)
+            report['source_observation'] = prepare_active(state, fixture)
         elif args.phase == 'job':
             require(
                 args.job_name
@@ -452,6 +479,8 @@ def main():
         # Never expose backend payloads, SQL errors, manifests or credentials.
         report['reason'] = str(error) if type(error) is AdoptionError else \
             'adoption_validation_or_collection_failed'
+        if hasattr(error, 'source_observation'):
+            report['source_observation'] = error.source_observation
         if report['reason'].startswith('fixture_sql_'):
             report['failed_command'] = getattr(error, 'command_diagnostics', {})
     write_object(state / 'reports' / ('adoption-' + args.phase + '.json'),

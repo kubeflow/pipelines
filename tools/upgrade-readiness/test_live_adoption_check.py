@@ -17,6 +17,7 @@ from live_adoption_check import command_diagnostics
 from live_adoption_check import command_failure
 from live_adoption_check import kube
 from live_adoption_check import offline_job
+from live_adoption_check import prepare_active
 from live_adoption_check import require_stopped
 from live_adoption_check import snapshot
 from live_adoption_check import sql
@@ -82,6 +83,50 @@ def inventory():
 
 
 class AdoptionTests(unittest.TestCase):
+
+    def test_active_source_timeout_identifies_missing_evidence(self):
+        fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}
+        baseline = dict(workflows=[])
+        for missing in ('workflow', 'run', 'acknowledgement'):
+            with self.subTest(missing=missing):
+                current = dict(
+                    jobs=[dict(UUID='0', Enabled=1)],
+                    schedules=[
+                        dict(
+                            uid='0',
+                            enabled=True,
+                            trigger=dict(lastWorkflowIndex=0 if missing ==
+                                         'acknowledgement' else 1))
+                    ],
+                    runs=[] if missing == 'run' else
+                    [dict(UUID='r', State='RUNNING', Conditions='')],
+                    workflows=[] if missing == 'workflow' else [
+                        dict(
+                            uid='w',
+                            name='held',
+                            run_id='r',
+                            index=1,
+                            suspended=False,
+                            phase='')
+                    ])
+                with mock.patch('live_adoption_check.FixtureClient'), \
+                        mock.patch('live_adoption_check.snapshot', side_effect=[baseline, current]), \
+                        mock.patch('live_adoption_check.kube'), \
+                        mock.patch('live_adoption_check.time.sleep'), \
+                        mock.patch('live_adoption_check.time.monotonic', side_effect=[0, 0, 181]):
+                    with self.assertRaisesRegex(
+                            AdoptionError,
+                            'source_active_run_not_persisted') as error:
+                        prepare_active(Path('/unused'), fixture)
+                evidence = error.exception.source_observation
+                self.assertEqual(evidence['fresh_workflow_count'],
+                                 0 if missing == 'workflow' else 1)
+                self.assertEqual(evidence['persisted_run_found'],
+                                 missing == 'acknowledgement')
+                self.assertEqual(evidence['controller_acknowledged'],
+                                 missing == 'run')
+                self.assertTrue(evidence['schedule_enabled'])
+                self.assertTrue(evidence['job_enabled'])
 
     def test_offline_environment_setup_never_waits_for_live_api(self):
         root = Path(__file__).resolve().parents[2]
