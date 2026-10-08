@@ -392,3 +392,91 @@ func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, int32(1), initCalls.Load())
 }
+
+// syncClosedSessionHydrator always reports a closed session, and blocks inside
+// Hydrate until release is closed so concurrent callers can fail against the
+// same instance before either recovers.
+type syncClosedSessionHydrator struct {
+	entered chan<- struct{}
+	release <-chan struct{}
+}
+
+func (h *syncClosedSessionHydrator) IsHydrated(wf *workflowapi.Workflow) bool {
+	return wf.Status.CompressedNodes == "" && !wf.Status.IsOffloadNodeStatus()
+}
+
+func (h *syncClosedSessionHydrator) Hydrate(context.Context, *workflowapi.Workflow) error {
+	h.entered <- struct{}{}
+	<-h.release
+	return errors.New("session proxy is closed")
+}
+
+func (h *syncClosedSessionHydrator) Dehydrate(context.Context, *workflowapi.Workflow) error {
+	return nil
+}
+
+func (h *syncClosedSessionHydrator) HydrateWithNodes(wf *workflowapi.Workflow, nodes workflowapi.Nodes) {
+	wf.Status.Nodes = nodes
+	wf.Status.CompressedNodes = ""
+	wf.Status.OffloadNodeStatusVersion = ""
+}
+
+func TestLazyOffloadHydrator_ConcurrentClosedSessionRecovery(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	repo.Put("wf-uid", "offload-hash", workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	})
+	healthy := NewMemoryWorkflowHydrator(repo)
+
+	entered := make(chan struct{}, 2)
+	release := make(chan struct{})
+	failed := &syncClosedSessionHydrator{entered: entered, release: release}
+
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		n := initCalls.Add(1)
+		if n == 1 {
+			return failed, nil
+		}
+		return healthy, nil
+	})
+
+	// Install the failing session once so both callers share the same pointer.
+	lazyConcrete := lazy.(*lazyOffloadHydrator)
+	inner, err := lazyConcrete.ensureInner(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, failed, inner)
+	require.Equal(t, int32(1), initCalls.Load())
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wf := &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+				Status: workflowapi.WorkflowStatus{
+					OffloadNodeStatusVersion: "offload-hash",
+				},
+			}
+			errs <- lazy.Hydrate(context.Background(), wf)
+		}()
+	}
+
+	<-entered
+	<-entered
+	close(release)
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		require.NoError(t, err)
+	}
+
+	assert.Equal(t, int32(2), initCalls.Load(),
+		"concurrent closed-session recovery must re-init once, not discard a healthy replacement")
+	lazyConcrete.mu.Lock()
+	finalInner := lazyConcrete.inner
+	lazyConcrete.mu.Unlock()
+	assert.Equal(t, healthy, finalInner, "final cached hydrator must be the healthy replacement")
+}
