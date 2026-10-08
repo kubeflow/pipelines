@@ -53,7 +53,7 @@ func adoptLegacyRecurringRunProgress(job *model.Job, swf *scheduledworkflow.Sche
 	}
 	byID := make(map[string]*model.Run)
 	byIndex := make(map[int64]*model.Run)
-	recoveredByIndex := make(map[int64]bool)
+	recoverDueByIndex := make(map[int64]bool)
 	for _, run := range runs {
 		if run == nil || run.RecurringRunId != job.UUID || run.ImportedFrom != nil {
 			continue
@@ -78,7 +78,12 @@ func adoptLegacyRecurringRunProgress(job *model.Job, swf *scheduledworkflow.Sche
 			return fail("multiple runs claim index %d", runIndex)
 		}
 		byIndex[runIndex] = run
-		recoveredByIndex[runIndex] = recovered
+		// Embedded legacy workflows use the request key as their actual name
+		// and stamp the true due time. API-created workflows use a generated
+		// name and stamp API creation time, which needs due-time recovery.
+		_, requestErr := legacyRecurringRunIndex(swf, run.DisplayName)
+		embedded := recovered && requestErr == nil
+		recoverDueByIndex[runIndex] = !embedded && (recovered || run.ScheduledAtInSec == run.CreatedAtInSec)
 		if runIndex > index+1 {
 			return fail("run %s skips scheduling indices", run.UUID)
 		}
@@ -145,7 +150,7 @@ func adoptLegacyRecurringRunProgress(job *model.Job, swf *scheduledworkflow.Sche
 	}
 	if run := byIndex[index+1]; run != nil {
 		scheduledAt := run.ScheduledAtInSec
-		if recoveredByIndex[index+1] || scheduledAt == run.CreatedAtInSec {
+		if recoverDueByIndex[index+1] {
 			// Older API requests stamped epoch before Kubernetes creation. Recovery
 			// retains that epoch, but uses Kubernetes time as CreatedAt. Reconstruct
 			// the due tick at the epoch so catch-up does not skip the backlog.
@@ -227,15 +232,17 @@ func legacyRecurringRunIndex(swf *scheduledworkflow.ScheduledWorkflow, requestKe
 // The boolean reports whether the index came from a validated reporter-recovered
 // execution, whose CreatedAt uses Kubernetes time rather than the API epoch.
 func legacyRecurringRunPersistedIndex(swf *scheduledworkflow.ScheduledWorkflow, run *model.Run) (int64, bool, error) {
-	if index, err := legacyRecurringRunIndex(swf, run.DisplayName); err == nil {
-		return index, false, nil
-	}
-	// Persistence-agent recovery records the compiled workflow name as the
-	// display name. Its retained execution still carries the controller index.
+	requestIndex, requestErr := legacyRecurringRunIndex(swf, run.DisplayName)
 	manifest := run.WorkflowRuntimeManifest
 	if manifest == "" {
 		manifest = run.WorkflowSpecManifest
 	}
+	if requestErr == nil && (run.DisplayName != run.K8SName || manifest == "") {
+		return requestIndex, false, nil
+	}
+	// Reporter recovery can retain a Workflow name that is itself a valid
+	// controller request key. Validate its persisted execution before deciding
+	// that CreatedAt is API time: recovery uses Kubernetes creation time instead.
 	execution, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(manifest))
 	if err != nil {
 		return 0, false, err
@@ -254,6 +261,9 @@ func legacyRecurringRunPersistedIndex(swf *scheduledworkflow.ScheduledWorkflow, 
 	index, err := util.RetrieveInt64FromLabel(meta.Labels[util.LabelKeyWorkflowIndex])
 	if err != nil || index <= 0 || index == math.MaxInt64 {
 		return 0, false, fmt.Errorf("persisted execution index is invalid")
+	}
+	if requestErr == nil && (index != requestIndex || meta.CreationTimestamp.Unix() != run.CreatedAtInSec) {
+		return 0, false, fmt.Errorf("persisted recovery index or creation time differs")
 	}
 	return index, true, nil
 }

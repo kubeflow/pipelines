@@ -295,6 +295,59 @@ func TestAdoptLegacyRecurringRunProgressRecoveredBaselinePrecreationEpoch(t *tes
 	require.ErrorContains(t, err, "persisted execution identity differs")
 }
 
+func TestAdoptLegacyRecurringRunProgressRecoveredRequestName(t *testing.T) {
+	job, swf, run, wf := legacyAdoptionFixture()
+	run.K8SName = run.DisplayName
+	wf.Name = run.K8SName
+	run.ScheduledAtInSec, run.CreatedAtInSec = 90, 99
+	wf.SetCannonicalLabels(swf.Name, 90, 3)
+	wf.CreationTimestamp = metav1.NewTime(time.Unix(99, 0))
+	run.WorkflowRuntimeManifest = model.LargeText(wf.ToStringForStore())
+	state, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
+	require.NoError(t, err)
+	require.EqualValues(t, 3, state.LastRunIndex)
+	require.EqualValues(t, 100, state.LastScheduledAtInSec)
+	require.EqualValues(t, 99, state.LastCreatedAtInSec)
+	require.Equal(t, run.UUID, state.LastRunUUID)
+	for _, mutation := range []func(*util.Workflow){
+		func(w *util.Workflow) { w.Name = "other" },
+		func(w *util.Workflow) { w.Namespace = "other" },
+		func(w *util.Workflow) { w.SetCannonicalLabels(swf.Name, 91, 3) },
+		func(w *util.Workflow) { w.OwnerReferences[0].UID = "other" },
+		func(w *util.Workflow) { w.SetCannonicalLabels(swf.Name, 90, 4) },
+		func(w *util.Workflow) { w.CreationTimestamp = metav1.NewTime(time.Unix(120, 0)) },
+		func(w *util.Workflow) { w.SetLabels(util.LabelKeyWorkflowRunId, "other") },
+	} {
+		changed := util.NewWorkflow(wf.DeepCopy())
+		mutation(changed)
+		run.WorkflowRuntimeManifest = model.LargeText(changed.ToStringForStore())
+		_, err = adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, nil, 210)
+		require.Error(t, err)
+	}
+}
+
+func TestAdoptLegacyRecurringRunProgressEmbeddedPendingPreservesDue(t *testing.T) {
+	for _, noCatchup := range []bool{false, true} {
+		for _, created := range []int64{135, 136} {
+			job, swf, run, wf := legacyAdoptionFixture()
+			job.NoCatchup = noCatchup
+			job.IntervalSecond = util.Int64Pointer(30)
+			run.DisplayName = legacyRecurringRunRequestKey(swf, 4)
+			run.K8SName = run.DisplayName
+			wf.Name = run.K8SName
+			run.ScheduledAtInSec, run.CreatedAtInSec = 135, created
+			wf.SetCannonicalLabels(swf.Name, 135, 4)
+			wf.CreationTimestamp = metav1.NewTime(time.Unix(created, 0))
+			run.WorkflowRuntimeManifest = model.LargeText(wf.ToStringForStore())
+			state, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
+			require.NoError(t, err)
+			require.EqualValues(t, 4, state.LastRunIndex)
+			require.EqualValues(t, 135, state.LastScheduledAtInSec)
+			require.EqualValues(t, created, state.LastCreatedAtInSec)
+		}
+	}
+}
+
 func TestAdoptLegacyRecurringRunProgressRecoveredUnacknowledgedPrecreationEpoch(t *testing.T) {
 	for _, noCatchup := range []bool{false, true} {
 		t.Run(map[bool]string{false: "catchup", true: "no catchup"}[noCatchup], func(t *testing.T) {

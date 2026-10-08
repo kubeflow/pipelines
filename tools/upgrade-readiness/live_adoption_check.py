@@ -255,10 +255,10 @@ def validate_adoption(before, after, fixture):
                     'fixture_schedule_timing_changed')
             next_due = scheduled_at + job['IntervalSecond']
             scheduled_at = latest['epoch']
-            # This fixture's source records use the controller request name.
-            # Only the legacy timestamp-equal representation needs due-time
-            # reconstruction; otherwise the stored scheduled epoch is trusted.
-            if run['ScheduledAtInSec'] == run['CreatedAtInSec']:
+            # Embedded source workflows retain their actual due epoch even
+            # when Kubernetes creation happens in the same second.
+            embedded = run.get('DisplayName') == run['Name']
+            if not embedded and run['ScheduledAtInSec'] == run['CreatedAtInSec']:
                 scheduled_at = latest['epoch'] if latest[
                     'epoch'] >= next_due + job['IntervalSecond'] else next_due
             require(scheduled_at <= latest['epoch'],

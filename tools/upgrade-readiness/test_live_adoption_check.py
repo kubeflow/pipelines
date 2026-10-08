@@ -289,8 +289,11 @@ class AdoptionTests(unittest.TestCase):
 
     def test_adoption_recovers_one_persisted_submission_without_resetting_history(
             self):
-        for epoch, created, expected in ((130, 131, 130), (200, 201, 200),
-                                         (135, 136, 135), (135, 135, 130)):
+        for epoch, created, expected, embedded in ((130, 131, 130, False),
+                                                   (200, 201, 200, False),
+                                                   (135, 136, 135, False),
+                                                   (135, 135, 130, False),
+                                                   (135, 135, 135, True)):
             with self.subTest(epoch=epoch, created=created):
                 fixture, before, after = inventory()
                 before['runs'][0]['State'] = 'SUCCEEDED'
@@ -300,6 +303,9 @@ class AdoptionTests(unittest.TestCase):
                     ScheduledAtInSec=epoch,
                     CreatedAtInSec=created,
                     State='RUNNING')
+                if embedded:
+                    before['runs'][-1]['DisplayName'] = before['runs'][-1][
+                        'Name']
                 before['workflows'][-1].update(epoch=epoch, suspended=True)
                 after.update(copy.deepcopy(before))
                 after['states'][0].update(
