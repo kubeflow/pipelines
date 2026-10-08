@@ -182,6 +182,94 @@ it('sizes group headers like regular nodes under the application root font', () 
   }
 });
 
+it('switches to click-through mode without recursively resolving children and preserves the mode on refresh', () => {
+  const getSubDagElements = vi.fn(resolve);
+  const options = { ...props(), getSubDagElements };
+  const { rerender } = render(
+    <CommonTestWrapper>
+      <DagCanvas {...options} />
+    </CommonTestWrapper>,
+  );
+  const toggle = screen.getByRole('switch', { name: 'Render subdags' });
+  expect(toggle).toBeChecked();
+  fireEvent.click(toggle);
+  expect(toggle).not.toBeChecked();
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+  expect(document.querySelectorAll('.react-flow__node-SUB_DAG')).toHaveLength(1);
+  expect(document.querySelector('[data-id="task.workflow"]')).toHaveStyle({
+    width: '292px',
+    height: '100px',
+  });
+  expect(screen.getByRole('button', { name: 'Expand all' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Collapse all' })).toBeDisabled();
+  getSubDagElements.mockClear();
+  rerender(
+    <CommonTestWrapper>
+      <DagCanvas {...options} elements={resolve(['root'])} />
+    </CommonTestWrapper>,
+  );
+  expect(toggle).not.toBeChecked();
+  expect(getSubDagElements).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByTestId('expand-button'));
+  expect(options.onLayersUpdate).toHaveBeenCalledWith(['root', 'workflow']);
+  const layers = ['root', 'workflow'];
+  rerender(
+    <CommonTestWrapper>
+      <DagCanvas {...options} layers={layers} elements={resolve(layers)} />
+    </CommonTestWrapper>,
+  );
+  expect(toggle).not.toBeChecked();
+  expect(screen.getByText('Prepare data')).toBeInTheDocument();
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+  fireEvent.click(toggle);
+  expect(screen.getByText('Train model')).toBeInTheDocument();
+  expect(options.onLayersUpdate).toHaveBeenCalledTimes(1);
+  expect(options.onElementClick).not.toHaveBeenCalled();
+});
+
+it('retains inline collapse choices across rendering-mode changes', () => {
+  render(
+    <CommonTestWrapper>
+      <DagCanvas {...props()} />
+    </CommonTestWrapper>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse Training and evaluation' }));
+  const toggle = screen.getByRole('switch', { name: 'Render subdags' });
+  fireEvent.click(toggle);
+  fireEvent.click(toggle);
+  expect(
+    screen.getByRole('button', { name: 'Expand Training and evaluation' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+});
+
+it('does not select a flat namesake of a hidden nested selection', () => {
+  const options = props();
+  options.elements = [
+    ...options.elements,
+    {
+      id: 'task.train',
+      type: 'EXECUTION',
+      data: { label: 'Root train' },
+      position: { x: 0, y: 0 },
+    },
+  ];
+  render(
+    <CommonTestWrapper>
+      <DagCanvas
+        {...options}
+        selectedNodeId='task.train'
+        selectedNodeLayers={['root', 'workflow', 'fit']}
+      />
+    </CommonTestWrapper>,
+  );
+  expect(document.querySelector(`[data-id='["root","workflow","fit","task.train"]']`)).toHaveClass(
+    'selected',
+  );
+  fireEvent.click(screen.getByRole('switch', { name: 'Render subdags' }));
+  expect(document.querySelector('[data-id="task.train"]')).not.toHaveClass('selected');
+});
+
 it('supports keyboard collapse and expansion', async () => {
   render(
     <CommonTestWrapper>

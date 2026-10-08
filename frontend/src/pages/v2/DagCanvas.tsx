@@ -38,6 +38,8 @@ import {
 } from '@xyflow/react';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
@@ -49,6 +51,7 @@ import {
 } from 'src/lib/v2/GroupedFlow';
 import { color } from 'src/Css';
 import {
+  buildGraphLayout,
   getTaskKeyFromNodeKey,
   isNode,
   NodeTypeNames,
@@ -92,6 +95,7 @@ export default function DagCanvas({
   );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
+  const [renderSubdags, setRenderSubdags] = useState(true);
   const [expansion, setExpansion] = useState({
     collapsed: new Set<string>(),
     expanded: new Set<string>(),
@@ -100,14 +104,14 @@ export default function DagCanvas({
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const grouped = useMemo(
     () =>
-      getSubDagElements
+      renderSubdags && getSubDagElements
         ? buildGroupedFlow(elements, layers, getSubDagElements, expansion.collapsed, {
             expanded: expansion.expanded,
             collapseAll: expansion.allCollapsed,
             nodeScale,
           })
         : undefined,
-    [elements, layers, getSubDagElements, expansion, nodeScale],
+    [elements, layers, getSubDagElements, expansion, nodeScale, renderSubdags],
   );
   const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
     setExpansion((previous) => {
@@ -140,10 +144,28 @@ export default function DagCanvas({
       void reactFlowInstance.current?.fitView();
     });
   }, []);
+  const changeRenderingMode = useCallback((enabled: boolean) => {
+    setRenderSubdags(enabled);
+    setPositions({});
+    requestAnimationFrame(() => {
+      void reactFlowInstance.current?.fitView();
+    });
+  }, []);
+  const selectedScopeVisible =
+    selectedNodeLayers.length === layers.length &&
+    selectedNodeLayers.every((layer, index) => layer === layers[index]);
   const selectedId =
-    grouped && selectedNodeId ? scopedNodeId(selectedNodeLayers, selectedNodeId) : selectedNodeId;
+    grouped && selectedNodeId
+      ? scopedNodeId(selectedNodeLayers, selectedNodeId)
+      : selectedScopeVisible
+        ? selectedNodeId
+        : undefined;
   const focusedId =
-    grouped && focusNodeId ? scopedNodeId(selectedNodeLayers, focusNodeId) : focusNodeId;
+    grouped && focusNodeId
+      ? scopedNodeId(selectedNodeLayers, focusNodeId)
+      : selectedScopeVisible
+        ? focusNodeId
+        : undefined;
   const subDagExpand = useCallback(
     (nodeKey: string) => {
       const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
@@ -152,9 +174,38 @@ export default function DagCanvas({
     [layers, onLayersUpdate],
   );
 
+  const singleLayerElements = useMemo(() => {
+    if (grouped) return elements;
+    // The legacy sub-DAG card is taller than an execution node and has a 2px border.
+    // Lay out the visible layer using rendered sizes, without resolving any children.
+    return buildGraphLayout(
+      elements.map((element) => {
+        if (!isNode(element)) return { ...element };
+        const subDag = element.type === NodeTypeNames.SUB_DAG;
+        const width =
+          (subDag
+            ? 288
+            : element.type === NodeTypeNames.ARTIFACT
+              ? 240
+              : element.data.state
+                ? 256
+                : 224) *
+            nodeScale +
+          (subDag ? 4 : 0);
+        const height = (subDag ? 96 : 48) * nodeScale + (subDag ? 4 : 0);
+        return {
+          ...element,
+          width,
+          height,
+          style: { ...element.style, width, height },
+          position: { ...element.position },
+        };
+      }),
+    );
+  }, [elements, grouped, nodeScale]);
   const nodes = useMemo(
     () =>
-      (grouped?.nodes ?? elements.filter(isNode)).map((node) => {
+      (grouped?.nodes ?? singleLayerElements.filter(isNode)).map((node) => {
         const selectedNode = {
           ...node,
           position: positions[positionKey(node)] ?? node.position,
@@ -171,11 +222,19 @@ export default function DagCanvas({
           ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
           : selectedNode;
       }),
-    [elements, grouped, positions, selectedId, subDagExpand, toggleGroup, nodesDraggable],
+    [
+      singleLayerElements,
+      grouped,
+      positions,
+      selectedId,
+      subDagExpand,
+      toggleGroup,
+      nodesDraggable,
+    ],
   );
   const edges = useMemo(
-    () => grouped?.edges ?? elements.filter((el): el is Edge => !isNode(el)),
-    [elements, grouped],
+    () => grouped?.edges ?? singleLayerElements.filter((el): el is Edge => !isNode(el)),
+    [singleLayerElements, grouped],
   );
 
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
@@ -249,7 +308,30 @@ export default function DagCanvas({
 
   return (
     <>
-      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate} />
+      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}>
+        {getSubDagElements && (
+          <FormControlLabel
+            label='Render subdags'
+            labelPlacement='start'
+            title='Show sub-DAGs inline instead of opening them separately'
+            sx={{
+              margin: 0,
+              marginLeft: 2,
+              flexShrink: 0,
+              '& .MuiFormControlLabel-label': { fontSize: 'inherit' },
+            }}
+            control={
+              <Switch
+                size='small'
+                color='primary'
+                checked={renderSubdags}
+                onChange={(_event, checked) => changeRenderingMode(checked)}
+                inputProps={{ role: 'switch' }}
+              />
+            }
+          />
+        )}
+      </SubDagLayer>
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
           <ReactFlow<PipelineNode, Edge>

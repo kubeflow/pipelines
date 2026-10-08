@@ -23,6 +23,7 @@ import { grey } from '@mui/material/colors';
 export interface SubDagLayerProps {
   layers: string[];
   onLayersUpdate(layers: string[]): void;
+  children?: React.ReactNode;
   // initialTarget?: Artifact;
   // setLineageViewTarget(artifact: Artifact): void;
 }
@@ -106,7 +107,11 @@ const BreadcrumbSeparator: React.FC = () => (
   </div>
 );
 
-const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLayers }) => {
+const SubDagLayer: React.FC<SubDagLayerProps> = ({
+  layers,
+  onLayersUpdate: setLayers,
+  children,
+}) => {
   const historyList: History[] = [];
   let path = '';
   for (const layer in layers) {
@@ -147,6 +152,7 @@ const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLa
   return (
     <div className={classes(actionBarCss.container, padding(25, 'lr'), commonCss.flex)}>
       <div className={classes(actionBarCss.breadcrumbContainer)}>{breadcrumbs}</div>
+      {children}
     </div>
   );
 };
