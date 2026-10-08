@@ -547,9 +547,9 @@ func TestWorkflow_Save_RetryAfterPersistedCompletionStartsFreshGracePeriod(t *te
 
 	stalePod := newWorkflowPod("failing-pod", "MY_NAME", "bad-image:latest", "ImagePullBackOff")
 	stalePod.Namespace = "MY_NAMESPACE"
-	podLister, _ := newTestPodLister(stalePod)
+	podIndexer := newTestPodIndexer(stalePod)
 	fakeExecInterface := &fakeExecutionInterface{}
-	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+	checker, clock := newTestChecker(podIndexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 	saver.SetImagePullFailureChecker(checker)
