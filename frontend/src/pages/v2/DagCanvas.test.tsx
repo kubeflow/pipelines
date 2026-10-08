@@ -120,7 +120,7 @@ it('explicitly expands a deferred group and preserves that choice through refres
   expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
 });
 
-it('places bulk controls before Layers and expands/collapses all descendants', () => {
+it('places expand then collapse above native zoom controls and toggles all descendants', () => {
   const options = props();
   const { rerender } = render(
     <CommonTestWrapper>
@@ -131,10 +131,16 @@ it('places bulk controls before Layers and expands/collapses all descendants', (
   const collapseAll = screen.getByRole('button', { name: 'Collapse all' });
   expect(within(expandAll).getByTestId('ExpandMoreIcon')).toBeInTheDocument();
   expect(within(collapseAll).getByTestId('ExpandLessIcon')).toBeInTheDocument();
-  expect(
-    expandAll.compareDocumentPosition(screen.getByText('Layers')) &
-      Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
+  const toolbar = screen.getByRole('group', { name: 'Graph controls' });
+  const buttons = within(toolbar).getAllByRole('button');
+  expect(buttons[0]).toBe(expandAll);
+  expect(buttons[1]).toBe(collapseAll);
+  expect(buttons[2]).toHaveClass('react-flow__controls-zoomin');
+  expect(buttons[3]).toHaveClass('react-flow__controls-zoomout');
+  expect(buttons[4]).toHaveClass('react-flow__controls-fitview');
+  expect(buttons[5]).toHaveClass('react-flow__controls-interactive');
+  expect(toolbar).toHaveClass('bottom', 'left');
+  expect(toolbar).not.toContainElement(screen.getByText('Layers'));
   fireEvent.click(collapseAll);
   expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));

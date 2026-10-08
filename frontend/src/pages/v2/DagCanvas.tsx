@@ -27,6 +27,8 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  ControlButton,
+  Panel,
   Edge,
   MiniMap,
   Node,
@@ -34,6 +36,8 @@ import {
   OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
@@ -245,13 +249,7 @@ export default function DagCanvas({
 
   return (
     <>
-      <SubDagLayer
-        layers={layers}
-        onLayersUpdate={onLayersUpdate}
-        onExpandAll={getSubDagElements ? expandAll : undefined}
-        onCollapseAll={getSubDagElements ? collapseAll : undefined}
-        groupControlsDisabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
-      />
+      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate} />
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
           <ReactFlow<PipelineNode, Edge>
@@ -277,7 +275,35 @@ export default function DagCanvas({
             deleteKeyCode={null}
           >
             <MiniMap />
-            <Controls />
+            <Panel
+              position='bottom-left'
+              className='react-flow__controls'
+              role='group'
+              aria-label='Graph controls'
+            >
+              {getSubDagElements && (
+                <>
+                  <ControlButton
+                    aria-label='Expand all'
+                    title='Expand all sub-DAGs (large groups may require individual expansion)'
+                    disabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+                    onClick={expandAll}
+                  >
+                    <ExpandMoreIcon fontSize='small' />
+                  </ControlButton>
+                  <ControlButton
+                    aria-label='Collapse all'
+                    title='Collapse all sub-DAGs'
+                    disabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+                    onClick={collapseAll}
+                  >
+                    <ExpandLessIcon fontSize='small' />
+                  </ControlButton>
+                </>
+              )}
+              {/* Keep native controls in normal flow so visual and keyboard order agree. */}
+              <Controls style={{ position: 'static', margin: 0, boxShadow: 'none' }} />
+            </Panel>
             <Background />
           </ReactFlow>
         </ReactFlowProvider>
