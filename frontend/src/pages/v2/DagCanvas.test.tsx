@@ -1,7 +1,7 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver } from 'src/TestUtils';
@@ -34,12 +34,17 @@ it('shows nested tasks immediately and collapses in place without navigating or 
   expect(screen.getByText('Train model')).toBeInTheDocument();
   const collapse = screen.getByRole('button', { name: 'Collapse Training pipeline' });
   expect(collapse).toHaveAttribute('aria-expanded', 'true');
+  expect(within(collapse).getByTestId('CloseFullscreenIcon')).toBeInTheDocument();
   fireEvent.click(collapse);
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
   expect(screen.getByText('Deploy model')).toBeInTheDocument();
   expect(options.onLayersUpdate).not.toHaveBeenCalled();
   expect(options.onElementClick).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
+  const expand = screen.getByRole('button', { name: 'Expand Training pipeline' });
+  expect(expand).toHaveAttribute('aria-expanded', 'false');
+  expect(within(expand).getByTestId('OpenInFullIcon')).toBeInTheDocument();
+  fireEvent.click(expand);
+  expect(within(collapse).getByTestId('CloseFullscreenIcon')).toBeInTheDocument();
   expect(screen.getByText('Train model')).toBeInTheDocument();
 });
 
