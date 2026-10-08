@@ -24,15 +24,12 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 EXPORTS = (
     'requirements.txt',
     'sdk/python/requirements.txt',
-    'kubernetes_platform/python/requirements.txt',
-    'api/v2alpha1/python/requirements.txt',
 )
 PACKAGE_PATHS = {
     'kfp-pipeline-spec': 'api/v2alpha1/python',
@@ -40,15 +37,6 @@ PACKAGE_PATHS = {
     'kfp': 'sdk/python',
     'kfp-kubernetes': 'kubernetes_platform/python',
 }
-
-
-def package_version(path: Path) -> str:
-    """Read a literal package version without importing SDK dependencies."""
-    match = re.search(r'''^(?:__version__|version)\s*=\s*['"]([^'"]+)['"]''',
-                      path.read_text(), re.MULTILINE)
-    if match is None:
-        raise AssertionError(f'No package version found in {path}')
-    return match.group(1)
 
 
 class PythonPackagingTest(unittest.TestCase):
@@ -102,133 +90,164 @@ class PythonPackagingTest(unittest.TestCase):
             self.assertIn(f"'{path}'", pull_request)
 
     def test_publishing_setup_is_independent_of_source_tag(self) -> None:
-        """Old tags need neither a local action nor a uv workspace."""
+        """Keep legacy tag setup independent and publishing dry-run guarded."""
         workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
         self.assertNotIn('uses: ./', workflow)
         self.assertNotIn('uv sync', workflow)
-        self.assertNotIn('uv run ', workflow)
-        self.assertEqual(workflow.count('uses: actions/setup-python@'), 4)
-        self.assertEqual(workflow.count('uses: astral-sh/setup-uv@'), 4)
+        self.assertIn('uses: actions/setup-python@', workflow)
+        self.assertIn('uses: astral-sh/setup-uv@', workflow)
         self.assertEqual(
-            workflow.count('ref: ${{ github.event.inputs.tag }}'), 4)
-        self.assertEqual(
-            workflow.count("if: ${{ github.event.inputs.dry_run == 'false' }}"),
-            4)
-        self.assertEqual(
-            workflow.count("if: ${{ github.event.inputs.dry_run == 'true' }}"),
-            4)
+            workflow.count('ref: ${{ github.event.inputs.tag }}'), 2)
+        self.assertIn("if: ${{ github.event.inputs.dry_run == 'false' }}",
+                      workflow)
+        self.assertIn("if: ${{ github.event.inputs.dry_run == 'true' }}",
+                      workflow)
+        self.assertIn('TWINE_VERSION: "7.0.0"', workflow)
+        self.assertIn('TWINE_PYTHON_VERSION: "3.12"', workflow)
+
+    def test_tag_selection_only_publishes_owned_distributions(self) -> None:
+        """Select only kfp for unified tags and preserve all legacy choices."""
+        workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
+        selector = re.search(r"python3 - <<'PY'\n(.*?)^          PY", workflow,
+                             re.MULTILINE | re.DOTALL).group(1)
+        import json
+        for unified in (False, True):
+            for selected in ('all', *PACKAGE_PATHS):
+                with self.subTest(unified=unified, selected=selected):
+                    with tempfile.TemporaryDirectory() as directory:
+                        root = Path(directory)
+                        if unified:
+                            initializer = root / 'sdk/python/kfp/server_api/__init__.py'
+                            initializer.parent.mkdir(parents=True)
+                            initializer.touch()
+                        output = root / 'output'
+                        result = subprocess.run(
+                            [sys.executable, '-c',
+                             textwrap.dedent(selector)],
+                            cwd=root,
+                            capture_output=True,
+                            text=True,
+                            env={
+                                **os.environ, 'GITHUB_OUTPUT': str(output),
+                                'SELECTED_PACKAGE': selected
+                            },
+                            check=False)
+                        incompatible = unified and selected not in ('all',
+                                                                    'kfp')
+                        self.assertEqual(result.returncode != 0, incompatible,
+                                         result.stderr)
+                        if incompatible:
+                            self.assertIn('not a distribution', result.stderr)
+                        else:
+                            actual = json.loads(output.read_text().split(
+                                '=', 1)[1])
+                            expected = (['kfp']
+                                        if unified else list(PACKAGE_PATHS))
+                            if selected != 'all':
+                                expected = [selected]
+                            self.assertCountEqual(
+                                [package['name'] for package in actual],
+                                expected)
 
     def test_publishing_builds_each_selected_tag_once(self) -> None:
-        """Execute workflow build steps in legacy and migrated tag fixtures."""
+        """Execute tag-owned builds once for old and unified layouts."""
         workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
-        build_steps = dict(
-            re.findall(
-                r'      - name: Build (kfp[\w-]*)\n'
-                r'        run: \|\n((?:          [^\n]*\n)+)', workflow))
-        self.assertEqual(set(build_steps), set(PACKAGE_PATHS))
+        build = textwrap.dedent(
+            workflow.split('      - name: Build selected distribution\n',
+                           1)[1].split('        run: |\n',
+                                       1)[1].split('      - name:', 1)[0])
         make_directories = {
-            'kfp-pipeline-spec': 'api',
             'kfp': 'sdk',
-            'kfp-kubernetes': 'kubernetes_platform',
+            'kfp-pipeline-spec': 'api',
+            'kfp-kubernetes': 'kubernetes_platform'
         }
-        for legacy in (True, False):
-            for package, relative_path in PACKAGE_PATHS.items():
-                with self.subTest(
-                        legacy=legacy, package=package
-                ), tempfile.TemporaryDirectory() as directory:
-                    root = Path(directory)
-                    source = root / relative_path
-                    source.mkdir(parents=True)
-                    metadata = 'setup.py' if legacy else 'pyproject.toml'
-                    (source / metadata).touch()
-                    if not legacy:
-                        (root / 'uv.lock').touch()
-                    if package in make_directories:
-                        make_root = root / make_directories[package]
-                        distribution_path = source.relative_to(make_root)
-                        # Each tag owns its Makefile and build backend.
-                        (make_root / 'Makefile').write_text(
-                            '.PHONY: python\npython:\n'
-                            f'\tmkdir -p {distribution_path}/dist\n'
-                            f'\ttest -f {distribution_path}/{metadata}\n'
-                            f'\ttouch {distribution_path}/dist/package.tar.gz\n'
-                            f'\ttouch {distribution_path}/dist/package.whl\n'
-                            '\tprintf "build\\n" >> ../build-count\n')
-                    fake_bin = root / 'bin'
-                    fake_bin.mkdir()
-                    uv = fake_bin / 'uv'
-                    uv.write_text(f'#!{sys.executable}\n' + textwrap.dedent('''\
-                        from pathlib import Path
-                        import sys
-                        source = 'backend/api/v2beta1/python_http_client'
-                        assert sys.argv[1:] == ['build', source, '--out-dir', source + '/dist']
-                        assert any((Path(source) / name).exists()
-                                   for name in ('setup.py', 'pyproject.toml'))
-                        output = Path(source) / 'dist'
-                        output.mkdir()
-                        (output / 'package.tar.gz').touch()
-                        (output / 'package.whl').touch()
-                        with Path('build-count').open('a') as count:
-                            count.write('build\\n')
-                    '''))
-                    uv.chmod(0o755)
-                    uvx = fake_bin / 'uvx'
-                    uvx.write_text(f'#!{sys.executable}\n' +
-                                   textwrap.dedent('''\
-                        from pathlib import Path
-                        import sys
-                        assert sys.argv[1:7] == ['--python', '3.12', '--from', 'twine==7.0.0', 'twine', 'check']
-                        assert len(sys.argv[7:]) == 2
-                        assert all(Path(path).is_file() for path in sys.argv[7:])
-                    '''))
-                    uvx.chmod(0o755)
-                    result = subprocess.run(
-                        [
-                            'bash', '-e', '-c',
-                            textwrap.dedent(build_steps[package])
-                        ],
-                        cwd=root,
-                        env={
-                            **os.environ,
-                            'TWINE_VERSION':
-                                '7.0.0',
-                            'TWINE_PYTHON_VERSION':
-                                '3.12',
-                            'PATH':
-                                f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
-                        },
-                        capture_output=True,
-                        text=True,
-                        check=False,
-                    )
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(
-                        sorted(
-                            path.name for path in (source / 'dist').iterdir()),
-                        ['package.tar.gz', 'package.whl'])
-                    self.assertEqual((root / 'build-count').read_text(),
-                                     'build\n')
+        for legacy in (False, True):
+            packages = PACKAGE_PATHS if legacy else {'kfp': 'sdk/python'}
+            for package, relative_path in packages.items():
+                with self.subTest(legacy=legacy, package=package):
+                    with tempfile.TemporaryDirectory() as directory:
+                        root = Path(directory)
+                        source = root / relative_path
+                        source.mkdir(parents=True)
+                        metadata = 'setup.py' if legacy else 'pyproject.toml'
+                        (source / metadata).touch()
+                        if package in make_directories:
+                            make_root = root / make_directories[package]
+                            local = source.relative_to(make_root)
+                            (make_root / 'Makefile').write_text(
+                                '.PHONY: python\npython:\n'
+                                f'\ttest -f {local}/{metadata}\n'
+                                f'\tmkdir -p {local}/dist\n'
+                                f'\ttouch {local}/dist/package.whl {local}/dist/package.tar.gz\n'
+                                '\tprintf "build\\n" >> ../build-count\n')
+                        fake_bin = root / 'bin'
+                        fake_bin.mkdir()
+                        uv = fake_bin / 'uv'
+                        uv.write_text(f'#!{sys.executable}\n' +
+                                      textwrap.dedent("""
+                            from pathlib import Path
+                            import sys
+                            source = Path(sys.argv[2])
+                            assert sys.argv[1:] == ['build', str(source), '--out-dir', str(source / 'dist')]
+                            assert (source / 'setup.py').is_file()
+                            output = source / 'dist'
+                            output.mkdir()
+                            (output / 'package.whl').touch()
+                            (output / 'package.tar.gz').touch()
+                            Path('build-count').write_text('build\\n')
+                        """))
+                        uv.chmod(0o755)
+                        uvx = fake_bin / 'uvx'
+                        uvx.write_text(f'#!{sys.executable}\n' +
+                                       textwrap.dedent("""
+                            from pathlib import Path
+                            import sys
+                            assert sys.argv[1:7] == ['--python', '3.12', '--from', 'twine==7.0.0', 'twine', 'check']
+                            assert len(sys.argv[7:]) == 2
+                            assert all(Path(path).is_file() for path in sys.argv[7:])
+                        """))
+                        uvx.chmod(0o755)
+                        result = subprocess.run(
+                            ['bash', '-e', '-c', build],
+                            cwd=root,
+                            env={
+                                **os.environ, 'PATH':
+                                    f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
+                                'PACKAGE_NAME':
+                                    package,
+                                'PACKAGE_PATH':
+                                    relative_path,
+                                'TWINE_VERSION':
+                                    '7.0.0',
+                                'TWINE_PYTHON_VERSION':
+                                    '3.12'
+                            },
+                            capture_output=True,
+                            text=True,
+                            check=False)
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertEqual((root / 'build-count').read_text(),
+                                         'build\n')
 
-    def test_workspace_versions_and_public_dependency_ranges(self) -> None:
-        """Keep the four distributions on one SDK release without exact
-        pins."""
-        version = package_version(ROOT / 'sdk/python/kfp/version.py')
-        for path in (
-                'api/v2alpha1/python/pyproject.toml',
-                'kubernetes_platform/python/kfp/kubernetes/__init__.py',
-                'backend/api/v2beta1/python_http_client/pyproject.toml',
-                'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py',
-        ):
-            with self.subTest(path=path):
-                self.assertEqual(package_version(ROOT / path), version)
-        next_major = int(version.split('.')[0]) + 1
+    def test_workspace_has_one_distribution_and_one_version(self) -> None:
+        """Only kfp owns the bundled namespaces and release version."""
         sdk_metadata = (ROOT / 'sdk/python/pyproject.toml').read_text()
-        for package in ('kfp-pipeline-spec', 'kfp-server-api'):
-            self.assertIn(f'"{package}>={version},<{next_major}"', sdk_metadata)
-        self.assertIn(f'"kfp-kubernetes=={version}"', sdk_metadata)
-        self.assertIn(f'"kfp>={version},<{next_major}"',
-                      (ROOT /
-                       'kubernetes_platform/python/pyproject.toml').read_text())
+        workspace = (ROOT / 'pyproject.toml').read_text()
+        for package in ('kfp-pipeline-spec', 'kfp-server-api',
+                        'kfp-kubernetes'):
+            self.assertNotIn(package, sdk_metadata)
+            self.assertNotIn(package, workspace)
+        self.assertIn('kubernetes = []', sdk_metadata)
+        for path in ('kubernetes', 'server_api'):
+            self.assertIn('from kfp.version import __version__',
+                          (ROOT /
+                           f'sdk/python/kfp/{path}/__init__.py').read_text())
+        for path in ('api/v2alpha1/python/pyproject.toml',
+                     'backend/api/v2beta1/python_http_client/pyproject.toml',
+                     'kubernetes_platform/python/pyproject.toml'):
+            self.assertFalse((ROOT / path).exists(), path)
+        self.assertNotIn('extend_path',
+                         (ROOT / 'sdk/python/kfp/__init__.py').read_text())
 
     def test_export_workflow_rejects_each_stale_tracked_file(self) -> None:
         """Run the workflow check against clean and stale export fixtures."""
@@ -287,130 +306,17 @@ class PythonPackagingTest(unittest.TestCase):
                 self.assertNotIn('--require-hashes', requirements)
                 self.assertIn('--no-hashes', requirements.splitlines()[1])
 
-    def _prepare_kubernetes_publisher(self, root: Path) -> Path:
-        """Copy the real publisher and replace builders/uploaders with
-        fixtures."""
-        package = root / 'kubernetes_platform/python'
-        version_file = package / 'kfp/kubernetes/__init__.py'
-        version_file.parent.mkdir(parents=True)
-        version_file.write_text(
-            "__version__ = '2.17.0'\n"
-            "raise AssertionError('Version extraction must not import the package')\n"
-        )
-        shutil.copy(ROOT / 'kubernetes_platform/python/release.sh', package)
-        fake_bin = root / 'bin'
-        fake_bin.mkdir()
-        scripts = {
-            'python3':
-                '''\
-                import os
-                from pathlib import Path
-                import shutil
-                import sys
-                args = sys.argv[1:]
-                if args[:2] == ['-m', 'build']:
-                    output = Path(args[args.index('--outdir') + 1])
-                    output.mkdir(exist_ok=True)
-                    (output / 'kfp_kubernetes-2.17.0.tar.gz').touch()
-                    (output / 'kfp_kubernetes-2.17.0-py3-none-any.whl').touch()
-                elif args[:2] == ['-m', 'venv']:
-                    bin_dir = Path(args[2]) / 'bin'
-                    bin_dir.mkdir(parents=True)
-                    shutil.copy(Path(os.environ['FAKE_BIN']) / 'pip', bin_dir)
-                else:
-                    raise AssertionError(args)
-            ''',
-            'pip':
-                '''\
-                from pathlib import Path
-                import sys
-                if sys.argv[1] == 'install':
-                    assert Path(sys.argv[2]).is_file()
-                elif sys.argv[1:] == ['list']:
-                    print('kfp-kubernetes 2.17.0')
-                else:
-                    raise AssertionError(sys.argv)
-            ''',
-            'uvx':
-                '''\
-                import os
-                from pathlib import Path
-                import sys
-                assert sys.argv[1:6] == [
-                    '--python', '3.12', '--from', 'twine==7.0.0', 'twine']
-                command = sys.argv[6]
-                assert command in ('check', 'upload')
-                assert sys.argv[7:] == ['kfp-kubernetes-2.17.0.tar.gz']
-                assert Path(sys.argv[7]).is_file()
-                with Path(os.environ['TWINE_CALLS']).open('a') as calls:
-                    calls.write(command + '\\n')
-                if command == 'check':
-                    sys.exit(int(os.environ['CHECK_EXIT_CODE']))
-            ''',
-        }
-        for name, script in scripts.items():
-            executable = fake_bin / name
-            executable.write_text(f'#!{sys.executable}\n' +
-                                  textwrap.dedent(script))
-            executable.chmod(0o755)
-        shutil.copy(fake_bin / 'python3', fake_bin / 'python')
-        grep = fake_bin / 'grep'
-        grep.write_text('#!/bin/sh\n'
-                        'if [ "$1" = "-oP" ] || [ "$1" = "-P" ]; then\n'
-                        '  echo "grep: invalid option -- P" >&2\n'
-                        '  exit 2\n'
-                        'fi\n'
-                        'exec /usr/bin/grep "$@"\n')
-        grep.chmod(0o755)
-        (root / 'tmp').mkdir()
-        return package
-
-    def test_kubernetes_publisher_uses_portable_version_and_isolated_twine(
+    def test_retired_publisher_fails_in_executed_and_sourced_modes(
             self) -> None:
-        """Exercise executed/sourced publishing and block upload after bad
-        metadata."""
-        workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
-        self.assertIn('TWINE_VERSION: "7.0.0"', workflow)
-        self.assertIn('TWINE_PYTHON_VERSION: "3.12"', workflow)
-        for sourced in (False, True):
-            for check_exit_code in (0, 1):
-                with self.subTest(
-                        sourced=sourced, check_exit_code=check_exit_code
-                ), tempfile.TemporaryDirectory() as directory:
-                    root = Path(directory)
-                    package = self._prepare_kubernetes_publisher(root)
-                    calls = root / 'twine-calls'
-                    command = (['bash', '-c', 'source ./release.sh']
-                               if sourced else ['bash', '-e', 'release.sh'])
-                    result = subprocess.run(
-                        command,
-                        cwd=package,
-                        env={
-                            **os.environ,
-                            'PATH':
-                                f'{root / "bin"}{os.pathsep}{os.environ["PATH"]}',
-                            'FAKE_BIN':
-                                str(root / 'bin'),
-                            'TMPDIR':
-                                str(root / 'tmp'),
-                            'KFP_KUBERNETES_VERSION':
-                                '2.17.0',
-                            'TWINE_CALLS':
-                                str(calls),
-                            'CHECK_EXIT_CODE':
-                                str(check_exit_code),
-                        },
-                        capture_output=True,
-                        text=True,
-                        check=False,
-                    )
-                    self.assertEqual(result.returncode, check_exit_code,
-                                     result.stdout + result.stderr)
-                    self.assertTrue(calls.exists(),
-                                    result.stdout + result.stderr)
-                    self.assertEqual(calls.read_text().splitlines(),
-                                     ['check', 'upload']
-                                     if check_exit_code == 0 else ['check'])
+        """Never publish a second distribution from the consolidated tree."""
+        script = ROOT / 'kubernetes_platform/python/release.sh'
+        for command in (['bash', str(script)],
+                        ['bash', '-c', 'source "$1"', 'bash',
+                         str(script)]):
+            result = subprocess.run(
+                command, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('included in kfp', result.stderr)
 
     def test_readthedocs_uses_generated_workspace_packages(self) -> None:
         """Build both documentation sites with uv rather than pip-installing
@@ -451,6 +357,7 @@ class PythonPackagingTest(unittest.TestCase):
                 shutil.copy(ROOT / 'backend/api' / generator.name, generator)
                 version_file = root / 'sdk/python/kfp/version.py'
                 version_file.parent.mkdir(parents=True)
+                (root / 'sdk/python/test').mkdir()
                 version_file.write_text("__version__ = '2.17.0'\n")
                 (root / 'VERSION').write_text('2.99.0\n')
                 (root / 'LICENSE').write_text('test license\n')
@@ -467,12 +374,15 @@ class PythonPackagingTest(unittest.TestCase):
                     args = sys.argv[1:]
                     config = json.loads(Path(args[args.index('-c') + 1]).read_text())
                     output = Path(args[args.index('-o') + 1])
-                    models = output / 'kfp_server_api/models'
+                    models = output.joinpath(*config['packageName'].split('.'), 'models')
                     models.mkdir(parents=True)
                     (models / '__init__.py').touch()
+                    (output / 'test').mkdir()
                     (models.parent / '__init__.py').write_text(
                         '__version__ = ' + repr(config['packageVersion']) + '\\n')
-                    (output / 'README.md').write_text('Python 2.7 and 3.4+\\n')
+                    (output / 'README.md').write_text(
+                        '# kfp.server-api\\n## Requirements.\\n'
+                        'Python 2.7\\npython setup.py install\\n## Getting Started\\n')
                     for name in ('setup.py', 'tox.ini', 'test-requirements.txt'):
                         (output / name).touch()
                 '''))
@@ -500,17 +410,17 @@ class PythonPackagingTest(unittest.TestCase):
                     self.assertFalse(output.exists())
                     continue
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(
-                    package_version(output / 'kfp_server_api/__init__.py'),
-                    '2.17.0')
-                self.assertEqual(
-                    package_version(output / 'pyproject.toml'), '2.17.0')
-                metadata = tomllib.loads(
-                    (output / 'pyproject.toml').read_text())
-                self.assertEqual(metadata['project']['requires-python'],
-                                 '>=3.11')
-                self.assertEqual((output / 'README.md').read_text(),
-                                 'Python 3.11 or later\n')
+                initializer = root / 'sdk/python/kfp/server_api/__init__.py'
+                self.assertIn('from kfp.version import __version__',
+                              initializer.read_text())
+                self.assertFalse((output / 'test').exists())
+                self.assertFalse((output / 'pyproject.toml').exists())
+                self.assertFalse((output / 'setup.py').exists())
+                readme = (output / 'README.md').read_text()
+                self.assertIn('python -m pip install kfp', readme)
+                self.assertIn('Python 3.11 or later', readme)
+                self.assertNotIn('setup.py install', readme)
+                self.assertNotIn('Python 2.7', readme)
 
 
 if __name__ == '__main__':

@@ -39,13 +39,23 @@ def verify(runs=None,
            files=None,
            changed_files=1,
            trigger=None,
-           fresh_after=None):
+           fresh_after=None,
+           workflow_paths=None,
+           registration_started_at=None,
+           now=0,
+           base_sha=None,
+           live_base=True,
+           base_arrived_at='2026-09-07T13:00:00Z',
+           association_failure=False,
+           associated_prs=None):
     if runs is None:
         runs = [good_run()]
     if files is None:
         files = [{'filename': 'frontend/package.json'}]
     if trigger is None:
         trigger = {'branches': ['master'], 'paths': ['frontend/**']}
+    if workflow_paths is None:
+        workflow_paths = ['.github/workflows/frontend.yml']
     fixture = {
         'runs': runs,
         'files': files,
@@ -68,29 +78,47 @@ def verify(runs=None,
             'version':
                 1,
             'workflows': [{
-                'path': '.github/workflows/frontend.yml',
+                'path': path,
                 'header_sha256': 'header',
                 'pull_request': trigger,
-            }]
+            } for path in workflow_paths]
         },
         'workflowFiles': [{
-            'path': '.github/workflows/frontend.yml',
+            'path': path,
             'header_sha256': 'header',
-        }],
+        } for path in workflow_paths],
+        'baseSha': base_sha,
+        'liveBase': live_base,
         'freshAfter': fresh_after,
+        'registrationStartedAt': registration_started_at,
+        'now': now,
     }
+    if associated_prs is None:
+        associated_prs = ([{
+            'number': 7,
+            'merged_at': base_arrived_at,
+        }] if base_sha else [])
     return node(f'''
 const fixture = {json.dumps(fixture)};
 const requests = [];
+const associationCalls = [];
+const associationFailure = {json.dumps(association_failure)};
+const associatedPRs = {json.dumps(associated_prs)};
 const github = {{
-  rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}}}},
+  rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}},
+    repos: {{listPullRequestsAssociatedWithCommit: 'associated-prs'}}}},
   paginate: async (route, options) => {{
     requests.push({{route, options}});
+    if (route === 'associated-prs') {{
+      associationCalls.push(options);
+      if (associationFailure) throw Error('Associated PRs API unavailable');
+      return associatedPRs;
+    }}
     return fixture[route];
   }},
 }};
 gate.verifyExpectedWorkflows({{...fixture, github, owner: 'owner', repo: 'repo'}})
-  .then(result => console.log(JSON.stringify({{...result, requests}})))
+  .then(result => console.log(JSON.stringify({{...result, requests, associationCalls}})))
   .catch(error => console.log(JSON.stringify({{error: error.message}})));
 ''')
 
@@ -166,7 +194,129 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
     def test_missing_workflow_cannot_be_green(self):
         result = verify(runs=[])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'pending')
+        self.assertEqual(result['missing'], ['.github/workflows/frontend.yml'])
         self.assertIn('has not registered', result['reasons'][0])
+
+    def test_missing_workflow_registration_grace_expires(self):
+        for now, expected in [(15 * 60 * 1000 - 1, 'pending'),
+                              (15 * 60 * 1000, 'failure')]:
+            with self.subTest(now=now):
+                result = verify(
+                    runs=[],
+                    registration_started_at='1970-01-01T00:00:00Z',
+                    now=now)
+                self.assertEqual(result['state'], expected)
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['missing'],
+                                 ['.github/workflows/frontend.yml'])
+                if expected == 'failure':
+                    self.assertIn('after 15 minutes', result['reasons'][0])
+        result = verify(
+            registration_started_at='1970-01-01T00:00:00Z', now=15 * 60 * 1000)
+        self.assertEqual(result['state'], 'success')
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['missing'], [])
+
+    def test_invalid_registration_timestamps_fail_closed(self):
+        for timestamp in ['', 'invalid', 0, [], {}]:
+            with self.subTest(timestamp=timestamp):
+                self.assertIn('error',
+                              verify(registration_started_at=timestamp))
+        for now in [None, 'invalid']:
+            with self.subTest(now=now):
+                self.assertIn('error', verify(now=now))
+
+    def test_active_workflows_are_pending(self):
+        for status in [
+                'queued', 'requested', 'waiting', 'in_progress', 'pending'
+        ]:
+            with self.subTest(status=status):
+                result = verify(runs=[good_run(status=status, conclusion=None)])
+                self.assertEqual(result['state'], 'pending')
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['missing'], [])
+
+    def test_malformed_or_unsuccessful_runs_fail_closed(self):
+        for status, conclusion in [
+            ('completed', 'cancelled'), ('completed', 'failure'),
+            ('completed', 'timed_out'), ('completed', 'action_required'),
+            ('completed', 'stale'), ('completed', 'skipped'),
+            ('completed', 'neutral'), ('completed', None),
+            ('completed', 'unknown'), ('completed', ['success']),
+            ('in_progress', 'success'), ('unknown', None), (None, None)
+        ]:
+            with self.subTest(status=status, conclusion=conclusion):
+                result = verify(
+                    runs=[good_run(status=status, conclusion=conclusion)])
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+
+    def test_matching_run_requires_identity_and_attempt_timestamps(self):
+        for field in ['id', 'run_attempt', 'created_at', 'run_started_at']:
+            with self.subTest(field=field, missing=True):
+                run = good_run()
+                del run[field]
+                result = verify(runs=[run])
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+        invalid_values = {
+            'id': [None, 0, -1, 1.5, '100', True, 9007199254740992],
+            'run_attempt': [None, 0, -1, 1.5, '1', True, 9007199254740992],
+            'created_at': [None, 0, True, '', 'invalid', [], {}],
+            'run_started_at': [None, 0, True, '', 'invalid', [], {}],
+        }
+        for field, values in invalid_values.items():
+            for value in values:
+                with self.subTest(field=field, value=value):
+                    result = verify(runs=[good_run(**{field: value})])
+                    self.assertEqual(result['state'], 'failure')
+                    self.assertFalse(result['passed'])
+
+    def test_malformed_competing_run_cannot_fall_back_to_success(self):
+        for field in ['id', 'run_attempt', 'created_at', 'run_started_at']:
+            malformed = good_run(id=99, conclusion='failure')
+            del malformed[field]
+            for runs in [[malformed, good_run()], [good_run(), malformed]]:
+                with self.subTest(field=field, runs=runs):
+                    result = verify(runs=runs)
+                    self.assertEqual(result['state'], 'failure')
+                    self.assertFalse(result['passed'])
+
+    def test_only_unstarted_first_attempt_can_have_null_start_time(self):
+        result = verify(runs=[
+            good_run(status='queued', conclusion=None, run_started_at=None)
+        ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        for overrides in [{'run_attempt': 2}, {'status': 'in_progress'}]:
+            with self.subTest(overrides=overrides):
+                result = verify(runs=[
+                    good_run(
+                        **{
+                            'status': 'queued',
+                            'conclusion': None,
+                            'run_started_at': None,
+                            **overrides,
+                        })
+                ])
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+
+    def test_failure_takes_precedence_over_pending_workflow(self):
+        paths = [
+            '.github/workflows/frontend.yml', '.github/workflows/backend.yml'
+        ]
+        result = verify(
+            workflow_paths=paths,
+            runs=[
+                good_run(status='in_progress', conclusion=None),
+                good_run(path=paths[1], conclusion='failure')
+            ])
+        self.assertEqual(result['state'], 'failure')
+        self.assertFalse(result['passed'])
+        self.assertIn('completed/failure', result['reasons'][0])
+        self.assertIn('in_progress', result['reasons'][1])
 
     def test_only_latest_execution_counts(self):
         for status, conclusion in [('queued', None), ('in_progress', None),
@@ -182,12 +332,14 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                 self.assertFalse(result['passed'])
         result = verify(runs=[good_run(conclusion='failure'), good_run(id=101)])
         self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
 
     def test_current_attempt_cannot_reuse_earlier_success(self):
         result = verify(runs=[
             good_run(run_attempt=2, status='in_progress', conclusion=None)
         ])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'pending')
         result = verify(runs=[
             good_run(id=101),
             good_run(
@@ -198,6 +350,7 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                 run_started_at='2026-09-07T14:00:00Z')
         ])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'failure')
 
     def test_retargeted_base_needs_new_execution_not_old_run_rerun(self):
         cutoff = '2026-09-07T13:00:00Z'
@@ -235,6 +388,293 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         }):
             with self.subTest(overrides=overrides):
                 self.assertFalse(verify(runs=[good_run(**overrides)])['passed'])
+
+    def test_active_workflow_cannot_hide_stale_base_evidence(self):
+        for options in [
+            {
+                'fresh_after': '2026-09-07T13:00:00Z'
+            },
+            {
+                'runs': [
+                    good_run(
+                        status='in_progress',
+                        conclusion=None,
+                        pull_requests=[{
+                            'number': 7,
+                            'base': {
+                                'ref': 'release'
+                            }
+                        }])
+                ]
+            },
+        ]:
+            with self.subTest(options=options):
+                result = verify(
+                    **{
+                        'runs':
+                            [good_run(status='in_progress', conclusion=None)],
+                        **options,
+                    })
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+
+    def test_run_created_before_base_landed_is_stale(self):
+        # The run succeeded against an earlier base; master has since advanced
+        # to base_sha. GitHub may have mutated the run's association to report
+        # the current base, but the run was CREATED before the new base landed,
+        # so its merge-ref CI could not have tested it. The immutable creation
+        # time, not the mutated association, decides freshness.
+        result = verify(
+            base_sha='c' * 40,
+            runs=[
+                good_run(
+                    created_at='2026-09-07T12:00:00Z',
+                    pull_requests=[{
+                        'number': 7,
+                        'base': {
+                            'ref': 'master',
+                            'sha': 'c' * 40
+                        },
+                    }])
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+        self.assertEqual(len(result['associationCalls']), 1)
+
+    def test_delayed_fast_forward_integration_is_stale(self):
+        # A commit prepared well before it is pushed does not become reachable
+        # on master until the push. A run created in the window between the
+        # commit's own timestamp and the push tested the previous base, so the
+        # merge record's arrival time, not the commit's creation time, must
+        # decide freshness: the run is stale.
+        result = verify(
+            base_sha='c' * 40,
+            base_arrived_at='2026-09-07T13:00:00Z',
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_run_created_in_same_second_as_base_fails_closed(self):
+        # created_at and the base arrival time are both second-granularity, so
+        # an equal instant cannot prove the run was created after the base
+        # arrived: it may have been created sub-second before and tested an
+        # older base. The tie must resolve fail-closed to pending, never fresh,
+        # so the merge gate cannot pass stale evidence as fresh.
+        result = verify(
+            base_sha='c' * 40,
+            base_arrived_at='2026-09-07T13:00:00Z',
+            runs=[good_run(created_at='2026-09-07T13:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_rerunning_old_execution_is_not_fresh(self):
+        # Rerunning an old successful execution preserves its original
+        # GITHUB_SHA/GITHUB_REF and original creation time, while its
+        # association base may be mutated to the current base. The preserved
+        # creation time, not the mutated association, decides freshness.
+        result = verify(
+            base_sha='c' * 40,
+            runs=[
+                good_run(
+                    created_at='2026-09-07T12:00:00Z',
+                    run_attempt=2,
+                    pull_requests=[{
+                        'number': 7,
+                        'base': {
+                            'ref': 'master',
+                            'sha': 'c' * 40
+                        },
+                    }])
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+
+    def test_empty_association_fails_closed_when_run_predates_base(self):
+        # Forked PRs can carry an empty pull_requests array. The freshness check
+        # must still key off the run's immutable creation time rather than the
+        # current PR base, and fail closed (pending, never fresh) when the run
+        # was created before the base landed.
+        result = verify(
+            base_sha='c' * 40,
+            runs=[
+                good_run(created_at='2026-09-07T12:00:00Z', pull_requests=[])
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertEqual(len(result['associationCalls']), 1)
+
+    def test_source_branch_behind_base_with_fresh_merge_ci_is_fresh(self):
+        # A pull_request run's head_sha is the SOURCE commit, but CI checks out
+        # the synthetic merge commit. A source branch is normally behind its
+        # base (compare(base, head) is "diverged"), yet merge-ref CI that ran
+        # after the base landed DID test the base. This must pass, not pend:
+        # source-branch currency is a separate policy question from whether the
+        # run tested the current base.
+        result = verify(
+            base_sha='c' * 40,
+            base_arrived_at='2026-09-07T11:00:00Z',
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
+        self.assertEqual(len(result['associationCalls']), 1)
+
+    def test_run_created_after_base_landed_is_fresh(self):
+        # Positive control: a run created after the base landed tested a merge
+        # commit containing the base, so it is accepted as fresh evidence.
+        result = verify(
+            base_sha='c' * 40,
+            base_arrived_at='2026-09-07T11:00:00Z',
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
+        self.assertEqual(len(result['associationCalls']), 1)
+
+    def test_release_branch_frozen_base_skips_live_freshness_check(self):
+        # Release branches keep their frozen base.sha behavior: the live-tip
+        # freshness check must not apply, so a run created long before the
+        # (frozen) base is still accepted and the base commit is never looked up.
+        result = verify(
+            base_sha='c' * 40,
+            live_base=False,
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
+        self.assertEqual(result['associationCalls'], [])
+
+    def test_base_arrival_lookup_failure_is_distinct(self):
+        # A transient lookup failure must not read as stale CI: it emits a
+        # distinct pending reason that retries, not the stale-CI message.
+        result = verify(
+            base_sha='c' * 40,
+            association_failure=True,
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('lookup failed', result['reasons'][0])
+        self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_missing_base_merge_record_requires_maintainer(self):
+        # A direct push leaves no merged PR for the base revision, so its
+        # arrival time cannot be established. Fresh CI cannot fix that; the
+        # reason must name the base SHA and request maintainer investigation
+        # instead of the stale-CI message.
+        result = verify(
+            base_sha='c' * 40,
+            associated_prs=[],
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('no merged PR for base ' + 'c' * 40, result['reasons'][0])
+        self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_invalid_base_merge_record_requires_maintainer(self):
+        # A merged PR whose merged_at is unparseable is a malformed record, not
+        # a missing one. It must get its own wording (and its own test): the
+        # reason names the base SHA, says the record is malformed, and still
+        # requests maintainer investigation, never the stale-CI message.
+        result = verify(
+            base_sha='c' * 40,
+            associated_prs=[{
+                'number': 7,
+                'merged_at': 'not-a-date'
+            }],
+            runs=[good_run(created_at='2026-09-07T12:00:00Z')])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('malformed merged-PR record for base ' + 'c' * 40,
+                      result['reasons'][0])
+        self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_missing_base_reason_fits_140_char_status(self):
+        # ci_passed.js slices the published status description to 140 chars.
+        # The missing/invalid reasons are emitted without the workflow-path
+        # prefix (the condition is repo-wide), so the full message must fit and
+        # the trailing "Maintainer investigation required." must survive. The
+        # longest real inventory path is used so an accidental re-introduction
+        # of the prefix would push the reason past the limit.
+        inventory = json.loads(
+            (ROOT / '.github/resources/ci-workflow-inventory.json').read_text())
+        longest = max(workflow['path'] for workflow in inventory['workflows'])
+        for associated_prs, fragment in [
+            ([], 'no merged PR for base '),
+            ([{
+                'number': 7,
+                'merged_at': 'not-a-date'
+            }], 'malformed merged-PR record for base '),
+        ]:
+            with self.subTest(fragment=fragment):
+                result = verify(
+                    base_sha='c' * 40,
+                    associated_prs=associated_prs,
+                    workflow_paths=[longest],
+                    runs=[
+                        good_run(
+                            path=longest, created_at='2026-09-07T12:00:00Z')
+                    ])
+                reason = result['reasons'][0]
+                self.assertLessEqual(len(reason), 140, reason)
+                self.assertIn(fragment + 'c' * 40, reason)
+                self.assertTrue(
+                    reason.endswith('Maintainer investigation required.'),
+                    reason)
+
+    def test_latest_stale_success_cannot_outrank_fresh_failure(self):
+        # The "latest-attempt ordering" attack (#14705): an old successful
+        # run created before the base landed sorts latest by attempt time (a
+        # rerun), so the ordering selects it over a competing failed execution.
+        # The freshness check must downgrade that stale success to pending so it
+        # never aggregates to success.
+        result = verify(
+            base_sha='c' * 40,
+            runs=[
+                # Stale success: LATER attempt time, association already
+                # mutated to the current base, but created before it landed.
+                good_run(
+                    created_at='2026-09-07T12:00:00Z',
+                    run_started_at='2026-09-07T14:00:00Z',
+                    pull_requests=[{
+                        'number': 7,
+                        'base': {
+                            'ref': 'master',
+                            'sha': 'c' * 40
+                        },
+                    }]),
+                # Competing failure: EARLIER attempt time, genuinely failed.
+                good_run(
+                    id=101,
+                    conclusion='failure',
+                    created_at='2026-09-07T12:00:00Z',
+                    run_started_at='2026-09-07T12:00:00Z')
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+        self.assertEqual(len(result['associationCalls']), 1)
+
+    def test_failure_dominates_stale_pending_across_workflows(self):
+        # Cross-workflow ordering lock: a stale success in one workflow only
+        # degrades to pending, while a fresh failure in another is a hard
+        # failure. The aggregate must be failure (failure > pending > success).
+        paths = [
+            '.github/workflows/frontend.yml', '.github/workflows/backend.yml'
+        ]
+        result = verify(
+            base_sha='c' * 40,
+            workflow_paths=paths,
+            runs=[
+                good_run(created_at='2026-09-07T12:00:00Z'),
+                good_run(
+                    path=paths[1],
+                    conclusion='failure',
+                    created_at='2026-09-07T12:00:00Z')
+            ])
+        self.assertEqual(result['state'], 'failure')
+        self.assertFalse(result['passed'])
+        self.assertIn('completed/failure', result['reasons'][0])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][1])
 
     def test_renamed_source_still_requires_its_workflow(self):
         result = verify(files=[{
@@ -280,6 +720,7 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
     def test_no_expected_workflow_is_not_vacuous_success(self):
         result = verify(files=[{'filename': 'README.md'}])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'failure')
 
     def test_real_inventory_uses_current_frontend_coverage(self):
         result = node('''

@@ -738,7 +738,7 @@ func TestUploadPipelineVersion_SameSpecBecomesLatest(t *testing.T) {
 
 	_, err = clientManager.PipelineStore().GetPipeline(DefaultFakeUUID)
 	assert.Nil(t, err)
-	latestVersion, err := clientManager.PipelineStore().GetLatestPipelineVersion(DefaultFakeUUID)
+	latestVersion, err := clientManager.PipelineStore().GetDefaultPipelineVersion(DefaultFakeUUID)
 	require.NoError(t, err)
 	assert.Equal(t, fakeVersionUUID, latestVersion.UUID)
 	assert.Equal(t, pipelineVersion.PipelineSpec, latestVersion.PipelineSpec)
@@ -764,7 +764,7 @@ func TestUploadPipelineVersion_ChangedSpecBecomesLatest(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
-	pipelineVersion2, err := clientManager.PipelineStore().GetLatestPipelineVersion(DefaultFakeUUID)
+	pipelineVersion2, err := clientManager.PipelineStore().GetDefaultPipelineVersion(DefaultFakeUUID)
 	require.NoError(t, err)
 	assert.Equal(t, pipelineVersion2.UUID, fakeVersionUUID)
 	assert.NotEqual(t, pipelineVersion.PipelineSpec, pipelineVersion2.PipelineSpec)

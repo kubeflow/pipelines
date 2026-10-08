@@ -126,7 +126,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(
             len(configured_ecosystems), len(set(configured_ecosystems)))
 
-    def test_version_and_security_updates_start_held_with_defaults_preserved(
+    def test_version_and_security_updates_start_unheld_with_defaults_preserved(
             self):
         ecosystem_labels = {
             'gomod': 'go',
@@ -146,7 +146,7 @@ class DependabotConfigTest(unittest.TestCase):
                 )
                 self.assertEqual(
                     self.configured_labels(ecosystem),
-                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                    ['dependencies', ecosystem_label],
                 )
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):

@@ -31,6 +31,7 @@ kpt version
 kustomization_yamls=(
   "cluster-scoped-resources"
   "base/installs/generic"
+  "env/aws"
   "env/dev"
   "env/dev/postgresql"
   "env/gcp"

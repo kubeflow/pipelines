@@ -1011,7 +1011,7 @@ func TestGetPipelineVersion(t *testing.T) {
 		*pipelineVersion, "Got unexpected pipeline version")
 }
 
-func TestGetLatestPipelineVersion(t *testing.T) {
+func TestGetDefaultPipelineVersion(t *testing.T) {
 	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
@@ -1079,7 +1079,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 		*pipelineVersion, "Got unexpected pipeline version")
 
 	// Get the latest pipeline version.
-	pipelineVersion, err = pipelineStore.GetLatestPipelineVersion(DefaultFakePipelineId)
+	pipelineVersion, err = pipelineStore.GetDefaultPipelineVersion(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(
 		t,
@@ -1095,7 +1095,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 }
 
 // Versions uploaded within the same second tie on CreatedAtInSec.
-func TestGetLatestPipelineVersion_SameCreationSecond(t *testing.T) {
+func TestGetDefaultPipelineVersion_SameCreationSecond(t *testing.T) {
 	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
@@ -1136,7 +1136,7 @@ func TestGetLatestPipelineVersion_SameCreationSecond(t *testing.T) {
 	require.Nil(t, err)
 
 	for i := 0; i < 5; i++ {
-		pipelineVersion, err := pipelineStore.GetLatestPipelineVersion(DefaultFakePipelineId)
+		pipelineVersion, err := pipelineStore.GetDefaultPipelineVersion(DefaultFakePipelineId)
 		require.Nil(t, err)
 		require.Equal(
 			t,
@@ -2121,4 +2121,63 @@ func TestListPipelineVersions_WithTagFilter(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, totalSize)
 	assert.Equal(t, 0, len(versions))
+}
+
+func TestGetAnyPipelineVersionID(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		testDialect)
+
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline", "", ""))
+	require.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	otherPipeline, err := pipelineStore.CreatePipeline(createPipeline("other-pipeline", "", ""))
+	require.Nil(t, err)
+
+	pipelineVersionID, err := pipelineStore.GetAnyPipelineVersionID(pipeline.UUID)
+	require.Nil(t, err)
+	assert.Empty(t, pipelineVersionID)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	version, err := pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(pipeline.UUID, "v1.0", "", "", "", ""))
+	require.Nil(t, err)
+
+	pipelineVersionID, err = pipelineStore.GetAnyPipelineVersionID(pipeline.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, version.UUID, pipelineVersionID)
+
+	// Another pipeline's version must not answer for this one.
+	pipelineVersionID, err = pipelineStore.GetAnyPipelineVersionID(otherPipeline.UUID)
+	require.Nil(t, err)
+	assert.Empty(t, pipelineVersionID)
+}
+
+func TestGetAnyPipelineVersionID_IgnoresDeletedVersions(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		testDialect)
+
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline", "", ""))
+	require.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	version, err := pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(pipeline.UUID, "v1.0", "", "", "", ""))
+	require.Nil(t, err)
+
+	require.Nil(t, pipelineStore.UpdatePipelineVersionStatus(version.UUID, model.PipelineVersionDeleting))
+
+	pipelineVersionID, err := pipelineStore.GetAnyPipelineVersionID(pipeline.UUID)
+	require.Nil(t, err)
+	assert.Empty(t, pipelineVersionID)
 }

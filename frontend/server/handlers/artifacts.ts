@@ -1073,6 +1073,13 @@ function parsePeekValue(value: string | undefined): number {
   return Number.isFinite(peek) && peek > 0 ? peek : 0;
 }
 
+function hasAsciiControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) || 0;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
+
 /**
  * Resolve an HTTP artifact within an absolute approved base, or preserve the
  * scheme-less gateway layout `${source}://${baseUrl}/${bucket}/${key}`.
@@ -1091,12 +1098,29 @@ function getHttpUrl(
   const configuredBaseUrl = baseUrl.includes('://')
     ? baseUrl.trim()
     : baseUrl.trim().replace(/^\/+/, '');
-  if (!configuredBaseUrl) {
+  if (
+    !configuredBaseUrl ||
+    configuredBaseUrl.includes('\\') ||
+    hasAsciiControlCharacters(configuredBaseUrl)
+  ) {
     return undefined;
   }
   try {
     const absoluteBase = configuredBaseUrl.includes('://');
-    const base = new URL(absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`);
+    const baseUrlToParse = absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`;
+    const baseUrlMatch = /^https?:\/\/[^/?#]+(\/[^?#]*)?$/i.exec(baseUrlToParse);
+    if (!baseUrlMatch) {
+      return undefined;
+    }
+    // Decode once for validation; preserve the escaped path for fetching.
+    const decodedBasePath = decodeURIComponent(baseUrlMatch[1] || '');
+    if (
+      hasAsciiControlCharacters(decodedBasePath) ||
+      applyArtifactPathPolicy(decodedBasePath, ARTIFACT_PATH_POLICIES.http) === undefined
+    ) {
+      return undefined;
+    }
+    const base = new URL(baseUrlToParse);
     if (
       !['http:', 'https:'].includes(base.protocol) ||
       base.username ||
