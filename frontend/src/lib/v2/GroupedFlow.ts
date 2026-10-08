@@ -15,7 +15,7 @@ import {
 export type LayerElements = (layers: string[], maxNodes?: number) => PipelineFlowElement[];
 export const AUTOMATIC_EXPANSION_NODE_LIMIT = 500;
 export const GROUP_NODE_TYPE = 'subDagGroup';
-export const GROUP_HEADER_HEIGHT = 64;
+export const GROUP_HEADER_HEIGHT = 48;
 const GROUP_PADDING = 24;
 
 export interface GroupedFlow {
@@ -45,6 +45,7 @@ export function buildGroupedFlow(
   getLayerElements: LayerElements,
   collapsed: ReadonlySet<string>,
   expanded: ReadonlySet<string> = new Set(),
+  collapseAll = false,
 ): GroupedFlow {
   let remaining = AUTOMATIC_EXPANSION_NODE_LIMIT;
   return buildLayer(elements, layers, new Set());
@@ -63,7 +64,7 @@ export function buildGroupedFlow(
       const id = idFor(element.id);
       sources.set(id, { element, layers });
       const group = element.type === NodeTypeNames.SUB_DAG;
-      let isCollapsed = collapsed.has(id);
+      let isCollapsed = collapsed.has(id) || (collapseAll && !expanded.has(id));
       // Card widths include status icons (256px) and artifact cards (240px).
       let width = element.type === NodeTypeNames.ARTIFACT ? 240 : element.data.state ? 256 : 224;
       let height = 48;
@@ -71,7 +72,7 @@ export function buildGroupedFlow(
       let expansionDeferred: string | undefined;
       let empty = false;
       if (group) {
-        width = 288;
+        width = element.data.state ? 288 : 256;
         height = GROUP_HEADER_HEIGHT;
         if (!isCollapsed) {
           try {
@@ -126,6 +127,7 @@ export function buildGroupedFlow(
         height,
         style: { ...element.style, width, height },
         zIndex: group ? 0 : 1,
+        draggable: !group,
       };
     });
     const edges = elements

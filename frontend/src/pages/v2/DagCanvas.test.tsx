@@ -98,7 +98,12 @@ it('explicitly expands a deferred group and preserves that choice through refres
       <DagCanvas {...options} />
     </CommonTestWrapper>,
   );
-  expect(screen.getByText('600 nodes · expand to load')).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Expand Training pipeline' }),
+  ).toHaveAccessibleDescription('600 nodes · expand to load');
+  fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+  expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
+  expect(getSubDagElements).not.toHaveBeenCalledWith(['root', 'workflow'], Infinity);
   fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
   expect(screen.getByText('Prepare data')).toBeInTheDocument();
   expect(getSubDagElements).toHaveBeenCalledWith(['root', 'workflow'], Infinity);
@@ -113,6 +118,44 @@ it('explicitly expands a deferred group and preserves that choice through refres
   expect(screen.getByText('Prepare data')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
   expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
+});
+
+it('places bulk controls before Layers and expands/collapses all descendants', () => {
+  const options = props();
+  const { rerender } = render(
+    <CommonTestWrapper>
+      <DagCanvas {...options} />
+    </CommonTestWrapper>,
+  );
+  const expandAll = screen.getByRole('button', { name: 'Expand all' });
+  const collapseAll = screen.getByRole('button', { name: 'Collapse all' });
+  expect(within(expandAll).getByTestId('ExpandMoreIcon')).toBeInTheDocument();
+  expect(within(collapseAll).getByTestId('ExpandLessIcon')).toBeInTheDocument();
+  expect(
+    expandAll.compareDocumentPosition(screen.getByText('Layers')) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  fireEvent.click(collapseAll);
+  expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
+  expect(
+    screen.getByRole('button', { name: 'Expand Training and evaluation' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+  fireEvent.click(expandAll);
+  expect(screen.getByText('Train model')).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Collapse Training and evaluation' }),
+  ).toBeInTheDocument();
+  fireEvent.click(collapseAll);
+  rerender(
+    <CommonTestWrapper>
+      <DagCanvas {...options} elements={resolve(['root'])} />
+    </CommonTestWrapper>,
+  );
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+  expect(options.onElementClick).not.toHaveBeenCalled();
+  expect(options.onLayersUpdate).not.toHaveBeenCalled();
 });
 
 it('supports keyboard collapse and expansion', async () => {

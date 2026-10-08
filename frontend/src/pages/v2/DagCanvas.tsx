@@ -31,6 +31,7 @@ import {
   MiniMap,
   Node,
   OnNodeDrag,
+  OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
@@ -80,9 +81,12 @@ export default function DagCanvas({
   getSubDagElements,
   selectedNodeLayers = layers,
 }: DagCanvasProps) {
+  const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
+  const lastFocusedNodeId = useRef<string | null>(null);
   const [expansion, setExpansion] = useState({
     collapsed: new Set<string>(),
     expanded: new Set<string>(),
+    allCollapsed: false,
   });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const grouped = useMemo(
@@ -94,6 +98,7 @@ export default function DagCanvas({
             getSubDagElements,
             expansion.collapsed,
             expansion.expanded,
+            expansion.allCollapsed,
           )
         : undefined,
     [elements, layers, getSubDagElements, expansion],
@@ -109,17 +114,30 @@ export default function DagCanvas({
         collapsed.add(id);
         expanded.delete(id);
       }
-      return { collapsed, expanded };
+      return { ...previous, collapsed, expanded };
     });
     // A changed group size requires a fresh layout, not stale drag offsets.
     setPositions({});
+  }, []);
+  const expandAll = useCallback(() => {
+    // Keep explicit opt-ins, but do not bypass the automatic budget for new groups.
+    setExpansion((previous) => ({ ...previous, collapsed: new Set(), allCollapsed: false }));
+    setPositions({});
+    requestAnimationFrame(() => {
+      void reactFlowInstance.current?.fitView();
+    });
+  }, []);
+  const collapseAll = useCallback(() => {
+    setExpansion({ collapsed: new Set(), expanded: new Set(), allCollapsed: true });
+    setPositions({});
+    requestAnimationFrame(() => {
+      void reactFlowInstance.current?.fitView();
+    });
   }, []);
   const selectedId =
     grouped && selectedNodeId ? scopedNodeId(selectedNodeLayers, selectedNodeId) : selectedNodeId;
   const focusedId =
     grouped && focusNodeId ? scopedNodeId(selectedNodeLayers, focusNodeId) : focusNodeId;
-  const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
-  const lastFocusedNodeId = useRef<string | null>(null);
   const subDagExpand = useCallback(
     (nodeKey: string) => {
       const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
@@ -135,6 +153,8 @@ export default function DagCanvas({
           ...node,
           position: positions[positionKey(node)] ?? node.position,
           selected: node.id === selectedId,
+          draggable:
+            nodesDraggable && node.type !== GROUP_NODE_TYPE && node.type !== NodeTypeNames.SUB_DAG,
         };
         if (node.type === GROUP_NODE_TYPE) {
           return {
@@ -146,28 +166,49 @@ export default function DagCanvas({
           ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
           : selectedNode;
       }),
-    [elements, grouped, positions, selectedId, subDagExpand, toggleGroup],
+    [elements, grouped, positions, selectedId, subDagExpand, toggleGroup, nodesDraggable],
   );
   const edges = useMemo(
     () => grouped?.edges ?? elements.filter((el): el is Edge => !isNode(el)),
     [elements, grouped],
   );
 
+  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
+  const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
+    (changes) => {
+      // Only accept position updates; selection belongs to the details panel and
+      // this read-only graph does not support deleting or resizing pipeline nodes.
+      const updates: Record<string, { x: number; y: number }> = {};
+      for (const change of changes) {
+        const node = 'id' in change ? nodeById.get(change.id) : undefined;
+        if (change.type === 'position' && change.position && node?.draggable) {
+          updates[positionKey(node)] = change.position;
+        }
+      }
+      if (Object.keys(updates).length) setPositions((previous) => ({ ...previous, ...updates }));
+    },
+    [nodeById],
+  );
+
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
     (_event, draggedNode) => {
-      if (grouped) {
-        setPositions((previous) => ({
-          ...previous,
-          [positionKey(draggedNode)]: draggedNode.position,
-        }));
+      if (
+        !nodesDraggable ||
+        draggedNode.type === GROUP_NODE_TYPE ||
+        draggedNode.type === NodeTypeNames.SUB_DAG
+      )
         return;
-      }
+      setPositions((previous) => ({
+        ...previous,
+        [positionKey(draggedNode)]: draggedNode.position,
+      }));
+      if (grouped) return;
       const updatedElements = elements.map((el) =>
         isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
       );
       setFlowElements(updatedElements);
     },
-    [elements, grouped, setFlowElements],
+    [elements, grouped, setFlowElements, nodesDraggable],
   );
 
   const handleNodeClick = useCallback(
@@ -208,12 +249,15 @@ export default function DagCanvas({
 
   return (
     <>
-      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
+      <SubDagLayer
+        layers={layers}
+        onLayersUpdate={onLayersUpdate}
+        onExpandAll={getSubDagElements ? expandAll : undefined}
+        onCollapseAll={getSubDagElements ? collapseAll : undefined}
+        groupControlsDisabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+      />
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
-          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
-              does not need keyboard deletion, multi-select, or internal selection
-              tracking. Drag persistence is handled via onNodeDragStop only. */}
           <ReactFlow<PipelineNode, Edge>
             style={{ background: color.lightGrey }}
             nodes={nodes}
@@ -232,7 +276,9 @@ export default function DagCanvas({
             edgeTypes={{}}
             onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
+            onNodesChange={onNodesChange}
             onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
+            deleteKeyCode={null}
           >
             <MiniMap />
             <Controls />

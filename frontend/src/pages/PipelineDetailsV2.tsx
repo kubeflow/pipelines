@@ -88,7 +88,6 @@ function PipelineDetailsV2({
               setSelectedNodeLayers(scope);
             }}
             setFlowElements={() => {}}
-            nodesDraggable={false}
           ></DagCanvas>
           <PipelineVersionCard
             pipeline={pipeline}
