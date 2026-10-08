@@ -92,11 +92,15 @@ func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interfa
 	return l.inner, nil
 }
 
-// clearInner drops a cached hydrator so the next ensureInner call re-runs initFn.
-func (l *lazyOffloadHydrator) clearInner() {
+// clearInnerIfSame drops the cached hydrator only when it is still the instance
+// that failed. Concurrent recovery against the same closed session must not
+// discard a healthy replacement another goroutine already installed.
+func (l *lazyOffloadHydrator) clearInnerIfSame(failed hydrator.Interface) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.inner = nil
+	if l.inner == failed {
+		l.inner = nil
+	}
 }
 
 // isUnusableOffloadSessionError reports errors that mean the cached Argo SessionProxy
@@ -123,9 +127,11 @@ func (l *lazyOffloadHydrator) callWithSessionRecovery(
 		return err
 	}
 	// Argo's SessionProxy closes itself after exhausted reconnect attempts and
-	// stays closed; drop the dead cache and rebuild once so the API server
-	// recovers without a process restart.
-	l.clearInner()
+	// stays closed. Clear only the failed instance (compare-and-swap under the
+	// lock) so a concurrent recovery cannot discard a healthy replacement, then
+	// rebuild at most once on this call.
+	failed := inner
+	l.clearInnerIfSame(failed)
 	inner, initErr := l.ensureInner(ctx)
 	if initErr != nil {
 		return fmt.Errorf("argo offload hydrator is not ready: %w", initErr)
