@@ -4113,7 +4113,7 @@ func (r *ResourceManager) CreateArtifact(artifact *model.Artifact) (*model.Artif
 func (r *ResourceManager) CreateArtifactWithTask(
 	artifact *model.Artifact,
 	artifactTask *model.ArtifactTask,
-	retryGeneration int64,
+	operationID string,
 ) (*model.Artifact, *model.ArtifactTask, error) {
 	if err := r.checkArtifactTasksAllowRuntimeWrites([]*model.ArtifactTask{artifactTask}); err != nil {
 		return nil, nil, err
@@ -4122,7 +4122,7 @@ func (r *ResourceManager) CreateArtifactWithTask(
 	newArtifact, newArtifactTask, err := r.artifactStore.CreateArtifactWithTask(
 		artifact,
 		artifactTask,
-		retryGeneration,
+		operationID,
 	)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifact and artifact-task")
@@ -4149,7 +4149,7 @@ func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact,
 func (r *ResourceManager) CreateArtifactsWithTasks(
 	artifacts []*model.Artifact,
 	artifactTasks []*model.ArtifactTask,
-	retryGenerations []int64,
+	operationIDs []string,
 ) ([]*model.Artifact, []*model.ArtifactTask, error) {
 	if err := r.checkArtifactTasksAllowRuntimeWrites(artifactTasks); err != nil {
 		return nil, nil, err
@@ -4158,7 +4158,7 @@ func (r *ResourceManager) CreateArtifactsWithTasks(
 	createdArtifacts, createdArtifactTasks, err := r.artifactStore.CreateArtifactsWithTasks(
 		artifacts,
 		artifactTasks,
-		retryGenerations,
+		operationIDs,
 	)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
