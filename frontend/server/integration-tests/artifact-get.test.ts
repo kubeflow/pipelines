@@ -43,7 +43,7 @@ vi.mock('../k8s-helper.js', () => ({
   getConfigMap: vi.fn(),
   getK8sSecret: vi.fn(),
   getPod: vi.fn(),
-  getPodLogs: vi.fn(),
+
   getServerNamespace: vi.fn(),
 }));
 vi.mock('../gcs-helper.js');

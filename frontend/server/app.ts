@@ -29,7 +29,6 @@ import {
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
 import { getAuthorizeFn } from './helpers/auth.js';
-import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata.js';
 import { getIndexHTMLHandler } from './handlers/index-html.js';
@@ -38,18 +37,6 @@ import { IncomingMessage, Server } from 'http';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 import registerTensorboardProxy from './handlers/tensorboard-proxy.js';
 
-function hardenPodLogsProxyResponse(proxyRes: IncomingMessage): void {
-  proxyRes.headers['x-content-type-options'] = 'nosniff';
-  proxyRes.headers['content-disposition'] = 'attachment';
-  proxyRes.headers['content-type'] = 'text/plain; charset=utf-8';
-}
-
-const hardenPodLogsProxyRequest: express.Handler = (_req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Content-Disposition', 'attachment');
-  res.type('text/plain');
-  next();
-};
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -256,52 +243,7 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
   registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
-  /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
-  if (options.artifacts.streamLogsFromServerApi) {
-    app.all(
-      ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
-      hardenPodLogsProxyRequest,
-      (req, res, next) => {
-        for (const key of ['runid', 'podname']) {
-          const value = req.query[key];
-          if (typeof value !== 'string' || !value || value === '.' || value === '..') {
-            res.status(400).send(`${key} must be a non-empty path segment`);
-            return;
-          }
-        }
-        next();
-      },
-      createProxyMiddleware({
-        changeOrigin: true,
-        on: {
-          proxyReq: (proxyReq) => {
-            console.log('Proxied log request: ', proxyReq.path);
-          },
-          proxyRes: hardenPodLogsProxyResponse,
-        },
-        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-        pathRewrite: (pathStr: string, req: any) => {
-          /** Argo nodeId is just POD name */
-          const nodeId = encodeURIComponent(req.query.podname as string);
-          const runId = encodeURIComponent(req.query.runid as string);
-          return `/${apiVersion2Prefix}/runs/${runId}/nodes/${nodeId}/log`;
-        },
-        target: apiServerAddress,
-      }),
-    );
-  } else {
-    registerHandler(
-      app.get,
-      '/k8s/pod/logs',
-      getPodLogsHandler(
-        options.argo,
-        options.artifacts,
-        options.pod.logContainerName,
-        authorizeFn,
-        options.auth.enabled,
-      ),
-    );
-  }
+
 
   /** Pod info */
   const { podInfoHandler, podEventsHandler } = getPodInfoHandlers(authorizeFn);

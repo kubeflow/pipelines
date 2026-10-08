@@ -15,7 +15,7 @@ import { vi, describe, it, expect, afterEach, beforeEach, Mock, SpyInstance } fr
 import { ApiException } from '@kubernetes/client-node';
 import {
   TEST_ONLY as K8S_TEST_EXPORT,
-  getPodLogs,
+
   getPod,
   getConfigMap,
   listPodEvents,
@@ -176,60 +176,7 @@ describe('k8s-helper', () => {
     });
   });
 
-  describe('getPodLogs', () => {
-    let readNamespacedPodLogSpy: SpyInstance;
 
-    beforeEach(() => {
-      readNamespacedPodLogSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPodLog');
-    });
-
-    afterEach(() => {
-      readNamespacedPodLogSpy.mockRestore();
-    });
-
-    it('returns pod logs when successful', async () => {
-      const mockLogs = 'container log output';
-      readNamespacedPodLogSpy.mockResolvedValue(mockLogs);
-
-      const logs = await getPodLogs('test-pod', 'test-namespace', 'main');
-
-      expect(readNamespacedPodLogSpy).toHaveBeenCalledWith({
-        name: 'test-pod',
-        namespace: 'test-namespace',
-        container: 'main',
-      });
-      expect(logs).toBe(mockLogs);
-    });
-
-    it('uses default container name "main" when not specified', async () => {
-      readNamespacedPodLogSpy.mockResolvedValue('logs');
-
-      await getPodLogs('test-pod', 'test-namespace');
-
-      expect(readNamespacedPodLogSpy).toHaveBeenCalledWith({
-        name: 'test-pod',
-        namespace: 'test-namespace',
-        container: 'main',
-      });
-    });
-
-    it('returns empty string when response is empty', async () => {
-      readNamespacedPodLogSpy.mockResolvedValue('');
-
-      const logs = await getPodLogs('test-pod', 'test-namespace');
-
-      expect(logs).toBe('');
-    });
-
-    it('throws error when API call fails', async () => {
-      const errorBody = { message: 'Pod not found', code: 404 };
-      readNamespacedPodLogSpy.mockRejectedValue({ body: errorBody });
-
-      await expect(getPodLogs('nonexistent-pod', 'test-namespace')).rejects.toThrow(
-        JSON.stringify(errorBody),
-      );
-    });
-  });
 
   describe('waitForTensorboardInstance', () => {
     let getNamespacedCustomObjectSpy: SpyInstance;

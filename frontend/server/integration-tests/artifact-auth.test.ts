@@ -32,7 +32,7 @@ vi.mock('../k8s-helper.js', () => ({
   getConfigMap: vi.fn().mockResolvedValue([undefined, { message: 'not found' }]),
   getK8sSecret: vi.fn(),
   getPod: vi.fn(),
-  getPodLogs: vi.fn(),
+
   getServerNamespace: vi.fn(),
 }));
 

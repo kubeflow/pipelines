@@ -71,7 +71,7 @@ describe('Apis', () => {
       'http://some/address',
     );
     expect(spy).toHaveBeenCalledWith(
-      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=ns',
+      'apis/v2beta1/runs/a-run-id/nodes/some-pod-name/log',
       {
         credentials: 'same-origin',
       },
@@ -84,7 +84,7 @@ describe('Apis', () => {
       'http://some/address',
     );
     expect(spy).toHaveBeenCalledWith(
-      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=some-namespace-name',
+      'apis/v2beta1/runs/a-run-id/nodes/some-pod-name/log',
       {
         credentials: 'same-origin',
       },
@@ -97,12 +97,13 @@ describe('Apis', () => {
       'http://some/address',
     );
     expect(spy).toHaveBeenCalledWith(
-      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=ns&createdat=2024-08-13',
+      'apis/v2beta1/runs/a-run-id/nodes/some-pod-name/log',
       {
         credentials: 'same-origin',
       },
     );
   });
+
 
   it('getPodLogs error', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => null);
