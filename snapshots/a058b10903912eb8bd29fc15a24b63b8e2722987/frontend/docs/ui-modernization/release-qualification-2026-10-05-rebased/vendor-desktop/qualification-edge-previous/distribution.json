@@ -1,0 +1,62 @@
+{
+  "resolvedAt": "2026-10-02",
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "runnerImage": "macos26",
+  "runnerImageVersion": "20260907.0351.1",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "browser": {
+    "id": "edge-previous",
+    "browser": "chromium",
+    "slot": "Edge previous stable",
+    "version": "153.0.4234.48",
+    "kind": "pkg",
+    "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8aa4efa6-ccfc-45df-9f57-bf678d2faf18/MicrosoftEdge-153.0.4234.48.pkg",
+    "sha256": "b9302cbc5e0adb22a82568d62a18d34050192d11c4b1344575dc6b5c264b58af",
+    "checksumSource": "https://edgeupdates.microsoft.com/api/products?view=enterprise",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "appName": "Microsoft Edge.app",
+    "executable": "Microsoft Edge",
+    "teamId": "UBF8T346G9",
+    "qualification": "policy",
+    "source": "https://edgeupdates.microsoft.com/api/products?view=enterprise"
+  },
+  "status": "passed",
+  "startedAt": "2026-10-05T05:41:28.185Z",
+  "updatePolicy": {
+    "source": "https://learn.microsoft.com/en-us/deployedge/edge-learnmore-edgeupdater-for-macos",
+    "path": "/Library/Managed Preferences/com.microsoft.EdgeUpdater.plist",
+    "updateDefault": 3,
+    "verified": true
+  },
+  "download": {
+    "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8aa4efa6-ccfc-45df-9f57-bf678d2faf18/MicrosoftEdge-153.0.4234.48.pkg",
+    "sha256": "b9302cbc5e0adb22a82568d62a18d34050192d11c4b1344575dc6b5c264b58af",
+    "md5Hash": "TZ2md5RFzYQ3n/aSevisCA==",
+    "size": "429993224",
+    "vendorChecksumVerified": true,
+    "vendorChecksumAlgorithm": "SHA-256",
+    "sha256Source": "vendor"
+  },
+  "signature": "Executable=/Users/runner/work/_temp/kfp-qualified-browsers/edge-previous/expanded/MicrosoftEdge-153.0.4234.48.pkg/Payload/Microsoft Edge.app/Contents/MacOS/Microsoft Edge\nIdentifier=com.microsoft.edgemac\nFormat=app bundle with Mach-O universal (x86_64 arm64)\nCodeDirectory v=20500 size=769 flags=0x12a00(kill,restrict,library-validation,runtime) hashes=13+7 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=556e8fd763afdc91fec7b7202c2327cf3ed0b166\nCandidateCDHashFull sha256=556e8fd763afdc91fec7b7202c2327cf3ed0b166e55d274127065c8153b1b703\nHash choices=sha256\nCMSDigest=556e8fd763afdc91fec7b7202c2327cf3ed0b166e55d274127065c8153b1b703\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=16384\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=556e8fd763afdc91fec7b7202c2327cf3ed0b166\nSignature size=9013\nAuthority=Developer ID Application: Microsoft Corporation (UBF8T346G9)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Sep 18, 2026 at 4:53:19 AM\nInfo.plist entries=45\nTeamIdentifier=UBF8T346G9\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=94\nInternal requirements count=1 size=184\n",
+  "actualVersion": "153.0.4234.48",
+  "signatureVerification": "Strict resource seal and vendor signing team verified",
+  "readOnlyMount": {
+    "path": "/Users/runner/work/_temp/kfp-qualified-browsers/edge-previous/read-only-volume",
+    "image": "/Users/runner/work/_temp/kfp-qualified-browsers/edge-previous/browser-read-only.dmg",
+    "mounted": false,
+    "format": "UDRO",
+    "readOnly": true,
+    "binarySha256": "54be51a4f18f886929ffd283c7669cebd0e5a6a823686f3bc0d085196cbf47c7",
+    "detachedAt": "2026-10-05T05:46:07.815Z"
+  },
+  "finishedAt": "2026-10-05T05:42:46.641Z",
+  "postSuiteIdentity": {
+    "status": "passed",
+    "version": "153.0.4234.48",
+    "binarySha256": "54be51a4f18f886929ffd283c7669cebd0e5a6a823686f3bc0d085196cbf47c7",
+    "signature": "Executable=/Users/runner/work/_temp/kfp-qualified-browsers/edge-previous/read-only-volume/Microsoft Edge.app/Contents/MacOS/Microsoft Edge\nIdentifier=com.microsoft.edgemac\nFormat=app bundle with Mach-O universal (x86_64 arm64)\nCodeDirectory v=20500 size=769 flags=0x12a00(kill,restrict,library-validation,runtime) hashes=13+7 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=556e8fd763afdc91fec7b7202c2327cf3ed0b166\nCandidateCDHashFull sha256=556e8fd763afdc91fec7b7202c2327cf3ed0b166e55d274127065c8153b1b703\nHash choices=sha256\nCMSDigest=556e8fd763afdc91fec7b7202c2327cf3ed0b166e55d274127065c8153b1b703\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=16384\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=556e8fd763afdc91fec7b7202c2327cf3ed0b166\nSignature size=9013\nAuthority=Developer ID Application: Microsoft Corporation (UBF8T346G9)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Sep 18, 2026 at 4:53:19 AM\nInfo.plist entries=45\nTeamIdentifier=UBF8T346G9\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=94\nInternal requirements count=1 size=184\n",
+    "checkedAt": "2026-10-05T05:46:07.562Z"
+  }
+}

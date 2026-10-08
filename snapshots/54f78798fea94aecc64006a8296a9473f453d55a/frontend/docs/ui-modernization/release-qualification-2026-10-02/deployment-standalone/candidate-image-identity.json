@@ -1,0 +1,19 @@
+{
+  "expectedReference": "localhost:5001/kfp-frontend@sha256:74b3968c76e1f3bf8855e18b141b8571ebd71ae9fb95567288f24124b6d5f520",
+  "expectedConfigId": "sha256:8abd9a0fa88a46ff66b3c385cc48819a84af25b38227a13623253b8dccd44c67",
+  "pods": [
+    {
+      "uid": "ad7569b8-78ca-404a-9e45-64f09531f678",
+      "node": "kfp-control-plane",
+      "imageId": "docker.io/library/import-2026-10-02@sha256:205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016",
+      "ready": true,
+      "verification": {
+        "method": "resolved-runtime-manifest-config-digest",
+        "reportedImageId": "docker.io/library/import-2026-10-02@sha256:205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016",
+        "verifiedManifestDigest": "sha256:205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016",
+        "resolvedManifestDigest": "sha256:7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a",
+        "resolvedConfigId": "sha256:8abd9a0fa88a46ff66b3c385cc48819a84af25b38227a13623253b8dccd44c67"
+      }
+    }
+  ]
+}

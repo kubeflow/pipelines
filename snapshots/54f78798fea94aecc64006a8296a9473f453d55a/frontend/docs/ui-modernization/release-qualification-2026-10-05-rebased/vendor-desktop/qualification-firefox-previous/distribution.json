@@ -1,0 +1,57 @@
+{
+  "resolvedAt": "2026-10-02",
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "runnerImage": "macos26",
+  "runnerImageVersion": "20260907.0351.1",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "browser": {
+    "id": "firefox-previous",
+    "browser": "firefox",
+    "slot": "Firefox previous stable",
+    "version": "156.0.1",
+    "kind": "dmg",
+    "url": "https://archive.mozilla.org/pub/firefox/releases/156.0.1/mac/en-US/Firefox%20156.0.1.dmg",
+    "sha256": "7eda94829670b892524eddfee575d16fe74b9329d3d0795367cce035207d34a4",
+    "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/156.0.1/SHA256SUMS",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "archiveVersion": "156.0.1",
+    "appName": "Firefox.app",
+    "executable": "firefox",
+    "teamId": "43AQ936H96",
+    "qualification": "policy",
+    "source": "https://product-details.mozilla.org/1.0/firefox_versions.json"
+  },
+  "status": "passed",
+  "startedAt": "2026-10-05T05:40:43.618Z",
+  "download": {
+    "url": "https://archive.mozilla.org/pub/firefox/releases/156.0.1/mac/en-US/Firefox%20156.0.1.dmg",
+    "sha256": "7eda94829670b892524eddfee575d16fe74b9329d3d0795367cce035207d34a4",
+    "md5Hash": "S0UrbUiS18oKyqZ6lwc9RQ==",
+    "size": "160451034",
+    "vendorChecksumVerified": true,
+    "vendorChecksumAlgorithm": "SHA-256",
+    "sha256Source": "vendor"
+  },
+  "signature": "Executable=/Users/runner/work/_temp/kfp-qualified-browsers/firefox-previous/Firefox.app/Contents/MacOS/firefox\nIdentifier=org.mozilla.firefox\nFormat=app bundle with Mach-O universal (x86_64 arm64)\nCodeDirectory v=20500 size=927 flags=0x10000(runtime) hashes=18+7 location=embedded\nVersionPlatform=1\nVersionMin=720896\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=f52a9f7f34d93175e9393d3e0e33b00a47332d40\nCandidateCDHashFull sha256=f52a9f7f34d93175e9393d3e0e33b00a47332d40b839cecb7cab5653b55c2921\nHash choices=sha256\nCMSDigest=f52a9f7f34d93175e9393d3e0e33b00a47332d40b839cecb7cab5653b55c2921\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=32768\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=f52a9f7f34d93175e9393d3e0e33b00a47332d40\nSignature size=8988\nAuthority=Developer ID Application: Mozilla Corporation (43AQ936H96)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Sep 21, 2026 at 2:53:56 PM\nNotarization Ticket=stapled\nInfo.plist entries=37\nTeamIdentifier=43AQ936H96\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=73\nInternal requirements count=1 size=180\n",
+  "actualVersion": "156.0.1",
+  "signatureVerification": "Strict resource seal and vendor signing team verified",
+  "driver": {
+    "version": "0.37.1",
+    "url": "https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-macos-aarch64.tar.gz",
+    "sha256": "d02b3f7003f999caf90974a2ef5da0286c05d01cee19112c86846d759fdba4f5",
+    "source": "https://api.github.com/repos/mozilla/geckodriver/releases/tags/v0.37.1",
+    "download": {
+      "url": "https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-macos-aarch64.tar.gz",
+      "sha256": "d02b3f7003f999caf90974a2ef5da0286c05d01cee19112c86846d759fdba4f5",
+      "md5Hash": "s1HdjdoMYqfCfdTorjluqg==",
+      "size": "4234637",
+      "vendorChecksumVerified": true,
+      "vendorChecksumAlgorithm": "SHA-256",
+      "sha256Source": "vendor"
+    },
+    "actualVersion": "geckodriver 0.37.1 (300705c65d1b 2026-07-17 09:25 +0000)"
+  },
+  "finishedAt": "2026-10-05T05:41:28.472Z"
+}

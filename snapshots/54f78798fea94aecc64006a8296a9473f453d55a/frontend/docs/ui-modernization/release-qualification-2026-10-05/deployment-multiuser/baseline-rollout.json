@@ -1,0 +1,21 @@
+{
+  "phase": "baseline",
+  "strategy": {
+    "type": "Recreate"
+  },
+  "elapsedMs": 46268.283474999975,
+  "podTemplateSha256": "10ba874e67dc63abb8f76c9e5b10f3d8311a171b289fc359ce6b8bf47791426c",
+  "image": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+  "pods": [
+    {
+      "uid": "2206dc24-162a-44bc-a59d-23d091d8248f",
+      "containers": [
+        {
+          "name": "ml-pipeline-ui",
+          "imageID": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+          "ready": true
+        }
+      ]
+    }
+  ]
+}

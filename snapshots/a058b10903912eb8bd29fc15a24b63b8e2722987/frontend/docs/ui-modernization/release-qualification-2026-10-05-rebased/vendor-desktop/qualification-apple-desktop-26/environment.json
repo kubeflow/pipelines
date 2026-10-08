@@ -1,0 +1,213 @@
+{
+  "startedAt": "2026-10-05T05:40:51.703Z",
+  "status": "passed",
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "mode": "desktop",
+  "annual": "26",
+  "requested": {
+    "browserVersion": "26.6.2",
+    "developerDirectory": "/Applications/Xcode_26.6.app/Contents/Developer",
+    "xcodeVersion": "26.6"
+  },
+  "runner": {
+    "os": "macOS",
+    "arch": "ARM64",
+    "imageOS": "macos26",
+    "imageVersion": "20260907.0351.1"
+  },
+  "tooling": {
+    "appiumVersion": "3.8.0",
+    "xcuitestVersion": "12.13.3"
+  },
+  "commands": [
+    {
+      "command": "/usr/bin/sw_vers",
+      "args": [],
+      "log": "01-macos.log",
+      "startedAt": "2026-10-05T05:40:51.706Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:51.735Z",
+      "finishedAt": "2026-10-05T05:40:51.736Z"
+    },
+    {
+      "command": "/usr/bin/xcodebuild",
+      "args": [
+        "-version"
+      ],
+      "log": "02-xcode.log",
+      "startedAt": "2026-10-05T05:40:51.736Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:52.554Z",
+      "finishedAt": "2026-10-05T05:40:52.554Z"
+    },
+    {
+      "command": "/usr/libexec/PlistBuddy",
+      "args": [
+        "-c",
+        "Print :CFBundleShortVersionString",
+        "/Applications/Safari.app/Contents/Info.plist"
+      ],
+      "log": "03-safari-version.log",
+      "startedAt": "2026-10-05T05:40:52.555Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:52.569Z",
+      "finishedAt": "2026-10-05T05:40:52.569Z"
+    },
+    {
+      "command": "/usr/libexec/PlistBuddy",
+      "args": [
+        "-c",
+        "Print :CFBundleVersion",
+        "/Applications/Safari.app/Contents/Info.plist"
+      ],
+      "log": "04-safari-build-version.log",
+      "startedAt": "2026-10-05T05:40:52.569Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:52.577Z",
+      "finishedAt": "2026-10-05T05:40:52.577Z"
+    },
+    {
+      "command": "/Users/runner/hostedtoolcache/node/24.14.0/arm64/bin/node",
+      "args": [
+        "--import",
+        "tsx",
+        "scripts/ui-modernization-native-server.ts"
+      ],
+      "log": "05-fixture.log",
+      "startedAt": "2026-10-05T05:40:52.577Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:42:22.637Z",
+      "finishedAt": "2026-10-05T05:42:22.637Z"
+    },
+    {
+      "command": "/usr/bin/defaults",
+      "args": [
+        "write",
+        "-g",
+        "NSAutomaticInlinePredictionEnabled",
+        "-bool",
+        "false"
+      ],
+      "log": "06-disable-NSAutomaticInlinePredictionEnabled.log",
+      "startedAt": "2026-10-05T05:40:54.140Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:54.222Z",
+      "finishedAt": "2026-10-05T05:40:54.222Z"
+    },
+    {
+      "command": "/usr/bin/defaults",
+      "args": [
+        "read",
+        "-g",
+        "NSAutomaticInlinePredictionEnabled"
+      ],
+      "log": "07-read-NSAutomaticInlinePredictionEnabled.log",
+      "startedAt": "2026-10-05T05:40:54.222Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:54.255Z",
+      "finishedAt": "2026-10-05T05:40:54.255Z"
+    },
+    {
+      "command": "/usr/bin/defaults",
+      "args": [
+        "write",
+        "-g",
+        "NSAutomaticSpellingCorrectionEnabled",
+        "-bool",
+        "false"
+      ],
+      "log": "08-disable-NSAutomaticSpellingCorrectionEnabled.log",
+      "startedAt": "2026-10-05T05:40:54.255Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:54.284Z",
+      "finishedAt": "2026-10-05T05:40:54.284Z"
+    },
+    {
+      "command": "/usr/bin/defaults",
+      "args": [
+        "read",
+        "-g",
+        "NSAutomaticSpellingCorrectionEnabled"
+      ],
+      "log": "09-read-NSAutomaticSpellingCorrectionEnabled.log",
+      "startedAt": "2026-10-05T05:40:54.285Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:54.305Z",
+      "finishedAt": "2026-10-05T05:40:54.305Z"
+    },
+    {
+      "command": "/usr/bin/sudo",
+      "args": [
+        "-n",
+        "/usr/bin/safaridriver",
+        "--enable"
+      ],
+      "log": "10-enable-safari.log",
+      "startedAt": "2026-10-05T05:40:54.305Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:40:54.546Z",
+      "finishedAt": "2026-10-05T05:40:54.547Z"
+    },
+    {
+      "command": "/usr/bin/safaridriver",
+      "args": [
+        "--port",
+        "4444"
+      ],
+      "log": "11-safaridriver.log",
+      "startedAt": "2026-10-05T05:40:54.547Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:42:22.586Z",
+      "finishedAt": "2026-10-05T05:42:22.590Z"
+    },
+    {
+      "command": "/Users/runner/hostedtoolcache/node/24.14.0/arm64/bin/node",
+      "args": [
+        "scripts/ui-modernization-browser-floor.mjs"
+      ],
+      "log": "12-native-checks.log",
+      "startedAt": "2026-10-05T05:40:55.062Z",
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-05T05:42:22.565Z",
+      "finishedAt": "2026-10-05T05:42:22.566Z"
+    }
+  ],
+  "limitations": [
+    "Pinned runner-available Apple versions do not establish coverage of newer Safari/iOS releases or the full supported version policy.",
+    "Simulator checks do not establish physical-device, assistive-technology, or complete accessibility conformance."
+  ],
+  "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83",
+  "xcode": "Xcode 26.6\nBuild version 17F113",
+  "safariVersion": "26.6.2",
+  "safariBuildVersion": "21624.5.1.11.3",
+  "textInput": {
+    "domain": "NSGlobalDomain",
+    "preferences": {
+      "NSAutomaticInlinePredictionEnabled": {
+        "configured": false,
+        "readback": "0"
+      },
+      "NSAutomaticSpellingCorrectionEnabled": {
+        "configured": false,
+        "readback": "0"
+      }
+    },
+    "excludedCoverage": [
+      "Native inline predictive text and automatic spelling correction are disabled.",
+      "IME composition and autocorrection compatibility remain unqualified."
+    ]
+  },
+  "finishedAt": "2026-10-05T05:42:23.568Z"
+}

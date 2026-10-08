@@ -1,0 +1,141 @@
+{
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "startedAt": "2026-10-05T05:42:47.771Z",
+  "platform": "darwin",
+  "release": "25.6.0",
+  "arch": "arm64",
+  "node": "v24.14.0",
+  "engine": "chromium",
+  "channel": null,
+  "executablePath": "/Users/runner/work/_temp/kfp-qualified-browsers/edge-previous/read-only-volume/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+  "files": [
+    "scripts/production-bundle.smoke.mjs",
+    "scripts/ui-modernization-runs.smoke.mjs",
+    "scripts/ui-modernization-run-details.smoke.mjs",
+    "scripts/ui-modernization-pipelines.smoke.mjs",
+    "scripts/ui-modernization-workflows.smoke.mjs",
+    "scripts/ui-modernization-artifacts.smoke.mjs",
+    "scripts/ui-modernization-comparison.smoke.mjs",
+    "scripts/ui-modernization-graph.smoke.mjs"
+  ],
+  "status": "passed",
+  "browserVersion": "153.0.4234.48",
+  "playwrightVersion": "1.58.0",
+  "assets": [
+    {
+      "path": "fonts/jetbrains-mono/OFL.txt",
+      "sha256": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b"
+    },
+    {
+      "path": "fonts/public-sans/OFL.txt",
+      "sha256": "705a497c781f6463ff819abb513bb495f3fb05256f1d20321e3275813c0bafa5"
+    },
+    {
+      "path": "index.html",
+      "sha256": "302aea86707e1bbee9d28c6258146abdf942f86e744a5ebdb5f1ea206a667aed"
+    },
+    {
+      "path": "static/Editor-Av_7v3Pg.css",
+      "sha256": "2d41880e43279b1925c8c1c9bd4161bcef6c4533477045f62dd4f9e8712447e0"
+    },
+    {
+      "path": "static/Editor-Av_7v3Pg.css.gz",
+      "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c"
+    },
+    {
+      "path": "static/Editor-D7MnEPsS.js",
+      "sha256": "00d917caae2e2364bae8e4d8b2be5e857d0db7aa7649fac8c96cdad9c0915bb3"
+    },
+    {
+      "path": "static/Editor-D7MnEPsS.js.gz",
+      "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6"
+    },
+    {
+      "path": "static/Editor-D7MnEPsS.js.map",
+      "sha256": "538f8faba181cc0c59659b8b52de1e46b87378b2fce20c10560798051d8762c4"
+    },
+    {
+      "path": "static/favicon.ico",
+      "sha256": "792f3f1737b381689c7cf3618fa30492cdf8cfd5ccbd1e5112d6c08db5419efd"
+    },
+    {
+      "path": "static/index-CFh-NWQJ.js",
+      "sha256": "09caa43e0cb68ede8e363f88907c4b37b05a69a4b34eaa516b3896a8a7a4766a"
+    },
+    {
+      "path": "static/index-CFh-NWQJ.js.gz",
+      "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492"
+    },
+    {
+      "path": "static/index-CFh-NWQJ.js.map",
+      "sha256": "5de1df46e4d502c60b3dc3f2fc0a8c89aa9eb7b4bb8d4c2652e596f54e2165ae"
+    },
+    {
+      "path": "static/index-Cf7JTRXK.css",
+      "sha256": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+    },
+    {
+      "path": "static/index-Cf7JTRXK.css.gz",
+      "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-400-normal-6-qcROiO.woff",
+      "sha256": "658b9ee07b0249cf910a8d6f3d812d46c962bae81d7379a0355b1db35c61586f"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+      "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+      "sha256": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-500-normal-CJOVTJB7.woff",
+      "sha256": "a270dd0bf13d91053b8999b7c120ffadb59680cfd63fe1a6b388a13bf2809fe1"
+    },
+    {
+      "path": "static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+      "sha256": "36274b5787b4f03b27e65ae971d6c808a96838ccd60c9dabaee154889b6bba82"
+    },
+    {
+      "path": "static/public-sans-latin-400-normal-SBbinRkI.woff",
+      "sha256": "edb388a938d470f8b44a273d7b4af7078e731f336afac02fc9376bdf0482193d"
+    },
+    {
+      "path": "static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+      "sha256": "55e866a00caa197bc9fafa52c907f4dfe88e51bbb3f585c777931d03eb961e96"
+    },
+    {
+      "path": "static/public-sans-latin-500-normal-vCxiVFAq.woff",
+      "sha256": "4e0f621591a48e65bb3692b35d3106cdcd28ec7924157b9e6e9a4f082ac92853"
+    },
+    {
+      "path": "static/public-sans-latin-600-normal-BR59oU-I.woff",
+      "sha256": "78ed7ab77673accbd667176aea231d3194e7309a3de9b544ad97efef6dbb139b"
+    },
+    {
+      "path": "static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+      "sha256": "c7842f97346df1b3b470e9d71acde90f132dd858508ec5ae6606401e5d0938f7"
+    },
+    {
+      "path": "static/worker-json-CWEgdERS.js",
+      "sha256": "5164e2950cda1f100cf8cb1b4eaf381671fd2571ebd0407c31dbb7df04bf6b6b"
+    },
+    {
+      "path": "static/worker-json-CWEgdERS.js.gz",
+      "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce"
+    },
+    {
+      "path": "static/worker-yaml-DaGsa-S9.js",
+      "sha256": "ca8e63526fad1fa02902dee7b79a645c2c8cd43b9993b29408f427b3c8769659"
+    },
+    {
+      "path": "static/worker-yaml-DaGsa-S9.js.gz",
+      "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2"
+    }
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "finishedAt": "2026-10-05T05:45:59.273Z"
+}

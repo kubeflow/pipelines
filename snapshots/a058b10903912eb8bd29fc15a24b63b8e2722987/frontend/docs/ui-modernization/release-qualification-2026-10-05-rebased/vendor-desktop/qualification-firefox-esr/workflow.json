@@ -1,0 +1,12 @@
+{
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "runId": "37268437745",
+  "runAttempt": "1",
+  "status": "success",
+  "browserId": "firefox-esr",
+  "platform": "darwin",
+  "release": "25.6.0",
+  "arch": "arm64",
+  "image": "macos26",
+  "imageVersion": "20260907.0351.1"
+}

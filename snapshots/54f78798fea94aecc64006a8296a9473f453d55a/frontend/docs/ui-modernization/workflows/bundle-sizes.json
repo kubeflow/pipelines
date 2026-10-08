@@ -1,0 +1,194 @@
+{
+  "node": "v24.14.0",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "method": "Per-file offline gzip level 9 and Node Brotli defaults. Not HTTP transfer sizes. Includes emitted assets, excludes sourcemaps and analyzer report.",
+  "groups": {
+    "txt": {
+      "files": 2,
+      "bytes": 9027,
+      "gzipBytes": 3998,
+      "brotliBytes": 2910
+    },
+    "html": {
+      "files": 1,
+      "bytes": 1388,
+      "gzipBytes": 776,
+      "brotliBytes": 518
+    },
+    "ico": {
+      "files": 1,
+      "bytes": 5653,
+      "gzipBytes": 5676,
+      "brotliBytes": 5657
+    },
+    "css": {
+      "files": 1,
+      "bytes": 96222,
+      "gzipBytes": 16704,
+      "brotliBytes": 14643
+    },
+    "js": {
+      "files": 3,
+      "bytes": 2849413,
+      "gzipBytes": 783490,
+      "brotliBytes": 640871
+    },
+    "woff": {
+      "files": 5,
+      "bytes": 111272,
+      "gzipBytes": 111286,
+      "brotliBytes": 110723
+    },
+    "woff2": {
+      "files": 5,
+      "bytes": 86880,
+      "gzipBytes": 87005,
+      "brotliBytes": 86872
+    }
+  },
+  "entryAssets": [
+    {
+      "path": "static/index-8lXTuxuW.css",
+      "bytes": 96222,
+      "gzipBytes": 16704,
+      "brotliBytes": 14643,
+      "sha256": "f3dfd462464d4418f97f9d8719880c943ed52e17e2152168b3c16c51c79323c1"
+    },
+    {
+      "path": "static/index-CsUTqcBF.js",
+      "bytes": 2631014,
+      "gzipBytes": 737377,
+      "brotliBytes": 600695,
+      "sha256": "408fa52d300a3bf2c76ea7d77f99037b5dff38d8701a2811a9bf949430d21e26"
+    }
+  ],
+  "assets": [
+    {
+      "path": "fonts/jetbrains-mono/OFL.txt",
+      "bytes": 4524,
+      "gzipBytes": 1997,
+      "brotliBytes": 1457,
+      "sha256": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b"
+    },
+    {
+      "path": "fonts/public-sans/OFL.txt",
+      "bytes": 4503,
+      "gzipBytes": 2001,
+      "brotliBytes": 1453,
+      "sha256": "705a497c781f6463ff819abb513bb495f3fb05256f1d20321e3275813c0bafa5"
+    },
+    {
+      "path": "index.html",
+      "bytes": 1388,
+      "gzipBytes": 776,
+      "brotliBytes": 518,
+      "sha256": "9c8dc2850826a7ae1529b5103717bbd1cb61e2b4bdd77d646fa65ff4c62f70d0"
+    },
+    {
+      "path": "static/favicon.ico",
+      "bytes": 5653,
+      "gzipBytes": 5676,
+      "brotliBytes": 5657,
+      "sha256": "792f3f1737b381689c7cf3618fa30492cdf8cfd5ccbd1e5112d6c08db5419efd"
+    },
+    {
+      "path": "static/index-8lXTuxuW.css",
+      "bytes": 96222,
+      "gzipBytes": 16704,
+      "brotliBytes": 14643,
+      "sha256": "f3dfd462464d4418f97f9d8719880c943ed52e17e2152168b3c16c51c79323c1"
+    },
+    {
+      "path": "static/index-CsUTqcBF.js",
+      "bytes": 2631014,
+      "gzipBytes": 737377,
+      "brotliBytes": 600695,
+      "sha256": "408fa52d300a3bf2c76ea7d77f99037b5dff38d8701a2811a9bf949430d21e26"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-400-normal-6-qcROiO.woff",
+      "bytes": 27496,
+      "gzipBytes": 27509,
+      "brotliBytes": 27376,
+      "sha256": "658b9ee07b0249cf910a8d6f3d812d46c962bae81d7379a0355b1db35c61586f"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+      "bytes": 21168,
+      "gzipBytes": 21196,
+      "brotliBytes": 21153,
+      "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+      "bytes": 21832,
+      "gzipBytes": 21860,
+      "brotliBytes": 21833,
+      "sha256": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-500-normal-CJOVTJB7.woff",
+      "bytes": 28208,
+      "gzipBytes": 28210,
+      "brotliBytes": 28099,
+      "sha256": "a270dd0bf13d91053b8999b7c120ffadb59680cfd63fe1a6b388a13bf2809fe1"
+    },
+    {
+      "path": "static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+      "bytes": 14632,
+      "gzipBytes": 14655,
+      "brotliBytes": 14635,
+      "sha256": "36274b5787b4f03b27e65ae971d6c808a96838ccd60c9dabaee154889b6bba82"
+    },
+    {
+      "path": "static/public-sans-latin-400-normal-SBbinRkI.woff",
+      "bytes": 18488,
+      "gzipBytes": 18486,
+      "brotliBytes": 18381,
+      "sha256": "edb388a938d470f8b44a273d7b4af7078e731f336afac02fc9376bdf0482193d"
+    },
+    {
+      "path": "static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+      "bytes": 14656,
+      "gzipBytes": 14679,
+      "brotliBytes": 14657,
+      "sha256": "55e866a00caa197bc9fafa52c907f4dfe88e51bbb3f585c777931d03eb961e96"
+    },
+    {
+      "path": "static/public-sans-latin-500-normal-vCxiVFAq.woff",
+      "bytes": 18524,
+      "gzipBytes": 18532,
+      "brotliBytes": 18426,
+      "sha256": "4e0f621591a48e65bb3692b35d3106cdcd28ec7924157b9e6e9a4f082ac92853"
+    },
+    {
+      "path": "static/public-sans-latin-600-normal-BR59oU-I.woff",
+      "bytes": 18556,
+      "gzipBytes": 18549,
+      "brotliBytes": 18441,
+      "sha256": "78ed7ab77673accbd667176aea231d3194e7309a3de9b544ad97efef6dbb139b"
+    },
+    {
+      "path": "static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+      "bytes": 14592,
+      "gzipBytes": 14615,
+      "brotliBytes": 14594,
+      "sha256": "c7842f97346df1b3b470e9d71acde90f132dd858508ec5ae6606401e5d0938f7"
+    },
+    {
+      "path": "static/worker-json-8CDXFfik.js",
+      "bytes": 52582,
+      "gzipBytes": 10654,
+      "brotliBytes": 9455,
+      "sha256": "a529115d6321a4385a2f67c1a0285e9e9a8aed98707925a2bc3f36226a798c61"
+    },
+    {
+      "path": "static/worker-yaml-crtWQpDN.js",
+      "bytes": 165817,
+      "gzipBytes": 35459,
+      "brotliBytes": 30721,
+      "sha256": "3d5074049e4cb2e21fcd1d75e38005707816ad733482b2c9b9a2fb12c197fd24"
+    }
+  ]
+}

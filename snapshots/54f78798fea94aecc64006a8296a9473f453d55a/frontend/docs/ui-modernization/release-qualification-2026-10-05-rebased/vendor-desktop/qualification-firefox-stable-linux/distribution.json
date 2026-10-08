@@ -1,0 +1,53 @@
+{
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "resolvedAt": "2026-09-30",
+  "browser": {
+    "id": "firefox-stable-linux",
+    "browser": "firefox",
+    "version": "157.0",
+    "archiveVersion": "157.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "runner": "ubuntu-24.04",
+    "url": "https://archive.mozilla.org/pub/firefox/releases/157.0/linux-x86_64/en-US/firefox-157.0.tar.xz",
+    "sha256": "42f2c62a562316982ef5a796738c57602bf84a984f5c616e80bcff4627f78fff",
+    "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/157.0/SHA256SUMS",
+    "qualification": "policy",
+    "resolvedAt": "2026-09-30"
+  },
+  "platform": "linux",
+  "architecture": "x64",
+  "runnerImage": "ubuntu24",
+  "runnerImageVersion": "20260927.320.1",
+  "status": "passed",
+  "download": {
+    "url": "https://archive.mozilla.org/pub/firefox/releases/157.0/linux-x86_64/en-US/firefox-157.0.tar.xz",
+    "sha256": "42f2c62a562316982ef5a796738c57602bf84a984f5c616e80bcff4627f78fff",
+    "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/157.0/SHA256SUMS"
+  },
+  "actualVersion": "157.0",
+  "vendorVersion": "Mozilla Firefox 157.0",
+  "binarySha256": "3ba77228cea10dd8797724d1979dfe4bf8083122d5f5342c2e477d9a1c506979",
+  "updatePolicy": {
+    "DisableAppUpdate": true
+  },
+  "driver": {
+    "version": "0.37.1",
+    "url": "https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-linux64.tar.gz",
+    "sha256": "e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e",
+    "source": "https://api.github.com/repos/mozilla/geckodriver/releases/tags/v0.37.1",
+    "download": {
+      "url": "https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-linux64.tar.gz",
+      "sha256": "e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e",
+      "checksumSource": "https://api.github.com/repos/mozilla/geckodriver/releases/tags/v0.37.1"
+    },
+    "actualVersion": "geckodriver 0.37.1 (300705c65d1b 2026-07-17 09:25 +0000)",
+    "binarySha256": "f831b7e61454804e8a307edd951bf8a5f373efe3f718e75454a6485a51f6e39f"
+  },
+  "postSuiteIdentity": {
+    "status": "passed",
+    "actualVersion": "Mozilla Firefox 157.0",
+    "binarySha256": "3ba77228cea10dd8797724d1979dfe4bf8083122d5f5342c2e477d9a1c506979",
+    "checkedAt": "2026-10-05T05:40:49.770Z"
+  }
+}

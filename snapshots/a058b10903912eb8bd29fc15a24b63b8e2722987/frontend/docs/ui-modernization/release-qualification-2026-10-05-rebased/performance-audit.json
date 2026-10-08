@@ -1,0 +1,129 @@
+{
+  "status": "pass",
+  "run": {
+    "id": "37268437794",
+    "attempt": "1",
+    "testedSource": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+    "pullRequestHead": "8de88ada3ca3748fbdfbce6f2c6c69d60766b8be"
+  },
+  "sources": {
+    "legacy": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+    "checkpoint": "e79f8d423e6b118e5df94815ee2f36f68570a9a9",
+    "previous": "439304aa4ed3a20ae5a7c004b96936cb65c3aff0",
+    "candidate": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507"
+  },
+  "samples": 126,
+  "traceFilesVerified": 126,
+  "traceEventsParsed": 2681644,
+  "traceTransferAndEditorEndpointCrossChecks": true,
+  "staticTransfersVerified": {
+    "legacy": 84,
+    "previous": 105,
+    "candidate": 105
+  },
+  "comparisonsIndependentlyRecalculated": 29,
+  "entryGzipBytes": 596806,
+  "entryGzipAudit": {
+    "runtime": "v24.14.0",
+    "zlib": "1.3.1-e00f703",
+    "entryGzipBytes": {
+      "legacy": 785657,
+      "checkpoint": 596673,
+      "previous": 596806,
+      "candidate": 596806
+    }
+  },
+  "candidateNonEditorSamplesWithoutEditorOrWorkerRequests": 35,
+  "mediansMs": {
+    "runs": {
+      "previous": 13319.599999999977,
+      "candidate": 5385.199999999953
+    },
+    "run-details": {
+      "previous": 13405.79999999993,
+      "candidate": 5431.59999999986
+    },
+    "compare": {
+      "previous": 13520.099999999977,
+      "candidate": 5552.199999999953
+    },
+    "filter": {
+      "previous": 770.4000000001397,
+      "candidate": 770.6000000000058
+    },
+    "run-open": {
+      "previous": 931.5999999998603,
+      "candidate": 943.3000000000466
+    },
+    "task-open": {
+      "previous": 89.30000000004657,
+      "candidate": 87.39999999990687
+    },
+    "editor-display": {
+      "previous": 3339.5,
+      "candidate": 1373.2999999999884
+    },
+    "editor-worker-ready": {
+      "previous": 3690.0999999998603,
+      "candidate": 1454.7000000001863
+    }
+  },
+  "staticBuildAudit": {
+    "sources": {
+      "legacy": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+      "checkpoint": "e79f8d423e6b118e5df94815ee2f36f68570a9a9",
+      "previous": "439304aa4ed3a20ae5a7c004b96936cb65c3aff0",
+      "candidate": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507"
+    },
+    "verifiedInventoryFiles": {
+      "legacy": 6,
+      "checkpoint": 22,
+      "previous": 22,
+      "candidate": 28
+    },
+    "identicalOriginalJsCssFiles": 6,
+    "addedSidecars": [
+      {
+        "path": "static/Editor-Av_7v3Pg.css.gz",
+        "bytes": 370,
+        "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c",
+        "originalBytes": 1649
+      },
+      {
+        "path": "static/Editor-D7MnEPsS.js.gz",
+        "bytes": 143418,
+        "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6",
+        "originalBytes": 531379
+      },
+      {
+        "path": "static/index-CFh-NWQJ.js.gz",
+        "bytes": 579935,
+        "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492",
+        "originalBytes": 2047481
+      },
+      {
+        "path": "static/index-Cf7JTRXK.css.gz",
+        "bytes": 16871,
+        "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c",
+        "originalBytes": 96979
+      },
+      {
+        "path": "static/worker-json-CWEgdERS.js.gz",
+        "bytes": 7322,
+        "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce",
+        "originalBytes": 24460
+      },
+      {
+        "path": "static/worker-yaml-DaGsa-S9.js.gz",
+        "bytes": 23481,
+        "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2",
+        "originalBytes": 76346
+      }
+    ]
+  },
+  "performanceJsonSha256": "ad4d322af38cabe715c8456c334a0902a1f003d2b90a4bc741a3283adf7eb054",
+  "limitations": [
+    "Hosted throttled laboratory fixture measurements, not field percentiles.",
+    "Original JavaScript/CSS byte identity proves product-code parity; runtime transport is intentionally changed."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "phase": "candidate",
+  "strategy": {
+    "type": "Recreate"
+  },
+  "elapsedMs": 40424.77984600009,
+  "podTemplateSha256": "e3464ec6f2773da1a4e869c2df1b5bf6d4ae8396d250e236a63c6a3e49f19862",
+  "image": "localhost:5001/kfp-frontend@sha256:f3ae78b8996577983a5207d8340223f103c768ee4975d6c017a141b20e457f95",
+  "pods": [
+    {
+      "uid": "68745b27-9b47-440d-b0da-380f7ee294d2",
+      "containers": [
+        {
+          "name": "ml-pipeline-ui",
+          "imageID": "docker.io/library/import-2026-10-05@sha256:326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4",
+          "ready": true
+        }
+      ]
+    }
+  ]
+}

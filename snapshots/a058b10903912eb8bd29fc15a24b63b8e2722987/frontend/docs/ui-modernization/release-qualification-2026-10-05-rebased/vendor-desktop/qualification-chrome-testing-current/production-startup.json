@@ -1,0 +1,33 @@
+{
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "timeoutMs": 30000,
+  "status": "passed",
+  "stage": "browser-close",
+  "events": [
+    {
+      "stage": "launch",
+      "at": "2026-10-05T05:41:01.323Z"
+    },
+    {
+      "stage": "version",
+      "at": "2026-10-05T05:41:01.920Z"
+    },
+    {
+      "stage": "new-page",
+      "at": "2026-10-05T05:41:01.921Z"
+    },
+    {
+      "stage": "navigation",
+      "at": "2026-10-05T05:41:02.930Z"
+    },
+    {
+      "stage": "upload-control-ready",
+      "at": "2026-10-05T05:41:03.719Z"
+    },
+    {
+      "stage": "browser-close",
+      "at": "2026-10-05T05:41:03.890Z"
+    }
+  ],
+  "pageErrors": []
+}

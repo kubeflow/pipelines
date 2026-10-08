@@ -1,0 +1,153 @@
+{
+  "recordedAt": "2026-09-29T02:36:02.133Z",
+  "status": "passed",
+  "expectedVersion": "155.0.1",
+  "browserName": "firefox",
+  "checks": [
+    {
+      "name": "required platform features",
+      "status": "passed",
+      "detail": {
+        "features": {
+          "arrayAt": true,
+          "colorMix": true,
+          "dynamicViewport": true,
+          "focusVisible": true,
+          "objectHasOwn": true,
+          "registeredProperties": true,
+          "resizeObserver": true,
+          "structuredClone": true,
+          "weakRef": true
+        },
+        "nativeInputActivation": {
+          "mouseEvent": true,
+          "pointerEvent": true
+        }
+      }
+    },
+    {
+      "name": "Runs loaded names and native name filter",
+      "status": "passed",
+      "detail": {
+        "initialNames": [
+          "Python two steps",
+          "Loops and conditions",
+          "v2-xgboost-ilbo",
+          "Various IO types"
+        ],
+        "filteredName": "v2-xgboost-ilbo"
+      }
+    },
+    {
+      "name": "Run Details graph and task inspection",
+      "status": "passed",
+      "detail": {
+        "height": 30.883331298828125,
+        "nodes": 18,
+        "width": 110.28334045410156
+      }
+    },
+    {
+      "name": "Pipelines cards and keyboard selection",
+      "status": "passed",
+      "detail": null
+    },
+    {
+      "name": "Switch pointer and Space activation preserve unsubmitted feature state",
+      "status": "passed",
+      "detail": {
+        "persistedOrActivated": false
+      }
+    },
+    {
+      "name": "comparison retains both native runs and honest empty data states",
+      "status": "passed",
+      "detail": {
+        "selectedRuns": 2,
+        "parameters": "empty fixture",
+        "scalarMetrics": "empty fixture"
+      }
+    },
+    {
+      "name": "dark theme and narrow command-dialog keyboard containment",
+      "status": "passed",
+      "detail": {
+        "background": "rgb(14, 16, 21)",
+        "foreground": "rgb(236, 238, 244)"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "runs-filtered.png",
+      "sha256": "a1f5c105107afe904e82bca39a0aeacf2d4d4716a0e503ae75f5acf2bb4afabc"
+    },
+    {
+      "path": "run-details-inspector.png",
+      "sha256": "87fde4194b0618524a33843daf1908d2ee3bb86eb1cfd226e079d6390b939740"
+    },
+    {
+      "path": "pipeline-cards.png",
+      "sha256": "3eeb5a5db221c9feb584140af1bc42f84036c612733fcb8fde4e40bc7f558b95"
+    },
+    {
+      "path": "feature-switch.png",
+      "sha256": "1d866b87bf393a6089ed2a3f20fc4f62db6584d8f1e25d451c62393bf5b3209d"
+    },
+    {
+      "path": "comparison.png",
+      "sha256": "8e7eef326b19defa7c1b1b1c0eec38dae2cf1c6a54f844c17b98de2b61445739"
+    },
+    {
+      "path": "command-dialog-narrow-dark.png",
+      "sha256": "a2d7fd2cc4681f4e382c55560b17994030af8857047f4885b8ccfcb87a8020c9"
+    }
+  ],
+  "limitations": [
+    "Native small fixtures; comparison has two runs but no parameters or scalar metrics.",
+    "Desktop viewport checks do not establish actual iOS, assistive-technology, or full workflow parity.",
+    "Page readiness and captured errors are checked; errors before initial Runs readiness are not observed, and this is not a complete network or console trace."
+  ],
+  "capabilities": {
+    "browserName": "firefox",
+    "browserVersion": "155.0.1",
+    "platformName": "mac",
+    "moz:geckodriverVersion": "0.37.1",
+    "acceptInsecureCerts": false
+  },
+  "environment": {
+    "dpr": 1,
+    "height": 815,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "width": 1440
+  },
+  "assets": [
+    {
+      "path": "/static/index-BsE1KeVm.js",
+      "bytes": 2047040,
+      "sha256": "0441ec92d0c0a10cb1388271f9cfb490b3eeb92a58bf1ec51c34e795241b8e86"
+    },
+    {
+      "path": "/static/index-CCppxzAf.css",
+      "bytes": 96832,
+      "sha256": "471a6503f4f13bbd88727cb1851f3a3030be3ebb889148e39fb975ba93deac3e"
+    }
+  ],
+  "errors": [],
+  "applicationSource": "8fe4fb4ec548e18268a5ea4c1a059992b24ee976",
+  "harnessSource": "8fe4fb4ec548e18268a5ea4c1a059992b24ee976",
+  "harnessSha256": "24ff1dbf4dc60fed27dbc34059026d4868830b661279b7440f55275df98ab541",
+  "os": {
+    "name": "macOS",
+    "version": "26.6.2",
+    "build": "25G83",
+    "architecture": "arm64"
+  },
+  "distribution": {
+    "version": "155.0.1",
+    "url": "https://archive.mozilla.org/pub/firefox/releases/155.0.1/mac/en-US/Firefox%20155.0.1.dmg",
+    "sha256": "ab75b7c9f02083de5636cb2248f8d52dd97669878730a20c514f9dc00d9ca0c6",
+    "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/155.0.1/SHA256SUMS"
+  },
+  "capabilityRetention": "Retains browser/driver/platform identity; omits ephemeral profile paths, process IDs and transport addresses."
+}

@@ -1,0 +1,33 @@
+{
+  "artifactZipSha256": "9c4903e0eb302728b91d14949a5c86d4fc5293c6fa2d870f7e1628ded050aaca",
+  "files": {
+    "candidate-client/fonts/jetbrains-mono/OFL.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+    "candidate-client/fonts/public-sans/OFL.txt": "705a497c781f6463ff819abb513bb495f3fb05256f1d20321e3275813c0bafa5",
+    "candidate-client/index.html": "302aea86707e1bbee9d28c6258146abdf942f86e744a5ebdb5f1ea206a667aed",
+    "candidate-client/static/Editor-Av_7v3Pg.css": "2d41880e43279b1925c8c1c9bd4161bcef6c4533477045f62dd4f9e8712447e0",
+    "candidate-client/static/Editor-D7MnEPsS.js": "00d917caae2e2364bae8e4d8b2be5e857d0db7aa7649fac8c96cdad9c0915bb3",
+    "candidate-client/static/Editor-D7MnEPsS.js.map": "954ed4a6a45ebc024a20c98cf75129ea9c244c062338836b4ea38a6549b873e0",
+    "candidate-client/static/favicon.ico": "792f3f1737b381689c7cf3618fa30492cdf8cfd5ccbd1e5112d6c08db5419efd",
+    "candidate-client/static/index-CFh-NWQJ.js": "09caa43e0cb68ede8e363f88907c4b37b05a69a4b34eaa516b3896a8a7a4766a",
+    "candidate-client/static/index-CFh-NWQJ.js.map": "5de1df46e4d502c60b3dc3f2fc0a8c89aa9eb7b4bb8d4c2652e596f54e2165ae",
+    "candidate-client/static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df",
+    "candidate-client/static/jetbrains-mono-latin-400-normal-6-qcROiO.woff": "658b9ee07b0249cf910a8d6f3d812d46c962bae81d7379a0355b1db35c61586f",
+    "candidate-client/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+    "candidate-client/static/jetbrains-mono-latin-500-normal-CJOVTJB7.woff": "a270dd0bf13d91053b8999b7c120ffadb59680cfd63fe1a6b388a13bf2809fe1",
+    "candidate-client/static/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a",
+    "candidate-client/static/public-sans-latin-400-normal-8Rpg0ruU.woff2": "36274b5787b4f03b27e65ae971d6c808a96838ccd60c9dabaee154889b6bba82",
+    "candidate-client/static/public-sans-latin-400-normal-SBbinRkI.woff": "edb388a938d470f8b44a273d7b4af7078e731f336afac02fc9376bdf0482193d",
+    "candidate-client/static/public-sans-latin-500-normal-NlrCPXnF.woff2": "55e866a00caa197bc9fafa52c907f4dfe88e51bbb3f585c777931d03eb961e96",
+    "candidate-client/static/public-sans-latin-500-normal-vCxiVFAq.woff": "4e0f621591a48e65bb3692b35d3106cdcd28ec7924157b9e6e9a4f082ac92853",
+    "candidate-client/static/public-sans-latin-600-normal-BR59oU-I.woff": "78ed7ab77673accbd667176aea231d3194e7309a3de9b544ad97efef6dbb139b",
+    "candidate-client/static/public-sans-latin-600-normal-Fru-LXNs.woff2": "c7842f97346df1b3b470e9d71acde90f132dd858508ec5ae6606401e5d0938f7",
+    "candidate-client/static/worker-json-CWEgdERS.js": "5164e2950cda1f100cf8cb1b4eaf381671fd2571ebd0407c31dbb7df04bf6b6b",
+    "candidate-client/static/worker-yaml-DaGsa-S9.js": "ca8e63526fad1fa02902dee7b79a645c2c8cd43b9993b29408f427b3c8769659",
+    "legacy-client/index.html": "2b522c6931acdcc51150adfa9e149040f094e699a2414a2269cdc7755d898738",
+    "legacy-client/static/GitHub-Mark-120px-plus-3a2y1fjz.png": "7898110808edb63a715e399ebd3c9bd0281520c5e404a8820f91abffdd7da7e6",
+    "legacy-client/static/index-BxIXFz_o.css": "548147ec2665ab9307e8bca328dfc51b2411f6e004023890ef6144f203f7f03c",
+    "legacy-client/static/favicon.ico": "792f3f1737b381689c7cf3618fa30492cdf8cfd5ccbd1e5112d6c08db5419efd",
+    "legacy-client/static/index-DgtN70-0.js": "17cd40de4ada67a7f8dc4b6b3e55578adaa4064bae817068c330cdf554068024",
+    "legacy-client/static/index-DgtN70-0.js.map": "b78df67dabd5c50539e825ab20c7009d8fab76b23c41d5fc4b51ba50bcc3a596"
+  }
+}

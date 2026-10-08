@@ -1,0 +1,254 @@
+{
+  "sourceCommit": "a058b10903912eb8bd29fc15a24b63b8e2722987",
+  "sourceTree": "bacd4c6227b6140f3c51092fd4f53fe5cb496563",
+  "archiveUrl": "https://github.com/jeffspahr/jeffspahr-pipelines/releases/download/ui-modernization-evidence-20261006/kfp-ui-modernization-evidence-a058b109.tar.gz",
+  "archiveSha256": "7cac429d045e7b2870c3199a76642f391667664abfcfb7f29fbc40352ca95bde",
+  "files": [
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/performance-evidence.json",
+      "bytes": 747313,
+      "sha256": "ea8838a1388eae62db3799f2f8d16e83d1b6cd4b0cba016a6c587bc82d6a8aae",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/layout-stability/performance-evidence.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/lighthouse-accessibility.json",
+      "bytes": 145583,
+      "sha256": "f28d0b5210c7f71a801c63a1d878acb081d9245ee4dda72914673e6ab648820a",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/qualification/lighthouse-accessibility.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/performance-evidence.json",
+      "bytes": 370434,
+      "sha256": "02c2578bc8ce138e1284ec72c71785ba83312bf9b8e8c8deac900af7f09c8bb8",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/qualification/performance-evidence.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/performance.json",
+      "bytes": 2942478,
+      "sha256": "afd9c279dbf421148cad9717443e7d54f32bbc090b02bd766bd68fffb2bf3e3c",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/performance.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/artifact-file-hashes.json",
+      "bytes": 44286,
+      "sha256": "4a5f504b4424368b5d6775c3ccd801b9d3679995453cb8a553daf4ae6439fcf5",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/artifact-file-hashes.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-26/checks/result.json",
+      "bytes": 241997,
+      "sha256": "66edb5cd4bd92d69e52d277814f5a52626893c943e0f7e5281a1356a085b5062",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-26/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-27/checks/result.json",
+      "bytes": 241291,
+      "sha256": "cfad214bbac0350bc41073ef38a4a9386164c4f5349088cf2f6005edfab7b7f1",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-27/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-26/checks/result.json",
+      "bytes": 279474,
+      "sha256": "6eb8000bc076524c3161d767c82eeb6b201d8b7b016f6e95b691151048105b96",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-26/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-26/checks/result.json",
+      "bytes": 285396,
+      "sha256": "383a92b05ef4c62bb3f16fb3573c66e53ec915f380e601ed5a802dfa22182a71",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-26/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-27/checks/result.json",
+      "bytes": 286458,
+      "sha256": "c6e334630eafcf6e2d68aff5a7dbcfc0f52257f3340c509d84eeb635bb46ef5c",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-27/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr/native/result.json",
+      "bytes": 239642,
+      "sha256": "e1d92b01c436893727b85d3d6a451d2c5c3320d0f28fef0da13bca93477091ef",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-linux/native/result.json",
+      "bytes": 239583,
+      "sha256": "3fdca3c02a27c83b78f7790eae464f62cf07cdcd88d27785dfe14de1a6ab601f",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-linux/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-overlap/native/result.json",
+      "bytes": 239613,
+      "sha256": "b1e7ae2237732fb3c215ccb7b22d3fdfd93ed421b7fd496b32bbeee28c3767a0",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-overlap/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-previous/native/result.json",
+      "bytes": 239642,
+      "sha256": "050443b996279f5dde87a78d255dcb105b29db93b7570d48b9f67eca0873da86",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-previous/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable/native/result.json",
+      "bytes": 239638,
+      "sha256": "af559c8280da5ee1fb41ba107d3c163cfeaf76da1402289f9492950108c0aee8",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable-linux/native/result.json",
+      "bytes": 239579,
+      "sha256": "67091b812522b22f1bfb530911a884d0e6343238c762e57740f09caef8c88b27",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable-linux/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/audit.json",
+      "bytes": 64625,
+      "sha256": "c4fd65794b7d441556a8c340436fd13cdb84230e57284971ee80eaa51d05c88b",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/audit.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/profile-authorization-state.json",
+      "bytes": 59270,
+      "sha256": "49b5f5debb61df1de9fd06d424daafb0693ea2ffe4c70c0c2f78ba72b4ff2330",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/profile-authorization-state.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/result.json",
+      "bytes": 73700,
+      "sha256": "3ade2b9ccdf29c540217b3405fb199ce163748e4a23e9b04d089e92cdb1df50a",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/audit.json",
+      "bytes": 61905,
+      "sha256": "a2ce6b98f3571c9d5e39133ee6154b003d64555d429863e00fa946f5e7b76003",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/audit.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/result.json",
+      "bytes": 69673,
+      "sha256": "80836c02ff0c460994ba7b2dbcc76a34797043760b95aec8510f3af49b2569fe",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/performance.json",
+      "bytes": 2949737,
+      "sha256": "535cbd6df44a77076a20a48ab9acae9baa2bf68d4666359556a08cc232f86c49",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/performance.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/result.json",
+      "bytes": 73799,
+      "sha256": "f75151a0f9e141d25560b16e4720c534f00488307a42676865d8c5a17a9f086a",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/result.json",
+      "bytes": 70412,
+      "sha256": "271a8a41db30bbf57c7ab999fcde2d202de83dfec3a179d00c5f0c75d8ecc040",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/performance.json",
+      "bytes": 4319217,
+      "sha256": "5b7d34e7b0f5b6c6897b5f261147565d941ea622236cd54a746067854a6429ef",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05/performance.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/result.json",
+      "bytes": 75206,
+      "sha256": "d136282fcc4ba94e38998e784599a2fc0ad650baedd570523e59cff5e2b7bde6",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/result.json",
+      "bytes": 68488,
+      "sha256": "55a97fa9a2a59eeac8fc728b57c3c93e30563d691e3924a2ad947c319c986a76",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad26/result.json",
+      "bytes": 279616,
+      "sha256": "82a3ff762857190792d13d1d550347b508116fed3cd8997005c322a567030dd7",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad26/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad27/result.json",
+      "bytes": 279294,
+      "sha256": "e7d06047d811042953fada123043a2f030933f5238fe410dccae3571f117998e",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad27/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone26/result.json",
+      "bytes": 285833,
+      "sha256": "c01af16c0e4943f928338095e49576801c2b52ce5fe5c5738b22d0619d23ab2e",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone26/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone27/result.json",
+      "bytes": 286436,
+      "sha256": "9afa464c89480c52ce5cdb4e213b15c79a09eb160543a02214818f7c16226cac",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone27/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/performance.json",
+      "bytes": 4318744,
+      "sha256": "ad4d322af38cabe715c8456c334a0902a1f003d2b90a4bc741a3283adf7eb054",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/performance.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-26/checks/result.json",
+      "bytes": 241762,
+      "sha256": "29ce5bf2ff9608fa1a75ce8f7e89b324ae62b62989465432a5b60f732feb058a",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-26/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-27/checks/result.json",
+      "bytes": 241291,
+      "sha256": "62f774f64f48ef69621677d20b7ed21c071ebd468c6058f5cf43b6d623a24e58",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-27/checks/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/native/result.json",
+      "bytes": 239642,
+      "sha256": "23fba683c6628f091e95369c85511a05fc14f5897572bdf20f1e2aec29c20e35",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/native/result.json",
+      "bytes": 239583,
+      "sha256": "c79150b33c37f7c6200f9e4ea558c4d1a734b41aa521594d9a3ad2d76938f1f8",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/native/result.json",
+      "bytes": 239644,
+      "sha256": "577357f81b77fd59aaa88bbf27203e486c6ca8729ca40958b676c6583aea79d8",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/native/result.json",
+      "bytes": 239611,
+      "sha256": "e62dee394efa6c6bce6128566501f072fdc0a3c9a474eba1a47e76f876f0b5f9",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/native/result.json",
+      "bytes": 239638,
+      "sha256": "a0d702fd755b29946d18c20d671b572360cafd53a4d6f907a6aa31b6424084a9",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/native/result.json",
+      "bytes": 239579,
+      "sha256": "8c8bf4b65107ec93085b38ef70ac247d0184ceff1d1b08069000137b032d5997",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/native/result.json"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/performance-evidence.json",
+      "bytes": 115573,
+      "sha256": "abc710c9740645578e5f4ebdc2430ac9b082321a7059ae0de10a0b500ba09365",
+      "url": "https://github.com/jeffspahr/jeffspahr-pipelines/blob/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/workflows/performance-evidence.json"
+    }
+  ]
+}

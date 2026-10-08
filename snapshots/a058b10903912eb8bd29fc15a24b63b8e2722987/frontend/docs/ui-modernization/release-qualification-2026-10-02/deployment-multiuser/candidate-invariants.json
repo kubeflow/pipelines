@@ -1,0 +1,955 @@
+{
+  "phase": "candidate",
+  "resources": {
+    "Deployment/kubeflow/dashboard": {
+      "uid": "e3f04926-7425-47a5-96e4-d1d7deaf501b",
+      "contentSha256": "8a2e14941dee0a4d2e0da9dea548857f2f43acd07df9571ec6ac6fb9a07ea8b3"
+    },
+    "Deployment/kubeflow/kubeflow-pipelines-profile-controller": {
+      "uid": "673fcb0e-950c-4730-b5c0-694e2c2e0f31",
+      "contentSha256": "13bc33c7a124a1a022750c9696bfed632113f8e2521aa334723a91588a192cd0"
+    },
+    "Deployment/kubeflow/ml-pipeline": {
+      "uid": "563f0b8c-f4e6-4bb9-a1cc-ca6ef28036df",
+      "contentSha256": "e6f223e90b5080aa070d18180e6f90730aa70c8caea555df177313d90006a9fc"
+    },
+    "Deployment/kubeflow/ml-pipeline-persistenceagent": {
+      "uid": "f068535e-dacb-43f3-9aee-ca6f193bc9fd",
+      "contentSha256": "8839d04d3d075e69f63153e919891770c602ee5d66478d7582627979916b34bd"
+    },
+    "Deployment/kubeflow/ml-pipeline-scheduledworkflow": {
+      "uid": "1411d4b3-11ee-46f6-bd09-6e617ba768df",
+      "contentSha256": "28c85fabd978b8cee94090ff5ebc5bf8b55678f62a7bddb7e3d5ef0489ceb6d8"
+    },
+    "Deployment/kubeflow/ml-pipeline-viewer-crd": {
+      "uid": "65c29cb0-7506-4251-a6f0-64d702ab34de",
+      "contentSha256": "01468a7873ec848a6f04f8814e7661118fdf42d84f326caae426741de3d7b93b"
+    },
+    "Deployment/kubeflow/mysql": {
+      "uid": "132b7713-b56f-46b5-836c-8975496ea47f",
+      "contentSha256": "8ddf2c40f5d90c17b6637bc25db298ab2f5e1269511ff8186e029280368279d4"
+    },
+    "Deployment/kubeflow/profiles-deployment": {
+      "uid": "ba6d8bbd-291a-4de9-a282-edcf8ce4f35b",
+      "contentSha256": "f739686e8d7f2e70b40dbed3190d88b312e5d56ec55ce2ec365c0af356f18666"
+    },
+    "Deployment/kubeflow/seaweedfs": {
+      "uid": "67d3b68c-2e60-46f6-b927-28cb17593e99",
+      "contentSha256": "fba9d46666ea7acd4413abd5dbd5d4fddf279472bf6ad4bbb8a3f51d58d156e3"
+    },
+    "Deployment/kubeflow/workflow-controller": {
+      "uid": "b9a5197a-5e8d-43d2-8934-5972efb1816b",
+      "contentSha256": "b9c7e425ba245444742830915ae95496015c3613b6db5e7bb8832d6b3b416983"
+    },
+    "StatefulSet/kubeflow/metacontroller": {
+      "uid": "c5db4ebb-9e49-4fed-b9af-3ab693253ea3",
+      "contentSha256": "d9479db4663e506d6e0764b02b078549178ffe43b67054d06b0d762c634326a9"
+    },
+    "ConfigMap/kubeflow/dashboard-config": {
+      "uid": "a1bb5fa0-f59b-4500-be28-3769d81666d0",
+      "contentSha256": "db65a645f03577bdcc51c601ed6c952217d03a7cce0e5d02d79370b69b99d077"
+    },
+    "ConfigMap/kubeflow/dashboard-parameters-ckkh684h89": {
+      "uid": "2fd358ca-dca1-484f-b62c-92ebf71cce4c",
+      "contentSha256": "5f1fe03556a594d7e94d8e65b432abee6e8a1d621b14178363a599d4bfce3181"
+    },
+    "ConfigMap/kubeflow/dns-config": {
+      "uid": "55d1c4de-2aed-461a-a02f-05b9e85f5f4e",
+      "contentSha256": "fbc02b7ba33f2e0994d4a234a760e952332bbe49005e70acb53e975d5dc55f4a"
+    },
+    "ConfigMap/kubeflow/istio-ca-crl": {
+      "uid": "c03d1ac3-b8f1-4d28-9a55-4ed7849f7d9c",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/kubeflow/istio-ca-root-cert": {
+      "uid": "a965930f-0222-4623-9fd2-d83b7f98d498",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ConfigMap/kubeflow/kfp-cluster-scoped-params": {
+      "uid": "a02e16ac-6e01-46c3-a548-a391b980ca3d",
+      "contentSha256": "008766da260629f4c3fb24a6a260fb9461a79ecf2bb136e234556e23c6fe7bd1"
+    },
+    "ConfigMap/kubeflow/kfp-launcher": {
+      "uid": "4fce0fa1-cd1c-492b-b2c5-c00682879a52",
+      "contentSha256": "2383f1d2734879530db702a4ca180f2c72f88279435b8cf3f7e10e978fe9b37e"
+    },
+    "ConfigMap/kubeflow/kubeflow-pipelines-profile-controller-code-4t2f5mh9hh": {
+      "uid": "84fd58d9-3c11-4ace-9dee-ddfaa7914278",
+      "contentSha256": "92b0645105fe4a7143c25b68bd430d6aaf81a81c6576ce23b00ca68fb67c0064"
+    },
+    "ConfigMap/kubeflow/kubeflow-pipelines-profile-controller-env-5252m69c4c": {
+      "uid": "43d97507-1177-4da7-8195-4d1837c51c2b",
+      "contentSha256": "1900bcb4bde05c76721e9c7eb1e4b69165c1f4d97206502c19407daaba138a61"
+    },
+    "ConfigMap/kubeflow/kubeflow-pipelines-public": {
+      "uid": "a145e5f8-74a9-411e-98c7-be94d24f9355",
+      "contentSha256": "da0ec9bf11facf0998d96f191ea661f82af983ead04c93493a4f0da2d7299e3d"
+    },
+    "ConfigMap/kubeflow/ml-pipeline-ui-configmap": {
+      "uid": "59b0d91d-2437-416b-8519-75e4631f5999",
+      "contentSha256": "289b3d2023601c8c4d85747f55423c730f24162379fe410a98b636e00c2c51e5"
+    },
+    "ConfigMap/kubeflow/ml-pipeline-ui-signing-key-init-5mgh4487ch": {
+      "uid": "7d84cd52-74f8-4057-b72c-ba12e636cd2d",
+      "contentSha256": "2cbdcefea11c779baf82a1bf9f0d2df602e69d75285f2197dc94741c640fd4d6"
+    },
+    "ConfigMap/kubeflow/pipeline-api-server-config-d642bm64bt": {
+      "uid": "d2f01a68-7719-4c3d-b133-7449cca52f44",
+      "contentSha256": "28ad9e4789beb433c91308a8dfaf58dbe296907ee6fa6f9e537527194a35e126"
+    },
+    "ConfigMap/kubeflow/pipeline-install-config": {
+      "uid": "2c3e5777-00e9-4bcf-b073-d7fd8211e734",
+      "contentSha256": "9c146b1e38000658d7ce7bea36acf024be0b0c70b4cd441cb0f50f5a46d965b6"
+    },
+    "ConfigMap/kubeflow/profiles-config-5h9m86f79f": {
+      "uid": "76fd844d-c930-4106-9428-b678b1ed6464",
+      "contentSha256": "9f748df6281a9bc7900723176d91494a463f59750b0ebe3d1d9d5d5e76bf9248"
+    },
+    "ConfigMap/kubeflow/profiles-namespace-labels-data-mffmt88gh4": {
+      "uid": "c9d90402-18c0-490c-8daf-8ae5043f87b8",
+      "contentSha256": "1d04597b113294f41e3e899cb131773480cd82958e6274bbaba99d1ad2eb3488"
+    },
+    "ConfigMap/kubeflow/workflow-controller-configmap": {
+      "uid": "797cef07-eb5b-4ec7-82d3-c3d4649a7662",
+      "contentSha256": "71aaf6fefcc28a43676a0e1ed3e49de13900979a9701c290c8e1d2e9d32a1176"
+    },
+    "ServiceAccount/kubeflow/argo": {
+      "uid": "a49bbf17-cf45-4527-8e0a-a8488e0a3a09",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/dashboard": {
+      "uid": "555579e0-883d-4b9e-804a-0c0a108ac9d2",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/default": {
+      "uid": "1c6cc241-2ba8-4125-a3e3-f61a91c3797f",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/kubeflow-pipelines-container-builder": {
+      "uid": "68891b5e-fe3e-4eab-9133-45b87dd31fc3",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/kubeflow-pipelines-viewer": {
+      "uid": "2d23bf04-53c6-4b12-845d-1240c111cb9c",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/meta-controller-service": {
+      "uid": "6eaee9c9-368c-40fb-8a8c-daacc15bf8c3",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline": {
+      "uid": "e66a5c0c-f8b5-41ea-af33-cd69eef07e8a",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-persistenceagent": {
+      "uid": "b920c1be-7002-4ea1-8749-bd31d6adc58b",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-scheduledworkflow": {
+      "uid": "5517c262-2ab4-44b0-ac87-01b6d844a3d1",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-ui": {
+      "uid": "ce722b37-783f-4ec9-ac9e-16b5241cae5d",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-ui-signing-key-init": {
+      "uid": "fe346237-d29f-4c0a-8aa5-33d09969b309",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-viewer-crd-service-account": {
+      "uid": "ba0befb5-248b-4bff-88ea-7a12c3743a4f",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/mysql": {
+      "uid": "eca27d6f-7ce1-4638-b929-f709c2c80b27",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/pipeline-runner": {
+      "uid": "2a531609-d148-407d-a047-c04417d0f934",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/profiles-controller-service-account": {
+      "uid": "b7aef5e6-0978-4f19-a566-a2a8b1e7f7c8",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/seaweedfs": {
+      "uid": "2baa95c8-a336-4740-994d-5d3ee7c7a583",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "Role/kubeflow/argo-role": {
+      "uid": "dcc134e1-2514-4e9b-9e6d-24815e352996",
+      "contentSha256": "13cf7da4532e72e4f3e469428bb25e01457af14b297c731dd2d64daf683d0371"
+    },
+    "Role/kubeflow/dashboard": {
+      "uid": "9af728a8-4fdb-4157-bbfe-663bdf164ab4",
+      "contentSha256": "05cec6f4d9ec8c6516ca759264a2024b6466693b00188e278b178dbfe3807b42"
+    },
+    "Role/kubeflow/kubeflow-pipelines-public": {
+      "uid": "7c624ca4-be5a-4d18-8024-93a8cb375579",
+      "contentSha256": "88a88ec6bc5948907ae7de805751a37486cc1666a4decd192733879010ce646d"
+    },
+    "Role/kubeflow/ml-pipeline": {
+      "uid": "37a01d4a-5eb7-4593-afa7-9c2894807ef0",
+      "contentSha256": "e3bfe08b49cd8f9a3a6699e974e50a9568e8a5b271ef1f17f40948f522d66193"
+    },
+    "Role/kubeflow/ml-pipeline-persistenceagent-role": {
+      "uid": "d8470e54-9978-4bc0-914d-e15b23169d40",
+      "contentSha256": "7b294132232829f55db0df6225809475b88d461fecb251cd87499740a8ffffad"
+    },
+    "Role/kubeflow/ml-pipeline-scheduledworkflow-role": {
+      "uid": "45a41548-e379-4c9b-9112-a7ab8fed3588",
+      "contentSha256": "27a4621003e2673828fc1f1e02657b8ac94f9a1daf559de743377a44f0534c23"
+    },
+    "Role/kubeflow/ml-pipeline-ui": {
+      "uid": "bc94647a-822f-4c63-a418-8e0413462f4a",
+      "contentSha256": "3ebc4616d31aac851816147a95b3db7f68af8ed25aad4e74d2eda338ca840da9"
+    },
+    "Role/kubeflow/ml-pipeline-ui-signing-key-init": {
+      "uid": "a5494a65-4ff7-445f-80b5-e8cd7fc440b9",
+      "contentSha256": "bb651c0e1dba4c0750948e136b64f17e3a39625b2b450c7150df0e8cbd2c97ed"
+    },
+    "Role/kubeflow/ml-pipeline-viewer-controller-role": {
+      "uid": "c7c42578-9e1e-4cc6-a0b8-8f4f1d8b27eb",
+      "contentSha256": "d6e1deb2c3bea6f7251321a419bff36447d81b7327baeb61b87661290692cbee"
+    },
+    "Role/kubeflow/pipeline-runner": {
+      "uid": "b5c05c1d-336c-4c81-b504-6e73b72d361e",
+      "contentSha256": "75e4a63e455d583c7f5775c7d6f387ee6c07789083debde28fe0a8c392dee4ba"
+    },
+    "Role/kubeflow/profiles-leader-election-role": {
+      "uid": "fd6e7b0e-6184-4874-a016-488d54b5b0f5",
+      "contentSha256": "9413c3fa3241486bdc9d2a49da6187da14a855279b3c313387b320fc76c316b1"
+    },
+    "RoleBinding/kubeflow/argo-binding": {
+      "uid": "3d822bf3-f50a-42ef-ac94-f92d19e183c4",
+      "contentSha256": "8e901842c92d9228d97f3278203ec3b4669106b8356095c6a8d238d313d40555"
+    },
+    "RoleBinding/kubeflow/dashboard": {
+      "uid": "dd4ff0a3-71e7-437b-8804-7fa864b3d730",
+      "contentSha256": "6fc062b2916832c192263907ade7f240f54bc273dd4c413166c80f0b5b553f12"
+    },
+    "RoleBinding/kubeflow/kubeflow-pipelines-public": {
+      "uid": "6777eed4-47ac-4387-8569-77b564216dc7",
+      "contentSha256": "2cdff6e6dda7312faab5b646bf980d6134f902bb01e85bf08c6037c0c7bff1dd"
+    },
+    "RoleBinding/kubeflow/ml-pipeline": {
+      "uid": "054889c6-34a5-42b3-b7d4-01c8fe942665",
+      "contentSha256": "78b17da843eb5547c4dd794d459b40a0d0dda8e34a36a08c2bddcd63bc7bc2cf"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-persistenceagent-binding": {
+      "uid": "dd92c570-1bc8-45f9-9989-46dc1ad94c62",
+      "contentSha256": "441ecf96ac5ba49940db67563e1188e8b80c79dcd58a2f286b0ddfc50d87763c"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-scheduledworkflow-binding": {
+      "uid": "9645cf3b-8cbf-4475-b140-fc4c3bf97057",
+      "contentSha256": "7a7e879c59e81b0c9d941e9c4082dcab140c4603fe66e45d4caa45812aba0b46"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-ui": {
+      "uid": "0e58831f-be30-4007-8eda-71fa9e9aaa64",
+      "contentSha256": "2138b10275be4eaca4d0ad9aaf679ed44595d7551884b80cbafcbcabbed59a32"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-ui-signing-key-init": {
+      "uid": "395e31f9-db3a-4abe-813d-61ddaac82da0",
+      "contentSha256": "622ec355570ee56afafeccca7136cc8b49091a0334ac16a5135a7bb0143ce068"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-viewer-crd-binding": {
+      "uid": "4b2bccab-145c-420b-a4cf-401d0e626341",
+      "contentSha256": "db816c6037ba064d067857c7fa81e0b76551b4d4bfd62f339d264124b11f2f8b"
+    },
+    "RoleBinding/kubeflow/pipeline-runner-binding": {
+      "uid": "c588eb93-124d-4303-a182-933a3af591b8",
+      "contentSha256": "59d68f7a7d2a5b1d17eedabbf61a8fb0fd7ec213db6b9887759875d6b91bc6f9"
+    },
+    "RoleBinding/kubeflow/profiles-leader-election-rolebinding": {
+      "uid": "aed42779-bf0d-434f-8577-17066894a55d",
+      "contentSha256": "a7fd9e30bf691cfe9d34d687c16400346677c082d7cea86bacf1d0747dfe0c8d"
+    },
+    "RoleBinding/kubeflow/shared-pipeline-edit": {
+      "uid": "740c8588-24df-41d6-88a5-914fdff53f98",
+      "contentSha256": "aa4d29add12cfd3bcc400ecd4bb03c8343a0111f53e57b72125ee373691bb373"
+    },
+    "NetworkPolicy/kubeflow/allow-user-namespace-access": {
+      "uid": "78b725e6-e10e-4027-b827-c657c9189fd6",
+      "contentSha256": "93876dd00f33ac540b1a9b7ec69c9e2de62fa9e84796f6d526dc06f387cdcefe"
+    },
+    "NetworkPolicy/kubeflow/dashboard": {
+      "uid": "5fd62387-91e7-45d5-b49e-ca3a3a7e71f8",
+      "contentSha256": "3c65bdf04c6734931f1d3eddc025fa652777944fad46a4dd2f5f88f730d66380"
+    },
+    "NetworkPolicy/kubeflow/kubeflow-pipelines-profile-controller": {
+      "uid": "a81c6816-13a2-4089-80cb-d961a15b9ef6",
+      "contentSha256": "c50be6e1e1d6c414999b2472511f03fb4b242b31789cd489e4c69f682d7b4b8c"
+    },
+    "NetworkPolicy/kubeflow/profiles-kfam": {
+      "uid": "06a64f39-2211-44eb-82aa-b305836782f2",
+      "contentSha256": "4f9cbf2077a0f9314ade9740655e93751c19b7efe565003c9667af564970591c"
+    },
+    "NetworkPolicy/kubeflow/qualification-ingress-to-pipeline-ui": {
+      "uid": "33ee76bc-b96a-4e53-9009-265ceda13eb0",
+      "contentSha256": "40712576ac1c77f449938b28d96ecaa58ddf4fb50908598725a57586bf6c5a35"
+    },
+    "NetworkPolicy/kubeflow/seaweedfs": {
+      "uid": "c3a92040-85e8-43db-b6ff-2aacf2e9deab",
+      "contentSha256": "db820906e368b51e72aeb0c425faba479516f1780922cf117ba7576df2612569"
+    },
+    "Deployment/kubeflow-user-example-com/ml-pipeline-ui-artifact": {
+      "uid": "dde0e42d-4191-4617-b87d-a60482dfd632",
+      "contentSha256": "6208b6bd9b60811fa7cf65e187a7b5040acaa0d4d9887755b592610e207d7e14"
+    },
+    "Deployment/kubeflow-user-example-com/viewer-86f51bef648affc92caad8147c9579b5eb478c35-deployment": {
+      "uid": "a320e17d-5dc1-471b-b301-1fdea1cc440d",
+      "contentSha256": "9def24d3811e5308d262ce6c60e339fae786da67035e3d77808ca41d5dd21eb6"
+    },
+    "ConfigMap/kubeflow-user-example-com/artifact-repositories": {
+      "uid": "561cabbf-2eda-4b25-8768-95ef5c8873a2",
+      "contentSha256": "b8c4d012f0746870fbdcc6f73067ef0dbce2c9d28108edb2a8937097219d8efa"
+    },
+    "ConfigMap/kubeflow-user-example-com/istio-ca-crl": {
+      "uid": "9e299266-a4f6-4c90-92b1-20398a18c9ec",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/kubeflow-user-example-com/istio-ca-root-cert": {
+      "uid": "5eecf5b7-074b-4b49-aa7b-d595015a8706",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ConfigMap/kubeflow-user-example-com/kfp-launcher": {
+      "uid": "600f0eb5-0ef7-4d72-856f-34750aaaca73",
+      "contentSha256": "f8830ff23b32f3ccbd05310a829b521510aa05a1445be78694a125ebac482ac3"
+    },
+    "ServiceAccount/kubeflow-user-example-com/default": {
+      "uid": "5051cbd8-704d-4b76-bdc3-77e048c3902f",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow-user-example-com/default-editor": {
+      "uid": "5d6e78ff-84b3-4d60-81c6-dde7ceda55d5",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow-user-example-com/default-viewer": {
+      "uid": "99868301-f300-47ec-ae6b-b9a991393da7",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "RoleBinding/kubeflow-user-example-com/default-editor": {
+      "uid": "58ff4b17-08a0-4b2e-9aeb-cb76ae725524",
+      "contentSha256": "aa4d29add12cfd3bcc400ecd4bb03c8343a0111f53e57b72125ee373691bb373"
+    },
+    "RoleBinding/kubeflow-user-example-com/default-viewer": {
+      "uid": "15885696-e16c-4d38-a5e3-60ff754764ef",
+      "contentSha256": "9e3b043fcbb79ec31e6adcaed5034520795c5bc4f9c161b7123c79aa20bcf253"
+    },
+    "RoleBinding/kubeflow-user-example-com/namespaceAdmin": {
+      "uid": "2afe3a12-e4df-498b-9194-4c86e4b90a35",
+      "contentSha256": "cb9a5dd105b7e320c708ed85daf7b28615cf27440e0d3a423e77b719e99d51d4"
+    },
+    "Deployment/kfp-qualification-second/ml-pipeline-ui-artifact": {
+      "uid": "dd7b205c-abdb-4fc7-b932-4ab48b95d659",
+      "contentSha256": "bc2a8d3a3bd24d8976495bf4f458435de5e7a0a1ece31028e188fb8fc835acfa"
+    },
+    "ConfigMap/kfp-qualification-second/artifact-repositories": {
+      "uid": "81ff2764-0311-48f1-84f2-3d654f1546d5",
+      "contentSha256": "f05e5ebb28e01e9c883cd7812ae6baad896fa3f13ff386cccb716d53325094ef"
+    },
+    "ConfigMap/kfp-qualification-second/istio-ca-crl": {
+      "uid": "2a284269-db4b-4fa7-85bd-879e06ff6040",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/kfp-qualification-second/istio-ca-root-cert": {
+      "uid": "7a5e6132-5230-4836-8933-26fe242efd8c",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ConfigMap/kfp-qualification-second/kfp-launcher": {
+      "uid": "892ca3a1-68a9-4862-b78f-aa230ce9ef98",
+      "contentSha256": "2fc14f180a9d88df6108403bc65b5098f7f4f32f97c6a5d43881ccf4ab89074c"
+    },
+    "ServiceAccount/kfp-qualification-second/default": {
+      "uid": "df5a3551-9abb-456a-b758-e9ee297fc1b6",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kfp-qualification-second/default-editor": {
+      "uid": "2b036571-c917-433b-95b2-579e2687cdab",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kfp-qualification-second/default-viewer": {
+      "uid": "d798952f-957c-4ee3-a3b6-5b1a9cf28202",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "RoleBinding/kfp-qualification-second/default-editor": {
+      "uid": "0ba1cba0-ecb3-4213-9bf1-829cb48e5452",
+      "contentSha256": "262e637121b156f7691c34e923a8cceb86e6c3a7da181a311844bfdf2efee9bd"
+    },
+    "RoleBinding/kfp-qualification-second/default-viewer": {
+      "uid": "b757cb56-3391-4720-840c-3003c9d68f1e",
+      "contentSha256": "bbb9dbad928fc397df3f406398526cafd17a0fd43e1f280f6385f8baf515a79b"
+    },
+    "RoleBinding/kfp-qualification-second/namespaceAdmin": {
+      "uid": "3e2cdcce-f7b0-478a-a4b7-bc909acd83ed",
+      "contentSha256": "cb9a5dd105b7e320c708ed85daf7b28615cf27440e0d3a423e77b719e99d51d4"
+    },
+    "Deployment/kfp-qualification-other/ml-pipeline-ui-artifact": {
+      "uid": "d8dc6196-0e0e-445b-b7a7-4d8c1f5a8907",
+      "contentSha256": "432c9b53dee3f6b835648106dcd453d5813ca5b5ea65d5097460bddd5dedd8f2"
+    },
+    "ConfigMap/kfp-qualification-other/artifact-repositories": {
+      "uid": "9485c49d-ebd6-441b-9894-aefdfecafd46",
+      "contentSha256": "5acea705e8c08ef184c26fc5a05e0e15e9c434f9c7910429ee3a4c256c579951"
+    },
+    "ConfigMap/kfp-qualification-other/istio-ca-crl": {
+      "uid": "24afeb58-78bc-4650-8f55-7639b515021e",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/kfp-qualification-other/istio-ca-root-cert": {
+      "uid": "9fc10f4b-e4e6-4fa0-849a-76b10f90f54a",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ConfigMap/kfp-qualification-other/kfp-launcher": {
+      "uid": "ad74ef8a-f649-4e87-a016-eeaac016ad4b",
+      "contentSha256": "fb8293314a149eaf8c7224748f23617c4b038e272fb7ecf1cd28c6ad7e74dc5a"
+    },
+    "ServiceAccount/kfp-qualification-other/default": {
+      "uid": "5e6fc17b-3ba2-4d76-8c05-33b47f3613af",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kfp-qualification-other/default-editor": {
+      "uid": "a5f14925-ab58-4402-9712-ce44451ef8aa",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kfp-qualification-other/default-viewer": {
+      "uid": "7283c7dd-e65f-4c29-9890-48b6e551c69d",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "RoleBinding/kfp-qualification-other/default-editor": {
+      "uid": "3f44ef74-7435-4937-8b0a-cf746716121e",
+      "contentSha256": "8c3a37bc4e4265701845c97fc857efa072f01835a4e2258089037a2de0c00cf6"
+    },
+    "RoleBinding/kfp-qualification-other/default-viewer": {
+      "uid": "48d415a9-953e-41a3-ad63-8956e9dbcf55",
+      "contentSha256": "975a29be991fff4d0aa6a74b4b1003bf37d324d9d77cfb5263911e572e711473"
+    },
+    "RoleBinding/kfp-qualification-other/namespaceAdmin": {
+      "uid": "f23e8a99-edb3-415a-820e-2bee0f66db48",
+      "contentSha256": "0f7ad907516519898aec057dec93f9a85e8897899ec8ee8bda6151c356b5e2e3"
+    },
+    "Deployment/auth/dex": {
+      "uid": "fc6cd00e-c0bc-4d81-86b4-a42a177d9d77",
+      "contentSha256": "30448b4c01c9c40cd7ea34954bb16126bb81e6f56c8d96a041a9cd92114c189a"
+    },
+    "ConfigMap/auth/dex": {
+      "uid": "ff1de03a-3e7f-4d09-b4d1-038eafb7e7fc",
+      "contentSha256": "4d9c5e8eb7ad200747789142b64db43b16b7a215b03879188479046eea076dff"
+    },
+    "ConfigMap/auth/istio-ca-crl": {
+      "uid": "9d3a028f-3b74-4dba-8a15-296f0dc97d45",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/auth/istio-ca-root-cert": {
+      "uid": "3a89215c-fe4b-4728-bc88-2194db133261",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ServiceAccount/auth/default": {
+      "uid": "3f9b6696-76d6-4775-a1e2-0ed5495c171a",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/auth/dex": {
+      "uid": "d668eeb6-0dba-4ac1-be74-1d2b77337240",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "NetworkPolicy/auth/allow-istio-and-oauth2-proxy": {
+      "uid": "70f7329b-dec2-41de-8a95-6ffe10658732",
+      "contentSha256": "51b74c32be39685abec8984141d295738d75536a29eae8baff306027941cedf7"
+    },
+    "NetworkPolicy/auth/default-allow-same-namespace-auth": {
+      "uid": "08c6d3b0-598b-449f-9cc5-4032bf9652bd",
+      "contentSha256": "896d7ad0d9e64225980a3c35ebc846d7438b55da73eb1bf01b66ff6dbac1f514"
+    },
+    "Deployment/oauth2-proxy/oauth2-proxy": {
+      "uid": "0c809719-2581-48b6-b7b0-6dffecae9147",
+      "contentSha256": "79b79ba5f677e1d03f3879ed0b06d013fd3edf17e1ae6583cd0df908a717d804"
+    },
+    "ConfigMap/oauth2-proxy/istio-ca-crl": {
+      "uid": "f82e0cb9-6b1b-4e97-b84c-b348edddd712",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/oauth2-proxy/istio-ca-root-cert": {
+      "uid": "a2154c21-88cf-4a33-8b55-4ad5ec540f99",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ConfigMap/oauth2-proxy/oauth2-proxy-hk55gm96k4": {
+      "uid": "5991b9c4-c492-4c60-8f4f-76ef763b3fd5",
+      "contentSha256": "e529fcccb89ec1df0397bcdb88604fbce4752d06146d32b6d52eb35592e4bae5"
+    },
+    "ConfigMap/oauth2-proxy/oauth2-proxy-parameters-74659b6648": {
+      "uid": "6b961376-4c42-4259-a235-a649f6d378f3",
+      "contentSha256": "0fa6a1fe64c48dde01747568915ecd2c59a121999c6b4ebc99526ff44ad29dd0"
+    },
+    "ConfigMap/oauth2-proxy/oauth2-proxy-theme-5t624ft8b8": {
+      "uid": "390d4eaa-bf21-4fdf-8586-b55f1cc390c5",
+      "contentSha256": "4700c19942a60cc4083a6a80510c3d3895225b787ad83f78afa1b5c38d9e4c7e"
+    },
+    "ServiceAccount/oauth2-proxy/default": {
+      "uid": "bb65d074-915f-4953-8247-2e6ee669f55c",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/oauth2-proxy/oauth2-proxy": {
+      "uid": "c764c101-ef69-4543-ae26-e15003840322",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "NetworkPolicy/oauth2-proxy/allow-istio-ingressgateway": {
+      "uid": "ec454631-e940-41b6-9c57-071bf141eb6f",
+      "contentSha256": "e4b93181912680ff6fe7a153866c8d489a21fb0fd8c508a254d7922e73f390aa"
+    },
+    "NetworkPolicy/oauth2-proxy/default-allow-same-namespace-oauth2-proxy": {
+      "uid": "7a35f6f8-62db-43b8-8b6a-8ca3fcfd9fc6",
+      "contentSha256": "896d7ad0d9e64225980a3c35ebc846d7438b55da73eb1bf01b66ff6dbac1f514"
+    },
+    "Deployment/istio-system/istio-ingressgateway": {
+      "uid": "8be4c508-78a8-45cf-ad29-282878d1de6d",
+      "contentSha256": "a567a996233f80d6bea16ad2bcba15c68b0f94d5cf45293b91e952003c1c778b"
+    },
+    "Deployment/istio-system/istiod": {
+      "uid": "211535c9-d016-4e61-bc88-bcf36f7526dd",
+      "contentSha256": "3f3b7b19b0b8a25bb06f05aea09e6969559d3b25e4820e27458888d8f8606135"
+    },
+    "ConfigMap/istio-system/istio": {
+      "uid": "35d8f061-c8c2-4bc3-bd04-4dfe93afa097",
+      "contentSha256": "c9b4207288ce66706704367216d55e21c29d08efef0a05d4f95c1721300cd2ef"
+    },
+    "ConfigMap/istio-system/istio-ca-crl": {
+      "uid": "4b8ce321-3b1a-4267-8fcf-2bae8cde1469",
+      "contentSha256": "18158ba1f609d349358f28bb43ed1776e7d2257ce92a23a5a2524098a9050b33"
+    },
+    "ConfigMap/istio-system/istio-ca-root-cert": {
+      "uid": "2a493155-50db-4bb4-9a49-add3cbc937cc",
+      "contentSha256": "07c5d90840855163cf068eb7c2e8716dd58f70dce9325b450585c9bada60066f"
+    },
+    "ConfigMap/istio-system/istio-ip-autoallocate": {
+      "uid": "ae2e9a1e-a264-4153-b7dd-191b22e764f3",
+      "contentSha256": "f11eb61678e9d4645cb617df544ee787e59f4ad9a605b0c6f61a6ca4d7a06dee"
+    },
+    "ConfigMap/istio-system/istio-leader": {
+      "uid": "23e3c614-fec1-4c21-a3cc-5a1052f7da01",
+      "contentSha256": "f11eb61678e9d4645cb617df544ee787e59f4ad9a605b0c6f61a6ca4d7a06dee"
+    },
+    "ConfigMap/istio-system/istio-namespace-controller-election": {
+      "uid": "ec260efa-242d-40ee-8996-cd49399c223d",
+      "contentSha256": "f11eb61678e9d4645cb617df544ee787e59f4ad9a605b0c6f61a6ca4d7a06dee"
+    },
+    "ConfigMap/istio-system/istio-sidecar-injector": {
+      "uid": "caf680e6-c197-48d2-bec7-646c446faa96",
+      "contentSha256": "531fe35244954eacf9df0406d49b96de17dd73d5663e1a01bde0170e1cf05b45"
+    },
+    "ConfigMap/istio-system/values": {
+      "uid": "4b329bb5-0673-4fab-8225-e0f73408228c",
+      "contentSha256": "24235ef7b99507b1f04a417d85e0113a919281d4343fd5940f0d385794f5e490"
+    },
+    "ServiceAccount/istio-system/default": {
+      "uid": "bdc1a0d3-e574-4e22-a9e0-d138010d8818",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/istio-system/istio-ingressgateway-service-account": {
+      "uid": "cc3ceb76-5165-4bd4-bb55-77b2b794aa2f",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/istio-system/istio-reader-service-account": {
+      "uid": "994c8a84-e4bc-45d3-9837-88513247802d",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/istio-system/istiod": {
+      "uid": "06e83e0e-9cbd-413e-90b1-438eaefd4be3",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "Role/istio-system/istio-ingressgateway-sds": {
+      "uid": "d95eb777-5e32-48cd-8172-91a8ec0ed4bb",
+      "contentSha256": "b8b29344bbe8368a169a8bddec067db376ef996667c52dab4b46a5181f2c29b4"
+    },
+    "Role/istio-system/istiod": {
+      "uid": "3459700f-592e-4bef-b095-d0e61faeb63f",
+      "contentSha256": "fe278219bc0894810413c0b4eed75d703eba11e7f374cfcaa68f5735718698fa"
+    },
+    "RoleBinding/istio-system/istio-ingressgateway-sds": {
+      "uid": "ae683758-a39e-409a-8e72-9d7b6f32cc71",
+      "contentSha256": "c926955b08775190f01874d1a7a843ac050f955be485dce14bbf1cdb71768615"
+    },
+    "RoleBinding/istio-system/istiod": {
+      "uid": "88b30741-39e8-481b-a1e0-f7f0dcc43d68",
+      "contentSha256": "78e87166d0908c1e995a55787a766a6e481eacac4cb7701460562934910415db"
+    },
+    "NetworkPolicy/istio-system/allow-istiod-control-plane": {
+      "uid": "498edf65-06ce-41bd-975e-bc41f7fe1171",
+      "contentSha256": "6d9f3c4c0e1b3b33b8e103ee662565c852be97e72354ea1418d32b98629a8f94"
+    },
+    "NetworkPolicy/istio-system/allow-knative-to-istio-gateways": {
+      "uid": "76310f74-fba8-442e-b391-83c227962dbe",
+      "contentSha256": "6653ee0aa1a19ad4a5035507fa871d5f5c3f0e3a1eadefea83b57854c913d47f"
+    },
+    "NetworkPolicy/istio-system/default-allow-same-namespace-istio-system": {
+      "uid": "dd3f48ea-603b-4474-9f6c-b0dfbb854cd3",
+      "contentSha256": "896d7ad0d9e64225980a3c35ebc846d7438b55da73eb1bf01b66ff6dbac1f514"
+    },
+    "NetworkPolicy/istio-system/istiod-webhook-apiserver": {
+      "uid": "034bbab9-546d-47c5-8c43-a45d54cf2c61",
+      "contentSha256": "cf5534ff1ff7d0274a798a827863046c854c116920153380697740bc966ad41c"
+    },
+    "ClusterRole//aggregate-to-kubeflow-pipelines-edit": {
+      "uid": "76795f14-8eaa-4b05-92a9-3335c3216747",
+      "contentSha256": "62f491c0612366fae1993c8a6eb5eaf38ee5f2b621fcf8ad111726dbc7f18c19"
+    },
+    "ClusterRole//aggregate-to-kubeflow-pipelines-view": {
+      "uid": "2ae88841-077a-4b70-b5d3-19fe613d0997",
+      "contentSha256": "dfdebf0109a8b1c7929d3e3648bc04050ce92e80585f32728912f678baa66ffd"
+    },
+    "ClusterRole//dashboard": {
+      "uid": "ec166517-006d-4487-b4ec-3fdb79802438",
+      "contentSha256": "906212e16d6ddbb02741a72502c109b50fa41532e93f1935c9a1a00d5ed2a41c"
+    },
+    "ClusterRole//dex": {
+      "uid": "50d2511b-c148-448a-8836-d7836e768db0",
+      "contentSha256": "1735e32a9793072447bfbc27cc87985579f2f16754d1c2066dea881c8d952fc2"
+    },
+    "ClusterRole//istio-cni": {
+      "uid": "7a6d7017-8c12-4531-86a5-60565a1e5637",
+      "contentSha256": "d7d7248c50e0090a436bd49099c1d1528c6d4d6e796fc274872ae9aa9c59a0c5"
+    },
+    "ClusterRole//istio-cni-repair-role": {
+      "uid": "52c6d88c-0c79-4be1-bb6a-ff343812797a",
+      "contentSha256": "5bd7f28efe86b6c43067eed1cf36330c52d7b5792d13e5fc1f0ce82de6d56796"
+    },
+    "ClusterRole//istio-reader-clusterrole-istio-system": {
+      "uid": "635f3a72-a267-411c-a532-30166701dace",
+      "contentSha256": "186c6efc2348f635130b0a3310e99b8dc303bc8f06af4ab8a27424793dfffd35"
+    },
+    "ClusterRole//istiod-clusterrole-istio-system": {
+      "uid": "50839dc7-138c-4dd1-8332-4864f5c35250",
+      "contentSha256": "a3c1266a3c29823a819b98e09248609f0f6c9df73dfdd41da24c3880ba4418b0"
+    },
+    "ClusterRole//istiod-gateway-controller-istio-system": {
+      "uid": "807ce4e1-1941-4b6f-bfc0-43307ca1cbf4",
+      "contentSha256": "02180e8409276455f397e5bf776319a23b1a4a4fd347c3ce3507471251c5edbc"
+    },
+    "ClusterRole//kubeflow-admin": {
+      "uid": "4fa0b763-e061-408e-89c3-56dd7cdd7097",
+      "contentSha256": "5f0bb875c257da8ea04e5a42c1e8785521ccc10ade5d141502b17b9dfa2b23fc"
+    },
+    "ClusterRole//kubeflow-edit": {
+      "uid": "d4b6790f-14a6-4071-8311-1961607a8ccf",
+      "contentSha256": "e102a1e330355e0b1c0cb1e558e22640c701a8cfa3c67ef6740d31a483bd8b64"
+    },
+    "ClusterRole//kubeflow-edit-basic-permissions": {
+      "uid": "d291ad8e-e6d9-41b5-82ab-9d637f680467",
+      "contentSha256": "f7e162c7d5bc44540ab9bdb619f5bbdf5e9ae2110a328e03dec8a48ddf4b45ab"
+    },
+    "ClusterRole//kubeflow-istio-admin": {
+      "uid": "4dd59571-8788-43f1-b6e1-d20320cb976e",
+      "contentSha256": "48694f9ac28cac647093f6a4d6ee9905afdbed1cb572358d71960a93250f84f1"
+    },
+    "ClusterRole//kubeflow-istio-edit": {
+      "uid": "02019891-11fa-49e7-a85b-20e2a5b80a72",
+      "contentSha256": "48694f9ac28cac647093f6a4d6ee9905afdbed1cb572358d71960a93250f84f1"
+    },
+    "ClusterRole//kubeflow-istio-view": {
+      "uid": "e8aec1c9-6ac8-40f6-8e11-aecec5565bd8",
+      "contentSha256": "d9d6cf90144d7e1d3e0655ab02779d365663f77dfb16c199fd95a149c65d2f76"
+    },
+    "ClusterRole//kubeflow-kubernetes-admin": {
+      "uid": "e1fe57f2-364d-47f4-98d9-945cab352fc7",
+      "contentSha256": "491b9011cfc339e2c35fb6bdaa1fcd0e54271445ddbac763981f094f0d4b49a7"
+    },
+    "ClusterRole//kubeflow-kubernetes-edit": {
+      "uid": "4f4e2a37-019e-4352-a7d9-ae9f8b031b86",
+      "contentSha256": "d84768a95d53db7f648788e5b60386d9eb7d11c6d7b9d0ff594480a6e8cf20b6"
+    },
+    "ClusterRole//kubeflow-kubernetes-view": {
+      "uid": "7c1518f4-0678-4cad-8c91-78d338beca85",
+      "contentSha256": "c9e50180e6c39c4d36f268c5c951dda857c6d30f2d7f9147b7043928a165a4b9"
+    },
+    "ClusterRole//kubeflow-metacontroller": {
+      "uid": "1177b7e5-78af-4849-ba1e-62a69050a9c9",
+      "contentSha256": "0eb77a8eb5cfbc5dcfa9fbd20d67fcd3872d3d5a3cc265ee8cb2a69d4e4151b0"
+    },
+    "ClusterRole//kubeflow-pipelines-edit": {
+      "uid": "2ef1d052-5f60-4b5e-ab84-762171bf4530",
+      "contentSha256": "0754bf9fe4a5e5728d26505d3530b84db8a086f53cee9f8ead9a8dcdcca04899"
+    },
+    "ClusterRole//kubeflow-pipelines-view": {
+      "uid": "e9345b4a-25ca-4d21-861a-1dca0d34414d",
+      "contentSha256": "dfdebf0109a8b1c7929d3e3648bc04050ce92e80585f32728912f678baa66ffd"
+    },
+    "ClusterRole//kubeflow-view": {
+      "uid": "ad048a17-145e-4175-9506-397267639b16",
+      "contentSha256": "e91f3e0293e4bf5ef46545a8a7edf8441fc94c2374eae4e05ddc7a56d3a55af1"
+    },
+    "ClusterRole//ml-pipeline": {
+      "uid": "1ad3fb68-f4c5-41c5-8c30-3c07ae28a5db",
+      "contentSha256": "f5fc9318e8a054fcff0846379b24243e543d2e07b3208e19f367fad3fa090636"
+    },
+    "ClusterRole//ml-pipeline-persistenceagent-role": {
+      "uid": "765623c4-a107-470e-b3a5-3072aa658f43",
+      "contentSha256": "7b294132232829f55db0df6225809475b88d461fecb251cd87499740a8ffffad"
+    },
+    "ClusterRole//ml-pipeline-scheduledworkflow-role": {
+      "uid": "0fd0df93-0290-40a4-a4b5-4664ee42922d",
+      "contentSha256": "7d3f1f3d4c64663a78437dadd337867a7ff81170951b9079c4df587bad680206"
+    },
+    "ClusterRole//ml-pipeline-ui": {
+      "uid": "5efef1d7-acc9-43f5-a5de-bef88a129a4c",
+      "contentSha256": "7ad6bee744a4a777e954dc4afee249651992af3e327b1612ea295da2a3b7d946"
+    },
+    "ClusterRole//ml-pipeline-viewer-controller-role": {
+      "uid": "7f9ecc4b-bec6-43f9-a99e-24b2de4e964f",
+      "contentSha256": "d6e1deb2c3bea6f7251321a419bff36447d81b7327baeb61b87661290692cbee"
+    },
+    "ClusterRole//profiles-profile-editor-role": {
+      "uid": "4bdfa6cb-a464-40d9-8f18-554c3bcc93f4",
+      "contentSha256": "20625308942c3fc59f2f3e3df0423a2c69c1d912c3be80644a179a528ccb7c1e"
+    },
+    "ClusterRole//profiles-profile-viewer-role": {
+      "uid": "1b31ab09-53b3-4582-aff5-ac082f86b8e6",
+      "contentSha256": "ae9539f7ea6f90e4d637a6e43511aa5d5354c00771e26a389b5bf12bcea588f8"
+    },
+    "ClusterRoleBinding//dashboard": {
+      "uid": "46b8973d-1e7b-44b5-b41d-3e0fecd1c134",
+      "contentSha256": "d4e6977087c4282901d02edd4985ff30a39c62f98729c8a505332023bcc668b6"
+    },
+    "ClusterRoleBinding//dex": {
+      "uid": "0560e57a-39eb-42ab-9e18-82775aac6c99",
+      "contentSha256": "c2abfc2748d63165a16f5ebbb64ecbc21680b474c87ffae3f93c6d4707b7903f"
+    },
+    "ClusterRoleBinding//istio-cni": {
+      "uid": "19ffabde-081d-4fd3-9ea3-306fc75b2245",
+      "contentSha256": "03c2d96b04b4b5c620454bf97cad6feb624c649a9cab2ce88108491cd5bb9528"
+    },
+    "ClusterRoleBinding//istio-cni-repair-rolebinding": {
+      "uid": "9180e23c-60c3-44f9-bc42-343b89f93beb",
+      "contentSha256": "49a70e250800159d76b9934896ac7f57c6045138a11bd97ef967b303256b35d4"
+    },
+    "ClusterRoleBinding//istio-reader-clusterrole-istio-system": {
+      "uid": "3bbcd83d-7871-4afe-a014-612eed45e497",
+      "contentSha256": "3e0ad27b5c8fef442fad1474cbb7db813da36757e67cb1c6ce25863c57875bcd"
+    },
+    "ClusterRoleBinding//istiod-clusterrole-istio-system": {
+      "uid": "7332419d-1b0f-48cf-86a3-44dbc8f873d3",
+      "contentSha256": "a3ad4a1c131535c1aba3f7a47732072a29c207ee85d8d6f41d6ad33939add292"
+    },
+    "ClusterRoleBinding//istiod-gateway-controller-istio-system": {
+      "uid": "430422d6-0229-4216-b6b5-498806833747",
+      "contentSha256": "58a312d3289a77c999a4248b97e3062d5dcac8be6d7d8802507ef9311ca8ea5b"
+    },
+    "ClusterRoleBinding//ml-pipeline": {
+      "uid": "07d5d07a-a04f-49e6-9ccb-a705cd9e322d",
+      "contentSha256": "7b8ace6345f6f93890b1c43369f6ea1429cef5e451ea732f99b691190d793559"
+    },
+    "ClusterRoleBinding//ml-pipeline-persistenceagent-binding": {
+      "uid": "57e538db-4268-4454-bf26-b5c7a300c4ec",
+      "contentSha256": "17a9c949c3ab9107c3d88be759bbfa4aad5839b53c50b75d4f06d89f42bd912f"
+    },
+    "ClusterRoleBinding//ml-pipeline-scheduledworkflow-binding": {
+      "uid": "e8b83da5-bb61-4dca-a63a-2872a816f9cc",
+      "contentSha256": "f9a86cbb90d2f9af1082f9d0cca25695c5b342c22c90400e7fd75d6362979820"
+    },
+    "ClusterRoleBinding//ml-pipeline-ui": {
+      "uid": "dc19bad3-331c-48cd-8e80-30138f474037",
+      "contentSha256": "3618c6f340f23878dce5d246ac253087ff3921fa8171feb1dcdab0664494cb56"
+    },
+    "ClusterRoleBinding//ml-pipeline-viewer-crd-binding": {
+      "uid": "5b17dcc7-0c2d-4c34-80b2-83e428f014a8",
+      "contentSha256": "3f9800c4322453d844a8bd764ee8e2a7bb14a5b4f624dda53ce8dd50bdf664bd"
+    },
+    "ClusterRoleBinding//profiles-cluster-rolebinding": {
+      "uid": "61dba4e9-9f20-433b-81fa-75ed9f2f3094",
+      "contentSha256": "6eb5cd5365be10eeb5852c4dec4f14e24295729f938a57ae9576cc0ace776aa9"
+    },
+    "AuthorizationPolicy/istio-system/global-deny-all": {
+      "uid": "80c79ed2-04f1-418f-bf78-df1862fcc791",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "AuthorizationPolicy/istio-system/istio-ingressgateway": {
+      "uid": "94303d23-67fc-4783-9374-3a17822a63b3",
+      "contentSha256": "f09b543ed0aa11f8ee78fce7850a6ddc6a942ec5b732aa5e2dac9512794a1568"
+    },
+    "AuthorizationPolicy/istio-system/istio-ingressgateway-oauth2-proxy": {
+      "uid": "baccdc83-d0ca-4fc4-9f8f-53bbccf678fe",
+      "contentSha256": "84b9eb14e8245b2609e0c021813fcaa08928be5e75aa96d40b61d95a2c3a015e"
+    },
+    "AuthorizationPolicy/istio-system/istio-ingressgateway-require-jwt": {
+      "uid": "10f16848-e095-405f-9bc9-215ac82a174c",
+      "contentSha256": "8619b9fde79ff054cdc68c875dcc2bd76d0d9e1577fca72f94473833d42455a7"
+    },
+    "AuthorizationPolicy/kfp-qualification-other/ns-owner-access-istio": {
+      "uid": "63b7a0e8-3743-4d0d-ba39-86979eb12f1d",
+      "contentSha256": "d1538181eb144bc5046c37cbebc4fdf6e3e103b86749584446c5f11979349148"
+    },
+    "AuthorizationPolicy/kfp-qualification-second/ns-owner-access-istio": {
+      "uid": "e6e19937-383c-4d8e-bea6-1c4a14e5e2cd",
+      "contentSha256": "529ec13cf99e0a1d4a1d29727b9254197c189e3c9f68d7d51b484712f1596fbf"
+    },
+    "AuthorizationPolicy/kubeflow-user-example-com/ns-owner-access-istio": {
+      "uid": "f1abee43-4bb5-498d-96bd-1922c0a3b20c",
+      "contentSha256": "23d642899fe566b6ed70be5e55633af11ae66c0fd384ed13d5b8486e233e315b"
+    },
+    "AuthorizationPolicy/kubeflow/dashboard": {
+      "uid": "41e9f695-5579-4ac2-8ff1-6e32268622cb",
+      "contentSha256": "0a4b48347388acd0cb4956f713e8412d2b3ca02c371b566e83b1e34e045a80b1"
+    },
+    "AuthorizationPolicy/kubeflow/ml-pipeline": {
+      "uid": "24e77b03-af72-4d7f-8037-51f8cc82ea27",
+      "contentSha256": "4399c4b8c0a68756e4b5b09a3170bb670240603f057a44f2bfa146a8716d69c8"
+    },
+    "AuthorizationPolicy/kubeflow/ml-pipeline-ui": {
+      "uid": "2e283e65-1502-4023-9ffa-545bcb411b8a",
+      "contentSha256": "417abcbc7af5d8353f8500f320b31e0d9b7b568ce47afc56be6d588e0f11165b"
+    },
+    "AuthorizationPolicy/kubeflow/mysql": {
+      "uid": "9e1fbfa5-6d4e-45f6-b3b7-c2c794cff6fa",
+      "contentSha256": "541984ba0c50e95ee1f8584c2d99bdae780c6f127b62e6893eca785bad9a531f"
+    },
+    "AuthorizationPolicy/kubeflow/profiles-kfam": {
+      "uid": "12e50d1e-76e4-4129-a253-5f5724f4750a",
+      "contentSha256": "29a47aa4e432d02e663b019eeea50e0bab163021b72455c8f76b3b72747c84e8"
+    },
+    "AuthorizationPolicy/kubeflow/seaweedfs-service": {
+      "uid": "63f4fa0a-25b1-4297-84cc-93908e20b60a",
+      "contentSha256": "055851391a34542e5887b6a4e5f488df0356f1e622d6d16ad3081351992b2b58"
+    },
+    "RequestAuthentication/istio-system/dex-jwt": {
+      "uid": "5c995fb0-d1d2-404b-b365-cc85a48536fc",
+      "contentSha256": "ca19f6e775cbe89df573ec4d269a1d1ad32fc4450f1d1f46d4a3213d6617e276"
+    },
+    "VirtualService/auth/dex": {
+      "uid": "9e200cd1-08f4-4ccd-866c-221a846d506d",
+      "contentSha256": "680271acf16850a5390916f32b483ad5d7f5648af35e2f365a8852b0e8bb7f9f"
+    },
+    "VirtualService/kubeflow/dashboard": {
+      "uid": "4dd77bf0-52ef-46f3-b36b-7ea856a96a01",
+      "contentSha256": "4dfc77e1a0129878ba7445912fec50ec3bba2cb5b9b15b6644cf44cde422544c"
+    },
+    "VirtualService/kubeflow/ml-pipeline-ui": {
+      "uid": "3510619e-6287-4f8b-9dfb-94124543bcef",
+      "contentSha256": "95364dfd428953492dfcd169a303663ad11b50640a4d1ce4ec37a8c656b3e37c"
+    },
+    "VirtualService/kubeflow/profiles-kfam": {
+      "uid": "33399bb7-7669-4182-83d3-678588ce26f6",
+      "contentSha256": "7e5eca73eb145366fa72717deafb21ebad2d85a5c2e852274b5c20b6311ef60c"
+    },
+    "VirtualService/oauth2-proxy/oauth2-proxy": {
+      "uid": "68eddbff-75b6-419f-8f50-a00b347c1c0c",
+      "contentSha256": "5840815b638f5339605f03a2724113399263e7e2a858cff23fddc45f353bfc0a"
+    },
+    "DestinationRule/kubeflow/ml-pipeline": {
+      "uid": "8a85a4d0-b3bc-4e0b-bf8c-fd2d1a3403c6",
+      "contentSha256": "bb8989b243174061cf36b328abc93bcb27cabeb7f42eb3e39cdd211481e74a85"
+    },
+    "DestinationRule/kubeflow/ml-pipeline-mysql": {
+      "uid": "6e5ce901-a454-4345-921e-186158ae8cd2",
+      "contentSha256": "e7576c8f4966e9e230362774960b6a1f62c035339800aac9617362afb15e41c8"
+    },
+    "DestinationRule/kubeflow/ml-pipeline-seaweedfs": {
+      "uid": "7609b8eb-a3b7-41ef-b313-66745007798c",
+      "contentSha256": "ba22c141c0b4dbe63114f92e0a8484e6dd63b33eedea480589400087fb07efcc"
+    },
+    "DestinationRule/kubeflow/ml-pipeline-ui": {
+      "uid": "d0595da3-8e68-412f-8091-be9ddeb7b063",
+      "contentSha256": "6fc755a4f2545fe8f466cdfa22e6b5fb7f2015a0e97fb2ca5fa71271532ba992"
+    }
+  },
+  "backendPodUids": {
+    "kubeflow/dashboard-59f4cbd64b-xxfbp": "cf58b65a-87a4-461b-b399-9a1439b8ceb7",
+    "kubeflow/kubeflow-pipelines-profile-controller-bc5bc8645-r9gzf": "91c2d2ba-9035-49d4-a667-a8cdbf707a59",
+    "kubeflow/metacontroller-0": "ce75939d-5e5b-4bc9-831e-cc03f163217b",
+    "kubeflow/ml-pipeline-7bc89bd447-fbl44": "4efc531a-0ce2-4a50-bf5c-3a84d79c5927",
+    "kubeflow/ml-pipeline-persistenceagent-67c55ccd9d-xt2hq": "cf211123-9443-48bb-8075-6b64b0e1063d",
+    "kubeflow/ml-pipeline-scheduledworkflow-84cbf5cbfc-hhp7p": "3f673b0b-8568-4918-a7f6-3b1311c4b8b3",
+    "kubeflow/ml-pipeline-viewer-crd-5d5f666f46-b99td": "585ecf70-dd3e-4072-a6a2-43fee44d0a8b",
+    "kubeflow/mysql-59bcc595f9-gclgx": "f7bf8ebf-e9d6-4751-b232-768fd581d568",
+    "kubeflow/profiles-deployment-546c9ffdfb-6lwvc": "334fa381-f6b3-40c5-a1ba-e4653f42910c",
+    "kubeflow/seaweedfs-78f897d6-jsmtv": "fbb91ac6-77a5-486d-aaae-0838416e102d",
+    "kubeflow/workflow-controller-5dd6f6dcb9-n7l6x": "476d8e1e-20f9-4306-9080-7d08c7f687ea",
+    "kubeflow-user-example-com/ml-pipeline-ui-artifact-7d8dcc7d4c-gfzmw": "c26a66b5-db5e-4654-abf8-81c87c957eab",
+    "kubeflow-user-example-com/viewer-86f51bef648affc92caad8147c9579b5eb478c35-deploymentz65zd": "f5db24b8-3ce3-4578-8ed0-2085e3aadef4",
+    "kfp-qualification-second/ml-pipeline-ui-artifact-65b846f56c-j9gmc": "f41bc518-0173-4415-b6ed-32560262b053",
+    "kfp-qualification-other/ml-pipeline-ui-artifact-6fb4dc7bf5-89stw": "18803c11-e721-4915-9d77-9e17189b02aa",
+    "auth/dex-d755fdc84-4t6z4": "4c948884-3bc2-4543-a2f8-b60c15918c09",
+    "auth/dex-d755fdc84-tlwxk": "b8baa11a-7eba-4696-b8d5-19b83dd4af47",
+    "oauth2-proxy/oauth2-proxy-854b7965b-5wjkl": "8964e4d8-a5fe-4abc-aa5d-5a0ffa4ca72f",
+    "oauth2-proxy/oauth2-proxy-854b7965b-znrzr": "0357682b-3808-4b4a-86be-a1fe9c97fde3",
+    "istio-system/istio-ingressgateway-7ccd8b6cc8-gkpmb": "54c353c0-5c9e-4432-a1aa-b08f8e8af793",
+    "istio-system/istiod-7fbc6f5f9c-v994p": "ef186855-8695-45b3-942b-0a5fb929df37"
+  },
+  "readyMeshPods": {
+    "kubeflow/ml-pipeline-7bc89bd447-fbl44": {
+      "uid": "4efc531a-0ce2-4a50-bf5c-3a84d79c5927",
+      "serviceAccount": "ml-pipeline",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy",
+        "wait-for-database"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    },
+    "kubeflow/ml-pipeline-persistenceagent-67c55ccd9d-xt2hq": {
+      "uid": "cf211123-9443-48bb-8075-6b64b0e1063d",
+      "serviceAccount": "ml-pipeline-persistenceagent",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy",
+        "wait-for-ml-pipeline"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    },
+    "kubeflow/ml-pipeline-scheduledworkflow-84cbf5cbfc-hhp7p": {
+      "uid": "3f673b0b-8568-4918-a7f6-3b1311c4b8b3",
+      "serviceAccount": "ml-pipeline-scheduledworkflow",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy",
+        "wait-for-ml-pipeline"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    },
+    "kubeflow/ml-pipeline-ui-589fcf9c99-qrm9n": {
+      "uid": "8e2445be-4b8d-432a-9f21-2322903f7140",
+      "serviceAccount": "ml-pipeline-ui",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    },
+    "kubeflow/ml-pipeline-viewer-crd-5d5f666f46-b99td": {
+      "uid": "585ecf70-dd3e-4072-a6a2-43fee44d0a8b",
+      "serviceAccount": "ml-pipeline-viewer-crd-service-account",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    },
+    "kubeflow/mysql-59bcc595f9-gclgx": {
+      "uid": "f7bf8ebf-e9d6-4751-b232-768fd581d568",
+      "serviceAccount": "mysql",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    },
+    "kubeflow/seaweedfs-78f897d6-jsmtv": {
+      "uid": "fbb91ac6-77a5-486d-aaae-0838416e102d",
+      "serviceAccount": "seaweedfs",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  },
+  "signingSecretPreserved": true,
+  "signingSecretPresent": true,
+  "preserved": true,
+  "authenticationSecretsPreserved": true
+}

@@ -1,0 +1,17 @@
+{
+  "workflowRun": "https://github.com/kubeflow/pipelines/actions/runs/37064291781",
+  "runId": "37064291781",
+  "runAttempt": 1,
+  "jobId": 111028129503,
+  "headSha": "71543eb922a82b8716cb58f139618052866eece7",
+  "testedMergeSha": "00d243a9d92888c2746a7084bec45f36850ced5f",
+  "verifiedMergeParents": [
+    "463f15ff9df3be4b5720a3d9473d033a19509a65",
+    "71543eb922a82b8716cb58f139618052866eece7"
+  ],
+  "artifactId": 11251873935,
+  "artifactZipSha256": "fa907a5e93b11918a83815851b93c94653c172d400082cb24a374f9a22baf504",
+  "fullStaticFilesIndependentlyHashed": true,
+  "retainedArtifact": "frontend-deployment-standalone",
+  "scope": "Standalone UI-only baseline, upgrade and rollback; multiuser remains separately qualified."
+}

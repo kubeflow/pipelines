@@ -1,0 +1,11 @@
+{
+  "manifestsSourceSha": "88716b3f7f62b12f98d82bcfc59635bb07e7845c",
+  "provider": "Dex and OAuth2 Proxy",
+  "dashboard": "ghcr.io/kubeflow/dashboard/dashboard:v2.0.0",
+  "profiles": {
+    "kubeflow-user-example-com": "user@example.com",
+    "kfp-qualification-second": "user@example.com",
+    "kfp-qualification-other": "other@example.com"
+  },
+  "credentialFileUploaded": false
+}

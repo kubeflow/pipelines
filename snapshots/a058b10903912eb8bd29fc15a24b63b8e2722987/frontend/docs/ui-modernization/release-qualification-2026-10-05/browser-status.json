@@ -1,0 +1,82 @@
+{
+  "databaseId": 37264911580,
+  "headSha": "ac310c997da668c012f30ac493b0e9ac1ab2f955",
+  "status": "completed",
+  "conclusion": "failure",
+  "lanes": [
+    {
+      "name": "Apple / desktop / 26",
+      "conclusion": "success"
+    },
+    {
+      "name": "Apple / iphone / 27",
+      "conclusion": "success"
+    },
+    {
+      "name": "Apple / ipad / 27",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Apple / iphone / 26",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Apple / desktop / 27",
+      "conclusion": "success"
+    },
+    {
+      "name": "Apple / ipad / 26",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Vendor / chrome-stable",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / chrome-testing-current",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / firefox-esr",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / chrome-testing-previous",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / firefox-esr-overlap",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / edge-previous",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / firefox-previous",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / firefox-stable",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / firefox-esr-linux",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / edge-stable",
+      "conclusion": "success"
+    },
+    {
+      "name": "Vendor / firefox-stable-linux",
+      "conclusion": "success"
+    }
+  ],
+  "failureClassification": {
+    "Apple / ipad / 27": "Appium /status startup timeout before UI checks",
+    "Apple / iphone / 26": "Safari remote debugger could not connect to a web application",
+    "Apple / ipad / 26": "WebDriverAgent could not dismiss the native keyboard"
+  },
+  "claim": "14 of 17 lanes passed; broader mobile support is not fully qualified by this run."
+}

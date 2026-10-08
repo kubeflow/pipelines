@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "digest": "sha256:67c1f24374e8ac06b5b1a023aa3a3f863dcad7a061ee517cdf00313446a6a64b",
+    "size": 8784
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153",
+      "size": 3861821
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:d8573c1c310e7789794576ea96c600be3bb905a6cf0ef787f89922d992d39b78",
+      "size": 51112009
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:0653b96c7e89eb8a796a819757fa29a918692669e68f09eac2215c6401407538",
+      "size": 1262120
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:867a770c9b3548b3b2357b54112add9711dd53d8679a3c1bb4c3d9ac675a5c02",
+      "size": 448
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:7b1c37dae2720b4549739399d6b9dc0307d045a6d356c1be890bf7760b4f79a3",
+      "size": 2579
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:dbf7c3a0a389d115ce2e264192723c9b9d618ca6bb3e6ca9b3613f29aaf57047",
+      "size": 13390258
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:b6285d2b9480a8a51c5feac98ee48cbb4453d091f678972f2fa85308f56feef6",
+      "size": 34156953
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:e08611cacc6fc11e9581f57349d27ba529134f2b47f9d86559b9eebbf672d602",
+      "size": 4096443
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1",
+      "size": 32
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:cc3a38e7136cf821195aac653a5b1de786861a38580cbfa18dc1315323fa7c89",
+      "size": 68279682
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:90e4eaad2e9cc6f1179ee1561d71576bb9943d58b5fa78616ab13fac74e5cef0",
+      "size": 642755
+    }
+  ]
+}

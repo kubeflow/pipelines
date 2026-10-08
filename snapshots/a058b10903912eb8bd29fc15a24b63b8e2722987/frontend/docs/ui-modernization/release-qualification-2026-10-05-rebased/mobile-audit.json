@@ -1,0 +1,159 @@
+{
+  "assets": [
+    {
+      "path": "/static/index-CFh-NWQJ.js",
+      "bytes": 2047481,
+      "sha256": "09caa43e0cb68ede8e363f88907c4b37b05a69a4b34eaa516b3896a8a7a4766a"
+    },
+    {
+      "path": "/static/index-Cf7JTRXK.css",
+      "bytes": 96979,
+      "sha256": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+    }
+  ],
+  "lanes": [
+    {
+      "lane": "iphone26",
+      "checks": 15,
+      "sourceRevision": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+      "runtime": "26.5",
+      "mobileSafari": {
+        "app": "/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileSafari.app",
+        "identitySource": "selected simulator runtime bundle",
+        "version": "26.5",
+        "buildVersion": "8624.2.5.10.4"
+      },
+      "nativeOs": "26.5",
+      "actions": [
+        "dismissed Safari bookmarks/share/tabs tip through native accessibility",
+        "dismissed keyboard through native WebDriver",
+        "used Safari native form-toolbar Done"
+      ],
+      "preparations": 44,
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "files": [
+        {
+          "path": "mobile/iphone26/environment.json",
+          "bytes": 36025,
+          "sha256": "d130ff041e1fdc86e84e8e829660fdb71ac2f8037c463704482c7b0d0818e19a"
+        },
+        {
+          "path": "mobile/iphone26/result.json",
+          "bytes": 285833,
+          "sha256": "c01af16c0e4943f928338095e49576801c2b52ce5fe5c5738b22d0619d23ab2e"
+        }
+      ]
+    },
+    {
+      "lane": "iphone27",
+      "checks": 15,
+      "sourceRevision": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+      "runtime": "27.0",
+      "mobileSafari": {
+        "app": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.sU2I3p/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileSafari.app",
+        "identitySource": "selected simulator runtime bundle",
+        "version": "27.0",
+        "buildVersion": "8625.1.29.10.29"
+      },
+      "nativeOs": "27.0",
+      "actions": [
+        "dismissed keyboard through native WebDriver",
+        "used Safari native form-toolbar Done"
+      ],
+      "preparations": 44,
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "files": [
+        {
+          "path": "mobile/iphone27/environment.json",
+          "bytes": 35193,
+          "sha256": "4a1a6cc55352285d057ff9b29bb8b3eccc041758dcbc35887c8d28e63e065dc8"
+        },
+        {
+          "path": "mobile/iphone27/result.json",
+          "bytes": 286436,
+          "sha256": "9afa464c89480c52ce5cdb4e213b15c79a09eb160543a02214818f7c16226cac"
+        }
+      ]
+    },
+    {
+      "lane": "ipad26",
+      "checks": 15,
+      "sourceRevision": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+      "runtime": "26.5",
+      "mobileSafari": {
+        "app": "/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileSafari.app",
+        "identitySource": "selected simulator runtime bundle",
+        "version": "26.5",
+        "buildVersion": "8624.2.5.10.4"
+      },
+      "nativeOs": "26.5",
+      "actions": [
+        "completed active Safari Address through native typing and Return",
+        "dismissed Safari Start Page tip through native accessibility",
+        "dismissed keyboard through native WebDriver"
+      ],
+      "preparations": 44,
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "files": [
+        {
+          "path": "mobile/ipad26/environment.json",
+          "bytes": 35984,
+          "sha256": "c5661ca91e180ce89330b96eec8ece1097122a9b391400b521f9f01152cf6c34"
+        },
+        {
+          "path": "mobile/ipad26/result.json",
+          "bytes": 279616,
+          "sha256": "82a3ff762857190792d13d1d550347b508116fed3cd8997005c322a567030dd7"
+        }
+      ]
+    },
+    {
+      "lane": "ipad27",
+      "checks": 15,
+      "sourceRevision": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+      "runtime": "27.0",
+      "mobileSafari": {
+        "app": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.JuKlYK/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileSafari.app",
+        "identitySource": "selected simulator runtime bundle",
+        "version": "27.0",
+        "buildVersion": "8625.1.29.10.29"
+      },
+      "nativeOs": "27.0",
+      "actions": [
+        "completed active Safari Address through native typing and Return",
+        "dismissed Safari Start Page tip through native accessibility",
+        "dismissed keyboard through native WebDriver"
+      ],
+      "preparations": 44,
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "files": [
+        {
+          "path": "mobile/ipad27/environment.json",
+          "bytes": 35152,
+          "sha256": "8dfafc91a6a04d67da9e8526d481d4c35dd2b6bfa1d4d3e665b1ee621f91a457"
+        },
+        {
+          "path": "mobile/ipad27/result.json",
+          "bytes": 279294,
+          "sha256": "e7d06047d811042953fada123043a2f030933f5238fe410dccae3571f117998e"
+        }
+      ]
+    }
+  ]
+}

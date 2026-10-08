@@ -1,0 +1,12 @@
+{
+  "sourceSha": "da6ec8bebac0614fcb1939a92aff4a7e1672b9b6",
+  "runId": "36734476076",
+  "runAttempt": "1",
+  "status": "success",
+  "browserId": "chrome-stable",
+  "platform": "darwin",
+  "release": "25.6.0",
+  "arch": "arm64",
+  "image": "macos26",
+  "imageVersion": "20260907.0351.1"
+}

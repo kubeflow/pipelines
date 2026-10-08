@@ -1,0 +1,90 @@
+{
+  "applicationSource": "e79f8d423e6b118e5df94815ee2f36f68570a9a9",
+  "harnessSha256": "8f630bf06d45a0b343fded93560f32eb7b9d1e3b8722b86df4e366c395ca6db3",
+  "indexSha256": "691a571bc12c71e22189f9393fdc524f5ddb86223950532131aca8da9d2ae803",
+  "fixtureSha256": "c9af3f37212f05f6d498c5f610e19117c9f6b6cff332424478ae90613540a28b",
+  "browser": {
+    "engine": "chromium",
+    "version": "145.0.7632.6",
+    "channel": null
+  },
+  "runtime": {
+    "node": "v24.14.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "settings": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "deviceScaleFactor": 1,
+    "locale": "en-US",
+    "timezoneId": "UTC",
+    "theme": "light",
+    "reducedMotion": "reduce",
+    "cpuThrottle": "none",
+    "networkThrottle": "none"
+  },
+  "method": "Fresh context per sample in one warm browser process; local route fixtures and file/OS caches stay warm. Automation timings include Playwright overhead. Graph readiness includes complete paginated data and stable geometry/fonts; selection ends at the real inspector controls plus two frames; Fit View ends at a changed viewport stable for three frames. No field INP, backend load, or baseline speedup claim.",
+  "fixture": {
+    "executableTasks": 200,
+    "runtimeRecords": 201,
+    "renderedNodes": 201,
+    "edges": 363,
+    "nodeWidth": 200,
+    "nodeHeight": 56
+  },
+  "assets": [
+    {
+      "path": "/static/index-BsE1KeVm.js",
+      "bytes": 2047040,
+      "sha256": "0441ec92d0c0a10cb1388271f9cfb490b3eeb92a58bf1ec51c34e795241b8e86"
+    },
+    {
+      "path": "/static/index-CCppxzAf.css",
+      "bytes": 96832,
+      "sha256": "471a6503f4f13bbd88727cb1851f3a3030be3ebb889148e39fb975ba93deac3e"
+    },
+    {
+      "path": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+      "bytes": 21168,
+      "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
+    },
+    {
+      "path": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+      "bytes": 14632,
+      "sha256": "36274b5787b4f03b27e65ae971d6c808a96838ccd60c9dabaee154889b6bba82"
+    },
+    {
+      "path": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+      "bytes": 14656,
+      "sha256": "55e866a00caa197bc9fafa52c907f4dfe88e51bbb3f585c777931d03eb961e96"
+    },
+    {
+      "path": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+      "bytes": 14592,
+      "sha256": "c7842f97346df1b3b470e9d71acde90f132dd858508ec5ae6606401e5d0938f7"
+    }
+  ],
+  "samples": [
+    {
+      "sample": 1,
+      "graphReadyMs": 653.7272089999999,
+      "selectInspectorReadyMs": 65.18795899999998,
+      "fitSettledMs": 113.33858299999997
+    },
+    {
+      "sample": 2,
+      "graphReadyMs": 627.6757500000001,
+      "selectInspectorReadyMs": 60.46479199999976,
+      "fitSettledMs": 113.82320899999968
+    },
+    {
+      "sample": 3,
+      "graphReadyMs": 618.70075,
+      "selectInspectorReadyMs": 61.41095799999994,
+      "fitSettledMs": 113.75920900000028
+    }
+  ]
+}

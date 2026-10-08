@@ -1,0 +1,56 @@
+{
+  "resolvedAt": "2026-10-02",
+  "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+  "runnerImage": "macos26",
+  "runnerImageVersion": "20260907.0351.1",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "browser": {
+    "id": "chrome-stable",
+    "browser": "chromium",
+    "slot": "Chrome current stable",
+    "version": "154.0.8037.98",
+    "kind": "dmg",
+    "url": "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg",
+    "sha256": null,
+    "checksumSource": null,
+    "platform": "darwin",
+    "architecture": "arm64",
+    "appName": "Google Chrome.app",
+    "executable": "Google Chrome",
+    "teamId": "EQHXZ8M8AV",
+    "qualification": "policy",
+    "source": "https://versionhistory.googleapis.com/v1/chrome/platforms/mac_arm64/channels/stable/versions/154.0.8037.98/releases"
+  },
+  "status": "passed",
+  "startedAt": "2026-10-05T05:40:46.245Z",
+  "download": {
+    "url": "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg",
+    "sha256": "7eb6591e16b0148c850411642ed2f9e1cf8c5df772db2e1e038f9ce3afc8d16e",
+    "md5Hash": "3FFKMS9ZI4kyHtcGiqsVNg==",
+    "size": "281855031",
+    "vendorChecksumVerified": false,
+    "vendorChecksumAlgorithm": null,
+    "sha256Source": "observed"
+  },
+  "signature": "Executable=/Users/runner/work/_temp/kfp-qualified-browsers/chrome-stable/Google Chrome.app/Contents/MacOS/Google Chrome\nIdentifier=com.google.Chrome\nFormat=app bundle with Mach-O universal (x86_64 arm64)\nCodeDirectory v=20500 size=765 flags=0x12a00(kill,restrict,library-validation,runtime) hashes=13+7 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=b839acd3629c96da252d20dc69323e7e694fcf16\nCandidateCDHashFull sha256=b839acd3629c96da252d20dc69323e7e694fcf16085d65e7281ed6f2051a0223\nHash choices=sha256\nCMSDigest=b839acd3629c96da252d20dc69323e7e694fcf16085d65e7281ed6f2051a0223\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=16384\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=b839acd3629c96da252d20dc69323e7e694fcf16\nSignature size=8989\nAuthority=Developer ID Application: Google LLC (EQHXZ8M8AV)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Oct 1, 2026 at 9:25:13 AM\nNotarization Ticket=stapled\nInfo.plist entries=44\nTeamIdentifier=EQHXZ8M8AV\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=63\nInternal requirements count=1 size=288\n",
+  "actualVersion": "154.0.8037.98",
+  "signatureVerification": "Strict resource seal and vendor signing team verified",
+  "readOnlyMount": {
+    "path": "/Users/runner/work/_temp/kfp-qualified-browsers/chrome-stable/read-only-volume",
+    "image": "/Users/runner/work/_temp/kfp-qualified-browsers/chrome-stable/browser-read-only.dmg",
+    "mounted": false,
+    "format": "UDRO",
+    "readOnly": true,
+    "binarySha256": "ccffd5c5fe77ba3212e07c2c69091f8048b73c396b4647ecaa150e1e01a04954",
+    "detachedAt": "2026-10-05T05:45:22.653Z"
+  },
+  "finishedAt": "2026-10-05T05:42:13.536Z",
+  "postSuiteIdentity": {
+    "status": "passed",
+    "version": "154.0.8037.98",
+    "binarySha256": "ccffd5c5fe77ba3212e07c2c69091f8048b73c396b4647ecaa150e1e01a04954",
+    "signature": "Executable=/Users/runner/work/_temp/kfp-qualified-browsers/chrome-stable/read-only-volume/Google Chrome.app/Contents/MacOS/Google Chrome\nIdentifier=com.google.Chrome\nFormat=app bundle with Mach-O universal (x86_64 arm64)\nCodeDirectory v=20500 size=765 flags=0x12a00(kill,restrict,library-validation,runtime) hashes=13+7 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=1705216\nHash type=sha256 size=32\nCandidateCDHash sha256=b839acd3629c96da252d20dc69323e7e694fcf16\nCandidateCDHashFull sha256=b839acd3629c96da252d20dc69323e7e694fcf16085d65e7281ed6f2051a0223\nHash choices=sha256\nCMSDigest=b839acd3629c96da252d20dc69323e7e694fcf16085d65e7281ed6f2051a0223\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=16384\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=b839acd3629c96da252d20dc69323e7e694fcf16\nSignature size=8989\nAuthority=Developer ID Application: Google LLC (EQHXZ8M8AV)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Oct 1, 2026 at 9:25:13 AM\nNotarization Ticket=stapled\nInfo.plist entries=44\nTeamIdentifier=EQHXZ8M8AV\nRuntime Version=26.5.0\nSealed Resources version=2 rules=13 files=63\nInternal requirements count=1 size=288\n",
+    "checkedAt": "2026-10-05T05:45:22.452Z"
+  }
+}

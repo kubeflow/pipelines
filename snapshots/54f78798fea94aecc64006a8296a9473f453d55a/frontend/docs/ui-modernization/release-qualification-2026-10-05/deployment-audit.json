@@ -1,0 +1,229 @@
+{
+  "runId": "37264911764",
+  "headSha": "ac310c997da668c012f30ac493b0e9ac1ab2f955",
+  "merge": {
+    "parents": [
+      "e3c93651a44fa718ab079010bb332318854e0491",
+      "ac310c997da668c012f30ac493b0e9ac1ab2f955"
+    ],
+    "sha": "1db95b6e2fec3899c6a5bf6a54976c19208e14da"
+  },
+  "modes": [
+    {
+      "mode": "standalone",
+      "checks": 18,
+      "imageIdentities": {
+        "legacy": {
+          "reference": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+          "configId": "sha256:6aed3cc05ac37373e251b8cb7dc0c1634eaa7f7a23489bdfe8eeb762b3ad7fd5",
+          "archiveSha256": "d6b0ddc56edebce00c2a6f37561c3155f1a75b26f29f30f8b71e5173a5f58a74",
+          "sourceSha": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+          "assetsManifestSha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+        },
+        "candidate": {
+          "reference": "localhost:5001/kfp-frontend@sha256:1d644ad263c5fd4e6802bc996c70add8390ee2137d586e5436435d153d3a07bc",
+          "configId": "sha256:67c1f24374e8ac06b5b1a023aa3a3f863dcad7a061ee517cdf00313446a6a64b",
+          "archiveSha256": "2f7ac623e54e2c29083372e4ab15d98f89e51bba2252ca7cce37325a4c4b56ca",
+          "sourceSha": "1db95b6e2fec3899c6a5bf6a54976c19208e14da",
+          "assetsManifestSha256": "8afb2fe8c3590ef676ca83cb88f7797fb3a355023606468d43edbd8c4f75a2c2"
+        }
+      },
+      "gzipSidecars": [
+        {
+          "path": "static/Editor-Av_7v3Pg.css.gz",
+          "bytes": 370,
+          "originalBytes": 1649,
+          "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c"
+        },
+        {
+          "path": "static/Editor-D7MnEPsS.js.gz",
+          "bytes": 143418,
+          "originalBytes": 531379,
+          "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6"
+        },
+        {
+          "path": "static/index-CFh-NWQJ.js.gz",
+          "bytes": 579935,
+          "originalBytes": 2047481,
+          "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492"
+        },
+        {
+          "path": "static/index-Cf7JTRXK.css.gz",
+          "bytes": 16871,
+          "originalBytes": 96979,
+          "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c"
+        },
+        {
+          "path": "static/worker-json-CWEgdERS.js.gz",
+          "bytes": 7322,
+          "originalBytes": 24460,
+          "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce"
+        },
+        {
+          "path": "static/worker-yaml-DaGsa-S9.js.gz",
+          "bytes": 23481,
+          "originalBytes": 76346,
+          "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2"
+        }
+      ],
+      "availability": {
+        "candidate": {
+          "unavailableSamples": 208,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 42545.611068,
+          "recoveryUpperBoundMs": 42760.170455000014,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        },
+        "rollback": {
+          "unavailableSamples": 186,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 37856.208869000024,
+          "recoveryUpperBoundMs": 38069.50430600002,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        }
+      },
+      "recordHashes": {
+        "baseline-image-identity.json": "136c6ff49e2587f5a29e0da0187495918360ecb94c39e2ab52f9a53fc66c6ce4",
+        "baseline-invariants.json": "2d301c4da54b210a5e5025f10674cd06abfb30375f0131002aa21f782bbb3002",
+        "baseline-rollout.json": "e6fd088e7b8db40783544a002683364d51e637254b0521b5d1ba45414b26cd78",
+        "baseline-tensorboard.png": "aa38c71b9a1880baad58e41dab1dfc18b123f3c57bee9f2fa00ab31506555060",
+        "candidate-application.png": "458d54fcb3e5e82c22c0dd65d03949685228a210202390bff9d638b910c61197",
+        "candidate-assets.json": "8afb2fe8c3590ef676ca83cb88f7797fb3a355023606468d43edbd8c4f75a2c2",
+        "candidate-image-identity.json": "c107418b1f213b8f3ffce9f4ec058cd654dfad0798e9cf14356887f29936a303",
+        "candidate-invariants.json": "779536f1ed60db35c37d94195a683a692cba4e3f7fc094f90e60fa7ea5aae316",
+        "candidate-rollout.json": "5e97626fe25d78d689499f97be0df1b46865776ef33e560c7d21b26aac840dc0",
+        "candidate-tensorboard.png": "5e883c61f39509ae8f8c4297bcbb3e774c7f82f39a5112f74105f7bdfc29a68e",
+        "diagnostics/events.txt": "e5d7dd4041ed15adf094783457f9765e9cb2a7e4ae4170697b56be3770025026",
+        "diagnostics/pods.txt": "3994e550727fa1bb34c221988bcd184d266bcfa3dd7fbac6c871c3e88026c4ef",
+        "images.json": "45f7d03820231599c77b4fa669f6a7a212753517791b43b67def398e478bbeb0",
+        "junit.xml": "a7b104e30ff4dda0ab1fc654e58d620fba264b0cc55a4e285baf1da924cb71ff",
+        "legacy-assets.json": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956",
+        "result.json": "271a8a41db30bbf57c7ab999fcde2d202de83dfec3a179d00c5f0c75d8ecc040",
+        "rollback-application.png": "b42761911029824eb595c2e18b16f96f9595799e4e864b243db5220725ecf743",
+        "rollback-image-identity.json": "28ca2196502f57ee0f469cfc3ecc1dbf63bb1206970feee9b2cbae39eb955f95",
+        "rollback-invariants.json": "d7776eb1201b39bddf1ec6979f57473b9fd48dba040d47f7aa1ca80f4cce55e0",
+        "rollback-rollout.json": "1a3c7f2f929589a7e54bf9bc7e4b2f74c04803f02b28db7c085b5edc72673cf5",
+        "rollback-tensorboard.png": "aa38c71b9a1880baad58e41dab1dfc18b123f3c57bee9f2fa00ab31506555060",
+        "runtime-manifests/11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0.json": "11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0",
+        "runtime-manifests/58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40.json": "58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40"
+      }
+    },
+    {
+      "mode": "multiuser",
+      "checks": 21,
+      "imageIdentities": {
+        "legacy": {
+          "reference": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+          "configId": "sha256:6aed3cc05ac37373e251b8cb7dc0c1634eaa7f7a23489bdfe8eeb762b3ad7fd5",
+          "archiveSha256": "d6b0ddc56edebce00c2a6f37561c3155f1a75b26f29f30f8b71e5173a5f58a74",
+          "sourceSha": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+          "assetsManifestSha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+        },
+        "candidate": {
+          "reference": "localhost:5001/kfp-frontend@sha256:1d644ad263c5fd4e6802bc996c70add8390ee2137d586e5436435d153d3a07bc",
+          "configId": "sha256:67c1f24374e8ac06b5b1a023aa3a3f863dcad7a061ee517cdf00313446a6a64b",
+          "archiveSha256": "2f7ac623e54e2c29083372e4ab15d98f89e51bba2252ca7cce37325a4c4b56ca",
+          "sourceSha": "1db95b6e2fec3899c6a5bf6a54976c19208e14da",
+          "assetsManifestSha256": "8afb2fe8c3590ef676ca83cb88f7797fb3a355023606468d43edbd8c4f75a2c2"
+        }
+      },
+      "gzipSidecars": [
+        {
+          "path": "static/Editor-Av_7v3Pg.css.gz",
+          "bytes": 370,
+          "originalBytes": 1649,
+          "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c"
+        },
+        {
+          "path": "static/Editor-D7MnEPsS.js.gz",
+          "bytes": 143418,
+          "originalBytes": 531379,
+          "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6"
+        },
+        {
+          "path": "static/index-CFh-NWQJ.js.gz",
+          "bytes": 579935,
+          "originalBytes": 2047481,
+          "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492"
+        },
+        {
+          "path": "static/index-Cf7JTRXK.css.gz",
+          "bytes": 16871,
+          "originalBytes": 96979,
+          "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c"
+        },
+        {
+          "path": "static/worker-json-CWEgdERS.js.gz",
+          "bytes": 7322,
+          "originalBytes": 24460,
+          "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce"
+        },
+        {
+          "path": "static/worker-yaml-DaGsa-S9.js.gz",
+          "bytes": 23481,
+          "originalBytes": 76346,
+          "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2"
+        }
+      ],
+      "availability": {
+        "candidate": {
+          "unavailableSamples": 209,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 42492.479169,
+          "recoveryUpperBoundMs": 42724.14538899998,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        },
+        "rollback": {
+          "unavailableSamples": 197,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 40015.75113300001,
+          "recoveryUpperBoundMs": 40240.94798900001,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        }
+      },
+      "recordHashes": {
+        "authentication.json": "6db37600012e147af17c98145b30c45ac6364157c315f2342faea35315220bdf",
+        "baseline-image-identity.json": "41a99f27e28ba469e7f92ad01b869e582c995421cd7588afa5f67e708adc33bc",
+        "baseline-invariants.json": "559ad29e12a8b3830ae3c282bf48037802adc11ebf2aead79271a12c3f0bdb44",
+        "baseline-rollout.json": "8e9ccc4c2097d217e77f90ebba899e599e57a8888a1f2a275a4249024029820c",
+        "baseline-tensorboard.png": "cd8dda32458be509c9289411f1d8102ff1081e10bc8012c11a9b8aa7c2229a69",
+        "candidate-application.png": "7d9d43f94f6bba46cd2c1c65da15d40efcaa954ce2dd080755d748c2d9ee0ea8",
+        "candidate-assets.json": "8afb2fe8c3590ef676ca83cb88f7797fb3a355023606468d43edbd8c4f75a2c2",
+        "candidate-image-identity.json": "57e4e8e8b2985c210d38f0a7442489d68f2c331eda61956beb909545f8590da6",
+        "candidate-invariants.json": "55b5f2eca63921d02724e570c17a75d2d4e5e2f5dce9cfee26757b29539de3a5",
+        "candidate-rollout.json": "acec81612dc9d528f6084420d6e73aebcbd304d9caca5318a848e26cbd43c1cb",
+        "candidate-tensorboard.png": "cd8dda32458be509c9289411f1d8102ff1081e10bc8012c11a9b8aa7c2229a69",
+        "diagnostics/events.txt": "5777a264994ede2c5b03694b0b5f1ffd49030f7101ecd630ae6286358e5d54bb",
+        "diagnostics/pods.txt": "e1210e1071d39412c58e6cb9a4ff3f6c8fe40e1c63d0c3ea86dc8f2952fa2a9f",
+        "images.json": "45f7d03820231599c77b4fa669f6a7a212753517791b43b67def398e478bbeb0",
+        "junit.xml": "1eb393e924fa80151a62e4f4002b34716a4c4aae0851bb6e80fe243b6c493741",
+        "legacy-assets.json": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956",
+        "mesh-readiness.json": "8a939876c90a2185088f10e816b43fbd3936614498a9b14fb4892d389b461cb2",
+        "profile-authorization-state.json": "49b5f5debb61df1de9fd06d424daafb0693ea2ffe4c70c0c2f78ba72b4ff2330",
+        "profile-authorization.json": "497c7122aabe5e9af27e91072e3b42dc248d265e1b17e55a10eb8c289b549491",
+        "result.json": "f75151a0f9e141d25560b16e4720c534f00488307a42676865d8c5a17a9f086a",
+        "rollback-application.png": "5630f49df9248702fb364070019d8a46e16296c75237c153ac8fbe38f5a12bb8",
+        "rollback-image-identity.json": "42fb0491ebb0d94e3a3ce350ea546721c9c9464ca926b67906cbe76658e966ec",
+        "rollback-invariants.json": "c34fb66dd29e86cb18290c824c5376576af872ad71691c8c62bf730d84d3f611",
+        "rollback-rollout.json": "a7cf113fb402923a30e6837ebf7352f4e0430a65cc949918aa77c57e7a589941",
+        "rollback-tensorboard.png": "c80b09204f517f0daa8b15385c59d7405008eaba50d3d9e5ca4b933e9b8b3627",
+        "runtime-manifests/11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0.json": "11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0",
+        "runtime-manifests/58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40.json": "58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40"
+      }
+    }
+  ],
+  "totalChecks": 39,
+  "limits": [
+    "Deployment reports verify decoded response bodies against image manifests; they do not retain or assert wire Content-Encoding headers.",
+    "Gzip sidecar bytes independently decompressed and matched to original image assets.",
+    "Recreate deployment downtime remains; this change addresses cold editor transfer."
+  ]
+}

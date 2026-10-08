@@ -1,0 +1,26 @@
+{
+  "expectedReference": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+  "expectedConfigId": "sha256:6aed3cc05ac37373e251b8cb7dc0c1634eaa7f7a23489bdfe8eeb762b3ad7fd5",
+  "pods": [
+    {
+      "uid": "2206dc24-162a-44bc-a59d-23d091d8248f",
+      "node": "kfp-control-plane",
+      "imageId": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+      "ready": true,
+      "mesh": {
+        "uid": "2206dc24-162a-44bc-a59d-23d091d8248f",
+        "serviceAccount": "ml-pipeline-ui",
+        "initOrder": [
+          "istio-validation",
+          "istio-proxy"
+        ],
+        "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+        "proxyReady": true
+      },
+      "verification": {
+        "method": "manifest-digest",
+        "reportedImageId": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2"
+      }
+    }
+  ]
+}

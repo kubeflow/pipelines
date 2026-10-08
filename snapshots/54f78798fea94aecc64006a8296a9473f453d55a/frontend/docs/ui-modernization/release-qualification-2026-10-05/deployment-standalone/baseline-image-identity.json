@@ -1,0 +1,16 @@
+{
+  "expectedReference": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+  "expectedConfigId": "sha256:6aed3cc05ac37373e251b8cb7dc0c1634eaa7f7a23489bdfe8eeb762b3ad7fd5",
+  "pods": [
+    {
+      "uid": "52c336a0-254f-42e7-bd92-0d73408ffcde",
+      "node": "kfp-control-plane",
+      "imageId": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2",
+      "ready": true,
+      "verification": {
+        "method": "manifest-digest",
+        "reportedImageId": "localhost:5001/kfp-frontend@sha256:c2de8469655356d673a602cd47a1143f91d5c3fb3aeb78df0199ed2354acbbf2"
+      }
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "status": "pass",
+  "run": {
+    "id": "37264911581",
+    "attempt": "1",
+    "testedSource": "1db95b6e2fec3899c6a5bf6a54976c19208e14da",
+    "pullRequestHead": "ac310c997da668c012f30ac493b0e9ac1ab2f955"
+  },
+  "sources": {
+    "legacy": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+    "checkpoint": "e79f8d423e6b118e5df94815ee2f36f68570a9a9",
+    "previous": "439304aa4ed3a20ae5a7c004b96936cb65c3aff0",
+    "candidate": "1db95b6e2fec3899c6a5bf6a54976c19208e14da"
+  },
+  "samples": 126,
+  "traceFilesVerified": 126,
+  "traceEventsParsed": 2682853,
+  "traceTransferAndEditorEndpointCrossChecks": true,
+  "staticTransfersVerified": {
+    "legacy": 84,
+    "previous": 105,
+    "candidate": 105
+  },
+  "comparisonsIndependentlyRecalculated": 29,
+  "entryGzipBytes": 596806,
+  "entryGzipAudit": {
+    "runtime": "v24.14.0",
+    "zlib": "1.3.1-e00f703",
+    "entryGzipBytes": {
+      "legacy": 785657,
+      "checkpoint": 596673,
+      "previous": 596806,
+      "candidate": 596806
+    }
+  },
+  "candidateNonEditorSamplesWithoutEditorOrWorkerRequests": 35,
+  "mediansMs": {
+    "runs": {
+      "previous": 13485.5,
+      "candidate": 5516.100000000006
+    },
+    "run-details": {
+      "previous": 13582.699999999953,
+      "candidate": 5628.199999999953
+    },
+    "compare": {
+      "previous": 13690.800000000047,
+      "candidate": 5688.100000000093
+    },
+    "filter": {
+      "previous": 779.6000000000931,
+      "candidate": 779.3999999999942
+    },
+    "run-open": {
+      "previous": 1040.7999999998137,
+      "candidate": 1036.4000000000233
+    },
+    "task-open": {
+      "previous": 153.79999999993015,
+      "candidate": 151.09999999997672
+    },
+    "editor-display": {
+      "previous": 3376.399999999907,
+      "candidate": 1399.1000000000931
+    },
+    "editor-worker-ready": {
+      "previous": 3724.5999999999767,
+      "candidate": 1493.3000000000466
+    }
+  },
+  "staticBuildAudit": {
+    "sources": {
+      "previous": "439304aa4ed3a20ae5a7c004b96936cb65c3aff0",
+      "candidate": "1db95b6e2fec3899c6a5bf6a54976c19208e14da"
+    },
+    "verifiedInventoryFiles": {
+      "previous": 22,
+      "candidate": 28
+    },
+    "identicalOriginalJsCssFiles": 6,
+    "sourceMapDifference": "Only Vite internal worker URL asset placeholder IDs differ in Editor map sourcesContent; original emitted JS and all worker bytes identical.",
+    "addedSidecars": [
+      {
+        "path": "static/Editor-Av_7v3Pg.css.gz",
+        "bytes": 370,
+        "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c",
+        "originalBytes": 1649
+      },
+      {
+        "path": "static/Editor-D7MnEPsS.js.gz",
+        "bytes": 143418,
+        "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6",
+        "originalBytes": 531379
+      },
+      {
+        "path": "static/index-CFh-NWQJ.js.gz",
+        "bytes": 579935,
+        "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492",
+        "originalBytes": 2047481
+      },
+      {
+        "path": "static/index-Cf7JTRXK.css.gz",
+        "bytes": 16871,
+        "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c",
+        "originalBytes": 96979
+      },
+      {
+        "path": "static/worker-json-CWEgdERS.js.gz",
+        "bytes": 7322,
+        "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce",
+        "originalBytes": 24460
+      },
+      {
+        "path": "static/worker-yaml-DaGsa-S9.js.gz",
+        "bytes": 23481,
+        "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2",
+        "originalBytes": 76346
+      }
+    ]
+  },
+  "performanceJsonSha256": "5b7d34e7b0f5b6c6897b5f261147565d941ea622236cd54a746067854a6429ef",
+  "limitations": [
+    "Hosted throttled laboratory fixture measurements, not field percentiles.",
+    "Original JavaScript/CSS byte identity proves product-code parity; runtime transport is intentionally changed."
+  ]
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "namespace": "kubeflow-user-example-com",
+    "user": "other@example.com",
+    "allowed": false
+  },
+  {
+    "namespace": "kubeflow-user-example-com",
+    "user": "user@example.com",
+    "allowed": true
+  },
+  {
+    "namespace": "kfp-qualification-second",
+    "user": "other@example.com",
+    "allowed": false
+  },
+  {
+    "namespace": "kfp-qualification-second",
+    "user": "user@example.com",
+    "allowed": true
+  },
+  {
+    "namespace": "kfp-qualification-other",
+    "user": "other@example.com",
+    "allowed": true
+  },
+  {
+    "namespace": "kfp-qualification-other",
+    "user": "user@example.com",
+    "allowed": false
+  }
+]

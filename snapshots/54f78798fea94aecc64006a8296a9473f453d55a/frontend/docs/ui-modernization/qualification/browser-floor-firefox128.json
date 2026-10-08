@@ -1,0 +1,149 @@
+{
+  "recordedAt": "2026-09-28T16:55:50.971Z",
+  "status": "passed",
+  "expectedVersion": "128.0",
+  "browserName": "firefox",
+  "checks": [
+    {
+      "name": "required platform features",
+      "status": "passed",
+      "detail": {
+        "features": {
+          "arrayAt": true,
+          "colorMix": true,
+          "dynamicViewport": true,
+          "focusVisible": true,
+          "objectHasOwn": true,
+          "registeredProperties": true,
+          "resizeObserver": true,
+          "structuredClone": true,
+          "weakRef": true
+        },
+        "nativeInputActivation": {
+          "mouseEvent": true,
+          "pointerEvent": false
+        }
+      }
+    },
+    {
+      "name": "Runs loaded names and native name filter",
+      "status": "passed",
+      "detail": {
+        "initialNames": [
+          "Python two steps",
+          "Loops and conditions",
+          "v2-xgboost-ilbo",
+          "Various IO types"
+        ],
+        "filteredName": "v2-xgboost-ilbo"
+      }
+    },
+    {
+      "name": "Run Details graph and task inspection",
+      "status": "passed",
+      "detail": {
+        "height": 32.28334045410156,
+        "nodes": 18,
+        "width": 115.28334045410156
+      }
+    },
+    {
+      "name": "Pipelines cards and keyboard selection",
+      "status": "passed",
+      "detail": null
+    },
+    {
+      "name": "Switch pointer and Space activation preserve unsubmitted feature state",
+      "status": "passed",
+      "detail": {
+        "persistedOrActivated": false
+      }
+    },
+    {
+      "name": "comparison retains both native runs and honest empty data states",
+      "status": "passed",
+      "detail": {
+        "selectedRuns": 2,
+        "parameters": "empty fixture",
+        "scalarMetrics": "empty fixture"
+      }
+    },
+    {
+      "name": "dark theme and narrow command-dialog keyboard containment",
+      "status": "passed",
+      "detail": {
+        "background": "rgb(14, 16, 21)",
+        "foreground": "rgb(236, 238, 244)"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "firefox128/runs-filtered.png",
+      "sha256": "9a999aee9e671e0b3b0eb6631c1fe6dd2204343d598965ebeb3a34d1b6425c2e",
+      "bytes": 95758
+    },
+    {
+      "path": "firefox128/run-details-inspector.png",
+      "sha256": "a8b7920d9bb967fb2f8f5beeb96e0eb493aabaf6c5f5e87212ace65bd1285537",
+      "bytes": 204275
+    },
+    {
+      "path": "firefox128/pipeline-cards.png",
+      "sha256": "18f4be036985c0a2cbba560fe0b60ca329749ebc472fa1dc6a94417a4f0ffddc",
+      "bytes": 84174
+    },
+    {
+      "path": "firefox128/feature-switch.png",
+      "sha256": "0f0e63b34b7f35889987818baace185e5733c7e203bafa1d77fb684c0ac0b382",
+      "bytes": 74500
+    },
+    {
+      "path": "firefox128/comparison.png",
+      "sha256": "011148bd68f35bb9086791900503e797911d04db7facc6925cb38a1ad42994b5",
+      "bytes": 131433
+    },
+    {
+      "path": "firefox128/command-dialog-narrow-dark.png",
+      "sha256": "b37f527ad62d3a47d5759078ede60fe8ab4259b016f8d2cd2ec8234b60996a3f",
+      "bytes": 82257
+    }
+  ],
+  "limitations": [
+    "Native small fixtures; comparison has two runs but no parameters or scalar metrics.",
+    "Desktop viewport checks do not establish actual iOS, assistive-technology, or full workflow parity.",
+    "Page readiness and captured errors are checked; errors before initial Runs readiness are not observed, and this is not a complete network or console trace."
+  ],
+  "capabilities": {
+    "browserName": "firefox",
+    "browserVersion": "128.0",
+    "moz:buildID": "20240704121409",
+    "moz:geckodriverVersion": "0.37.1",
+    "moz:headless": true,
+    "platformName": "mac"
+  },
+  "environment": {
+    "dpr": 1,
+    "height": 815,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Gecko/20100101 Firefox/128.0",
+    "width": 1440
+  },
+  "assets": [
+    {
+      "path": "/static/index-CMs0YGmE.js",
+      "bytes": 2046158,
+      "sha256": "d5e8a5dc6a56c0bcaa8bb2c678a9834ed82d209b3b32516e3b0c776c561c29cd"
+    },
+    {
+      "path": "/static/index-BB6Gh9sf.css",
+      "bytes": 95566,
+      "sha256": "872fed3daa914cb73dd3272d200481097fabde285213f18666cc43c7ac1c6338"
+    }
+  ],
+  "errors": [],
+  "applicationSourceCommit": "b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269",
+  "harnessSourceCommit": "b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269",
+  "qualificationStatus": "scoped minimum-version smoke passed",
+  "rawResultSha256": "ea3a829397112b2dfccac6942ede9ed633c510ceb7e20a268126fa493aeca208",
+  "sessionCleanup": "passed"
+}

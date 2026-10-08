@@ -1,0 +1,29 @@
+{
+  "expectedReference": "localhost:5001/kfp-frontend@sha256:f3ae78b8996577983a5207d8340223f103c768ee4975d6c017a141b20e457f95",
+  "expectedConfigId": "sha256:3d571422380ceb9f87607511a076bd1dae65dc04ea269d2a6d5e50d2c0a01088",
+  "pods": [
+    {
+      "uid": "7c001e5c-8dbc-43e6-955f-43d0f8579f0e",
+      "node": "kfp-control-plane",
+      "imageId": "docker.io/library/import-2026-10-05@sha256:326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4",
+      "ready": true,
+      "mesh": {
+        "uid": "7c001e5c-8dbc-43e6-955f-43d0f8579f0e",
+        "serviceAccount": "ml-pipeline-ui",
+        "initOrder": [
+          "istio-validation",
+          "istio-proxy"
+        ],
+        "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+        "proxyReady": true
+      },
+      "verification": {
+        "method": "resolved-runtime-manifest-config-digest",
+        "reportedImageId": "docker.io/library/import-2026-10-05@sha256:326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4",
+        "verifiedManifestDigest": "sha256:326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4",
+        "resolvedManifestDigest": "sha256:d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3",
+        "resolvedConfigId": "sha256:3d571422380ceb9f87607511a076bd1dae65dc04ea269d2a6d5e50d2c0a01088"
+      }
+    }
+  ]
+}

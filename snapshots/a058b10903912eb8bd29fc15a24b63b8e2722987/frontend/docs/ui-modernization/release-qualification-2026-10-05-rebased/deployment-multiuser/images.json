@@ -1,0 +1,16 @@
+{
+  "legacy": {
+    "reference": "localhost:5001/kfp-frontend@sha256:2ae9522e5279a3fa79180f0709f673127b7a5bb147bad7cf85cf36557d2d27f4",
+    "configId": "sha256:d896e3989f284ebabd85bb3986431bc237f8fd763063041b7c1d3279846f9a91",
+    "archiveSha256": "6e0d1d9955d26b5e71ba7317538c570b2f662f61b610c028eb09b8425023fb24",
+    "sourceSha": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+    "assetsManifestSha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+  },
+  "candidate": {
+    "reference": "localhost:5001/kfp-frontend@sha256:f3ae78b8996577983a5207d8340223f103c768ee4975d6c017a141b20e457f95",
+    "configId": "sha256:3d571422380ceb9f87607511a076bd1dae65dc04ea269d2a6d5e50d2c0a01088",
+    "archiveSha256": "3defae43b935cb173c7dc9deae246d5a259b987f7e87207aaf653b36ba5d89b6",
+    "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+    "assetsManifestSha256": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540"
+  }
+}

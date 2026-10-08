@@ -1,0 +1,229 @@
+{
+  "runId": "37268438678",
+  "headSha": "8de88ada3ca3748fbdfbce6f2c6c69d60766b8be",
+  "merge": {
+    "parents": [
+      "e3c93651a44fa718ab079010bb332318854e0491",
+      "8de88ada3ca3748fbdfbce6f2c6c69d60766b8be"
+    ],
+    "sha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507"
+  },
+  "modes": [
+    {
+      "mode": "standalone",
+      "checks": 18,
+      "imageIdentities": {
+        "legacy": {
+          "reference": "localhost:5001/kfp-frontend@sha256:2ae9522e5279a3fa79180f0709f673127b7a5bb147bad7cf85cf36557d2d27f4",
+          "configId": "sha256:d896e3989f284ebabd85bb3986431bc237f8fd763063041b7c1d3279846f9a91",
+          "archiveSha256": "6e0d1d9955d26b5e71ba7317538c570b2f662f61b610c028eb09b8425023fb24",
+          "sourceSha": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+          "assetsManifestSha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+        },
+        "candidate": {
+          "reference": "localhost:5001/kfp-frontend@sha256:f3ae78b8996577983a5207d8340223f103c768ee4975d6c017a141b20e457f95",
+          "configId": "sha256:3d571422380ceb9f87607511a076bd1dae65dc04ea269d2a6d5e50d2c0a01088",
+          "archiveSha256": "3defae43b935cb173c7dc9deae246d5a259b987f7e87207aaf653b36ba5d89b6",
+          "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+          "assetsManifestSha256": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540"
+        }
+      },
+      "gzipSidecars": [
+        {
+          "path": "static/Editor-Av_7v3Pg.css.gz",
+          "bytes": 370,
+          "originalBytes": 1649,
+          "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c"
+        },
+        {
+          "path": "static/Editor-D7MnEPsS.js.gz",
+          "bytes": 143418,
+          "originalBytes": 531379,
+          "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6"
+        },
+        {
+          "path": "static/index-CFh-NWQJ.js.gz",
+          "bytes": 579935,
+          "originalBytes": 2047481,
+          "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492"
+        },
+        {
+          "path": "static/index-Cf7JTRXK.css.gz",
+          "bytes": 16871,
+          "originalBytes": 96979,
+          "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c"
+        },
+        {
+          "path": "static/worker-json-CWEgdERS.js.gz",
+          "bytes": 7322,
+          "originalBytes": 24460,
+          "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce"
+        },
+        {
+          "path": "static/worker-yaml-DaGsa-S9.js.gz",
+          "bytes": 23481,
+          "originalBytes": 76346,
+          "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2"
+        }
+      ],
+      "availability": {
+        "candidate": {
+          "unavailableSamples": 195,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 39866.72099100001,
+          "recoveryUpperBoundMs": 40084.99277100002,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        },
+        "rollback": {
+          "unavailableSamples": 186,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 37824.042655,
+          "recoveryUpperBoundMs": 38052.34057,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        }
+      },
+      "recordHashes": {
+        "baseline-image-identity.json": "1860da5a4c9868a7aed058308d304fcabd87d7d4a8c8d4ace5bb43e581b6f610",
+        "baseline-invariants.json": "fb1e1bad877a71726126a55ab585e518b52b9bd9bb52c72f68790ebae15e98ae",
+        "baseline-rollout.json": "7c30d2165e58aedb15077022f4d6a3cb200d8b8753dad51e83ca3f0af0c02768",
+        "baseline-tensorboard.png": "aa38c71b9a1880baad58e41dab1dfc18b123f3c57bee9f2fa00ab31506555060",
+        "candidate-application.png": "31db5dcdd04a249321f3a41550aeedbe31b779f29168c26f56d121fd643b8135",
+        "candidate-assets.json": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540",
+        "candidate-image-identity.json": "0748af4ecee7bce59fc66bb05582ade31cda85e974ae5d4e7410ea407ef7d657",
+        "candidate-invariants.json": "d3ba4b9664f73c04a839bf4922e8a13e457057ac212771a7bad00801b75fd198",
+        "candidate-rollout.json": "2f44fc0effb05bad40743f11f66a6dc628169c0cb2ab461c818dd688058eb908",
+        "candidate-tensorboard.png": "aa38c71b9a1880baad58e41dab1dfc18b123f3c57bee9f2fa00ab31506555060",
+        "diagnostics/events.txt": "fbb1648778682a3555975b9f495b55cc8bba74a15900fbdaf2ad714b1d183ff9",
+        "diagnostics/pods.txt": "924a9044226e39b0e3432171c1370d4fa7327ba62b7cbc8ffe62f03e258a7341",
+        "images.json": "f46d34d6d76b64063832421bba25fafdc4088c36d4be9ede3fc75dfd2758e6b3",
+        "junit.xml": "a7b104e30ff4dda0ab1fc654e58d620fba264b0cc55a4e285baf1da924cb71ff",
+        "legacy-assets.json": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956",
+        "result.json": "55a97fa9a2a59eeac8fc728b57c3c93e30563d691e3924a2ad947c319c986a76",
+        "rollback-application.png": "2ebfb22241ba492b9dcd547f05eddb3834213bcee14124f451e1f99f5838a0f3",
+        "rollback-image-identity.json": "96581457e9d4eb220c383ced9c3cae8a1b70a1b53863bf19690d87816ef96283",
+        "rollback-invariants.json": "56f610a1b0fdadc37fecfc7e90d21a2a6099ef769cb84db32aec8d90e225846e",
+        "rollback-rollout.json": "27561176f579f51cacf9a55175aa367658a9ae1415b4a023781927f7241665a9",
+        "rollback-tensorboard.png": "aa38c71b9a1880baad58e41dab1dfc18b123f3c57bee9f2fa00ab31506555060",
+        "runtime-manifests/326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4.json": "326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4",
+        "runtime-manifests/d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3.json": "d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3"
+      }
+    },
+    {
+      "mode": "multiuser",
+      "checks": 21,
+      "imageIdentities": {
+        "legacy": {
+          "reference": "localhost:5001/kfp-frontend@sha256:2ae9522e5279a3fa79180f0709f673127b7a5bb147bad7cf85cf36557d2d27f4",
+          "configId": "sha256:d896e3989f284ebabd85bb3986431bc237f8fd763063041b7c1d3279846f9a91",
+          "archiveSha256": "6e0d1d9955d26b5e71ba7317538c570b2f662f61b610c028eb09b8425023fb24",
+          "sourceSha": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+          "assetsManifestSha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+        },
+        "candidate": {
+          "reference": "localhost:5001/kfp-frontend@sha256:f3ae78b8996577983a5207d8340223f103c768ee4975d6c017a141b20e457f95",
+          "configId": "sha256:3d571422380ceb9f87607511a076bd1dae65dc04ea269d2a6d5e50d2c0a01088",
+          "archiveSha256": "3defae43b935cb173c7dc9deae246d5a259b987f7e87207aaf653b36ba5d89b6",
+          "sourceSha": "f06cc3dcfdbf0a0d6380a55f5fe5b60b72c1a507",
+          "assetsManifestSha256": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540"
+        }
+      },
+      "gzipSidecars": [
+        {
+          "path": "static/Editor-Av_7v3Pg.css.gz",
+          "bytes": 370,
+          "originalBytes": 1649,
+          "sha256": "3b842ce0723ae903572e97e8cccc1776d3c12c0315754f0d4f0afb2298975d3c"
+        },
+        {
+          "path": "static/Editor-D7MnEPsS.js.gz",
+          "bytes": 143418,
+          "originalBytes": 531379,
+          "sha256": "f7ee9c6100d06faa144dbd47fa9ff1d18038f96b1d101a34934f464aa5ae16a6"
+        },
+        {
+          "path": "static/index-CFh-NWQJ.js.gz",
+          "bytes": 579935,
+          "originalBytes": 2047481,
+          "sha256": "ab66d9aad97c31a0a14ed2c4d9d6cbba440c3db57a5b125a622bf4456c200492"
+        },
+        {
+          "path": "static/index-Cf7JTRXK.css.gz",
+          "bytes": 16871,
+          "originalBytes": 96979,
+          "sha256": "ec94ed9c5206df9b6a074a4699fe82dd402531913b97740964309dc9966f678c"
+        },
+        {
+          "path": "static/worker-json-CWEgdERS.js.gz",
+          "bytes": 7322,
+          "originalBytes": 24460,
+          "sha256": "077495f26e20935edc02ef7a57554e4475c0c7f0cb7d2b1fa238b3eb6ec5a3ce"
+        },
+        {
+          "path": "static/worker-yaml-DaGsa-S9.js.gz",
+          "bytes": 23481,
+          "originalBytes": 76346,
+          "sha256": "3d07d83a678d016c2ccafe630d3d9b7e9cd59a1209e1310f881ebedac9f0e3a2"
+        }
+      ],
+      "availability": {
+        "candidate": {
+          "unavailableSamples": 213,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 43154.086867999984,
+          "recoveryUpperBoundMs": 43376.549818,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        },
+        "rollback": {
+          "unavailableSamples": 200,
+          "observedUnavailable": true,
+          "observedUnavailableSpanMs": 40509.42395700002,
+          "recoveryUpperBoundMs": 40725.49220799998,
+          "intervalMs": 200,
+          "requestDeadlineMs": 2000,
+          "strategy": "Recreate"
+        }
+      },
+      "recordHashes": {
+        "authentication.json": "6db37600012e147af17c98145b30c45ac6364157c315f2342faea35315220bdf",
+        "baseline-image-identity.json": "568b9106c46c3f1108d31fa51de36a2fa60661887be8b7dd8853a7d46b45d1c2",
+        "baseline-invariants.json": "25ca2375cbcdf148790d00ab1b7b5e24b7c626dddf2ffa03f1d7d38bed907227",
+        "baseline-rollout.json": "396999a3640126266732e3f034b464f506fa949bcc7e2fb9e6327a56e065c25e",
+        "baseline-tensorboard.png": "cd8dda32458be509c9289411f1d8102ff1081e10bc8012c11a9b8aa7c2229a69",
+        "candidate-application.png": "5dc95b7e570c7c02a03042bbcc724db1b83daff7455a603a3b9580a5e6cbf06d",
+        "candidate-assets.json": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540",
+        "candidate-image-identity.json": "0a60706810196bc5cd10f824e5f613f8ed832e5fbe514b6b879d5aa84a5097db",
+        "candidate-invariants.json": "a260ac3f9e2c1c555c0559f50bdb411d613a8b0657c648c51ce85431275e00a7",
+        "candidate-rollout.json": "5925559f26fbb48be5b2546c01cf35566477f228caa9bbe1c89b9df291c0e08e",
+        "candidate-tensorboard.png": "cd8dda32458be509c9289411f1d8102ff1081e10bc8012c11a9b8aa7c2229a69",
+        "diagnostics/events.txt": "ed2221ab8e431d1724e3b3a9205d38e5d4c8a93a1d0c61c5d6a698e748fbb438",
+        "diagnostics/pods.txt": "8ebfc6b94c5d48cd197ff0b8993de64b3b959a78b25a829d1edf68258a38095f",
+        "images.json": "f46d34d6d76b64063832421bba25fafdc4088c36d4be9ede3fc75dfd2758e6b3",
+        "junit.xml": "1eb393e924fa80151a62e4f4002b34716a4c4aae0851bb6e80fe243b6c493741",
+        "legacy-assets.json": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956",
+        "mesh-readiness.json": "78c3844e595cc8fdc521f7adcf64d36f1f5d32e6224bf81f4fca63ab7de10b55",
+        "profile-authorization-state.json": "49b5f5debb61df1de9fd06d424daafb0693ea2ffe4c70c0c2f78ba72b4ff2330",
+        "profile-authorization.json": "497c7122aabe5e9af27e91072e3b42dc248d265e1b17e55a10eb8c289b549491",
+        "result.json": "d136282fcc4ba94e38998e784599a2fc0ad650baedd570523e59cff5e2b7bde6",
+        "rollback-application.png": "4dfecbd704c20f4b032a29ba28be2b57a586bccb9a60ac04a0e1beb31e2ef915",
+        "rollback-image-identity.json": "76edf482f533e6bc1b08d4dbb9584fb17b4e3c15bde31fb9949702a21806654f",
+        "rollback-invariants.json": "83e05e6d7fc8fca4be2aa142b70d4189ef8c9a34076fa4db770718078e9819d1",
+        "rollback-rollout.json": "5647645923448c211b4efd0ee5736f4b13e7ff085be2df5c1345e2c5fe790545",
+        "rollback-tensorboard.png": "cd8dda32458be509c9289411f1d8102ff1081e10bc8012c11a9b8aa7c2229a69",
+        "runtime-manifests/326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4.json": "326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4",
+        "runtime-manifests/d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3.json": "d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3"
+      }
+    }
+  ],
+  "totalChecks": 39,
+  "limits": [
+    "Deployment reports verify decoded response bodies against image manifests; they do not retain or assert wire Content-Encoding headers.",
+    "Gzip sidecar bytes independently decompressed and matched to original image assets.",
+    "Recreate deployment downtime remains; this change addresses cold editor transfer."
+  ]
+}

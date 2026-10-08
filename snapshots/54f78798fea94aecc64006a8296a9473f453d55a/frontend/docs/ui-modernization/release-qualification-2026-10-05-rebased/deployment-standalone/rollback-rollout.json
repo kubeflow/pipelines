@@ -1,0 +1,21 @@
+{
+  "phase": "rollback",
+  "strategy": {
+    "type": "Recreate"
+  },
+  "elapsedMs": 38179.76901999987,
+  "podTemplateSha256": "6edcc11475e44a04335334667a90bcff126d066c3dd35794fbe69e58ccaea692",
+  "image": "localhost:5001/kfp-frontend@sha256:2ae9522e5279a3fa79180f0709f673127b7a5bb147bad7cf85cf36557d2d27f4",
+  "pods": [
+    {
+      "uid": "362f31ba-febd-4d69-9471-6ffeff60bfa7",
+      "containers": [
+        {
+          "name": "ml-pipeline-ui",
+          "imageID": "localhost:5001/kfp-frontend@sha256:2ae9522e5279a3fa79180f0709f673127b7a5bb147bad7cf85cf36557d2d27f4",
+          "ready": true
+        }
+      ]
+    }
+  ]
+}
