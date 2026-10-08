@@ -44,8 +44,18 @@ export default function SubDagGroupNode({
             title={data.label}
             style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 0 }}
           >
-            <span style={{ display: 'block', fontSize: 11, color: '#52677f' }}>
-              {data.groupKind || 'Sub-DAG'}
+            <span
+              title={data.expansionDeferred}
+              style={{
+                display: 'block',
+                fontSize: 11,
+                color: '#52677f',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {data.expansionDeferred || data.groupKind || 'Sub-DAG'}
             </span>
             <span
               style={{

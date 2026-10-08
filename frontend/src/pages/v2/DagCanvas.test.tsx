@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver } from 'src/TestUtils';
 import { nestedArtifactSpec } from 'src/data/test/groupedFlow';
-import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertSubDagToFlowElements, GraphExpansionLimitError } from 'src/lib/v2/StaticFlow';
 import DagCanvas, { DagCanvasProps } from './DagCanvas';
 
 const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
@@ -85,6 +85,34 @@ it('preserves nested collapse choices across refreshes and parent toggles', () =
     'false',
   );
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+});
+
+it('explicitly expands a deferred group and preserves that choice through refresh', () => {
+  const getSubDagElements = vi.fn((layers: string[], maxNodes?: number) => {
+    if (maxNodes !== Infinity) throw new GraphExpansionLimitError(600);
+    return resolve(layers);
+  });
+  const options = { ...props(), getSubDagElements };
+  const { rerender } = render(
+    <CommonTestWrapper>
+      <DagCanvas {...options} />
+    </CommonTestWrapper>,
+  );
+  expect(screen.getByText('600 nodes · expand to load')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
+  expect(screen.getByText('Prepare data')).toBeInTheDocument();
+  expect(getSubDagElements).toHaveBeenCalledWith(['root', 'workflow'], Infinity);
+  expect(
+    screen.getByRole('button', { name: 'Expand Training and evaluation' }),
+  ).toBeInTheDocument();
+  rerender(
+    <CommonTestWrapper>
+      <DagCanvas {...options} elements={resolve(['root'])} />
+    </CommonTestWrapper>,
+  );
+  expect(screen.getByText('Prepare data')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
+  expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
 });
 
 it('supports keyboard collapse and expansion', async () => {

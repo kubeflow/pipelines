@@ -53,6 +53,7 @@ import {
 
 type PipelineNode = Node<FlowElementDataBase>;
 const nodeTypes = { ...NODE_TYPES, [GROUP_NODE_TYPE]: SubDagGroupNode };
+const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parentId ?? null]);
 
 export interface DagCanvasProps {
   elements: PipelineFlowElement[];
@@ -79,21 +80,36 @@ export default function DagCanvas({
   getSubDagElements,
   selectedNodeLayers = layers,
 }: DagCanvasProps) {
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const [expansion, setExpansion] = useState({
+    collapsed: new Set<string>(),
+    expanded: new Set<string>(),
+  });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const grouped = useMemo(
     () =>
       getSubDagElements
-        ? buildGroupedFlow(elements, layers, getSubDagElements, collapsed)
+        ? buildGroupedFlow(
+            elements,
+            layers,
+            getSubDagElements,
+            expansion.collapsed,
+            expansion.expanded,
+          )
         : undefined,
-    [elements, layers, getSubDagElements, collapsed],
+    [elements, layers, getSubDagElements, expansion],
   );
-  const toggleGroup = useCallback((id: string) => {
-    setCollapsed((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
+    setExpansion((previous) => {
+      const collapsed = new Set(previous.collapsed);
+      const expanded = new Set(previous.expanded);
+      if (isCollapsed) {
+        collapsed.delete(id);
+        expanded.add(id);
+      } else {
+        collapsed.add(id);
+        expanded.delete(id);
+      }
+      return { collapsed, expanded };
     });
     // A changed group size requires a fresh layout, not stale drag offsets.
     setPositions({});
@@ -117,11 +133,14 @@ export default function DagCanvas({
       (grouped?.nodes ?? elements.filter(isNode)).map((node) => {
         const selectedNode = {
           ...node,
-          position: positions[node.id] ?? node.position,
+          position: positions[positionKey(node)] ?? node.position,
           selected: node.id === selectedId,
         };
         if (node.type === GROUP_NODE_TYPE) {
-          return { ...selectedNode, data: { ...node.data, expand: toggleGroup } };
+          return {
+            ...selectedNode,
+            data: { ...node.data, expand: (id: string) => toggleGroup(id, node.data.collapsed) },
+          };
         }
         return selectedNode.type === NodeTypeNames.SUB_DAG && selectedNode.data
           ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
@@ -137,7 +156,10 @@ export default function DagCanvas({
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
     (_event, draggedNode) => {
       if (grouped) {
-        setPositions((previous) => ({ ...previous, [draggedNode.id]: draggedNode.position }));
+        setPositions((previous) => ({
+          ...previous,
+          [positionKey(draggedNode)]: draggedNode.position,
+        }));
         return;
       }
       const updatedElements = elements.map((el) =>

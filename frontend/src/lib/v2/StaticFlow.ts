@@ -23,6 +23,16 @@ import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pi
 
 export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
 
+export class GraphExpansionLimitError extends Error {
+  constructor(readonly nodeCount?: number) {
+    super(
+      nodeCount === undefined
+        ? 'Automatic expansion limit reached. Expand to load this group.'
+        : `${nodeCount.toLocaleString('en-US')} nodes. Expand to load this group.`,
+    );
+  }
+}
+
 export function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
   return !('source' in el) && !('target' in el);
 }
@@ -83,6 +93,7 @@ export function convertFlowElements(spec: PipelineSpec): PipelineFlowElement[] {
 export function convertSubDagToFlowElements(
   spec: PipelineSpec,
   layers: string[],
+  maxNodes = Infinity,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
@@ -114,7 +125,7 @@ export function convertSubDagToFlowElements(
     }
   }
 
-  return buildDag(spec, componentSpec);
+  return buildDag(spec, componentSpec, maxNodes);
 }
 
 /**
@@ -126,6 +137,7 @@ export function convertSubDagToFlowElements(
 export function buildDag(
   pipelineSpec: PipelineSpec,
   componentSpec: ComponentSpec,
+  maxNodes = Infinity,
 ): PipelineFlowElement[] {
   const dag = componentSpec.dag;
   if (!dag) {
@@ -136,6 +148,23 @@ export function buildDag(
   let flowGraph: PipelineFlowElement[] = [];
 
   const tasksMap = dag.tasks || {};
+  let nodeCount = Object.keys(componentSpec.inputDefinitions?.artifacts || {}).length;
+  for (const [key, task] of Object.entries(tasksMap)) {
+    const reference = task.componentRef?.name;
+    const target = reference ? componentsMap[reference] : undefined;
+    if (!target) {
+      throw new Error(
+        `Task "${key}" references missing component "${reference || '(unset)'}". Correct its componentRef in the pipeline spec.`,
+      );
+    }
+    if (!task.taskInfo?.name || (!target.executorLabel && !target.dag)) {
+      throw new Error(
+        `Task "${key}" has no display name or executable component. Correct its taskInfo and component definition.`,
+      );
+    }
+    nodeCount += 1 + Object.keys(target.outputDefinitions?.artifacts || {}).length;
+  }
+  if (nodeCount > maxNodes) throw new GraphExpansionLimitError(nodeCount);
 
   addTaskNodes(tasksMap, componentsMap, flowGraph);
   addInputArtifactNodes(componentSpec.inputDefinitions?.artifacts, flowGraph);

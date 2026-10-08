@@ -6,30 +6,40 @@ import { useMemo, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 import DagCanvas from 'src/pages/v2/DagCanvas';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
-import { conditionSpec, loopSpec, loopTasks, nestedArtifactSpec } from 'src/data/test/groupedFlow';
+import {
+  conditionSpec,
+  exitHandlerSpec,
+  loopSpec,
+  loopTasks,
+  nestedArtifactSpec,
+} from 'src/data/test/groupedFlow';
 import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { convertSubDagToFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { createRuntimeLayerResolver } from 'src/lib/v2/DynamicFlow';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import nestedLoops from 'src/data/test/pipeline_with_loops_and_conditions.yaml?raw';
-import exitHandler from 'src/data/test/pipeline_as_exit_task.yaml?raw';
 
 function GroupedDag({
   spec,
   tasks,
   title,
+  initialLayers = ['root'],
+  nodesDraggable = false,
 }: {
   spec: PipelineSpec;
   tasks?: V2beta1PipelineTask[];
   title: string;
+  initialLayers?: string[];
+  nodesDraggable?: boolean;
 }) {
-  const [layers, setLayers] = useState(['root']);
+  const [layers, setLayers] = useState(initialLayers);
   const [selection, setSelection] = useState<{ element: PipelineFlowElement; layers: string[] }>();
   const resolve = useMemo(
     () =>
       tasks
         ? createRuntimeLayerResolver(spec, tasks)
-        : (scope: string[]) => convertSubDagToFlowElements(spec, scope),
+        : (scope: string[], maxNodes?: number) =>
+            convertSubDagToFlowElements(spec, scope, maxNodes),
     [spec, tasks],
   );
   const elements = useMemo(() => resolve(layers), [resolve, layers]);
@@ -56,7 +66,7 @@ function GroupedDag({
           elements={elements}
           getSubDagElements={resolve}
           setFlowElements={() => {}}
-          nodesDraggable={false}
+          nodesDraggable={nodesDraggable}
           selectedNodeId={selection?.element.id}
           selectedNodeLayers={selection?.layers}
           onElementClick={(_event, element, scope) => setSelection({ element, layers: scope })}
@@ -66,6 +76,15 @@ function GroupedDag({
         <div style={{ padding: 12 }}>
           Selected: {selection.layers.join(' / ')} /{' '}
           {String(selection.element.data?.label ?? selection.element.id)}
+          <button
+            style={{ marginLeft: 16 }}
+            onClick={() => {
+              setLayers(selection.layers);
+              setSelection(undefined);
+            }}
+          >
+            Focus selected scope
+          </button>
         </div>
       )}
     </div>
@@ -99,9 +118,27 @@ export const NestedLoops: Story = {
     title: 'Nested loops — SDK compiler fixture',
   },
 };
+export const LargeLoop: Story = {
+  args: {
+    spec: loopSpec,
+    tasks: loopTasks.map((task) =>
+      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '10000' } } : task,
+    ),
+    title: 'Large loop — automatic expansion is bounded',
+  },
+};
+export const DraggableScopes: Story = {
+  args: {
+    spec: nestedArtifactSpec,
+    initialLayers: ['root', 'workflow', 'fit'],
+    nodesDraggable: true,
+    title: 'Drag positions in focused and nested scopes',
+  },
+};
+
 export const ExitHandler: Story = {
   args: {
-    spec: convertYamlToV2PipelineSpec(exitHandler),
-    title: 'Exit handler with conditional notification — SDK compiler fixture',
+    spec: exitHandlerSpec,
+    title: 'Exit handler with conditional notification',
   },
 };

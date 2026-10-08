@@ -1,7 +1,15 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { conditionSpec, loopSpec, loopTasks, nestedArtifactSpec } from 'src/data/test/groupedFlow';
+import {
+  conditionSpec,
+  exitHandlerSpec,
+  loopSpec,
+  loopTasks,
+  nestedArtifactSpec,
+} from 'src/data/test/groupedFlow';
+import dagre from 'dagre';
+import { PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { buildGroupedFlow, GROUP_NODE_TYPE, scopedNodeId } from './GroupedFlow';
 import { convertSubDagToFlowElements, NodeTypeNames } from './StaticFlow';
@@ -14,7 +22,8 @@ import realNestedLoops from 'src/data/test/pipeline_with_loops_and_conditions.ya
 import { convertYamlToV2PipelineSpec } from './WorkflowUtils';
 
 function staticGraph(spec = nestedArtifactSpec, collapsed = new Set<string>()) {
-  const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
+  const resolve = (layers: string[], maxNodes?: number) =>
+    convertSubDagToFlowElements(spec, layers, maxNodes);
   return buildGroupedFlow(resolve(['root']), ['root'], resolve, collapsed);
 }
 
@@ -104,6 +113,105 @@ describe('buildGroupedFlow', () => {
       'Missing component',
     );
     expect(invalid.nodes.some((node) => node.id === 'task.summarize')).toBe(true);
+  });
+
+  it('reports missing component references through the real static and runtime resolvers', () => {
+    const spec = structuredClone(nestedArtifactSpec);
+    spec.components.workflow.dag!.tasks = {
+      broken: PipelineTaskSpec.fromPartial({
+        taskInfo: { name: 'broken' },
+        componentRef: { name: 'missing' },
+      }),
+    };
+    const staticResult = staticGraph(spec);
+    const resolve = createRuntimeLayerResolver(spec, []);
+    const runtimeResult = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
+    for (const graph of [staticResult, runtimeResult]) {
+      const group = graph.nodes.find((node) => node.id === 'task.workflow')!;
+      expect(group.data.expansionError).toContain('missing');
+      expect(group.data.empty).toBe(false);
+    }
+  });
+
+  it('defers a 10,000-iteration loop before allocating or laying out its iteration layer', () => {
+    const tasks = loopTasks.map((task) =>
+      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '10000' } } : task,
+    );
+    const resolve = createRuntimeLayerResolver(loopSpec, tasks);
+    const root = resolve(['root']);
+    const originalLayout = dagre.layout;
+    const layout = vi.spyOn(dagre, 'layout').mockImplementation((graph, options) => {
+      if (graph.nodeCount() > 500) throw new Error('Oversized layer reached Dagre');
+      return originalLayout(graph, options);
+    });
+    try {
+      const graph = buildGroupedFlow(root, ['root'], resolve, new Set());
+      const group = graph.nodes.find((node) => node.id === 'task.sweep')!;
+      expect(group.data.collapsed).toBe(true);
+      expect(group.data.expansionDeferred).toContain('10,000');
+      expect(group.data.expansionError).toBeUndefined();
+      expect(graph.nodes).toHaveLength(root.filter((element) => !('source' in element)).length);
+      expect(layout).toHaveBeenCalledTimes(1);
+    } finally {
+      layout.mockRestore();
+    }
+  });
+
+  it('defers oversized static scopes through the real resolver', () => {
+    const spec = structuredClone(nestedArtifactSpec);
+    spec.components.workflow.dag!.tasks = Object.fromEntries(
+      Array.from({ length: 500 }, (_, index) => [
+        `train-${index}`,
+        PipelineTaskSpec.fromPartial({
+          taskInfo: { name: `Train ${index}` },
+          componentRef: { name: 'train' },
+        }),
+      ]),
+    );
+    const graph = staticGraph(spec);
+    expect(
+      graph.nodes.find((node) => node.id === 'task.workflow')?.data.expansionDeferred,
+    ).toContain('1,000');
+    expect(graph.nodes).toHaveLength(3);
+  });
+
+  it('bounds automatic expansion across many individually small iteration bodies', () => {
+    const tasks = loopTasks.map((task) =>
+      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '300' } } : task,
+    );
+    const resolve = createRuntimeLayerResolver(loopSpec, tasks);
+    const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
+    expect(graph.nodes.length).toBeLessThanOrEqual(500);
+    const deferred = graph.nodes.find((node) => node.data.expansionDeferred)!;
+    expect(deferred).toBeDefined();
+    const manuallyExpanded = buildGroupedFlow(
+      resolve(['root']),
+      ['root'],
+      resolve,
+      new Set(),
+      new Set([deferred.id]),
+    );
+    expect(manuallyExpanded.nodes.find((node) => node.id === deferred.id)?.data.collapsed).toBe(
+      false,
+    );
+    expect(manuallyExpanded.nodes.length).toBeLessThanOrEqual(503);
+    expect(manuallyExpanded.nodes.some((node) => node.data.expansionDeferred)).toBe(true);
+  });
+
+  it('keeps exit-handler ordering and its nested notification condition in the compact fixture', () => {
+    const graph = staticGraph(exitHandlerSpec);
+    expect(graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE)).toHaveLength(3);
+    expect(graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'task.exit-handler-1',
+          target: 'task.conditional-notification',
+        }),
+      ]),
+    );
+    expect(graph.nodes.find((node) => node.data.label === 'condition-1')?.data.groupKind).toBe(
+      'Condition',
+    );
   });
 
   it('rejects recursive components before expanding their descendants', () => {
