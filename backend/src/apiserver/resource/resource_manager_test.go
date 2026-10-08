@@ -5690,47 +5690,6 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
-func TestReportWorkflowResource_ReconcilesStrandedTasks(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	namespace := common.GetPodNamespace()
-	defer store.Close()
-
-	// Seed a RUNNING task for this run
-	strandedTask, err := store.TaskStore().CreateTask(&model.Task{
-		RunUUID:     run.UUID,
-		Namespace:   namespace,
-		Name:        "stranded",
-		Fingerprint: "fp1",
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
-		Pods:        model.JSONSlice{},
-		TypeAttrs:   model.JSONData{},
-	})
-	require.NoError(t, err)
-
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: namespace,
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Phase:      v1alpha1.WorkflowFailed,
-			FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
-		},
-	})
-	syncWorkflowReportWithFakeCluster(t, store, workflow)
-
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	// Verify stranded task was updated to FAILED and received the completion timestamp
-	updatedTask, err := store.TaskStore().GetTask(strandedTask.UUID)
-	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedTask.State)
-	assert.Equal(t, int64(9999), updatedTask.FinishedInSec)
-}
-
 func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *testing.T) {
 	wfClient := client.NewWorkflowClientFake()
 	ctx := context.Background()
@@ -8610,4 +8569,74 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
 	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
+}
+
+func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	namespace := common.GetPodNamespace()
+	defer store.Close()
+
+	// Seed a parent DAG task
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		RunUUID:     run.UUID,
+		Namespace:   namespace,
+		Name:        "parent-dag",
+		Fingerprint: "fp-dag",
+		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Pods:        model.JSONSlice{map[string]interface{}{"name": "dag-driver-pod"}},
+		TypeAttrs:   model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	// Seed a RUNNING task for this run
+	strandedTask, err := store.TaskStore().CreateTask(&model.Task{
+		RunUUID:        run.UUID,
+		Namespace:      namespace,
+		Name:           "stranded",
+		Fingerprint:    "fp1",
+		ParentTaskUUID: &dagTask.UUID,
+		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Pods:           model.JSONSlice{map[string]interface{}{"name": "my-pod-name"}},
+		TypeAttrs:      model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"my-pod-name": {
+					ID:         "my-pod-name",
+					Phase:      v1alpha1.NodeFailed,
+					FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
+				},
+				"dag-driver-pod": {
+					ID:    "dag-driver-pod",
+					Phase: v1alpha1.NodeSucceeded, // Driver pod succeeds early
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	assert.Nil(t, err)
+
+	// Verify stranded task was updated to FAILED
+	updatedTask, err := store.TaskStore().GetTask(strandedTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedTask.State)
+	assert.Equal(t, int64(9999), updatedTask.FinishedInSec)
+
+	// Verify the parent DAG was also failed by the aggregator
+	updatedDag, err := store.TaskStore().GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedDag.State)
 }

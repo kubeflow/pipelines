@@ -2369,6 +2369,7 @@ func (r *ResourceManager) reportWorkflowResource(
 				expectedPipelineRuntimeManifest,
 			)
 		} else {
+			r.reconcileStrandedTasks(ctx, runId, execSpec)
 			updated, updateError = r.runStore.UpdateRunFromWorkflow(
 				run,
 				expectedState,
@@ -2518,19 +2519,6 @@ func (r *ResourceManager) reportWorkflowResource(
 			}
 		}
 
-		// Reconcile stranded task records: the container driver writes a task as
-		// RUNNING before its executor starts. If the executor crashes before the
-		// launcher runs, no launcher finalizer ever updates that record. Now that
-		// the run is durably terminal, set any remaining RUNNING tasks to FAILED so
-		// the parent DAG task can propagate the correct terminal state.
-		finishedAt := execStatus.FinishedAt()
-		if finishedAt == 0 {
-			finishedAt = r.time.Now().Unix()
-		}
-		if err := r.taskStore.MarkRunningTasksAsFailed(runId, finishedAt); err != nil {
-			// Non-fatal: the run is already terminal. Log and continue.
-			glog.Warningf("Failed to reconcile stranded RUNNING tasks for run %s: %v", runId, err)
-		}
 	}
 	execSpec.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	return execSpec, nil
