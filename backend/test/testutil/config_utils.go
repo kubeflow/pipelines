@@ -15,46 +15,18 @@
 package testutil
 
 import (
-	"io"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/test/config"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-
-	"github.com/cenkalti/backoff"
-	"github.com/pkg/errors"
+	backendtest "github.com/kubeflow/pipelines/backend/test/v2"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+// WaitForReady uses the same endpoint, API prefix, and TLS settings as the clients.
 func WaitForReady(initializeTimeout time.Duration) error {
-	operation := func() error {
-		response, err := http.Get("http://localhost:8888/apis/v2/healthz")
-		if err != nil {
-			return err
-		}
-		defer func(Body io.ReadCloser) {
-			err = Body.Close()
-			if err != nil {
-				logger.Log("Failed to close response body")
-			}
-		}(response.Body)
-
-		// If we get a 503 service unavailable, it's a non-retriable error.
-		if response.StatusCode == 503 {
-			return backoff.Permanent(errors.Wrapf(
-				err, "Waiting for ml pipeline API server failed with non retriable error."))
-		}
-
-		return nil
-	}
-
-	b := backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = initializeTimeout
-	err := backoff.Retry(operation, b)
-	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
+	return backendtest.WaitForReady(initializeTimeout)
 }
 
 func GetClientConfig(namespace string) clientcmd.ClientConfig {

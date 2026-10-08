@@ -79,6 +79,10 @@ var _ = BeforeSuite(func() {
 		}
 	}
 
+	if *config.UseLegacyAPIPrefix {
+		Expect(testutil.WaitForReady(time.Minute)).To(Succeed(), "Old API server must be ready before upgrade preparation")
+	}
+
 	if *config.KubeflowMode {
 		logger.Log("Creating API Clients for Kubeflow Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {

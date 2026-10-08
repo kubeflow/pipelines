@@ -32,19 +32,24 @@ func TestWaitForReadyUsesConfiguredV2Transport(t *testing.T) {
 		name      string
 		tls       bool
 		trusted   bool
+		legacy    bool
 		status    int
 		wantError bool
 	}{
 		{name: "HTTP endpoint", status: http.StatusOK},
+		{name: "legacy HTTPS with configured CA", legacy: true, tls: true, trusted: true, status: http.StatusOK},
 		{name: "HTTPS with configured CA", tls: true, trusted: true, status: http.StatusOK},
 		{name: "untrusted HTTPS", tls: true, status: http.StatusOK, wantError: true},
 		{name: "unavailable is not ready", status: http.StatusServiceUnavailable, wantError: true},
 		{name: "missing endpoint is not ready", status: http.StatusNotFound, wantError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			previousLegacy := *config.UseLegacyAPIPrefix
+			*config.UseLegacyAPIPrefix = tc.legacy
 			previousURL, previousTLS, previousCA := *config.ApiUrl, *config.TLSEnabled, *config.CaCertPath
 			previousInCluster, previousSkipVerify := *config.InClusterRun, *config.DisableTLSCheck
 			t.Cleanup(func() {
+				*config.UseLegacyAPIPrefix = previousLegacy
 				*config.ApiUrl, *config.TLSEnabled, *config.CaCertPath = previousURL, previousTLS, previousCA
 				*config.InClusterRun, *config.DisableTLSCheck = previousInCluster, previousSkipVerify
 			})
@@ -76,7 +81,11 @@ func TestWaitForReadyUsesConfiguredV2Transport(t *testing.T) {
 			if !tc.tls || tc.trusted {
 				select {
 				case path := <-requests:
-					require.Equal(t, "/apis/v2/healthz", path)
+					prefix := "/apis/v2"
+					if tc.legacy {
+						prefix = "/apis/v2beta1"
+					}
+					require.Equal(t, prefix+"/healthz", path)
 				default:
 					t.Fatal("readiness did not contact the configured endpoint")
 				}

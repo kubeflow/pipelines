@@ -503,7 +503,7 @@ function prepareTarget(repoRoot, targetKey) {
 
   fs.rmSync(outputPath, { recursive: true, force: true });
   // The retired browser/server clients are replaced by the canonical v2 output.
-  fs.rmSync(outputPath.replace('/apisv2/', '/apisv2beta1/'), {
+  fs.rmSync(path.join(repoRoot, target.output.replace('/apisv2/', '/apisv2beta1/')), {
     recursive: true,
     force: true,
   });
@@ -623,6 +623,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  prepareTarget,
   formatGeneratedTypeScript,
   assertSharedOpenApiSupportMatches,
   createOpenApiReExportShim,

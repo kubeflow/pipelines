@@ -4,6 +4,7 @@ const path = require('path');
 
 const {
   createSharedOpenApiSupportSource,
+  prepareTarget,
   dedupeGeneratedOpenApiSupportFiles,
   generateTargetsParallel,
   normalizeGeneratedTypeScriptSource,
@@ -13,6 +14,37 @@ const {
 } = require('./generate_openapi_typescript_fetch.js');
 
 describe('generate_openapi_typescript_fetch', () => {
+  it.each([
+    ['v2:artifact', 'frontend/src'],
+    ['v2:artifact-server', 'frontend/server/src/generated'],
+  ])('removes only the selected canonical and retired tree for %s', (target, parent) => {
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-api-cleanup-'));
+    // Include apisv2 in the checkout path to catch replacement of the root
+    // rather than the target's relative directory.
+    const root = path.join(temp, 'apisv2', 'checkout');
+    try {
+      for (const version of ['apisv2', 'apisv2beta1']) {
+        for (const resource of ['artifact', 'experiment']) {
+          const dir = path.join(root, parent, version, resource);
+          fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(path.join(dir, 'keep.ts'), 'sentinel');
+        }
+      }
+      fs.mkdirSync(path.join(root, 'backend/api/v2/swagger'), { recursive: true });
+      fs.mkdirSync(path.join(root, 'frontend'), { recursive: true });
+      fs.writeFileSync(path.join(root, 'backend/api/v2/swagger/artifact.swagger.json'), '{}');
+      fs.writeFileSync(path.join(root, 'frontend/swagger-config.json'), '{}');
+      prepareTarget(root, target);
+      for (const version of ['apisv2', 'apisv2beta1']) {
+        expect(fs.existsSync(path.join(root, parent, version, 'artifact'))).toBe(false);
+        expect(fs.readFileSync(path.join(root, parent, version, 'experiment/keep.ts'), 'utf8')).toBe('sentinel');
+      }
+      expect(fs.existsSync(path.join(root, 'backend/api/v2/swagger/artifact.swagger.json'))).toBe(true);
+    } finally {
+      fs.rmSync(temp, { recursive: true, force: true });
+    }
+  });
+
   it('resolves the frontend-local prettier module', () => {
     const repoRoot = path.resolve(__dirname, '..', '..');
     const prettier = resolvePrettierModule(repoRoot);

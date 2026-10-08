@@ -27,16 +27,25 @@ var (
 	New            = canonical.New
 )
 
+// DefaultTransportConfig returns canonical defaults with the legacy DefaultSchemes setting.
+//
+// Deprecated: use the v2 client package.
 func DefaultTransportConfig() *TransportConfig {
 	config := canonical.DefaultTransportConfig()
 	config.Schemes = DefaultSchemes
 	return config
 }
 
+// NewHTTPClient delegates construction to v2 using legacy transport defaults.
+//
+// Deprecated: use the v2 client package.
 func NewHTTPClient(formats strfmt.Registry) *RecurringRun {
 	return NewHTTPClientWithConfig(formats, nil)
 }
 
+// NewHTTPClientWithConfig delegates construction to v2, preserving legacy nil-config defaults.
+//
+// Deprecated: use the v2 client package.
 func NewHTTPClientWithConfig(formats strfmt.Registry, config *TransportConfig) *RecurringRun {
 	if config == nil {
 		config = DefaultTransportConfig()

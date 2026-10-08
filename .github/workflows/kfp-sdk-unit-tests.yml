@@ -55,7 +55,7 @@ jobs:
         echo "JUNIT_XML=$JUNIT_XML" >> "$GITHUB_OUTPUT"
 
     - name: Run generated API client tests
-      run: uv run pytest backend/api/v2/python_http_client_smoke
+      run: uv run pytest backend/api/v2/python_http_client_smoke backend/api/hack/generate_python_compat_test.py
 
     - name: Check unified wheel and standalone sdist
       run: |

@@ -3,8 +3,8 @@
 """Old Python imports resolve to canonical v2 models and issue v2 requests."""
 
 import importlib
+import json
 from pathlib import Path
-import re
 import unittest
 from unittest import mock
 
@@ -14,25 +14,23 @@ from kfp import server_api
 class TestLegacyAliases(unittest.TestCase):
 
     def test_all_legacy_imports_are_canonical_classes(self):
-        model_root = Path(server_api.__file__).parent / 'models'
-        count = 0
-        for module_path in sorted(model_root.glob('v2_*.py')):
-            canonical_module = importlib.import_module(
-                f'kfp.server_api.models.{module_path.stem}')
-            canonical_name = re.search(r'^class (V2\w+)\(',
-                                       module_path.read_text(), re.MULTILINE)[1]
-            canonical = getattr(canonical_module, canonical_name)
-            legacy_name = canonical_name.replace('V2', 'V2beta1', 1)
-            legacy_module_name = module_path.stem.replace('v2_', 'v2beta1_', 1)
-            with self.subTest(model=canonical_name):
-                legacy_module = importlib.import_module(
-                    f'kfp.server_api.models.{legacy_module_name}')
-                self.assertIs(getattr(legacy_module, legacy_name), canonical)
-                self.assertIs(getattr(server_api, legacy_name), canonical)
+        # Independent historical export inventory, not the generator's naming
+        # algorithm. Missing or incorrectly renamed aliases must fail here.
+        exports = json.loads(
+            Path(__file__).with_name('legacy_exports.json').read_text())
+        self.assertEqual(len(exports), 50)
+        for export in exports:
+            with self.subTest(model=export['name']):
+                legacy_module = importlib.import_module(export['module'])
+                canonical = getattr(legacy_module, export['name'])
+                self.assertTrue(
+                    canonical.__module__.startswith(
+                        'kfp.server_api.models.v2_'))
                 self.assertIs(
-                    getattr(server_api.models, legacy_name), canonical)
-            count += 1
-        self.assertGreater(count, 40)
+                    getattr(server_api, canonical.__name__), canonical)
+                self.assertIs(getattr(server_api, export['name']), canonical)
+                self.assertIs(
+                    getattr(server_api.models, export['name']), canonical)
 
     def test_legacy_model_uses_canonical_endpoint_and_serialization(self):
         from kfp.server_api.models.v2beta1_experiment import V2beta1Experiment

@@ -18,6 +18,8 @@ from pathlib import Path
 import re
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -68,6 +70,28 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertLess(
             workflow.index(forwarding),
             workflow.index('- name: API integration tests v2'))
+
+    def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
+            self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/upgrade-test.yml').read_text())
+        for job in workflow['jobs'].values():
+            self.assertEqual(job['if'], '${{ false }}')
+        steps = {
+            step['name']: step
+            for step in workflow['jobs']['upgrade-test']['steps']
+        }
+        prepare = steps['Prepare for Upgrade']
+        self.assertIn('-- -useLegacyAPIPrefix=true', prepare['run'])
+        self.assertFalse(prepare.get('continue-on-error', False))
+        self.assertFalse(steps['Forward API port'].get('continue-on-error',
+                                                       False))
+        self.assertIn("steps.prepare-upgrade.outcome == 'success'",
+                      steps['Deploy from Branch']['if'])
+        self.assertIn("steps.prepare-upgrade.outcome == 'success'",
+                      steps['Verify Upgrade']['if'])
+        self.assertNotIn('useLegacyAPIPrefix', str(steps['Verify Upgrade']))
+        self.assertEqual(steps['Stop port forwarding']['if'], '${{ always() }}')
 
     def test_visualization_service_is_not_deployed_or_generated(self):
         for root in ('manifests/kustomize', '.github/resources/manifests'):

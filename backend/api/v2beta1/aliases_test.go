@@ -16,6 +16,7 @@ import (
 	legacyClient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client"
 	legacyService "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	legacyModel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,13 +30,14 @@ func TestLegacyGoModelsAreCanonicalAliases(t *testing.T) {
 	require.Equal(t, "kubeflow.pipelines.backend.api.v2.Experiment", string(old.ProtoReflect().Descriptor().FullName()))
 }
 
+//nolint:staticcheck // Exercise deprecated legacy constructors for compatibility.
 func TestLegacyGoHTTPClientUsesCanonicalRoutes(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodGet, r.Method)
-		require.Equal(t, "/apis/v2/experiments/experiment-id", r.URL.Path)
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/apis/v2/experiments/experiment-id", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, err := w.Write([]byte(`{"experiment_id":"experiment-id","display_name":"shared implementation"}`))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}))
 	t.Cleanup(upstream.Close)
 	endpoint, err := url.Parse(upstream.URL)
@@ -50,6 +52,7 @@ func TestLegacyGoHTTPClientUsesCanonicalRoutes(t *testing.T) {
 	require.Equal(t, "shared implementation", response.Payload.DisplayName)
 }
 
+//nolint:staticcheck // Exercise deprecated legacy constructors for compatibility.
 func TestLegacyHTTPDefaultSchemesRemainConfigurable(t *testing.T) {
 	original := legacyClient.DefaultSchemes
 	t.Cleanup(func() { legacyClient.DefaultSchemes = original })
