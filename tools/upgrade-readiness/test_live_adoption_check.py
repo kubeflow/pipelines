@@ -46,7 +46,9 @@ def inventory():
                 UUID=uid,
                 Enabled=int(i == 0),
                 PipelineSpecManifest='ir',
-                RuntimeParameters='{}'))
+                RuntimeParameters='{}',
+                NoCatchup=1,
+                IntervalSecond=30))
         before['runs'].append(
             dict(
                 UUID='r' + uid,
@@ -70,6 +72,7 @@ def inventory():
                 owners=[uid],
                 run_id='r' + uid,
                 index=1,
+                epoch=100,
                 suspended=i == 0))
         after['states'].append(
             dict(
@@ -77,12 +80,79 @@ def inventory():
                 LastRunUUID='r' + uid,
                 LastRunIndex=1,
                 LastScheduledAtInSec=100,
+                LastCreatedAtInSec=100,
                 Pending=0))
     after.update(copy.deepcopy(before))
     return fixture, before, after
 
 
 class AdoptionTests(unittest.TestCase):
+
+    def test_active_source_accepts_persisted_unacknowledged_submission(self):
+        fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}
+        current = dict(
+            jobs=[dict(UUID='0', Enabled=1)],
+            schedules=[
+                dict(uid='0', enabled=True, trigger=dict(lastWorkflowIndex=1))
+            ],
+            runs=[dict(UUID='r', State='UNKNOWN', Conditions='')],
+            workflows=[
+                dict(
+                    uid='w',
+                    name='held',
+                    run_id='r',
+                    index=2,
+                    suspended=True,
+                    phase='')
+            ])
+        with mock.patch('live_adoption_check.FixtureClient'), \
+                mock.patch('live_adoption_check.snapshot', side_effect=[dict(workflows=[]), current]), \
+                mock.patch('live_adoption_check.kube') as command, \
+                mock.patch('live_adoption_check.write_object'), \
+                mock.patch('live_adoption_check.time.monotonic', side_effect=[0, 0]):
+            observation = prepare_active(Path('/unused'), fixture)
+        self.assertTrue(observation['recoverable_unacknowledged_submission'])
+        self.assertTrue(observation['persisted_run_nonterminal'])
+        self.assertFalse(observation['controller_acknowledged'])
+        self.assertFalse(
+            any('scale' in call.args for call in command.call_args_list))
+
+    def test_adoption_recovers_one_persisted_submission_without_resetting_history(
+            self):
+        for epoch in (130, 200):
+            with self.subTest(epoch=epoch):
+                fixture, before, after = inventory()
+                before['runs'][0]['State'] = 'SUCCEEDED'
+                before['workflows'][0]['suspended'] = False
+                self.add_tick(before)
+                before['runs'][-1].update(
+                    ScheduledAtInSec=epoch,
+                    CreatedAtInSec=epoch + 1,
+                    State='RUNNING')
+                before['workflows'][-1].update(epoch=epoch, suspended=True)
+                after.update(copy.deepcopy(before))
+                after['states'][0].update(
+                    LastRunUUID='new',
+                    LastRunIndex=2,
+                    LastScheduledAtInSec=epoch,
+                    LastCreatedAtInSec=epoch + 1)
+                after['schedules'][0]['trigger'].update(
+                    lastWorkflowIndex=2,
+                    lastTriggeredTime='1970-01-01T00:02:10Z'
+                    if epoch == 130 else '1970-01-01T00:03:20Z')
+                validate_adoption(before, after, fixture)
+                self.assertEqual(
+                    before['schedules'][0]['trigger']['lastWorkflowIndex'], 1)
+                after['states'][0]['LastRunUUID'] = 'r0'
+                with self.assertRaisesRegex(AdoptionError,
+                                            'last_run_identity_changed'):
+                    validate_adoption(before, after, fixture)
+                after['states'][0]['LastRunUUID'] = 'new'
+                before['workflows'][-1]['index'] = 3
+                after['workflows'][-1]['index'] = 3
+                with self.assertRaisesRegex(AdoptionError,
+                                            'source_progress_gap'):
+                    validate_adoption(before, after, fixture)
 
     def test_active_source_timeout_identifies_missing_evidence(self):
         fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}
@@ -95,7 +165,7 @@ class AdoptionTests(unittest.TestCase):
                         dict(
                             uid='0',
                             enabled=True,
-                            trigger=dict(lastWorkflowIndex=0 if missing ==
+                            trigger=dict(lastWorkflowIndex=3 if missing ==
                                          'acknowledgement' else 1))
                     ],
                     runs=[] if missing == 'run' else
@@ -106,7 +176,7 @@ class AdoptionTests(unittest.TestCase):
                             name='held',
                             run_id='r',
                             index=1,
-                            suspended=False,
+                            suspended=True,
                             phase='')
                     ])
                 with mock.patch('live_adoption_check.FixtureClient'), \
@@ -341,6 +411,7 @@ set_api_env() {""" + helper + offline
                 owners=[job],
                 run_id='new',
                 index=index,
+                epoch=130,
                 suspended=False))
 
     def test_active_run_must_occupy_concurrency_slot(self):

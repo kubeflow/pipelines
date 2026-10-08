@@ -482,8 +482,10 @@ starting another execution; changing policy does not stop that running workload.
 The opt-in upgrade workflow input `run_readiness_adoption=true` exercises the
 offline command against real 2.17.2 history in an isolated Kind cluster. It checks
 SQL definitions and progress, enabled/disabled schedules, receipt idempotency,
-and absence of duplicate workflow indices. An actual persisted source Workflow
-is suspended across cutover: the candidate must count it against concurrency,
+and absence of duplicate workflow indices. A persisted submission may be one
+index ahead of the legacy trigger acknowledgement; the fixture requires adoption
+to recover its original run identity and due time, without editing source progress.
+An actual persisted source Workflow is suspended across cutover: the candidate must count it against concurrency,
 finish it after resumption, and successfully execute the next tick. This is
 separate from the unadopted-schedule rejection/recreation tests. It does not test
 API retries inside already-running task containers or claim zero-downtime

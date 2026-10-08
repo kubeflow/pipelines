@@ -150,6 +150,7 @@ def snapshot(adopted=False):
                 owners=owners,
                 run_id=labels.get('pipeline/runid'),
                 index=int(labels.get(PREFIX + 'workflowIndex', '0')),
+                epoch=int(labels.get(PREFIX + 'workflowEpoch', '0')),
                 phase=obj.get('status', {}).get('phase', ''),
                 suspended=obj.get('spec', {}).get('suspend', False)))
     result = dict(
@@ -203,7 +204,9 @@ def validate_inventory(value, fixture):
         run = runs.get(workflow['run_id'])
         require(
             run is not None and run['JobUUID'] == workflow['owners'][0] and
-            run['Name'] == workflow['name'], 'workflow_run_mismatch')
+            run['Name'] == workflow['name'] and
+            run['ScheduledAtInSec'] == workflow['epoch'],
+            'workflow_run_mismatch')
     return ids
 
 
@@ -229,28 +232,48 @@ def validate_adoption(before, after, fixture):
         trigger = previous['trigger']
         require(schedule['enabled'] == previous['enabled'],
                 'enablement_changed')
-        require(
-            state['LastRunIndex'] == int(trigger['lastWorkflowIndex']) and
-            state['LastRunIndex'] > 0 and not state['Pending'],
-            'historical_progress_reset')
+        acknowledged = int(trigger['lastWorkflowIndex'])
         scheduled_at = int(
             datetime.fromisoformat(trigger['lastTriggeredTime'].replace(
                 'Z', '+00:00')).timestamp())
+        workflows = [
+            w for w in before['workflows'] if w['owners'] == [schedule['uid']]
+        ]
+        latest = max(workflows, key=lambda w: w['index'])
+        require(latest['index'] in (acknowledged, acknowledged + 1),
+                'source_progress_gap')
+        run = next(r for r in before['runs'] if r['UUID'] == latest['run_id'])
+        if latest['index'] == acknowledged + 1:
+            # Source 2.17.2 can persist submission before acknowledging the
+            # trigger. Recover the due tick under this fixture's stored
+            # periodic/no-catchup contract; never reset source CR status.
+            job = next(
+                j for j in before['jobs'] if j['UUID'] == schedule['uid'])
+            require(job['NoCatchup'] == 1 and job['IntervalSecond'] == 30,
+                    'fixture_schedule_timing_changed')
+            next_due = scheduled_at + job['IntervalSecond']
+            scheduled_at = latest['epoch'] if latest[
+                'epoch'] >= next_due + job['IntervalSecond'] else next_due
+            require(scheduled_at <= latest['epoch'],
+                    'source_submission_not_due')
+        require(
+            state['LastRunIndex'] == latest['index'] and
+            state['LastRunIndex'] > 0 and not state['Pending'],
+            'historical_progress_reset')
+        synchronized_at = int(
+            datetime.fromisoformat(
+                schedule['trigger']['lastTriggeredTime'].replace(
+                    'Z', '+00:00')).timestamp())
         require(
             state['LastScheduledAtInSec'] == scheduled_at and
-            schedule['trigger']['lastTriggeredTime']
-            == trigger['lastTriggeredTime'], 'historical_time_changed')
+            synchronized_at == scheduled_at, 'historical_time_changed')
         require(
             state['LastRunIndex'] == int(
                 schedule['trigger']['lastWorkflowIndex']),
             'synchronized_progress_mismatch')
-        matches = [
-            w for w in before['workflows']
-            if w['owners'] == [schedule['uid']] and
-            w['index'] == state['LastRunIndex']
-        ]
         require(
-            len(matches) == 1 and state['LastRunUUID'] == matches[0]['run_id'],
+            state['LastRunUUID'] == latest['run_id'] and
+            state['LastCreatedAtInSec'] == run['CreatedAtInSec'],
             'last_run_identity_changed')
     return receipt
 
@@ -395,8 +418,12 @@ def prepare_active(state, fixture):
                 str(run['State'] or run['Conditions']).upper() not in TERMINAL,
                 controller_acknowledged=observation['schedule_index'] ==
                 workflow['index'])
+            observation['recoverable_unacknowledged_submission'] = (
+                workflow['index'] == observation['schedule_index'] + 1)
             if (observation['persisted_run_nonterminal'] and
-                    observation['controller_acknowledged']):
+                    workflow['suspended'] and
+                (observation['controller_acknowledged'] or
+                 observation['recoverable_unacknowledged_submission'])):
                 write_object(state / 'active.json', workflow)
                 return observation
         time.sleep(3)
