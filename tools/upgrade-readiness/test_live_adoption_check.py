@@ -21,6 +21,7 @@ from live_adoption_check import adoption_startup_milestones
 from live_adoption_check import AdoptionError
 from live_adoption_check import command_diagnostics
 from live_adoption_check import command_failure
+from live_adoption_check import exception_evidence
 from live_adoption_check import kube
 from live_adoption_check import offline_job
 from live_adoption_check import prepare_active
@@ -286,6 +287,37 @@ class AdoptionTests(unittest.TestCase):
         self.assertFalse(observation['controller_acknowledged'])
         self.assertFalse(
             any('scale' in call.args for call in command.call_args_list))
+
+    def test_exception_evidence_never_includes_payload(self):
+        try:
+            raise KeyError('PRIVATE TOKEN')
+        except KeyError as error:
+            evidence = exception_evidence(error)
+        self.assertEqual(evidence['type'], 'KeyError')
+        self.assertTrue(evidence['locations'])
+        self.assertTrue(
+            all(location['file'].startswith('tools/upgrade-readiness/')
+                for location in evidence['locations']))
+        self.assertNotIn('PRIVATE', json.dumps(evidence))
+        self.assertNotIn('TOKEN', json.dumps(evidence))
+
+    def test_adoption_accepts_first_unacknowledged_disabled_tick(self):
+        for trigger in ({}, {'lastWorkflowIndex': 0}):
+            fixture, before, after = inventory()
+            before['schedules'][1]['trigger'] = trigger
+            before['runs'][1]['DisplayName'] = before['runs'][1]['Name']
+            after['runs'] = copy.deepcopy(before['runs'])
+            validate_adoption(before, after, fixture)
+            for invalid in ({
+                    'lastWorkflowIndex': 1
+            }, {
+                    'lastWorkflowIndex': 0,
+                    'lastTriggeredTime': '1970-01-01T00:01:40Z'
+            }):
+                before['schedules'][1]['trigger'] = invalid
+                with self.assertRaisesRegex(AdoptionError,
+                                            'source_trigger_incomplete'):
+                    validate_adoption(before, after, fixture)
 
     def test_adoption_recovers_one_persisted_submission_without_resetting_history(
             self):

@@ -234,10 +234,16 @@ def validate_adoption(before, after, fixture):
         trigger = previous['trigger']
         require(schedule['enabled'] == previous['enabled'],
                 'enablement_changed')
-        acknowledged = int(trigger['lastWorkflowIndex'])
+        acknowledged = int(trigger.get('lastWorkflowIndex', 0))
+        last_triggered = trigger.get('lastTriggeredTime')
+        require(
+            acknowledged >= 0 and
+            (acknowledged == 0) == (last_triggered is None),
+            'source_trigger_incomplete')
         scheduled_at = int(
-            datetime.fromisoformat(trigger['lastTriggeredTime'].replace(
-                'Z', '+00:00')).timestamp())
+            datetime.fromisoformat(last_triggered.replace(
+                'Z',
+                '+00:00')).timestamp()) if last_triggered is not None else 0
         workflows = [
             w for w in before['workflows'] if w['owners'] == [schedule['uid']]
         ]
@@ -713,6 +719,26 @@ def source_progress_shapes(current):
     return evidence
 
 
+def exception_evidence(error):
+    """Never serialize exception messages, arguments, locals or source
+    lines."""
+    allowed = (OSError, ValueError, KeyError, TypeError,
+               subprocess.TimeoutExpired)
+    kind = next((cls.__name__ for cls in allowed if isinstance(error, cls)),
+                'unexpected')
+    root = Path(__file__).resolve().parents[2]
+    locations = []
+    trace = error.__traceback__
+    while trace is not None and len(locations) < 20:
+        path = Path(trace.tb_frame.f_code.co_filename).resolve()
+        if path.is_relative_to(
+                root) and path.suffix == '.py' and path.is_file():
+            locations.append(
+                dict(file=str(path.relative_to(root)), line=trace.tb_lineno))
+        trace = trace.tb_next
+    return dict(type=kind, locations=locations)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -790,6 +816,8 @@ def main():
         # Never expose backend payloads, SQL errors, manifests or credentials.
         report['reason'] = str(error) if type(error) is AdoptionError else \
             'adoption_validation_or_collection_failed'
+        if type(error) is not AdoptionError:
+            report['exception'] = exception_evidence(error)
         if hasattr(error, 'job_evidence'):
             report['job_evidence'] = error.job_evidence
         if hasattr(error, 'source_observation'):
