@@ -586,9 +586,16 @@ and then exits nonzero.
 Capture and comparison output directories carry ownership markers. Direct tools refuse to clean a
 non-empty directory without a valid marker and remove only the files named by that marker.
 
-The older `visual-compare.mjs`, `visual-compare-run.sh`, and `visual:*` npm commands were removed
-because they did not enforce the live, versioned, fail-closed workflow. Use
-`smoke-test-runner.js` for regression decisions.
+The lightweight `visual-compare.mjs`, `visual-compare-run.sh`, and `visual:*` npm commands remain
+available for fast mock-backed layout comparisons without a cluster. Use this smoke harness when
+validation needs seeded runtime resources, browser compatibility against a base deployment, or
+separate revision-matched deployments (`--full-stack`). Neither workflow replaces component or
+browser interaction tests. Their capture manifests, output directories and report contracts are
+independent and must not be interchanged.
+
+CI runs the lightweight harness tests through frontend Vitest and this package's tests through
+`node:test`. Those utility tests do not launch full-stack screenshot comparisons; captures remain
+explicitly invoked workflows.
 
 ## Tests
 

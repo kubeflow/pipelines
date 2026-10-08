@@ -124,8 +124,33 @@ The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurri
 
 ## Visual regression testing
 
-Use the UI smoke-test utility to capture fresh screenshots and generate a manifest-validated,
-side-by-side comparison against a base ref.
+Choose the comparison based on what the change needs to prove:
+
+| Workflow | Use it for | Runtime |
+| --- | --- | --- |
+| `visual:*` / `scripts/visual-compare-run.sh` | Fast layout and styling comparisons using deterministic mock data | Frontend builds and mock API; no cluster |
+| `scripts/ui-smoke-test/smoke-test-runner.js --compare` | Browser-bundle compatibility against the base runtime | Shared base deployment |
+| Smoke runner with `--full-stack` | Changes requiring each UI's matching server and backend | Isolated revision-matched deployments |
+
+### Lightweight fixture comparisons
+
+From `frontend`, capture two running fixture-backed frontends and compare them:
+
+```bash
+npm run visual:baseline -- --base-url http://localhost:3000
+npm run visual:current -- --base-url http://localhost:3001
+npm run visual:diff -- --fail-on-diff
+```
+
+Alternatively, `scripts/visual-compare-run.sh <base-ref>` builds and serves both revisions
+against the mock API. Outputs stay in `.visual/`. These checks establish fixture-backed
+visual behavior, not backend, authentication, storage, or upgrade correctness.
+
+### Deployment-backed comparisons
+
+Use the UI smoke-test utility for fresh screenshots bound to seeded runtime resources and a
+manifest-validated side-by-side report. Its capture manifests and reports are separate from the
+lightweight tool's format; do not interchange their output directories.
 
 ### Quick screenshot of your dev server
 
@@ -137,7 +162,7 @@ node scripts/ui-smoke-test/smoke-test-runner.js --current-only --use-existing --
 
 This keeps the full URL and captures non-seeded pages without starting Kind.
 
-### Compare your branch against master
+### Compare browser changes against master
 
 The full workflow detects committed and working-tree changes, creates a clean Kind cluster from the
 base ref, seeds deterministic resources, and captures both browser bundles against the same trusted
@@ -146,6 +171,17 @@ base server and backend:
 ```bash
 node scripts/ui-smoke-test/smoke-test-runner.js --compare origin/master
 ```
+
+For changes that need separate, revision-matched runtimes, explicitly select a reviewed head:
+
+```bash
+node scripts/ui-smoke-test/smoke-test-runner.js \
+  --compare origin/master --full-stack \
+  --head-checkout /absolute/path/to/reviewed/checkout \
+  --trust-local-head --trust-base-code
+```
+
+`--trust-base-code` is required for a non-release base such as `origin/master`.
 
 Any visual difference fails by default. The report is still written before the command exits.
 The utility uses a dedicated clean Kind cluster and refuses stale reuse; run
