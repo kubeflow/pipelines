@@ -12,7 +12,7 @@ it.each([
   ['Loop', 'Loop'],
   ['Iteration', 'Iteration'],
   ['Condition', 'Conditional'],
-])('shows %s as a left-aligned type label without an abstraction icon', (groupKind, label) => {
+])('shows %s after a rotated blue Share icon', (groupKind, label) => {
   render(
     <ReactFlowProvider>
       <SubDagGroupNode
@@ -24,17 +24,42 @@ it.each([
   );
   forceRenderStyles();
   expect(screen.getByTestId('subdag-kind')).toHaveTextContent(label);
-  expect(screen.getByTestId('subdag-header').firstElementChild).toBe(
-    screen.getByTestId('subdag-kind'),
-  );
-  expect(screen.queryByRole('img', { name: groupKind })).not.toBeInTheDocument();
+  const icon = screen.getByTestId('subdag-share-icon');
+  expect(icon).toHaveClass('text-mui-blue-600');
+  expect(icon).toHaveStyle({ transform: 'rotate(90deg)' });
+  expect(screen.getByTestId('subdag-kind').previousElementSibling).toContainElement(icon);
   expect(screen.getByTestId('subdag-header')).toHaveClass('bg-white');
   expect(screen.getByTestId('subdag-header')).toHaveStyle({ height: '48px' });
   expect(screen.getByRole('button', { name: 'Training' })).toHaveClass('text-sm');
   expect(getComputedStyle(screen.getByTestId('subdag-box')).backgroundColor).toBe(
-    'rgba(232, 240, 250, 0.18)',
+    'rgba(219, 234, 254, 0.28)',
   );
 });
+
+it.each([false, true])(
+  'lets the outer group clip status corners when collapsed=%s',
+  (collapsed) => {
+    render(
+      <ReactFlowProvider>
+        <SubDagGroupNode
+          id='group'
+          selected={false}
+          data={{
+            label: 'Training',
+            collapsed,
+            state: PipelineTaskTaskState.SUCCEEDED,
+            expand: vi.fn(),
+          }}
+        />
+      </ReactFlowProvider>,
+    );
+    forceRenderStyles();
+    const cell = screen.getByTestId('subdag-status').firstElementChild!;
+    expect(parseFloat(getComputedStyle(cell).borderBottomRightRadius)).toBe(0);
+    expect(parseFloat(getComputedStyle(cell).borderTopRightRadius)).toBe(0);
+    expect(screen.getByTestId('subdag-header')).toHaveClass('bg-white');
+  },
+);
 
 it('places the toggle directly before the full-height regular-node status icon', () => {
   const expand = vi.fn();
@@ -56,6 +81,8 @@ it('places the toggle directly before the full-height regular-node status icon',
   expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
   const title = screen.getByRole('button', { name: 'Training' });
   expect(title).not.toHaveClass('focus:ring');
+  expect(title).not.toHaveClass('nodrag');
+  expect(toggle).toHaveClass('nodrag');
   expect(title).toHaveStyle({ fontWeight: '400', background: 'transparent' });
   fireEvent.click(title);
   expect(select).toHaveBeenCalledTimes(1);

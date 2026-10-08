@@ -155,8 +155,7 @@ export default function DagCanvas({
           ...node,
           position: positions[positionKey(node)] ?? node.position,
           selected: node.id === selectedId,
-          draggable:
-            nodesDraggable && node.type !== GROUP_NODE_TYPE && node.type !== NodeTypeNames.SUB_DAG,
+          draggable: nodesDraggable,
         };
         if (node.type === GROUP_NODE_TYPE) {
           return {
@@ -194,12 +193,7 @@ export default function DagCanvas({
 
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
     (_event, draggedNode) => {
-      if (
-        !nodesDraggable ||
-        draggedNode.type === GROUP_NODE_TYPE ||
-        draggedNode.type === NodeTypeNames.SUB_DAG
-      )
-        return;
+      if (!nodesDraggable) return;
       setPositions((previous) => ({
         ...previous,
         [positionKey(draggedNode)]: draggedNode.position,
