@@ -34,7 +34,7 @@ it('shows nested tasks immediately and collapses in place without navigating or 
   expect(screen.getByText('Train model')).toBeInTheDocument();
   const collapse = screen.getByRole('button', { name: 'Collapse Training pipeline' });
   expect(collapse).toHaveAttribute('aria-expanded', 'true');
-  expect(within(collapse).getByTestId('CloseFullscreenIcon')).toBeInTheDocument();
+  expect(within(collapse).getByTestId('ExpandLessIcon')).toBeInTheDocument();
   fireEvent.click(collapse);
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
   expect(screen.getByText('Deploy model')).toBeInTheDocument();
@@ -42,9 +42,9 @@ it('shows nested tasks immediately and collapses in place without navigating or 
   expect(options.onElementClick).not.toHaveBeenCalled();
   const expand = screen.getByRole('button', { name: 'Expand Training pipeline' });
   expect(expand).toHaveAttribute('aria-expanded', 'false');
-  expect(within(expand).getByTestId('OpenInFullIcon')).toBeInTheDocument();
+  expect(within(expand).getByTestId('ExpandMoreIcon')).toBeInTheDocument();
   fireEvent.click(expand);
-  expect(within(collapse).getByTestId('CloseFullscreenIcon')).toBeInTheDocument();
+  expect(within(collapse).getByTestId('ExpandLessIcon')).toBeInTheDocument();
   expect(screen.getByText('Train model')).toBeInTheDocument();
 });
 

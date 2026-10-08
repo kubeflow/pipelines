@@ -46,8 +46,7 @@ function GroupedDag({
       <header style={{ padding: '16px 24px', borderBottom: '1px solid #d8e0ea' }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{title}</h2>
         <p style={{ margin: 0, color: '#52677f', fontSize: 13 }}>
-          Expanded sub-DAGs · Select a task for details · Use the inward/outward arrows to
-          collapse/expand groups
+          Expanded sub-DAGs · Select a task for details · Use the chevrons to collapse/expand groups
         </p>
       </header>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
