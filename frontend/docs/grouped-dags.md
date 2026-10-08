@@ -1,7 +1,9 @@
 # Inline sub-DAG graphs
 
 Pipeline and run graphs expand sub-DAGs into labeled boxes by default. The header's
-chevron collapses or expands only that instance (also accessible with Enter/Space).
+button shows **inward arrows to collapse** an expanded group and **outward arrows to
+expand** a collapsed group. Activating it toggles only that instance (also accessible
+with Enter/Space); it does not change the browser's fullscreen mode.
 Selecting a task, artifact, or group still opens its details. Focused navigation and
 existing task deep links remain available; opening a group is no longer required to
 see its contents.
@@ -42,7 +44,8 @@ node scripts/grouped-dag.smoke.mjs
 
 The Playwright smoke check exercises the **v2/GroupedDag** stories using the real
 `DagCanvas`, verifies keyboard collapse, expansion, selection scope, independent
-runtime iterations, and viewport fit, then writes six screenshots to
+runtime iterations, expand/collapse icons, and viewport fit, then writes ten screenshots
+(an expanded/collapsed pair for each of the five examples) to
 `.visual/grouped-dags/` (git-ignored). Set `STORYBOOK_URL` to change the server URL or
 pass an output directory as the first argument. Install Chromium with
 `npx playwright install chromium` if necessary.
