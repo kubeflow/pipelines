@@ -44,9 +44,10 @@ export function buildGroupedFlow(
   layers: string[],
   getLayerElements: LayerElements,
   collapsed: ReadonlySet<string>,
-  expanded: ReadonlySet<string> = new Set(),
-  collapseAll = false,
+  options: { expanded?: ReadonlySet<string>; collapseAll?: boolean; nodeScale?: number } = {},
 ): GroupedFlow {
+  const { expanded = new Set<string>(), collapseAll = false, nodeScale = 1 } = options;
+  const headerHeight = GROUP_HEADER_HEIGHT * nodeScale;
   let remaining = AUTOMATIC_EXPANSION_NODE_LIMIT;
   return buildLayer(elements, layers, new Set());
 
@@ -66,14 +67,16 @@ export function buildGroupedFlow(
       const group = element.type === NodeTypeNames.SUB_DAG;
       let isCollapsed = collapsed.has(id) || (collapseAll && !expanded.has(id));
       // Card widths include status icons (256px) and artifact cards (240px).
-      let width = element.type === NodeTypeNames.ARTIFACT ? 240 : element.data.state ? 256 : 224;
-      let height = 48;
+      let width =
+        (element.type === NodeTypeNames.ARTIFACT ? 240 : element.data.state ? 256 : 224) *
+        nodeScale;
+      let height = 48 * nodeScale;
       let expansionError: string | undefined;
       let expansionDeferred: string | undefined;
       let empty = false;
       if (group) {
-        width = element.data.state ? 288 : 256;
-        height = GROUP_HEADER_HEIGHT;
+        width = (element.data.state ? 288 : 256) * nodeScale;
+        height = headerHeight;
         if (!isCollapsed) {
           try {
             const componentRef = element.data.componentRefName as string | undefined;
@@ -109,7 +112,7 @@ export function buildGroupedFlow(
                 error.nodeCount === undefined
                   ? 'Automatic limit · expand to load'
                   : `${error.nodeCount.toLocaleString('en-US')} nodes · expand to load`;
-              width = Math.max(width, 320);
+              width = Math.max(width, 320 * nodeScale);
             } else {
               expansionError = error instanceof Error ? error.message : String(error);
               height += 72;
@@ -121,7 +124,14 @@ export function buildGroupedFlow(
         ...element,
         id,
         type: group ? GROUP_NODE_TYPE : element.type,
-        data: { ...element.data, collapsed: isCollapsed, expansionError, expansionDeferred, empty },
+        data: {
+          ...element.data,
+          collapsed: isCollapsed,
+          expansionError,
+          expansionDeferred,
+          empty,
+          headerHeight,
+        },
         position: { ...element.position },
         width,
         height,
@@ -158,7 +168,7 @@ export function buildGroupedFlow(
                 extent: 'parent' as const,
                 position: {
                   x: inner.position.x + GROUP_PADDING,
-                  y: inner.position.y + GROUP_HEADER_HEIGHT + GROUP_PADDING,
+                  y: inner.position.y + headerHeight + GROUP_PADDING,
                 },
               },
         ),
