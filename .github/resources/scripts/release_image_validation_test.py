@@ -428,7 +428,9 @@ class WorkflowTests(unittest.TestCase):
             upload['if'],
             "${{ always() && steps.osv_scan.outcome != 'skipped' }}")
         self.assertEqual(upload['with']['if-no-files-found'], 'error')
-        self.assertEqual(upload['with']['path'], 'osv-results.json')
+        self.assertEqual(
+            set(upload['with']['path'].split()),
+            {'osv-results.json', 'cve-result-*.json'})
         self.assertEqual(
             upload['uses'],
             './.release-policy/.github/actions/upload-artifact-with-retry')

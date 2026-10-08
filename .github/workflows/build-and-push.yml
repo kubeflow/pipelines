@@ -338,20 +338,29 @@ jobs:
         if: ${{ steps.osv_scan.outcome == 'success' }}
         env:
           ALLOW_FIXABLE_CVES: ${{ inputs.allow_fixable_cves }}
+          IMAGE_NAME: ${{ inputs.app_to_build }}
+          PLATFORM: ${{ inputs.platforms }}
+          IMAGE_REF: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
         run: |
           policy_args=()
           if [ "$ALLOW_FIXABLE_CVES" = "true" ]; then
             policy_args+=(--allow-fixable-cves)
           fi
           python3 .release-policy/.github/resources/scripts/check_fixable_cves.py \
-            osv-results.json "${policy_args[@]}"
+            osv-results.json "${policy_args[@]}" \
+            --result-output "cve-result-${IMAGE_NAME}-${PLATFORM#linux/}.json" \
+            --image "$IMAGE_NAME" --platform "$PLATFORM" --image-ref "$IMAGE_REF" \
+            --source-sha "$SOURCE_SHA" --summary-output "$GITHUB_STEP_SUMMARY"
 
       - name: Upload CVE scan report
         if: ${{ always() && steps.osv_scan.outcome != 'skipped' }}
         uses: ./.release-policy/.github/actions/upload-artifact-with-retry
         with:
           name: fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}
-          path: osv-results.json
+          path: |
+            osv-results.json
+            cve-result-*.json
           if-no-files-found: error
           retention-days: 30
 

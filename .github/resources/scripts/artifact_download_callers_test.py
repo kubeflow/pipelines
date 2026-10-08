@@ -29,7 +29,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
-CALLERS = {
+CALLERS = [
     ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
@@ -38,7 +38,11 @@ CALLERS = {
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
-}
+    ('.github/workflows/release-cve-remediation.yml', 'prepare'),
+    ('.github/workflows/release-cve-remediation.yml', 'verify'),
+    ('.github/workflows/release-cve-remediation.yml', 'publish'),
+    ('.github/workflows/release-cve-remediation.yml', 'publish'),
+]
 
 
 def workflow(name):
@@ -47,12 +51,18 @@ def workflow(name):
 
 class ArtifactDownloadCallersTest(unittest.TestCase):
 
-    def required_files(self, filename, job, context=None, cwd=ROOT):
+    def required_files(self,
+                       filename,
+                       job,
+                       context=None,
+                       cwd=ROOT,
+                       caller_index=0):
         document = yaml.safe_load((ROOT / filename).read_text())
         steps = (
             document['runs']['steps']
             if job == 'composite' else document['jobs'][job]['steps'])
-        caller = next(step for step in steps if step.get('uses') == WRAPPER)
+        caller = [step for step in steps if step.get('uses') == WRAPPER
+                 ][caller_index]
         manifest = caller['with']['required-files']
         context = context or {}
         output = re.fullmatch(
@@ -205,6 +215,51 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 self.assertEqual(images, IMAGES)
                 actual = self.required_files(f'.github/workflows/{name}', job)
                 self.assertEqual(actual, {f'{name}.json' for name in images})
+
+    def test_release_cve_manifest_covers_each_produced_image_and_architecture(
+            self):
+        matrix = workflow('image-builds-release.yml')['jobs'][
+            'build-images-for-release']['strategy']['matrix']
+        expected = {
+            f"cve-result-{image['name']}-{arch['arch_name']}.json"
+            for image in matrix['image']
+            for arch in matrix['arch']
+        }
+        actual = self.required_files(
+            '.github/workflows/release-cve-remediation.yml', 'prepare')
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(actual), 14)
+        producer = workflow(
+            'build-and-push.yml')['jobs']['build-and-push-images']['steps']
+        policy = next(
+            step for step in producer
+            if step.get('name') == 'Enforce fixable CVE policy')
+        self.assertIn(
+            '--result-output "cve-result-${IMAGE_NAME}-${PLATFORM#linux/}.json"',
+            policy['run'])
+        upload = next(
+            step for step in producer
+            if step.get('name') == 'Upload CVE scan report')
+        self.assertIn('cve-result-*.json', upload['with']['path'].splitlines())
+        consumer = workflow(
+            'release-cve-remediation.yml')['jobs']['prepare']['steps']
+        download = next(
+            step for step in consumer if step.get('uses') == WRAPPER)
+        self.assertEqual(download['with']['merge-multiple'], 'true')
+
+    def test_remediation_downloads_require_patch_and_both_verification_records(
+            self):
+        patch_files = {
+            'plan.json', 'remediation.patch', 'patch.sha256', 'remediation.md'
+        }
+        workflow_path = '.github/workflows/release-cve-remediation.yml'
+        self.assertEqual(
+            self.required_files(workflow_path, 'verify'), patch_files)
+        self.assertEqual(
+            self.required_files(workflow_path, 'publish'), patch_files)
+        self.assertEqual(
+            self.required_files(workflow_path, 'publish', caller_index=1),
+            {'verification-amd64.json', 'verification-arm64.json'})
 
     def test_digest_manifest_respects_supported_platform_subsets(self):
         for platforms, expected in (('linux/amd64,linux/arm64', {

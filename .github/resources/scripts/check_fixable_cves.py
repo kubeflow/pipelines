@@ -15,7 +15,9 @@
 """Checks fixable CVEs in an OSV-Scanner report with a findings override."""
 
 import argparse
+import html
 import json
+from pathlib import Path
 import re
 import sys
 from urllib.parse import unquote
@@ -170,6 +172,134 @@ def find_blocking_cves(report):
         key + (", ".join(sorted(fixed)),) for key, fixed in findings.items())
 
 
+def markdown(value):
+    """Escape scanner-controlled text before placing it in Markdown tables."""
+    value = html.escape(str(value), quote=True)
+    for character in ("\\", "`", "*", "_", "[", "]", "|", "~"):
+        value = value.replace(character, "\\" + character)
+    return value.replace("\r", " ").replace("\n", " ")
+
+
+def remediation_hint(finding):
+    """Give an owner-oriented next step without claiming a verified fix."""
+    ecosystem, package = finding["ecosystem"], finding["package"]
+    if any(
+            version.startswith("UNDETERMINED:")
+            for version in finding["fixed_versions"]):
+        return "Resolve the advisory's affected-package identity before choosing an update."
+    if ecosystem == "Go" and package == "stdlib":
+        return (
+            "Update the Go compiler and rebuild if this is a KFP binary; "
+            "an inherited binary needs its upstream image or package updated.")
+    if ecosystem == "Go":
+        return "Update the owning Go module dependency and rebuild its binary."
+    if ecosystem == "npm":
+        return "Update the owning package-lock.json dependency, rebuild, and rescan."
+    if ecosystem.split(":", 1)[0] in {"Alpine", "Debian", "Ubuntu"}:
+        return "Refresh the owning Dockerfile's base image or distribution package and rebuild."
+    return "Locate the owning manifest or upstream image, update it, rebuild, and rescan."
+
+
+def validate_result(result):
+    """Validate the artifact contract before a remediation job trusts it."""
+    if (not isinstance(result, dict) or
+            type(result.get("schema_version")) is not int or
+            result["schema_version"] != 1):
+        raise ValueError("Expected CVE result schema_version 1")
+    image = result.get("image")
+    if not isinstance(image, str) or not re.fullmatch(
+            r"[a-z0-9]+(?:[._-][a-z0-9]+)*", image):
+        raise ValueError("image must be a bare image name")
+    if result.get("platform") not in ("linux/amd64", "linux/arm64"):
+        raise ValueError("platform must be linux/amd64 or linux/arm64")
+    reference = result.get("image_ref")
+    if not isinstance(reference, str) or not re.fullmatch(
+            rf"[a-z0-9.-]+(?::[0-9]+)?/(?:[a-z0-9._-]+/)*{re.escape(image)}@sha256:[0-9a-f]{{64}}",
+            reference):
+        raise ValueError(
+            "image_ref must identify the image by its full digest reference")
+    sha = result.get("source_sha")
+    if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise ValueError("source_sha must be a full commit SHA")
+    findings = _records(result.get("findings"), "findings")
+    for finding in findings:
+        for key in ("target", "cve", "ecosystem", "package", "installed"):
+            if not isinstance(finding.get(key), str) or not finding[key]:
+                raise ValueError(f"Finding {key} must be a nonempty string")
+        if not re.fullmatch(r"CVE-[0-9]{4}-[0-9]{4,}", finding["cve"]):
+            raise ValueError("Finding cve must be a CVE ID")
+        if not _strings(finding.get("fixed_versions"), "fixed_versions"):
+            raise ValueError("Finding fixed_versions cannot be empty")
+    outcome = result.get("outcome")
+    if outcome not in ("pass", "blocked", "overridden") or ((outcome == "pass")
+                                                            != (not findings)):
+        raise ValueError("Result outcome must agree with its findings")
+    return result
+
+
+def structured_result(findings,
+                      image,
+                      platform,
+                      image_ref,
+                      source_sha,
+                      allow=False):
+    fields = ("target", "cve", "ecosystem", "package", "installed")
+    result = {
+        "schema_version":
+            1,
+        "image":
+            image,
+        "platform":
+            platform,
+        "image_ref":
+            image_ref,
+        "source_sha":
+            source_sha,
+        "outcome":
+            "overridden"
+            if findings and allow else "blocked" if findings else "pass",
+        "findings": [
+            dict(
+                zip(fields, finding[:5]), fixed_versions=finding[5].split(", "))
+            for finding in findings
+        ],
+    }
+    return validate_result(result)
+
+
+def write_summary(path, findings, image, platform, allow):
+    heading = "CVE scan: " + ("overridden" if findings and allow else
+                              "blocked" if findings else "pass")
+    lines = [
+        "### " + heading, "",
+        markdown(f"{image or 'Image'} ({platform or 'platform not supplied'})"),
+        ""
+    ]
+    if findings:
+        lines += [
+            "| Target | CVE | Ecosystem / package | Installed | Fixed versions | Next step |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+        for target, cve, ecosystem, package, installed, fixed in findings:
+            hint = remediation_hint(
+                dict(
+                    ecosystem=ecosystem,
+                    package=package,
+                    fixed_versions=fixed.split(", ")))
+            lines.append("| " + " | ".join(
+                markdown(value)
+                for value in (target, cve, f"{ecosystem} / {package}",
+                              installed, fixed, hint)) + " |")
+        lines += [
+            "",
+            "Rebuild and rescan after updating the owning source. Release publication stays blocked unless findings are explicitly overridden."
+        ]
+    else:
+        lines.append("No blocking CVE findings.")
+    with open(path, "a", encoding="utf-8") as summary:
+        summary.write("\n".join(lines) + "\n\n")
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", help="Path to the OSV-Scanner JSON report")
@@ -178,12 +308,32 @@ def main(argv):
         action="store_true",
         help="Allow fixable CVE findings; invalid reports still fail",
     )
+    parser.add_argument(
+        "--result-output", help="Write the validated CVE result artifact")
+    parser.add_argument(
+        "--summary-output", help="Append actionable Markdown to this file")
+    parser.add_argument("--image")
+    parser.add_argument("--platform")
+    parser.add_argument("--image-ref")
+    parser.add_argument("--source-sha")
     args = parser.parse_args(argv[1:])
 
     try:
+        if args.result_output:
+            # Never leave stale evidence from an earlier successful invocation.
+            Path(args.result_output).unlink(missing_ok=True)
         with open(args.report, encoding="utf-8") as report_file:
             report = json.load(report_file)
         findings = find_blocking_cves(report)
+        if args.result_output:
+            result = structured_result(findings, args.image, args.platform,
+                                       args.image_ref, args.source_sha,
+                                       args.allow_fixable_cves)
+            Path(args.result_output).write_text(
+                json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        if args.summary_output:
+            write_summary(args.summary_output, findings, args.image,
+                          args.platform, args.allow_fixable_cves)
     except (OSError, ValueError) as error:
         print(
             f"ERROR: Cannot read valid OSV-Scanner report: {error}",

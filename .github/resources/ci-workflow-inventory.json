@@ -388,7 +388,7 @@
     {
       "path": ".github/workflows/image-builds-release.yml",
       "name": "Build and Push for Release",
-      "header_sha256": "b4b3e98d8d8576c5ce5b3567531155a12a2ba73670f678308d773de74ec5d40f",
+      "header_sha256": "fd1db06738b037f5e80b1840f58a47173faba6d9369fa37b4c818f1455092e90",
       "pull_request": null
     },
     {
@@ -634,6 +634,12 @@
           ".readthedocs.yml"
         ]
       }
+    },
+    {
+      "path": ".github/workflows/release-cve-remediation.yml",
+      "name": "Prepare release CVE fixes",
+      "header_sha256": "5e33a0a6bf5aa4041dbdac25117ac5021398c7d1244f8cc42fa2442862fa6afa",
+      "pull_request": null
     },
     {
       "path": ".github/workflows/runtime-base-images.yml",

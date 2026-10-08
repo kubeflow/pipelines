@@ -254,6 +254,53 @@ failures and missing, invalid, or malformed reports remain fatal. Exit 128
 ("no packages found") remains fatal because it provides no package coverage;
 none of these exceptions skips scanning or turns a failed scan into a pass.
 
+### Automatic remediation PRs
+
+A blocked publication produces a readable job summary and a
+`cve-result-<image>-<architecture>.json` record alongside each raw OSV report.
+Once the image matrix finishes, the remediation workflow combines both
+architectures' results, lists the source
+files and next steps, and prepares supported fixes:
+
+- Go standard-library CVEs in KFP-built binaries: update the compiler within its
+  current minor series using the repository's managed Go updater. Rebuild all
+  six KFP Go images because they share that compiler.
+- Frontend server npm CVEs: update `frontend/server/package-lock.json` in place,
+  keeping existing dependency constraints and excluding major upgrades.
+
+Other findings—including OS packages, dependencies inside third-party binaries,
+and unresolved ownership—remain in the report for manual remediation. A fix
+version in an OSV advisory does not by itself identify which repository file
+needs changing. Automatic fixes require complete reports from the same run
+attempt for every release image and both architectures; scanner failures do not
+initiate speculative updates. Use **Re-run all jobs** for a retry.
+
+Before opening a PR, the workflow runs the relevant Go or frontend server tests,
+builds every affected image on native AMD64 and ARM64, and rescans them. Every
+targeted blocker must disappear without introducing new blocking findings.
+Unrelated existing blockers may remain and are disclosed with the verification
+results. The release stays blocked until its findings are resolved or explicitly
+overridden; preparing a fix never publishes release images.
+
+The PR targets the actual source branch only while it still points to the scanned
+commit. Tag/SHA inputs and branches that moved receive a report without a PR.
+Repeated runs reuse the deterministic remediation PR only when its bot-authored
+commit still matches the verified patch. Changed branches require manual review;
+the workflow never force-pushes or overwrites human changes. Both the PR and its DCO-signed commit are authored by
+`github-actions[bot]`. The workflow uses only the short-lived `GITHUB_TOKEN`;
+there are no extra credentials to provision or rotate. The repository must allow
+Actions to create PRs. GitHub requires a maintainer to approve the resulting PR
+workflow runs before normal PR CI starts; the remediation's own tests and image
+rescans have already run. Review and merge remain normal maintainer actions.
+
+Automatic PR creation defaults to enabled. Set `create_cve_fix_pr=false` in the
+**Run workflow** form or add `-f create_cve_fix_pr=false` to direct `gh workflow
+run image-builds-release.yml` dispatch to retain reports without preparing PRs.
+This setting does not change the CVE gate or its existing exception inputs.
+The remediation plan and proposed patch are retained as
+`release-cve-remediation-<attempt>` artifacts, with native verification records
+under `release-cve-verification-<architecture>-<attempt>`.
+
 The 2.18 CLI path dispatches the workflow from `release-2.18`, so merging this
 policy into master alone does not gate 2.18 publication. Selectively backport the
 shared OSV installer, trusted policy checkout and its commit input, retry uploader,
@@ -261,6 +308,9 @@ scan and exception inputs, enforcement helper, tests, and release-workflow wirin
 before relying on this gate or requesting exceptions there. `kfpr` omits exception
 inputs unless requested, preserving default dispatch to older release workflows.
 Preserve the 2.18 image inventory; do not backport the 3.x ARM64 requirements.
+Automatic remediation also needs a branch-specific backport of its mappings and
+verification inventory; the current workflow requires the 3.x two-architecture
+image set.
 
 If the gate fails:
 

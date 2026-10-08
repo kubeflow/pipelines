@@ -13,6 +13,7 @@
 # limitations under the License.
 """Execute the release scan shell with local Docker and OSV test doubles."""
 
+import itertools
 import json
 import os
 from pathlib import Path
@@ -272,9 +273,11 @@ class ReleaseCveScanTest(unittest.TestCase):
                 }],
             }],
         }
-        for source_has_policy in (False, True):
-            with self.subTest(source_has_policy=source_has_policy
-                             ), tempfile.TemporaryDirectory() as tmp:
+        for source_has_policy, platform in itertools.product(
+            (False, True), ('linux/amd64', 'linux/arm64')):
+            with self.subTest(
+                    source_has_policy=source_has_policy,
+                    platform=platform), tempfile.TemporaryDirectory() as tmp:
                 directory = Path(tmp)
                 helper_path = Path(
                     '.github/resources/scripts/check_fixable_cves.py')
@@ -296,6 +299,11 @@ class ReleaseCveScanTest(unittest.TestCase):
                             name: '' for name in self.policy.get('env', {})
                         },
                         'ALLOW_FIXABLE_CVES': 'false',
+                        'IMAGE_NAME': 'kfp-api-server',
+                        'PLATFORM': platform,
+                        'IMAGE_REF': IMAGE_REF,
+                        'SOURCE_SHA': 'b' * 40,
+                        'GITHUB_STEP_SUMMARY': str(directory / 'summary.md'),
                     },
                     text=True,
                     capture_output=True,
@@ -303,6 +311,12 @@ class ReleaseCveScanTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertIn('CVE-2026-12345', result.stderr)
                 self.assertNotIn('Source policy', result.stdout)
+                record = directory / f"cve-result-kfp-api-server-{platform.rsplit('/', 1)[1]}.json"
+                metadata = json.loads(record.read_text())
+                self.assertEqual(metadata['image'], 'kfp-api-server')
+                self.assertEqual(metadata['platform'], platform)
+                self.assertEqual(metadata['source_sha'], 'b' * 40)
+                self.assertEqual(metadata['outcome'], 'blocked')
 
 
 if __name__ == '__main__':

@@ -296,6 +296,76 @@ class MainTest(unittest.TestCase):
             status = check_fixable_cves.main(argv)
         return status, stdout.getvalue(), stderr.getvalue()
 
+    def test_structured_result_and_summary_match_exit_status(self):
+        result = self.report_path.parent / "cve-result.json"
+        summary = self.report_path.parent / "summary.md"
+        for findings, allow, expected in ((False, False, "pass"), (True, False,
+                                                                   "blocked"),
+                                          (True, True, "overridden")):
+            with self.subTest(outcome=expected):
+                self.report_path.write_text(
+                    json.dumps(
+                        report(vulnerability()) if findings else report()))
+                argv = [
+                    "check_fixable_cves.py",
+                    str(self.report_path), "--result-output",
+                    str(result), "--summary-output",
+                    str(summary), "--image", "kfp-frontend", "--platform",
+                    "linux/amd64", "--image-ref",
+                    "ghcr.io/kubeflow/kfp-frontend@sha256:" + "b" * 64,
+                    "--source-sha", "a" * 40
+                ]
+                if allow:
+                    argv.append("--allow-fixable-cves")
+                with contextlib.redirect_stdout(
+                        io.StringIO()), contextlib.redirect_stderr(
+                            io.StringIO()):
+                    code = check_fixable_cves.main(argv)
+                value = json.loads(result.read_text())
+                self.assertEqual(value["outcome"], expected)
+                self.assertEqual(code, 1 if expected == "blocked" else 0)
+                self.assertEqual(len(value["findings"]), int(findings))
+                if findings:
+                    self.assertEqual(value["findings"][0]["fixed_versions"],
+                                     ["2.0.0"])
+                self.assertIn("CVE scan: " + expected, summary.read_text())
+
+    def test_structured_output_requires_valid_complete_metadata(self):
+        self.report_path.write_text(json.dumps(report(vulnerability())))
+        result = self.report_path.parent / "cve-result.json"
+        with contextlib.redirect_stderr(io.StringIO()):
+            status = check_fixable_cves.main([
+                "check_fixable_cves.py",
+                str(self.report_path), "--result-output",
+                str(result)
+            ])
+        self.assertEqual(status, 2)
+        self.assertFalse(result.exists())
+
+    def test_malformed_report_removes_stale_result_evidence(self):
+        self.report_path.write_text("not JSON")
+        result = self.report_path.parent / "cve-result.json"
+        result.write_text('{"outcome":"pass"}')
+        with contextlib.redirect_stderr(io.StringIO()):
+            status = check_fixable_cves.main([
+                "check_fixable_cves.py",
+                str(self.report_path), "--result-output",
+                str(result)
+            ])
+        self.assertEqual(status, 2)
+        self.assertFalse(result.exists())
+
+    def test_summary_escapes_scanner_controlled_markup(self):
+        summary = self.report_path.parent / "summary.md"
+        findings = [("/server/<script>|evil\nnext", "CVE-2026-12345", "npm",
+                     "[package](https://evil.test)", "1.0.0", "2.0.0")]
+        check_fixable_cves.write_summary(summary, findings, "kfp-frontend",
+                                         "linux/amd64", False)
+        text = summary.read_text()
+        self.assertNotIn("<script>", text)
+        self.assertNotIn("[package](", text)
+        self.assertIn("&lt;script&gt;\\|evil next", text)
+
     def test_fixable_cves_fail_by_default(self):
         status, _, stderr = self.run_policy(json.dumps(report(vulnerability())))
         self.assertEqual(status, 1)

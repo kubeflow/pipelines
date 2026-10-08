@@ -40,7 +40,12 @@ on:
       allow_fixable_cves_images:
         type: string
         default: '[]'
-        description: 'JSON array of image names allowed to have CVE findings, e.g. ["kfp-inverse-proxy-agent"].'
+        description: 'JSON array of image names allowed to have CVE findings, e.g. ["kfp-api-server"].'
+        required: false
+      create_cve_fix_pr:
+        type: boolean
+        default: true
+        description: 'Prepare verified bot-authored fixes after a CVE block; disable for reports only.'
         required: false
 jobs:
   resolve-source:
@@ -140,6 +145,20 @@ jobs:
       # Local reusable workflows are loaded from this same workflow commit.
       release_policy_sha: ${{ github.workflow_sha }}
       allow_fixable_cves: ${{ inputs.allow_fixable_cves || contains(fromJSON(inputs.allow_fixable_cves_images), matrix.image.name) }}
+
+  remediate-cves:
+    needs: [resolve-source, build-images-for-release]
+    if: ${{ always() && !cancelled() && !inputs.dry_run && needs.resolve-source.result == 'success' && needs.build-images-for-release.result == 'failure' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    uses: ./.github/workflows/release-cve-remediation.yml
+    with:
+      source_sha: ${{ needs.resolve-source.outputs.sha }}
+      source_branch: ${{ inputs.src_branch }}
+      policy_sha: ${{ github.workflow_sha }}
+      create_pr: ${{ inputs.create_cve_fix_pr }}
 
   create-manifests:
     needs: [resolve-source, build-images-for-release]
