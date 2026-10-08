@@ -1384,33 +1384,29 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			liveWorkflow, readError := r.getWorkflowClient(namespace).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
 			switch {
 			case readError == nil && liveWorkflow != nil &&
-				(reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == run.RetryGeneration ||
-					util.RetryPlaceholderClaimMatches(liveWorkflow.ExecutionObjectMeta(), runId, run.RetryGeneration)):
-				// The previous retry was applied (activated workflow or still-
-				// suspended placeholder for this claim). Persist its current
-				// state and report success: the retry the user asked for is
-				// already running, finished, or awaiting activation.
+				retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), run.RetryGeneration):
+				// The previous retry was activated despite the expired claim.
+				// Persist its current state and report success.
 				glog.Warningf("Run %s has an expired retry claim (generation %d) but its workflow is live; adopting it instead of retrying again", runId, run.RetryGeneration)
-				condition := string(liveWorkflow.ExecutionStatus().Condition())
-				run.Conditions = condition
-				run.State = model.RuntimeState(condition).ToV2()
-				run.FinishedAtInSec = liveWorkflow.ExecutionStatus().FinishedAt()
-				run.WorkflowRuntimeManifest = model.LargeText(liveWorkflow.ToStringForStore())
-				run.K8SName = liveWorkflow.ExecutionName()
-				// The crashed retry may not have reached plugin
-				// notification, so adoption fires it (mirrors the normal
-				// retry path); delivery is documented as at-least-once and
-				// handlers deduplicate on (RunID, RetryGeneration).
-				if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
-					if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
-						r.pluginDispatcher.OnRunRetry(ctx, pr)
-					}
+				if err := r.persistAdoptedRetryWorkflow(ctx, run, namespace, liveWorkflow); err != nil {
+					return err
 				}
-				run.PluginsOutputString = nil
-				if updateError := r.runStore.UpdateRun(run); updateError != nil {
-					return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", runId)
+				return nil
+			case readError == nil && liveWorkflow != nil &&
+				retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, run.RetryGeneration):
+				// Owned placeholder without activation: resume activation
+				// under the placeholder UID. Do not persist the empty
+				// suspended placeholder as a successful Running run.
+				glog.Warningf("Run %s has an expired retry claim (generation %d) with an owned placeholder; resuming activation", runId, run.RetryGeneration)
+				newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(run.RetryGeneration, 10))
+				activated, resumeErr := r.resumeRetryPlaceholderActivation(ctx, namespace, run, newExecSpec, liveWorkflow)
+				if resumeErr != nil {
+					return util.NewUnavailableServerError(resumeErr,
+						"Run %s has an expired retry claim with an owned placeholder but activation failed - try again later", runId)
 				}
-				r.storedWorkflowIdentities.delete(runId)
+				if err := r.persistAdoptedRetryWorkflow(ctx, run, namespace, activated); err != nil {
+					return err
+				}
 				return nil
 			case readError != nil && !apierrors.IsNotFound(readError):
 				// Transient read: preserve the claim rather than risking a
@@ -1487,18 +1483,31 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		switch {
 		case readError == nil && liveWorkflow != nil &&
-			(reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == claimGeneration ||
-				util.RetryPlaceholderClaimMatches(liveWorkflow.ExecutionObjectMeta(), runId, claimGeneration)):
-			// The mutation was applied despite the error: the live workflow
-			// carries this claim's generation (or its authenticated
-			// placeholder claim). It may even be terminal already if the
-			// retry finished quickly. Adopt it and complete the retry
-			// instead of rolling back — a rollback here would restore a
-			// GC-eligible FinishedAtInSec under a live retried workflow and
-			// permit a duplicate retry.
+			retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), claimGeneration):
+			// The activating mutation was applied despite the error: the live
+			// workflow carries this claim's generation. It may even be
+			// terminal already if the retry finished quickly. Adopt it and
+			// complete the retry instead of rolling back — a rollback here
+			// would restore a GC-eligible FinishedAtInSec under a live
+			// retried workflow and permit a duplicate retry.
 			glog.Warningf("Retry workflow for run %s returned error but the live workflow carries claim generation %d; adopting it. Original error: %v",
 				runId, claimGeneration, err)
 			newExecSpec = liveWorkflow
+		case readError == nil && liveWorkflow != nil &&
+			retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, claimGeneration):
+			// Create succeeded but activation did not. Ownership of the
+			// suspended placeholder is not proof of a successful retry —
+			// resume activation instead of persisting the empty placeholder.
+			glog.Warningf("Retry workflow for run %s returned error with an owned placeholder for claim generation %d; resuming activation. Original error: %v",
+				runId, claimGeneration, err)
+			activated, resumeErr := r.resumeRetryPlaceholderActivation(ctx, namespace, run, newExecSpec, liveWorkflow)
+			if resumeErr != nil {
+				glog.Warningf("Retry workflow for run %s owned-placeholder activation failed; preserving claimed row. Resume error: %v; original error: %v",
+					runId, resumeErr, err)
+				return util.NewUnavailableServerError(resumeErr,
+					"Retry workflow for run %s created a placeholder but activation failed; claim preserved for reconciliation", runId)
+			}
+			newExecSpec = activated
 		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState() &&
 			storedUID != "" && liveWorkflow.ExecutionObjectMeta().UID == storedUID:
 			// Same stored object is still live without a matching claim
@@ -3345,23 +3354,110 @@ func liveWorkflowOwnedForRetryReconcile(
 	if storedUID != "" && liveMeta.UID == storedUID {
 		return true
 	}
-	if reportedRetryGeneration(liveMeta) == claimGeneration && claimGeneration > 0 {
+	if retryWorkflowActivatedForClaim(liveMeta, claimGeneration) {
 		return true
 	}
 	// A status-free retry placeholder may exist under a fresh UID while the
 	// claim-generation annotation is applied on the activating update. Only
-	// adopt when the placeholder carries this run's claim marker — a foreign
-	// suspended same-name Workflow with a spoofed run label is not owned.
+	// treat it as owned when the placeholder carries this run's claim marker —
+	// a foreign suspended same-name Workflow with a spoofed run label is not
+	// owned. Ownership authorizes resume/update, not success-without-activation.
 	if claimGeneration > 0 &&
 		storedUID != "" &&
 		liveMeta.UID != storedUID &&
-		reportedRetryGeneration(liveMeta) == 0 &&
-		!live.ExecutionStatus().IsInFinalState() &&
-		retryWorkflowIsSuspendedPlaceholder(live) &&
-		util.RetryPlaceholderClaimMatches(liveMeta, runID, claimGeneration) {
+		retryWorkflowOwnedPlaceholderForClaim(live, runID, claimGeneration) {
 		return true
 	}
 	return false
+}
+
+// retryWorkflowActivatedForClaim reports whether meta carries this claim's
+// activation-generation annotation, proving the activating Update applied.
+func retryWorkflowActivatedForClaim(meta *v1.ObjectMeta, generation int64) bool {
+	return generation > 0 && reportedRetryGeneration(meta) == generation
+}
+
+// retryWorkflowOwnedPlaceholderForClaim reports whether live is a suspended
+// retry placeholder owned by this run/generation via the placeholder-claim
+// marker, but not yet activated (no matching retry-generation annotation).
+// Ownership authorizes resume; it must not be treated as retry success.
+func retryWorkflowOwnedPlaceholderForClaim(live util.ExecutionSpec, runID string, generation int64) bool {
+	if live == nil || generation <= 0 {
+		return false
+	}
+	meta := live.ExecutionObjectMeta()
+	if meta == nil || retryWorkflowActivatedForClaim(meta, generation) {
+		return false
+	}
+	return !live.ExecutionStatus().IsInFinalState() &&
+		retryWorkflowIsSuspendedPlaceholder(live) &&
+		util.RetryPlaceholderClaimMatches(meta, runID, generation)
+}
+
+// resumeRetryPlaceholderActivation hydrates the retry spec, adopts the
+// placeholder identity, and issues the activating Update (clear suspend, set
+// generation). Callers must not persist the suspended placeholder as success.
+func (r *ResourceManager) resumeRetryPlaceholderActivation(
+	ctx context.Context,
+	namespace string,
+	run *model.Run,
+	retrySpec util.ExecutionSpec,
+	placeholder util.ExecutionSpec,
+) (util.ExecutionSpec, error) {
+	if run == nil || retrySpec == nil || placeholder == nil {
+		return nil, util.NewInternalServerError(fmt.Errorf("missing retry activation inputs"),
+			"Failed to resume retry placeholder activation")
+	}
+	claimGeneration := run.RetryGeneration
+	if claimGeneration <= 0 {
+		return nil, util.NewInternalServerError(fmt.Errorf("invalid retry generation %d", claimGeneration),
+			"Failed to resume retry placeholder activation for run %s", run.UUID)
+	}
+	retrySpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+	if err := retrySpec.Hydrate(ctx); err != nil {
+		return nil, err
+	}
+	retrySpec.SetVersion(placeholder.Version())
+	adoptExecutionIdentity(retrySpec, placeholder)
+	if err := retrySpec.Dehydrate(ctx); err != nil {
+		return nil, err
+	}
+	updated, err := r.getWorkflowClient(namespace).Update(ctx, retrySpec, v1.UpdateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+// persistAdoptedRetryWorkflow writes an already-applied retry workflow (activated
+// or freshly resumed) to the run row and notifies plugins, matching the normal
+// retry success path.
+func (r *ResourceManager) persistAdoptedRetryWorkflow(
+	ctx context.Context,
+	run *model.Run,
+	namespace string,
+	adopted util.ExecutionSpec,
+) error {
+	condition := string(adopted.ExecutionStatus().Condition())
+	run.Conditions = condition
+	run.State = model.RuntimeState(condition).ToV2()
+	run.FinishedAtInSec = adopted.ExecutionStatus().FinishedAt()
+	run.WorkflowRuntimeManifest = model.LargeText(adopted.ToStringForStore())
+	run.K8SName = adopted.ExecutionName()
+	// The crashed retry may not have reached plugin notification, so adoption
+	// fires it (mirrors the normal retry path); delivery is documented as
+	// at-least-once and handlers deduplicate on (RunID, RetryGeneration).
+	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+		if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
+			r.pluginDispatcher.OnRunRetry(ctx, pr)
+		}
+	}
+	run.PluginsOutputString = nil
+	if updateError := r.runStore.UpdateRun(run); updateError != nil {
+		return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", run.UUID)
+	}
+	r.storedWorkflowIdentities.delete(run.UUID)
+	return nil
 }
 
 func retryWorkflowIsSuspendedPlaceholder(live util.ExecutionSpec) bool {
