@@ -46,7 +46,7 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
   ),
 }));
 
-it('updates leaves during dragging but keeps groups immovable', () => {
+it('updates leaves and groups during dragging without changing child-relative positions', () => {
   const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
   render(
     <DagCanvas
@@ -63,11 +63,38 @@ it('updates leaves during dragging but keeps groups immovable', () => {
   fireEvent.mouseMove(leaf);
   expect(leaf).toHaveTextContent('{"x":45,"y":90}');
   const group = screen.getByTestId('task.workflow');
-  const position = group.textContent;
-  expect(group).toHaveAttribute('data-draggable', 'false');
+  const child = screen.getByTestId(scopedNodeId(['root', 'workflow'], 'task.prepare'));
+  const childPosition = child.textContent;
+  expect(group).toHaveAttribute('data-draggable', 'true');
   fireEvent.mouseMove(group);
+  expect(group).toHaveTextContent('{"x":45,"y":90}');
+  expect(child.textContent).toBe(childPosition);
   fireEvent.click(group);
-  expect(group.textContent).toBe(position);
+  expect(group).toHaveTextContent('{"x":17,"y":23}');
+  expect(child.textContent).toBe(childPosition);
+});
+
+it('still respects a read-only host for both leaves and groups', () => {
+  const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
+  render(
+    <DagCanvas
+      layers={['root']}
+      elements={resolve(['root'])}
+      getSubDagElements={resolve}
+      nodesDraggable={false}
+      onLayersUpdate={vi.fn()}
+      onElementClick={vi.fn()}
+      setFlowElements={vi.fn()}
+    />,
+  );
+  for (const id of ['task.workflow', 'task.deploy']) {
+    const node = screen.getByTestId(id);
+    const position = node.textContent;
+    expect(node).toHaveAttribute('data-draggable', 'false');
+    fireEvent.mouseMove(node);
+    fireEvent.click(node);
+    expect(node.textContent).toBe(position);
+  }
 });
 
 it('keeps drag positions separate for focused and parent-relative coordinate frames', () => {

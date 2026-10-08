@@ -3,12 +3,19 @@
 
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ShareIcon from '@mui/icons-material/Share';
 import { Node, NodeProps } from '@xyflow/react';
-import { style } from 'typestyle';
+import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
 import { getIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
+
+// The group outline clips the outer corners; do not expose the white header
+// behind the status cell's own rounded lower-right corner.
+const groupStatus = style({
+  $nest: { '& > div': { borderTopRightRadius: 0, borderBottomRightRadius: 0 } },
+});
 
 export default function SubDagGroupNode({
   id,
@@ -27,7 +34,7 @@ export default function SubDagGroupNode({
           height: '100%',
           outline: selected ? '2px solid #1a73e8' : '1px solid #bdc1c6',
           borderRadius: 8,
-          background: 'rgba(232, 240, 250, 0.18)',
+          background: 'rgba(219, 234, 254, 0.28)',
           overflow: 'hidden',
           $nest: { '&:focus-within': { outline: '2px solid #1a73e8' } },
         })}
@@ -37,15 +44,22 @@ export default function SubDagGroupNode({
           className='flex items-stretch bg-white'
           style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT }}
         >
+          <div className='w-8 pl-2 h-full flex items-center flex-shrink-0'>
+            <ShareIcon
+              data-testid='subdag-share-icon'
+              className='text-mui-blue-600'
+              style={{ transform: 'rotate(90deg)' }}
+            />
+          </div>
           <div
             data-testid='subdag-kind'
-            className='px-3 h-full flex items-center flex-shrink-0 text-xs text-mui-grey-600'
+            className='pl-1 pr-3 h-full flex items-center flex-shrink-0 text-xs text-mui-grey-600'
           >
             {groupType}
           </div>
           <button
             type='button'
-            className='nodrag focus:outline-none focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
+            className='focus:outline-none focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
             title={data.label}
             style={{ background: 'transparent', border: 0, fontWeight: 400 }}
           >
@@ -69,7 +83,11 @@ export default function SubDagGroupNode({
             {collapsed ? <ExpandMoreIcon fontSize='small' /> : <ExpandLessIcon fontSize='small' />}
           </button>
           {status && (
-            <div title={data.state} className='h-full' data-testid='subdag-status'>
+            <div
+              title={data.state}
+              className={classes('h-full', groupStatus)}
+              data-testid='subdag-status'
+            >
               {status}
             </div>
           )}

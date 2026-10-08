@@ -75,7 +75,7 @@ export function buildGroupedFlow(
       let expansionDeferred: string | undefined;
       let empty = false;
       if (group) {
-        width = (element.data.state ? 288 : 256) * nodeScale;
+        width = (element.data.state ? 320 : 288) * nodeScale;
         height = headerHeight;
         if (!isCollapsed) {
           try {
@@ -137,7 +137,6 @@ export function buildGroupedFlow(
         height,
         style: { ...element.style, width, height },
         zIndex: group ? 0 : 1,
-        draggable: !group,
       };
     });
     const edges = elements
