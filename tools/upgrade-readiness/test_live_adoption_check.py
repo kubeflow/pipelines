@@ -16,6 +16,7 @@ from unittest import mock
 
 from live_adoption_check import adoption_job_diagnostics
 from live_adoption_check import adoption_log_categories
+from live_adoption_check import adoption_stack_frames
 from live_adoption_check import adoption_startup_milestones
 from live_adoption_check import AdoptionError
 from live_adoption_check import command_diagnostics
@@ -181,6 +182,29 @@ class AdoptionTests(unittest.TestCase):
             adoption_startup_milestones(
                 'DB client initialized successfully\nInitializing Object store client...'
             ), ['database_ready', 'object_store_started'])
+
+    def test_panic_evidence_excludes_messages_arguments_and_unknown_paths(self):
+        logs = ('panic: PRIVATE TOKEN\n'
+                'main.main(PRIVATE, TOKEN)\n'
+                '\t/build/private/backend/src/apiserver/main.go:205 +0x123\n'
+                'main.PRIVATE(TOKEN)\n'
+                '\t/build/backend/src/apiserver/main.go:210 +0xabc\n'
+                '\t/build/backend/PRIVATE.go:1 +0x1\n'
+                '\t/private/TOKEN.go:15 +0x1\n'
+                '\t/build/backend/../PRIVATE.go:1 +0x1\n')
+        evidence = dict(
+            categories=adoption_log_categories(logs),
+            frames=adoption_stack_frames(logs))
+        self.assertEqual(evidence['categories'], ['panic'])
+        self.assertEqual(evidence['frames'], [
+            dict(file='backend/src/apiserver/main.go', line=205, symbol='main'),
+            dict(file='backend/src/apiserver/main.go', line=210)
+        ])
+        self.assertNotIn('PRIVATE', json.dumps(evidence))
+        self.assertNotIn('TOKEN', json.dumps(evidence))
+        self.assertNotIn('/build', json.dumps(evidence))
+        self.assertEqual(
+            adoption_stack_frames('\tbackend/src/apiserver/main.go:999999'), [])
 
     def test_active_source_accepts_persisted_unacknowledged_submission(self):
         fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}

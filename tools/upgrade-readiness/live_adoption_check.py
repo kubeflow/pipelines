@@ -380,6 +380,10 @@ def offline_job(deployment, name):
 def adoption_log_categories(text):
     lowered = text.lower()
     patterns = {
+        'panic': ('panic:',),
+        'runtime_fault': ('runtime error:', 'fatal error:'),
+        'flag_parse': ('flag provided but not defined', 'invalid value',
+                       'flag needs an argument'),
         'adoption_failed': ('legacy recurring-run adoption failed',),
         'unpersisted_workflow': ('has no persisted run',),
         'progress': ('scheduling progress', 'scheduling indices', 'due time',
@@ -436,6 +440,35 @@ def adoption_startup_milestones(text):
         name for name, fragment in patterns.items() if fragment in text)
 
 
+def adoption_stack_frames(text):
+    """Return only source-verified repository locations and function names."""
+    root = Path(__file__).resolve().parents[2]
+    frames = []
+    previous = ''
+    for line in text.splitlines():
+        match = re.fullmatch(
+            r'\s+(?:[^\s]*?/)?(backend/[A-Za-z0-9_/-]+\.go):([0-9]+)(?: \+0x[0-9a-f]+)?',
+            line)
+        if match and len(frames) < 20:
+            path = root / match[1]
+            # A path-shaped payload is not evidence of a repository frame.
+            if path.is_file() and path.resolve().is_relative_to(root):
+                source = path.read_text()
+                number = int(match[2])
+                if 0 < number <= len(source.splitlines()):
+                    frame = dict(file=match[1], line=number)
+                    symbol = re.search(
+                        r'\.([A-Za-z_][A-Za-z_0-9]*)(?:\.[0-9]+)?\(', previous)
+                    if symbol and re.search(
+                            r'func\s+(?:\([^\n]*?\)\s+)?' +
+                            re.escape(symbol[1]) + r'\s*\(', source):
+                        frame['symbol'] = symbol[1]
+                    if frame not in frames:
+                        frames.append(frame)
+        previous = line
+    return frames
+
+
 def adoption_job_diagnostics(name):
     result = dict(containers=[], pods=[], receipt_logged=False)
     try:
@@ -480,8 +513,9 @@ def adoption_job_diagnostics(name):
                         logs = kube('-n', 'kubeflow', 'logs',
                                     pod['metadata']['name'],
                                     '--container=' + container['name'],
-                                    '--tail=100', '--limit-bytes=32768')
+                                    '--limit-bytes=1048576')
                         entry['log_categories'] = adoption_log_categories(logs)
+                        entry['stack_frames'] = adoption_stack_frames(logs)
                         entry[
                             'startup_milestones'] = adoption_startup_milestones(
                                 logs)
