@@ -47,6 +47,9 @@ func TestRecurringRunProductionDatabases(t *testing.T) {
 			t.Run("reference-backed-capacity", func(t *testing.T) {
 				testRecurringRunActiveCount(t, dbs[0], d)
 			})
+			t.Run("reference-backed-replay", func(t *testing.T) {
+				testRecurringRunReplayLookup(t, dbs[0], d)
+			})
 			placeholder := "?"
 			if driver == "pgx" {
 				placeholder = "$1"
