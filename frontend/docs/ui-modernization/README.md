@@ -2,6 +2,8 @@
 
 The existing screenshot harness captures fixture routes with loaded-data checks, isolated pages, deterministic form values and an optional fixed clock. The mock single-task endpoint supports artifact-to-task navigation. Interactive workflow testing belongs in the existing [smoke harness](../../scripts/ui-smoke-test/README.md).
 
+Keep these workflows complementary: this harness checks layout and styling against mock data without a cluster. The smoke harness checks seeded runtime resources; its default comparison shares the base runtime, while `--full-stack` uses separate revision-matched deployments. Neither substitutes for component tests or certifies upgrades. Their capture manifests and report directories are separate formats and must not be interchanged.
+
 ## Retained historical evidence
 
 The complete pre-trim baseline—50 screenshots, manifests, compact traces, inventories, measurements and corresponding tooling—is preserved in the [baseline evidence release](https://github.com/jeffspahr/jeffspahr-pipelines/releases/tag/ui-baseline-evidence-20261007), linked from [issue #14572](https://github.com/kubeflow/pipelines/issues/14572#issuecomment-6042440286).
