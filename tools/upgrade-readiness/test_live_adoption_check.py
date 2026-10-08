@@ -6,6 +6,8 @@
 """Regression checks for populated adoption evidence, without a cluster."""
 
 import copy
+from datetime import datetime
+from datetime import timezone
 import json
 from pathlib import Path
 import subprocess
@@ -119,27 +121,28 @@ class AdoptionTests(unittest.TestCase):
 
     def test_adoption_recovers_one_persisted_submission_without_resetting_history(
             self):
-        for epoch in (130, 200):
-            with self.subTest(epoch=epoch):
+        for epoch, created, expected in ((130, 131, 130), (200, 201, 200),
+                                         (135, 136, 135), (135, 135, 130)):
+            with self.subTest(epoch=epoch, created=created):
                 fixture, before, after = inventory()
                 before['runs'][0]['State'] = 'SUCCEEDED'
                 before['workflows'][0]['suspended'] = False
                 self.add_tick(before)
                 before['runs'][-1].update(
                     ScheduledAtInSec=epoch,
-                    CreatedAtInSec=epoch + 1,
+                    CreatedAtInSec=created,
                     State='RUNNING')
                 before['workflows'][-1].update(epoch=epoch, suspended=True)
                 after.update(copy.deepcopy(before))
                 after['states'][0].update(
                     LastRunUUID='new',
                     LastRunIndex=2,
-                    LastScheduledAtInSec=epoch,
-                    LastCreatedAtInSec=epoch + 1)
+                    LastScheduledAtInSec=expected,
+                    LastCreatedAtInSec=created)
                 after['schedules'][0]['trigger'].update(
                     lastWorkflowIndex=2,
-                    lastTriggeredTime='1970-01-01T00:02:10Z'
-                    if epoch == 130 else '1970-01-01T00:03:20Z')
+                    lastTriggeredTime=datetime.fromtimestamp(
+                        expected, timezone.utc).isoformat())
                 validate_adoption(before, after, fixture)
                 self.assertEqual(
                     before['schedules'][0]['trigger']['lastWorkflowIndex'], 1)
