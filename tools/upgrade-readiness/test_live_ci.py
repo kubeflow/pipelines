@@ -52,8 +52,8 @@ class LiveCITests(unittest.TestCase):
 
     def test_drain_failure_remains_failure_after_diagnostics(self):
         script = SCRIPT.read_text()
-        function = script[script.index('observe() {'):script
-                          .index('if [[ "$phase" == source ]]')]
+        function = re.search(r'(observe\(\) \{[\s\S]*?^\})', script,
+                             re.MULTILINE).group(1)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'activation-start.txt').write_text('2026-01-01T00:00:00Z')
