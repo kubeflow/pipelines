@@ -19,7 +19,7 @@ from live_adoption_check import kube
 from live_adoption_check import offline_job
 from live_adoption_check import require_stopped
 from live_adoption_check import snapshot
-from live_adoption_check import sql_diagnostics
+from live_adoption_check import sql
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
 from live_adoption_check import validate_idempotent
@@ -157,28 +157,28 @@ set_api_env() {""" + helper + offline
                 stdout='',
                 stderr='OCI runtime exec failed: executable file not found in $PATH '
                 + payload))
-        self.assertEqual(info['signatures'],
-                         ['executable_missing', 'runtime_exec'])
+        self.assertIsNone(info['mysql_error'])
         self.assertEqual(info['exit_code'], 127)
         self.assertNotIn(payload, json.dumps(info))
 
-    def test_probes_are_bounded_and_do_not_expose_output(self):
+    def test_sql_uses_working_loopback_tcp_instead_of_source_default_socket(
+            self):
         with mock.patch(
                 'live_adoption_check.subprocess.run',
                 return_value=mock.Mock(
-                    returncode=0, stdout='SECRET', stderr='')) as run:
-            evidence = sql_diagnostics()
+                    returncode=0, stdout='{"UUID":"fixture"}\n',
+                    stderr='')) as run:
+            self.assertEqual(sql('jobs', ('UUID',)), [{'UUID': 'fixture'}])
+        command = run.call_args.args[0]
+        client = command[command.index('--') + 1:]
         self.assertEqual(
-            set(evidence),
-            {'exec', 'client', 'connection', 'connection_tcp', 'jobs_identity'})
-        self.assertNotIn('SECRET', json.dumps(evidence))
-        for call in run.call_args_list:
-            self.assertEqual(call.kwargs['timeout'], 30)
-            self.assertIn('deployment/mysql', call.args[0])
-        queries = [call.args[0][-1] for call in run.call_args_list]
-        self.assertIn('SELECT 1', queries)
-        self.assertIn("SELECT JSON_OBJECT('UUID', UUID) FROM jobs LIMIT 1",
-                      queries)
+            client[:4],
+            ['mysql', '-uroot', '--protocol=TCP', '--host=127.0.0.1'])
+        self.assertIn('deployment/mysql', command)
+        self.assertIn('mlpipeline', client)
+        self.assertEqual(run.call_args.kwargs['timeout'], 45)
+        self.assertTrue(client[-1].endswith('ORDER BY `UUID`'))
+        self.assertNotIn('ORDER BY 1', client[-1])
 
     def test_sql_diagnostics_identify_stage_without_echoing_payload(self):
         self.assertEqual(

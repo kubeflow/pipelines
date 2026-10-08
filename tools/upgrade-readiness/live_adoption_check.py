@@ -36,6 +36,8 @@ MYSQL_ERRORS = {
     '1146': 'table_missing',
     '1305': 'function_missing',
     '3144': 'json_character_set',
+    '2002': 'connection',
+    '2003': 'connection',
 }
 SQL_OPERATIONS = {
     'jobs', 'run_details', 'recurring_run_states', 'recurring_run_adoptions'
@@ -53,69 +55,12 @@ def command_failure(operation, stderr):
 
 
 def command_diagnostics(result):
-    # Structural metadata and fixed signatures only, including exec failures
-    # which do not use MySQL's numbered ERROR format.
-    text = (result.stderr + '\n' + result.stdout).lower()
-    signatures = {
-        'executable_missing':
-            ('executable file not found', 'not found in $path'),
-        'exec_upgrade':
-            ('unable to upgrade connection', 'upgrade request required'),
-        'container_missing':
-            ('container not found', 'container is not running'),
-        'permission_denied': ('permission denied', 'forbidden'),
-        'authentication': ('access denied', 'authentication failed'),
-        'cli_option': ('unknown option', 'unknown flag', 'unknown variable'),
-        'connection':
-            ('connection refused', "can't connect", 'connection reset'),
-        'defaults_file': ('defaults file', 'my.cnf'),
-        'runtime_exec':
-            ('oci runtime exec failed', 'failed to exec in container'),
-        'pod_missing': ('pods "mysql', 'no pods found'),
-    }
-    code = re.search(r'\berror\s+([0-9]{4})\b', text)
+    # Preserve unknown numeric SQL errors without exposing messages or queries.
+    code = re.search(r'\bERROR\s+([0-9]{4})\b',
+                     result.stderr + '\n' + result.stdout, re.IGNORECASE)
     return dict(
         exit_code=result.returncode,
-        stdout_bytes=len(result.stdout.encode()),
-        stderr_bytes=len(result.stderr.encode()),
-        mysql_error=int(code.group(1)) if code else None,
-        signatures=sorted(name for name, fragments in signatures.items()
-                          if any(fragment in text for fragment in fragments)))
-
-
-def sql_diagnostics():
-    probes = (
-        ('exec', ['/bin/true']),
-        ('client', ['mysql', '--version']),
-        ('connection', [
-            'mysql', '-uroot', '--batch', '--skip-column-names', '--raw', '-e',
-            'SELECT 1'
-        ]),
-        ('connection_tcp', [
-            'mysql', '-uroot', '--protocol=TCP', '--host=127.0.0.1', '--batch',
-            '--skip-column-names', '--raw', '-e', 'SELECT 1'
-        ]),
-        ('jobs_identity', [
-            'mysql', '-uroot', '--batch', '--skip-column-names', '--raw',
-            'mlpipeline', '-e',
-            "SELECT JSON_OBJECT('UUID', UUID) FROM jobs LIMIT 1"
-        ]),
-    )
-    results = {}
-    for name, command in probes:
-        try:
-            result = subprocess.run([
-                'kubectl', '--context', CONTEXT, '--request-timeout=20s', '-n',
-                'kubeflow', 'exec', 'deployment/mysql', '--', *command
-            ],
-                                    text=True,
-                                    capture_output=True,
-                                    timeout=30,
-                                    check=False)
-            results[name] = command_diagnostics(result)
-        except (OSError, subprocess.TimeoutExpired):
-            results[name] = {'collection': 'unavailable'}
-    return results
+        mysql_error=int(code.group(1)) if code else None)
 
 
 def kube(*args, value=None, operation='kubernetes'):
@@ -143,7 +88,11 @@ def sql(table, columns, where=''):
     # Only fixed table/column names and this fixture namespace reach SQL.
     require(table in SQL_OPERATIONS, 'fixture_sql_table_not_allowed')
     fields = ','.join("'%s', `%s`" % (c, c) for c in columns)
-    query = f'SELECT JSON_OBJECT({fields}) FROM {table} {where} ORDER BY 1'
+    # Callers put the primary identity column first. Sort that key, not the
+    # generated JSON containing potentially large execution definitions.
+    query = f'SELECT JSON_OBJECT({fields}) FROM {table} {where} ORDER BY `{columns[0]}`'
+    # The source image's default client socket is unavailable in this fixture.
+    # Exec into the same Pod but connect explicitly through loopback TCP.
     raw = kube(
         '-n',
         'kubeflow',
@@ -152,6 +101,8 @@ def sql(table, columns, where=''):
         '--',
         'mysql',
         '-uroot',
+        '--protocol=TCP',
+        '--host=127.0.0.1',
         '--batch',
         '--skip-column-names',
         '--raw',
@@ -503,7 +454,6 @@ def main():
             'adoption_validation_or_collection_failed'
         if report['reason'].startswith('fixture_sql_'):
             report['failed_command'] = getattr(error, 'command_diagnostics', {})
-            report['sql_probes'] = sql_diagnostics()
     write_object(state / 'reports' / ('adoption-' + args.phase + '.json'),
                  report)
     return 0 if report['outcome'] == 'passed' else 1
