@@ -10,6 +10,8 @@ import unittest
 from unittest import mock
 
 from live_adoption_check import AdoptionError
+from live_adoption_check import command_failure
+from live_adoption_check import kube
 from live_adoption_check import offline_job
 from live_adoption_check import snapshot
 from live_adoption_check import validate_adoption
@@ -74,6 +76,31 @@ def inventory():
 
 
 class AdoptionTests(unittest.TestCase):
+
+    def test_sql_diagnostics_identify_stage_without_echoing_payload(self):
+        self.assertEqual(
+            command_failure(
+                'jobs',
+                "ERROR 1054 (42S22): unknown column secret-raw-payload"),
+            'fixture_sql_jobs_column_missing_failed')
+        self.assertEqual(
+            command_failure(
+                'run_details',
+                "ERROR 9999 (HY000): unrecognized secret-raw-payload"),
+            'fixture_sql_run_details_command_failed')
+        self.assertEqual(
+            command_failure('jobs', 'secret token authentication failure'),
+            'fixture_sql_jobs_command_failed')
+        with mock.patch(
+                'live_adoption_check.subprocess.run',
+                return_value=mock.Mock(
+                    returncode=1,
+                    stdout='raw payload',
+                    stderr='ERROR 3144 (22032): secret-raw-payload')):
+            with self.assertRaisesRegex(
+                    AdoptionError,
+                    '^fixture_sql_jobs_json_character_set_failed$'):
+                kube('exec', operation='jobs')
 
     def test_reads_real_workflow_label_and_progress_field(self):
         objects = [

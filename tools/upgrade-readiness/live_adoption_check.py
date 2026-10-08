@@ -11,6 +11,7 @@ import copy
 from datetime import datetime
 import json
 from pathlib import Path
+import re
 import subprocess
 import time
 
@@ -26,8 +27,32 @@ CONTROLLERS = ('ml-pipeline', 'ml-pipeline-scheduledworkflow',
 PREFIX = 'scheduledworkflows.kubeflow.org/'
 TERMINAL = {'SUCCEEDED', 'FAILED', 'ERROR', 'SKIPPED', 'CANCELED'}
 
+MYSQL_ERRORS = {
+    '1038': 'sort_memory',
+    '1045': 'authentication',
+    '1049': 'database_missing',
+    '1054': 'column_missing',
+    '1064': 'query_syntax',
+    '1146': 'table_missing',
+    '1305': 'function_missing',
+    '3144': 'json_character_set',
+}
+SQL_OPERATIONS = {
+    'jobs', 'run_details', 'recurring_run_states', 'recurring_run_adoptions'
+}
 
-def kube(*args, value=None):
+
+def command_failure(operation, stderr):
+    # Never include backend messages: they can contain queries or credentials.
+    if operation in SQL_OPERATIONS:
+        code = re.search(r'ERROR ([0-9]+) \([A-Z0-9]+\)', stderr)
+        category = MYSQL_ERRORS.get(code.group(1),
+                                    'command') if code else 'command'
+        return 'fixture_sql_' + operation + '_' + category + '_failed'
+    return 'fixture_kubernetes_operation_failed'
+
+
+def kube(*args, value=None, operation='kubernetes'):
     result = subprocess.run(
         ['kubectl', '--context', CONTEXT, '--request-timeout=30s', *args],
         input=json.dumps(value) if value is not None else None,
@@ -35,8 +60,10 @@ def kube(*args, value=None):
         capture_output=True,
         timeout=45,
         check=False)
-    if result.returncode or len(result.stdout) > 4 * 1024 * 1024:
-        raise AdoptionError('fixture_kubernetes_operation_failed')
+    if result.returncode:
+        raise AdoptionError(command_failure(operation, result.stderr))
+    if len(result.stdout) > 4 * 1024 * 1024:
+        raise AdoptionError('fixture_collection_limit_exceeded')
     return result.stdout
 
 
@@ -46,11 +73,24 @@ def get(namespace, resource):
 
 def sql(table, columns, where=''):
     # Only fixed table/column names and this fixture namespace reach SQL.
+    require(table in SQL_OPERATIONS, 'fixture_sql_table_not_allowed')
     fields = ','.join("'%s', `%s`" % (c, c) for c in columns)
     query = f'SELECT JSON_OBJECT({fields}) FROM {table} {where} ORDER BY 1'
-    raw = kube('-n', 'kubeflow', 'exec', 'deployment/mysql', '--', 'mysql',
-               '-uroot', '--batch', '--skip-column-names', '--raw',
-               'mlpipeline', '-e', query)
+    raw = kube(
+        '-n',
+        'kubeflow',
+        'exec',
+        'deployment/mysql',
+        '--',
+        'mysql',
+        '-uroot',
+        '--batch',
+        '--skip-column-names',
+        '--raw',
+        'mlpipeline',
+        '-e',
+        query,
+        operation=table)
     return [json.loads(line) for line in raw.splitlines() if line]
 
 
