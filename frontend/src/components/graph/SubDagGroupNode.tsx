@@ -1,8 +1,8 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
-import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Node, NodeProps } from '@xyflow/react';
 import { SubDagFlowElementData } from './Constants';
 import { getIcon } from './ExecutionNode';
@@ -80,11 +80,7 @@ export default function SubDagGroupNode({
               height: 28,
             }}
           >
-            {collapsed ? (
-              <OpenInFullIcon fontSize='small' />
-            ) : (
-              <CloseFullscreenIcon fontSize='small' />
-            )}
+            {collapsed ? <ExpandMoreIcon fontSize='small' /> : <ExpandLessIcon fontSize='small' />}
           </button>
         </div>
         {!collapsed && (data.expansionError || data.empty) && (

@@ -1,9 +1,9 @@
 # Inline sub-DAG graphs
 
 Pipeline and run graphs expand sub-DAGs into labeled boxes by default. The header's
-button shows **inward arrows to collapse** an expanded group and **outward arrows to
-expand** a collapsed group. Activating it toggles only that instance (also accessible
-with Enter/Space); it does not change the browser's fullscreen mode.
+button uses MUI's **ExpandLess** (up chevron) to collapse an expanded group and
+**ExpandMore** (down chevron) to expand a collapsed group. Activating it toggles only
+that instance (also accessible with Enter/Space).
 Selecting a task, artifact, or group still opens its details. Focused navigation and
 existing task deep links remain available; opening a group is no longer required to
 see its contents.

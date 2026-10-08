@@ -40,7 +40,7 @@ async function screenshot(name) {
   assert.deepEqual(clippedNodes, [], `${name} must fit the complete visible topology`);
   for (const expanded of [true, false]) {
     const buttons = page.locator(`button[aria-expanded="${expanded}"]`);
-    assert.equal(await buttons.getByTestId(expanded ? 'CloseFullscreenIcon' : 'OpenInFullIcon').count(), await buttons.count());
+    assert.equal(await buttons.getByTestId(expanded ? 'ExpandLessIcon' : 'ExpandMoreIcon').count(), await buttons.count());
   }
   await page.screenshot({ path: path.join(outDir, `${name}.png`) });
   console.log(`Captured ${name}`);
