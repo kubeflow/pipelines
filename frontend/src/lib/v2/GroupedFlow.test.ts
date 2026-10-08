@@ -42,6 +42,10 @@ describe('buildGroupedFlow', () => {
       const parentIndex = graph.nodes.findIndex((parent) => parent.id === node.parentId);
       const parent = graph.nodes[parentIndex];
       expect(parentIndex).toBeLessThan(index);
+      expect(node.extent).toEqual([
+        [24, parent.data.headerHeight + 24],
+        [parent.width! - 24, parent.height! - 24],
+      ]);
       expect(node.position.x).toBeGreaterThanOrEqual(24);
       expect(node.position.y).toBeGreaterThanOrEqual(GROUP_HEADER_HEIGHT + 24);
       expect(node.position.x + node.width!).toBeLessThanOrEqual(parent.width! - 24);
@@ -65,6 +69,30 @@ describe('buildGroupedFlow', () => {
     expect(group.data.headerHeight).toBe(leaf.height);
     expect(leaf.width).toBe(182);
   });
+
+  it.each([1, 13 / 16])(
+    'keeps collapsed nested groups below their parent header at scale %s',
+    (nodeScale) => {
+      const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
+      const graph = buildGroupedFlow(
+        resolve(['root']),
+        ['root'],
+        resolve,
+        new Set([scopedNodeId(['root', 'workflow'], 'task.fit')]),
+        { nodeScale },
+      );
+      const group = graph.nodes.find(
+        (node) => node.id === scopedNodeId(['root', 'workflow'], 'task.fit'),
+      )!;
+      const parent = graph.nodes.find((node) => node.id === group.parentId)!;
+      expect(group.data.collapsed).toBe(true);
+      expect(group.extent).toEqual([
+        [24, GROUP_HEADER_HEIGHT * nodeScale + 24],
+        [parent.width! - 24, parent.height! - 24],
+      ]);
+      expect(parent.extent).toBeUndefined();
+    },
+  );
 
   it('keeps dependency edges on group boundaries and artifacts in their owning scope', () => {
     const graph = staticGraph();

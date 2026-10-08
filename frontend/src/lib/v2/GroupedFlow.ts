@@ -1,7 +1,7 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { Edge, Node } from '@xyflow/react';
+import { CoordinateExtent, Edge, Node } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import {
   buildGraphLayout,
@@ -164,7 +164,12 @@ export function buildGroupedFlow(
             : {
                 ...inner,
                 parentId: node.id,
-                extent: 'parent' as const,
+                // Parent-relative bounds exclude the header and preserve body padding.
+                // React Flow enforces these throughout dragging, even if the parent moves.
+                extent: [
+                  [GROUP_PADDING, headerHeight + GROUP_PADDING],
+                  [node.width - GROUP_PADDING, node.height - GROUP_PADDING],
+                ] as CoordinateExtent,
                 position: {
                   x: inner.position.x + GROUP_PADDING,
                   y: inner.position.y + headerHeight + GROUP_PADDING,

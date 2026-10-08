@@ -3,12 +3,12 @@
 
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ShareIcon from '@mui/icons-material/Share';
 import { Node, NodeProps } from '@xyflow/react';
 import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
 import { getIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
+import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
 
 // The group outline clips the outer corners; do not expose the white header
@@ -24,7 +24,6 @@ export default function SubDagGroupNode({
 }: Pick<NodeProps<Node<SubDagFlowElementData>>, 'id' | 'data' | 'selected'>) {
   const collapsed = !!data.collapsed;
   const status = getIcon(data.state);
-  const groupType = data.groupKind === 'Condition' ? 'Conditional' : data.groupKind || 'Sub-DAG';
   return (
     <>
       <div
@@ -44,18 +43,11 @@ export default function SubDagGroupNode({
           className='flex items-stretch bg-white'
           style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT }}
         >
-          <div className='w-8 pl-2 h-full flex items-center flex-shrink-0'>
-            <ShareIcon
-              data-testid='subdag-share-icon'
-              className='text-mui-blue-600'
-              style={{ transform: 'rotate(90deg)' }}
-            />
-          </div>
           <div
-            data-testid='subdag-kind'
-            className='pl-1 pr-3 h-full flex items-center flex-shrink-0 text-xs text-mui-grey-600'
+            data-testid='subdag-type'
+            className='w-8 pl-2 h-full flex items-center flex-shrink-0'
           >
-            {groupType}
+            <SubDagTypeIcon kind={data.groupKind} />
           </div>
           <button
             type='button'

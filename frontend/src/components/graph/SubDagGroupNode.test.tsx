@@ -8,11 +8,11 @@ import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import SubDagGroupNode from './SubDagGroupNode';
 
 it.each([
-  ['Sub-DAG', 'Sub-DAG'],
-  ['Loop', 'Loop'],
-  ['Iteration', 'Iteration'],
-  ['Condition', 'Conditional'],
-])('shows %s after a rotated blue Share icon', (groupKind, label) => {
+  ['Sub-DAG', 'Sub-DAG', 'LayersIcon'],
+  ['Loop', 'Loop', 'RepeatIcon'],
+  ['Iteration', 'Iteration', 'RepeatOneIcon'],
+  ['Condition', 'Conditional', 'ConditionIcon'],
+])('shows %s as a grey category icon without type text', (groupKind, label, iconId) => {
   render(
     <ReactFlowProvider>
       <SubDagGroupNode
@@ -23,11 +23,12 @@ it.each([
     </ReactFlowProvider>,
   );
   forceRenderStyles();
-  expect(screen.getByTestId('subdag-kind')).toHaveTextContent(label);
-  const icon = screen.getByTestId('subdag-share-icon');
-  expect(icon).toHaveClass('text-mui-blue-600');
-  expect(icon).toHaveStyle({ transform: 'rotate(90deg)' });
-  expect(screen.getByTestId('subdag-kind').previousElementSibling).toContainElement(icon);
+  const icon = screen.getByRole('img', { name: label });
+  expect(icon).toBe(screen.getByTestId(iconId));
+  expect(icon).toHaveClass('text-mui-grey-600');
+  expect(screen.queryByTestId('subdag-kind')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('subdag-share-icon')).not.toBeInTheDocument();
+  expect(screen.getByTestId('subdag-header').firstElementChild).toContainElement(icon);
   expect(screen.getByTestId('subdag-header')).toHaveClass('bg-white');
   expect(screen.getByTestId('subdag-header')).toHaveStyle({ height: '48px' });
   expect(screen.getByRole('button', { name: 'Training' })).toHaveClass('text-sm');
