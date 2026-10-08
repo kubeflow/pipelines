@@ -1,8 +1,8 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { Node, NodeProps } from '@xyflow/react';
 import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
@@ -72,7 +72,7 @@ export default function SubDagGroupNode({
             }}
             style={{ background: 'transparent', border: 0, padding: 0, width: '2rem' }}
           >
-            {collapsed ? <ExpandMoreIcon fontSize='small' /> : <ExpandLessIcon fontSize='small' />}
+            {collapsed ? <UnfoldMoreIcon fontSize='small' /> : <UnfoldLessIcon fontSize='small' />}
           </button>
           {status && (
             <div
