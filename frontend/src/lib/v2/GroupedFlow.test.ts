@@ -11,7 +11,12 @@ import {
 import dagre from 'dagre';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
-import { buildGroupedFlow, GROUP_NODE_TYPE, scopedNodeId } from './GroupedFlow';
+import {
+  buildGroupedFlow,
+  GROUP_HEADER_HEIGHT,
+  GROUP_NODE_TYPE,
+  scopedNodeId,
+} from './GroupedFlow';
 import { convertSubDagToFlowElements, NodeTypeNames } from './StaticFlow';
 import {
   createRuntimeLayerResolver,
@@ -38,7 +43,7 @@ describe('buildGroupedFlow', () => {
       const parent = graph.nodes[parentIndex];
       expect(parentIndex).toBeLessThan(index);
       expect(node.position.x).toBeGreaterThanOrEqual(24);
-      expect(node.position.y).toBeGreaterThanOrEqual(64);
+      expect(node.position.y).toBeGreaterThanOrEqual(GROUP_HEADER_HEIGHT + 24);
       expect(node.position.x + node.width!).toBeLessThanOrEqual(parent.width! - 24);
       expect(node.position.y + node.height!).toBeLessThanOrEqual(parent.height! - 24);
     }
@@ -63,7 +68,7 @@ describe('buildGroupedFlow', () => {
   it('collapses only the requested instance, removes its internal edges, and reflows siblings', () => {
     const expanded = staticGraph(conditionSpec);
     const collapsed = staticGraph(conditionSpec, new Set(['task.accurate']));
-    expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBe(64);
+    expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBe(48);
     expect(collapsed.nodes.filter((node) => node.data.label === 'Train model')).toHaveLength(1);
     expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBeLessThan(
       expanded.nodes.find((node) => node.id === 'task.accurate')!.height!,

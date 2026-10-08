@@ -18,11 +18,17 @@ import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, fonts, padding } from 'src/Css';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import IconButton from '@mui/material/IconButton';
 import { grey } from '@mui/material/colors';
 
 export interface SubDagLayerProps {
   layers: string[];
   onLayersUpdate(layers: string[]): void;
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
+  groupControlsDisabled?: boolean;
   // initialTarget?: Artifact;
   // setLineageViewTarget(artifact: Artifact): void;
 }
@@ -106,7 +112,13 @@ const BreadcrumbSeparator: React.FC = () => (
   </div>
 );
 
-const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLayers }) => {
+const SubDagLayer: React.FC<SubDagLayerProps> = ({
+  layers,
+  onLayersUpdate: setLayers,
+  onExpandAll,
+  onCollapseAll,
+  groupControlsDisabled,
+}) => {
   const historyList: History[] = [];
   let path = '';
   for (const layer in layers) {
@@ -146,7 +158,31 @@ const SubDagLayer: React.FC<SubDagLayerProps> = ({ layers, onLayersUpdate: setLa
 
   return (
     <div className={classes(actionBarCss.container, padding(25, 'lr'), commonCss.flex)}>
-      <div className={classes(actionBarCss.breadcrumbContainer)}>{breadcrumbs}</div>
+      <div className={classes(actionBarCss.breadcrumbContainer)}>
+        {onExpandAll && onCollapseAll && (
+          <div role='group' aria-label='Sub-DAG controls' className='flex mr-3'>
+            <IconButton
+              aria-label='Expand all'
+              title='Expand all sub-DAGs (large groups may require individual expansion)'
+              size='small'
+              disabled={groupControlsDisabled}
+              onClick={onExpandAll}
+            >
+              <ExpandMoreIcon fontSize='small' />
+            </IconButton>
+            <IconButton
+              aria-label='Collapse all'
+              title='Collapse all sub-DAGs'
+              size='small'
+              disabled={groupControlsDisabled}
+              onClick={onCollapseAll}
+            >
+              <ExpandLessIcon fontSize='small' />
+            </IconButton>
+          </div>
+        )}
+        {breadcrumbs}
+      </div>
     </div>
   );
 };

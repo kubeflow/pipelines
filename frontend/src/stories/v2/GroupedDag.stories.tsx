@@ -24,7 +24,7 @@ function GroupedDag({
   tasks,
   title,
   initialLayers = ['root'],
-  nodesDraggable = false,
+  nodesDraggable = true,
 }: {
   spec: PipelineSpec;
   tasks?: V2beta1PipelineTask[];
