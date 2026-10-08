@@ -3517,11 +3517,14 @@ func TestRetryRun_AdoptsOwnedPlaceholderWithClaimMarker(t *testing.T) {
 	require.NoError(t, err)
 	originalUID := storedWorkflowUID(t, run)
 	require.NotEmpty(t, originalUID)
+	priorManifest := string(run.WorkflowRuntimeManifest)
+	require.Contains(t, priorManifest, "node1")
 	workflowClient := store.ExecClient().Execution(run.Namespace)
 
 	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
 	// Pre-create the status-free placeholder that a prior create-only attempt
 	// would have left behind. ClaimRunForRetry will assign generation 1.
+	// Ownership alone must not report success: RetryRun resumes activation.
 	suspend := true
 	ownedPlaceholder := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
@@ -3546,9 +3549,151 @@ func TestRetryRun_AdoptsOwnedPlaceholderWithClaimMarker(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, model.RuntimeStateRunning, retried.State)
 	assert.Equal(t, placeholderUID, storedWorkflowUID(t, retried))
+	saved, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(retried.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	if suspend := saved.(*util.Workflow).Spec.Suspend; suspend != nil {
+		assert.False(t, *suspend, "success must persist the activated workflow, not the empty suspended placeholder")
+	}
+	assert.Equal(t, "1", saved.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
 	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, placeholderUID, live.ExecutionObjectMeta().UID)
+	assert.Equal(t, "1", live.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	if live.(*util.Workflow).Spec.Suspend != nil {
+		assert.False(t, *live.(*util.Workflow).Spec.Suspend, "activation must clear placeholder suspend")
+	}
+}
+
+func TestRetryRun_FailedActivationDoesNotReportSuccess(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	// Include a succeeded sibling so GenerateRetryExecution retains it; after a
+	// failed activation the prior snapshot (including that node) must remain.
+	failedWithRetained := util.NewWorkflow(testWorkflow.DeepCopy())
+	failedWithRetained.SetServiceAccount(run.ServiceAccount)
+	failedWithRetained.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
+	failedWithRetained.Status.Phase = v1alpha1.WorkflowFailed
+	failedWithRetained.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"ok":   {ID: "ok", Name: "ok-pod", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded},
+		"fail": {ID: "fail", Name: "fail-pod", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	syncWorkflowReportWithFakeCluster(t, store, failedWithRetained)
+	_, err = manager.ReportWorkflowResource(ctx, failedWithRetained)
+	require.NoError(t, err)
+	run, err = manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	priorManifest := string(run.WorkflowRuntimeManifest)
+	require.Contains(t, priorManifest, "ok-pod")
+
+	workflowClient := client.NewWorkflowClientFake()
+	// Seed a disposable UID so recreate does not reuse testWorkflow.UID.
+	_, err = workflowClient.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "seed-uid"},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NoError(t, workflowClient.Delete(ctx, "seed-uid", v1.DeleteOptions{}))
+
+	rejectingClient := &retryableUpdateFailureWorkflowClient{
+		FakeWorkflowClient:      workflowClient,
+		updateFailuresRemaining: 32, // exhaust DefaultRetry + error-recovery resume
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: rejectingClient}
+
+	err = manager.RetryRun(ctx, runDetail.UUID)
+	require.Error(t, err, "failed activating updates must not report retry success")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
+		"expected Unavailable after failed activation, got: %v", err)
+
+	afterFail, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.NotEqual(t, model.RuntimeStateRunning, afterFail.State,
+		"run must not be marked Running after failed activation")
+	assert.Equal(t, model.RuntimeStatePending, afterFail.State,
+		"failed activation must preserve the retry claim, not invent Running")
+	assert.Contains(t, string(afterFail.WorkflowRuntimeManifest), "ok-pod",
+		"prior successful nodes must survive a failed activation")
+	savedAfterFail, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(afterFail.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	if suspend := savedAfterFail.(*util.Workflow).Spec.Suspend; suspend != nil {
+		assert.False(t, *suspend, "empty suspended placeholder must not replace the saved runtime snapshot")
+	}
+
+	live, liveErr := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	if liveErr == nil {
+		_, hasGeneration := live.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration]
+		assert.False(t, hasGeneration, "placeholder must remain unactivated while updates are rejected")
+		require.NotNil(t, live.(*util.Workflow).Spec.Suspend)
+		assert.True(t, *live.(*util.Workflow).Spec.Suspend)
+	}
+
+	// Age out the claim and restore writes so a later RetryRun can resume activation.
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+	rejectingClient.updateFailuresRemaining = 0
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+	recovered, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, recovered.State)
+	assert.Contains(t, string(recovered.WorkflowRuntimeManifest), util.AnnotationKeyRetryGeneration)
+	live, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "1", live.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	if live.(*util.Workflow).Spec.Suspend != nil {
+		assert.False(t, *live.(*util.Workflow).Spec.Suspend)
+	}
+}
+
+func TestRetryRun_ExpiredClaimOwnedPlaceholderResumesActivation(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	require.Contains(t, string(run.WorkflowRuntimeManifest), "node1")
+
+	suspend := true
+	workflowClient := client.NewWorkflowClientFake()
+	_, err = workflowClient.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      runDetail.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: runDetail.UUID},
+			Annotations: map[string]string{
+				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(runDetail.UUID, 1),
+			},
+		},
+		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowUnknown},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	adopted, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), adopted.RetryGeneration, "expired-claim resume must not take over to a new generation")
+	assert.Equal(t, model.RuntimeStateRunning, adopted.State)
+	saved, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(adopted.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	if suspend := saved.(*util.Workflow).Spec.Suspend; suspend != nil {
+		assert.False(t, *suspend)
+	}
+	assert.Equal(t, "1", saved.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	live, err := workflowClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
 	assert.Equal(t, "1", live.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
 }
 
