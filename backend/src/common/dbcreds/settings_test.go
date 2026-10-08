@@ -72,10 +72,21 @@ func TestSettingsDescribe(t *testing.T) {
 	on := dbcreds.Settings{Enabled: true, ProviderName: "aws-iam", CABundlePath: "/etc/db-tls/ca.pem"}.Describe(dbcreds.DriverMySQL)
 	assert.Contains(t, on, `credentials="aws-iam" provider`)
 	assert.Contains(t, on, "verified against /etc/db-tls/ca.pem")
+
+	// With the switch off the bundle is never read, so the line must not claim
+	// verification -- notably during a rollback, when the bundle stays set.
+	inactive := dbcreds.Settings{CABundlePath: "/etc/db-tls/ca.pem"}.Describe(dbcreds.DriverMySQL)
+	assert.Contains(t, inactive, "credentials=configured password")
+	assert.NotContains(t, inactive, "verified", "an inactive bundle verifies nothing")
+	assert.Contains(t, inactive, "/etc/db-tls/ca.pem is inactive")
+	assert.Contains(t, inactive, "TLS=not configured by DB_TLS_CA_PATH",
+		"whatever the connection parameters select must not be claimed either way")
 }
 
 // recordingProvider captures every Target a connector was built for, which is
-// how these tests observe the sequence without a database.
+// how these tests observe the sequence without a database. The target still
+// goes through the real config builders, but the connector it returns never
+// dials, so a test cannot pass or fail on DNS or network access.
 type recordingProvider struct {
 	targets []dbcreds.Target
 }
@@ -84,20 +95,40 @@ func (*recordingProvider) Name() string { return "recording" }
 
 func (r *recordingProvider) Connector(_ context.Context, t dbcreds.Target) (driver.Connector, error) {
 	r.targets = append(r.targets, t)
+	var err error
 	switch t.Driver {
 	case dbcreds.DriverMySQL:
-		config, err := dbcreds.MySQLConfig(t)
-		if err != nil {
-			return nil, err
-		}
-		return dbcreds.MySQLConnector(config)
+		_, err = dbcreds.MySQLConfig(t)
 	default:
-		config, err := dbcreds.PostgreSQLConfig(t)
-		if err != nil {
-			return nil, err
-		}
-		return dbcreds.PostgreSQLConnector(config), nil
+		_, err = dbcreds.PostgreSQLConfig(t)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return fakeConnector{}, nil
+}
+
+// fakeConnector hands out connections that accept every statement.
+type fakeConnector struct{}
+
+func (fakeConnector) Connect(context.Context) (driver.Conn, error) { return fakeConn{}, nil }
+func (fakeConnector) Driver() driver.Driver                        { return fakeDriver{} }
+
+type fakeDriver struct{}
+
+func (fakeDriver) Open(string) (driver.Conn, error) { return fakeConn{}, nil }
+
+type fakeConn struct{}
+
+func (fakeConn) Prepare(string) (driver.Stmt, error) {
+	return nil, fmt.Errorf("fakeConn does not prepare statements")
+}
+func (fakeConn) Close() error { return nil }
+func (fakeConn) Begin() (driver.Tx, error) {
+	return nil, fmt.Errorf("fakeConn does not begin transactions")
+}
+func (fakeConn) ExecContext(context.Context, string, []driver.NamedValue) (driver.Result, error) {
+	return driver.RowsAffected(0), nil
 }
 
 func TestSettingsWarnings(t *testing.T) {
@@ -268,10 +299,8 @@ func TestEnsureDatabaseAcceptsPrivilegeRefusalOnBothEngines(t *testing.T) {
 	}
 }
 
-// Bootstrap is the sequence both binaries used to carry a copy of. These pin
-// the parts that differed between those copies, which is what made them worth
-// sharing: which database the bootstrap connection names, and where
-// clientFoundRows is applied.
+// These pin the engine-specific parts of Bootstrap: which database the
+// bootstrap connection names, and where clientFoundRows is applied.
 func TestBootstrapNamesTheRightBootstrapDatabase(t *testing.T) {
 	tests := []struct {
 		driver string
@@ -295,7 +324,7 @@ func TestBootstrapNamesTheRightBootstrapDatabase(t *testing.T) {
 			_, _, err := dbcreds.Bootstrap(context.Background(), recorder, target, dbcreds.BootstrapOptions{
 				DBName:          "mlpipeline",
 				QuoteIdentifier: func(s string) string { return s },
-				Tolerate:        func(error) error { return nil },
+				Tolerate:        func(err error) error { return err },
 				Timeout:         time.Second,
 			})
 			require.NoError(t, err)
@@ -325,7 +354,7 @@ func TestBootstrapAppliesClientFoundRowsWithoutMutatingTheCaller(t *testing.T) {
 	_, _, err := dbcreds.Bootstrap(context.Background(), recorder, target, dbcreds.BootstrapOptions{
 		DBName:          "cachedb",
 		QuoteIdentifier: func(s string) string { return s },
-		Tolerate:        func(error) error { return nil },
+		Tolerate:        func(err error) error { return err },
 		Timeout:         time.Second,
 	})
 	require.NoError(t, err)
@@ -338,7 +367,7 @@ func TestBootstrapAppliesClientFoundRowsWithoutMutatingTheCaller(t *testing.T) {
 
 func TestBootstrapRejectsAnUnsupportedDriver(t *testing.T) {
 	_, _, err := dbcreds.Bootstrap(context.Background(), &recordingProvider{}, dbcreds.Target{Driver: "oracle"},
-		dbcreds.BootstrapOptions{DBName: "x", QuoteIdentifier: func(s string) string { return s }, Tolerate: func(error) error { return nil }, Timeout: time.Second})
+		dbcreds.BootstrapOptions{DBName: "x", QuoteIdentifier: func(s string) string { return s }, Tolerate: func(err error) error { return err }, Timeout: time.Second})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does not support driver")
 }

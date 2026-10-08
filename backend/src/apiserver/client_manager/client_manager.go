@@ -713,9 +713,9 @@ func dbSettings() dbcreds.Settings {
 // the connection from a credential provider, which allows a credential that is
 // regenerated per connection and a verified TLS connection.
 //
-// The connection lifecycle itself is dbcreds.Bootstrap, shared with the cache
-// server. What stays here is what is genuinely this binary's: which viper keys
-// the configuration comes from, glog, and the GORM dialector.
+// The connection lifecycle itself is dbcreds.Bootstrap. What stays here is what
+// is specific to the API server: which viper keys the configuration comes
+// from, glog, and the GORM dialector.
 func initDBDriverWithProvider(driverName string, settings dbcreds.Settings, initConnectionTimeout time.Duration) gorm.Dialector {
 	var dbName, password string
 	var target dbcreds.Target

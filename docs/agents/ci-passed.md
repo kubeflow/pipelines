@@ -2,10 +2,10 @@
 
 CI Check is the sole publisher of the `ci-passed` commit status. The label with
 the same name is informational. Tide remains the merge authority; human PRs
-still require review. Automatic Dependabot creation holds remain configured for every ecosystem;
-existing PR-specific holds remain separate maintainer decisions and are never
-removed by the publisher. Removing creation holds remains a separate change
-after the deployed merge policy has been verified. Required `ci-passed` protection is intended for
+still require review. Automatic Dependabot creation holds have been removed;
+merging now relies on the required `ci-passed` status and the deployed Tide
+policy. Existing PR-specific holds remain separate maintainer decisions and are
+never removed by the publisher. Required `ci-passed` protection is intended for
 `master` only: older release branches do not publish this commit status.
 
 ## Contract and enforcement
@@ -161,6 +161,32 @@ scheduled runs; manually rerunning CI Check remains the fallback. Do not rely
 solely on `check_run`: GitHub suppresses that trigger when the check suite's
 head SHA is associated with GitHub Actions. See the
 [GitHub event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+
+## Missing base merge record
+
+The freshness check establishes when the base revision became reachable on
+`master` by reading the merged-PR record for that commit. A commit merged
+through a pull request carries an authoritative `merged_at` timestamp. A direct
+push of a pre-existing commit has no merged PR, so its arrival cannot be
+established and the check fails closed to pending rather than passing stale
+evidence as fresh.
+
+A temporary API failure and a genuinely missing record both leave the arrival
+lookup without a timestamp, but the publisher reports them distinctly. The
+lookup-failure reason says the base-arrival lookup failed and will retry; the
+missing-record reason names the full base SHA and requests maintainer
+investigation. Read the `ci-passed` status and CI Check logs to tell them
+apart. Rerunning CI cannot resolve a missing record: the base revision itself
+has no merged-PR provenance, so no fresh workflow run can establish when it
+arrived.
+
+Recovery for a missing record is a maintainer action. A maintainer should
+confirm whether the base revision landed through a pull request. If it did,
+investigate why the merge record is absent or malformed and correct it. If it
+landed through a direct push (for example a fast-forward integration), the
+maintainer decides the next step, such as merging a follow-up through a pull
+request to restore provenance. Do not weaken the freshness check to admit
+stale evidence.
 
 ## Validation and coordinated rollout
 
