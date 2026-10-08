@@ -93,6 +93,36 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertNotIn('useLegacyAPIPrefix', str(steps['Verify Upgrade']))
         self.assertEqual(steps['Stop port forwarding']['if'], '${{ always() }}')
 
+    def test_legacy_api_specs_reuse_existing_cluster_jobs(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text())
+        for name in ('api-test-standalone', 'api-test-multi-user'):
+            with self.subTest(job=name):
+                steps = workflow['jobs'][name]['steps']
+                self.assertEqual(
+                    sum(
+                        step.get('uses') == './.github/actions/create-cluster'
+                        for step in steps), 1)
+                self.assertEqual(
+                    sum(
+                        step.get('uses') == './.github/actions/deploy'
+                        for step in steps), 1)
+                tests = next(
+                    step for step in steps if step['name'] == 'Run Tests')
+                self.assertEqual(tests['uses'],
+                                 './.github/actions/test-and-report')
+                self.assertIn('LEGACY_API_COMPATIBILITY_TESTS', tests['env'])
+                self.assertEqual(tests['with']['test_directory'],
+                                 '${{ env.API_TESTS_DIR }}')
+        standalone = next(
+            step for step in workflow['jobs']['api-test-standalone']['steps']
+            if step['name'] == 'Run Tests')
+        selection = standalone['env']['LEGACY_API_COMPATIBILITY_TESTS']
+        self.assertIn("matrix.argo_version == 'v4.1.2'", selection)
+        self.assertIn("matrix.pod_to_pod_tls_enabled == 'true'", selection)
+        self.assertFalse(
+            any('compatibility' in name for name in workflow['jobs']))
+
     def test_visualization_service_is_not_deployed_or_generated(self):
         for root in ('manifests/kustomize', '.github/resources/manifests'):
             for path in (ROOT / root).rglob('kustomization.yaml'):

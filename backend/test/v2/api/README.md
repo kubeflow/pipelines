@@ -125,6 +125,50 @@ reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilen
 reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
 ```
 
+## Legacy API compatibility on an existing deployment
+
+`legacy_compatibility_api_test.go` adds the `LegacyAPICompatibility` specs to
+this suite. CI enables them in selected **existing** API test deployments:
+Argo 4 standalone MySQL/PostgreSQL, standalone TLS, and cache-disabled MySQL
+multi-user. It does not add a cluster job or redeploy between API versions.
+
+The tests send literal `/apis/v2beta1` and `/apis/v2` HTTP requests to the same
+server, reject redirects, and never fall back between prefixes. They cover:
+
+- Experiment creation, cross-version reads, archive/restore, and deletion in
+  both directions.
+- Multipart pipeline upload and run submission through `v2beta1`, actual
+  executor completion, and reads of the same run through `v2`.
+- Disabled recurring-run creation, plus task, artifact metadata, and log reads.
+
+The tiny `argo_compatibility/fast_artifact.yaml` fixture uses the existing
+preloaded `alpine:3.23` image. Names are unique and cleanup deletes only resources
+created by these tests; recurring runs are disabled so they cannot fire later.
+Both health routes must succeed before any test resources are created. An old
+server without v2, or a new server missing the legacy alias, fails the test.
+
+To use a cluster already running a compatible KFP server, first select its
+kubeconfig context and forward its API service in a separate terminal:
+
+```bash
+kubectl -n kubeflow port-forward svc/ml-pipeline 8888:8888
+```
+
+From the repository root, run:
+
+```bash
+LEGACY_API_COMPATIBILITY_TESTS=true go run github.com/onsi/ginkgo/v2/ginkgo \
+  -v --label-filter=LegacyAPICompatibility ./backend/test/v2/api -- \
+  -apiUrl=http://localhost:8888 -namespace=kubeflow
+```
+
+This command does not create or upgrade a cluster. It does create a few
+short-lived KFP resources and execute one small pipeline. For TLS, supply an
+HTTPS `-apiUrl`, `-tlsEnabled=true`, and `-caCertPath`; for multi-user mode use
+`-multiUserMode=true` and the existing user namespace/service-account flags.
+Do **not** set `-useLegacyAPIPrefix`: that flag tests preparation on an old
+server, whereas these specs require both prefixes on the same deployment.
+
 ## Test Coverage
 
 ### API Service Test Distribution
