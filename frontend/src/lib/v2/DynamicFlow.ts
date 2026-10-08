@@ -90,14 +90,16 @@ export function convertSubDagToRuntimeFlowElements(
   tasks: V2beta1PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
+  existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
   }
 
-  const taskIndex = buildTaskIndex(tasks);
-  const runtimeContext = getRuntimeLayerContext(layers, taskIndex);
+  const taskIndex = existingFlowContext?.taskIndex || buildTaskIndex(tasks);
+  const runtimeContext =
+    existingFlowContext?.runtimeLayerContext || getRuntimeLayerContext(layers, taskIndex);
   const componentsMap = spec.components;
 
   for (let index = 1; index < layers.length; index++) {
@@ -136,6 +138,33 @@ export function convertSubDagToRuntimeFlowElements(
     );
   }
   return buildDag(spec, componentSpec);
+}
+
+/** Resolve many visible scopes from one task index, rather than re-indexing each iteration. */
+export function createRuntimeLayerResolver(
+  spec: PipelineSpec,
+  tasks: V2beta1PipelineTask[],
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
+): (layers: string[]) => PipelineFlowElement[] {
+  const taskIndex = buildTaskIndex(tasks);
+  return (layers) => {
+    const context: RuntimeFlowContext = {
+      taskIndex,
+      runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
+      runIsTerminal,
+      runCompletedSuccessfully,
+    };
+    const elements = convertSubDagToRuntimeFlowElements(
+      spec,
+      layers,
+      tasks,
+      runIsTerminal,
+      runCompletedSuccessfully,
+      context,
+    );
+    return reconcileRuntimeFlowElements(layers, elements, tasks, context);
+  };
 }
 
 export function updateFlowElementsState(
@@ -587,6 +616,7 @@ function buildParallelForDag(
       id: getTaskNodeKey(iterationNodeName),
       data: {
         label: iterationNodeName,
+        groupKind: 'Iteration',
         expectedTaskCount,
         state: getIterationState(
           getIterationTasks(taskIndex, loopTask.task_id, index),

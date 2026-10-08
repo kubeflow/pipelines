@@ -42,6 +42,8 @@ import { PageProps } from './Page';
 import { RunDetailsV2 } from './RunDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { readFileSync } from 'node:fs';
+import { loopSpec, loopTasks } from 'src/data/test/groupedFlow';
+import { scopedNodeId } from 'src/lib/v2/GroupedFlow';
 
 const tensorboardYaml = readFileSync(
   `${__dirname}/../../../test/frontend-integration-test/tensorboard-example.yaml`,
@@ -294,6 +296,76 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
+  });
+
+  it('opens the correct iteration task from an expanded loop without changing scope', async () => {
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks: loopTasks });
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          {...generateProps()}
+          parsedPipelineSpec={loopSpec}
+          pipeline_job={JSON.stringify(PipelineSpec.toJSON(loopSpec))}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.RUNNING }}
+        />
+      </CommonTestWrapper>,
+    );
+    const nodeId = scopedNodeId(['root', 'sweep', 'sweep.1'], 'task.train');
+    await waitFor(() =>
+      expect(document.querySelector(`[data-id='${nodeId}']`)).toBeInTheDocument(),
+    );
+    fireEvent.click(document.querySelector(`[data-id='${nodeId}']`)!);
+    fireEvent.click(await screen.findByText('Task Details'));
+    await screen.findByText('train-1');
+    expect(document.querySelector(`[data-id='${nodeId}']`)).toHaveClass('selected');
+    expect(
+      screen.getByRole('button', { name: 'Collapse Hyperparameter sweep' }),
+    ).toBeInTheDocument();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not substitute a same-named linked task when selecting a nested task', async () => {
+    const spec = PipelineSpec.fromPartial({
+      ...loopSpec,
+      root: {
+        dag: {
+          tasks: {
+            ...loopSpec.root!.dag!.tasks,
+            train: { taskInfo: { name: 'Outer training' }, componentRef: { name: 'train' } },
+          },
+        },
+      },
+    });
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+      tasks: [
+        ...loopTasks,
+        {
+          task_id: 'outer-train',
+          parent_task_id: 'root',
+          name: 'train',
+          type: PipelineTaskTaskType.RUNTIME,
+        },
+      ],
+    });
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          {...generateProps()}
+          location={{ pathname: `/runs/details/${RUN_ID}`, search: '?task=outer-train' } as any}
+          parsedPipelineSpec={spec}
+          pipeline_job={JSON.stringify(PipelineSpec.toJSON(spec))}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.RUNNING }}
+        />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(await screen.findByText('Task Details'));
+    await screen.findByText('outer-train');
+    const nodeId = scopedNodeId(['root', 'sweep', 'sweep.1'], 'task.train');
+    fireEvent.click(document.querySelector(`[data-id='${nodeId}']`)!);
+    // The router spy leaves the old URL in place until navigation completes.
+    // Selection must already resolve the clicked instance, not its namesake.
+    await screen.findByText('train-1');
+    expect(document.querySelector(`[data-id='${nodeId}']`)).toHaveClass('selected');
   });
 
   it('opens the native task targeted by a related-task link', async () => {
