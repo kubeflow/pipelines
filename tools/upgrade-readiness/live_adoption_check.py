@@ -392,12 +392,48 @@ def adoption_log_categories(text):
         'connection': ('connection refused', "can't connect", 'no such host'),
         'configuration':
             ('failed to parse', 'flag provided but not defined', 'config file'),
+        'initialization': ('failed to initialize clientmanager',
+                           'failed to initialize config',
+                           'failed to initialize pipeline size limits'),
+        'database_initialization':
+            ('failed to detect schema version',
+             'failed to initialize experiment store',
+             'failed to initialize db status store',
+             'failed to initialize default experiment store',
+             'failed to retrieve *sql.db'),
+        'object_store_initialization': ('failed to initialize object store',
+                                        'failed to open blob storage bucket'),
+        'init_dependency_timeout': ('error: timed out waiting for',),
+        'init_dependency_configuration':
+            ('error: wait_host or wait_port is not set.',),
         'synchronization': ('not synchronized',),
         'inventory': ('inventory unavailable', 'inventory is unavailable'),
         'validation': ('cannot be adopted', 'invalid input', 'invalidinput'),
     }
     return sorted(name for name, fragments in patterns.items()
                   if any(fragment in lowered for fragment in fragments))
+
+
+def adoption_startup_milestones(text):
+    # Presence only: a truncated log tail cannot prove an earlier stage absent.
+    patterns = {
+        'database_started':
+            'Initializing DB client...',
+        'database_ready':
+            'DB client initialized successfully',
+        'legacy_schema_detected':
+            'Detected legacy schema. Running upgrade flow.',
+        'schema_migration_started':
+            'Running AutoMigrate.',
+        'object_store_started':
+            'Initializing Object store client...',
+        'object_store_ready':
+            'Object store client initialized successfully',
+        'client_manager_ready':
+            'Client manager initialized successfully',
+    }
+    return sorted(
+        name for name, fragment in patterns.items() if fragment in text)
 
 
 def adoption_job_diagnostics(name):
@@ -446,6 +482,9 @@ def adoption_job_diagnostics(name):
                                     '--container=' + container['name'],
                                     '--tail=100', '--limit-bytes=32768')
                         entry['log_categories'] = adoption_log_categories(logs)
+                        entry[
+                            'startup_milestones'] = adoption_startup_milestones(
+                                logs)
                         if role == 'main' and re.search(
                                 r'recurring_run_adoption id=legacy-2.18 ready=true adopted_count=3 ',
                                 logs):

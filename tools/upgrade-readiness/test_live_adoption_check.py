@@ -16,6 +16,7 @@ from unittest import mock
 
 from live_adoption_check import adoption_job_diagnostics
 from live_adoption_check import adoption_log_categories
+from live_adoption_check import adoption_startup_milestones
 from live_adoption_check import AdoptionError
 from live_adoption_check import command_diagnostics
 from live_adoption_check import command_failure
@@ -154,6 +155,32 @@ class AdoptionTests(unittest.TestCase):
         self.assertNotIn('TOKEN', json.dumps(evidence))
         self.assertEqual(
             adoption_log_categories('PRIVATE arbitrary error TOKEN'), [])
+
+    def test_startup_diagnostics_classify_fixed_messages_without_payload(self):
+        cases = {
+            'Failed to initialize ClientManager: PRIVATE TOKEN':
+                'initialization',
+            'failed to detect schema version: PRIVATE TOKEN':
+                'database_initialization',
+            'failed to initialize object store: PRIVATE TOKEN':
+                'object_store_initialization',
+            'ERROR: Timed out waiting for PRIVATE after 60 attempts.':
+                'init_dependency_timeout',
+            'ERROR: WAIT_HOST or WAIT_PORT is not set.':
+                'init_dependency_configuration',
+        }
+        for message, category in cases.items():
+            with self.subTest(category=category):
+                self.assertEqual(adoption_log_categories(message), [category])
+        partial = 'Initializing DB client...\nDetected legacy schema. Running upgrade flow.\nPRIVATE TOKEN'
+        self.assertEqual(
+            adoption_startup_milestones(partial),
+            ['database_started', 'legacy_schema_detected'])
+        self.assertEqual(adoption_startup_milestones('PRIVATE TOKEN'), [])
+        self.assertEqual(
+            adoption_startup_milestones(
+                'DB client initialized successfully\nInitializing Object store client...'
+            ), ['database_ready', 'object_store_started'])
 
     def test_active_source_accepts_persisted_unacknowledged_submission(self):
         fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}
