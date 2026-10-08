@@ -151,3 +151,49 @@ returns HTTP 500 if no configured archive fallback succeeds. Both errors identif
 `ALLOWED_ARTIFACT_ENDPOINTS`. Live Kubernetes pod logs may still succeed, so verify
 an archived log after the original pod is gone. Keep the exact-origin, TLS, and
 namespace restrictions enabled during this verification.
+
+## Argo nodeStatusOffLoad (API server)
+
+When Argo `persistence.nodeStatusOffLoad` is enabled, the API server must hydrate
+offloaded node status before finalizing terminal runs and before `RetryRun`.
+Existing clusters that only grant DB credentials to the Argo workflow-controller
+need an explicit API-server upgrade step; otherwise completed offloaded runs can
+remain non-terminal in KFP (fail-closed) until hydration works.
+
+Checklist:
+
+1. **Secret get** — From `workflow-controller-configmap`, read
+   `persistence.{postgresql,mysql}.{userNameSecret,passwordSecret}` and grant
+   the `ml-pipeline` / `ml-pipeline-apiserver` ServiceAccount `get` on those
+   Secret names in a site overlay. Do not hard-code assumed Secret names into
+   the base Role/ClusterRole
+   ([`ml-pipeline-apiserver-role.yaml`](base/pipeline/ml-pipeline-apiserver-role.yaml),
+   multi-user
+   [`cluster-role.yaml`](base/installs/multi-user/api-service/cluster-role.yaml)).
+2. **Namespace** — Place or mirror those Secrets in the namespace the API server
+   uses for persistence credentials (the workflow-controller ConfigMap
+   namespace unless your installation overrides it).
+3. **DB network** — Allow the API server pods to reach the same offload
+   PostgreSQL/MySQL endpoint Argo uses.
+4. **Verify before relying on cleanup** — Confirm API server logs include
+   `Argo offload hydrator initialized`, or dry-run hydrate a known offloaded
+   Workflow. Only then enable aggressive Workflow/offload cleanup expectations.
+
+Example Role patch fragment (replace Secret names and namespace with values from
+your controller ConfigMap):
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-apiserver-role
+  namespace: kubeflow
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["argo-postgres-config"] # from persistence.*.*Secret
+    verbs: ["get"]
+```
+
+Without this access, terminal `ReportWorkflowResource` fails closed rather than
+persisting a bare offload pointer; fix RBAC/DB connectivity and re-report.
