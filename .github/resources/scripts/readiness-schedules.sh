@@ -13,6 +13,8 @@ context=kind-kfp-readiness
 namespace=kfp-readiness-test
 state=${RUNNER_TEMP:?RUNNER_TEMP is required}/readiness-schedules
 reports=$state/reports
+fixture_dir=$state/fixture
+fixture_helper=provision_live_schedules.py
 helpers=tools/upgrade-readiness
 endpoint=http://127.0.0.1:8888
 export PYTHONPATH="$PWD/$helpers${PYTHONPATH:+:$PYTHONPATH}"
@@ -40,13 +42,13 @@ fi
 preflight
 kube() { kubectl --context "$context" --request-timeout=30s "$@"; }
 fixture() {
-  python3 "$helpers/provision_live_schedules.py" --context "$context" \
-    --allow-test-cluster-mutations --state-dir "$state/fixture" \
+  python3 "$helpers/$fixture_helper" --context "$context" \
+    --allow-test-cluster-mutations --state-dir "$fixture_dir" \
     --endpoint "$endpoint" --token-file "$state/token" "$@"
 }
 cleanup() {
   # Disable only schedules owned by this fixture. Never print token or raw API/log data.
-  if [[ -f "$state/token" && -f "$state/fixture/state.json" ]]; then
+  if [[ -f "$state/token" && -f "$fixture_dir/state.json" ]]; then
     fixture --phase disable >/dev/null 2>&1 || true
   fi
   if [[ -n "${forward_pid:-}" ]]; then
@@ -61,6 +63,40 @@ configure_api() {
   local mode=$1
   set_api_env "$mode"
   kube -n kubeflow rollout status deployment/ml-pipeline --timeout=300s
+  # Rollout readiness excludes terminating replicas. Existing controller gRPC
+  # connections can still reach an old audit process during its grace period.
+  # Establish full policy cutover before enabling any fixture schedules.
+  local deadline=$((SECONDS + 120)) pods
+  while ((SECONDS < deadline)); do
+    if pods=$(kube -n kubeflow get pods -l app=ml-pipeline -o json) &&
+      jq -e --arg mode "$mode" '
+        (.items | type == "array" and length > 0) and
+        all(.items[];
+          .kind == "Pod" and .metadata.namespace == "kubeflow" and
+          (.metadata.uid | type == "string" and length > 0) and
+          .metadata.deletionTimestamp == null and .status.phase == "Running" and
+          ([.status.conditions[] | select(.type == "Ready")] |
+            length == 1 and .[0].status == "True") and
+          ([.spec.containers[] | select(.name == "ml-pipeline-api-server")] |
+            length == 1 and (.[0].env |
+              ([.[] | select(.name == "MULTIUSER")] |
+                length == 1 and .[0].value == "true" and (.[0] | has("valueFrom") | not)) and
+              ([.[] | select(.name == "KFP_SECURITY_SERVICE_ACCOUNT_MODE")] |
+                length == 1 and .[0].value == $mode and (.[0] | has("valueFrom") | not)) and
+              ([.[] | select(.name == "KFP_SECURITY_WORKFLOW_IDENTITY_MODE")] |
+                length == 1 and .[0].value == "enforce" and (.[0] | has("valueFrom") | not)))))
+      ' <<<"$pods" >/dev/null 2>&1; then
+      api_policy_cutover_count=$(( ${api_policy_cutover_count:-0} + 1 ))
+      jq --arg mode "$mode" '{scope: "isolated_api_policy_cutover", outcome: "passed",
+        service_account_mode: $mode, workflow_identity_mode: "enforce",
+        observed_at: (now | todateiso8601), pod_uids: ([.items[].metadata.uid] | sort)}' \
+        <<<"$pods" >"$reports/api-policy-cutover-$phase-$api_policy_cutover_count-$mode.json"
+      return
+    fi
+    sleep 2
+  done
+  echo '::error::API policy cutover could not exclude stale, terminating, or unready Pods.'
+  return 1
 }
 set_api_env() {
   local mode=$1
@@ -143,7 +179,7 @@ capture() {
 }
 drain() {
   local mode=$1
-  python3 - "$state" "$mode" <<'PYDRAIN'
+  python3 - "$state" "$mode" "$fixture_dir" <<'PYDRAIN'
 import json
 from pathlib import Path
 import sys
@@ -152,16 +188,26 @@ from kfp_http import Client
 from live_schedule_check import FAILED_STATES, run_evidence, timestamp
 from source_schedule_check import source_run_evidence, diagnostics
 state = Path(sys.argv[1])
-fixture = json.loads((state / 'fixture/state.json').read_text())
+fixture_dir = Path(sys.argv[3]) if len(sys.argv) > 3 else state / 'fixture'
+fixture = json.loads((fixture_dir / 'state.json').read_text())
 mode = sys.argv[2]
-start = timestamp((state / 'fixture/activation-start.txt').read_text().strip())
+start = timestamp((fixture_dir / 'activation-start.txt').read_text().strip())
 if mode == 'source':
     cases = [dict(case, baseline_run_ids=[], expected_outcome='run_succeeded')
              for case in fixture['schedules']]
 else:
     cases = json.loads((state / f'reports/{mode}-baseline.json').read_text())['cases']
+known_ids = {}
+if mode != 'source':
+    observed = json.loads((state / f'reports/{mode}-observed.json').read_text())
+    known_ids = {case['schedule_uid']: {run['run_id'] for run in case['runs']}
+                 for case in observed['cases']}
+last_evidence = {}
+failure_reason = 'collection_failed'
 try:
-    deadline = time.monotonic() + 300
+    # Persistence retries back off for up to 360 seconds. Allow that existing
+    # delay plus execution/report grace; do not reset either controller.
+    deadline = time.monotonic() + 600
     while time.monotonic() < deadline:
         client = Client('http://127.0.0.1:8888', state / 'token')
         complete = True
@@ -169,16 +215,23 @@ try:
         for case in cases:
             collect = source_run_evidence if mode == 'source' else run_evidence
             records = collect(client, fixture['namespace'], case, start)
+            known_ids.setdefault(case['schedule_uid'], set()).update(
+                run['run_id'] for run in records)
+            record = {'scenario': case['scenario'], 'schedule_uid': case['schedule_uid'],
+                      'service_account': case['service_account'], 'runs': records}
+            evidence.append(record)
+            last_evidence[case['scenario']] = record
             if case['expected_outcome'] == 'blocked':
                 if records:
-                    raise ValueError('blocked_schedule_created_run')
+                    failure_reason = 'blocked_schedule_created_run'
+                    raise ValueError(failure_reason)
             elif any(run['state'] in FAILED_STATES for run in records):
-                raise ValueError('fixture_run_did_not_succeed')
-            elif not records or any(run['state'] != 'SUCCEEDED' for run in records):
+                failure_reason = 'fixture_run_did_not_succeed'
+                raise ValueError(failure_reason)
+            elif (not records or any(run['state'] != 'SUCCEEDED' for run in records) or
+                  not known_ids.get(case['schedule_uid'], set()).issubset(
+                      {run['run_id'] for run in records})):
                 complete = False
-            evidence.append({'scenario': case['scenario'], 'schedule_uid': case['schedule_uid'],
-                             'service_account': case['service_account'],
-                             'runs': records})
         if complete:
             (state / f'reports/{mode}-completion.json').write_text(json.dumps({
                 'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'passed',
@@ -187,10 +240,14 @@ try:
             break
         time.sleep(5)
     else:
-        raise ValueError('fixture_runs_not_drained')
+        failure_reason = 'fixture_runs_not_drained'
+        raise ValueError(failure_reason)
 except Exception:
     (state / f'reports/{mode}-completion.json').write_text(json.dumps({
         'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'inconclusive',
+        'reason': failure_reason, 'evidence_scope': 'last_successful_collection_per_case',
+        'cases': list(last_evidence.values()),
+        'known_run_ids': {uid: sorted(ids) for uid, ids in known_ids.items()},
         'diagnostics': diagnostics()}))
     sys.exit('Fixture completion failed: disable schedules and establish successful expected runs before continuing.')
 PYDRAIN
@@ -199,15 +256,35 @@ observe() {
   local mode=$1 timeout=180
   # Denials leave up to 360 seconds of controller retry backoff. Observe the
   # live policy transition with that delay plus execution grace, without reset.
-  [[ "$mode" != audit ]] || timeout=600
+  [[ "$mode" == enforce || "$mode" == v1 ]] || timeout=600
+  mint_token
   fixture --phase enable
-  python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
+  python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
+    --cases "$reports/$mode-baseline.json" --wait-enabled >"$reports/$mode-activation-scheduler.json"
+  if ! python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
     --expectations "$reports/$mode-baseline.json" --prediction-report "$reports/$mode-prediction.json" \
-    --not-before "$(cat "$state/fixture/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
-    >"$reports/$mode-observed.json"
+    --not-before "$(cat "$fixture_dir/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
+    >"$reports/$mode-observed.json"; then
+    python3 "$helpers/capture_run_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --baseline "$reports/$mode-baseline.json" --observed "$reports/$mode-observed.json" \
+      --activation-start-file "$fixture_dir/activation-start.txt" --endpoint "$endpoint" \
+      --token-file "$state/token" >"$reports/$mode-failed-runs.json" || true
+    python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --cases "$reports/$mode-baseline.json" >"$reports/$mode-failed-scheduler.json" || true
+    return 1
+  fi
   fixture --phase disable
-  drain "$mode"
+  if ! drain "$mode"; then
+    python3 "$helpers/capture_run_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --baseline "$reports/$mode-baseline.json" --observed "$reports/$mode-observed.json" \
+      --completion "$reports/$mode-completion.json" \
+      --activation-start-file "$fixture_dir/activation-start.txt" --endpoint "$endpoint" \
+      --token-file "$state/token" >"$reports/$mode-failed-runs.json" || true
+    python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --cases "$reports/$mode-baseline.json" >"$reports/$mode-failed-scheduler.json" || true
+    return 1
+  fi
 }
 
 # Shared primitives for the separate adoption fixture; no source/target actions.
@@ -325,6 +402,19 @@ PYRECREATE
   done
   capture enforce
   observe enforce
+  # Retained V1 API and raw Workflow path: runtime contract, not scanner output.
+  fixture_dir=$state/v1-fixture
+  fixture_helper=provision_v1_schedules.py
+  mint_token
+  fixture --phase prepare --parent-state "$state/fixture/state.json"
+  cp "$fixture_dir/cases.json" "$state/v1-cases.json"
+  cp "$fixture_dir/expectations.json" "$reports/v1-prediction.json"
+  capture v1
+  observe v1
+  fixture --phase verify
+  cp "$fixture_dir/workflow-evidence.json" "$reports/v1-workflow-evidence.json"
+  fixture_dir=$state/fixture
+  fixture_helper=provision_live_schedules.py
   stop_forward
   configure_api audit
   start_forward
@@ -334,4 +424,19 @@ PYRECREATE
   python3 "$helpers/verify_live_audit.py" --context "$context" \
     --not-before "$(cat "$state/fixture/activation-start.txt")" \
     --completion-report "$reports/audit-completion.json" >"$reports/audit-emission.json"
+  # All schedules are disabled and every audit run is terminal before enforcing.
+  stop_forward
+  configure_api enforce
+  start_forward
+  for transition in audit-enforce revoked restored; do
+    mint_token
+    python3 "$helpers/prepare_schedule_transition.py" --context "$context" \
+      --state-dir "$state" --phase "$transition"
+    python3 "$helpers/check_fixture_policy.py" --context "$context" \
+      --fixture-state "$state/fixture/state.json" --policy "$state/$transition-policy.json" \
+      --endpoint "$endpoint" --token-file "$state/token" >"$reports/$transition-prediction.json"
+    capture "$transition"
+    observe "$transition"
+  done
+
 fi
