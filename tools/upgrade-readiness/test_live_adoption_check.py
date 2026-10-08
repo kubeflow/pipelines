@@ -184,6 +184,14 @@ class AdoptionTests(unittest.TestCase):
             ), ['database_ready', 'object_store_started'])
 
     def test_panic_evidence_excludes_messages_arguments_and_unknown_paths(self):
+        self.assertEqual(
+            adoption_log_categories(
+                'workflow PRIVATE conflicts with its persisted run TOKEN'),
+            ['execution_mismatch', 'workflow_run_mismatch'])
+        self.assertEqual(
+            adoption_log_categories(
+                'run PRIVATE has no valid controller index: TOKEN'),
+            ['execution_index'])
         logs = ('panic: PRIVATE TOKEN\n'
                 'main.main(PRIVATE, TOKEN)\n'
                 '\t/build/private/backend/src/apiserver/main.go:205 +0x123\n'
