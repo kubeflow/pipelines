@@ -36,8 +36,8 @@ import {
   OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
@@ -289,7 +289,7 @@ export default function DagCanvas({
                     disabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
                     onClick={expandAll}
                   >
-                    <ExpandMoreIcon fontSize='small' />
+                    <UnfoldMoreIcon fontSize='small' />
                   </ControlButton>
                   <ControlButton
                     aria-label='Collapse all'
@@ -297,7 +297,7 @@ export default function DagCanvas({
                     disabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
                     onClick={collapseAll}
                   >
-                    <ExpandLessIcon fontSize='small' />
+                    <UnfoldLessIcon fontSize='small' />
                   </ControlButton>
                 </>
               )}
