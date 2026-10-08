@@ -27,8 +27,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const legacyAPICompatibilityEnvironment = "LEGACY_API_COMPATIBILITY_TESTS"
-
 // These clients deliberately use literal HTTP prefixes. The legacy Go import
 // aliases call v2 and would not exercise the deployed compatibility router.
 type compatibilityHTTPClient struct {
@@ -100,14 +98,16 @@ func (c *compatibilityHTTPClient) cleanup(version, resource string) {
 	Expect(err).NotTo(HaveOccurred(), "delete only the compatibility test's own resource: %s", resource)
 }
 
+func expectPublishedCompatibilityArtifact(g Gomega, artifact *api.Artifact, artifactID string) {
+	g.Expect(artifact.ArtifactId).To(Equal(artifactID))
+	g.Expect(artifact.GetUri()).NotTo(BeEmpty())
+}
+
 var _ = Describe("Legacy API compatibility on the deployed server >", Serial, Label(constants.APIServerTests, constants.POSITIVE, "LegacyAPICompatibility"), func() {
 	var client *compatibilityHTTPClient
 	var diagnosticRunID string
 
 	BeforeEach(func(ctx SpecContext) {
-		if os.Getenv(legacyAPICompatibilityEnvironment) != "true" {
-			Skip("Enable LEGACY_API_COMPATIBILITY_TESTS=true to exercise both prefixes on an existing deployment")
-		}
 		Expect(*config.UseLegacyAPIPrefix).To(BeFalse(), "do not use old-server preparation mode to test parallel route support")
 		var tlsConfig *tls.Config
 		if *config.TLSEnabled {
@@ -196,8 +196,12 @@ var _ = Describe("Legacy API compatibility on the deployed server >", Serial, La
 		pipelineResource := "/pipelines/" + url.PathEscape(pipeline.PipelineId)
 		DeferCleanup(func() { client.cleanup("v2beta1", pipelineResource+"?cascade=true") })
 		versions := new(api.ListPipelineVersionsResponse)
-		Expect(client.message(ctx, http.MethodGet, "v2", pipelineResource+"/versions", nil, versions)).To(Succeed())
-		Expect(versions.PipelineVersions).To(HaveLen(1))
+		// Kubernetes-native uploads become visible through an informer. Poll the
+		// test-owned parent rather than assuming immediate list visibility.
+		Eventually(func(g Gomega) {
+			g.Expect(client.message(ctx, http.MethodGet, "v2", pipelineResource+"/versions", nil, versions)).To(Succeed())
+			g.Expect(versions.PipelineVersions).To(HaveLen(1))
+		}, informerSyncTimeout, informerSyncInterval).WithContext(ctx).Should(Succeed())
 		reference := &api.PipelineVersionReference{PipelineId: pipeline.PipelineId, PipelineVersionId: versions.PipelineVersions[0].PipelineVersionId}
 
 		schedule := new(api.RecurringRun)
@@ -274,8 +278,7 @@ var _ = Describe("Legacy API compatibility on the deployed server >", Serial, La
 		for _, version := range []string{"v2beta1", "v2"} {
 			artifact := new(api.Artifact)
 			Expect(client.message(ctx, http.MethodGet, version, "/artifacts/"+url.PathEscape(artifactID), nil, artifact)).To(Succeed())
-			Expect(artifact.ArtifactId).To(Equal(artifactID))
-			Expect(artifact.Uri).NotTo(BeEmpty())
+			expectPublishedCompatibilityArtifact(Default, artifact, artifactID)
 			logs, err := client.request(ctx, http.MethodGet, version, runResource+"/nodes/"+url.PathEscape(executorPod)+"/log?follow=false", nil, "application/json", http.StatusOK)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(logs)).To(ContainSubstring("input:  foo"))
