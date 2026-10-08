@@ -123,8 +123,9 @@ def snapshot(adopted=False):
          'Schedule', 'PeriodicScheduleStartTimeInSec',
          'PeriodicScheduleEndTimeInSec', 'CronScheduleStartTimeInSec',
          'CronScheduleEndTimeInSec'), f"WHERE Namespace='{NAMESPACE}'")
-    runs = sql('run_details', ('UUID', 'Name', 'JobUUID', 'ScheduledAtInSec',
-                               'CreatedAtInSec', 'State', 'Conditions'),
+    runs = sql('run_details',
+               ('UUID', 'Name', 'DisplayName', 'JobUUID', 'ScheduledAtInSec',
+                'CreatedAtInSec', 'State', 'Conditions'),
                f"WHERE Namespace='{NAMESPACE}'")
     schedules = []
     for obj in get(NAMESPACE, 'scheduledworkflows')['items']:
@@ -151,6 +152,7 @@ def snapshot(adopted=False):
                 run_id=labels.get('pipeline/runid'),
                 index=int(labels.get(PREFIX + 'workflowIndex', '0')),
                 epoch=int(labels.get(PREFIX + 'workflowEpoch', '0')),
+                created=meta.get('creationTimestamp'),
                 phase=obj.get('status', {}).get('phase', ''),
                 suspended=obj.get('spec', {}).get('suspend', False)))
     result = dict(
@@ -665,6 +667,52 @@ def prepare_active(state, fixture):
     raise error
 
 
+def source_progress_shapes(current):
+    """Numeric source timing and identity relations, never source
+    identifiers."""
+    schedules = indexed(current['schedules'], 'uid')
+    workflows = indexed(current['workflows'], 'run_id')
+    evidence = []
+    for run in current['runs'][:100]:
+        schedule = schedules.get(run['JobUUID'])
+        if schedule is None:
+            continue
+        trigger = schedule['trigger']
+        name = run.get('DisplayName', '')
+        prefix = schedule['name'] + '-'
+        parts = name[len(prefix):].split('-') if name.startswith(prefix) else []
+        request_index = None
+        if len(parts) == 2 and all(p.isdigit() for p in parts):
+            h = 2166136261
+            for byte in (prefix + parts[0]).encode():
+                h = ((h ^ byte) * 16777619) & 0xffffffff
+            if str(h) == parts[1]:
+                request_index = int(parts[0])
+        workflow = workflows.get(run['UUID'])
+
+        def epoch(value):
+            return int(
+                datetime.fromisoformat(value.replace(
+                    'Z', '+00:00')).timestamp()) if value else None
+
+        evidence.append(
+            dict(
+                request_index=request_index,
+                display_equals_workflow_name=name == run['Name'],
+                created=int(run['CreatedAtInSec']),
+                scheduled=int(run['ScheduledAtInSec']),
+                acknowledged_index=int(trigger.get('lastWorkflowIndex', 0)),
+                acknowledged_time=epoch(trigger.get('lastTriggeredTime')),
+                workflow_found=workflow is not None,
+                workflow_index=int(workflow['index']) if workflow else None,
+                workflow_epoch=int(workflow['epoch']) if workflow else None,
+                workflow_created=epoch(workflow.get('created'))
+                if workflow else None,
+                workflow_terminal=workflow.get('phase', '').upper() in TERMINAL
+                if workflow else None))
+    return evidence
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -703,6 +751,7 @@ def main():
         elif args.phase == 'snapshot':
             require_stopped()
             current = snapshot()
+            report['source_progress'] = source_progress_shapes(current)
             validate_inventory(current, fixture)
             require(
                 sum(bool(j['Enabled']) for j in current['jobs']) == 1,

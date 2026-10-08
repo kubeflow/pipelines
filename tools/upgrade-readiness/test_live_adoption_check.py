@@ -26,6 +26,7 @@ from live_adoption_check import offline_job
 from live_adoption_check import prepare_active
 from live_adoption_check import require_stopped
 from live_adoption_check import snapshot
+from live_adoption_check import source_progress_shapes
 from live_adoption_check import sql
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
@@ -213,6 +214,49 @@ class AdoptionTests(unittest.TestCase):
         self.assertNotIn('/build', json.dumps(evidence))
         self.assertEqual(
             adoption_stack_frames('\tbackend/src/apiserver/main.go:999999'), [])
+
+    def test_source_progress_shapes_omit_identifiers(self):
+        current = dict(
+            schedules=[
+                dict(
+                    uid='PRIVATE',
+                    name='TOKEN',
+                    trigger=dict(
+                        lastWorkflowIndex=3,
+                        lastTriggeredTime='1970-01-01T00:01:40Z'))
+            ],
+            runs=[
+                dict(
+                    UUID='RUN_SECRET',
+                    Name='NAME_SECRET',
+                    DisplayName='NAME_SECRET',
+                    JobUUID='PRIVATE',
+                    CreatedAtInSec=125,
+                    ScheduledAtInSec=120)
+            ],
+            workflows=[
+                dict(
+                    run_id='RUN_SECRET',
+                    index=3,
+                    epoch=120,
+                    created='1970-01-01T00:02:05Z',
+                    phase='Succeeded')
+            ])
+        result = source_progress_shapes(current)[0]
+        self.assertEqual(result['created'], 125)
+        self.assertEqual(result['scheduled'], 120)
+        self.assertEqual(result['acknowledged_time'], 100)
+        self.assertTrue(result['display_equals_workflow_name'])
+        self.assertIsNone(result['request_index'])
+        self.assertEqual(result['workflow_created'], 125)
+        for private in ('PRIVATE', 'TOKEN', 'SECRET'):
+            self.assertNotIn(private, json.dumps(result))
+        current['schedules'][0]['name'] = 'WORKFLOW_NAME'
+        current['runs'][0]['DisplayName'] = 'WORKFLOW_NAME-51-2626342551'
+        self.assertEqual(
+            source_progress_shapes(current)[0]['request_index'], 51)
+        current['runs'][0]['DisplayName'] = 'WORKFLOW_NAME-51-0'
+        self.assertIsNone(source_progress_shapes(current)[0]['request_index'])
 
     def test_active_source_accepts_persisted_unacknowledged_submission(self):
         fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}
