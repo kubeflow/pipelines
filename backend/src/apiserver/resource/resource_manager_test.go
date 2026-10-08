@@ -8662,6 +8662,7 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 	dagTask, err := store.TaskStore().CreateTask(&model.Task{
 		RunUUID:     run.UUID,
 		Namespace:   namespace,
+		UUID:        "uuid-1",
 		Name:        "parent-dag",
 		Fingerprint: "fp-dag",
 		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
@@ -8674,6 +8675,7 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 	strandedTask, err := store.TaskStore().CreateTask(&model.Task{
 		RunUUID:        run.UUID,
 		Namespace:      namespace,
+		UUID:        "uuid-2",
 		Name:           "stranded",
 		Fingerprint:    "fp1",
 		ParentTaskUUID: &dagTask.UUID,
@@ -8701,7 +8703,7 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 				},
 				"dag-driver-pod": {
 					ID:    "dag-driver-pod",
-					Phase: v1alpha1.NodeSucceeded, // Driver pod succeeds early
+					Phase: v1alpha1.NodeSucceeded,
 				},
 			},
 		},
@@ -8721,6 +8723,7 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 	updatedDag, err := store.TaskStore().GetTask(dagTask.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedDag.State)
+}
 func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
 		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
