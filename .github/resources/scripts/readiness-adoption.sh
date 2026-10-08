@@ -53,7 +53,8 @@ path.write_text(yaml.safe_dump(manifest, sort_keys=False))
 PY
 else
   # Configuration may change only while all writer replicas stay at zero.
-  configure_api enforce
+  check stopped
+  set_api_env enforce
   configure_controllers
   for attempt in first repeat; do
     check job --job-name "readiness-adopt-$attempt"
@@ -64,7 +65,9 @@ else
     if [[ "$attempt" == first ]]; then check adopted; else check idempotent; fi
   done
   kube -n kubeflow scale deployment/ml-pipeline --replicas=1
-  kube -n kubeflow rollout status deployment/ml-pipeline --timeout=300s
+  # Full policy cutover requires live Pods, so verify only after API resumes,
+  # while all submitting controllers remain stopped.
+  configure_api enforce
   start_forward
   mint_token
   for controller in ml-pipeline-persistenceagent workflow-controller ml-pipeline-scheduledworkflow; do

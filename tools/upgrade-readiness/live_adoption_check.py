@@ -293,6 +293,22 @@ def validate_idempotent(first, repeated):
     require(first == repeated, 'rerun_changed_adoption')
 
 
+def require_stopped():
+    for name in CONTROLLERS:
+        deployment = get('kubeflow', 'deployment/' + name)
+        require(
+            deployment['spec']['replicas'] == 0 and
+            deployment.get('status', {}).get('replicas', 0) == 0,
+            'writers_not_stopped')
+        labels = deployment['spec']['selector']['matchLabels']
+        require(bool(labels), 'writer_selector_missing')
+        selector = ','.join(
+            key + '=' + value for key, value in sorted(labels.items()))
+        pods = json.loads(
+            kube('-n', 'kubeflow', 'get', 'pods', '-l', selector, '-o', 'json'))
+        require(pods.get('items') == [], 'writer_pods_not_terminated')
+
+
 def offline_job(deployment, name):
     spec = copy.deepcopy(deployment['spec']['template']['spec'])
     require(len(spec['containers']) == 1, 'fixture_api_sidecar_unexpected')
@@ -347,8 +363,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'phase',
-        choices=('active', 'snapshot', 'job', 'adopted', 'idempotent', 'held',
-                 'completed', 'drained'))
+        choices=('active', 'snapshot', 'stopped', 'job', 'adopted',
+                 'idempotent', 'held', 'completed', 'drained'))
     parser.add_argument('--state', required=True)
     parser.add_argument('--job-name')
     args = parser.parse_args()
@@ -367,19 +383,17 @@ def main():
                 args.job_name
                 in ('readiness-adopt-first', 'readiness-adopt-repeat'),
                 'invalid_job_name')
-            for name in CONTROLLERS:
-                deployment = get('kubeflow', 'deployment/' + name)
-                require(
-                    deployment['spec']['replicas'] == 0 and
-                    deployment.get('status', {}).get('replicas', 0) == 0,
-                    'writers_not_stopped')
+            require_stopped()
             kube(
                 'create',
                 '-f',
                 '-',
                 value=offline_job(
                     get('kubeflow', 'deployment/ml-pipeline'), args.job_name))
+        elif args.phase == 'stopped':
+            require_stopped()
         elif args.phase == 'snapshot':
+            require_stopped()
             current = snapshot()
             validate_inventory(current, fixture)
             require(

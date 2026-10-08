@@ -6,6 +6,9 @@
 """Regression checks for populated adoption evidence, without a cluster."""
 
 import copy
+import json
+from pathlib import Path
+import subprocess
 import unittest
 from unittest import mock
 
@@ -13,6 +16,7 @@ from live_adoption_check import AdoptionError
 from live_adoption_check import command_failure
 from live_adoption_check import kube
 from live_adoption_check import offline_job
+from live_adoption_check import require_stopped
 from live_adoption_check import snapshot
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
@@ -76,6 +80,64 @@ def inventory():
 
 
 class AdoptionTests(unittest.TestCase):
+
+    def test_offline_environment_setup_never_waits_for_live_api(self):
+        root = Path(__file__).resolve().parents[2]
+        shared = (
+            root /
+            '.github/resources/scripts/readiness-schedules.sh').read_text()
+        helper = shared.split('set_api_env() {',
+                              1)[1].split('configure_controllers() {', 1)[0]
+        script = (
+            root /
+            '.github/resources/scripts/readiness-adoption.sh').read_text()
+        offline = script.split('else\n',
+                               1)[1].split('  for attempt in first repeat;',
+                                           1)[0]
+        # A live configure call fails this execution. Offline setup must first
+        # prove stopped writers, then only mutate deployment environment.
+        harness = """set -eu
+stopped=false
+check() { [[ "$1" == stopped ]]; stopped=true; }
+configure_api() { exit 91; }
+configure_controllers() { :; }
+kube() {
+  [[ "$stopped" == true ]] || exit 92
+  [[ "$*" == '-n kubeflow set env deployment/ml-pipeline '* ]] || exit 93
+}
+set_api_env() {""" + helper + offline
+        subprocess.run(['bash', '-c', harness], check=True, timeout=5)
+        resumed = script.split('scale deployment/ml-pipeline --replicas=1',
+                               1)[1]
+        self.assertLess(
+            resumed.index('configure_api enforce'),
+            resumed.index('for controller in'))
+
+    def test_offline_fence_rejects_live_and_terminating_writers(self):
+        deployment = dict(
+            spec=dict(replicas=0, selector=dict(matchLabels={'app': 'api'})),
+            status=dict(replicas=0))
+        with mock.patch('live_adoption_check.get', return_value=deployment), \
+                mock.patch('live_adoption_check.kube', return_value='{"items":[]}'):
+            require_stopped()
+        for pods in [{
+                'items': [{}]
+        }, {
+                'items': [{
+                    'metadata': {
+                        'deletionTimestamp': 'now'
+                    }
+                }]
+        }]:
+            with mock.patch('live_adoption_check.get', return_value=deployment), \
+                    mock.patch('live_adoption_check.kube', return_value=json.dumps(pods)):
+                with self.assertRaisesRegex(AdoptionError,
+                                            'writer_pods_not_terminated'):
+                    require_stopped()
+        deployment['spec']['replicas'] = 1
+        with mock.patch('live_adoption_check.get', return_value=deployment):
+            with self.assertRaisesRegex(AdoptionError, 'writers_not_stopped'):
+                require_stopped()
 
     def test_sql_diagnostics_identify_stage_without_echoing_payload(self):
         self.assertEqual(
