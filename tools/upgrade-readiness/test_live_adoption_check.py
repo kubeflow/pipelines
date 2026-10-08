@@ -14,6 +14,8 @@ import subprocess
 import unittest
 from unittest import mock
 
+from live_adoption_check import adoption_job_diagnostics
+from live_adoption_check import adoption_log_categories
 from live_adoption_check import AdoptionError
 from live_adoption_check import command_diagnostics
 from live_adoption_check import command_failure
@@ -26,6 +28,7 @@ from live_adoption_check import sql
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
 from live_adoption_check import validate_idempotent
+from live_adoption_check import wait_adoption_job
 
 
 def inventory():
@@ -89,6 +92,68 @@ def inventory():
 
 
 class AdoptionTests(unittest.TestCase):
+
+    def test_failed_job_stops_without_waiting_for_completion(self):
+        with mock.patch('live_adoption_check.get', return_value=dict(status=dict(failed=1))), \
+                mock.patch('live_adoption_check.adoption_job_diagnostics', return_value=dict(receipt_logged=False)), \
+                mock.patch('live_adoption_check.time.sleep') as sleep:
+            with self.assertRaises(AdoptionError) as failure:
+                wait_adoption_job('readiness-adopt-first')
+        self.assertEqual(failure.exception.job_evidence['job_outcome'],
+                         'failed')
+        sleep.assert_not_called()
+
+    def test_completed_job_requires_expected_receipt_and_timeout_collects_diagnostics(
+            self):
+        for receipt in (True, False):
+            with mock.patch('live_adoption_check.get', return_value=dict(status=dict(
+                    conditions=[dict(type='Complete', status='True')]))), \
+                    mock.patch('live_adoption_check.adoption_job_diagnostics', return_value=dict(receipt_logged=receipt)):
+                if receipt:
+                    self.assertEqual(
+                        wait_adoption_job('readiness-adopt-first')
+                        ['job_outcome'], 'complete')
+                else:
+                    with self.assertRaises(AdoptionError):
+                        wait_adoption_job('readiness-adopt-first')
+        with mock.patch('live_adoption_check.time.monotonic', side_effect=[0, 331]), \
+                mock.patch('live_adoption_check.adoption_job_diagnostics', return_value=dict(receipt_logged=False)) as diagnostics:
+            with self.assertRaises(AdoptionError) as failure:
+                wait_adoption_job('readiness-adopt-repeat')
+        self.assertEqual(failure.exception.job_evidence['job_outcome'],
+                         'timeout')
+        diagnostics.assert_called_once()
+
+    def test_job_diagnostics_keep_states_and_categories_without_raw_logs(self):
+        pods = dict(items=[
+            dict(
+                metadata=dict(name='fixture-pod'),
+                status=dict(
+                    initContainerStatuses=[
+                        dict(
+                            name='init',
+                            state=dict(waiting=dict(reason='PodInitializing')))
+                    ],
+                    containerStatuses=[
+                        dict(
+                            name='api',
+                            state=dict(
+                                terminated=dict(reason='Error', exitCode=255)))
+                    ]))
+        ])
+        raw = 'Legacy recurring-run adoption failed: workflow PRIVATE has no persisted run; TOKEN'
+        with mock.patch(
+                'live_adoption_check.kube',
+                side_effect=[json.dumps(pods), '', raw]):
+            evidence = adoption_job_diagnostics('readiness-adopt-first')
+        self.assertEqual(evidence['containers'][0]['reason'], 'PodInitializing')
+        self.assertEqual(evidence['containers'][1]['exit_code'], 255)
+        self.assertEqual(evidence['containers'][1]['log_categories'],
+                         ['adoption_failed', 'unpersisted_workflow'])
+        self.assertNotIn('PRIVATE', json.dumps(evidence))
+        self.assertNotIn('TOKEN', json.dumps(evidence))
+        self.assertEqual(
+            adoption_log_categories('PRIVATE arbitrary error TOKEN'), [])
 
     def test_active_source_accepts_persisted_unacknowledged_submission(self):
         fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}

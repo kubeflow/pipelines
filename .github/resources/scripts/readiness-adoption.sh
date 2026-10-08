@@ -58,10 +58,7 @@ else
   configure_controllers
   for attempt in first repeat; do
     check job --job-name "readiness-adopt-$attempt"
-    kube -n kubeflow wait --for=condition=complete "job/readiness-adopt-$attempt" --timeout=330s
-    # Logs stay local; upload only allowlisted JSON reports.
-    kube -n kubeflow logs "job/readiness-adopt-$attempt" >"$state/adopt-$attempt.log"
-    grep -q 'recurring_run_adoption id=legacy-2.18 ready=true adopted_count=3 ' "$state/adopt-$attempt.log"
+    check wait-job --job-name "readiness-adopt-$attempt"
     if [[ "$attempt" == first ]]; then check adopted; else check idempotent; fi
   done
   kube -n kubeflow scale deployment/ml-pipeline --replicas=1

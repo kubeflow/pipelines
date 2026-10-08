@@ -377,6 +377,123 @@ def offline_job(deployment, name):
             template=dict(metadata=dict(labels={'app': name}), spec=spec)))
 
 
+def adoption_log_categories(text):
+    lowered = text.lower()
+    patterns = {
+        'adoption_failed': ('legacy recurring-run adoption failed',),
+        'unpersisted_workflow': ('has no persisted run',),
+        'progress': ('scheduling progress', 'scheduling indices', 'due time',
+                     'scheduled time'),
+        'identity': ('identities differ', 'identity changed',
+                     'identity differs', 'conflicting schedule identity'),
+        'namespace': ('no stored namespace', 'namespace is empty'),
+        'receipt': ('receipt',),
+        'authorization': ('forbidden', 'permissiondenied', 'unauthorized'),
+        'connection': ('connection refused', "can't connect", 'no such host'),
+        'configuration':
+            ('failed to parse', 'flag provided but not defined', 'config file'),
+        'synchronization': ('not synchronized',),
+        'inventory': ('inventory unavailable', 'inventory is unavailable'),
+        'validation': ('cannot be adopted', 'invalid input', 'invalidinput'),
+    }
+    return sorted(name for name, fragments in patterns.items()
+                  if any(fragment in lowered for fragment in fragments))
+
+
+def adoption_job_diagnostics(name):
+    result = dict(containers=[], pods=[], receipt_logged=False)
+    try:
+        pods = json.loads(
+            kube('-n', 'kubeflow', 'get', 'pods', '-l', 'job-name=' + name,
+                 '-o', 'json'))['items']
+        require(len(pods) <= 2, 'adoption_job_pod_limit')
+        reasons = {
+            'Completed', 'Error', 'OOMKilled', 'ContainerCreating',
+            'CrashLoopBackOff', 'ImagePullBackOff', 'ErrImagePull',
+            'CreateContainerConfigError', 'CreateContainerError',
+            'PodInitializing', 'DeadlineExceeded', 'StartError'
+        }
+        for pod in pods:
+            phase = pod.get('status', {}).get('phase')
+            result['pods'].append(
+                dict(
+                    phase=phase if phase in ('Pending', 'Running', 'Succeeded',
+                                             'Failed',
+                                             'Unknown') else 'unknown',
+                    scheduled=any(
+                        c.get('type') == 'PodScheduled' and
+                        c.get('status') == 'True'
+                        for c in pod.get('status', {}).get('conditions', []))))
+            for role, field_name in (('init', 'initContainerStatuses'),
+                                     ('main', 'containerStatuses')):
+                statuses = pod.get('status', {}).get(field_name, [])
+                require(len(statuses) <= 6, 'adoption_job_container_limit')
+                for container in statuses:
+                    state = container.get('state', {})
+                    phase = next(
+                        (p for p in ('waiting', 'running', 'terminated')
+                         if p in state), 'unknown')
+                    detail = state.get(phase, {})
+                    entry = dict(
+                        role=role,
+                        state=phase,
+                        reason=detail.get('reason')
+                        if detail.get('reason') in reasons else 'other',
+                        exit_code=detail.get('exitCode'))
+                    try:
+                        logs = kube('-n', 'kubeflow', 'logs',
+                                    pod['metadata']['name'],
+                                    '--container=' + container['name'],
+                                    '--tail=100', '--limit-bytes=32768')
+                        entry['log_categories'] = adoption_log_categories(logs)
+                        if role == 'main' and re.search(
+                                r'recurring_run_adoption id=legacy-2.18 ready=true adopted_count=3 ',
+                                logs):
+                            result['receipt_logged'] = True
+                    except (OSError, ValueError, subprocess.TimeoutExpired):
+                        entry['log_collection'] = 'unavailable'
+                    result['containers'].append(entry)
+        result['pod_count'] = len(pods)
+    except (OSError, ValueError, KeyError, TypeError,
+            subprocess.TimeoutExpired):
+        result['collection'] = 'unavailable'
+    return result
+
+
+def wait_adoption_job(name):
+    require(
+        name in ('readiness-adopt-first', 'readiness-adopt-repeat'),
+        'invalid_job_name')
+    deadline = time.monotonic() + 330
+    outcome = 'timeout'
+    try:
+        while time.monotonic() < deadline:
+            status = get('kubeflow', 'job/' + name).get('status', {})
+            conditions = {
+                c.get('type')
+                for c in status.get('conditions', [])
+                if c.get('status') == 'True'
+            }
+            if 'Failed' in conditions or status.get('failed', 0) > 0:
+                outcome = 'failed'
+                break
+            if 'Complete' in conditions:
+                outcome = 'complete'
+                break
+            time.sleep(5)
+    except (OSError, ValueError, KeyError, TypeError,
+            subprocess.TimeoutExpired):
+        outcome = 'collection_failed'
+    evidence = adoption_job_diagnostics(name)
+    evidence['job_outcome'] = outcome
+    if (outcome != 'complete' or not evidence['receipt_logged'] or
+            evidence.get('collection') == 'unavailable'):
+        error = AdoptionError('adoption_job_not_successfully_completed')
+        error.job_evidence = evidence
+        raise error
+    return evidence
+
+
 def prepare_active(state, fixture):
     client = FixtureClient('http://127.0.0.1:8888', state / 'token')
     case = next(r for r in fixture['schedules'] if r['scenario'] == 'default')
@@ -441,7 +558,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'phase',
-        choices=('active', 'snapshot', 'stopped', 'job', 'adopted',
+        choices=('active', 'snapshot', 'stopped', 'job', 'wait-job', 'adopted',
                  'idempotent', 'held', 'completed', 'drained'))
     parser.add_argument('--state', required=True)
     parser.add_argument('--job-name')
@@ -456,6 +573,8 @@ def main():
     try:
         if args.phase == 'active':
             report['source_observation'] = prepare_active(state, fixture)
+        elif args.phase == 'wait-job':
+            report['job_evidence'] = wait_adoption_job(args.job_name)
         elif args.phase == 'job':
             require(
                 args.job_name
@@ -511,11 +630,16 @@ def main():
         # Never expose backend payloads, SQL errors, manifests or credentials.
         report['reason'] = str(error) if type(error) is AdoptionError else \
             'adoption_validation_or_collection_failed'
+        if hasattr(error, 'job_evidence'):
+            report['job_evidence'] = error.job_evidence
         if hasattr(error, 'source_observation'):
             report['source_observation'] = error.source_observation
         if report['reason'].startswith('fixture_sql_'):
             report['failed_command'] = getattr(error, 'command_diagnostics', {})
-    write_object(state / 'reports' / ('adoption-' + args.phase + '.json'),
+    phase_label = args.phase + ('-' +
+                                (args.job_name or 'invalid').rsplit('-', 1)[-1]
+                                if args.phase == 'wait-job' else '')
+    write_object(state / 'reports' / ('adoption-' + phase_label + '.json'),
                  report)
     return 0 if report['outcome'] == 'passed' else 1
 
