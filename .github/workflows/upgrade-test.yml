@@ -147,7 +147,8 @@ jobs:
     # Explicitly activate only after reviewing the candidate scheduling policy.
     if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' || (github.event_name == 'workflow_dispatch' && inputs.run_readiness_schedules) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Include policy transitions, retry backoff and the retained V1 API lane.
+    timeout-minutes: 90
     permissions:
       actions: read
       contents: read
@@ -188,7 +189,7 @@ jobs:
           image_registry: kind-registry:5000
           forward_port: 'false'
 
-      - name: Compare live enforce and audit schedule outcomes
+      - name: Compare live scheduling modes, revocation and V1 outcomes
         run: bash .github/resources/scripts/readiness-schedules.sh target
 
       - name: Upload isolated-fixture readiness evidence
