@@ -61,29 +61,19 @@ func artifactURIHash(uri string) string {
 }
 
 func computeArtifactWriteIdentity(
-	namespace, runUUID, taskID string,
-	retryGeneration int64,
-	producerKey string,
-	iterationIndex int64,
+	namespace, runUUID, taskID, operationID string,
 ) (string, error) {
 	var identity bytes.Buffer
 
-	for _, value := range []string{namespace, runUUID, taskID} {
+	for _, value := range []string{
+		namespace,
+		runUUID,
+		taskID,
+		operationID,
+	} {
 		if err := writeLengthPrefixedString(&identity, value); err != nil {
 			return "", err
 		}
-	}
-
-	if err := binary.Write(&identity, binary.BigEndian, retryGeneration); err != nil {
-		return "", err
-	}
-
-	if err := writeLengthPrefixedString(&identity, producerKey); err != nil {
-		return "", err
-	}
-
-	if err := binary.Write(&identity, binary.BigEndian, iterationIndex); err != nil {
-		return "", err
 	}
 
 	digest := sha256.Sum256(identity.Bytes())
@@ -158,14 +148,14 @@ type ArtifactStoreInterface interface {
 	CreateArtifactWithTask(
 		artifact *model.Artifact,
 		artifactTask *model.ArtifactTask,
-		retryGeneration int64,
+		operationID string,
 	) (*model.Artifact, *model.ArtifactTask, error)
 
 	// CreateArtifactsWithTasks atomically creates a batch of artifacts and output links.
 	CreateArtifactsWithTasks(
 		artifacts []*model.Artifact,
 		artifactTasks []*model.ArtifactTask,
-		retryGenerations []int64,
+		operationIDs []string,
 	) ([]*model.Artifact, []*model.ArtifactTask, error)
 
 	// FindOrCreateArtifactWithTask atomically reuses an existing artifact that matches the
@@ -303,7 +293,7 @@ func (s *ArtifactStore) createArtifactWithTaskInTransaction(
 func (s *ArtifactStore) CreateArtifactWithTask(
 	artifact *model.Artifact,
 	artifactTask *model.ArtifactTask,
-	retryGeneration int64,
+	operationID string,
 ) (*model.Artifact, *model.ArtifactTask, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -328,13 +318,30 @@ func (s *ArtifactStore) CreateArtifactWithTask(
 	}
 	iterationIndex := artifactTaskCopy.Iteration
 
+	if operationID == "" {
+		newArtifact, newArtifactTask, err :=
+			s.createArtifactWithTaskInTransaction(
+				tx,
+				artifact,
+				&artifactTaskCopy,
+			)
+		if err != nil {
+			return nil, nil, util.Wrap(err, "Failed to create artifact and artifact-task relationship")
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, nil, util.NewInternalServerError(
+				err,
+				"Failed to commit transaction for creating artifact and artifact-task",
+			)
+		}
+		return newArtifact, newArtifactTask, nil
+	}
+
 	identity, err := computeArtifactWriteIdentity(
 		artifact.Namespace,
 		artifactTaskCopy.RunUUID,
 		artifactTaskCopy.TaskID,
-		retryGeneration,
-		artifactTaskCopy.ArtifactKey,
-		iterationIndex,
+		operationID,
 	)
 	if err != nil {
 		return nil, nil, util.NewInternalServerError(
@@ -407,15 +414,13 @@ func (s *ArtifactStore) CreateArtifactWithTask(
 	}
 
 	writeIdentity := &model.ArtifactWriteIdentity{
-		Identity:        identity,
-		Namespace:       artifact.Namespace,
-		RunUUID:         artifactTaskCopy.RunUUID,
-		TaskID:          artifactTaskCopy.TaskID,
-		RetryGeneration: retryGeneration,
-		ProducerKey:     artifactTaskCopy.ArtifactKey,
-		IterationIndex:  iterationIndex,
-		PayloadHash:     payloadHash,
-		ArtifactID:      newArtifact.UUID,
+		Identity:    identity,
+		Namespace:   artifact.Namespace,
+		RunUUID:     artifactTaskCopy.RunUUID,
+		TaskID:      artifactTaskCopy.TaskID,
+		OperationID: operationID,
+		PayloadHash: payloadHash,
+		ArtifactID:  newArtifact.UUID,
 	}
 
 	if err := s.createArtifactWriteIdentity(tx, writeIdentity); err != nil {
@@ -438,12 +443,12 @@ func (s *ArtifactStore) CreateArtifactWithTask(
 func (s *ArtifactStore) CreateArtifactsWithTasks(
 	artifacts []*model.Artifact,
 	artifactTasks []*model.ArtifactTask,
-	retryGenerations []int64,
+	operationIDs []string,
 ) ([]*model.Artifact, []*model.ArtifactTask, error) {
 	if len(artifacts) != len(artifactTasks) ||
-		len(artifacts) != len(retryGenerations) {
+		len(artifacts) != len(operationIDs) {
 		return nil, nil, util.NewInvalidInputError(
-			"artifacts, artifact tasks, and retry generations must have the same length",
+			"artifacts, artifact tasks, and operation IDs must have the same length",
 		)
 	}
 	tx, err := s.db.Begin()
@@ -466,14 +471,35 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(
 		}
 
 		iterationIndex := artifactTaskCopy.Iteration
+		operationID := operationIDs[index]
+
+		if operationID == "" {
+			newArtifact, newArtifactTask, err :=
+				s.createArtifactWithTaskInTransaction(
+					tx,
+					artifact,
+					&artifactTaskCopy,
+				)
+			if err != nil {
+				return nil, nil, util.Wrap(
+					err,
+					fmt.Sprintf(
+						"Failed to create artifact and artifact-task relationship %d",
+						index,
+					),
+				)
+			}
+
+			createdArtifacts = append(createdArtifacts, newArtifact)
+			createdArtifactTasks = append(createdArtifactTasks, newArtifactTask)
+			continue
+		}
 
 		identity, err := computeArtifactWriteIdentity(
 			artifact.Namespace,
 			artifactTaskCopy.RunUUID,
 			artifactTaskCopy.TaskID,
-			retryGenerations[index],
-			artifactTaskCopy.ArtifactKey,
-			iterationIndex,
+			operationID,
 		)
 		if err != nil {
 			return nil, nil, util.Wrap(
@@ -522,6 +548,7 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(
 			}
 
 			artifactTaskCopy.ArtifactID = existingArtifact.UUID
+			artifactTaskCopy.Iteration = iterationIndex
 			existingArtifactTask, err :=
 				s.getArtifactTaskByUniqueLinkWithExecutor(tx, &artifactTaskCopy)
 			if err != nil {
@@ -556,15 +583,13 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(
 		}
 
 		writeIdentity := &model.ArtifactWriteIdentity{
-			Identity:        identity,
-			Namespace:       artifact.Namespace,
-			RunUUID:         artifactTaskCopy.RunUUID,
-			TaskID:          artifactTaskCopy.TaskID,
-			RetryGeneration: retryGenerations[index],
-			ProducerKey:     artifactTaskCopy.ArtifactKey,
-			IterationIndex:  iterationIndex,
-			PayloadHash:     payloadHash,
-			ArtifactID:      newArtifact.UUID,
+			Identity:    identity,
+			Namespace:   artifact.Namespace,
+			RunUUID:     artifactTaskCopy.RunUUID,
+			TaskID:      artifactTaskCopy.TaskID,
+			OperationID: operationID,
+			PayloadHash: payloadHash,
+			ArtifactID:  newArtifact.UUID,
 		}
 
 		if err := s.createArtifactWriteIdentityInTransaction(tx, writeIdentity); err != nil {
@@ -701,14 +726,12 @@ func (s *ArtifactStore) getArtifactWriteIdentity(
 	q := s.dbDialect.QuoteIdentifier
 
 	query := fmt.Sprintf(
-		"SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s FROM %s WHERE %s = ?",
+		"SELECT %s, %s, %s, %s, %s, %s, %s FROM %s WHERE %s = ?",
 		q("Identity"),
 		q("Namespace"),
 		q("RunUUID"),
 		q("TaskID"),
-		q("RetryGeneration"),
-		q("ProducerKey"),
-		q("IterationIndex"),
+		q("OperationID"),
 		q("PayloadHash"),
 		q("ArtifactID"),
 		q("artifact_write_identities"),
@@ -721,9 +744,7 @@ func (s *ArtifactStore) getArtifactWriteIdentity(
 		&result.Namespace,
 		&result.RunUUID,
 		&result.TaskID,
-		&result.RetryGeneration,
-		&result.ProducerKey,
-		&result.IterationIndex,
+		&result.OperationID,
 		&result.PayloadHash,
 		&result.ArtifactID,
 	)
@@ -748,15 +769,13 @@ func (s *ArtifactStore) createArtifactWriteIdentityInTransaction(
 	q := s.dbDialect.QuoteIdentifier
 
 	query := fmt.Sprintf(
-		"INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		q("artifact_write_identities"),
 		q("Identity"),
 		q("Namespace"),
 		q("RunUUID"),
 		q("TaskID"),
-		q("RetryGeneration"),
-		q("ProducerKey"),
-		q("IterationIndex"),
+		q("OperationID"),
 		q("PayloadHash"),
 		q("ArtifactID"),
 	)
@@ -767,9 +786,7 @@ func (s *ArtifactStore) createArtifactWriteIdentityInTransaction(
 		identity.Namespace,
 		identity.RunUUID,
 		identity.TaskID,
-		identity.RetryGeneration,
-		identity.ProducerKey,
-		identity.IterationIndex,
+		identity.OperationID,
 		identity.PayloadHash,
 		identity.ArtifactID,
 	)
