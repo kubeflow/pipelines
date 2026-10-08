@@ -195,6 +195,21 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   // preserve existing behavior.
   const baseArrived = liveBase && baseSha ?
     await baseArrivedAt({github, owner, repo, baseSha}) : null;
+  // The missing/malformed-base provenance is repository-wide, not per-workflow.
+  // A direct push leaves no merged PR (and a merged PR with an unparseable
+  // merged_at cannot be resolved), so no fresh CI run can ever establish the
+  // base's arrival. Emit the reason once, up front, first among pending
+  // reasons, so it still surfaces when every expected workflow is absent or
+  // in progress. Failure reasons still win: the caller prepends failures ahead
+  // of pending, so ordering here only affects pending-vs-pending precedence.
+  if (baseArrived && (baseArrived.status === 'missing' || baseArrived.status === 'invalid')) {
+    documentation = MISSING_BASE_RECOVERY_DOCS;
+    if (baseArrived.status === 'missing') {
+      pending.push(`no merged PR for base ${baseSha}. Maintainer investigation required.`);
+    } else {
+      pending.push(`malformed merged-PR record for base ${baseSha}. Maintainer investigation required.`);
+    }
+  }
   for (const workflow of expected) {
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
@@ -254,20 +269,6 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     if (liveBase && baseSha) {
       if (baseArrived.status === 'error') {
         pending.push(`${workflow.path}: Cannot establish master arrival for base ${baseSha}: lookup failed. Retrying.`);
-      } else if (baseArrived.status === 'missing' || baseArrived.status === 'invalid') {
-        // A missing record and an unparseable merged_at are both permanent: no
-        // fresh CI run can establish arrival, so they need maintainer
-        // investigation. The base's provenance is repo-wide, not per-workflow,
-        // so the reason omits the workflow path and stays within the
-        // 140-character status description. The recovery docs link rides in
-        // the result documentation field, which reaches the CI Check logs
-        // without bloating the status description.
-        documentation = MISSING_BASE_RECOVERY_DOCS;
-        if (baseArrived.status === 'missing') {
-          pending.push(`no merged PR for base ${baseSha}. Maintainer investigation required.`);
-        } else {
-          pending.push(`malformed merged-PR record for base ${baseSha}. Maintainer investigation required.`);
-        }
       } else if (baseArrived.status === 'arrived' && Date.parse(run.created_at) <= baseArrived.arrivedAt) {
         pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
       }

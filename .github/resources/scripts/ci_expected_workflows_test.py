@@ -621,6 +621,64 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                     reason.endswith('Maintainer investigation required.'),
                     reason)
 
+    def test_missing_base_reason_survives_absent_workflows(self):
+        # When no expected workflow has registered, the loop never reaches its
+        # per-workflow provenance branch, so the repository-wide reason must
+        # still be emitted up front (with its recovery docs link) and must
+        # precede the per-workflow 'has not registered' pending message.
+        for associated_prs, fragment in [
+            ([], 'no merged PR for base '),
+            ([{
+                'number': 7,
+                'merged_at': 'not-a-date'
+            }], 'malformed merged-PR record for base '),
+        ]:
+            with self.subTest(fragment=fragment):
+                result = verify(
+                    base_sha='c' * 40, associated_prs=associated_prs, runs=[])
+                self.assertEqual(result['state'], 'pending')
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['missing'],
+                                 ['.github/workflows/frontend.yml'])
+                self.assertIn(fragment + 'c' * 40, result['reasons'][0])
+                self.assertTrue(
+                    result['reasons'][0].endswith(
+                        'Maintainer investigation required.'),
+                    result['reasons'][0])
+                self.assertIn('has not registered', result['reasons'][1])
+                self.assertEqual(
+                    result['documentation'],
+                    'https://github.com/kubeflow/pipelines/blob/master/docs/'
+                    'agents/ci-passed.md#missing-base-merge-record')
+
+    def test_missing_base_reason_precedes_in_progress_workflow(self):
+        # When the base has no merge record and a workflow is still in progress,
+        # the repository-wide reason must be emitted first so the 140-char
+        # status slice (ci_passed.js publishes reasons joined with '; ') keeps
+        # the base SHA and the maintainer instruction intact.
+        for associated_prs, fragment in [
+            ([], 'no merged PR for base '),
+            ([{
+                'number': 7,
+                'merged_at': 'not-a-date'
+            }], 'malformed merged-PR record for base '),
+        ]:
+            with self.subTest(fragment=fragment):
+                result = verify(
+                    base_sha='c' * 40,
+                    associated_prs=associated_prs,
+                    runs=[good_run(status='in_progress', conclusion=None)])
+                self.assertEqual(result['state'], 'pending')
+                self.assertFalse(result['passed'])
+                self.assertIn(fragment + 'c' * 40, result['reasons'][0])
+                self.assertIn('in_progress', result['reasons'][1])
+                # The full maintainer sentence (base SHA + instruction) must
+                # survive the 140-char status slice published by ci_passed.js.
+                bounded = '; '.join(result['reasons'])[:140]
+                self.assertIn(
+                    fragment + 'c' * 40 +
+                    '. Maintainer investigation required.', bounded)
+
     def test_latest_stale_success_cannot_outrank_fresh_failure(self):
         # The "latest-attempt ordering" attack (#14705): an old successful
         # run created before the base landed sorts latest by attempt time (a
