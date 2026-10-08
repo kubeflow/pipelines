@@ -8,7 +8,6 @@ import { style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
 import { getIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
-import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
 
 export default function SubDagGroupNode({
@@ -18,6 +17,7 @@ export default function SubDagGroupNode({
 }: Pick<NodeProps<Node<SubDagFlowElementData>>, 'id' | 'data' | 'selected'>) {
   const collapsed = !!data.collapsed;
   const status = getIcon(data.state);
+  const groupType = data.groupKind === 'Condition' ? 'Conditional' : data.groupKind || 'Sub-DAG';
   return (
     <>
       <div
@@ -27,7 +27,7 @@ export default function SubDagGroupNode({
           height: '100%',
           outline: selected ? '2px solid #1a73e8' : '1px solid #bdc1c6',
           borderRadius: 8,
-          background: 'transparent',
+          background: 'rgba(232, 240, 250, 0.18)',
           overflow: 'hidden',
           $nest: { '&:focus-within': { outline: '2px solid #1a73e8' } },
         })}
@@ -37,8 +37,11 @@ export default function SubDagGroupNode({
           className='flex items-stretch bg-white'
           style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT }}
         >
-          <div className='w-8 pl-2 h-full flex flex-col justify-center flex-shrink-0'>
-            <SubDagTypeIcon kind={data.groupKind || 'Sub-DAG'} />
+          <div
+            data-testid='subdag-kind'
+            className='px-3 h-full flex items-center flex-shrink-0 text-xs text-mui-grey-600'
+          >
+            {groupType}
           </div>
           <button
             type='button'
