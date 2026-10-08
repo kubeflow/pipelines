@@ -15,11 +15,11 @@
  */
 
 import React from 'react';
-import Banner from 'src/components/Banner';
+import './ErrorBoundary.css';
 
 interface ErrorBoundaryState {
-  error: any;
-  errorInfo: any;
+  error: unknown;
+  errorInfo: React.ErrorInfo | null;
 }
 
 type ErrorBoundaryProps = React.PropsWithChildren<{ resetKey?: string }>;
@@ -37,7 +37,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
   }
 
-  componentDidCatch(error: any, errorInfo: any) {
+  componentDidCatch(error: unknown, errorInfo: React.ErrorInfo) {
     this.setState({
       error: error,
       errorInfo: errorInfo,
@@ -46,18 +46,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render() {
     if (this.state.errorInfo) {
+      const stack = this.state.errorInfo.componentStack || '';
+      const diagnostics = this.state.error ? `${String(this.state.error)}\n${stack}` : stack;
       return (
-        <div style={{ padding: 20 }}>
-          <Banner
-            message='Something went wrong.'
-            mode='error'
-            additionalInfo={
-              this.state.error
-                ? `${this.state.error.toString()}\n${this.state.errorInfo.componentStack}`
-                : this.state.errorInfo.componentStack
-            }
-          />
-        </div>
+        <section className='kfp-error-boundary' role='alert'>
+          <p>Something went wrong.</p>
+          <details>
+            <summary>Details</summary>
+            <pre>{diagnostics}</pre>
+          </details>
+        </section>
       );
     }
     return this.props.children;

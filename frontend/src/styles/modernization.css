@@ -1,0 +1,104 @@
+@custom-variant dark (&:where(.kfp-theme.dark, .kfp-theme.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-foreground-2: var(--foreground-2);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-destructive: var(--status-failed);
+  --color-destructive-foreground: var(--status-failed-foreground);
+  --font-kfp-sans: var(--kfp-font-sans);
+  --font-kfp-mono: var(--kfp-font-mono);
+  --radius-control: var(--kfp-radius);
+  --radius-panel: var(--kfp-radius-xl);
+}
+
+/* Scope application tokens to the shell, portals, and independently rendered stories. */
+.kfp-theme {
+  --background: #f5f6f9;
+  --card: #ffffff;
+  --muted: #f0f1f5;
+  --border: #e3e5ec;
+  --border-strong: #d3d6df;
+  --foreground: #15171e;
+  --foreground-2: #4a4f5c;
+  --muted-foreground: #626979;
+  --primary: #2563d9;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e7eefc;
+  --status-succeeded: #18733d;
+  --status-succeeded-soft: #e3f5ea;
+  --status-running: #2563d9;
+  --status-running-soft: #e7eefc;
+  --status-failed: #c9302c;
+  --status-failed-soft: #fbe8e7;
+  --status-failed-foreground: #ffffff;
+  --status-warning: #975b08;
+  --status-warning-soft: #fdf2df;
+  --status-neutral: #626979;
+  --status-neutral-soft: #eceef3;
+  --shadow-card: 0 1px 2px rgb(20 24 40 / 6%), 0 8px 24px -12px rgb(20 24 40 / 12%);
+  --kfp-radius-sm: 5px;
+  --kfp-radius: 8px;
+  --kfp-radius-lg: 10px;
+  --kfp-radius-xl: 12px;
+  --kfp-radius-full: 999px;
+  --kfp-font-sans: 'Public Sans', system-ui, sans-serif;
+  --kfp-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--kfp-font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--foreground);
+  background: var(--background);
+  color-scheme: light;
+}
+
+.kfp-theme.dark {
+  --background: #0e1015;
+  --card: #161921;
+  --muted: #1d212b;
+  --border: #252933;
+  --border-strong: #333846;
+  --foreground: #eceef4;
+  --foreground-2: #b6bac6;
+  --muted-foreground: #8a8f9e;
+  --primary: #6b9cf5;
+  --primary-foreground: #0b1120;
+  --primary-soft: #1a2740;
+  --status-succeeded: #4fc27e;
+  --status-succeeded-soft: #14301f;
+  --status-running: #6b9cf5;
+  --status-running-soft: #1a2740;
+  --status-failed: #f0716d;
+  --status-failed-soft: #3a1a19;
+  --status-failed-foreground: #0b1120;
+  --status-warning: #e8a73a;
+  --status-warning-soft: #3a2a10;
+  --status-neutral: #8a8f9e;
+  --status-neutral-soft: #242834;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 12px 32px -12px rgb(0 0 0 / 60%);
+  color-scheme: dark;
+}
+
+.kfp-theme :focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kfp-theme *,
+  .kfp-theme *::before,
+  .kfp-theme *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

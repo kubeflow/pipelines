@@ -15,10 +15,10 @@
 const assert = require('assert');
 const URL = require('url').URL;
 const {
-  buildTableRowSelector,
   clearDefaultInput,
   isSelectorDisplayed,
   saveDebugScreenshot,
+  selectPipelineCard,
   selectPipelineForRun,
   waitForCondition,
   waitForHashPrefix,
@@ -124,21 +124,7 @@ async function deleteUploadedPipeline() {
     await $('#pipelinesBtn').click();
     await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
 
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
-    await $('#tableFilterBox').click();
-    await clearDefaultInput();
-    await browser.keys(pipelineName);
-
-    const pipelineRowSelector = buildTableRowSelector(pipelineName);
-    await waitForCondition(
-      async () => (await $(pipelineRowSelector).isExisting()),
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected pipeline row for ${pipelineName} after filtering`,
-      },
-    );
-
-    await $(pipelineRowSelector).click();
+    await selectPipelineCard(pipelineName, { timeout: uiTimeout });
     await $('#deletePipelinesAndPipelineVersionsBtn').waitForDisplayed({ timeout: uiTimeout });
     await $('#deletePipelinesAndPipelineVersionsBtn').click();
 
@@ -216,26 +202,31 @@ describe('literal input parameter integration', () => {
     await clearDefaultInput();
     await browser.keys(runName);
 
-    const literalSelect = await $('//*[@role="combobox" and @id="environment"]');
+    const literalSelect = await $('select#environment');
     await literalSelect.waitForDisplayed({ timeout: uiTimeout });
+    assert.equal(await literalSelect.getValue(), '', 'literal dropdown should start without a value');
     assert.equal(
-      (await literalSelect.getText()).trim(),
+      (await literalSelect.$('option:checked').getText()).trim(),
       'Select a value',
-      'literal dropdown should start without a selected value',
+      'literal dropdown should show its unselected placeholder',
     );
+    const optionElements = await literalSelect.$$('option:not([disabled])');
+    const optionTexts = [];
+    for (const optionElement of optionElements) {
+      optionTexts.push(await optionElement.getText());
+    }
+    assert.deepEqual(optionTexts, ['dev', 'staging', 'prod'], 'literal dropdown options mismatch');
 
     const startButton = await $('#startNewRunBtn');
     await startButton.waitForDisplayed({ timeout: uiTimeout });
     assert.equal(await startButton.isEnabled(), false, 'start should stay disabled before selection');
 
     await literalSelect.click();
-    await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout });
     await browser.keys('qa');
     await browser.keys('Escape');
-    await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout, reverse: true });
     assert.equal(
-      (await literalSelect.getText()).trim(),
-      'Select a value',
+      await literalSelect.getValue(),
+      '',
       'literal dropdown should reject arbitrary typed values',
     );
     assert.equal(
@@ -244,18 +235,11 @@ describe('literal input parameter integration', () => {
       'start should remain disabled after an invalid typed value attempt',
     );
 
-    await literalSelect.click();
-    await $('[role="listbox"]').waitForDisplayed({ timeout: uiTimeout });
-    const optionElements = await $$('[role="option"]');
-    const optionTexts = [];
-    for (const optionElement of optionElements) {
-      optionTexts.push(await optionElement.getText());
-    }
-    assert.deepEqual(optionTexts, ['dev', 'staging', 'prod'], 'literal dropdown options mismatch');
-
-    await $(`li=${selectedLiteral}`).click();
+    await literalSelect.selectByVisibleText(selectedLiteral);
     await waitForCondition(
-      async () => (await literalSelect.getText()).trim() === selectedLiteral && (await startButton.isEnabled()),
+      async () =>
+        (await literalSelect.$('option:checked').getText()).trim() === selectedLiteral &&
+        (await startButton.isEnabled()),
       {
         timeout: uiTimeout,
         timeoutMsg: 'literal dropdown did not preserve the selected value or enable start',

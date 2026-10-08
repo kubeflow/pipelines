@@ -30,3 +30,15 @@ it('passes a runtime null through to the preview error state without throwing', 
   );
   expect(screen.getByText('Can not retrieve storage path from artifact uri: null')).toBeVisible();
 });
+
+it('encodes raw artifact IDs in runtime value links', () => {
+  render(
+    <CommonTestWrapper>
+      <RuntimeArtifactValue value={{ text: 'View artifact', artifactId: 'folder/item%2F?#' }} />
+    </CommonTestWrapper>,
+  );
+  expect(screen.getByRole('link', { name: 'View artifact' })).toHaveAttribute(
+    'href',
+    '/artifacts/folder%2Fitem%252F%3F%23',
+  );
+});

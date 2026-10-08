@@ -18,46 +18,10 @@ import type * as React from 'react';
 import BusyButton from '../../atoms/BusyButton';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
-import { commonCss, padding, color } from '../../Css';
-import { classes, stylesheet } from 'typestyle';
-
-import {
-  Button,
-  InputLabel,
-  Input,
-  MenuItem,
-  ListSubheader,
-  FormControl,
-  Select,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-} from '@mui/material';
-import { SelectChangeEvent } from '@mui/material/Select';
-
-export const css = stylesheet({
-  button: {
-    marginBottom: 20,
-    width: 150,
-  },
-  formControl: {
-    minWidth: 120,
-  },
-  select: {
-    minHeight: 50,
-  },
-  shortButton: {
-    width: 50,
-  },
-  warningText: {
-    color: color.warningText,
-  },
-  errorText: {
-    color: color.errorText,
-  },
-});
+import { Button, buttonVariants } from '../ui/button';
+import { ModalDialog } from '../ui/dialog';
+import { Alert } from '../ui/alert';
+import './RichViewers.css';
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
@@ -90,7 +54,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   timerID: NodeJS.Timeout;
   private _isMounted = true;
 
-  constructor(props: any) {
+  constructor(props: TensorboardViewerProps) {
     super(props);
 
     this.state = {
@@ -125,7 +89,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     clearInterval(this.timerID);
   }
 
-  public handleImageSelect = (e: SelectChangeEvent<string>): void => {
+  public handleImageSelect = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
@@ -133,120 +97,114 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   };
 
   public render(): React.JSX.Element {
+    const { busy, proxyPath, tfImage, tensorboardReady, errorMessage } = this.state;
     return (
-      <div>
-        {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
-        {this.state.proxyPath && (
-          <div>
-            <div
-              className={padding(20, 'b')}
-            >{`Tensorboard ${this.state.tfImage} is running for this output.`}</div>
-            <a
-              href={this.state.proxyPath}
-              target='_blank'
-              rel='noopener noreferrer'
-              className={commonCss.unstyled}
-            >
-              <Button
-                className={classes(commonCss.buttonAction, css.button)}
-                disabled={this.state.busy}
-                color={'primary'}
+      <div className='kfp-tensorboard-viewer'>
+        {errorMessage && !this.state.deleteDialogOpen && (
+          <Alert variant='error'>{errorMessage}</Alert>
+        )}
+        {proxyPath ? (
+          <>
+            <p>{`Tensorboard ${tfImage} is running for this output.`}</p>
+            {!tensorboardReady && (
+              <Alert variant='warning'>
+                Tensorboard is starting, and you may need to wait for a few minutes.
+              </Alert>
+            )}
+            <div className='kfp-tensorboard-controls'>
+              <a
+                href={proxyPath}
+                target='_blank'
+                rel='noopener noreferrer'
+                className={buttonVariants()}
+                aria-disabled={busy || undefined}
+                tabIndex={busy ? -1 : undefined}
+                onClick={(event) => {
+                  if (busy) event.preventDefault();
+                }}
               >
                 Open Tensorboard
-              </Button>
-              {this.state.tensorboardReady ? (
-                ``
-              ) : (
-                <div className={css.warningText}>
-                  Tensorboard is starting, and you may need to wait for a few minutes.
-                </div>
-              )}
-            </a>
-
-            <div>
+              </a>
               <Button
-                className={css.button}
-                disabled={this.state.busy}
-                id={'delete'}
-                title={`stop tensorboard and delete its instance`}
+                variant='secondary'
+                disabled={busy}
+                id='delete'
+                title='stop tensorboard and delete its instance'
                 onClick={this._handleDeleteOpen}
               >
                 Stop Tensorboard
               </Button>
-              <Dialog
-                open={this.state.deleteDialogOpen}
-                onClose={this._handleDeleteClose}
-                aria-labelledby='dialog-title'
-              >
-                <DialogTitle id='dialog-title'>{`Stop Tensorboard?`}</DialogTitle>
-                <DialogContent>
-                  <DialogContentText>
-                    You can stop the current running tensorboard. The tensorboard viewer will also
-                    be deleted from your workloads.
-                  </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                  <Button
-                    className={css.shortButton}
-                    id={'cancel'}
-                    autoFocus={true}
-                    onClick={this._handleDeleteClose}
-                    color='primary'
-                  >
+            </div>
+            <ModalDialog
+              open={this.state.deleteDialogOpen}
+              onClose={this._handleDeleteClose}
+              title='Stop Tensorboard?'
+              actions={
+                <>
+                  <Button variant='secondary' id='cancel' onClick={this._handleDeleteClose}>
                     Cancel
                   </Button>
                   <BusyButton
-                    className={classes(commonCss.buttonAction, css.shortButton)}
                     onClick={this._deleteTensorboard}
-                    busy={this.state.busy}
-                    color='primary'
-                    title={`Stop`}
+                    busy={busy}
+                    variant='destructive'
+                    title='Stop'
                   />
-                </DialogActions>
-              </Dialog>
-            </div>
-          </div>
-        )}
-        {!this.state.proxyPath && (
-          <div>
-            <div className={padding(30, 'b')}>
-              <FormControl variant='standard' className={css.formControl}>
-                <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
-                <Select
-                  variant='standard'
-                  className={css.select}
-                  value={this.state.tfImage}
-                  input={<Input id='viewer-tb-image-select' />}
-                  onChange={this.handleImageSelect}
-                >
-                  {this._image() && <MenuItem value={this._image()}>{this._image()}</MenuItem>}
-                  <ListSubheader>Tensoflow 1.x</ListSubheader>
-                  <MenuItem value={'tensorflow/tensorflow:1.7.1'}>TensorFlow 1.7.1</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.8.0'}>TensorFlow 1.8.0</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.9.0'}>TensorFlow 1.9.0</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.10.1'}>TensorFlow 1.10.1</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.11.0'}>TensorFlow 1.11.0</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.12.3'}>TensorFlow 1.12.3</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.13.2'}>TensorFlow 1.13.2</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.14.0'}>TensorFlow 1.14.0</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:1.15.5'}>TensorFlow 1.15.5</MenuItem>
-                  <ListSubheader>TensorFlow 2.x</ListSubheader>
-                  <MenuItem value={'tensorflow/tensorflow:2.0.4'}>TensorFlow 2.0.4</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:2.1.2'}>TensorFlow 2.1.2</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:2.2.2'}>TensorFlow 2.2.2</MenuItem>
-                </Select>
-              </FormControl>
-            </div>
+                </>
+              }
+            >
+              {errorMessage && <Alert variant='error'>{errorMessage}</Alert>}
+              You can stop the current running tensorboard. The tensorboard viewer will also be
+              deleted from your workloads.
+            </ModalDialog>
+          </>
+        ) : (
+          <>
+            <label className='kfp-tensorboard-image' htmlFor='viewer-tb-image-select'>
+              <span>TF Image</span>
+              <select
+                id='viewer-tb-image-select'
+                className='kfp-viewer-select'
+                value={tfImage}
+                disabled={busy}
+                onChange={this.handleImageSelect}
+              >
+                {this._image() && <option value={this._image()}>{this._image()}</option>}
+                <optgroup label='TensorFlow 1.x'>
+                  {[
+                    '1.7.1',
+                    '1.8.0',
+                    '1.9.0',
+                    '1.10.1',
+                    '1.11.0',
+                    '1.12.3',
+                    '1.13.2',
+                    '1.14.0',
+                    '1.15.5',
+                  ].map((version) => (
+                    <option key={version} value={`tensorflow/tensorflow:${version}`}>
+                      TensorFlow {version}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label='TensorFlow 2.x'>
+                  {['2.0.4', '2.1.2', '2.2.2'].map((version) => (
+                    <option key={version} value={`tensorflow/tensorflow:${version}`}>
+                      TensorFlow {version}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </label>
             <div>
               <BusyButton
-                className={commonCss.buttonAction}
-                disabled={!this.state.tfImage}
+                disabled={!tfImage}
                 onClick={this._startTensorboard}
-                busy={this.state.busy}
+                busy={busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
               />
             </div>
-          </div>
+          </>
         )}
       </div>
     );

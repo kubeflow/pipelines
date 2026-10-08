@@ -1,0 +1,361 @@
+.kfp-theme .kfp-run-inspection,
+.kfp-theme .kfp-inspection-tabs,
+.kfp-theme .kfp-inspection-tab-panel,
+.kfp-theme .kfp-inspector-content,
+.kfp-theme .kfp-task-inspection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.kfp-theme .kfp-run-inspection {
+  /* Let the page scroll when the summary and tabs exceed the available height. */
+  min-height: min-content;
+  padding: 0 32px 32px;
+  gap: 16px;
+}
+.kfp-theme .kfp-run-summary {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 140px 90px 190px minmax(240px, 1.5fr);
+  align-items: start;
+  gap: 16px 28px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+}
+.kfp-theme .kfp-run-summary > div {
+  min-width: 0;
+}
+.kfp-theme .kfp-run-summary dt {
+  margin-bottom: 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.kfp-theme .kfp-run-summary dd {
+  min-height: 3em;
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-run-summary-code {
+  font-family: var(--kfp-font-mono);
+}
+.kfp-theme .kfp-inspection-tab-list {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+.kfp-theme .kfp-inspection-tab {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.kfp-theme .kfp-inspection-tab[data-active] {
+  border-bottom-color: var(--primary);
+  color: var(--foreground);
+}
+.kfp-theme .kfp-inspection-tab[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.kfp-theme .kfp-inspection-tab-panel {
+  outline-offset: -3px;
+}
+.kfp-theme .kfp-run-graph {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 380px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+}
+/* Shared graph/editor/viewer widgets retain their qualified light presentation. */
+.kfp-theme .kfp-inspection-legacy {
+  min-width: 0;
+  min-height: 0;
+  background: white;
+  color: rgb(0 0 0 / 66%);
+  font-family: 'Google Sans', 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color-scheme: light;
+}
+.kfp-theme .kfp-run-graph-canvas {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 380px;
+}
+.kfp-theme .kfp-inspection-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 0;
+}
+.kfp-theme .kfp-inspector-content .kfp-inspection-scroll {
+  padding: 16px;
+}
+.kfp-theme .kfp-inspection-fields {
+  min-width: 0;
+  margin-bottom: 20px;
+}
+.kfp-theme .kfp-inspection-fields h3,
+.kfp-theme .kfp-task-inspection h3,
+.kfp-theme .kfp-inspection-history caption {
+  margin: 0 0 10px;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+.kfp-theme .kfp-inspection-fields dl {
+  margin: 0;
+}
+.kfp-theme .kfp-inspection-field {
+  display: grid;
+  grid-template-columns: minmax(100px, 30%) minmax(0, 1fr);
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.kfp-theme .kfp-inspection-field dt {
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-inspection-field dd {
+  margin: 0;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.kfp-theme .kfp-inspection-field a {
+  color: var(--primary);
+}
+.kfp-theme .kfp-inspection-field pre {
+  overflow: auto;
+  margin: 0;
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.kfp-theme .kfp-inspection-details-card {
+  max-width: 900px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.kfp-theme .kfp-inspection-empty {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.kfp-theme .kfp-inspection-history {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.kfp-theme .kfp-inspection-history th,
+.kfp-theme .kfp-inspection-history td {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-inspection-history th {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.kfp-theme .kfp-inspection-pods > summary {
+  cursor: pointer;
+  margin-bottom: 12px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-inspector-shell {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 100%;
+  outline: none;
+}
+.kfp-theme .kfp-inspector-panel {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 8%);
+}
+.kfp-theme .kfp-inspector-header {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px 14px;
+}
+.kfp-theme .kfp-inspector-header > div {
+  min-width: 0;
+}
+.kfp-theme .kfp-inspector-header h2 {
+  margin: 4px 0 0;
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-inspector-eyebrow {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.kfp-theme .kfp-inspector-content {
+  overflow: hidden;
+}
+.kfp-theme .kfp-inspector-backdrop {
+  position: fixed;
+  z-index: 39;
+  inset: 0;
+  background: rgb(0 0 0 / 35%);
+}
+@media (max-width: 899px) {
+  .kfp-theme .kfp-inspector-shell {
+    position: fixed;
+    z-index: 40;
+    inset: 0;
+    width: 100%;
+  }
+  .kfp-theme .kfp-inspector-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+@media (max-width: 600px) {
+  .kfp-theme .kfp-run-inspection {
+    padding: 0 16px 16px;
+  }
+  .kfp-theme .kfp-run-summary {
+    gap: 12px 18px;
+  }
+}
+
+.kfp-theme .kfp-inspection-notice,
+.kfp-theme .kfp-run-failure {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.kfp-theme .kfp-inspection-notice p {
+  margin: 0;
+}
+.kfp-theme .kfp-inspection-error-details {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-run-failure p {
+  margin: 4px 0 0;
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.kfp-theme .kfp-run-failure strong {
+  font-size: 13px;
+}
+.kfp-theme .kfp-run-failure > div {
+  min-width: 0;
+}
+.kfp-theme .kfp-run-summary a {
+  color: var(--primary);
+}
+
+/* Keep flex and overflow behavior explicit for the task inspector and virtualized logs. */
+.kfp-theme .kfp-inspection-column {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.kfp-theme .kfp-inspection-log-window {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.kfp-theme .kfp-inspection-subdag-action {
+  padding: 0 20px 20px;
+}
+.kfp-theme .kfp-inspection-spec {
+  height: 100%;
+}
+.kfp-theme .kfp-inspection-run-title {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.kfp-theme .kfp-inspection-link {
+  color: var(--primary);
+  text-decoration: none;
+}
+.kfp-theme .kfp-inspection-link:hover {
+  text-decoration: underline;
+}
+
+.kfp-theme .kfp-inspector-resize-handle {
+  width: 100%;
+  height: 100%;
+  cursor: col-resize;
+}
+.kfp-theme .kfp-inspector-resize-handle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -3px;
+  background: var(--primary-soft);
+}
+
+@media (max-width: 1239px) {
+  .kfp-theme .kfp-run-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kfp-theme .kfp-run-summary > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 480px) {
+  .kfp-theme .kfp-run-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

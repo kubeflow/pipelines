@@ -14,56 +14,39 @@
  * limitations under the License.
  */
 
-import FolderIcon from '@mui/icons-material/Folder';
-import React from 'react';
-import { ArtifactFlowElementData } from './Constants';
+import { Folder } from 'lucide-react';
+import { ArtifactFlowElementData, GRAPH_NODE_HEIGHT, GRAPH_NODE_WIDTH } from './Constants';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
+import './Graph.css';
 
 interface ArtifactNodeProps {
   id: string;
   data: ArtifactFlowElementData;
-  // selected: boolean;
-  // status: ExecutionNodeStatus;
-  // tooltip: string;
 }
 
-function ArtifactNode({ id, data }: ArtifactNodeProps) {
-  let icon = getIcon(data.hasArtifact);
+export default function ArtifactNode({ id, data }: ArtifactNodeProps) {
   return (
     <>
       <button
+        type='button'
+        className='kfp-graph-node'
+        style={{ width: GRAPH_NODE_WIDTH, height: GRAPH_NODE_HEIGHT }}
+        data-tone={data.hasArtifact ? 'warning' : 'neutral'}
         title={data.label}
-        className='focus:ring flex items-stretch hover:scale-105 transition transform border-0 shadow-lg rounded-lg w-60 h-12'
+        aria-label={data.label}
+        aria-describedby={`${id}-status`}
       >
-        <div className='flex items-center justify-between w-60 rounded-lg shadow-lg bg-white'>
-          {icon}
-          <div className='flex flex-grow justify-center items-center rounded-r-lg overflow-hidden'>
-            <span className='text-sm truncate' id={id} data-testid={id}>
-              {data.label}
-            </span>
-          </div>
-        </div>
+        <Folder className='kfp-graph-type-icon' size={16} aria-hidden='true' />
+        <span className='kfp-graph-node-copy'>
+          <span className='kfp-graph-node-name' id={id} data-testid={id}>
+            {data.label}
+          </span>
+          <span className='kfp-graph-node-meta' id={`${id}-status`} aria-hidden='true'>
+            {data.hasArtifact ? 'Artifact available' : 'Artifact'}
+          </span>
+        </span>
       </button>
       <ReadOnlyNodeHandles />
     </>
-  );
-}
-
-export default ArtifactNode;
-
-function getIcon(hasArtifact: boolean | undefined) {
-  if (!hasArtifact) {
-    return getIconWrapper(
-      <FolderIcon data-testid='artifact-icon-default' className='text-mui-grey-300-dark' />,
-    );
-  }
-  return getIconWrapper(
-    <FolderIcon data-testid='artifact-icon-live' className='text-mui-yellow-800' />,
-  );
-}
-
-function getIconWrapper(element: React.ReactElement) {
-  return (
-    <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>{element}</div>
   );
 }

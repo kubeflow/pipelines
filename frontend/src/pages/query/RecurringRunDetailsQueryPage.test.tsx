@@ -1,0 +1,451 @@
+/*
+ * Copyright 2023 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { act, render, screen, waitFor } from '@testing-library/react';
+import * as JsYaml from 'js-yaml';
+import { CommonTestWrapper } from 'src/TestWrapper';
+import TestUtils from 'src/TestUtils';
+import RecurringRunDetailsPage from 'src/pages/RecurringRunDetailsPage';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { Apis } from 'src/lib/Apis';
+import { PageProps } from 'src/pages/Page';
+import { RouteParams, RoutePage } from 'src/components/Router';
+import * as features from 'src/features';
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+
+describe('RecurringRunDetailsV2FC', () => {
+  const updateBannerSpy = vi.fn();
+  const updateDialogSpy = vi.fn();
+  const updateSnackbarSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
+  const navigateSpy = vi.fn();
+  const getRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
+  const deleteRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
+  const enableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
+  const disableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
+  let getExperimentSpy: ReturnType<typeof vi.fn>;
+  const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+
+  let fullTestV2RecurringRun: V2beta1RecurringRun = {};
+  let testPipelineVersion: V2beta1PipelineVersion = {};
+
+  function generateProps(): PageProps {
+    return {
+      navigate: navigateSpy,
+      location: '' as any,
+      params: { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
+      updateBanner: updateBannerSpy,
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
+      updateToolbar: updateToolbarSpy,
+    };
+  }
+
+  beforeEach(() => {
+    fullTestV2RecurringRun = {
+      created_at: new Date(2018, 8, 5, 4, 3, 2),
+      description: 'test recurring run description',
+      display_name: 'test recurring run',
+      experiment_id: 'test-experiment-id',
+      max_concurrency: '50',
+      no_catchup: true,
+      pipeline_version_reference: {
+        pipeline_id: 'test-pipeline-id',
+        pipeline_version_id: 'test-pipeline-version-id',
+      },
+      recurring_run_id: 'test-recurring-run-id',
+      runtime_config: { parameters: { param1: 'value1' } },
+      status: V2beta1RecurringRunStatus.ENABLED,
+      trigger: {
+        periodic_schedule: {
+          end_time: new Date(2018, 10, 9, 8, 7, 6),
+          interval_second: '3600',
+          start_time: new Date(2018, 9, 8, 7, 6),
+        },
+      },
+    } as V2beta1RecurringRun;
+
+    testPipelineVersion = {
+      display_name: 'test_pipeline_version',
+      pipeline_id: 'test_pipeline_id',
+      pipeline_version_id: 'test_pipeline_version_id',
+      pipeline_spec: JsYaml.load(v2YamlTemplateString),
+    };
+
+    vi.clearAllMocks();
+    // mock both v2_alpha and functional feature keys are enable.
+    vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+
+    // mockReset clears the mockOnce queue that vi.clearAllMocks leaves behind,
+    // preventing unconsumed one-time mocks from leaking between tests.
+    getRecurringRunSpy.mockReset();
+    getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
+    getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
+
+    deleteRecurringRunSpy.mockImplementation();
+    enableRecurringRunSpy.mockImplementation();
+    disableRecurringRunSpy.mockImplementation();
+    const experimentApi = { getExperiment: vi.fn() };
+    vi.spyOn(Apis, 'experimentServiceApiV2', 'get').mockReturnValue(experimentApi as any);
+    getExperimentSpy = experimentApi.getExperiment;
+    getExperimentSpy.mockResolvedValue({
+      display_name: 'test-experiment',
+      experiment_id: 'test-experiment-id',
+    });
+  });
+
+  it('shows a loading spinner while the recurring run is being fetched', async () => {
+    // First call from the Router succeeds so V2FC can mount;
+    // second call from V2FC hangs to show the loading spinner.
+    getRecurringRunSpy
+      .mockImplementationOnce(() => fullTestV2RecurringRun)
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    // Wait for Router to resolve past its own loading state before
+    // asserting V2FC's spinner — the Router also renders a CircularProgress
+    // while loading, so we must confirm it has finished first.
+    await waitFor(() => {
+      expect(screen.queryByText('Currently loading recurring run information')).toBeNull();
+    });
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('renders a recurring run with periodic schedule', async () => {
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+    });
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('Every 1 hours');
+    screen.getByText('Max. concurrent runs');
+    screen.getByText('50');
+    screen.getByText('Catchup');
+    screen.getByText('false');
+    screen.getByText('param1');
+    screen.getByText('value1');
+  });
+
+  it('renders a recurring run with cron schedule', async () => {
+    const cronTestRecurringRun = {
+      ...fullTestV2RecurringRun,
+      no_catchup: undefined, // in api requests, it's undefined when false
+      trigger: {
+        cron_schedule: {
+          cron: '* * * 0 0 !',
+          end_time: new Date(2018, 10, 9, 8, 7, 6),
+          start_time: new Date(2018, 9, 8, 7, 6),
+        },
+      },
+    };
+    getRecurringRunSpy.mockImplementation(() => cronTestRecurringRun);
+
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+    });
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('* * * 0 0 !');
+    screen.getByText('Max. concurrent runs');
+    screen.getByText('50');
+    screen.getByText('Catchup');
+    screen.getByText('true');
+  });
+
+  it('loads the recurring run given its id in query params', async () => {
+    // The run id is in the route params, defined inside generateProps
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+
+    expect(getRecurringRunSpy).toHaveBeenLastCalledWith(fullTestV2RecurringRun.recurring_run_id);
+    expect(getExperimentSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows All runs -> run name when there is no experiment', async () => {
+    fullTestV2RecurringRun.experiment_id = undefined;
+    // The run id is in the route params, defined inside generateProps
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    // Wait for UI to render before asserting toolbar (avoids flakiness from async updates)
+    expect(await screen.findByText('Enabled')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+          pageTitle: fullTestV2RecurringRun.display_name,
+        }),
+      );
+    });
+  });
+
+  it('loads the recurring run and its experiment if it has one', async () => {
+    fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    expect(getRecurringRunSpy).toHaveBeenLastCalledWith(fullTestV2RecurringRun.recurring_run_id);
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenLastCalledWith('test-experiment-id');
+    });
+  });
+
+  it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
+    fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
+    getExperimentSpy.mockImplementation((id) => ({
+      experiment_id: id,
+      display_name: 'test experiment name',
+    }));
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(getExperimentSpy).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          breadcrumbs: [
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: 'test experiment name',
+              href: RoutePage.EXPERIMENT_DETAILS.replace(
+                ':' + RouteParams.experimentId,
+                'test-experiment-id',
+              ),
+            },
+          ],
+          pageTitle: fullTestV2RecurringRun.display_name,
+        }),
+      );
+    });
+  });
+
+  it('shows error banner if run cannot be fetched', async () => {
+    // Router calls getRecurringRun first; V2FC calls it second. First must succeed so Router
+    // renders V2FC; second must fail so V2FC shows the error banner.
+    getRecurringRunSpy
+      .mockImplementationOnce(() => Promise.resolve(fullTestV2RecurringRun))
+      .mockImplementationOnce(() => {
+        throw { text: () => Promise.resolve('woops!') };
+      });
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    // V2FC processes errors through a multi-step async chain:
+    // useQuery error → useEffect → async errorToMessage → setState → useEffect → updateBanner.
+    // Each step produces microtasks that need flushing under React 18 + testing-library v12.
+    for (let i = 0; i < 3; i++) {
+      await act(() => TestUtils.flushPromises());
+    }
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'woops!',
+          message: `Error: failed to retrieve recurring run: ${fullTestV2RecurringRun.recurring_run_id}. Click Details for more information.`,
+          mode: 'error',
+        }),
+      );
+    });
+  });
+
+  it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
+    fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
+    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    // V2FC processes errors through a multi-step async chain (see comment above).
+    for (let i = 0; i < 3; i++) {
+      await act(() => TestUtils.flushPromises());
+    }
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'woops!',
+          message: `Error: failed to retrieve this recurring run's experiment. Click Details for more information.`,
+          mode: 'warning',
+        }),
+      );
+    });
+
+    // "Still loads run" means that the details are still rendered successfully.
+    screen.getByText('Enabled');
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('Every 1 hours');
+    screen.getByText('Max. concurrent runs');
+    screen.getByText('50');
+    screen.getByText('Catchup');
+    screen.getByText('false');
+    screen.getByText('param1');
+    screen.getByText('value1');
+  });
+
+  it('refresh retries the recurring run query', async () => {
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+      expect(screen.getByText('Every 1 hours')).toBeInTheDocument();
+    });
+
+    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions.refresh.action as
+      | (() => Promise<void>)
+      | undefined;
+    expect(refreshAction).toBeDefined();
+    const refreshCallCount = getRecurringRunSpy.mock.calls.length;
+
+    await refreshAction?.();
+
+    await waitFor(() => {
+      expect(getRecurringRunSpy.mock.calls.length).toBeGreaterThan(refreshCallCount);
+    });
+
+    screen.getByText('Enabled');
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('Every 1 hours');
+  });
+
+  it('shows top bar buttons', async () => {
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          actions: expect.objectContaining({
+            cloneRecurringRun: expect.objectContaining({ title: 'Clone recurring run' }),
+            refresh: expect.objectContaining({ title: 'Refresh' }),
+            enableRecurringRun: expect.objectContaining({ title: 'Enable', disabled: true }),
+            disableRecurringRun: expect.objectContaining({ title: 'Disable', disabled: false }),
+            deleteRun: expect.objectContaining({ title: 'Delete' }),
+          }),
+          pageTitle: fullTestV2RecurringRun.display_name,
+        }),
+      );
+    });
+  });
+
+  it('enables Enable buttons if the run is disabled', async () => {
+    fullTestV2RecurringRun.status = V2beta1RecurringRunStatus.DISABLED;
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actions: expect.objectContaining({
+            cloneRecurringRun: expect.objectContaining({ title: 'Clone recurring run' }),
+            refresh: expect.objectContaining({ title: 'Refresh' }),
+            enableRecurringRun: expect.objectContaining({ title: 'Enable', disabled: false }),
+            disableRecurringRun: expect.objectContaining({ title: 'Disable', disabled: true }),
+            deleteRun: expect.objectContaining({ title: 'Delete' }),
+          }),
+        }),
+      );
+    });
+  });
+
+  it('shows enables Enable buttons if the run is undefined', async () => {
+    fullTestV2RecurringRun.status = undefined;
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsPage {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actions: expect.objectContaining({
+            cloneRecurringRun: expect.objectContaining({ title: 'Clone recurring run' }),
+            refresh: expect.objectContaining({ title: 'Refresh' }),
+            enableRecurringRun: expect.objectContaining({ title: 'Enable', disabled: false }),
+            disableRecurringRun: expect.objectContaining({ title: 'Disable', disabled: true }),
+            deleteRun: expect.objectContaining({ title: 'Delete' }),
+          }),
+        }),
+      );
+    });
+  });
+});

@@ -20,3 +20,8 @@ export interface KeyValue<T> extends Array<any> {
   0?: string | React.JSX.Element;
   1?: T;
 }
+
+export interface ValueComponentProps<T> {
+  value?: string | T;
+  [key: string]: any;
+}

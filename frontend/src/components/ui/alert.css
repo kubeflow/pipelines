@@ -1,0 +1,20 @@
+.kfp-theme .kfp-alert {
+  padding: 12px 16px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: var(--status-failed);
+  background: var(--status-failed-soft);
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-alert[data-variant='warning'] {
+  color: var(--status-warning);
+  background: var(--status-warning-soft);
+}
+.kfp-theme .kfp-alert[data-variant='info'] {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.kfp-theme .kfp-alert a {
+  color: inherit;
+  text-decoration: underline;
+}

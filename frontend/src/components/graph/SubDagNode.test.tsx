@@ -17,6 +17,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import SubDagNode from './SubDagNode';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -43,7 +44,9 @@ describe('SubDagNode', () => {
 
   it('sets accessible label on the button', () => {
     renderWithProvider(<SubDagNode id='subdag-1' data={defaultData} />);
-    expect(screen.getByRole('button', { name: 'sub-pipeline' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'sub-pipeline', exact: true }),
+    ).toHaveAccessibleDescription('Nested pipeline');
   });
 
   it('renders SUCCEEDED state icon', () => {
@@ -53,14 +56,18 @@ describe('SubDagNode', () => {
         data={{ ...defaultData, state: PipelineTaskTaskState.SUCCEEDED }}
       />,
     );
-    expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'sub-pipeline', exact: true }),
+    ).toHaveAccessibleDescription('Succeeded');
   });
 
   it('renders RUNNING state icon', () => {
     renderWithProvider(
       <SubDagNode id='subdag-1' data={{ ...defaultData, state: PipelineTaskTaskState.RUNNING }} />,
     );
-    expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'sub-pipeline', exact: true }),
+    ).toHaveAccessibleDescription('Running');
   });
 
   it('calls expand callback when expand button is clicked', () => {
@@ -69,6 +76,26 @@ describe('SubDagNode', () => {
     const expandButton = screen.getByTestId('expand-button');
     fireEvent.click(expandButton);
     expect(expandFn).toHaveBeenCalledWith('subdag-1');
+  });
+
+  it('exposes independent keyboard inspection and expansion without nested buttons', async () => {
+    const expand = vi.fn();
+    const inspect = vi.fn();
+    const { container } = renderWithProvider(
+      <div onClick={inspect}>
+        <SubDagNode id='task.loop.1' data={{ ...defaultData, expand }} />
+      </div>,
+    );
+    expect(container.querySelector('button button')).toBeNull();
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
+    expect(inspect).toHaveBeenCalledTimes(1);
+    expect(expand).not.toHaveBeenCalled();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Expand sub-pipeline' })).toHaveFocus();
+    await userEvent.keyboard(' ');
+    expect(expand).toHaveBeenCalledWith('task.loop.1');
+    expect(inspect).toHaveBeenCalledTimes(1);
   });
 
   it('renders with the correct id on the label span', () => {

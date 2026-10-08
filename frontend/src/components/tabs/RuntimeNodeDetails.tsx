@@ -1,0 +1,697 @@
+/*
+ * Copyright 2021 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Button } from '../ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import {
+  InputOutputsIOArtifact,
+  PipelineTaskTaskPod,
+  PipelineTaskTaskPodType,
+  PipelineTaskTaskState,
+  V2beta1PipelineTask,
+} from 'src/apisv2beta1/run';
+import { InspectionTabs } from '../inspection/InspectionTabs';
+import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
+import { InspectionNotice as Banner } from '../inspection/InspectionNotice';
+import { InspectionFields as DetailsTable } from '../inspection/InspectionFields';
+import LogViewer from 'src/components/LogViewer';
+import { RuntimeInputOutputTab } from 'src/components/tabs/RuntimeInputOutputTab';
+import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
+import {
+  KubernetesExecutorConfig,
+  PvcMount,
+} from 'src/generated/platform_spec/kubernetes_platform';
+import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
+import { queryKeys } from 'src/hooks/queryKeys';
+import { Apis } from 'src/lib/Apis';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
+import { errorToMessage, formatDateString } from 'src/lib/Utils';
+import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
+import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import {
+  EXECUTOR_LOGS_ARTIFACT_KEY,
+  flattenArtifactGroups,
+  getArtifactDisplayName,
+  getArtifactTypeName,
+  getOutputArtifactByName,
+  isTaskFinished,
+} from 'src/lib/v2/RuntimeArtifactUtils';
+import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
+import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+
+export const LOGS_DETAILS = 'logs_details';
+export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
+export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
+export const K8S_PLATFORM_KEY = 'kubernetes';
+
+const NODE_INFO_UNKNOWN = (
+  <p className='kfp-inspection-empty' role='status'>
+    Unable to retrieve node info.
+  </p>
+);
+
+const NODE_STATE_UNAVAILABLE = (
+  <p className='kfp-inspection-empty' role='status'>
+    Content is not available yet.
+  </p>
+);
+
+interface RuntimeNodeDetailsProps {
+  layers: string[];
+  onLayerChange: (layers: string[]) => void;
+  pipelineJobString?: string;
+  runId?: string;
+  element?: PipelineFlowElement | null;
+  elementRuntimeInfo?: NodeRuntimeInfo | null;
+  namespace?: string;
+  namespacePending?: boolean;
+  sourceFinished?: boolean;
+  selectedTaskTab?: number;
+  onTaskTabChange?: (tab: number) => void;
+}
+
+export function RuntimeNodeDetails({
+  layers,
+  onLayerChange,
+  pipelineJobString,
+  runId,
+  element,
+  elementRuntimeInfo,
+  namespace,
+  namespacePending = false,
+  sourceFinished,
+  selectedTaskTab,
+  onTaskTabChange,
+}: RuntimeNodeDetailsProps) {
+  if (!element) {
+    return NODE_INFO_UNKNOWN;
+  }
+  if (element.type === NodeTypeNames.EXECUTION) {
+    return (
+      <TaskNodeDetail
+        pipelineJobString={pipelineJobString}
+        runId={runId}
+        element={element}
+        task={elementRuntimeInfo?.task}
+        layers={layers}
+        namespace={namespace}
+        namespacePending={namespacePending}
+        sourceFinished={sourceFinished}
+        selectedTaskTab={selectedTaskTab}
+        onTaskTabChange={onTaskTabChange}
+      />
+    );
+  }
+  if (element.type === NodeTypeNames.ARTIFACT) {
+    return (
+      <ArtifactNodeDetail
+        task={elementRuntimeInfo?.task}
+        artifactGroup={elementRuntimeInfo?.artifactGroup}
+        namespace={namespace}
+        namespacePending={namespacePending}
+        sourceFinished={sourceFinished}
+      />
+    );
+  }
+  if (element.type === NodeTypeNames.SUB_DAG) {
+    return (
+      <SubDAGNodeDetail
+        element={element}
+        task={elementRuntimeInfo?.task}
+        layers={layers}
+        onLayerChange={onLayerChange}
+        namespace={namespace}
+        namespacePending={namespacePending}
+      />
+    );
+  }
+  return NODE_INFO_UNKNOWN;
+}
+
+interface TaskNodeDetailProps {
+  selectedTaskTab?: number;
+  onTaskTabChange?: (tab: number) => void;
+  pipelineJobString?: string;
+  runId?: string;
+  element?: PipelineFlowElement | null;
+  task?: V2beta1PipelineTask;
+  layers: string[];
+  namespace?: string;
+  namespacePending?: boolean;
+  sourceFinished?: boolean;
+}
+
+function getLatestTaskPod(
+  task: V2beta1PipelineTask | undefined,
+  type: PipelineTaskTaskPodType,
+): PipelineTaskTaskPod | undefined {
+  const pods = task?.pods || [];
+  for (let index = pods.length - 1; index >= 0; index--) {
+    if (pods[index].type === type) {
+      return pods[index];
+    }
+  }
+  return undefined;
+}
+
+function TaskNodeDetail({
+  pipelineJobString,
+  runId,
+  element,
+  task,
+  layers,
+  namespace,
+  namespacePending = false,
+  sourceFinished,
+  selectedTaskTab,
+  onTaskTabChange,
+}: TaskNodeDetailProps) {
+  const [localTab, setLocalTab] = useState(0);
+  const selectedTab = selectedTaskTab ?? localTab;
+  const setSelectedTab = onTaskTabChange ?? setLocalTab;
+  const executorPod = getLatestTaskPod(task, PipelineTaskTaskPodType.EXECUTOR);
+  const driverPod = getLatestTaskPod(task, PipelineTaskTaskPodType.DRIVER);
+  const executorLogsArtifact = task
+    ? getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY)
+    : undefined;
+  const logsSourceIdentity = [
+    executorPod?.name,
+    driverPod?.name,
+    executorLogsArtifact?.artifact_id,
+    executorLogsArtifact?.uri,
+  ].join(':');
+  const {
+    data: logsInfo,
+    isError: logsQueryFailed,
+    error: logsQueryError,
+  } = useQuery<Map<string, string>, Error>({
+    queryKey: queryKeys.taskLogs(
+      task?.task_id,
+      task?.state,
+      namespace,
+      logsSourceIdentity,
+      sourceFinished,
+    ),
+    queryFn: () => {
+      if (!task) {
+        throw new Error('No task is found.');
+      }
+      return getLogsInfo(task, runId, namespace);
+    },
+    // Experiment metadata may still be resolving the namespace used by pod and artifact reads.
+    enabled: !!task && selectedTab === 2 && !namespacePending,
+    // Pod/artifact identity changes identify a new attempt or a newly available log source. Keep
+    // the last readable output visible while that source is fetched instead of blanking the tab.
+    placeholderData: (previousLogs, previousQuery) => {
+      const previousTaskId = (previousQuery?.queryKey[1] as { taskId?: string } | undefined)
+        ?.taskId;
+      return task?.task_id && previousTaskId === task.task_id ? previousLogs : undefined;
+    },
+    // Live logs and transient "not available yet" responses must recover while the task runs.
+    refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
+  });
+
+  const logsDetails = logsInfo?.get(LOGS_DETAILS);
+  const logsBannerMessage =
+    logsInfo?.get(LOGS_BANNER_MESSAGE) ||
+    (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
+  const logsBannerAdditionalInfo =
+    logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
+
+  return (
+    <div className='kfp-inspection-column'>
+      <InspectionTabs
+        tabs={['Input/Output', 'Task Details', 'Logs']}
+        selectedTab={selectedTab}
+        onSwitch={setSelectedTab}
+        ariaLabel='Task inspection'
+      >
+        <div className='kfp-inspection-column'>
+          {selectedTab === 0 &&
+            (task ? (
+              <RuntimeInputOutputTab
+                task={task}
+                namespace={namespace}
+                namespacePending={namespacePending}
+              />
+            ) : (
+              NODE_STATE_UNAVAILABLE
+            ))}
+          {selectedTab === 1 && (
+            <div className='kfp-inspection-scroll'>
+              <RuntimeTaskDetails element={element} task={task} />
+              <TaskPodsDetails pods={task?.pods} />
+              <TaskVolumeMountsDetails
+                element={element}
+                layers={layers}
+                pipelineJobString={pipelineJobString}
+              />
+            </div>
+          )}
+          {selectedTab === 2 && (
+            <div className='kfp-inspection-column'>
+              {namespacePending && (
+                <p className='kfp-inspection-empty' role='status'>
+                  Loading experiment namespace…
+                </p>
+              )}
+              {logsBannerMessage && (
+                <Banner
+                  message={logsBannerMessage}
+                  additionalInfo={logsBannerAdditionalInfo}
+                  mode={logsDetails ? 'info' : 'error'}
+                />
+              )}
+              {logsDetails && (
+                <div className='kfp-inspection-log-window' data-testid='logs-view-window'>
+                  <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </InspectionTabs>
+    </div>
+  );
+}
+
+export function getTaskDetailsFields(
+  element?: PipelineFlowElement | null,
+  task?: V2beta1PipelineTask,
+): Array<KeyValue<string>> {
+  if (!element) {
+    return [];
+  }
+  const details: Array<KeyValue<string>> = [['Task ID', task?.task_id || element.id || '-']];
+  if (!task) {
+    return details;
+  }
+  details.push(['Task name', getTaskDisplayName(task, '-')]);
+  details.push(['Task type', task.type || '-']);
+  details.push(['Status', formatTaskState(task.state)]);
+  details.push(['Created At', formatDateString(task.create_time)]);
+  details.push(['Finished At', isTaskFinished(task.state) ? formatDateString(task.end_time) : '-']);
+  if (task.parent_task_id) {
+    details.push(['Parent task ID', task.parent_task_id]);
+  }
+  if (task.scope_path) {
+    details.push(['Scope path', task.scope_path]);
+  }
+  if (task.cache_fingerprint) {
+    details.push(['Cache fingerprint', task.cache_fingerprint]);
+  }
+  if (task.type_attributes && Object.keys(task.type_attributes).length) {
+    details.push(['Type attributes', JSON.stringify(task.type_attributes)]);
+  }
+  // Successful retries can retain the failed attempt's status metadata. Errors remain
+  // available alongside their original state and timestamp in state history.
+  if (
+    task.status_metadata?.message &&
+    task.state !== PipelineTaskTaskState.SUCCEEDED &&
+    task.state !== PipelineTaskTaskState.CACHED
+  ) {
+    details.push(['Message', task.status_metadata.message]);
+  }
+  const stateHistory = (task.state_history || [])
+    .map((status) => {
+      const value = `${formatTaskState(status.state)} · ${formatDateString(status.update_time)}`;
+      return status.error?.message ? `${value} · ${status.error.message}` : value;
+    })
+    .join('\n');
+  if (stateHistory) {
+    details.push(['State history', stateHistory]);
+  }
+  return details;
+}
+
+function TaskPodsDetails({ pods = [] }: { pods?: PipelineTaskTaskPod[] }) {
+  if (!pods.length) return null;
+  // The API preserves pod order but exposes no attempt number. Keep that order
+  // without inferring retry numbers from potentially missing driver/executor pods.
+  return (
+    <details className='kfp-inspection-pods'>
+      <summary>Pods ({pods.length})</summary>
+      {pods.map((pod, index) => (
+        <DetailsTable
+          key={pod.uid || `${pod.type}-${pod.name}-${index}`}
+          title={`Pod ${index + 1} · ${pod.type || 'Unknown'}`}
+          fields={[
+            ['Name', pod.name || '-'],
+            ['UID', pod.uid || '-'],
+          ]}
+        />
+      ))}
+    </details>
+  );
+}
+
+function RuntimeTaskDetails({
+  element,
+  task,
+}: {
+  element?: PipelineFlowElement | null;
+  task?: V2beta1PipelineTask;
+}) {
+  return (
+    <>
+      <DetailsTable
+        title='Task Details'
+        fields={getTaskDetailsFields(element, task).filter(([name]) => name !== 'State history')}
+      />
+      {!!task?.state_history?.length && (
+        <table className='kfp-inspection-history'>
+          <caption>State history</caption>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: 8 }}>State</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>Updated at</th>
+            </tr>
+          </thead>
+          <tbody>
+            {task.state_history.map((status, index) => (
+              <tr key={index}>
+                <td style={{ verticalAlign: 'top', padding: 8 }}>
+                  {formatTaskState(status.state)}
+                  {status.error?.message && (
+                    <div style={{ overflowWrap: 'anywhere' }}>{status.error.message}</div>
+                  )}
+                </td>
+                <td
+                  style={{ verticalAlign: 'top', padding: 8, fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {formatDateString(status.update_time)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
+
+function formatTaskState(state?: PipelineTaskTaskState): string {
+  if (!state || state === PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED) {
+    return 'Unknown';
+  }
+  return state.charAt(0) + state.slice(1).toLowerCase();
+}
+
+function getNodeVolumeMounts(
+  layers: string[],
+  pipelineJobString?: string,
+  element?: PipelineFlowElement | null,
+): Array<KeyValue<string>> {
+  if (!pipelineJobString || !element) {
+    return [];
+  }
+  const taskKey = getTaskKeyFromNodeKey(element.id);
+  const pipelineSpec = convertYamlToV2PipelineSpec(pipelineJobString);
+  const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+  const platformSpec = convertYamlToPlatformSpec(pipelineJobString);
+  if (!platformSpec || !platformSpec.platforms[K8S_PLATFORM_KEY]) {
+    return [];
+  }
+  const deploymentSpec = PlatformDeploymentConfig.fromJSON(
+    platformSpec.platforms[K8S_PLATFORM_KEY].deploymentSpec,
+  );
+  const matchedExecutor = Object.entries(deploymentSpec.executors).find(
+    ([executorName]) => executorName === componentSpec?.executorLabel,
+  );
+  if (!matchedExecutor) {
+    return [];
+  }
+  const executor = KubernetesExecutorConfig.fromJSON(matchedExecutor[1]);
+  return Object.values(executor.pvcMount)
+    .map((mount) => PvcMount.fromJSON(mount))
+    .map((mount) => [mount.mountPath, mount.taskOutputParameter?.producerTask]);
+}
+
+interface TaskVolumeMountsDetailsProps {
+  element?: PipelineFlowElement | null;
+  layers: string[];
+  pipelineJobString?: string;
+}
+
+function TaskVolumeMountsDetails({
+  element,
+  layers,
+  pipelineJobString,
+}: TaskVolumeMountsDetailsProps) {
+  const fields = useMemo(
+    () => getNodeVolumeMounts(layers, pipelineJobString, element),
+    [element, layers, pipelineJobString],
+  );
+  return <DetailsTable title='Volume Mounts' fields={fields} />;
+}
+
+export async function getLogsInfo(
+  task: V2beta1PipelineTask,
+  runId?: string,
+  namespace?: string,
+): Promise<Map<string, string>> {
+  const logsInfo = new Map<string, string>();
+  if (task.state === PipelineTaskTaskState.CACHED) {
+    logsInfo.set(LOGS_DETAILS, 'This step output is taken from cache.');
+    return logsInfo;
+  }
+
+  const executorPod = getLatestTaskPod(task, PipelineTaskTaskPodType.EXECUTOR);
+  const driverPod = getLatestTaskPod(task, PipelineTaskTaskPodType.DRIVER);
+  const taskCreatedAt = task.create_time;
+  const createdAt =
+    taskCreatedAt && !Number.isNaN(taskCreatedAt.getTime())
+      ? taskCreatedAt.toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+  let podLogsError: unknown;
+  if (runId && executorPod?.name) {
+    try {
+      logsInfo.set(
+        LOGS_DETAILS,
+        await Apis.getPodLogs(runId, executorPod.name, namespace || '', createdAt),
+      );
+      return logsInfo;
+    } catch (error) {
+      podLogsError = error;
+    }
+  } else {
+    podLogsError = new Error('Task pod information is not available.');
+  }
+
+  const executorLogsArtifact = getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY);
+  let artifactLogsError: unknown;
+  if (executorLogsArtifact?.uri) {
+    try {
+      logsInfo.set(LOGS_DETAILS, await readArtifactFile(executorLogsArtifact, namespace));
+      return logsInfo;
+    } catch (error) {
+      artifactLogsError = error;
+    }
+  }
+
+  let driverLogsError: unknown;
+  if (runId && driverPod?.name) {
+    try {
+      logsInfo.set(
+        LOGS_DETAILS,
+        await Apis.getPodLogs(runId, driverPod.name, namespace || '', createdAt),
+      );
+      logsInfo.set(
+        LOGS_BANNER_MESSAGE,
+        'Showing driver initialization logs. These are not component executor output logs.',
+      );
+      return logsInfo;
+    } catch (error) {
+      driverLogsError = error;
+    }
+  }
+
+  const podErrorMessage = await errorToMessage(podLogsError);
+  logsInfo.set(
+    LOGS_BANNER_MESSAGE,
+    artifactLogsError || driverLogsError
+      ? 'Failed to retrieve task logs.'
+      : 'Failed to retrieve pod logs.',
+  );
+  const additionalInfo = [`Pod logs error: ${podErrorMessage}`];
+  if (artifactLogsError) {
+    additionalInfo.push(`Executor logs artifact error: ${await errorToMessage(artifactLogsError)}`);
+  }
+  if (driverLogsError) {
+    additionalInfo.push(`Driver pod logs error: ${await errorToMessage(driverLogsError)}`);
+  }
+  logsInfo.set(
+    LOGS_BANNER_ADDITIONAL_INFO,
+    artifactLogsError || driverLogsError
+      ? additionalInfo.join('\n')
+      : `Error response: ${podErrorMessage}`,
+  );
+  return logsInfo;
+}
+
+interface ArtifactNodeDetailProps {
+  task?: V2beta1PipelineTask;
+  artifactGroup?: InputOutputsIOArtifact;
+  namespace?: string;
+  namespacePending?: boolean;
+  sourceFinished?: boolean;
+}
+
+function ArtifactNodeDetail({
+  task,
+  artifactGroup,
+  namespace,
+  namespacePending = false,
+  sourceFinished,
+}: ArtifactNodeDetailProps) {
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [hasOpenedVisualization, setHasOpenedVisualization] = useState(false);
+  const artifacts = artifactGroup?.artifacts || [];
+  if (!task || !artifactGroup || !artifacts.length) {
+    return NODE_STATE_UNAVAILABLE;
+  }
+  return (
+    <div className='kfp-inspection-column'>
+      <InspectionTabs
+        tabs={['Artifact Info', 'Visualization']}
+        selectedTab={selectedTab}
+        onSwitch={(tab) => {
+          setSelectedTab(tab);
+          if (tab === 1) {
+            setHasOpenedVisualization(true);
+          }
+        }}
+        ariaLabel='Artifact inspection'
+      >
+        <div className='kfp-inspection-scroll'>
+          <div hidden={selectedTab !== 0}>
+            <ArtifactInfo
+              task={task}
+              artifactGroup={artifactGroup}
+              namespace={namespace}
+              namespacePending={namespacePending}
+            />
+          </div>
+          {(selectedTab === 1 || hasOpenedVisualization) && (
+            <div hidden={selectedTab !== 1} className='kfp-inspection-legacy'>
+              {namespacePending ? (
+                <p role='status'>Loading experiment namespace…</p>
+              ) : (
+                <RuntimeMetricsVisualizations
+                  artifacts={artifacts}
+                  artifactKey={artifactGroup.artifact_key}
+                  namespace={namespace}
+                  sourceFinished={sourceFinished || isTaskFinished(task.state)}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </InspectionTabs>
+    </div>
+  );
+}
+
+function ArtifactInfo({
+  task,
+  artifactGroup,
+  namespace,
+  namespacePending,
+}: Required<Pick<ArtifactNodeDetailProps, 'task' | 'artifactGroup'>> &
+  Pick<ArtifactNodeDetailProps, 'namespace' | 'namespacePending'>) {
+  const artifactEntries = flattenArtifactGroups([artifactGroup]);
+  const uriRows = buildRuntimeArtifactRows([artifactGroup]);
+  const firstArtifact = artifactEntries[0].artifact;
+  const artifactInfo: Array<KeyValue<string>> = [
+    ['Upstream Task Name', getTaskDisplayName(task, '-')],
+    ['Artifact Name', getArtifactDisplayName(firstArtifact, artifactGroup.artifact_key)],
+    ['Artifact Type', getArtifactTypeName(firstArtifact)],
+    ['Created At', formatDateString(firstArtifact.created_at)],
+  ];
+  if (artifactEntries.length > 1) {
+    artifactInfo.push(['Artifact Count', String(artifactEntries.length)]);
+  }
+  return (
+    <div>
+      <h3>{getArtifactDisplayName(firstArtifact, artifactGroup.artifact_key)}</h3>
+      <DetailsTable title='Artifact Info' fields={artifactInfo} />
+      <DetailsTable
+        title='Artifact Value'
+        fields={uriRows}
+        valueComponent={RuntimeArtifactValue}
+        valueComponentProps={{ namespace, namespacePending }}
+      />
+    </div>
+  );
+}
+
+interface SubDAGNodeDetailProps {
+  element: PipelineFlowElement;
+  task?: V2beta1PipelineTask;
+  layers: string[];
+  onLayerChange: (layers: string[]) => void;
+  namespace?: string;
+  namespacePending?: boolean;
+}
+
+function SubDAGNodeDetail({
+  element,
+  task,
+  layers,
+  onLayerChange,
+  namespace,
+  namespacePending = false,
+}: SubDAGNodeDetailProps) {
+  const [selectedTab, setSelectedTab] = useState(0);
+  const taskKey = getTaskKeyFromNodeKey(element.id);
+  return (
+    <div className='kfp-inspection-column'>
+      <div className='kfp-inspection-subdag-action'>
+        <Button variant='secondary' onClick={() => onLayerChange([...layers, taskKey])}>
+          Open Sub-DAG
+        </Button>
+      </div>
+      <InspectionTabs
+        tabs={['Input/Output', 'Task Details']}
+        selectedTab={selectedTab}
+        onSwitch={setSelectedTab}
+        ariaLabel='Sub-DAG inspection'
+      >
+        <div className='kfp-inspection-column'>
+          {selectedTab === 0 &&
+            (task ? (
+              <RuntimeInputOutputTab
+                task={task}
+                namespace={namespace}
+                namespacePending={namespacePending}
+              />
+            ) : (
+              NODE_STATE_UNAVAILABLE
+            ))}
+          {selectedTab === 1 && (
+            <div className='kfp-inspection-scroll'>
+              <RuntimeTaskDetails element={element} task={task} />
+              <TaskPodsDetails pods={task?.pods} />
+            </div>
+          )}
+        </div>
+      </InspectionTabs>
+    </div>
+  );
+}

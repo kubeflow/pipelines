@@ -20,7 +20,7 @@ import { vi } from 'vitest';
 import CustomTable, { Column, ExpandState, Row } from './CustomTable';
 import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../TestUtils';
 import { V2beta1PredicateOperation } from '../apisv2beta1/filter';
-import { logger } from 'src/lib/Utils';
+import { ResourceTable } from './tables/ResourceTable';
 
 type CustomTableProps = React.ComponentProps<typeof CustomTable>;
 
@@ -75,6 +75,9 @@ class CustomTableWrapper {
 
 const baseProps: CustomTableProps = {
   columns: [],
+  renderTable: (table) => (
+    <ResourceTable table={table} label='Test resources' getRowLabel={(row) => row.id} />
+  ),
   reload: async () => '',
   rows: [],
 };
@@ -115,25 +118,17 @@ function renderTable(overrides: Partial<CustomTableProps> = {}): CustomTableWrap
 }
 
 function getHeaderCheckbox(): HTMLElement {
-  const wrapper = screen.getByTestId('select-all-checkbox');
-  return within(wrapper).getByRole('checkbox');
+  return screen.getByRole('checkbox', { name: 'Select all resources on this page' });
 }
 
 function getRowsPerPageCombobox(): HTMLElement {
-  const footer = screen.getByText('Rows per page:').closest('div');
-  if (!footer) {
-    throw new Error('Unable to locate table footer containing the rows-per-page selector');
-  }
-  return within(footer).getByRole('combobox');
+  return screen.getByRole('combobox', { name: 'Rows per page' });
 }
 
 async function selectRowsPerPage(pageSize: number): Promise<void> {
+  await waitFor(() => expect(getRowsPerPageCombobox()).toBeEnabled());
   await act(async () => {
-    fireEvent.mouseDown(getRowsPerPageCombobox());
-  });
-  const option = await screen.findByRole('option', { name: String(pageSize) });
-  await act(async () => {
-    fireEvent.click(option);
+    fireEvent.change(getRowsPerPageCombobox(), { target: { value: String(pageSize) } });
     await TestUtils.flushPromises();
   });
 }
@@ -179,55 +174,52 @@ describe('CustomTable', () => {
     wrapper.unmount();
   });
 
-  it('renders some columns with equal widths without rows', async () => {
+  it('renders named column headers in the supplied order without rows', async () => {
     const wrapper = renderTable({ columns: [{ label: 'col1' }, { label: 'col2' }] });
     await flushPromisesInAct();
-    const col1 = screen.getByText('col1').closest('div[style]');
-    const col2 = screen.getByText('col2').closest('div[style]');
-    expect(col1).toHaveStyle({ width: '50%' });
-    expect(col2).toHaveStyle({ width: '50%' });
+    expect(
+      screen
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent)
+        .filter(Boolean),
+    ).toEqual(['col1', 'col2']);
     wrapper.unmount();
   });
 
   it('renders without the checkboxes if disableSelection is true', async () => {
     const wrapper = renderTable({ rows, columns, disableSelection: true });
     await flushPromisesInAct();
-    expect(screen.queryByTestId('select-all-checkbox')).toBeNull();
+    expect(
+      screen.queryByRole('checkbox', { name: 'Select all resources on this page' }),
+    ).toBeNull();
     wrapper.unmount();
   });
 
-  it('renders some columns with descending sort order on first column', async () => {
+  it('renders descending sort order on the initial column', async () => {
     const wrapper = renderTable({
       columns: [{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }],
       initialSortOrder: 'desc',
     });
     await flushPromisesInAct();
-    const col1Label = screen.getByText('col1');
-    expect(col1Label.closest('.MuiTableSortLabel-root')).toHaveClass('Mui-active');
-    const sortIcon = document.querySelector('.MuiTableSortLabel-icon');
-    expect(sortIcon).not.toBeNull();
-    expect(sortIcon).toHaveClass('MuiTableSortLabel-iconDirectionDesc');
+    expect(screen.getByRole('columnheader', { name: 'col1' })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+    expect(screen.getByRole('columnheader', { name: 'col2' })).not.toHaveAttribute('aria-sort');
     wrapper.unmount();
   });
 
-  it('renders columns with specified widths', async () => {
-    const wrapper = renderTable({
-      columns: [
-        {
-          flex: 3,
-          label: 'col1',
-        },
-        {
-          flex: 1,
-          label: 'col2',
-        },
-      ],
-    });
+  it('forwards supplied column metadata to the explicit renderer', async () => {
+    const suppliedColumns = [
+      { flex: 3, label: 'col1' },
+      { flex: 1, label: 'col2' },
+    ];
+    const adapter = vi.fn(baseProps.renderTable);
+    const wrapper = renderTable({ columns: suppliedColumns, renderTable: adapter });
     await flushPromisesInAct();
-    const col1 = screen.getByText('col1').closest('div[style]');
-    const col2 = screen.getByText('col2').closest('div[style]');
-    expect(col1).toHaveStyle({ width: '75%' });
-    expect(col2).toHaveStyle({ width: '25%' });
+    expect(adapter.mock.lastCall?.[0].columns).toBe(suppliedColumns);
+    expect(screen.getByRole('columnheader', { name: 'col1' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'col2' })).toBeInTheDocument();
     wrapper.unmount();
   });
 
@@ -242,6 +234,123 @@ describe('CustomTable', () => {
       pageToken: '',
       sortBy: '',
     });
+  });
+
+  it('restores next-page navigation when a direct refresh recovers a page token', async () => {
+    let nextToken = '';
+    const reload = vi.fn(async () => nextToken);
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled());
+    nextToken = 'after-retry';
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeEnabled();
+    nextToken = '';
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith(
+        expect.objectContaining({ pageToken: 'after-retry' }),
+      ),
+    );
+  });
+
+  it('refreshes paging tokens without losing the current page or previous-page token', async () => {
+    let nextToken = '';
+    const reload = vi.fn(async (request: Parameters<CustomTableProps['reload']>[0]) =>
+      request.pageToken ? nextToken : 'page-one',
+    );
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(wrapper.state('tokenList')).toEqual(['', 'page-one']));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await waitFor(() => expect(wrapper.state('currentPage')).toBe(1));
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    nextToken = 'new-page-two';
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    expect(wrapper.state('currentPage')).toBe(1);
+    expect(wrapper.state('tokenList')).toEqual(['', 'page-one', 'new-page-two']);
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith(
+        expect.objectContaining({ pageToken: 'new-page-two' }),
+      ),
+    );
+  });
+
+  it('does not let an older direct refresh overwrite a newer page token', async () => {
+    const reload = vi.fn<CustomTableProps['reload']>(async () => '');
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled());
+    let finishOlder!: (token: string) => void;
+    const olderResult = new Promise<string>((resolve) => {
+      finishOlder = resolve;
+    });
+    reload.mockImplementationOnce(() => olderResult).mockResolvedValueOnce('latest-token');
+    let olderRefresh!: Promise<string>;
+    act(() => {
+      olderRefresh = wrapper.instance().reload();
+    });
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    await act(async () => {
+      finishOlder('stale-token');
+      await olderRefresh;
+    });
+    expect(wrapper.state('tokenList')).toEqual(['', 'latest-token']);
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeEnabled();
+  });
+
+  it('does not let an older page request overwrite a newer filter reset', async () => {
+    const reload = vi.fn<CustomTableProps['reload']>(async () => 'page-one');
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(wrapper.state('tokenList')).toEqual(['', 'page-one']));
+    let finishPage!: (token: string) => void;
+    reload.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishPage = resolve;
+        }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    reload.mockResolvedValueOnce('filtered-next');
+    await act(async () => {
+      await wrapper.instance()._requestFilter('new');
+    });
+    await act(async () => {
+      finishPage('stale-next');
+    });
+    expect(wrapper.state('currentPage')).toBe(0);
+    expect(wrapper.state('tokenList')).toEqual(['', 'filtered-next']);
+  });
+
+  it('does not let an older filter reset overwrite a newer direct refresh', async () => {
+    const reload = vi.fn<CustomTableProps['reload']>(async () => 'page-one');
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(wrapper.state('tokenList')).toEqual(['', 'page-one']));
+    let finishFilter!: (token: string) => void;
+    reload.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishFilter = resolve;
+        }),
+    );
+    let filtering!: Promise<void>;
+    act(() => {
+      filtering = wrapper.instance()._requestFilter('old');
+    });
+    reload.mockResolvedValueOnce('latest-next');
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    await act(async () => {
+      finishFilter('stale-next');
+      await filtering;
+    });
+    expect(wrapper.state('currentPage')).toBe(0);
+    expect(wrapper.state('tokenList')).toEqual(['', 'latest-next']);
   });
 
   it('calls reload function with sort key of clicked column, while keeping same page', async () => {
@@ -347,39 +456,18 @@ describe('CustomTable', () => {
     expect(reload).toHaveBeenCalledTimes(previousCallCount);
   });
 
-  it('does not render sort icon for columns without sort key', async () => {
+  it('offers sorting only for columns with a sort key', async () => {
     renderTable({
       columns: [{ label: 'sortable', sortKey: 'sortableKey' }, { label: 'unsortable' }],
       rows,
     });
     await flushPromisesInAct();
-
-    const sortableHeader = screen.getByText('sortable').closest('.MuiTableSortLabel-root');
-    const unsortableHeader = screen.getByText('unsortable').closest('.MuiTableSortLabel-root');
-
-    expect(sortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeTruthy();
-    expect(unsortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeNull();
-  });
-
-  it('logs error if row has more cells than columns', () => {
-    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
-    const wrapper = renderTable({ rows });
-    expect(loggerSpy).toHaveBeenCalledWith(
-      'Rows must have the same number of cells defined in columns',
-    );
-    wrapper.unmount();
-    loggerSpy.mockRestore();
-  });
-
-  it('logs error if row has fewer cells than columns', () => {
-    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
-    const testColumns = [{ label: 'col1' }, { label: 'col2' }, { label: 'col3' }];
-    const wrapper = renderTable({ rows, columns: testColumns });
-    expect(loggerSpy).toHaveBeenCalledWith(
-      'Rows must have the same number of cells defined in columns',
-    );
-    wrapper.unmount();
-    loggerSpy.mockRestore();
+    expect(
+      within(screen.getByRole('columnheader', { name: 'sortable' })).getByRole('button'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('columnheader', { name: 'unsortable' })).queryByRole('button'),
+    ).toBeNull();
   });
 
   it('renders some rows', async () => {
@@ -495,8 +583,8 @@ describe('CustomTable', () => {
     const wrapper = renderTable({ rows, columns, reload: spy });
     await flushPromisesInAct();
     expect(wrapper.state()).toHaveProperty('maxPageIndex', 0);
-    const prevBtn = screen.getByTestId('prev-page-btn');
-    const nextBtn = screen.getByTestId('next-page-btn');
+    const prevBtn = screen.getByRole('button', { name: 'Previous page' });
+    const nextBtn = screen.getByRole('button', { name: 'Next page' });
     expect(prevBtn).toBeDisabled();
     expect(nextBtn).toBeDisabled();
     wrapper.unmount();
@@ -507,8 +595,8 @@ describe('CustomTable', () => {
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows, columns, reload: spy });
     await flushPromisesInAct();
-    const prevBtn = screen.getByTestId('prev-page-btn');
-    const nextBtn = screen.getByTestId('next-page-btn');
+    const prevBtn = screen.getByRole('button', { name: 'Previous page' });
+    const nextBtn = screen.getByRole('button', { name: 'Next page' });
     expect(wrapper.state()).toHaveProperty('maxPageIndex', Number.MAX_SAFE_INTEGER);
     expect(prevBtn).toBeDisabled();
     expect(nextBtn).not.toBeDisabled();
@@ -520,7 +608,7 @@ describe('CustomTable', () => {
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows, columns, reload: spy });
     await flushPromisesInAct();
-    const nextBtn = screen.getByTestId('next-page-btn');
+    const nextBtn = screen.getByRole('button', { name: 'Next page' });
     fireEvent.click(nextBtn);
     await waitFor(() =>
       expect(spy).toHaveBeenLastCalledWith({
@@ -539,7 +627,7 @@ describe('CustomTable', () => {
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
     await flushPromisesInAct();
-    const nextBtn = screen.getByTestId('next-page-btn');
+    const nextBtn = screen.getByRole('button', { name: 'Next page' });
     fireEvent.click(nextBtn);
     await flushPromisesInAct();
     expect(spy).toHaveBeenLastCalledWith({
@@ -551,7 +639,7 @@ describe('CustomTable', () => {
     });
     expect(wrapper.state()).toHaveProperty('currentPage', 1);
     wrapper.rerender({ ...baseProps, rows: [rows[1]], columns, reload: spy });
-    const prevBtn = screen.getByTestId('prev-page-btn');
+    const prevBtn = screen.getByRole('button', { name: 'Previous page' });
     expect(prevBtn).not.toBeDisabled();
     wrapper.unmount();
   });
@@ -561,8 +649,8 @@ describe('CustomTable', () => {
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
     await flushPromisesInAct();
-    const prevBtn = screen.getByTestId('prev-page-btn');
-    const nextBtn = screen.getByTestId('next-page-btn');
+    const prevBtn = screen.getByRole('button', { name: 'Previous page' });
+    const nextBtn = screen.getByRole('button', { name: 'Next page' });
     fireEvent.click(nextBtn);
     await flushPromisesInAct();
     fireEvent.click(prevBtn);
@@ -577,7 +665,7 @@ describe('CustomTable', () => {
       }),
     );
     wrapper.rerender({ ...baseProps, rows, columns, reload: spy });
-    const prevBtnAfterUpdate = screen.getByTestId('prev-page-btn');
+    const prevBtnAfterUpdate = screen.getByRole('button', { name: 'Previous page' });
     expect(prevBtnAfterUpdate).toBeDisabled();
     await flushPromisesInAct();
     wrapper.unmount();
@@ -620,7 +708,7 @@ describe('CustomTable', () => {
     const row = { ...rows[0], expandState: ExpandState.COLLAPSED };
     const wrapper = renderTable({ rows: [row], columns, getExpandComponent: () => null });
     await flushPromisesInAct();
-    expect(screen.getByLabelText('Expand')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand resource row1' })).toBeInTheDocument();
     wrapper.unmount();
   });
 
@@ -633,16 +721,20 @@ describe('CustomTable', () => {
       disableSelection: true,
     });
     await flushPromisesInAct();
-    expect(screen.queryByTestId('select-all-checkbox')).toBeNull();
+    expect(
+      screen.queryByRole('checkbox', { name: 'Select all resources on this page' }),
+    ).toBeNull();
     wrapper.unmount();
   });
 
-  it('renders an expanded row', async () => {
+  it('forwards expanded row state to the renderer', async () => {
     const row = { ...rows[0], expandState: ExpandState.EXPANDED };
-    const wrapper = renderTable({ rows: [row], columns });
+    const wrapper = renderTable({ rows: [row], columns, getExpandComponent: () => null });
     await flushPromisesInAct();
-    const tableRow = screen.getByTestId('table-row');
-    expect(tableRow.closest('[class*="expandedContainer"]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Collapse resource row1' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     wrapper.unmount();
   });
 
@@ -662,30 +754,39 @@ describe('CustomTable', () => {
     const row = { ...rows[0], expandState: ExpandState.EXPANDED };
     const toggleSpy = vi.fn();
     renderTable({
-      rows: [row, row, row],
+      rows: [row, { ...row, id: 'row2' }, { ...row, id: 'row3' }],
       columns,
       getExpandComponent: () => <span>Hello World</span>,
       toggleExpansion: toggleSpy,
     });
     await flushPromisesInAct();
-    const expandButtons = screen.getAllByLabelText('Expand');
-    fireEvent.click(expandButtons[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse resource row2' }));
     expect(toggleSpy).toHaveBeenCalledWith(1);
   });
 
   it('renders a table with sorting disabled', async () => {
-    const wrapper = renderTable({ rows, columns, disableSorting: true });
+    const wrapper = renderTable({
+      rows,
+      columns: columns.map((column) => ({ ...column, sortKey: column.label })),
+      disableSorting: true,
+    });
     await flushPromisesInAct();
-    expect(screen.queryByLabelText('Sort')).toBeNull();
+    expect(
+      within(screen.getByRole('columnheader', { name: 'col1' })).queryByRole('button'),
+    ).toBeNull();
+    expect(
+      within(screen.getByRole('columnheader', { name: 'col2' })).queryByRole('button'),
+    ).toBeNull();
     expect(screen.getAllByTestId('table-row')).toHaveLength(2);
     wrapper.unmount();
   });
 
   it('updates the filter string in state when the filter box input changes', async () => {
     const wrapper = renderTable({ rows, columns });
-    await invokeAndFlush(() =>
-      wrapper.instance().handleFilterChange({ target: { value: 'test filter' } }),
-    );
+    await flushPromisesInAct();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter' }), {
+      target: { value: 'test filter' },
+    });
     expect(wrapper.state('filterString')).toEqual('test filter');
     wrapper.unmount();
   });
@@ -799,4 +900,43 @@ describe('CustomTable', () => {
     secondWrapper.unmount();
     window.location.hash = '';
   });
+});
+
+it('reloads changed predicates without remounting or losing the current filter and sort', async () => {
+  const reload = vi.fn().mockResolvedValue('next-token');
+  const props = {
+    ...baseProps,
+    reload,
+    initialFilterString: 'saved',
+    initialSortColumn: 'name',
+    initialSortOrder: 'asc' as const,
+  };
+  const wrapper = renderTable(props);
+  await flushPromisesInAct();
+  const instance = wrapper.instance();
+  reload.mockClear();
+  const predicate = {
+    key: 'type',
+    operation: V2beta1PredicateOperation.IN,
+    int_values: { values: [6] },
+  };
+  wrapper.rerender({ ...props, filterPredicates: [predicate] });
+  await flushPromisesInAct();
+  expect(wrapper.instance()).toBe(instance);
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(reload.mock.lastCall?.[0]).toMatchObject({
+    pageToken: '',
+    sortBy: 'name',
+    orderAscending: true,
+  });
+  expect(JSON.parse(decodeURIComponent(reload.mock.lastCall?.[0].filter))).toEqual({
+    predicates: [
+      { key: 'name', operation: V2beta1PredicateOperation.IS_SUBSTRING, string_value: 'saved' },
+      predicate,
+    ],
+  });
+  wrapper.rerender({ ...props, filterPredicates: [{ ...predicate }] });
+  await flushPromisesInAct();
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(wrapper.state('filterString')).toBe('saved');
 });

@@ -12,31 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  Checkbox,
-  FormControl,
-  InputLabel,
-  ListItemText,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-  Tab,
-  Tabs,
-  TextField,
-} from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { Select as SelectPrimitive } from '@base-ui/react/select';
+import { Check, ChevronDown } from 'lucide-react';
+import { Button } from 'src/components/ui/button';
+import { Input } from 'src/components/ui/input';
+import { InspectionTabs } from 'src/components/inspection/InspectionTabs';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
-import Banner from 'src/components/Banner';
+import { VisualizationNotice } from './VisualizationNotice';
 import PlotCard from 'src/components/PlotCard';
-import { padding } from 'src/Css';
 import {
   getArtifactDisplayName,
   isClassificationMetricArtifact,
   isHtmlArtifact,
   isMarkdownArtifact,
 } from 'src/lib/v2/RuntimeArtifactUtils';
-import { stylesheet } from 'typestyle';
+import './ComparisonViewers.css';
 import { ConfusionMatrixConfig } from './ConfusionMatrix';
 import ROCCurve, { lineColors, ROCCurveConfig } from './ROCCurve';
 import {
@@ -50,44 +42,6 @@ import {
 const MAX_SELECTED_ROC_CURVES = 10;
 const DEFAULT_SELECTED_ROC_CURVES = 3;
 const MAX_ROC_SELECTOR_OPTIONS = 100;
-
-const css = stylesheet({
-  rocSection: {
-    padding: '8px 20px 0',
-  },
-  rocHeading: {
-    fontSize: 16,
-    margin: '0 0 8px',
-  },
-  comparisonGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 24,
-    paddingTop: 16,
-  },
-  comparisonPanel: {
-    flex: '1 1 420px',
-    minWidth: 320,
-  },
-  curveSwatch: {
-    borderRadius: 2,
-    display: 'inline-block',
-    flex: '0 0 auto',
-    height: 10,
-    width: 10,
-  },
-  selector: {
-    minWidth: 300,
-    width: '100%',
-  },
-  selectorSection: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 16,
-    alignItems: 'end',
-    $nest: { '& > *': { flex: '1 1 260px', minWidth: 0 } },
-  },
-});
 
 export type RuntimeArtifactComparisonKind = 'classification' | 'html' | 'markdown';
 
@@ -239,72 +193,52 @@ function ClassificationComparison({
   return (
     <>
       {(hasRoc || hasMatrix) && (
-        <Tabs
-          value={activeView}
-          onChange={(_, value) => setSelectedView(value)}
-          aria-label='Classification visualization'
+        <InspectionTabs
+          ariaLabel='Classification visualization'
+          tabs={[
+            { label: 'ROC curves', disabled: !hasRoc },
+            { label: 'Confusion matrix', disabled: !hasMatrix },
+          ]}
+          selectedTab={activeView === 'roc' ? 0 : 1}
+          onSwitch={(index) => setSelectedView(index === 0 ? 'roc' : 'matrix')}
         >
-          <Tab
-            value='roc'
-            label='ROC curves'
-            disabled={!hasRoc}
-            id='classification-roc-tab'
-            aria-controls='classification-roc-panel'
-          />
-          <Tab
-            value='matrix'
-            label='Confusion matrix'
-            disabled={!hasMatrix}
-            id='classification-matrix-tab'
-            aria-controls='classification-matrix-panel'
-          />
-        </Tabs>
+          <div hidden={activeView !== 'roc'}>
+            {!!rocEntries.length && (
+              <RocCurveComparison
+                entries={rocEntries}
+                errors={rocErrors}
+                explicitColorByKey={rocColorByKey}
+                explicitSelectedKeys={rocSelectedKeys}
+                updateSelectionState={updateSelectionState}
+              />
+            )}
+            {!rocEntries.length && !!rocErrors.length && (
+              <VisualizationNotice
+                message='The selected runs contain invalid ROC curve artifacts.'
+                variant='error'
+                details={rocErrors.join('\n')}
+              />
+            )}
+          </div>
+          <div hidden={activeView !== 'matrix'}>
+            {!!matrixEntries.length && (
+              <TwoPanelComparison
+                entries={matrixEntries}
+                kind='confusion matrix'
+                selectedKeys={panelSelections}
+                updatePanelSelection={updatePanelSelection}
+              />
+            )}
+            {!!matrixErrors.length && (
+              <VisualizationNotice
+                message='The selected runs contain invalid confusion matrix artifacts.'
+                variant='error'
+                details={matrixErrors.join('\n')}
+              />
+            )}
+          </div>
+        </InspectionTabs>
       )}
-      <div
-        role='tabpanel'
-        id='classification-roc-panel'
-        aria-labelledby='classification-roc-tab'
-        hidden={activeView !== 'roc'}
-      >
-        {!!rocEntries.length && (
-          <RocCurveComparison
-            entries={rocEntries}
-            errors={rocErrors}
-            explicitColorByKey={rocColorByKey}
-            explicitSelectedKeys={rocSelectedKeys}
-            updateSelectionState={updateSelectionState}
-          />
-        )}
-        {!rocEntries.length && !!rocErrors.length && (
-          <Banner
-            message='The selected runs contain invalid ROC curve artifacts.'
-            mode='error'
-            additionalInfo={rocErrors.join('\n')}
-          />
-        )}
-      </div>
-      <div
-        role='tabpanel'
-        id='classification-matrix-panel'
-        aria-labelledby='classification-matrix-tab'
-        hidden={activeView !== 'matrix'}
-      >
-        {!!matrixEntries.length && (
-          <TwoPanelComparison
-            entries={matrixEntries}
-            kind='confusion matrix'
-            selectedKeys={panelSelections}
-            updatePanelSelection={updatePanelSelection}
-          />
-        )}
-        {!!matrixErrors.length && (
-          <Banner
-            message='The selected runs contain invalid confusion matrix artifacts.'
-            mode='error'
-            additionalInfo={matrixErrors.join('\n')}
-          />
-        )}
-      </div>
       {!rocEntries.length && !rocErrors.length && !matrixEntries.length && !matrixErrors.length && (
         <p>There are no ROC curves or confusion matrices available on the selected runs.</p>
       )}
@@ -326,6 +260,10 @@ function RocCurveComparison({
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
   const [selectorFilter, setSelectorFilter] = useState('');
+  const [portalContainer, setPortalContainer] = useState<HTMLElement>();
+  const setSelectTrigger = useCallback((node: HTMLButtonElement | null) => {
+    if (node) setPortalContainer(node.closest<HTMLElement>('.kfp-theme') || undefined);
+  }, []);
   const [selectorPage, setSelectorPage] = useState(0);
   const [chartExpanded, setChartExpanded] = useState(false);
   const validKeys = useMemo(() => new Set(entries.map(({ key }) => key)), [entries]);
@@ -406,9 +344,14 @@ function RocCurveComparison({
     selectorStart,
     selectorStart + MAX_ROC_SELECTOR_OPTIONS,
   );
-  const handleSelection = (event: SelectChangeEvent<string[]>) => {
-    const value = event.target.value;
-    const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
+  const handleSelection = (value: string[], details: SelectPrimitive.Root.ChangeEventDetails) => {
+    if (details.reason === 'none') {
+      // Only this page of options is mounted. Preserve off-page selections when Base UI
+      // reconciles removed options; validKeys above reconciles against the full artifact set.
+      details.cancel();
+      return;
+    }
+    const nextKeys = limitRocSelection(value);
     const registry = new Map(Object.entries(currentColorState.registry));
     const nextColorState = {
       colors: allocateSelectedRocColors(nextKeys, registry, selectedKeys),
@@ -424,88 +367,101 @@ function RocCurveComparison({
   };
 
   return (
-    <section className={css.rocSection}>
-      <h3 className={css.rocHeading}>Cross-run ROC curve comparison</h3>
-      <div className={css.selectorSection}>
-        <TextField
-          fullWidth
-          label='Search ROC curves'
-          onChange={(event) => {
-            setSelectorFilter(event.target.value);
-            setSelectorPage(0);
-          }}
-          size='small'
-          value={selectorFilter}
-          variant='standard'
-        />
-        <FormControl className={css.selector} variant='standard'>
-          <InputLabel id='roc-comparison-label'>ROC curves</InputLabel>
-          <Select
-            labelId='roc-comparison-label'
-            multiple
-            value={selectedKeys}
-            onChange={handleSelection}
-            renderValue={(value) =>
-              `${value.length} curve${value.length === 1 ? '' : 's'} selected`
-            }
-            inputProps={{ 'aria-label': 'ROC curves' }}
-          >
-            {selectorEntries.map(({ key, label }) => (
-              <MenuItem
-                disabled={
-                  selectedKeys.length >= MAX_SELECTED_ROC_CURVES && !selectedKeySet.has(key)
-                }
-                key={key}
-                value={key}
+    <section className='kfp-roc-section'>
+      <h3 className='kfp-roc-heading'>Cross-run ROC curve comparison</h3>
+      <div className='kfp-visualization-selectors'>
+        <label className='kfp-visualization-field'>
+          Search ROC curves
+          <Input
+            onChange={(event) => {
+              setSelectorFilter(event.target.value);
+              setSelectorPage(0);
+            }}
+            value={selectorFilter}
+          />
+        </label>
+        <div className='kfp-visualization-field'>
+          <span id='roc-comparison-label'>ROC curves</span>
+          <SelectPrimitive.Root multiple value={selectedKeys} onValueChange={handleSelection}>
+            <SelectPrimitive.Trigger
+              ref={setSelectTrigger}
+              className='kfp-visualization-select'
+              aria-labelledby='roc-comparison-label'
+            >
+              {selectedKeys.length} curve{selectedKeys.length === 1 ? '' : 's'} selected
+              <SelectPrimitive.Icon>
+                <ChevronDown size={16} aria-hidden='true' />
+              </SelectPrimitive.Icon>
+            </SelectPrimitive.Trigger>
+            <SelectPrimitive.Portal container={portalContainer}>
+              <SelectPrimitive.Positioner
+                className='kfp-visualization-popup-positioner'
+                sideOffset={4}
               >
-                <Checkbox
-                  checked={selectedKeySet.has(key)}
-                  inputProps={{ 'aria-hidden': true }}
-                  tabIndex={-1}
-                />
-                <span
-                  aria-hidden='true'
-                  className={css.curveSwatch}
-                  style={{ backgroundColor: getSelectorColor(key) }}
-                />
-                <ListItemText primary={label} />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+                <SelectPrimitive.Popup className='kfp-visualization-popup'>
+                  <SelectPrimitive.List aria-label='ROC curves'>
+                    {selectorEntries.map(({ key, label }) => (
+                      <SelectPrimitive.Item
+                        key={key}
+                        value={key}
+                        label={label}
+                        className='kfp-visualization-option'
+                        disabled={
+                          selectedKeys.length >= MAX_SELECTED_ROC_CURVES && !selectedKeySet.has(key)
+                        }
+                      >
+                        <SelectPrimitive.ItemIndicator className='kfp-visualization-check'>
+                          <Check size={14} aria-hidden='true' />
+                        </SelectPrimitive.ItemIndicator>
+                        <span
+                          aria-hidden='true'
+                          className='kfp-curve-swatch'
+                          style={{ backgroundColor: getSelectorColor(key) }}
+                        />
+                        <SelectPrimitive.ItemText>{label}</SelectPrimitive.ItemText>
+                      </SelectPrimitive.Item>
+                    ))}
+                  </SelectPrimitive.List>
+                </SelectPrimitive.Popup>
+              </SelectPrimitive.Positioner>
+            </SelectPrimitive.Portal>
+          </SelectPrimitive.Root>
+        </div>
         {!matchingEntries.length ? (
           <p aria-live='polite' role='status'>
             No ROC curves match this search.
           </p>
         ) : matchingEntries.length > MAX_ROC_SELECTOR_OPTIONS ? (
           <nav aria-label='ROC curve result pages'>
-            <button
+            <Button
+              variant='secondary'
               disabled={visibleSelectorPage === 0}
               onClick={() => setSelectorPage((page) => Math.max(0, page - 1))}
               type='button'
             >
               Previous ROC curves
-            </button>
+            </Button>
             <span aria-live='polite'>
               Showing {selectorStart + 1}–
               {Math.min(selectorStart + selectorEntries.length, matchingEntries.length)} of{' '}
               {matchingEntries.length} {normalizedFilter ? 'matching ' : ''}curves.
             </span>
-            <button
+            <Button
+              variant='secondary'
               disabled={visibleSelectorPage >= selectorPageCount - 1}
               onClick={() => setSelectorPage((page) => Math.min(selectorPageCount - 1, page + 1))}
               type='button'
             >
               Next ROC curves
-            </button>
+            </Button>
           </nav>
         ) : null}
       </div>
       {!!errors.length && (
-        <Banner
+        <VisualizationNotice
           message='Some ROC curve artifacts could not be displayed.'
-          mode='error'
-          additionalInfo={errors.join('\n')}
+          variant='error'
+          details={errors.join('\n')}
         />
       )}
       {!!selectedEntries.length && (
@@ -521,16 +477,17 @@ function RocCurveComparison({
         />
       )}
       {!!selectedEntries.length && (
-        <button
+        <Button
+          variant='secondary'
           type='button'
           aria-expanded={chartExpanded}
           onClick={() => setChartExpanded((expanded) => !expanded)}
         >
           {chartExpanded ? 'Compact ROC chart' : 'Expand ROC chart'}
-        </button>
+        </Button>
       )}
       {!selectedEntries.length && (
-        <Banner message='Select at least one ROC curve to compare.' mode='info' />
+        <VisualizationNotice message='Select at least one ROC curve to compare.' variant='info' />
       )}
     </section>
   );
@@ -554,32 +511,30 @@ function TwoPanelComparison({
   ];
 
   return (
-    <section className={padding(20, 'lr')} aria-label={`Side-by-side ${kind} comparison`}>
-      <div className={css.comparisonGrid}>
+    <section className='kfp-visualization-section' aria-label={`Side-by-side ${kind} comparison`}>
+      <div className='kfp-comparison-grid'>
         {activeSelectedKeys.map((selectedKey, panelIndex) => {
           const entry = entryByKey.get(selectedKey);
           const ordinal = panelIndex === 0 ? 'First' : 'Second';
           const labelId = `${kind.replace(/\s/g, '-')}-comparison-${panelIndex}`;
           return (
-            <div className={css.comparisonPanel} key={labelId}>
-              <FormControl className={css.selector} variant='standard'>
-                <InputLabel id={labelId}>{ordinal} comparison artifact</InputLabel>
-                <Select
-                  labelId={labelId}
+            <div className='kfp-comparison-panel' key={labelId}>
+              <label className='kfp-visualization-field' htmlFor={labelId}>
+                {ordinal} comparison artifact
+                <select
+                  id={labelId}
+                  className='kfp-visualization-select'
                   value={selectedKey}
-                  onChange={(event) =>
-                    updatePanelSelection(kind, panelIndex, event.target.value as string)
-                  }
-                  inputProps={{ 'aria-label': `${ordinal} comparison artifact` }}
+                  onChange={(event) => updatePanelSelection(kind, panelIndex, event.target.value)}
                 >
-                  <MenuItem value=''>Choose an artifact</MenuItem>
+                  <option value=''>Choose an artifact</option>
                   {entries.map((candidate) => (
-                    <MenuItem key={candidate.key} value={candidate.key}>
+                    <option key={candidate.key} value={candidate.key}>
                       {candidate.label}
-                    </MenuItem>
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
+                </select>
+              </label>
               {entry?.configs && (
                 <PlotCard configs={entry.configs} key={entry.key} title={entry.label} />
               )}

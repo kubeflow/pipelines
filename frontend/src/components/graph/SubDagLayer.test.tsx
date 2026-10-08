@@ -22,6 +22,7 @@ describe('SubDagLayer', () => {
   it('renders the Layers label', () => {
     render(<SubDagLayer layers={['root']} onLayersUpdate={vi.fn()} />);
     expect(screen.getByText('Layers')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Graph hierarchy' })).toBeInTheDocument();
   });
 
   it('renders breadcrumb for a single layer', () => {
@@ -40,6 +41,7 @@ describe('SubDagLayer', () => {
     render(<SubDagLayer layers={['root', 'child']} onLayersUpdate={vi.fn()} />);
     const activeButton = screen.getByText('child');
     expect(activeButton.closest('button')).toBeDisabled();
+    expect(activeButton.closest('button')).toHaveAttribute('aria-current', 'step');
   });
 
   it('enables inactive breadcrumbs', () => {

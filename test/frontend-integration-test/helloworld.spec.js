@@ -15,11 +15,11 @@
 const assert = require('assert');
 const URL = require('url').URL;
 const {
-  buildTableRowSelector,
   clearDefaultInput,
   getValueFromDetailsTable,
   runPhase,
   saveDebugScreenshot,
+  selectPipelineCard,
   selectPipelineForRun,
   waitForCondition,
   waitForGraphNodeCount,
@@ -43,6 +43,7 @@ const runStartTimeout = 30000;
 const runCompletionTimeout = 180000;
 const logsLoadTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
+const runsFilterSelector = 'input[type="search"][placeholder="Filter runs by name"]';
 
 function getGraphNodeByLabel(label) {
   return $(
@@ -233,6 +234,10 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('navigates to the runs page', async () => {
+    // On narrow screens the inspector is modal; close it before using background navigation.
+    const closeInspector = await $('button[aria-label="close"]');
+    await closeInspector.click();
+    await closeInspector.waitForDisplayed({ timeout: uiTimeout, reverse: true });
     await $('#runsBtn').click();
     await waitForHashPrefix('#/runs', { timeout: uiTimeout });
   });
@@ -271,10 +276,10 @@ describe('deploy helloworld sample run', () => {
       await waitForHashPrefix('#/runs', { timeout: uiTimeout });
     }
 
-    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
+    await waitForSelectorDisplayed(runsFilterSelector, { timeout: uiTimeout });
 
     const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
-    await $('#tableFilterBox').click();
+    await $(runsFilterSelector).click();
     await clearDefaultInput();
     await browser.keys(runName);
     await waitForCondition(
@@ -287,7 +292,7 @@ describe('deploy helloworld sample run', () => {
 
     const runWithoutExperimentLinkSelector =
       `[data-testid="run-name-link"][data-run-name*="${runWithoutExperimentName}"]`;
-    await $('#tableFilterBox').click();
+    await $(runsFilterSelector).click();
     await clearDefaultInput();
     await browser.keys(runWithoutExperimentName);
     await waitForCondition(
@@ -300,7 +305,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('navigates back to the experiment list', async () => {
-    await $('button=Experiments').click();
+    await $('a[aria-label="Experiments"]').click();
     await waitForHashPrefix('#/experiments', { timeout: uiTimeout });
   });
 
@@ -317,9 +322,9 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('filters the experiment list', async () => {
-    await $('#tableFilterBox').click();
-    await clearDefaultInput();
-    await browser.keys(experimentName);
+    const filterSelector = 'input[type="search"][placeholder="Filter experiments"]';
+    await waitForSelectorDisplayed(filterSelector, { timeout: uiTimeout });
+    await $(filterSelector).setValue(experimentName);
 
     const experimentLinkSelector =
       `[data-testid="experiment-name-link"][data-experiment-name="${experimentName}"]`;
@@ -345,34 +350,8 @@ describe('deploy helloworld sample run', () => {
     await runPhase('open pipelines list for cleanup', async () => {
       await $('#pipelinesBtn').click();
       await waitForHashPrefix('#/pipelines', { timeout: pageReadyTimeout });
-      await waitForCondition(
-        async () =>
-          browser.execute(
-            () =>
-              document.querySelector('label[for="tableFilterBox"]')?.textContent?.trim() ===
-              'Filter pipelines',
-          ),
-        {
-          timeout: pageReadyTimeout,
-          timeoutMsg: 'expected the Pipelines list filter to load after navigation',
-        },
-      );
-      await waitForSelectorDisplayed('#tableFilterBox', { timeout: pageReadyTimeout });
+      await selectPipelineCard(pipelineName, { timeout: pageReadyTimeout });
     });
-
-    await $('#tableFilterBox').click();
-    await clearDefaultInput();
-    await browser.keys(pipelineName);
-
-    const pipelineRowSelector = buildTableRowSelector(pipelineName);
-    await waitForCondition(
-      async () => (await $(pipelineRowSelector).isExisting()),
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected pipeline row for ${pipelineName} after filtering`,
-      },
-    );
-    await $(pipelineRowSelector).click();
 
     await $('#deletePipelinesAndPipelineVersionsBtn').click();
     await $('[role="dialog"]').waitForDisplayed({ timeout: uiTimeout });

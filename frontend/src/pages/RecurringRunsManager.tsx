@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
+import type { ToolbarActionMap, SnackbarProps } from 'src/lib/PageChromeTypes';
 import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
-import BusyButton from 'src/atoms/BusyButton';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
+import { ScheduleSwitch } from 'src/components/runs/ScheduleSwitch';
+import 'src/components/runs/ExperimentWorkflows.css';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
-import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
+import { Toolbar } from 'src/components/shell/PageChrome';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from 'src/components/Router';
 import { Link } from 'react-router';
 
-import { SnackbarProps } from '@mui/material/Snackbar';
-import { commonCss } from 'src/Css';
 import { logger, formatDateString, errorToMessage } from 'src/lib/Utils';
 
 export interface RecurringRunListProps extends NavigationProps {
@@ -35,7 +36,6 @@ export interface RecurringRunListProps extends NavigationProps {
 }
 
 interface RecurringRunListState {
-  busyIds: Set<string>;
   runs: V2beta1RecurringRun[];
   selectedIds: string[];
   toolbarActionMap: ToolbarActionMap;
@@ -48,7 +48,6 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     super(props);
 
     this.state = {
-      busyIds: new Set(),
       runs: [],
       selectedIds: [],
       toolbarActionMap: {},
@@ -66,7 +65,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
         sortKey: JobSortKeys.NAME,
       },
       { label: 'Created at', flex: 2, sortKey: JobSortKeys.CREATED_AT },
-      { customRenderer: this._enabledCustomRenderer, label: '', flex: 1 },
+      { customRenderer: this._enabledCustomRenderer, label: 'Enabled', flex: 1 },
     ];
 
     const rows: Row[] = runs.map((r) => {
@@ -79,8 +78,21 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Recurring runs' />
+        <Toolbar
+          actions={toolbarActions}
+          breadcrumbs={[]}
+          pageTitle='Recurring runs'
+          topLevelToolbar={false}
+        />
         <CustomTable
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label='Recurring run configs'
+              singular='schedule'
+              plural='schedules'
+            />
+          )}
           columns={columns}
           rows={rows}
           ref={this._tableRef}
@@ -107,8 +119,11 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
   ) => {
     return (
       <Link
-        className={commonCss.link}
-        to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, props.id)}
+        className='kfp-workflow-link'
+        to={RoutePage.RECURRING_RUN_DETAILS.replace(
+          ':' + RouteParams.recurringRunId,
+          encodeURIComponent(props.id),
+        )}
       >
         {props.value}
       </Link>
@@ -118,24 +133,17 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
   public _enabledCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
     props: CustomRendererProps<V2beta1RecurringRunStatus>,
   ) => {
-    const isBusy = this.state.busyIds.has(props.id);
+    const enabled = props.value === V2beta1RecurringRunStatus.ENABLED;
     return (
-      <BusyButton
-        outlined={props.value === V2beta1RecurringRunStatus.ENABLED}
-        title={props.value === V2beta1RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'}
-        busy={isBusy}
-        onClick={() => {
-          let busyIds = this.state.busyIds;
-          busyIds.add(props.id);
-          this.setState({ busyIds }, async () => {
-            props.value === V2beta1RecurringRunStatus.ENABLED
-              ? await this._setEnabledState(props.id, false)
-              : await this._setEnabledState(props.id, true);
-            busyIds = this.state.busyIds;
-            busyIds.delete(props.id);
-            this.setState({ busyIds });
-            await this.refresh();
-          });
+      <ScheduleSwitch
+        name={
+          this.state.runs.find((run) => run.recurring_run_id === props.id)?.display_name || props.id
+        }
+        checked={enabled}
+        status={enabled ? 'Enabled' : 'Disabled'}
+        onChange={async (nextEnabled) => {
+          await this._setEnabledState(props.id, nextEnabled);
+          await this.refresh();
         }}
       />
     );
