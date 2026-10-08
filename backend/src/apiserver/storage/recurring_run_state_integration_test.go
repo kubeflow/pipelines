@@ -44,6 +44,9 @@ func TestRecurringRunProductionDatabases(t *testing.T) {
 	for _, driver := range []string{"mysql", "pgx"} {
 		t.Run(driver, func(t *testing.T) {
 			dbs, d := recurringIntegrationDatabases(t, driver)
+			t.Run("reference-backed-capacity", func(t *testing.T) {
+				testRecurringRunActiveCount(t, dbs[0], d)
+			})
 			placeholder := "?"
 			if driver == "pgx" {
 				placeholder = "$1"

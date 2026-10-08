@@ -6,11 +6,34 @@
 package storage
 
 import (
+	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
+
+// recurringRunActiveCount keeps both branches scoped to this schedule instead
+// of checking a correlated reference for every unrelated one-off run.
+func recurringRunActiveCount(q dialect.QuoteFunction, jobID string) sq.SelectBuilder {
+	run := dialect.QualifiedColumn(q, "run_details")
+	ref := dialect.QualifiedColumn(q, "resource_references")
+	effectiveState := fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s, '')", run("State"), run("Conditions"))
+	active := sq.NotEq{effectiveState: terminalRunStateStrings}
+	direct := sq.Select("COUNT(*)").From(q("run_details")).
+		Where(sq.Eq{run("JobUUID"): jobID}).Where(active)
+	legacy := sq.Select("COUNT(*)").From(q("resource_references")).
+		Join(q("run_details") + " ON " + run("UUID") + " = " + ref("ResourceUUID")).
+		Where(sq.Eq{ref("ResourceType"): model.RunResourceType,
+			ref("ReferenceType"): model.JobResourceType, ref("ReferenceUUID"): jobID}).
+		// Apply the fallback after the reference lookup, without indexing all
+		// empty JobUUIDs. Explicit associations win and cannot be counted twice.
+		Where(sq.Expr("COALESCE(" + run("JobUUID") + ", '') = ''")).Where(active)
+	// The reference primary key (ResourceUUID, ResourceType, ReferenceType)
+	// permits at most one matching reference per run.
+	return sq.Select().Column(sq.Expr("(?) + (?)", direct, legacy))
+}
 
 // recurringRunAssociation matches GetRun's legacy fallback without allowing a
 // stale reference to override an explicit JobUUID. EXISTS cannot multiply runs.

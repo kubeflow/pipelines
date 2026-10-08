@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 
@@ -124,10 +123,7 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 	// Match the controller's existing [1, 10] concurrency limits. Legacy rows
 	// without State derive their lifecycle from Conditions.
 	maxConcurrency = min(int64(10), max(int64(1), maxConcurrency))
-	effectiveState := fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s, '')", q("State"), q("Conditions"))
-	query, args, err = qb.Select("COUNT(*)").From(q("run_details")).
-		Where(recurringRunAssociation(q, jobID)).
-		Where(sq.NotEq{effectiveState: terminalRunStateStrings}).ToSql()
+	query, args, err = s.dbDialect.FinalizeSelect(recurringRunActiveCount(q, jobID))
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to build active-run count for recurring run %s", jobID)
 	}
