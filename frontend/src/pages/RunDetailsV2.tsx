@@ -56,6 +56,7 @@ import { URLParser } from 'src/lib/URLParser';
 import {
   buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
+  createRuntimeLayerResolver,
   getNodeRuntimeInfo,
   getTaskRuntimeLayers,
   reconcileRuntimeFlowElements,
@@ -98,6 +99,7 @@ export interface RunTaskRetryState {
 
 interface SelectedNodeState {
   element: PipelineFlowElement;
+  layers?: string[];
   linkedTaskId?: string;
   navigationError?: string;
 }
@@ -423,6 +425,17 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return reconcileRuntimeFlowElements(layers, flowElements, tasks, runtimeFlowContext);
   }, [flowElements, layers, runtimeFlowContext, tasks]);
 
+  const getSubDagElements = useMemo(
+    () =>
+      createRuntimeLayerResolver(
+        pipelineSpec,
+        tasks || [],
+        runtimeTaskSnapshotIsTerminal,
+        runtimeTaskSnapshotCompletedSuccessfully,
+      ),
+    [pipelineSpec, tasks, runtimeTaskSnapshotIsTerminal, runtimeTaskSnapshotCompletedSuccessfully],
+  );
+
   const linkedTask = tasks?.find((task) => task.task_id === linkedTaskId);
   useEffect(() => {
     if (!linkedTaskId) {
@@ -497,23 +510,31 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const linkedTargetIsResolved = !linkedTaskId || !tasks || !!linkedTask;
   const activeSelectedNode =
     linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState?.element || null : null;
-  const activeLayers = layers;
+  const activeLayers = selectedNodeState?.layers ?? layers;
   const selectedNodeRuntimeInfo = useMemo(() => {
     const linkedTaskNodeId = linkedTask
       ? getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task')
       : undefined;
-    if (linkedTask && activeSelectedNode?.id === linkedTaskNodeId) {
+    if (
+      linkedTask &&
+      selectedNodeState?.linkedTaskId &&
+      activeSelectedNode?.id === linkedTaskNodeId
+    ) {
       return { task: linkedTask };
     }
-    return getNodeRuntimeInfo(activeSelectedNode, tasks || [], layers, runtimeFlowContext);
-  }, [activeSelectedNode, layers, linkedTask, runtimeFlowContext, tasks]);
+    return getNodeRuntimeInfo(activeSelectedNode, tasks || [], activeLayers);
+  }, [activeSelectedNode, activeLayers, linkedTask, selectedNodeState?.linkedTaskId, tasks]);
 
-  const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
+  const onElementSelection = (
+    _event: ReactMouseEvent,
+    element: PipelineFlowElement,
+    scope: string[],
+  ) => {
     const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
     if (!restoredFallbackGraph) {
       setLayerNavigationError(null);
-      setSelectedNodeState({ element });
+      setSelectedNodeState({ element, layers: scope });
     }
   };
 
@@ -576,6 +597,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               layers={layers}
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
+              getSubDagElements={selectedNodeState?.navigationError ? undefined : getSubDagElements}
+              selectedNodeLayers={activeLayers}
               selectedNodeId={activeSelectedNode?.id}
               focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
               onElementClick={onElementSelection}

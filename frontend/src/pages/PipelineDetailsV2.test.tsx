@@ -21,6 +21,9 @@ import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { nestedArtifactSpec } from 'src/data/test/groupedFlow';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
+import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {
@@ -201,6 +204,27 @@ describe('PipelineDetailsV2', () => {
     );
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
     screen.getByText('flip-coin-op');
+  });
+
+  it('shows the nested component details without navigating into its sub-DAG', async () => {
+    const navigate = vi.fn();
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          templateString={JSON.stringify(PipelineSpec.toJSON(nestedArtifactSpec))}
+          pipelineFlowElements={convertFlowElements(nestedArtifactSpec)}
+          setSubDagLayers={navigate}
+          pipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={async () => {}}
+        />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByText('Train model'));
+    await screen.findByText('Output Artifacts');
+    expect(screen.getByRole('button', { name: 'Collapse Training pipeline' })).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('Show Side panel when select node', async () => {

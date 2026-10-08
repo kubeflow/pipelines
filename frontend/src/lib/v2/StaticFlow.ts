@@ -186,7 +186,17 @@ function addTaskNodes(
       // dag exists means this is a sub-DAG instance.
       const node: Node<FlowElementDataBase> = {
         id: getTaskNodeKey(taskKey),
-        data: { label: name, taskType: TaskType.DAG },
+        data: {
+          label: name,
+          taskType: TaskType.DAG,
+          componentRefName,
+          groupKind:
+            taskSpec.parameterIterator || taskSpec.artifactIterator
+              ? 'Loop'
+              : taskSpec.triggerPolicy?.condition
+                ? 'Condition'
+                : 'Sub-DAG',
+        },
         position: { x: 100, y: 200 },
         type: NodeTypeNames.SUB_DAG,
       };
@@ -419,7 +429,10 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
 
   flowGraph.forEach((el) => {
     if (isNode(el)) {
-      dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
+      dagreGraph.setNode(el.id, {
+        width: el.width ?? nodeWidth,
+        height: el.height ?? nodeHeight,
+      });
     } else {
       dagreGraph.setEdge(el.source, el.target);
     }
@@ -433,12 +446,10 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
       el.sourcePosition = Position.Bottom;
       el.targetPosition = Position.Top;
 
-      // unfortunately we need this little hack to pass a slightly different position
-      // to notify react flow about the change. Moreover we are shifting the dagre node position
-      // (anchor=center center) to the top left so it matches the react flow node anchor point (top left).
+      // Dagre uses center coordinates; React Flow uses the top-left corner.
       el.position = {
-        x: nodeWithPosition.x - nodeWidth / 2 + Math.random() / 1000,
-        y: nodeWithPosition.y - nodeHeight / 2,
+        x: nodeWithPosition.x - (el.width ?? nodeWidth) / 2,
+        y: nodeWithPosition.y - (el.height ?? nodeHeight) / 2,
       };
     }
     return el;
