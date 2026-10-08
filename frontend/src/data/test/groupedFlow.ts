@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
+import { PipelineTaskSpec_TriggerPolicy_TriggerStrategy as TriggerStrategy } from 'src/generated/pipeline_spec/pipeline_spec';
 import {
   PipelineTaskTaskState as State,
   PipelineTaskTaskType as Type,
@@ -119,6 +120,48 @@ export const loopSpec = PipelineSpec.fromPartial({
           parameterIterator: { itemInput: 'learning-rate', items: { raw: '[0.01, 0.1]' } },
         },
         summarize: task('Summarize results', 'prepare', ['sweep']),
+      },
+    },
+  },
+});
+
+export const exitHandlerSpec = PipelineSpec.fromPartial({
+  pipelineInfo: { name: 'exit-handler-notification' },
+  deploymentSpec: { executors: { 'exec-op': { container: { image: 'python:3.11' } } } },
+  components: {
+    op: { executorLabel: 'exec-op' },
+    guarded: {
+      dag: {
+        tasks: {
+          'fail-op': task('fail-op', 'op'),
+          'print-op': task('print-op', 'op'),
+        },
+      },
+    },
+    condition: { dag: { tasks: { 'print-op': task('print-op', 'op') } } },
+    notification: {
+      dag: {
+        tasks: {
+          'get-run-state': task('get-run-state', 'op'),
+          'condition-1': {
+            ...task('condition-1', 'condition', ['get-run-state']),
+            triggerPolicy: { condition: "inputs.parameter_values['state'] == 'FAILED'" },
+          },
+        },
+      },
+    },
+  },
+  root: {
+    dag: {
+      tasks: {
+        'exit-handler-1': task('my-pipeline', 'guarded'),
+        'conditional-notification': {
+          ...task('conditional-notification', 'notification', ['exit-handler-1']),
+          inputs: {
+            parameters: { status: { taskFinalStatus: { producerTask: 'exit-handler-1' } } },
+          },
+          triggerPolicy: { strategy: TriggerStrategy.ALL_UPSTREAM_TASKS_COMPLETED },
+        },
       },
     },
   },

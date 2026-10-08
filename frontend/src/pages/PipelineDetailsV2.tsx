@@ -60,7 +60,8 @@ function PipelineDetailsV2({
     [templateString],
   );
   const getSubDagElements = useCallback(
-    (scope: string[]) => (pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, scope) : []),
+    (scope: string[], maxNodes?: number) =>
+      pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, scope, maxNodes) : [],
     [pipelineSpec],
   );
 
