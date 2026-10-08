@@ -108,7 +108,7 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 		artifact, _, err = s.resourceManager.CreateArtifactWithTask(
 			modelArtifact,
 			modelAT,
-			run.RetryGeneration,
+			request.GetOperationId(),
 		)
 	}
 	if err != nil {
@@ -156,7 +156,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 
 	modelArtifacts := make([]*model.Artifact, 0, len(request.GetArtifacts()))
 	modelArtifactTasks := make([]*model.ArtifactTask, 0, len(request.GetArtifacts()))
-	retryGenerations := make([]int64, 0, len(request.GetArtifacts()))
+	operationIDs := make([]string, 0, len(request.GetArtifacts()))
 	authorizedRunIDs := make(map[string]struct{})
 
 	authorizeRunUpdate := func(runID string) error {
@@ -188,8 +188,6 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
 		}
-
-		retryGenerations = append(retryGenerations, run.RetryGeneration)
 
 		if err := authorizeRunUpdate(task.RunUUID); err != nil {
 			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
@@ -234,7 +232,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 	createdArtifacts, _, err := s.resourceManager.CreateArtifactsWithTasks(
 		modelArtifacts,
 		modelArtifactTasks,
-		retryGenerations,
+		operationIDs,
 	)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
@@ -256,7 +254,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 
 func (s *ArtifactServer) validateArtifactOwnershipNoAuth(
 	runID, taskID, artifactNamespace string,
-) (*model.Task, *model.Run, error) {
+) (*model.Task, error) {
 	task, err := s.resourceManager.GetTask(taskID)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to get task")
