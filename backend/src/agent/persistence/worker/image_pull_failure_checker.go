@@ -32,15 +32,41 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
 	// ArgoWorkflowLabelKey is the label Argo sets on pods to identify the parent workflow.
 	ArgoWorkflowLabelKey = "workflows.argoproj.io/workflow"
+	// WorkflowPodIndexName is the name of the pod informer index that maps a
+	// workflow (namespace/name) to the pods labeled for it. Looking pods up
+	// through the index keeps each check proportional to the workflow's own
+	// pods instead of scanning every cached pod in the namespace.
+	WorkflowPodIndexName = "workflow"
 )
+
+// WorkflowPodIndexFunc indexes a pod under the namespace/name of the workflow
+// named by its Argo workflow label. Pods without the label are not indexed.
+// The label is user-controlled, so the checker still verifies the controller
+// owner reference of every pod returned by the index.
+func WorkflowPodIndexFunc(obj interface{}) ([]string, error) {
+	pod, ok := obj.(*corev1.Pod)
+	if !ok {
+		return nil, fmt.Errorf("expected *corev1.Pod but got %T", obj)
+	}
+	workflowName, ok := pod.Labels[ArgoWorkflowLabelKey]
+	if !ok || workflowName == "" {
+		return nil, nil
+	}
+	return []string{workflowKey(pod.Namespace, workflowName)}, nil
+}
+
+// AddWorkflowPodIndex registers the workflow index on the pod informer. It
+// must be called before the informer is started.
+func AddWorkflowPodIndex(informer cache.SharedIndexInformer) error {
+	return informer.AddIndexers(cache.Indexers{WorkflowPodIndexName: WorkflowPodIndexFunc})
+}
 
 // ImagePullFailureChecker checks workflow pods for image pull failures
 // and terminates the workflow if the grace period has elapsed.
@@ -64,15 +90,16 @@ type ImagePullFailureChecker interface {
 
 // imagePullFailureChecker checks pods belonging to a workflow for image pull
 // failures and terminates the workflow after a configurable grace period.
-// It uses a pod lister backed by a shared informer to avoid direct API calls
-// to the Kubernetes API server on every check.
+// It reads pods from a shared informer's indexer, through the workflow index
+// registered by AddWorkflowPodIndex, to avoid direct API calls to the
+// Kubernetes API server and namespace-wide scans on every check.
 //
 // The grace period is measured from the moment the checker first observes the
-// image pull failure on a pod, not from the pod's creation time, so time spent
-// pending or initializing does not count against the pull. A pod that recovers
-// (or is replaced) has its failure clock reset.
+// image pull failure on a container, not from the pod's creation time, so time
+// spent pending or initializing does not count against the pull. A container
+// that recovers (or a pod that is replaced) has its failure clock reset.
 type imagePullFailureChecker struct {
-	podLister       corelisters.PodLister
+	podIndexer      cache.Indexer
 	executionClient util.ExecutionClient
 	gracePeriod     time.Duration
 	now             func() time.Time
@@ -93,20 +120,32 @@ type imagePullFailureChecker struct {
 type trackedWorkflow struct {
 	uid             types.UID
 	retryGeneration string
-	// pods maps each failing pod's UID to when its failure was first observed.
-	pods map[types.UID]time.Time
+	// failures maps each failing container image to when its failure was
+	// first observed.
+	failures map[imagePullFailureKey]time.Time
 }
 
-// NewImagePullFailureChecker creates a new checker. The podLister should be
-// backed by a shared informer so that pod lookups are served from a local
-// cache rather than making API calls to the Kubernetes API server.
+// imagePullFailureKey identifies one image pull failure: a specific image in
+// a specific container of a specific pod. Tracking at this granularity means
+// that when one container recovers and another starts failing between two
+// checks, the new failure starts its own grace period instead of inheriting
+// the recovered one's clock.
+type imagePullFailureKey struct {
+	podUID    types.UID
+	container string
+	image     string
+}
+
+// NewImagePullFailureChecker creates a new checker. podIndexer is the indexer
+// of a pod shared informer on which AddWorkflowPodIndex has been registered,
+// so pod lookups are served from the local cache by workflow.
 func NewImagePullFailureChecker(
-	podLister corelisters.PodLister,
+	podIndexer cache.Indexer,
 	executionClient util.ExecutionClient,
 	gracePeriod time.Duration,
 ) ImagePullFailureChecker {
 	return &imagePullFailureChecker{
-		podLister:       podLister,
+		podIndexer:      podIndexer,
 		executionClient: executionClient,
 		gracePeriod:     gracePeriod,
 		now:             time.Now,
@@ -118,6 +157,7 @@ func NewImagePullFailureChecker(
 // outlasted the grace period.
 type expiredImagePullFailure struct {
 	podName     string
+	container   string
 	failedImage string
 	elapsed     time.Duration
 	// exitHandler is true when the pod belongs to an exit handler. Such pods
@@ -126,22 +166,18 @@ type expiredImagePullFailure struct {
 	exitHandler bool
 }
 
-// CheckAndTerminate lists pods for the given workflow and terminates the workflow
-// if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
-// grace period (measured from when the failure was first observed).
+// CheckAndTerminate looks up the pods of the given workflow and terminates the
+// workflow if any container has been stuck in ImagePullBackOff or ErrImagePull
+// longer than the grace period (measured from when the failure was first
+// observed).
 func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
 	if workflow == nil {
 		return fmt.Errorf("workflow metadata is required to check for image pull failures")
 	}
 	namespace, workflowName := workflow.Namespace, workflow.Name
-	selector, err := labels.Parse(fmt.Sprintf("%s=%s", ArgoWorkflowLabelKey, workflowName))
+	pods, err := c.listWorkflowPods(namespace, workflowName)
 	if err != nil {
-		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
-	}
-
-	pods, err := c.podLister.Pods(namespace).List(selector)
-	if err != nil {
-		return fmt.Errorf("failed to list pods for workflow %s/%s: %w", namespace, workflowName, err)
+		return err
 	}
 
 	expired := c.trackFailures(workflow, pods)
@@ -149,8 +185,8 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 		return nil
 	}
 
-	log.Infof("Terminating workflow %s/%s: pod %s has image pull failure for %q (failing for %v exceeds grace period %v)",
-		namespace, workflowName, expired.podName, expired.failedImage, expired.elapsed.Round(time.Second), c.gracePeriod)
+	log.Infof("Terminating workflow %s/%s: container %s of pod %s has image pull failure for %q (failing for %v exceeds grace period %v)",
+		namespace, workflowName, expired.container, expired.podName, expired.failedImage, expired.elapsed.Round(time.Second), c.gracePeriod)
 	terminated, err := c.terminateWorkflow(ctx, workflow, expired.failedImage, expired.exitHandler)
 	if err != nil {
 		return err
@@ -161,6 +197,24 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 	return nil
 }
 
+// listWorkflowPods returns the cached pods labeled for the workflow, using the
+// workflow index so the lookup does not scan the whole namespace.
+func (c *imagePullFailureChecker) listWorkflowPods(namespace, workflowName string) ([]*corev1.Pod, error) {
+	objs, err := c.podIndexer.ByIndex(WorkflowPodIndexName, workflowKey(namespace, workflowName))
+	if err != nil {
+		return nil, fmt.Errorf("failed to look up pods for workflow %s/%s: %w", namespace, workflowName, err)
+	}
+	pods := make([]*corev1.Pod, 0, len(objs))
+	for _, obj := range objs {
+		pod, ok := obj.(*corev1.Pod)
+		if !ok {
+			return nil, fmt.Errorf("pod index for workflow %s/%s returned %T", namespace, workflowName, obj)
+		}
+		pods = append(pods, pod)
+	}
+	return pods, nil
+}
+
 // Forget drops the failure tracking state for the given workflow.
 func (c *imagePullFailureChecker) Forget(namespace string, workflowName string) {
 	c.mu.Lock()
@@ -168,12 +222,13 @@ func (c *imagePullFailureChecker) Forget(namespace string, workflowName string) 
 	delete(c.failureStart, workflowKey(namespace, workflowName))
 }
 
-// trackFailures updates the failure start times for the workflow's pods and
-// returns a pod whose failure has outlasted the grace period, or nil. When
-// several pods have expired, an exit-handler pod is preferred because it
-// needs the stronger termination mechanism.
-// Pods that no longer report a failure, or are no longer listed, have their
-// tracking dropped so a recovered pod starts a fresh grace period next time.
+// trackFailures updates the failure start times for the workflow's failing
+// containers and returns a failure that has outlasted the grace period, or
+// nil. When several have expired, one on an exit-handler pod is preferred
+// because it needs the stronger termination mechanism.
+// Containers that no longer report a failure, or pods that are no longer
+// listed, have their tracking dropped so a recovered container starts a fresh
+// grace period next time.
 // State recorded for a different attempt of the workflow (another UID or
 // retry generation) is discarded, so pods left over from the previous attempt
 // cannot fail the new one with an already expired clock.
@@ -190,7 +245,7 @@ func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pod
 			namespace, workflowName, previous.uid, workflowUID, previous.retryGeneration, retryGeneration)
 		previous = nil
 	}
-	current := &trackedWorkflow{uid: workflowUID, retryGeneration: retryGeneration, pods: make(map[types.UID]time.Time)}
+	current := &trackedWorkflow{uid: workflowUID, retryGeneration: retryGeneration, failures: make(map[imagePullFailureKey]time.Time)}
 	now := c.now()
 
 	var expired *expiredImagePullFailure
@@ -207,32 +262,30 @@ func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pod
 			// workflow whose retry is progressing.
 			continue
 		}
-		failedImage := getImagePullFailure(pod)
-		if failedImage == "" {
-			continue
-		}
-
-		start := now
-		if previous != nil {
-			if seen, ok := previous.pods[pod.UID]; ok {
-				start = seen
-			}
-		}
-		current.pods[pod.UID] = start
-
-		elapsed := now.Sub(start)
-		if elapsed < c.gracePeriod {
-			log.Debugf("Pod %s/%s has image pull failure for %q (failing for %v), waiting for grace period (%v)",
-				pod.Namespace, pod.Name, failedImage, elapsed.Round(time.Second), c.gracePeriod)
-			continue
-		}
 		exitHandler := isExitHandlerPod(pod)
-		if expired == nil || (exitHandler && !expired.exitHandler) {
-			expired = &expiredImagePullFailure{podName: pod.Name, failedImage: failedImage, elapsed: elapsed, exitHandler: exitHandler}
+		for _, failure := range getImagePullFailures(pod) {
+			key := imagePullFailureKey{podUID: pod.UID, container: failure.container, image: failure.image}
+			start := now
+			if previous != nil {
+				if seen, ok := previous.failures[key]; ok {
+					start = seen
+				}
+			}
+			current.failures[key] = start
+
+			elapsed := now.Sub(start)
+			if elapsed < c.gracePeriod {
+				log.Debugf("Container %s of pod %s/%s has image pull failure for %q (failing for %v), waiting for grace period (%v)",
+					failure.container, pod.Namespace, pod.Name, failure.image, elapsed.Round(time.Second), c.gracePeriod)
+				continue
+			}
+			if expired == nil || (exitHandler && !expired.exitHandler) {
+				expired = &expiredImagePullFailure{podName: pod.Name, container: failure.container, failedImage: failure.image, elapsed: elapsed, exitHandler: exitHandler}
+			}
 		}
 	}
 
-	if len(current.pods) == 0 {
+	if len(current.failures) == 0 {
 		delete(c.failureStart, key)
 	} else {
 		c.failureStart[key] = current
@@ -277,32 +330,40 @@ func isPodTerminal(pod *corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
 }
 
-// getImagePullFailure checks if any container in the pod has an image pull failure.
-// Returns the failed image name, or empty string if no failure is found.
-func getImagePullFailure(pod *corev1.Pod) string {
+// imagePullFailure describes a container that cannot pull its image.
+type imagePullFailure struct {
+	container string
+	image     string
+}
+
+// getImagePullFailures returns every init and main container of the pod that
+// is in ImagePullBackOff or ErrImagePull, in status order.
+func getImagePullFailures(pod *corev1.Pod) []imagePullFailure {
+	var failures []imagePullFailure
 	for _, status := range pod.Status.InitContainerStatuses {
-		if image := imagePullFailureFromStatus(status); image != "" {
-			return image
+		if failure, ok := imagePullFailureFromStatus(status); ok {
+			failures = append(failures, failure)
 		}
 	}
 	for _, status := range pod.Status.ContainerStatuses {
-		if image := imagePullFailureFromStatus(status); image != "" {
-			return image
+		if failure, ok := imagePullFailureFromStatus(status); ok {
+			failures = append(failures, failure)
 		}
 	}
-	return ""
+	return failures
 }
 
-// imagePullFailureFromStatus returns the image name if the container is in
-// ImagePullBackOff or ErrImagePull state, empty string otherwise.
-func imagePullFailureFromStatus(status corev1.ContainerStatus) string {
+// imagePullFailureFromStatus reports whether the container is in
+// ImagePullBackOff or ErrImagePull state, and if so which image it is failing
+// to pull.
+func imagePullFailureFromStatus(status corev1.ContainerStatus) (imagePullFailure, bool) {
 	if status.State.Waiting != nil {
 		reason := status.State.Waiting.Reason
 		if reason == "ImagePullBackOff" || reason == "ErrImagePull" {
-			return status.Image
+			return imagePullFailure{container: status.Name, image: status.Image}, true
 		}
 	}
-	return ""
+	return imagePullFailure{}, false
 }
 
 // terminateWorkflow terminates an Argo workflow and annotates it with the

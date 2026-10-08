@@ -178,15 +178,20 @@ func main() {
 			informers.WithNamespace(namespace),
 			informers.WithTweakListOptions(argoPodLabelSelector),
 		)
-		podLister := podInformerFactory.Core().V1().Pods().Lister()
+		podInformer := podInformerFactory.Core().V1().Pods().Informer()
+		// Index pods by workflow so each check only touches that workflow's
+		// pods. The index must be registered before the informer starts.
+		if err := worker.AddWorkflowPodIndex(podInformer); err != nil {
+			log.Fatalf("Failed to register workflow pod index for image pull failure handling: %v", err)
+		}
 		go podInformerFactory.Start(stopCh)
-		if !cache.WaitForCacheSync(stopCh, podInformerFactory.Core().V1().Pods().Informer().HasSynced) {
+		if !cache.WaitForCacheSync(stopCh, podInformer.HasSynced) {
 			log.Fatalf("Failed to sync pod informer cache for image pull failure handling")
 		}
 
 		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second
 		imagePullFailureChecker = worker.NewImagePullFailureChecker(
-			podLister, executionClient, gracePeriod)
+			podInformer.GetIndexer(), executionClient, gracePeriod)
 		log.Infof("Image pull failure handling enabled (grace period: %v)", gracePeriod)
 	}
 
