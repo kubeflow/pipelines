@@ -125,13 +125,18 @@ func TestAdoptLegacyRecurringRunProgressUnacknowledgedFirstRun(t *testing.T) {
 
 func TestAdoptLegacyRecurringRunProgressReporterRecoveredRun(t *testing.T) {
 	job, swf, run, wf := legacyAdoptionFixture()
+	job.IntervalSecond = util.Int64Pointer(20)
+	swf.CreationTimestamp = metav1.NewTime(time.Unix(50, 0))
 	run.DisplayName = run.K8SName
 	run.ScheduledAtInSec = 120
+	run.CreatedAtInSec = 125
+	wf.CreationTimestamp = metav1.NewTime(time.Unix(125, 0))
 	wf.SetCannonicalLabels(swf.Name, 120, 4)
 	run.WorkflowRuntimeManifest = model.LargeText(wf.ToStringForStore())
 	state, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 200)
 	require.NoError(t, err)
 	require.Equal(t, int64(4), state.LastRunIndex)
+	require.EqualValues(t, 120, state.LastScheduledAtInSec)
 	require.Equal(t, legacyRecurringRunRequestKey(swf, 4), state.RequestKey)
 	require.NotEqual(t, run.DisplayName, state.RequestKey)
 	require.Equal(t, run.UUID, state.LastRunUUID)
@@ -214,6 +219,105 @@ func TestAdoptLegacyRecurringRunProgressRejectsInvalidFallbackSchedule(t *testin
 		wf.SetCannonicalLabels(swf.Name, 200, 4)
 		_, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
 		require.ErrorContains(t, err, "cannot recover the due time")
+	}
+}
+
+func TestAdoptLegacyRecurringRunProgressLegacyCronZeroPeriodicFields(t *testing.T) {
+	job, swf, run, wf := legacyAdoptionFixture()
+	cron := "0 * * * * *"
+	job.Cron = &cron
+	// The 2.17 reporter writes zero (not NULL) for unused periodic fields.
+	job.PeriodicSchedule = model.PeriodicSchedule{
+		PeriodicScheduleStartTimeInSec: util.Int64Pointer(0),
+		PeriodicScheduleEndTimeInSec:   util.Int64Pointer(0),
+		IntervalSecond:                 util.Int64Pointer(0),
+	}
+	swf.CreationTimestamp = metav1.NewTime(time.Unix(50, 0))
+	run.DisplayName = legacyRecurringRunRequestKey(swf, 4)
+	run.ScheduledAtInSec, run.CreatedAtInSec = 200, 200
+	wf.SetCannonicalLabels(swf.Name, 200, 4)
+	state, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
+	require.NoError(t, err)
+	require.EqualValues(t, 4, state.LastRunIndex)
+	require.EqualValues(t, 120, state.LastScheduledAtInSec)
+	require.Equal(t, run.UUID, state.LastRunUUID)
+
+	// A genuinely active but incomplete periodic schedule must still reject.
+	job.Cron = nil
+	job.PeriodicScheduleStartTimeInSec = util.Int64Pointer(50)
+	_, err = adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
+	require.ErrorContains(t, err, "stored schedule is invalid")
+}
+
+func TestAdoptLegacyRecurringRunProgressRetainedWorkflowPrecreationEpoch(t *testing.T) {
+	job, swf, _, wf := legacyAdoptionFixture()
+	wf.Status.Phase = workflowapi.WorkflowSucceeded
+	// The API stamps epoch before submitting the workflow to Kubernetes. Neither
+	// that timestamp nor creationTimestamp is the acknowledged trigger time.
+	wf.SetCannonicalLabels(swf.Name, 110, 3)
+	wf.CreationTimestamp = metav1.NewTime(time.Unix(115, 0))
+	state, err := adoptLegacyRecurringRunProgress(job, swf, nil, util.ExecutionSpecList{wf}, 200)
+	require.NoError(t, err)
+	require.EqualValues(t, 3, state.LastRunIndex)
+	require.EqualValues(t, 100, state.LastScheduledAtInSec)
+	require.Empty(t, state.LastRunUUID)
+
+	wf.Status.Phase = workflowapi.WorkflowRunning
+	_, err = adoptLegacyRecurringRunProgress(job, swf, nil, util.ExecutionSpecList{wf}, 200)
+	require.ErrorContains(t, err, "no persisted run")
+	wf.Status.Phase = workflowapi.WorkflowSucceeded
+	wf.SetCannonicalLabels(swf.Name, 110, 4)
+	_, err = adoptLegacyRecurringRunProgress(job, swf, nil, util.ExecutionSpecList{wf}, 200)
+	require.ErrorContains(t, err, "no persisted run")
+	wf.SetCannonicalLabels(swf.Name, 201, 3)
+	_, err = adoptLegacyRecurringRunProgress(job, swf, nil, util.ExecutionSpecList{wf}, 200)
+	require.ErrorContains(t, err, "invalid scheduled time")
+}
+
+func TestAdoptLegacyRecurringRunProgressRecoveredBaselinePrecreationEpoch(t *testing.T) {
+	job, swf, run, wf := legacyAdoptionFixture()
+	run.DisplayName = run.K8SName
+	run.ScheduledAtInSec, run.CreatedAtInSec = 110, 115
+	wf.SetCannonicalLabels(swf.Name, 110, 3)
+	wf.CreationTimestamp = metav1.NewTime(time.Unix(115, 0))
+	run.WorkflowRuntimeManifest = model.LargeText(wf.ToStringForStore())
+	state, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
+	require.NoError(t, err)
+	require.EqualValues(t, 3, state.LastRunIndex)
+	require.EqualValues(t, 100, state.LastScheduledAtInSec)
+	require.EqualValues(t, 115, state.LastCreatedAtInSec)
+	require.Equal(t, run.UUID, state.LastRunUUID)
+
+	// Timestamp compatibility does not relax the persisted execution identity.
+	wf.OwnerReferences[0].UID = "another-schedule"
+	run.WorkflowRuntimeManifest = model.LargeText(wf.ToStringForStore())
+	_, err = adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, nil, 210)
+	require.ErrorContains(t, err, "persisted execution identity differs")
+}
+
+func TestAdoptLegacyRecurringRunProgressRecoveredUnacknowledgedPrecreationEpoch(t *testing.T) {
+	for _, noCatchup := range []bool{false, true} {
+		t.Run(map[bool]string{false: "catchup", true: "no catchup"}[noCatchup], func(t *testing.T) {
+			job, swf, run, wf := legacyAdoptionFixture()
+			job.NoCatchup = noCatchup
+			job.IntervalSecond = util.Int64Pointer(10)
+			swf.CreationTimestamp = metav1.NewTime(time.Unix(50, 0))
+			run.DisplayName = run.K8SName
+			run.ScheduledAtInSec, run.CreatedAtInSec = 200, 205
+			wf.SetCannonicalLabels(swf.Name, 200, 4)
+			wf.CreationTimestamp = metav1.NewTime(time.Unix(205, 0))
+			run.WorkflowRuntimeManifest = model.LargeText(wf.ToStringForStore())
+			state, err := adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf}, 210)
+			require.NoError(t, err)
+			wantDue := int64(110)
+			if noCatchup {
+				wantDue = 200
+			}
+			require.EqualValues(t, 4, state.LastRunIndex)
+			require.Equal(t, wantDue, state.LastScheduledAtInSec)
+			require.EqualValues(t, 205, state.LastCreatedAtInSec)
+			require.Equal(t, run.UUID, state.LastRunUUID)
+		})
 	}
 }
 

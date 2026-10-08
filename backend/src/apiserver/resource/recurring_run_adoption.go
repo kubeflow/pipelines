@@ -85,6 +85,12 @@ func (r *ResourceManager) legacyRecurringRunCandidates(ctx context.Context, db *
 	if !ok {
 		return nil, fmt.Errorf("legacy recurring-run inventory is unavailable")
 	}
+	runInventory, ok := r.runStore.(interface {
+		ListRunIDsForRecurringRun(string) ([]string, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("legacy execution inventory is unavailable")
+	}
 	var candidates []storage.RecurringRunAdoptionCandidate
 	workflows := map[string]util.ExecutionSpecList{}
 	for cursor := ""; ; {
@@ -124,8 +130,17 @@ func (r *ResourceManager) legacyRecurringRunCandidates(ctx context.Context, db *
 				workflows[job.Namespace] = *live
 			}
 			var runs []*model.Run
-			if err := db.Where(&model.Run{RecurringRunId: job.UUID}).Find(&runs).Error; err != nil {
+			ids, err := runInventory.ListRunIDsForRecurringRun(job.UUID)
+			if err != nil {
 				return nil, err
+			}
+			for _, id := range ids {
+				// Resolve reference-backed identity just as normal run reads do.
+				run, err := r.runStore.GetRun(id)
+				if err != nil {
+					return nil, err
+				}
+				runs = append(runs, run)
 			}
 			state, err := adoptLegacyRecurringRunProgress(job, swf, runs, workflows[job.Namespace], r.time.Now().Unix())
 			if err != nil {

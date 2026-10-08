@@ -1932,7 +1932,8 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 	query, args, err := qb.
 		Select(q("UUID")).
 		From(q("run_details")).
-		Where(sq.Eq{q("JobUUID"): recurringRunID, q("DisplayName"): displayName}).
+		Where(recurringRunAssociation(q, recurringRunID)).
+		Where(sq.Eq{q("DisplayName"): displayName}).
 		OrderBy(q("CreatedAtInSec")+" DESC", q("UUID")+" DESC").
 		Limit(1).
 		ToSql()
