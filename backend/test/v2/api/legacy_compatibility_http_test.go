@@ -12,9 +12,36 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func TestPublishedCompatibilityArtifactURI(t *testing.T) {
+	for _, tc := range []struct {
+		name, response string
+		wantFailure    bool
+	}{
+		{"present optional URI", `{"artifact_id":"id","uri":"minio://bucket/output"}`, false},
+		{"missing optional URI", `{"artifact_id":"id"}`, true},
+		{"empty optional URI", `{"artifact_id":"id","uri":""}`, true},
+		{"wrong artifact ID", `{"artifact_id":"other","uri":"minio://bucket/output"}`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			artifact := new(api.Artifact)
+			require.NoError(t, protojson.Unmarshal([]byte(tc.response), artifact))
+			var failures []string
+			g := gomega.NewGomega(func(message string, _ ...int) { failures = append(failures, message) })
+			expectPublishedCompatibilityArtifact(g, artifact, "id")
+			if tc.wantFailure {
+				require.NotEmpty(t, failures, "invalid artifact metadata must still fail")
+			} else {
+				require.Empty(t, failures, "nonempty optional URI must be accepted")
+			}
+		})
+	}
+}
 
 func TestCompatibilityHTTPClientPreservesLiteralPrefixes(t *testing.T) {
 	paths := make(chan string, 2)

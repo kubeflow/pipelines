@@ -128,9 +128,10 @@ reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilenam
 ## Legacy API compatibility on an existing deployment
 
 `legacy_compatibility_api_test.go` adds the `LegacyAPICompatibility` specs to
-this suite. CI enables them in selected **existing** API test deployments:
-Argo 4 standalone MySQL/PostgreSQL, standalone TLS, and cache-disabled MySQL
-multi-user. It does not add a cluster job or redeploy between API versions.
+this suite. They run by default in the **existing** standalone, Kubernetes-native,
+and multi-user API test deployments, including MySQL/PostgreSQL, TLS, and cache
+variants. No opt-in environment flag is required. It does not add a cluster job
+or redeploy between API versions.
 
 The tests send literal `/apis/v2beta1` and `/apis/v2` HTTP requests to the same
 server, reject redirects, and never fall back between prefixes. They cover:
@@ -157,7 +158,7 @@ kubectl -n kubeflow port-forward svc/ml-pipeline 8888:8888
 From the repository root, run:
 
 ```bash
-LEGACY_API_COMPATIBILITY_TESTS=true go run github.com/onsi/ginkgo/v2/ginkgo \
+go run github.com/onsi/ginkgo/v2/ginkgo \
   -v --label-filter=LegacyAPICompatibility ./backend/test/v2/api -- \
   -apiUrl=http://localhost:8888 -namespace=kubeflow
 ```

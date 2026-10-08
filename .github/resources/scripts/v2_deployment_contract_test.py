@@ -96,7 +96,8 @@ class V2DeploymentContractTest(unittest.TestCase):
     def test_legacy_api_specs_reuse_existing_cluster_jobs(self):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/api-server-tests.yml').read_text())
-        for name in ('api-test-standalone', 'api-test-multi-user'):
+        for name in ('api-test-standalone', 'api-test-k8s-native',
+                     'api-test-multi-user'):
             with self.subTest(job=name):
                 steps = workflow['jobs'][name]['steps']
                 self.assertEqual(
@@ -111,15 +112,22 @@ class V2DeploymentContractTest(unittest.TestCase):
                     step for step in steps if step['name'] == 'Run Tests')
                 self.assertEqual(tests['uses'],
                                  './.github/actions/test-and-report')
-                self.assertIn('LEGACY_API_COMPATIBILITY_TESTS', tests['env'])
+                self.assertNotIn('LEGACY_API_COMPATIBILITY_TESTS',
+                                 tests.get('env', {}))
                 self.assertEqual(tests['with']['test_directory'],
                                  '${{ env.API_TESTS_DIR }}')
-        standalone = next(
-            step for step in workflow['jobs']['api-test-standalone']['steps']
-            if step['name'] == 'Run Tests')
-        selection = standalone['env']['LEGACY_API_COMPATIBILITY_TESTS']
-        self.assertIn("matrix.argo_version == 'v4.1.2'", selection)
-        self.assertIn("matrix.pod_to_pod_tls_enabled == 'true'", selection)
+        multi_user = next(
+            step for step in workflow['jobs']['api-test-multi-user']['steps']
+            if step['name'] == 'Configure Input Variables')
+        self.assertIn(
+            'TEST_LABEL="$AUTOMATIC_TEST_LABEL || LegacyAPICompatibility"',
+            multi_user['run'])
+        specs = (
+            ROOT /
+            'backend/test/v2/api/legacy_compatibility_api_test.go').read_text()
+        self.assertNotIn('LEGACY_API_COMPATIBILITY_TESTS', specs)
+        self.assertNotIn('Skip(', specs)
+        self.assertIn('constants.APIServerTests', specs)
         self.assertFalse(
             any('compatibility' in name for name in workflow['jobs']))
 

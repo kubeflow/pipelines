@@ -174,8 +174,6 @@ jobs:
         id: test-run
         env:
           ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.2' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
-          # Exercise literal v2beta1 paths on these already-deployed PR clusters.
-          LEGACY_API_COMPATIBILITY_TESTS: ${{ (matrix.argo_version == 'v4.1.2' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false') || matrix.pod_to_pod_tls_enabled == 'true' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -252,8 +250,9 @@ jobs:
     strategy:
       matrix:
         # Partition the API surface across the two existing cache variants.
-        # Complementary filters guarantee that every ApiServerTests spec runs
-        # exactly once, while explicit cache labels divide the expensive run
+        # Complementary filters partition ordinary ApiServerTests specs;
+        # compatibility specs additionally run in every existing job.
+        # Explicit cache labels divide the expensive run
         # matrix evenly between matching deployments.
         # PostgreSQL is scoped to the core multi-user path (cache_enabled=true,
         # artifact proxy off); other pgx combinations have no overlay yet and are
@@ -313,7 +312,7 @@ jobs:
           DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_MULTI_USER_PARALLEL_NODES }}
-          TEST_LABEL=$AUTOMATIC_TEST_LABEL
+          TEST_LABEL="$AUTOMATIC_TEST_LABEL || LegacyAPICompatibility"
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
@@ -332,7 +331,6 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         env:
           LOCAL_API_SERVER: "true"
-          LEGACY_API_COMPATIBILITY_TESTS: ${{ matrix.cache_enabled == 'false' && matrix.db_type == 'mysql' }}
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}
