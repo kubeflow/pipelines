@@ -122,7 +122,19 @@ describe('URLParser', () => {
   });
 
   it('returns empty query string when given an empty object or no object', () => {
-    expect(new URLParser(routerProps).build()).toEqual('?');
-    expect(new URLParser(routerProps).build({})).toEqual('?');
+    expect(new URLParser(routerProps).build()).toEqual('');
+    expect(new URLParser(routerProps).build({})).toEqual('');
+  });
+
+  it('encodes special characters like & in values', () => {
+    expect(new URLParser(routerProps).build({ name: 'a & b' })).toEqual('?name=a+%26+b');
+  });
+
+  it('encodes = in values', () => {
+    expect(new URLParser(routerProps).build({ filter: 'k=v' })).toEqual('?filter=k%3Dv');
+  });
+
+  it('encodes spaces in values', () => {
+    expect(new URLParser(routerProps).build({ name: 'hello world' })).toEqual('?name=hello+world');
   });
 });
