@@ -68,6 +68,8 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 
 ## Common CI failures
 
+- Prebuilt pipeline-spec generation (`make -C api python` / `golang`) reuses a locally available generator image. On a cold Docker cache it explicitly pulls through `docker-pull-with-retry.sh` (three attempts, 20-second delays), then runs with `--pull=never`. Pull exhaustion stops generation; generator failures are not retried. Source-built generation remains unchanged.
+
 - Contributor Report treats `FORBIDDEN` errors on individual comment-history nodes as an unavailable PR-comment metric, because that history spans repositories with independent access policies. It reports `Unavailable (GitHub access restrictions)` rather than a partial count, while retaining the other verified metrics. Other GraphQL errors and membership lookup failures still fail the job. Report fixes must land on `master` before a fresh `pull_request_target` event can use them; rerunning an old execution retains its trusted workflow revision.
 
 - `ci-checks.yml` reports verified current-head CI results for all authors without an organization-membership lookup or an `ok-to-test` prerequisite. Its scheduled recovery uses the same rule. Workflow approval remains separate; missing or unapproved expected runs still prevent success. The explicit `needs-ok-to-test` veto remains until every overlapping Tide query independently enforces it. See [the CI gate contract](ci-passed.md).
