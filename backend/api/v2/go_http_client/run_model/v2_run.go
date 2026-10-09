@@ -101,7 +101,7 @@ type V2Run struct {
 	TaskCount int32 `json:"task_count,omitempty"`
 
 	// tasks
-	Tasks []*V2PipelineTask `json:"tasks"`
+	Tasks []*V2PipelineTask `json:"tasks,omitempty"`
 }
 
 // Validate validates this v2 run

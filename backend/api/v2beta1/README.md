@@ -10,7 +10,9 @@ client implementation, Swagger, Python documentation, or templates.
 functions. Old names such as `V2beta1Run` refer to the actual v2 types; methods,
 serialization, validation, and transport logic come from v2. Recompiled callers
 keep their import paths but use canonical v2 HTTP/gRPC endpoints and protobuf
-message identities. The small HTTP constructor wrappers preserve assignments
+message identities. Explicit `File_backend_api_v2beta1_*_proto` exports retain
+the frozen legacy file descriptors and agree with the reflection registry.
+The small HTTP constructor wrappers preserve assignments
 to the legacy packages' `DefaultSchemes` variable.
 
 Regenerate these shims after generating the canonical Go clients:
@@ -35,7 +37,8 @@ logic. `descriptors.go` registers this snapshot for legacy gRPC reflection and
 uses generic dynamic protobuf types to preserve legacy `Any` type URLs, resolving
 external dependencies from the canonical API. Do not regenerate the
 snapshot from v2: it is the independent historical baseline used by schema
-parity and real legacy-wire tests. Incompatible changes need explicit adapters.
+compatibility and real legacy-wire tests. Additive v2 fields, enum values, and
+RPCs are allowed; changes to the existing contract need explicit adapters.
 
 Python legacy model imports are separately generated aliases in
 `kfp.server_api`. See the [API guide](../README.md) for upgrade order and

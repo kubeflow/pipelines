@@ -455,7 +455,13 @@ class Client:
                 return self._healthz_api.healthz_service_get_healthz()
             # ApiException, including network errors, is the only type that may
             # recover after retry.
-            except kfp.server_api.ApiException:
+            except kfp.server_api.ApiException as error:
+                if error.status == 404:
+                    raise RuntimeError(
+                        'Backend does not expose /apis/v2/healthz (HTTP 404). '
+                        'Verify the client host/base path; if the backend only '
+                        'serves v2beta1, upgrade the backend before the SDK.'
+                    ) from error
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
                     f'Failed to get healthz info attempt {count} of {max_attempts}.'

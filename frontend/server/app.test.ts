@@ -177,6 +177,7 @@ describe('UIServer apis', () => {
   describe('/apis/v2/healthz', () => {
     it('responds with apiServerReady to be false if ml-pipeline api server is not ready.', async () => {
       (fetch as any).mockImplementationOnce((_url: string, _opt: any) => ({
+        ok: true,
         json: () => Promise.reject('Unknown error'),
       }));
 
@@ -193,6 +194,7 @@ describe('UIServer apis', () => {
 
     it('responds with both ui server and ml-pipeline api state if ml-pipeline api server is also ready.', async () => {
       (fetch as any).mockImplementationOnce((_url: string, _opt: any) => ({
+        ok: true,
         json: () =>
           Promise.resolve({
             commit_sha: 'commit_sha',
@@ -220,6 +222,7 @@ describe('UIServer apis', () => {
   describe.each(['', '/pipeline'])('API compatibility under %s', (basePath) => {
     it.each(['v2', 'v2beta1'])('uses canonical health checks for %s', async (version) => {
       mockedFetch.mockResolvedValueOnce({
+        ok: true,
         json: async () => ({ commit_sha: 'api-commit', tag_name: 'api-tag', multi_user: false }),
       });
       app = new UIServer(loadConfigs(argv, {}));
@@ -229,6 +232,17 @@ describe('UIServer apis', () => {
       expect(response.body.apiServerReady).toBe(true);
       expect(mockedFetch.mock.calls.at(-1)?.[0]).toContain('/apis/v2/healthz');
       expect(response.headers.location).toBeUndefined();
+    });
+
+    it.each(['v2', 'v2beta1'])('does not mark a JSON 404 ready for %s', async (version) => {
+      const json = vi.fn().mockResolvedValue({ code: 5, message: 'Not Found' });
+      mockedFetch.mockResolvedValueOnce({ ok: false, status: 404, json });
+      app = new UIServer(loadConfigs(argv, {}));
+      const response = await requests(app.app)
+        .get(`${basePath}/apis/${version}/healthz`)
+        .expect(200);
+      expect(response.body.apiServerReady).toBe(false);
+      expect(json).not.toHaveBeenCalled();
     });
 
     it.each(['v2', 'v2beta1'])('keeps restricted routes blocked for %s', async (version) => {

@@ -8,7 +8,7 @@ package go_client
 
 import (
 	canonical "github.com/kubeflow/pipelines/backend/api/v2/go_client"
-	_ "github.com/kubeflow/pipelines/backend/api/v2beta1"
+	legacyDescriptors "github.com/kubeflow/pipelines/backend/api/v2beta1"
 )
 
 type (
@@ -334,16 +334,16 @@ var (
 	ExperimentService_ServiceDesc                  = canonical.ExperimentService_ServiceDesc
 	Experiment_StorageState_name                   = canonical.Experiment_StorageState_name
 	Experiment_StorageState_value                  = canonical.Experiment_StorageState_value
-	File_backend_api_v2beta1_artifact_proto        = canonical.File_backend_api_v2_artifact_proto
-	File_backend_api_v2beta1_auth_proto            = canonical.File_backend_api_v2_auth_proto
-	File_backend_api_v2beta1_experiment_proto      = canonical.File_backend_api_v2_experiment_proto
-	File_backend_api_v2beta1_filter_proto          = canonical.File_backend_api_v2_filter_proto
-	File_backend_api_v2beta1_healthz_proto         = canonical.File_backend_api_v2_healthz_proto
-	File_backend_api_v2beta1_pipeline_proto        = canonical.File_backend_api_v2_pipeline_proto
-	File_backend_api_v2beta1_recurring_run_proto   = canonical.File_backend_api_v2_recurring_run_proto
-	File_backend_api_v2beta1_report_proto          = canonical.File_backend_api_v2_report_proto
-	File_backend_api_v2beta1_run_proto             = canonical.File_backend_api_v2_run_proto
-	File_backend_api_v2beta1_runtime_config_proto  = canonical.File_backend_api_v2_runtime_config_proto
+	File_backend_api_v2beta1_artifact_proto        = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/artifact.proto")
+	File_backend_api_v2beta1_auth_proto            = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/auth.proto")
+	File_backend_api_v2beta1_experiment_proto      = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/experiment.proto")
+	File_backend_api_v2beta1_filter_proto          = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/filter.proto")
+	File_backend_api_v2beta1_healthz_proto         = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/healthz.proto")
+	File_backend_api_v2beta1_pipeline_proto        = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/pipeline.proto")
+	File_backend_api_v2beta1_recurring_run_proto   = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/recurring_run.proto")
+	File_backend_api_v2beta1_report_proto          = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/report.proto")
+	File_backend_api_v2beta1_run_proto             = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/run.proto")
+	File_backend_api_v2beta1_runtime_config_proto  = legacyDescriptors.MustFileDescriptor("backend/api/v2beta1/runtime_config.proto")
 	GetRunRequest_ViewMode_name                    = canonical.GetRunRequest_ViewMode_name
 	GetRunRequest_ViewMode_value                   = canonical.GetRunRequest_ViewMode_value
 	HealthzService_ServiceDesc                     = canonical.HealthzService_ServiceDesc

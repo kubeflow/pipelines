@@ -760,7 +760,7 @@ func toAPIRun(r *model.Run) *apiv2.Run {
 // tokens and cannot call GetPipelineVersion.
 func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2.Run {
 	r = r.ToV2()
-	runtimeConfig := toAPIRuntimeConfig(r.RuntimeConfig)
+	runtimeConfig := toAPIRuntimeConfig(r.PipelineSpec.RuntimeConfig) //nolint:staticcheck // Keep the persisted PipelineSpec field explicit.
 	var apiRunErr error
 	if runtimeConfig == nil {
 		apiRunErr = util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")
@@ -806,8 +806,8 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		ServiceAccount: r.ServiceAccount,
 		RuntimeConfig:  runtimeConfig,
 		StorageState:   toAPIRunStorageState(&r.StorageState),
-		State:          toAPIRuntimeState(&r.State),
-		StateHistory:   toAPIRuntimeStatuses(r.StateHistory),
+		State:          toAPIRuntimeState(&r.RunDetails.State),          //nolint:staticcheck // Keep the persisted RunDetails field explicit.
+		StateHistory:   toAPIRuntimeStatuses(r.RunDetails.StateHistory), //nolint:staticcheck // Keep the persisted RunDetails field explicit.
 		CreatedAt:      timestamppb.New(time.Unix(r.CreatedAtInSec, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(r.ScheduledAtInSec, 0)),
 		FinishedAt:     timestamppb.New(time.Unix(r.FinishedAtInSec, 0)),
@@ -1088,7 +1088,7 @@ func toAPIRecurringRunStatus(s string) apiv2.RecurringRun_Status {
 // Supports v2 API.
 func toAPIRecurringRun(j *model.Job) *apiv2.RecurringRun {
 	j = j.ToV2()
-	runtimeConfig := toAPIRuntimeConfig(j.RuntimeConfig)
+	runtimeConfig := toAPIRuntimeConfig(j.PipelineSpec.RuntimeConfig) //nolint:staticcheck // Keep the persisted PipelineSpec field explicit.
 	if runtimeConfig == nil {
 		return &apiv2.RecurringRun{
 			RecurringRunId: j.UUID,

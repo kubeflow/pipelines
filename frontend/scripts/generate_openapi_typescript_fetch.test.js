@@ -17,7 +17,7 @@ describe('generate_openapi_typescript_fetch', () => {
   it.each([
     ['v2:artifact', 'frontend/src'],
     ['v2:artifact-server', 'frontend/server/src/generated'],
-  ])('removes only the selected canonical and retired tree for %s', (target, parent) => {
+  ])('removes only the selected output tree for %s', (target, parent) => {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-api-cleanup-'));
     // Include apisv2 in the checkout path to catch replacement of the root
     // rather than the target's relative directory.
@@ -35,8 +35,9 @@ describe('generate_openapi_typescript_fetch', () => {
       fs.writeFileSync(path.join(root, 'backend/api/v2/swagger/artifact.swagger.json'), '{}');
       fs.writeFileSync(path.join(root, 'frontend/swagger-config.json'), '{}');
       prepareTarget(root, target);
+      expect(fs.existsSync(path.join(root, parent, 'apisv2', 'artifact'))).toBe(false);
+      expect(fs.readFileSync(path.join(root, parent, 'apisv2beta1', 'artifact/keep.ts'), 'utf8')).toBe('sentinel');
       for (const version of ['apisv2', 'apisv2beta1']) {
-        expect(fs.existsSync(path.join(root, parent, version, 'artifact'))).toBe(false);
         expect(fs.readFileSync(path.join(root, parent, version, 'experiment/keep.ts'), 'utf8')).toBe('sentinel');
       }
       expect(fs.existsSync(path.join(root, 'backend/api/v2/swagger/artifact.swagger.json'))).toBe(true);

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	legacy "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	promtestutil "github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -30,35 +32,74 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// Sharing gRPC method handlers requires identical wire and JSON contracts. Any
-// future incompatible evolution must add an explicit adapter, not weaken this guard.
-func TestLegacyAPIContractParity(t *testing.T) {
-	files := 0
-	protoregistry.GlobalFiles.RangeFiles(func(file protoreflect.FileDescriptor) bool {
-		if !strings.HasPrefix(file.Path(), "backend/api/v2beta1/") {
-			return true
-		}
-		files++
-		t.Run(file.Path(), func(t *testing.T) {
-			canonicalPath := strings.Replace(file.Path(), "/v2beta1/", "/v2/", 1)
-			canonical, err := protoregistry.GlobalFiles.FindFileByPath(canonicalPath)
-			require.NoError(t, err)
-			oldJSON, err := protojson.Marshal(protodesc.ToFileDescriptorProto(file))
-			require.NoError(t, err)
-			newJSON, err := protojson.Marshal(protodesc.ToFileDescriptorProto(canonical))
-			require.NoError(t, err)
-			require.JSONEq(t, strings.ReplaceAll(string(oldJSON), "v2beta1", "v2"), string(newJSON))
+type recordingCompatibilityRegistrar struct {
+	descriptors []*grpc.ServiceDesc
+}
+
+func (r *recordingCompatibilityRegistrar) RegisterService(desc *grpc.ServiceDesc, _ any) {
+	r.descriptors = append(r.descriptors, desc)
+}
+
+func TestCompatibleRegistrarPassesOtherServicesOnce(t *testing.T) {
+	for _, name := range []string{"grpc.health.v1.Health", "grpc.reflection.v1.ServerReflection", "other." + canonicalRPCPackage + "Service"} {
+		t.Run(name, func(t *testing.T) {
+			recorder := new(recordingCompatibilityRegistrar)
+			compatibleServiceRegistrar{recorder}.RegisterService(&grpc.ServiceDesc{ServiceName: name}, nil)
+			require.Len(t, recorder.descriptors, 1)
+			require.Equal(t, name, recorder.descriptors[0].ServiceName)
 		})
-		return true
-	})
-	require.Equal(t, 10, files)
+	}
+}
+
+func TestCompatibleRegistrarDoesNotMutateCanonicalHandlers(t *testing.T) {
+	recorder := new(recordingCompatibilityRegistrar)
+	descriptor := &api.ExperimentService_ServiceDesc
+	original := reflect.ValueOf(descriptor.Methods[0].Handler).Pointer()
+	compatibleServiceRegistrar{recorder}.RegisterService(descriptor, nil)
+	require.Len(t, recorder.descriptors, 2)
+	require.Equal(t, original, reflect.ValueOf(descriptor.Methods[0].Handler).Pointer())
+	require.Equal(t, canonicalRPCPackage+"ExperimentService", recorder.descriptors[0].ServiceName)
+	require.Equal(t, legacyRPCPackage+"ExperimentService", recorder.descriptors[1].ServiceName)
+}
+
+func TestLegacyUsageMetricsDistinguishCanonicalRequests(t *testing.T) {
+	httpBefore := promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("http"))
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.NotFoundHandler(), "database")
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, canonicalAPIPath+"/healthz", nil))
+	require.Equal(t, httpBefore, promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("http")))
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, legacyAPIPath+"/healthz", nil))
+	require.Equal(t, httpBefore+1, promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("http")))
+
+	connection, _ := compatibilityRPCConnection(t)
+	grpcBefore := promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("grpc"))
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("authorization", "Bearer token"))
+	_, err := api.NewExperimentServiceClient(connection).CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: &api.Experiment{DisplayName: "metrics"}})
+	require.NoError(t, err)
+	require.Equal(t, grpcBefore, promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("grpc")))
+	err = connection.Invoke(ctx, "/"+legacyRPCPackage+"ExperimentService/CreateExperiment", legacyMessage(t, "CreateExperimentRequest"), legacyMessage(t, "Experiment"))
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Equal(t, grpcBefore+1, promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("grpc")))
+}
+
+func TestLegacyStreamUsageIsCountedWithoutChangingCanonicalHandler(t *testing.T) {
+	recorder := new(recordingCompatibilityRegistrar)
+	descriptor := &grpc.ServiceDesc{ServiceName: canonicalRPCPackage + "StreamService", Streams: []grpc.StreamDesc{{
+		StreamName: "Observe", Handler: func(any, grpc.ServerStream) error { return nil },
+	}}}
+	compatibleServiceRegistrar{recorder}.RegisterService(descriptor, nil)
+	before := promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("grpc"))
+	require.NoError(t, descriptor.Streams[0].Handler(nil, nil))
+	require.Equal(t, before, promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("grpc")))
+	require.NoError(t, recorder.descriptors[1].Streams[0].Handler(nil, nil))
+	require.Equal(t, before+1, promtestutil.ToFloat64(legacyAPIRequests.WithLabelValues("grpc")))
 }
 
 func TestLegacyHTTPRoutesShareCanonicalHandlers(t *testing.T) {

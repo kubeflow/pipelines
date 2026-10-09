@@ -606,14 +606,24 @@ class InlineCommandTest(unittest.TestCase):
         self.assertNotIn('make release-in-place', command)
 
     def test_release_version_bump_selects_api_from_release_source(self):
-        for canonical in (True, False):
+        for declaration, expected in (
+            ('package kubeflow.pipelines.backend.api.v2;', 'v2'),
+            ('  package  kubeflow.pipelines.backend.api.v2 ;', 'v2'),
+            ('package kubeflow.pipelines.backend.api.v2beta1;', 'v2beta1'),
+            ('// package kubeflow.pipelines.backend.api.v2;\npackage old;',
+             'v2beta1'),
+            ('package kubeflow.pipelines.backend.api.v20;', 'v2beta1'),
+            ('', 'v2beta1'),
+            (None, 'v2beta1'),
+        ):
             with self.subTest(
-                    canonical=canonical), TemporaryDirectory() as tmpdir:
+                    declaration=declaration), TemporaryDirectory() as tmpdir:
                 root = Path(tmpdir)
                 api = root / 'backend/api'
                 (api / 'v2beta1').mkdir(parents=True)
-                if canonical:
+                if declaration is not None:
                     (api / 'v2').mkdir()
+                    (api / 'v2/run.proto').write_text(declaration)
                 for relative in ('hack/generator.sh',
                                  'build_kfp_server_api_python_package.sh'):
                     generator = api / relative
@@ -626,7 +636,7 @@ class InlineCommandTest(unittest.TestCase):
                     root, 'release-3.2', '3.1.1')
                 script = command[-1]
                 selection = script[script.index(
-                    'if [ -d "$REPO_ROOT/backend/api/v2" ]; then'):]
+                    'if [ -f "$REPO_ROOT/backend/api/v2/run.proto" ]'):]
                 # Execute the real version selection and both generator calls
                 # without running unrelated release prerequisites or Docker.
                 result = subprocess.run(
@@ -640,7 +650,6 @@ class InlineCommandTest(unittest.TestCase):
                     text=True,
                     check=True,
                 )
-                expected = 'v2' if canonical else 'v2beta1'
                 self.assertEqual(result.stdout.splitlines(),
                                  [expected, expected])
 
