@@ -55,6 +55,7 @@ it.each([false, true])(
       </ReactFlowProvider>,
     );
     forceRenderStyles();
+    expect(screen.getByTestId('subdag-box')).toHaveClass('shadow-lg');
     const cell = screen.getByTestId('subdag-status').firstElementChild!;
     expect(parseFloat(getComputedStyle(cell).borderBottomRightRadius)).toBe(0);
     expect(parseFloat(getComputedStyle(cell).borderTopRightRadius)).toBe(0);

@@ -28,15 +28,18 @@ export default function SubDagGroupNode({
     <>
       <div
         data-testid='subdag-box'
-        className={style({
-          width: '100%',
-          height: '100%',
-          outline: selected ? '2px solid #1a73e8' : '1px solid #bdc1c6',
-          borderRadius: 8,
-          background: 'rgba(219, 234, 254, 0.28)',
-          overflow: 'hidden',
-          $nest: { '&:focus-within': { outline: '2px solid #1a73e8' } },
-        })}
+        className={classes(
+          'shadow-lg',
+          style({
+            width: '100%',
+            height: '100%',
+            outline: selected ? '2px solid #1a73e8' : '1px solid #bdc1c6',
+            borderRadius: 8,
+            background: 'rgba(219, 234, 254, 0.28)',
+            overflow: 'hidden',
+            $nest: { '&:focus-within': { outline: '2px solid #1a73e8' } },
+          }),
+        )}
       >
         <div
           data-testid='subdag-header'

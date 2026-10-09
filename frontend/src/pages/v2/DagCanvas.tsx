@@ -26,9 +26,6 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Background,
-  Controls,
-  ControlButton,
-  Panel,
   Edge,
   MiniMap,
   Node,
@@ -36,10 +33,7 @@ import {
   OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
+import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
@@ -96,6 +90,8 @@ export default function DagCanvas({
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
   const [renderSubdags, setRenderSubdags] = useState(true);
+  const [locked, setLocked] = useState(false);
+  const canDrag = nodesDraggable && !locked;
   const [expansion, setExpansion] = useState({
     collapsed: new Set<string>(),
     expanded: new Set<string>(),
@@ -210,7 +206,8 @@ export default function DagCanvas({
           ...node,
           position: positions[positionKey(node)] ?? node.position,
           selected: node.id === selectedId,
-          draggable: nodesDraggable,
+          draggable: canDrag,
+          selectable: !locked,
         };
         if (node.type === GROUP_NODE_TYPE) {
           return {
@@ -229,7 +226,8 @@ export default function DagCanvas({
       selectedId,
       subDagExpand,
       toggleGroup,
-      nodesDraggable,
+      canDrag,
+      locked,
     ],
   );
   const edges = useMemo(
@@ -256,7 +254,7 @@ export default function DagCanvas({
 
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
     (_event, draggedNode) => {
-      if (!nodesDraggable) return;
+      if (!canDrag) return;
       setPositions((previous) => ({
         ...previous,
         [positionKey(draggedNode)]: draggedNode.position,
@@ -267,23 +265,25 @@ export default function DagCanvas({
       );
       setFlowElements(updatedElements);
     },
-    [elements, grouped, setFlowElements, nodesDraggable],
+    [elements, grouped, setFlowElements, canDrag],
   );
 
   const handleNodeClick = useCallback(
     (event: ReactMouseEvent, node: PipelineNode) => {
+      if (locked) return;
       const source = grouped?.sources.get(node.id);
       onElementClick(event, source?.element ?? node, source?.layers ?? layers);
     },
-    [grouped, layers, onElementClick],
+    [grouped, layers, onElementClick, locked],
   );
 
   const handleEdgeClick = useCallback(
     (event: ReactMouseEvent, edge: Edge) => {
+      if (locked) return;
       const source = grouped?.sources.get(edge.id);
       onElementClick(event, source?.element ?? edge, source?.layers ?? layers);
     },
-    [grouped, layers, onElementClick],
+    [grouped, layers, onElementClick, locked],
   );
 
   const fitCurrentView = useCallback(
@@ -308,30 +308,7 @@ export default function DagCanvas({
 
   return (
     <>
-      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}>
-        {getSubDagElements && (
-          <FormControlLabel
-            label='Render subdags'
-            labelPlacement='start'
-            title='Show sub-DAGs inline instead of opening them separately'
-            sx={{
-              margin: 0,
-              marginLeft: 2,
-              flexShrink: 0,
-              '& .MuiFormControlLabel-label': { fontSize: 'inherit' },
-            }}
-            control={
-              <Switch
-                size='small'
-                color='primary'
-                checked={renderSubdags}
-                onChange={(_event, checked) => changeRenderingMode(checked)}
-                inputProps={{ role: 'switch' }}
-              />
-            }
-          />
-        )}
-      </SubDagLayer>
+      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate} />
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
           <ReactFlow<PipelineNode, Edge>
@@ -339,7 +316,9 @@ export default function DagCanvas({
             nodes={nodes}
             edges={edges}
             snapToGrid={true}
-            nodesDraggable={nodesDraggable}
+            nodesDraggable={canDrag}
+            elementsSelectable={!locked}
+            nodesConnectable={false}
             onInit={(instance) => {
               reactFlowInstance.current = instance;
               lastFocusedNodeId.current = focusedId || null;
@@ -353,39 +332,20 @@ export default function DagCanvas({
             onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
             onNodesChange={onNodesChange}
-            onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
+            onNodeDragStop={canDrag ? onNodeDragStop : undefined}
             deleteKeyCode={null}
           >
             <MiniMap />
-            <Panel
-              position='bottom-left'
-              className='react-flow__controls'
-              role='group'
-              aria-label='Graph controls'
-            >
-              {getSubDagElements && (
-                <>
-                  <ControlButton
-                    aria-label='Expand all'
-                    title='Expand all sub-DAGs (large groups may require individual expansion)'
-                    disabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
-                    onClick={expandAll}
-                  >
-                    <UnfoldMoreIcon fontSize='small' />
-                  </ControlButton>
-                  <ControlButton
-                    aria-label='Collapse all'
-                    title='Collapse all sub-DAGs'
-                    disabled={!nodes.some((node) => node.type === GROUP_NODE_TYPE)}
-                    onClick={collapseAll}
-                  >
-                    <UnfoldLessIcon fontSize='small' />
-                  </ControlButton>
-                </>
-              )}
-              {/* Keep native controls in normal flow so visual and keyboard order agree. */}
-              <Controls style={{ position: 'static', margin: 0, boxShadow: 'none' }} />
-            </Panel>
+            <GraphControls
+              showSubDagControls={!!getSubDagElements}
+              hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+              renderSubdags={renderSubdags}
+              onRenderSubdagsChange={changeRenderingMode}
+              locked={locked}
+              onLockChange={setLocked}
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+            />
             <Background />
           </ReactFlow>
         </ReactFlowProvider>
