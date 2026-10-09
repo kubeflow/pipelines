@@ -150,7 +150,7 @@ func TestOnlineModeReconciliationUsesManagedFence(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
 	calls := 0
-	manager.options.EnsureRecurringRunAdopted = func(_ context.Context, id string) error {
+	manager.options.EnsureRecurringRunModeChanged = func(_ context.Context, id string) error {
 		calls++
 		require.Equal(t, job.UUID, id)
 		return fmt.Errorf("old writers remain")
@@ -257,4 +257,23 @@ func TestOnlineAndManualAdoptionRefuseMissingTransferredState(t *testing.T) {
 	var count int64
 	require.NoError(t, db.Model(&model.RecurringRunState{}).Where(&model.RecurringRunState{JobUUID: job.UUID}).Count(&count).Error)
 	require.Zero(t, count)
+}
+
+func TestOnlineModeChangeSupersedesCachedReconciliationFailure(t *testing.T) {
+	manager, clients := onlineAdoptionManager(t)
+	job := onlineLegacyJob(t, clients, true)
+	ctx := context.Background()
+	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
+	a := NewAutomaticRecurringRunAdoption(manager, func(context.Context) error { return nil })
+	manager.options.EnsureRecurringRunModeChanged = a.EnsureAfterModeChange
+	manager.swfClient = &adoptionInterruptedCR{ScheduledWorkflowInterface: clients.SwfClient().ScheduledWorkflow("ns1"), failUpdate: true}
+	require.ErrorContains(t, manager.ChangeJobMode(ctx, job.UUID, false), "interrupted")
+	require.Contains(t, a.retries, job.UUID)
+	manager.swfClient = clients.SwfClient()
+	require.NoError(t, manager.ChangeJobMode(ctx, job.UUID, true))
+	require.NoError(t, manager.RequireRecurringRunAdoptionReady(ctx, job.UUID))
+	live, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.True(t, live.Spec.Enabled)
+	require.NotContains(t, a.retries, job.UUID)
 }

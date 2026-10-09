@@ -52,6 +52,7 @@ type recurringRunRetry struct {
 	last    time.Time
 	delay   time.Duration
 	running bool
+	done    chan struct{}
 	err     error
 }
 
@@ -61,6 +62,10 @@ type recurringRunRetry struct {
 func (a *AutomaticRecurringRunAdoption) beginRetry(id string) (bool, error) {
 	a.retryMu.Lock()
 	defer a.retryMu.Unlock()
+	return a.beginRetryLocked(id)
+}
+
+func (a *AutomaticRecurringRunAdoption) beginRetryLocked(id string) (bool, error) {
 	now := a.now()
 	if retry := a.retries[id]; retry != nil {
 		if retry.running {
@@ -70,6 +75,7 @@ func (a *AutomaticRecurringRunAdoption) beginRetry(id string) (bool, error) {
 			return false, retry.err
 		}
 		retry.running = true
+		retry.done = make(chan struct{})
 		retry.last = now
 		return true, nil
 	}
@@ -87,7 +93,7 @@ func (a *AutomaticRecurringRunAdoption) beginRetry(id string) (bool, error) {
 		}
 		delete(a.retries, oldestID)
 	}
-	a.retries[id] = &recurringRunRetry{running: true, last: now}
+	a.retries[id] = &recurringRunRetry{running: true, last: now, done: make(chan struct{})}
 	return true, nil
 }
 func (a *AutomaticRecurringRunAdoption) finishRetry(id string, err error) {
@@ -97,6 +103,7 @@ func (a *AutomaticRecurringRunAdoption) finishRetry(id string, err error) {
 	if retry == nil {
 		return
 	}
+	close(retry.done)
 	if err == nil {
 		delete(a.retries, id)
 		return
@@ -113,9 +120,48 @@ func (a *AutomaticRecurringRunAdoption) finishRetry(id string, err error) {
 	retry.next = retry.last.Add(retry.delay)
 }
 
+// beginModeChangeRetry discards errors for the previous desired state, but waits
+// for its in-flight attempt before starting work for the new state.
+func (a *AutomaticRecurringRunAdoption) beginModeChangeRetry(ctx context.Context, id string) (bool, error) {
+	for {
+		a.retryMu.Lock()
+		if err := ctx.Err(); err != nil {
+			a.retryMu.Unlock()
+			return false, err
+		}
+		retry := a.retries[id]
+		if retry == nil || !retry.running {
+			delete(a.retries, id)
+			ok, err := a.beginRetryLocked(id)
+			a.retryMu.Unlock()
+			return ok, err
+		}
+		done := retry.done
+		a.retryMu.Unlock()
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case <-done:
+		}
+	}
+}
+
+// EnsureAfterModeChange reconciles newly persisted desired state without replaying
+// a previous mode's cached failure or overlapping an existing attempt.
+func (a *AutomaticRecurringRunAdoption) EnsureAfterModeChange(ctx context.Context, id string) error {
+	return a.ensure(ctx, id, true)
+}
+
 // Ensure leaves healthy schedules alone. Failed expensive attempts share a
 // capped backoff across both callers; another replica's recovery clears it.
-func (a *AutomaticRecurringRunAdoption) Ensure(ctx context.Context, id string) (result error) {
+func (a *AutomaticRecurringRunAdoption) Ensure(ctx context.Context, id string) error {
+	return a.ensure(ctx, id, false)
+}
+
+func (a *AutomaticRecurringRunAdoption) ensure(ctx context.Context, id string, modeChanged bool) (result error) {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := a.adopter.RequireRecurringRunAdoptionReady(ctx, id); err == nil {
 		a.retryMu.Lock()
 		if retry := a.retries[id]; retry != nil && !retry.running {
@@ -127,13 +173,21 @@ func (a *AutomaticRecurringRunAdoption) Ensure(ctx context.Context, id string) (
 	if err := a.writersReady(ctx); err != nil {
 		return util.NewUnavailableServerError(err, "Scheduling is waiting for the automatic upgrade handoff; retry shortly")
 	}
-	if ok, err := a.beginRetry(id); !ok {
+	var ok bool
+	var err error
+	if modeChanged {
+		ok, err = a.beginModeChangeRetry(ctx, id)
+	} else {
+		ok, err = a.beginRetry(id)
+	}
+	if !ok {
 		return err
 	}
 	defer func() {
-		// Cancellation belongs to this caller, never to a subsequent request.
-		if status.Code(result) == codes.Canceled || status.Code(result) == codes.DeadlineExceeded || ctx.Err() != nil || errors.Is(result, context.Canceled) || errors.Is(result, context.DeadlineExceeded) || util.IsUserErrorCodeMatch(result, codes.Canceled) || util.IsUserErrorCodeMatch(result, codes.DeadlineExceeded) {
-			a.finishRetry(id, nil)
+		// Retain backoff after interrupted work, but do not replay one caller's
+		// cancellation or deadline status to later callers.
+		if result != nil && (status.Code(result) == codes.Canceled || status.Code(result) == codes.DeadlineExceeded || ctx.Err() != nil || errors.Is(result, context.Canceled) || errors.Is(result, context.DeadlineExceeded) || util.IsUserErrorCodeMatch(result, codes.Canceled) || util.IsUserErrorCodeMatch(result, codes.DeadlineExceeded)) {
+			a.finishRetry(id, util.NewUnavailableServerError(fmt.Errorf("previous schedule reconciliation was interrupted"), "Retry this recurring run after reconciliation backoff"))
 		} else {
 			a.finishRetry(id, result)
 		}

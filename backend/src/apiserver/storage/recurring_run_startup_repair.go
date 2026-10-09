@@ -47,7 +47,9 @@ func PrepareRecurringRunStartupRepairs(db *gorm.DB, afterID string, limit uint64
 					return err
 				}
 				if _, err := legacyAdoptionIDs(global); err != nil {
-					return err
+					// Keep this candidate blocked by its invalid provenance, but let
+					// later schedules with valid per-record receipts be repaired.
+					continue
 				}
 			}
 			ids, err := json.Marshal([]string{job.UUID})

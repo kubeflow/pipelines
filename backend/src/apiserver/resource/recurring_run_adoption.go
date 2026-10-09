@@ -17,6 +17,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/gorm"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 )
@@ -180,13 +181,20 @@ func (r *ResourceManager) synchronizeAdoptedRecurringRun(ctx context.Context, id
 		if live == nil || string(live.UID) != job.UUID || live.Name != job.K8SName || live.Namespace != job.Namespace {
 			return fmt.Errorf("backing ScheduledWorkflow identity changed; restore the adopted CR identity")
 		}
+		original := live
 		live = live.DeepCopy()
 		live.Spec = canonical.Spec
-		live.Status.Trigger.LastIndex = util.Int64Pointer(state.LastRunIndex)
-		live.Status.Trigger.LastTriggeredTime = nil
-		if state.LastRunIndex > 0 {
-			last := metav1.NewTime(time.Unix(state.LastScheduledAtInSec, 0))
-			live.Status.Trigger.LastTriggeredTime = &last
+		// A rerun after online adoption must not acknowledge an in-flight claim.
+		if !state.Pending {
+			live.Status.Trigger.LastIndex = util.Int64Pointer(state.LastRunIndex)
+			live.Status.Trigger.LastTriggeredTime = nil
+			if state.LastRunIndex > 0 {
+				last := metav1.NewTime(time.Unix(state.LastScheduledAtInSec, 0))
+				live.Status.Trigger.LastTriggeredTime = &last
+			}
+		}
+		if equality.Semantic.DeepEqual(original.Spec, live.Spec) && equality.Semantic.DeepEqual(original.Status, live.Status) {
+			return nil
 		}
 		_, err = r.getScheduledWorkflowClient(job.Namespace).Update(ctx, live)
 		return err

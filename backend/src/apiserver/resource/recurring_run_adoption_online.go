@@ -16,6 +16,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/gorm"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -119,6 +120,7 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 			if live == nil || string(live.UID) != job.UUID || live.Name != job.K8SName || live.Namespace != job.Namespace {
 				return recurringRunIdentityError(id)
 			}
+			original := live
 			live = live.DeepCopy()
 			live.Spec = canonical.Spec
 			// A mode reconciliation must not acknowledge an in-flight claim.
@@ -129,6 +131,9 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 					last := metav1.NewTime(time.Unix(state.LastScheduledAtInSec, 0))
 					live.Status.Trigger.LastTriggeredTime = &last
 				}
+			}
+			if equality.Semantic.DeepEqual(original.Spec, live.Spec) && equality.Semantic.DeepEqual(original.Status, live.Status) {
+				return nil
 			}
 			_, err = r.getScheduledWorkflowClient(job.Namespace).Update(syncCtx, live)
 			return err
@@ -153,12 +158,15 @@ func (r *ResourceManager) legacyRecurringRunCandidate(ctx context.Context, db *g
 		return nil, err
 	}
 	if r.IsEmptyNamespace(job.Namespace) {
-		return nil, fmt.Errorf("recurring run has no stored namespace")
+		return nil, fmt.Errorf("recurring run %s has no stored namespace; resolve its destination before adoption", id)
 	}
 	swf, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
+	// Inspect the namespace, including owner-matching workflows with a missing or
+	// conflicting schedule label. A label selector would hide unsafe executions
+	// from the planner's identity checks.
 	live, err := r.getWorkflowClient(job.Namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -167,22 +175,14 @@ func (r *ResourceManager) legacyRecurringRunCandidate(ctx context.Context, db *g
 		return nil, fmt.Errorf("execution inventory unavailable")
 	}
 	inventory, ok := r.runStore.(interface {
-		ListRunIDsForRecurringRun(string) ([]string, error)
+		ListRunsForRecurringRunAdoption(context.Context, string) ([]*model.Run, error)
 	})
 	if !ok {
-		return nil, fmt.Errorf("legacy execution inventory unavailable")
+		return nil, fmt.Errorf("legacy execution inventory unavailable; configure a run store with adoption inventory support")
 	}
-	ids, err := inventory.ListRunIDsForRecurringRun(id)
+	runs, err := inventory.ListRunsForRecurringRunAdoption(ctx, id)
 	if err != nil {
 		return nil, err
-	}
-	var runs []*model.Run
-	for _, runID := range ids {
-		run, err := r.runStore.GetRun(runID)
-		if err != nil {
-			return nil, err
-		}
-		runs = append(runs, run)
 	}
 	state, err := adoptLegacyRecurringRunProgress(job, swf, runs, *live, r.time.Now().Unix())
 	if err != nil {
@@ -239,8 +239,8 @@ func (r *ResourceManager) changeAdoptableJobMode(ctx context.Context, job *model
 		return err
 	}
 	if count > 0 {
-		if r.options != nil && r.options.EnsureRecurringRunAdopted != nil {
-			return r.options.EnsureRecurringRunAdopted(ctx, job.UUID)
+		if r.options != nil && r.options.EnsureRecurringRunModeChanged != nil {
+			return r.options.EnsureRecurringRunModeChanged(ctx, job.UUID)
 		}
 		return r.AdoptLegacyRecurringRun(ctx, job.UUID)
 	}

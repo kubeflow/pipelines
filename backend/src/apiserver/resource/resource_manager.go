@@ -142,14 +142,16 @@ type ResourceManagerOptions struct {
 	ScheduleWritersReady func(context.Context) error `json:"-"`
 	// EnsureRecurringRunAdopted repairs legacy progress before a scheduled submission.
 	EnsureRecurringRunAdopted func(context.Context, string) error `json:"-"`
-	CollectMetrics            bool                                `json:"collect_metrics,omitempty"`
-	CacheDisabled             bool                                `json:"cache_disabled,omitempty"`
-	DefaultWorkspace          *corev1.PersistentVolumeClaimSpec   `json:"default_workspace,omitempty"`
-	MLPipelineTLSEnabled      bool                                `json:"ml_pipeline_tls_enabled,omitempty"`
-	DefaultRunAsUser          *int64                              `json:"default_run_as_user,omitempty"`
-	DefaultRunAsGroup         *int64                              `json:"default_run_as_group,omitempty"`
-	DefaultRunAsNonRoot       *bool                               `json:"default_run_as_non_root,omitempty"`
-	DefaultHostUsers          *bool                               `json:"default_host_users,omitempty"`
+	// EnsureRecurringRunModeChanged reconciles freshly persisted desired mode.
+	EnsureRecurringRunModeChanged func(context.Context, string) error `json:"-"`
+	CollectMetrics                bool                                `json:"collect_metrics,omitempty"`
+	CacheDisabled                 bool                                `json:"cache_disabled,omitempty"`
+	DefaultWorkspace              *corev1.PersistentVolumeClaimSpec   `json:"default_workspace,omitempty"`
+	MLPipelineTLSEnabled          bool                                `json:"ml_pipeline_tls_enabled,omitempty"`
+	DefaultRunAsUser              *int64                              `json:"default_run_as_user,omitempty"`
+	DefaultRunAsGroup             *int64                              `json:"default_run_as_group,omitempty"`
+	DefaultRunAsNonRoot           *bool                               `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers              *bool                               `json:"default_host_users,omitempty"`
 }
 
 type ResourceManager struct {

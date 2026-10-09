@@ -26,17 +26,17 @@ func legacyAdoptionIDs(receipt *model.RecurringRunAdoption) ([]string, error) {
 	}
 	var ids []string
 	if err := json.Unmarshal([]byte(receipt.JobIDs), &ids); err != nil {
-		return nil, fmt.Errorf("invalid legacy adoption inventory")
+		return nil, fmt.Errorf("invalid legacy adoption inventory; restore the adoption receipt from trusted inventory or backup before retrying")
 	}
 	seen := make(map[string]bool)
 	for _, id := range ids {
 		if id == "" || seen[id] {
-			return nil, fmt.Errorf("invalid legacy adoption inventory")
+			return nil, fmt.Errorf("invalid legacy adoption inventory; restore the adoption receipt from trusted inventory or backup before retrying")
 		}
 		seen[id] = true
 	}
 	if int64(len(ids)) != receipt.AdoptedCount {
-		return nil, fmt.Errorf("incomplete legacy adoption inventory")
+		return nil, fmt.Errorf("incomplete legacy adoption inventory; restore the adoption receipt from trusted inventory or backup before retrying")
 	}
 	return ids, nil
 }
@@ -179,11 +179,10 @@ func ListPendingLegacyRecurringRunAdoptions(db *gorm.DB, afterID string, limit u
 		return nil, err
 	}
 	var globalIDs []string
+	invalidGlobal := false
 	if global != nil && !global.Ready {
 		globalIDs, err = legacyAdoptionIDs(global)
-		if err != nil {
-			return nil, err
-		}
+		invalidGlobal = err != nil
 	}
 	q := db.Statement.Quote
 	jobID, stateID, receiptID := q("jobs.UUID"), q("recurring_run_states.JobUUID"), q("recurring_run_adoptions.ID")
@@ -197,7 +196,11 @@ func ListPendingLegacyRecurringRunAdoptions(db *gorm.DB, afterID string, limit u
 		Where(jobID+" > ?", afterID)
 	condition := stateID + " IS NULL OR " + q("recurring_run_adoptions.Ready") + " = ?"
 	args := []any{false}
-	if len(globalIDs) > 0 {
+	if invalidGlobal {
+		// Return unsealed jobs for individual validation without starving repairs
+		// backed by valid per-record receipts. Never trust malformed inventory.
+		condition += " OR " + receiptID + " IS NULL"
+	} else if len(globalIDs) > 0 {
 		condition += " OR (" + jobID + " IN ? AND " + receiptID + " IS NULL)"
 		args = append(args, globalIDs)
 	}

@@ -343,6 +343,7 @@ func main() {
 		resourceOptions.ScheduleWritersReady = writersReady
 		adoption := resource.NewAutomaticRecurringRunAdoption(resourceManager, writersReady)
 		resourceOptions.EnsureRecurringRunAdopted = adoption.Ensure
+		resourceOptions.EnsureRecurringRunModeChanged = adoption.EnsureAfterModeChange
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

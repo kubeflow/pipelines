@@ -64,6 +64,11 @@ func TestStartupFailedReadyRepairIsRetriedFromDurablePending(t *testing.T) {
 	job := onlineLegacyJob(t, clients, true)
 	ctx := context.Background()
 	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
+	live, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	live.Spec.ServiceAccount = "tampered"
+	_, err = clients.SwfClient().ScheduledWorkflow("ns1").Update(ctx, live)
+	require.NoError(t, err)
 	manager.swfClient = &adoptionInterruptedCR{ScheduledWorkflowInterface: clients.SwfClient().ScheduledWorkflow("ns1"), failUpdate: true}
 	worker := NewAutomaticRecurringRunAdoption(manager, func(context.Context) error { return nil })
 	now := time.Unix(1000, 0)
@@ -85,4 +90,37 @@ func TestStartupFailedReadyRepairIsRetriedFromDurablePending(t *testing.T) {
 	require.Error(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
 	_, err = clients.JobStore().GetRecurringRunState(job.UUID)
 	require.Error(t, err)
+}
+
+func TestStartupRepairSkipsUnchangedScheduledWorkflow(t *testing.T) {
+	manager, clients := onlineAdoptionManager(t)
+	job := onlineLegacyJob(t, clients, true)
+	ctx := context.Background()
+	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
+	// Reject every update: an unchanged CR must still finish its durable repair.
+	manager.swfClient = &adoptionInterruptedCR{ScheduledWorkflowInterface: clients.SwfClient().ScheduledWorkflow("ns1"), failUpdate: true}
+	worker := NewAutomaticRecurringRunAdoption(manager, func(context.Context) error { return nil })
+	require.NoError(t, worker.scan(ctx))
+	require.True(t, worker.startupDone)
+	require.NoError(t, manager.RequireRecurringRunAdoptionReady(ctx, job.UUID))
+}
+
+func TestOfflineSynchronizationPreservesPendingTick(t *testing.T) {
+	manager, clients := onlineAdoptionManager(t)
+	job := onlineLegacyJob(t, clients, true)
+	ctx := context.Background()
+	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
+	before, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	before = before.DeepCopy()
+	state, err := clients.JobStore().ClaimRecurringRun(job.UUID, "pending", *before.Status.Trigger.LastIndex, 200, 210, "")
+	require.NoError(t, err)
+	require.True(t, state.Pending)
+	require.NoError(t, manager.synchronizeAdoptedRecurringRun(ctx, job.UUID))
+	after, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, before.Status.Trigger, after.Status.Trigger)
+	actual, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	require.Equal(t, state, actual)
 }
