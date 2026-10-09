@@ -480,6 +480,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
             <IconButton
               data-testid='prev-page-btn'
+              aria-label='Previous page'
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
               size='large'
@@ -488,6 +489,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             </IconButton>
             <IconButton
               data-testid='next-page-btn'
+              aria-label='Next page'
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
               size='large'

@@ -388,6 +388,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           </span>
         </label>
         <button
+          aria-label="Help"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           data-mui-internal-clone-element="true"
           tabindex="0"
@@ -1066,6 +1067,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           </span>
         </label>
         <button
+          aria-label="Help"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           data-mui-internal-clone-element="true"
           tabindex="0"
@@ -1744,6 +1746,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           </span>
         </label>
         <button
+          aria-label="Help"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           data-mui-internal-clone-element="true"
           tabindex="0"
@@ -2261,6 +2264,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           </span>
         </label>
         <button
+          aria-label="Help"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           data-mui-internal-clone-element="true"
           tabindex="0"
@@ -2828,6 +2832,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           </span>
         </label>
         <button
+          aria-label="Help"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           data-mui-internal-clone-element="true"
           tabindex="0"
