@@ -4077,6 +4077,8 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, got.LifecycleMessage)
 	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *got.LifecycleCategory)
 
 	workflow.Status.Nodes["executor-pod"] = v1alpha1.NodeStatus{
 		ID:          "executor-pod",
@@ -4091,6 +4093,7 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	got, err = manager.GetTask(task.UUID)
 	require.NoError(t, err)
 	assert.Nil(t, got.LifecycleMessage, "lifecycle message should be cleared after transient startup message")
+	assert.Nil(t, got.LifecycleCategory, "lifecycle category should be cleared with the message")
 }
 
 type runStoreWithBeforeWorkflowUpdateHook struct {
@@ -8663,7 +8666,7 @@ func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
-	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.True(t, matched)
 	assert.Equal(t, `Back-off pulling image "bad"`, msg)
 }
@@ -8675,7 +8678,7 @@ func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
 		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"parent": "ImagePullBackOff"}
-	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.False(t, matched)
 }
 
@@ -8698,11 +8701,11 @@ func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	}
 	resolved := map[string]string{"node-0": "ImagePullBackOff", "node-1": ""}
 
-	msg0, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
+	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
 	assert.True(t, matched0)
 	assert.Equal(t, "ImagePullBackOff", msg0)
 
-	msg1, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
+	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
 	assert.True(t, matched1)
 	assert.Equal(t, "", msg1)
 }
@@ -8713,7 +8716,7 @@ func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": "ImagePullBackOff"}
-	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.False(t, matched)
 }
 
@@ -8728,7 +8731,7 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"node-1": ""}
-	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.True(t, matched)
 	assert.Equal(t, "", msg)
 }

@@ -23,6 +23,7 @@ Name | Type | Description | Notes
 **outputs** | [**PipelineTaskInputOutputs**](PipelineTaskInputOutputs.md) |  | [optional] 
 **scope_path** | **str** |  | [optional] 
 **lifecycle_message** | **str** | Latest pod lifecycle diagnostic from the execution engine. Read-only via REST; the persistence agent clears this field automatically on recovery. | [optional] 
+**lifecycle_category** | **str** | Classified category of lifecycle_message. One of image-pull, scheduling, runtime, admission, or unknown. Empty when lifecycle_message is empty. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
