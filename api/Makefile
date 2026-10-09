@@ -30,6 +30,15 @@ IMAGE_TAG=kfp-api-generator
 .PHONY: all
 all: golang python
 
+ifeq ($(USE_PREBUILT_IMAGE),true)
+.PHONY: ensure-prebuilt-generator-image
+ensure-prebuilt-generator-image:
+	docker image inspect "$(PREBUILT_REMOTE_IMAGE)" >/dev/null 2>&1 || \
+		bash ../.github/resources/scripts/docker-pull-with-retry.sh "$(PREBUILT_REMOTE_IMAGE)"
+
+golang python: ensure-prebuilt-generator-image
+endif
+
 .PHONY: clean
 clean: clean-go clean-python
 
@@ -38,7 +47,7 @@ clean: clean-go clean-python
 .PHONY: golang
 golang: v2alpha1/*.proto
 ifeq ($(USE_PREBUILT_IMAGE),true)
-	docker run --interactive --rm \
+	docker run --pull=never --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		--mount type=bind,source="$$(pwd)/..",target=/go/src/github.com/kubeflow/pipelines \
 		$(PREBUILT_REMOTE_IMAGE)  \
@@ -67,7 +76,7 @@ clean-go:
 .PHONY: python
 python: fetch-protos
 ifeq ($(USE_PREBUILT_IMAGE),true)
-	docker run --interactive --rm \
+	docker run --pull=never --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \

@@ -126,7 +126,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "21c7eb92db8acafa621445203ae7c5718b1c3aab0eca792dea1af66562022040",
+      "header_sha256": "841cf654825065233ec3e720781d5344e2a361bc3f6b02b0c82f9a48ead789ca",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -182,6 +182,7 @@
           "frontend/src/apisv2beta1/visualization/**",
           "docs/_static/kfp_api_single_file.swagger.json",
           "Makefile",
+          "api/Makefile",
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
           "test_data/sdk_compiled_pipelines/valid/**",

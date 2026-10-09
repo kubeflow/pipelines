@@ -65,6 +65,7 @@ on:
       - 'frontend/src/apisv2beta1/visualization/**'
       - 'docs/_static/kfp_api_single_file.swagger.json'
       - 'Makefile'
+      - 'api/Makefile'
       - 'backend/src/v2/Makefile'
       - 'release/kfpr/core.py'
       - 'test_data/sdk_compiled_pipelines/valid/**'
