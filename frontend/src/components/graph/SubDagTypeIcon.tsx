@@ -5,8 +5,9 @@ import LayersIcon from '@mui/icons-material/Layers';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import RepeatOneIcon from '@mui/icons-material/RepeatOne';
 import SvgIcon from '@mui/material/SvgIcon';
+import type { SubDagKind } from './Constants';
 
-export default function SubDagTypeIcon({ kind }: { kind?: string }) {
+export default function SubDagTypeIcon({ kind }: { kind?: SubDagKind }) {
   const className = 'text-mui-grey-600';
   switch (kind) {
     case 'Loop':

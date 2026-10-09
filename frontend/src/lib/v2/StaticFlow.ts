@@ -21,14 +21,15 @@ import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 
-export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
+import type { PipelineFlowElement } from './FlowTypes';
+export type { PipelineFlowElement } from './FlowTypes';
 
 export class GraphExpansionLimitError extends Error {
-  constructor(readonly nodeCount?: number) {
+  constructor(nodeCount?: number) {
     super(
       nodeCount === undefined
         ? 'Automatic expansion limit reached. Expand to load this group.'
-        : `${nodeCount.toLocaleString('en-US')} nodes. Expand to load this group.`,
+        : `${nodeCount.toLocaleString('en-US')} nodes exceed the automatic expansion limit. Expand to load this group.`,
     );
   }
 }

@@ -18,9 +18,9 @@ function props(): GraphControlsProps {
   return {
     showSubDagControls: true,
     hasSubDags: true,
-    renderSubdags: true,
+    renderSubDags: true,
     locked: false,
-    onRenderSubdagsChange: vi.fn(),
+    onRenderSubDagsChange: vi.fn(),
     onLockChange: vi.fn(),
     onExpandAll: vi.fn(),
     onCollapseAll: vi.fn(),
@@ -59,8 +59,8 @@ it('uses fullscreen controls at the bottom and dispatches each action', () => {
   expect(mocked.viewport.zoomOut).toHaveBeenCalledOnce();
   expect(mocked.viewport.fitView).toHaveBeenCalledOnce();
   expect(options.onLockChange).toHaveBeenCalledWith(true);
-  expect(options.onRenderSubdagsChange).toHaveBeenCalledWith(false);
-  rerender(<GraphControls {...options} locked renderSubdags={false} />);
+  expect(options.onRenderSubDagsChange).toHaveBeenCalledWith(false);
+  rerender(<GraphControls {...options} locked renderSubDags={false} />);
   fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   expect(options.onLockChange).toHaveBeenLastCalledWith(false);
   expect(screen.getByTestId('FullscreenIcon')).toBeInTheDocument();
@@ -94,7 +94,7 @@ it.each([
 });
 
 it('retains the 500ms delay when moving between icons and explains disabled actions', () => {
-  render(<GraphControls {...props()} renderSubdags={false} />);
+  render(<GraphControls {...props()} renderSubDags={false} />);
   const zoom = screen.getByRole('button', { name: 'Zoom in' });
   fireEvent.mouseOver(zoom.parentElement!);
   act(() => {

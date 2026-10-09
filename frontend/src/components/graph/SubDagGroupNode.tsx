@@ -6,6 +6,7 @@ import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { Node, NodeProps } from '@xyflow/react';
 import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
+import { color } from 'src/Css';
 import { getIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import SubDagTypeIcon from './SubDagTypeIcon';
@@ -33,11 +34,11 @@ export default function SubDagGroupNode({
           style({
             width: '100%',
             height: '100%',
-            outline: selected ? '2px solid #1a73e8' : '1px solid #bdc1c6',
+            outline: selected ? `2px solid ${color.theme}` : '1px solid #bdc1c6',
             borderRadius: 8,
             background: 'rgba(219, 234, 254, 0.28)',
             overflow: 'hidden',
-            $nest: { '&:focus-within': { outline: '2px solid #1a73e8' } },
+            $nest: { '&:focus-within': { outline: `2px solid ${color.theme}` } },
           }),
         )}
       >

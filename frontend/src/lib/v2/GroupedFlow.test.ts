@@ -265,13 +265,17 @@ describe('buildGroupedFlow', () => {
     const resolve = vi.fn(() => root);
     const graph = buildGroupedFlow(root, ['root'], resolve, new Set());
     expect(resolve).toHaveBeenCalledTimes(1);
-    expect(graph.nodes.some((node) => node.data.expansionError?.includes('Circular'))).toBe(true);
+    expect(graph.nodes.find((node) => node.data.expansionError)?.data.expansionError).toMatch(
+      /Circular sub-DAG component reference: .+\. Remove the recursive component reference from the pipeline spec\./,
+    );
   });
 
   it('reports excessive nesting instead of overflowing the stack', () => {
     const root = convertSubDagToFlowElements(loopSpec, ['root']);
     const graph = buildGroupedFlow(root, Array(64).fill('scope'), () => [], new Set());
-    expect(graph.nodes.some((node) => node.data.expansionError?.includes('64 layers'))).toBe(true);
+    expect(graph.nodes.find((node) => node.data.expansionError)?.data.expansionError).toBe(
+      'Sub-DAG nesting exceeds 64 layers. Reduce the nesting depth or open a deeper layer directly.',
+    );
   });
 
   it('expands a real compiler fixture with nested loops without duplicate IDs', () => {
