@@ -1,5 +1,11 @@
 # RBAC and client migration for 2.18
 
+Start with the [2.18 upgrade checklist](upgrade-2.18.md) for rollout ordering,
+automatic legacy schedule adoption and UI startup. A separate
+{ref}`lookup compatibility warning <make-pipeline-lookup-namespaces-explicit>`
+applies to custom integrations using the pipeline-by-name API, not ordinary
+SDK/CLI usage.
+
 In multi-user deployments, review these permissions before upgrading to 2.18.
 The current server exposes V2 APIs; these checks also apply to V1 callers on the 2.18 release branch. They do not currently have an audit/enforce
 switch: update the caller or its namespace-scoped role instead of disabling
@@ -45,6 +51,14 @@ client.upload_pipeline_version(
 **Private**. Choosing **Shared** deliberately omits the namespace. Version uploads
 retain the parent's scope. For REST multipart uploads, supply the `namespace`
 query parameter on the pipeline upload endpoint; version uploads use `pipelineid`.
+
+When uploading a version of an existing private pipeline, do not assume that
+`pipeline_name=` uses the client's default namespace. Resolve its ID with an
+explicitly scoped lookup and check for `None`, then upload using `pipeline_id=`.
+The {ref}`private-pipeline example <private-pipeline-client-convenience>`
+shows this existing workflow. This SDK/CLI convenience limitation is separate
+from the backend pipeline-by-name security fixes; it does not introduce a new
+lookup migration requirement for ordinary SDK/CLI users.
 
 For intentional shared publication, leave the upload namespace unset and grant
 publishing permission in the API server's actual `POD_NAMESPACE` (commonly
