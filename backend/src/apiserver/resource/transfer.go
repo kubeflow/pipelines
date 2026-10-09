@@ -4,12 +4,10 @@
 package resource
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 
 	kubernetesmodel "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
@@ -199,28 +197,21 @@ func (r *ResourceManager) ImportTransfer(ctx context.Context, namespace string, 
 	if len(archive) > transfer.MaxArchiveBytes {
 		return empty, util.NewInvalidInputError("Archive exceeds 256 MiB")
 	}
-	var b history.NamespaceBundle
-	decoder := json.NewDecoder(bytes.NewReader(archive))
-	decoder.UseNumber()
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&b); err != nil {
-		return empty, util.NewInvalidInputErrorWithDetails(err, "Invalid transfer archive")
-	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		return empty, util.NewInvalidInputError("Archive must contain exactly one JSON object")
-	}
-	if err := history.ValidateNamespace(&b, namespace, transferRuntimeNamespace(namespace)); err != nil {
-		return empty, util.NewInvalidInputError("Invalid transfer archive: %v", err)
-	}
 	db, err := r.transferDB()
 	if err != nil {
 		return empty, err
 	}
-	plan, err := history.PrepareTransfer(ctx, db, &b, opts)
+	_, externalCatalog := r.pipelineStore.(*storage.PipelineStoreKubernetes)
+	b, warnings, err := history.DecodeNamespaceArchive(db, archive, namespace, transferRuntimeNamespace(namespace), externalCatalog)
+	if err != nil {
+		return empty, util.NewInvalidInputErrorWithDetails(err, "Invalid transfer archive")
+	}
+	plan, err := history.PrepareTransfer(ctx, db, b, opts)
 	if err != nil {
 		return empty, transferOperationError(err, "Cannot prepare the transfer")
 	}
-	_, plan.ExternalCatalog = r.pipelineStore.(*storage.PipelineStoreKubernetes)
+	plan.ExternalCatalog = externalCatalog
+	plan.Summary.Warnings = append(plan.Summary.Warnings, warnings...)
 	// Preview validates names/templates/permissions without external writes. The
 	// SQL merge runs inside a rollback transaction to catch relational conflicts.
 	if err := r.stageTransferCatalog(plan, false); err != nil {
@@ -382,22 +373,9 @@ func sameTransferSpec(a, b model.LargeText) bool {
 
 func (r *ResourceManager) transferScheduleWorkflow(ctx context.Context, plan *history.TransferPlan, job *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	validationJob := *job
-	// Validate against the archive's resolved catalog before SQL catalog rows exist.
-	var version *model.PipelineVersion
-	targetVersion := job.PipelineVersionId
-	if targetVersion == "" {
-		for _, p := range plan.Bundle.Pipelines {
-			if p.UUID == job.PipelineId {
-				targetVersion = p.DefaultVersionId
-				break
-			}
-		}
-	}
-	for i := range plan.Bundle.Versions {
-		v := &plan.Bundle.Versions[i]
-		if (targetVersion != "" && v.UUID == targetVersion) || (targetVersion == "" && v.PipelineId == job.PipelineId && (version == nil || v.CreatedAtInSec > version.CreatedAtInSec)) {
-			version = v
-		}
+	version, err := r.transferScheduleVersion(plan, job)
+	if err != nil {
+		return nil, err
 	}
 	if version != nil {
 		validationJob.PipelineSpecManifest = version.PipelineSpec

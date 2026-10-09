@@ -22,6 +22,7 @@ COPY ./go.mod ./
 COPY ./go.sum ./
 COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 COPY ./api/go.mod ./api/go.mod
+COPY ./third_party/ml-metadata/go.mod ./third_party/ml-metadata/go.mod
 
 # git is required by the GOPROXY direct fallback below to fetch modules
 # from source when the module proxy errors.

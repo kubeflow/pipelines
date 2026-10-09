@@ -48,11 +48,26 @@ definitions stable until the transfer is complete.
 Imported resource IDs may change, especially when Kubernetes assigns catalog or
 schedule IDs. Relationships inside the archive are mapped to the destination IDs.
 The destination keeps its own default-experiment setting, migration state and
-runtime configuration. Namespace remapping and cross-generation imports are not
-supported. Source and destination must use the same database engine and matching
-release schemas. Use the transfer implementation from the
-same storage generation: master/native archives and release-2.18/MLMD archives
-are different formats.
+runtime configuration. Namespace remapping is not supported.
+
+Kubeflow Pipelines 3.0 accepts archives exported by 2.18 through the same upload,
+validation and import steps. The destination detects the archive format and
+converts history and lineage automatically, without a format choice or a warning
+just because the source is 2.18. It does not connect to the source database or
+MLMD service. Context relationships become native ownership; mutable context
+bookkeeping is not copied. The source installation does not need a native-storage
+upgrade. Importing native archives into 2.18 is not supported.
+
+Native-to-native archives still require matching database engines and schemas.
+The 2.18 adapter instead validates the supported archive record format and
+converts it to the destination schema. Unknown fields or relationships that cannot
+be represented safely are rejected rather than discarded. If validation reports
+that a lineage owner is outside the archive, export a wider completed-history
+window including its producer runs. Destination archive and history-row limits
+still apply. Pinned Kubernetes catalog defaults require a Kubernetes-catalog
+destination. If an existing Kubernetes pipeline has no explicit default and the
+archive adds versions plus an unpinned schedule, pin the destination default
+before retrying so validation can check the definition that will execute.
 
 ## Schedules and historical runs
 

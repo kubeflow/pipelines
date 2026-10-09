@@ -20,6 +20,7 @@ COPY ./go.mod ./
 COPY ./go.sum ./
 COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 COPY ./api/go.mod ./api/go.mod
+COPY ./third_party/ml-metadata/go.mod ./third_party/ml-metadata/go.mod
 
 # Fall back to fetching modules directly from source on any module proxy
 # error (the default comma separator only falls back on 404/410), so a

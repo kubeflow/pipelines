@@ -30,4 +30,5 @@ see the [DCO sign-off guide](https://github.com/kubeflow/community/tree/master/d
 
 Pipeline Anatomy <anatomy>
 Platform validation and releases <platform-validation>
+2.18 archive import design <../design/218-native-transfer>
 ```
