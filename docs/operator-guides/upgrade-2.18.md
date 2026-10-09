@@ -47,21 +47,37 @@ registration annotations into Pod templates. After this handoff, adoption restor
 API routing for legacy schedules while preserving their enabled/disabled state
 and retained execution progress. Existing tasks do not need to finish.
 
+Each process caches its first successful handoff; a new process verifies it again.
+This assumes legacy writers will not be reintroduced after handoff. A downgrade
+to legacy writers requires a separate coordinated rollback plan, not a live
+rolling downgrade.
+
 Migration processes bounded pages, including disabled schedules, with a timeout
-for each record. Failed records are logged and retried without preventing later
-records from migrating or blocking ordinary API availability. A schedule whose
+for each record. Background and submission-triggered retries share per-record
+capped exponential backoff. Failed records are logged and retried without
+preventing later records from migrating or blocking ordinary API availability. A schedule whose
 state or Kubernetes synchronization is incomplete remains blocked until its own
 migration succeeds; healthy and newly created schedules are independent.
+
+After handoff, each API process also performs one paginated startup repair of
+existing Kubernetes schedule objects from trusted SQL state, including records
+already marked ready. Each attempt is bounded. Repair does not recreate missing
+objects, reseed progress, or acknowledge a pending execution; failed records remain
+eligible for ordinary reconciliation. Legacy records without trusted SQL state
+still use the 2.18 adoption checks before repair can proceed.
 
 1. Back up the database, ScheduledWorkflow objects, deployment configuration, and
    signing Secret. Inventory schedules, intended accounts, and custom roles.
 2. Apply the complete release configuration, images, and RBAC. Retain the managed
-   API/controller Pod identity configuration and handoff permissions, controller
+   API/controller Pod identity (`POD_NAME` and `POD_NAMESPACE` from the Kubernetes
+   downward API) and handoff permissions, controller
    `--multiUser=true`, restriction against direct `workflows/create`, and pipeline
    read permissions. Keep API/controller scheduling timezones consistent.
 3. Wait for the Deployments to roll out. Inspect API/controller logs for handoff
    waits and per-schedule adoption retries. Resolve incompatible remaining Pods,
-   missing RBAC, or failed rollouts rather than bypassing the handoff.
+   missing RBAC, or failed rollouts rather than bypassing the handoff. The
+   controller exits on invalid Pod identity or denied handoff permissions; correct
+   the configuration or RBAC and allow Kubernetes to restart it.
 4. Verify that enabled schedules submit their next ticks, disabled schedules stay
    disabled, retained progress and concurrency limits are honored, and no duplicate
    execution appears. Check both previously active and idle schedules. Investigate
