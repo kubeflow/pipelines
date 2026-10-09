@@ -156,6 +156,12 @@ func main() {
 
 	var imagePullFailureChecker worker.ImagePullFailureChecker
 	if imagePullFailureHandlingEnabled {
+		// A negative grace period would make the first observed pull error
+		// count as already expired and terminate workflows immediately.
+		if imagePullFailureGracePeriodInSec < 0 {
+			log.Fatalf("Invalid --%s=%d: the grace period must not be negative",
+				imagePullFailureGracePeriodInSecFlagName, imagePullFailureGracePeriodInSec)
+		}
 		kubeClient, err := kubernetes.NewForConfig(cfg)
 		if err != nil {
 			log.Fatalf("Error building Kubernetes clientset: %s", err.Error())
