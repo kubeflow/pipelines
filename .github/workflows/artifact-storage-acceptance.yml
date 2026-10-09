@@ -6,15 +6,16 @@ on:
     branches: [release-2.18]
     paths:
       - '.github/workflows/artifact-storage-acceptance.yml'
-      - 'frontend/server/integration-tests/artifact-storage-live.test.ts'
-      - 'frontend/server/handlers/artifacts.ts'
-      - 'frontend/server/handlers/domain-checker.ts'
-      - 'frontend/server/handlers/pod-logs.ts'
-      - 'frontend/server/configs.ts'
-      - 'frontend/server/k8s-helper.ts'
-      - 'frontend/server/minio-helper.ts'
-      - 'frontend/server/workflow-helper.ts'
+      - 'frontend/**'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/github-disk-cleanup/**'
+      - '.github/actions/upload-artifact-with-retry/**'
+      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
+      - '.github/resources/scripts/docker-pull-with-retry.sh'
+      - '.github/resources/curl-retry/**'
       - 'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-deployment.yaml'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 permissions:
   contents: read

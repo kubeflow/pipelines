@@ -69,8 +69,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   service-account and run identifiers. Use only the synthetic CI cluster and
   review report contents before sharing; these artifacts are not anonymized.
 
-- `artifact-storage-acceptance.yml` runs on explicit dispatch and changes to its
-  fixture. It exercises the real standalone UI handlers, HTTP fetch, Kubernetes
+- `artifact-storage-acceptance.yml` runs on explicit dispatch and non-documentation
+  changes under `frontend/**`, its workflow, the selected SeaweedFS deployment,
+  and the local cluster-creation/artifact-upload actions and their runtime helpers.
+  This includes dependency locks, Node/Vitest configuration, shared application
+  code, and test helpers; filtering only artifact handlers would miss these inputs.
+  Markdown and `OWNERS` changes alone do not trigger this lane. It exercises the real standalone UI handlers, HTTP fetch, Kubernetes
   Secret/Workflow reads and S3 client against the stock SeaweedFS image. Stored
   artifact and archived-log bytes are seeded once, then read under default and
   explicitly migrated origin/base configuration. Rejections assert policy errors
