@@ -197,3 +197,32 @@ rules:
 
 Without this access, terminal `ReportWorkflowResource` fails closed rather than
 persisting a bare offload pointer; fix RBAC/DB connectivity and re-report.
+
+### Validation (before / after upgrade)
+
+Unit CI covers the fail-closed and durable-snapshot contracts with an in-memory
+offload repo (no flaky external DB):
+
+| Concern | Test |
+| ------- | ---- |
+| Concurrent / second-caller retry claim fencing | `TestClaimRunForRetry_SecondCallerFencedWhileClaimHolds` |
+| Foreign same-name Workflow left unchanged | `TestRetryRun_RejectsForeignSameNameWorkflow` |
+| Offloaded retry after Workflow + offload GC | `TestRetryRun_OffloadedNodeStatus_SurvivesWorkflowAndOffloadGC` |
+| Failed placeholder activation ≠ success | `TestRetryRun_FailedActivationDoesNotReportSuccess` |
+| Concurrent closed-session hydrator recovery | `TestLazyOffloadHydrator_ConcurrentClosedSessionRecovery` (util) |
+| Memory offload save → hydrate → GC → hydrate fails | `TestOffloadHydration_EndToEnd_MemoryRepo` |
+| ConfigMap offload on, Secret missing: compressed OK / offload fail-closed | `TestInitWorkflowHydrator_OffloadEnabledSecretMissing_CompressedHydrateWorks` |
+| Secret appears → offloaded hydrate via lazy retry (memory) | `TestLazyOffloadHydrator_SecretMissingThenPresent` |
+
+Optional real Postgres/MySQL path (skipped by default):
+
+```bash
+export KFP_ARGO_OFFLOAD_IT=1
+export KFP_ARGO_OFFLOAD_PERSIST_CONFIG=/path/to/persistence.yaml
+export KFP_ARGO_OFFLOAD_SECRETS_NAMESPACE=kubeflow
+# Use a kubeconfig that can get the configured persist Secrets, then:
+go test ./backend/src/common/util/ -count=1 -run TestOffloadHydration_RealDB_OptIn -v
+```
+
+See `backend/src/common/util/workflow_hydrator_offload_it_test.go` for the
+opt-in stub and how to wire a real clientset.

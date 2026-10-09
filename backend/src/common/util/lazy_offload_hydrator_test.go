@@ -29,6 +29,8 @@ import (
 	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
@@ -271,6 +273,77 @@ func TestTryInitLazyOffloadHydrator_OffloadEnabled(t *testing.T) {
 	offloadEnabled, err := TryInitLazyOffloadHydrator(lazy, context.Background())
 	require.NoError(t, err)
 	assert.True(t, offloadEnabled)
+}
+
+// TestLazyOffloadHydrator_SecretMissingThenPresent models API-server startup when
+// persistence is enabled in the ConfigMap but the credential Secret is not yet
+// readable. Compressed hydrate must still succeed; offloaded hydrate retries init
+// once the Secret appears (memory hydrator stands in for CreateWorkflowHydrator).
+func TestLazyOffloadHydrator_SecretMissingThenPresent(t *testing.T) {
+	const (
+		ns         = "kubeflow-pipelines"
+		secretName = "argo-postgres-config"
+	)
+	repo := NewMemoryOffloadNodeStatusRepo()
+	repo.Put("wf-uid", "offload-hash", workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	})
+	memoryHydrator := NewMemoryWorkflowHydrator(repo)
+
+	kube := k8sfake.NewClientset()
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		initCalls.Add(1)
+		_, err := kube.CoreV1().Secrets(ns).Get(ctx, secretName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to create Argo offload DB session: secrets %q not found", secretName)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return memoryHydrator, nil
+	})
+
+	ctx := context.Background()
+	offloadEnabled, err := TryInitLazyOffloadHydrator(lazy, ctx)
+	require.Error(t, err)
+	assert.False(t, offloadEnabled)
+	assert.Contains(t, err.Error(), secretName)
+
+	cleanup := packer.SetMaxWorkflowSize(230)
+	t.Cleanup(cleanup)
+	compressed := &workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: workflowapi.Nodes{"foo": {}, "bar": {}},
+		},
+	}
+	require.NoError(t, packer.CompressWorkflowIfNeeded(withArgoLogger(ctx), compressed))
+	require.NotEmpty(t, compressed.Status.CompressedNodes)
+	require.NoError(t, lazy.Hydrate(ctx, compressed), "compressed hydrate must not require Secret/DB")
+	assert.Len(t, compressed.Status.Nodes, 2)
+
+	offloaded := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+	require.Error(t, lazy.Hydrate(ctx, offloaded))
+	assert.Equal(t, "offload-hash", offloaded.Status.OffloadNodeStatusVersion)
+
+	_, err = kube.CoreV1().Secrets(ns).Create(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns},
+		Data: map[string][]byte{
+			"username": []byte("argo"),
+			"password": []byte("secret"),
+		},
+	}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	require.NoError(t, lazy.Hydrate(ctx, offloaded))
+	assert.Empty(t, offloaded.Status.OffloadNodeStatusVersion)
+	assert.Equal(t, workflowapi.NodeSucceeded, offloaded.Status.Nodes["ok"].Phase)
+	assert.GreaterOrEqual(t, initCalls.Load(), int32(2))
 }
 
 func TestLazyOffloadHydrator_DehydrateTooLargeOffloadDisabled(t *testing.T) {
