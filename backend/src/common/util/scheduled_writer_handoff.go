@@ -45,7 +45,7 @@ func scheduleWriterClaim(pod *corev1.Pod) (string, error) {
 	default:
 		return "", fmt.Errorf("pod is not a managed schedule writer")
 	}
-	if pod.UID == "" || pod.DeletionTimestamp != nil {
+	if pod.UID == "" || pod.DeletionTimestamp != nil || pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
 		return "", fmt.Errorf("schedule writer Pod is not live")
 	}
 	image := ""
@@ -58,8 +58,10 @@ func scheduleWriterClaim(pod *corev1.Pod) (string, error) {
 		if status.Name != containerName {
 			continue
 		}
-		if image == "" || status.Image != image || status.ImageID == "" || status.ContainerID == "" || status.State.Running == nil {
-			return "", fmt.Errorf("schedule writer container has not reached its requested image")
+		// ContainerStatus.Image may be normalized or resolved by the runtime.
+		// Bind the claim to its immutable runtime IDs, not image-name equality.
+		if image == "" || status.ImageID == "" || status.ContainerID == "" || status.State.Running == nil {
+			return "", fmt.Errorf("schedule writer container is not running with an identified image and container")
 		}
 		identity, err := json.Marshal([]interface{}{scheduleWriterProtocol, string(pod.UID), image, status.ImageID, status.ContainerID, status.RestartCount})
 		if err != nil {
@@ -160,6 +162,10 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 	}
 	counts := make(map[string]int32)
 	for _, pod := range pods.Items {
+		// Completed Pods cannot write and may remain until cluster garbage collection.
+		if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
+			continue
+		}
 		claim, err := scheduleWriterClaim(&pod)
 		if err != nil || pod.Annotations[scheduleWriterAnnotation] != claim {
 			return fmt.Errorf("managed writer Pod %s is incompatible or terminating", pod.Name)
