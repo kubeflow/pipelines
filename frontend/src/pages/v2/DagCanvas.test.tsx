@@ -165,9 +165,12 @@ it('places expand then collapse above native zoom controls and toggles all desce
   expect(options.onLayersUpdate).not.toHaveBeenCalled();
 });
 
-it('can expand and collapse with the application root font', () => {
+it.each([
+  [13, 39],
+  [16, 48],
+])('renders node-height group headers with a %spx root font', (rootFontSize, expectedHeight) => {
   const previous = document.documentElement.style.fontSize;
-  document.documentElement.style.fontSize = '13px';
+  document.documentElement.style.fontSize = `${rootFontSize}px`;
   try {
     render(
       <CommonTestWrapper>
@@ -175,8 +178,14 @@ it('can expand and collapse with the application root font', () => {
       </CommonTestWrapper>,
     );
     expect(screen.getByText('Train model')).toBeInTheDocument();
+    for (const header of screen.getAllByTestId('subdag-header')) {
+      expect(header).toHaveStyle({ height: `${expectedHeight}px` });
+    }
     fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
     expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+    expect(screen.getByTestId('rf__node-task.workflow')).toHaveStyle({
+      height: `${expectedHeight}px`,
+    });
     expect(screen.getByText('Deploy model')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
     expect(screen.getByText('Train model')).toBeInTheDocument();

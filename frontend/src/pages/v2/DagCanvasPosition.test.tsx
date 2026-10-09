@@ -26,7 +26,7 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
           key={node.id}
           data-testid={node.id}
           data-draggable={String(node.draggable)}
-          aria-pressed={node.selected ?? false}
+          data-selected={String(node.selected ?? false)}
           onMouseMove={() =>
             onNodesChange?.([
               { type: 'position', id: node.id, position: { x: 45, y: 90 }, dragging: true },
@@ -129,7 +129,7 @@ it('rejects live drag updates while locked, including after a refresh', () => {
   expect(screen.getByTestId('task.workflow')).toHaveTextContent('{"x":45,"y":90}');
 });
 
-it('passes selection to the correct layer rather than a hidden node’s flat namesake', () => {
+it('marks only the selected layer instance, not its flat namesake, as selected', () => {
   const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
   const layers = ['root', 'workflow', 'fit'];
   const nested = resolve(layers).find((element) => element.id === 'task.train')!;
@@ -153,11 +153,12 @@ it('passes selection to the correct layer rather than a hidden node’s flat nam
     />,
   );
   expect(screen.getByTestId(layerNodeId(layers, 'task.train'))).toHaveAttribute(
-    'aria-pressed',
+    'data-selected',
     'true',
   );
+  expect(screen.getByTestId('task.train')).toHaveAttribute('data-selected', 'false');
   fireEvent.click(screen.getByRole('button', { name: 'Render subdags' }));
-  expect(screen.getByTestId('task.train')).toHaveAttribute('aria-pressed', 'false');
+  expect(screen.getByTestId('task.train')).toHaveAttribute('data-selected', 'false');
 });
 
 it('keeps drag positions separate for focused and parent-relative coordinate frames', () => {

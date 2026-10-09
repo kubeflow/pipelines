@@ -156,12 +156,12 @@ export function createRuntimeLayerResolver(
 ): LayerElementsResolver {
   const taskIndex = buildTaskIndex(tasks);
   return (layers, maxNodes = Infinity) => {
-    const context = buildRuntimeFlowContext(
+    const context = buildIndexedRuntimeFlowContext(
       layers,
-      tasks,
+      taskIndex,
       runIsTerminal,
       runCompletedSuccessfully,
-      { taskIndex, maxNodes },
+      maxNodes,
     );
     const elements = buildRuntimeLayer(spec, layers, context);
     return reconcileRuntimeFlowElements(layers, elements, tasks, context);
@@ -324,15 +324,28 @@ export function buildRuntimeFlowContext(
   tasks: V2beta1PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
-  options: { taskIndex?: TaskIndex; maxNodes?: number } = {},
 ): RuntimeFlowContext {
-  const taskIndex = options.taskIndex ?? buildTaskIndex(tasks);
+  return buildIndexedRuntimeFlowContext(
+    layers,
+    buildTaskIndex(tasks),
+    runIsTerminal,
+    runCompletedSuccessfully,
+  );
+}
+
+function buildIndexedRuntimeFlowContext(
+  layers: string[],
+  taskIndex: TaskIndex,
+  runIsTerminal: boolean,
+  runCompletedSuccessfully: boolean,
+  maxNodes?: number,
+): RuntimeFlowContext {
   return {
     taskIndex,
     runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
     runCompletedSuccessfully,
     runIsTerminal,
-    maxNodes: options.maxNodes,
+    maxNodes,
   };
 }
 

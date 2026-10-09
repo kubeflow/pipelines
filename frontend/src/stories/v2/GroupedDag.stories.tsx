@@ -83,7 +83,7 @@ function GroupedDag({
               setSelection(undefined);
             }}
           >
-            Focus selected scope
+            Focus selected layer
           </button>
         </div>
       )}
@@ -127,12 +127,12 @@ export const LargeLoop: Story = {
     title: 'Large loop — automatic expansion is bounded',
   },
 };
-export const DraggableScopes: Story = {
+export const DraggableLayers: Story = {
   args: {
     spec: nestedArtifactSpec,
     initialLayers: ['root', 'workflow', 'fit'],
     nodesDraggable: true,
-    title: 'Drag positions in focused and nested scopes',
+    title: 'Drag positions in focused and nested layers',
   },
 };
 
