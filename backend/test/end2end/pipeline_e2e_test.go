@@ -158,7 +158,8 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				}
 				actualNames = append(actualNames, task.DisplayName)
 				g.Expect(task.State).To(Equal(run_model.PipelineTaskTaskStateSUCCEEDED.Pointer()), task.DisplayName)
-				g.Expect(task.Pods).NotTo(BeEmpty(), "Task %s must execute, not hit the cache", task.DisplayName)
+				g.Expect(task.Pods).To(ContainElement(HaveField("Type", Equal(run_model.PipelineTaskTaskPodTypeEXECUTOR.Pointer()))),
+					"Task %s must have an executor pod, not only a driver or cache hit", task.DisplayName)
 			}
 			g.Expect(actualNames).To(ConsistOf(expectedNames), "Expected exactly 120 executed DAG nodes")
 		}, time.Minute, 2*time.Second).Should(Succeed())
