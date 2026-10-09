@@ -81,7 +81,7 @@ export default function GraphControls({
             label='Expand all'
             tooltip={
               renderSubdags
-                ? 'Expand all sub-DAGs (large groups may require individual expansion)'
+                ? 'Expand all sub-DAGs'
                 : 'Enable sub-DAG rendering to expand all'
             }
             disabled={!renderSubdags || !hasSubDags}
