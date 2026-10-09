@@ -38,7 +38,7 @@ func TestRecurringRunAdoptionPreservesReferenceBackedActiveRun(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, job.UUID, resolved.RecurringRunId)
 	require.Equal(t, job.Namespace, resolved.Namespace)
-	removeLegacySchedulingState(t, clients, job.UUID)
+	markScheduleAsLegacy(t, clients, job.UUID)
 	receipt, err := manager.AdoptLegacyRecurringRuns(ctx)
 	require.NoError(t, err)
 	require.True(t, receipt.Ready)

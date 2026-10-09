@@ -92,11 +92,14 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 		return nil, util.NewFailedPreconditionError(errors.New("recurring run is disabled"),
 			"Enable recurring run %s through the KFP API before triggering runs", jobID)
 	}
-	if err := s.requireAdoptionReadyForClaim(tx, jobID); err != nil {
-		return nil, err
-	}
 	state, err := s.getRecurringRunState(tx, jobID, true)
 	if err != nil {
+		return nil, err
+	}
+	// Completion/reporting can hold the state lock without the job lock. Do
+	// not establish a MySQL consistent-read snapshot (including receipts) until
+	// both locks are held, or the active-run count can miss that completion.
+	if err := s.requireAdoptionReadyForClaim(tx, jobID); err != nil {
 		return nil, err
 	}
 	if state.Pending {

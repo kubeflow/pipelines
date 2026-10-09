@@ -35,13 +35,21 @@ func removeLegacySchedulingState(t *testing.T, clients *resource.FakeClientManag
 	require.NoError(t, err)
 }
 
+// markScheduleAsLegacy models a job created before native progress and seals existed.
+func markScheduleAsLegacy(t *testing.T, clients *resource.FakeClientManager, jobID string) {
+	t.Helper()
+	removeLegacySchedulingState(t, clients, jobID)
+	_, err := clients.DB().Exec(`DELETE FROM recurring_run_adoptions WHERE "ID" = ?`, "legacy-2.18:"+jobID)
+	require.NoError(t, err)
+}
+
 func TestRecurringRunAdoptionRestoresExecutionFromStoredDefinition(t *testing.T) {
 	clients, manager, job, review := newAuthorizedSchedule(t)
 	review.controllerAllowed = true
 	ctx := scheduleContext(scheduleControllerIdentity)
 	server := createRunServer(manager)
 	request := &api.CreateRunRequest{Run: &api.Run{DisplayName: "adopted-tick", RecurringRunId: job.UUID}}
-	removeLegacySchedulingState(t, clients, job.UUID)
+	markScheduleAsLegacy(t, clients, job.UUID)
 	_, err := server.CreateRun(ctx, request)
 	require.ErrorContains(t, err, "no trusted scheduling state")
 	require.Zero(t, clients.ExecClientFake.GetWorkflowCount())
@@ -97,7 +105,7 @@ func TestRecurringRunAdoptionPreservesDisabledUntilAPIEnable(t *testing.T) {
 	jobs := createJobServer(manager)
 	_, err := jobs.DisableRecurringRun(ctx, &api.DisableRecurringRunRequest{RecurringRunId: job.UUID})
 	require.NoError(t, err)
-	removeLegacySchedulingState(t, clients, job.UUID)
+	markScheduleAsLegacy(t, clients, job.UUID)
 
 	receipt, err := manager.AdoptLegacyRecurringRuns(ctx)
 	require.NoError(t, err)
@@ -126,7 +134,7 @@ func TestRecurringRunAdoptionReceiptPreventsReseeding(t *testing.T) {
 	clients, manager, job, review := newAuthorizedSchedule(t)
 	review.controllerAllowed = true
 	ctx := scheduleContext(scheduleControllerIdentity)
-	removeLegacySchedulingState(t, clients, job.UUID)
+	markScheduleAsLegacy(t, clients, job.UUID)
 	receipt, err := manager.AdoptLegacyRecurringRuns(ctx)
 	require.NoError(t, err)
 	require.True(t, receipt.Ready)
@@ -148,6 +156,7 @@ func TestRecurringRunAdoptionReceiptPreventsReseeding(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, before, after)
 
+	// Corruption after adoption must retain the receipt that prevents reseeding.
 	removeLegacySchedulingState(t, clients, job.UUID)
 	again, err = manager.AdoptLegacyRecurringRuns(ctx)
 	require.NoError(t, err)
@@ -191,7 +200,7 @@ func TestRecurringRunAdoptionContinuesAfterRetainedTick(t *testing.T) {
 	swf.Status.Trigger.LastTriggeredTime = &lastScheduled
 	_, err = swfs.Update(ctx, swf)
 	require.NoError(t, err)
-	removeLegacySchedulingState(t, clients, job.UUID)
+	markScheduleAsLegacy(t, clients, job.UUID)
 	receipt, err := manager.AdoptLegacyRecurringRuns(ctx)
 	require.NoError(t, err)
 	require.True(t, receipt.Ready)
@@ -228,7 +237,7 @@ func TestRecurringRunAdoptionResolvesLegacyResourceReferences(t *testing.T) {
 	}
 	_, err := f.clients.DB().Exec(`UPDATE jobs SET "Namespace" = '', "ExperimentUUID" = '', "PipelineId" = '', "PipelineVersionId" = '' WHERE "UUID" = ?`, f.job.UUID)
 	require.NoError(t, err)
-	removeLegacySchedulingState(t, f.clients, f.job.UUID)
+	markScheduleAsLegacy(t, f.clients, f.job.UUID)
 	resolved, err := f.manager.GetJob(f.job.UUID)
 	require.NoError(t, err)
 	require.Equal(t, f.job.Namespace, resolved.Namespace)
@@ -300,7 +309,7 @@ func TestRecurringRunAdoptionReplaysRecoveredHistoricalRunIdentity(t *testing.T)
 	swf.Status.Trigger.LastTriggeredTime = &lastScheduled
 	_, err = swfs.Update(ctx, swf)
 	require.NoError(t, err)
-	removeLegacySchedulingState(t, clients, job.UUID)
+	markScheduleAsLegacy(t, clients, job.UUID)
 
 	receipt, err := manager.AdoptLegacyRecurringRuns(ctx)
 	require.NoError(t, err)
