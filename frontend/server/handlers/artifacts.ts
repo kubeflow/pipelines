@@ -74,10 +74,7 @@ import {
   LauncherArtifactSource,
   requiresArtifactOwnershipValidation,
 } from '../helpers/artifact-sources.js';
-import {
-  AuthorizeResourcesEnum,
-  AuthorizeVerbEnum,
-} from '../src/generated/apisv2beta1/auth/index.js';
+import { AuthorizeResourcesEnum, AuthorizeVerbEnum } from '../src/generated/apisv2/auth/index.js';
 import {
   getLauncherProviderInfo,
   LauncherConfigError,

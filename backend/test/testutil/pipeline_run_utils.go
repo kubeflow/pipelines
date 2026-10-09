@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
@@ -76,10 +76,10 @@ func TerminatePipelineRun(client *api_server.RunClient, runID string) {
 	}
 }
 
-func GetPipelineRun(runClient *api_server.RunClient, pipelineRunID *string) *run_model.V2beta1Run {
+func GetPipelineRun(runClient *api_server.RunClient, pipelineRunID *string) *run_model.V2Run {
 	logger.Log("Get a pipeline run with id=%s", *pipelineRunID)
 	var (
-		pipelineRun *run_model.V2beta1Run
+		pipelineRun *run_model.V2Run
 		runError    error
 	)
 	for attempt := 1; attempt <= 3; attempt++ {
@@ -98,7 +98,7 @@ func GetPipelineRun(runClient *api_server.RunClient, pipelineRunID *string) *run
 	return pipelineRun
 }
 
-func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *string, expectedStates []run_model.V2beta1RuntimeState, timeout *time.Duration, checks ...func() error) {
+func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *string, expectedStates []run_model.V2RuntimeState, timeout *time.Duration, checks ...func() error) {
 	logger.Log("Waiting for pipeline run with id=%s to be in one of '%s'", *pipelineRunID, expectedStates)
 	maxTimeToWait := time.Duration(300)
 	pollTime := time.Duration(5)

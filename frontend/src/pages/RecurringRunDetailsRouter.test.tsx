@@ -17,7 +17,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
-import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRun } from 'src/apisv2/recurringrun';
 import { RouteParams } from 'src/components/Router';
 import * as features from 'src/features';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -110,7 +110,7 @@ it('shows loading while the recurring-run request is pending', () => {
 });
 
 it('keeps cached details visible during refetch and after a failed refresh', async () => {
-  const run: V2beta1RecurringRun = {
+  const run: V2RecurringRun = {
     recurring_run_id: recurringRunId,
     pipeline_version_reference: { pipeline_id: 'pipeline' },
   };

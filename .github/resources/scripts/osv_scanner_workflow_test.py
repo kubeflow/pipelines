@@ -42,7 +42,7 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         self.assertIn('            --recursive', self.workflow)
         self.assertIn('            --no-resolve', self.workflow)
         self.assertIn(
-            '            --experimental-exclude backend/api/v2beta1/python_http_client',
+            '            --experimental-exclude backend/api/v2/python_http_client',
             self.workflow,
         )
         self.assertIn('            --format sarif', self.workflow)

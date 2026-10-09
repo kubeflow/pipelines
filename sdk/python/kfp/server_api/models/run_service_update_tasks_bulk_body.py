@@ -33,7 +33,7 @@ class RunServiceUpdateTasksBulkBody(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'tasks': 'dict(str, V2beta1PipelineTask)'
+        'tasks': 'dict(str, V2PipelineTask)'
     }
 
     attribute_map = {
@@ -58,7 +58,7 @@ class RunServiceUpdateTasksBulkBody(object):
 
 
         :return: The tasks of this RunServiceUpdateTasksBulkBody.  # noqa: E501
-        :rtype: dict(str, V2beta1PipelineTask)
+        :rtype: dict(str, V2PipelineTask)
         """
         return self._tasks
 
@@ -68,7 +68,7 @@ class RunServiceUpdateTasksBulkBody(object):
 
 
         :param tasks: The tasks of this RunServiceUpdateTasksBulkBody.  # noqa: E501
-        :type tasks: dict(str, V2beta1PipelineTask)
+        :type tasks: dict(str, V2PipelineTask)
         """
 
         self._tasks = tasks

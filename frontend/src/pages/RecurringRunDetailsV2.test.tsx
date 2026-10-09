@@ -20,8 +20,8 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
 import TestUtils from 'src/TestUtils';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
+import { V2PipelineVersion } from 'src/apisv2/pipeline';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { RouteParams, RoutePage } from 'src/components/Router';
@@ -41,8 +41,8 @@ describe('RecurringRunDetailsV2', () => {
   const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
 
-  let fullTestV2RecurringRun: V2beta1RecurringRun = {};
-  let testPipelineVersion: V2beta1PipelineVersion = {};
+  let fullTestV2RecurringRun: V2RecurringRun = {};
+  let testPipelineVersion: V2PipelineVersion = {};
 
   function generateProps(): PageProps {
     const params = { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id };
@@ -71,7 +71,7 @@ describe('RecurringRunDetailsV2', () => {
       },
       recurring_run_id: 'test-recurring-run-id',
       runtime_config: { parameters: { param1: 'value1' } },
-      status: V2beta1RecurringRunStatus.ENABLED,
+      status: V2RecurringRunStatus.ENABLED,
       trigger: {
         periodic_schedule: {
           end_time: new Date(2018, 10, 9, 8, 7, 6),
@@ -79,7 +79,7 @@ describe('RecurringRunDetailsV2', () => {
           start_time: new Date(2018, 9, 8, 7, 6),
         },
       },
-    } as V2beta1RecurringRun;
+    } as V2RecurringRun;
 
     testPipelineVersion = {
       display_name: 'test_pipeline_version',
@@ -310,7 +310,7 @@ describe('RecurringRunDetailsV2', () => {
   });
 
   it('enables Enable buttons if the run is disabled', async () => {
-    fullTestV2RecurringRun.status = V2beta1RecurringRunStatus.DISABLED;
+    fullTestV2RecurringRun.status = V2RecurringRunStatus.DISABLED;
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />

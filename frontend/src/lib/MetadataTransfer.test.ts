@@ -25,7 +25,7 @@ describe('metadata transfer client', () => {
     const file = new File(['{"integer":9007199254740993}'], 'archive.json');
     expect(await importMetadata('team/a', file, 'copy & ', true)).toEqual(result);
     expect(fetchMock).toHaveBeenCalledWith(
-      'apis/v2beta1/transfer/import?namespace=team%2Fa&dry_run=true&name_prefix=copy+%26+',
+      'apis/v2/transfer/import?namespace=team%2Fa&dry_run=true&name_prefix=copy+%26+',
       expect.objectContaining({
         method: 'POST',
         body: file,
@@ -48,7 +48,7 @@ describe('metadata transfer client', () => {
     vi.stubGlobal('fetch', fetchMock);
     expect(await exportMetadata('team', { completed_after: 100 })).toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith(
-      'apis/v2beta1/transfer/export?namespace=team',
+      'apis/v2/transfer/export?namespace=team',
       expect.objectContaining({ body: '{"completed_after":100}', credentials: 'same-origin' }),
     );
   });

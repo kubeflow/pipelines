@@ -11,8 +11,8 @@ import (
 	"sort"
 	"time"
 
-	runParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	runModel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	runParams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	runModel "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -51,7 +51,7 @@ func (s *CacheTestSuite) TearDownTest() {
 	d := cacheDiagnostics{ctx: ctx, dir: dir, namespace: namespace, command: cacheDiagnosticCommand}
 	d.write("test.txt", []byte(s.T().Name()))
 	ids := append([]string(nil), s.diagnosticRunIDs...)
-	full := string(runModel.V2beta1GetRunRequestViewModeFULL)
+	full := string(runModel.V2GetRunRequestViewModeFULL)
 	if s.runClient != nil && s.diagnosticRecurringRunID != "" {
 		filter := cacheDiagnosticRecurringFilter(s.diagnosticRecurringRunID)
 		params := runParams.NewRunServiceListRunsParamsWithTimeout(d.timeout()).WithNamespace(&namespace).WithFilter(&filter).WithPageSize(int32Pointer(cacheDiagnosticMaxRuns)).WithView(&full)
@@ -61,7 +61,7 @@ func (s *CacheTestSuite) TearDownTest() {
 			ids = append(ids, run.RunID)
 		}
 	}
-	d.collect(ids, func(id string, timeout time.Duration) (*runModel.V2beta1Run, error) {
+	d.collect(ids, func(id string, timeout time.Duration) (*runModel.V2Run, error) {
 		if s.runClient == nil {
 			return nil, fmt.Errorf("run client unavailable")
 		}
@@ -163,7 +163,7 @@ func (d *cacheDiagnostics) capture(name string, args ...string) []byte {
 	return data
 }
 
-func (d *cacheDiagnostics) collect(ids []string, getRun func(string, time.Duration) (*runModel.V2beta1Run, error)) {
+func (d *cacheDiagnostics) collect(ids []string, getRun func(string, time.Duration) (*runModel.V2Run, error)) {
 	if d.namespace == "" {
 		d.problem("test namespace unavailable")
 		return

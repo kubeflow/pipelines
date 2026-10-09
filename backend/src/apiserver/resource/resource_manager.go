@@ -31,7 +31,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -109,10 +109,10 @@ var (
 	})
 
 	// Map API enum values to Kubernetes DeletionPropagation values
-	propagationPolicyMap = map[apiv2beta1.DeletePropagationPolicy]v1.DeletionPropagation{
-		apiv2beta1.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
-		apiv2beta1.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
-		apiv2beta1.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
+	propagationPolicyMap = map[apiv2.DeletePropagationPolicy]v1.DeletionPropagation{
+		apiv2.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
+		apiv2.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
+		apiv2.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
 	}
 )
 
@@ -1651,9 +1651,9 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 
 func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
 	switch task.State {
-	case model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
-		model.TaskStatus(apiv2beta1.PipelineTask_CACHED),
-		model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED):
+	case model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		model.TaskStatus(apiv2.PipelineTask_CACHED),
+		model.TaskStatus(apiv2.PipelineTask_SKIPPED):
 		return true
 	default:
 		return false
@@ -2025,7 +2025,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 }
 
 // DeleteJob deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2beta1.DeletePropagationPolicy) error {
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2.DeletePropagationPolicy) error {
 	job, err := r.GetJob(jobID)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)

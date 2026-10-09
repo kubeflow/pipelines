@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1IOType } from 'src/apisv2beta1/artifact';
+import { V2IOType } from 'src/apisv2/artifact';
 import {
   INPUT_ARTIFACT_TASK_TYPES,
   isInputArtifactTaskType,
@@ -31,7 +31,7 @@ describe('ArtifactTaskUtils', () => {
     expect(isOutputArtifactTaskType(type)).toBe(false);
   });
 
-  it.each([undefined, V2beta1IOType.UNSPECIFIED])('leaves %s unclassified', (type) => {
+  it.each([undefined, V2IOType.UNSPECIFIED])('leaves %s unclassified', (type) => {
     expect(isInputArtifactTaskType(type)).toBe(false);
     expect(isOutputArtifactTaskType(type)).toBe(false);
   });

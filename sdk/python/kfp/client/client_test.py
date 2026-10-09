@@ -397,7 +397,7 @@ class TestClient(parameterized.TestCase):
             experiment_name='foo', namespace='ns1')
         mock_get_url_prefix.assert_called_once()
 
-    @patch('kfp.server_api.V2beta1Experiment')
+    @patch('kfp.server_api.V2Experiment')
     @patch(
         'kfp.Client.get_experiment',
         side_effect=ValueError('No experiment is found with name'))
@@ -487,6 +487,27 @@ class TestClient(parameterized.TestCase):
         with self.assertRaises(TimeoutError):
             self.client.get_kfp_healthz(sleep_duration=0)
             mock_get_kfp_healthz.assert_called()
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_healthz_missing_v2_fails_without_retry(self, get_healthz, sleep):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=404)
+        with self.assertRaisesRegex(RuntimeError,
+                                    r'/apis/v2/healthz.*upgrade the backend'):
+            self.client.get_kfp_healthz()
+        get_healthz.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_healthz_transient_failure_still_retries(self, get_healthz, sleep):
+        response = kfp.server_api.V2GetHealthzResponse(multi_user=False)
+        get_healthz.side_effect = [
+            kfp.server_api.ApiException(status=503), response
+        ]
+        self.assertIs(self.client.get_kfp_healthz(), response)
+        self.assertEqual(get_healthz.call_count, 2)
+        sleep.assert_called_once_with(5)
 
     def test_upload_pipeline_without_name(self):
 

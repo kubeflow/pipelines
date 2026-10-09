@@ -7,7 +7,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
@@ -25,7 +25,7 @@ var _ RunPluginHandler = (*fakeHandler)(nil)
 type fakeHandler struct {
 	name                      string
 	pluginConfig              *PluginConfig
-	pluginOutput              *apiv2beta1.PluginOutput
+	pluginOutput              *apiv2.PluginOutput
 	startErr                  error
 	endErr                    error
 	endBool                   bool
@@ -45,9 +45,9 @@ func (f *fakeHandler) ResolveRunPluginInput(pluginsInputString *string) (input i
 	return nil, f.resolveInputEnabled, nil
 }
 
-func (f *fakeHandler) GetGenericFailedPluginOutput(runID string, message string, pluginInput interface{}) *apiv2beta1.PluginOutput {
-	return &apiv2beta1.PluginOutput{
-		State:        apiv2beta1.PluginState_PLUGIN_FAILED,
+func (f *fakeHandler) GetGenericFailedPluginOutput(runID string, message string, pluginInput interface{}) *apiv2.PluginOutput {
+	return &apiv2.PluginOutput{
+		State:        apiv2.PluginState_PLUGIN_FAILED,
 		StateMessage: message,
 	}
 }
@@ -63,7 +63,7 @@ func (f *fakeHandler) ResolveRunPluginConfig(ctx context.Context, clientSet kube
 	}
 	return f.pluginConfig, nil
 }
-func (f *fakeHandler) OnBeforeRunCreation(ctx context.Context, run *PendingRun, runCfg interface{}, pluginInput interface{}) (*apiv2beta1.PluginOutput, []corev1.EnvVar, error) {
+func (f *fakeHandler) OnBeforeRunCreation(ctx context.Context, run *PendingRun, runCfg interface{}, pluginInput interface{}) (*apiv2.PluginOutput, []corev1.EnvVar, error) {
 	f.onBeforeRunCreationCalled = true
 	return f.pluginOutput, f.envVars, f.startErr
 }
@@ -89,7 +89,7 @@ var persistedRun = &PersistedRun{
 	RunID:         "run-123",
 	Namespace:     "test-ns",
 	State:         "SUCCEEDED",
-	PluginsOutput: map[string]*apiv2beta1.PluginOutput{},
+	PluginsOutput: map[string]*apiv2.PluginOutput{},
 }
 
 func newFakeExecutionSpec() util.ExecutionSpec {
@@ -132,7 +132,7 @@ func TestNewRunPluginDispatcherImpl_EmptyHandlers_Failure(t *testing.T) {
 func TestOnBeforeRunCreation_SingleHandler_Success(t *testing.T) {
 	handler := &fakeHandler{
 		name:         "FakePlugin",
-		pluginOutput: &apiv2beta1.PluginOutput{},
+		pluginOutput: &apiv2.PluginOutput{},
 	}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
 
@@ -144,11 +144,11 @@ func TestOnBeforeRunCreation_SingleHandler_Success(t *testing.T) {
 func TestOnBeforeRunCreation_MultipleHandlers_Success(t *testing.T) {
 	handler1 := &fakeHandler{
 		name:         "FakePluginA",
-		pluginOutput: &apiv2beta1.PluginOutput{},
+		pluginOutput: &apiv2.PluginOutput{},
 	}
 	handler2 := &fakeHandler{
 		name:         "FakePluginB",
-		pluginOutput: &apiv2beta1.PluginOutput{},
+		pluginOutput: &apiv2.PluginOutput{},
 	}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler1, handler2})
 
@@ -167,7 +167,7 @@ func TestOnBeforeRunCreation_NilDispatcher_Failure(t *testing.T) {
 }
 
 func TestOnBeforeRunCreation_NilRun_Failure(t *testing.T) {
-	handler := &fakeHandler{name: "FakePlugin", pluginOutput: &apiv2beta1.PluginOutput{}}
+	handler := &fakeHandler{name: "FakePlugin", pluginOutput: &apiv2.PluginOutput{}}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
 
 	err := dispatcher.OnBeforeRunCreation(context.Background(), nil, newFakeExecutionSpec())
@@ -177,7 +177,7 @@ func TestOnBeforeRunCreation_NilRun_Failure(t *testing.T) {
 }
 
 func TestOnBeforeRunCreation_NilExecutionSpec_Failure(t *testing.T) {
-	handler := &fakeHandler{name: "FakePlugin", pluginOutput: &apiv2beta1.PluginOutput{}}
+	handler := &fakeHandler{name: "FakePlugin", pluginOutput: &apiv2.PluginOutput{}}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
 
 	err := dispatcher.OnBeforeRunCreation(context.Background(), pendingRun, nil)
@@ -209,7 +209,7 @@ func TestOnBeforeRunCreation_ResolveRunPluginConfigFailure_ContinuesWithoutCalli
 		pluginConfig:        &PluginConfig{Endpoint: "http://test"},
 		resolveInputEnabled: true,
 		resolveConfigErr:    fmt.Errorf("failed to resolve plugin config"),
-		pluginOutput:        &apiv2beta1.PluginOutput{State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
+		pluginOutput:        &apiv2.PluginOutput{State: apiv2.PluginState_PLUGIN_SUCCEEDED},
 	}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
 
@@ -237,7 +237,7 @@ func TestOnBeforeRunCreation_NoConfigMapOverride_SucceedsWithoutCallingHandler(t
 		name:                "FakePlugin",
 		pluginConfig:        nil, // Handler returns nil config when no configmap override exists
 		resolveInputEnabled: true,
-		pluginOutput:        &apiv2beta1.PluginOutput{State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
+		pluginOutput:        &apiv2.PluginOutput{State: apiv2.PluginState_PLUGIN_SUCCEEDED},
 	}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
 
@@ -272,7 +272,7 @@ func TestOnBeforeRunCreation_WithValidConfig_SuccessfullyCallsHandler(t *testing
 		name:                "FakePlugin",
 		pluginConfig:        &PluginConfig{Endpoint: "http://test-endpoint"},
 		resolveInputEnabled: true,
-		pluginOutput:        &apiv2beta1.PluginOutput{State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
+		pluginOutput:        &apiv2.PluginOutput{State: apiv2.PluginState_PLUGIN_SUCCEEDED},
 	}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
 
@@ -396,9 +396,9 @@ func TestExecutePostAction_NilRunCfg_SuccessfulPersistence(t *testing.T) {
 		RunID:     "run-123",
 		Namespace: "test-ns",
 		State:     "SUCCEEDED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"TestPlugin": {
-				State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+				State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 				StateMessage: "initial state",
 			},
 		},
@@ -421,7 +421,7 @@ func TestExecutePostAction_NilRunCfg_SuccessfulPersistence(t *testing.T) {
 	assert.False(t, retryRequested, "retryRequested should be false when runCfg is nil")
 	assert.True(t, persisted, "persisted should be true when persistence succeeds")
 	assert.Equal(t, 1, store.callCount, "store should be called once")
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, run.PluginsOutput["TestPlugin"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, run.PluginsOutput["TestPlugin"].State)
 	assert.Equal(t, "TestPlugin TestHook sync failed: config unavailable", run.PluginsOutput["TestPlugin"].StateMessage)
 }
 
@@ -438,9 +438,9 @@ func TestExecutePostAction_NilRunCfg_FailedPersistence(t *testing.T) {
 		RunID:     "run-456",
 		Namespace: "test-ns",
 		State:     "SUCCEEDED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"TestPlugin": {
-				State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+				State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 				StateMessage: "initial state",
 			},
 		},
@@ -463,7 +463,7 @@ func TestExecutePostAction_NilRunCfg_FailedPersistence(t *testing.T) {
 	assert.False(t, retryRequested, "retryRequested should be false when runCfg is nil")
 	assert.False(t, persisted, "persisted should be false when persistence fails")
 	assert.Equal(t, 1, store.callCount, "store should be called once")
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, run.PluginsOutput["TestPlugin"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, run.PluginsOutput["TestPlugin"].State)
 	assert.Equal(t, "TestPlugin TestHook sync failed: config unavailable", run.PluginsOutput["TestPlugin"].StateMessage)
 }
 
@@ -480,9 +480,9 @@ func TestExecutePostAction_WithRunCfg_SuccessfulSync_SuccessfulPersistence(t *te
 		RunID:     "run-789",
 		Namespace: "test-ns",
 		State:     "SUCCEEDED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"TestPlugin": {
-				State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+				State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 				StateMessage: "sync completed",
 			},
 		},
@@ -522,9 +522,9 @@ func TestExecutePostAction_WithRunCfg_FailedSync_SuccessfulPersistence(t *testin
 		RunID:     "run-abc",
 		Namespace: "test-ns",
 		State:     "FAILED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"TestPlugin": {
-				State:        apiv2beta1.PluginState_PLUGIN_FAILED,
+				State:        apiv2.PluginState_PLUGIN_FAILED,
 				StateMessage: "sync failed",
 			},
 		},
@@ -563,9 +563,9 @@ func TestExecutePostAction_WithRunCfg_FailedPersistence(t *testing.T) {
 		RunID:     "run-def",
 		Namespace: "test-ns",
 		State:     "SUCCEEDED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"TestPlugin": {
-				State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+				State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 				StateMessage: "sync completed",
 			},
 		},
@@ -604,7 +604,7 @@ func TestExecutePostAction_NilPluginOutput_WithRunCfg(t *testing.T) {
 		RunID:         "run-ghi",
 		Namespace:     "test-ns",
 		State:         "SUCCEEDED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{}, // No plugin output for TestPlugin
+		PluginsOutput: map[string]*apiv2.PluginOutput{}, // No plugin output for TestPlugin
 	}
 
 	cfg := &PluginConfig{Endpoint: "http://test-endpoint"}
@@ -630,7 +630,7 @@ func TestExecutePostAction_NilPluginOutput_WithRunCfg(t *testing.T) {
 func TestOnBeforeRunCreation_HandlerFailure_ContinuesExecution(t *testing.T) {
 	handler := &fakeHandler{
 		name:         "FakePlugin",
-		pluginOutput: &apiv2beta1.PluginOutput{},
+		pluginOutput: &apiv2.PluginOutput{},
 		startErr:     fmt.Errorf("plugin startup failed"),
 	}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
@@ -668,14 +668,14 @@ func TestOnRunEnd_HandlerFailure_ReturnsErrorWithParentRun(t *testing.T) {
 		RunID:     "run-456",
 		Namespace: "test-ns",
 		State:     "SUCCEEDED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"fakeplugin": {
-				Entries: map[string]*apiv2beta1.MetadataValue{
+				Entries: map[string]*apiv2.MetadataValue{
 					EntryRootRunID: {
 						Value: structpb.NewStringValue("parent-run-123"),
 					},
 				},
-				State:        apiv2beta1.PluginState_PLUGIN_FAILED,
+				State:        apiv2.PluginState_PLUGIN_FAILED,
 				StateMessage: "sync failed",
 			},
 		},
@@ -702,14 +702,14 @@ func TestOnRunEnd_PermanentFailure_DoesNotRequestRetryWithParentRun(t *testing.T
 		RunID:     "run-789",
 		Namespace: "test-ns",
 		State:     "FAILED",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"fakeplugin": {
-				Entries: map[string]*apiv2beta1.MetadataValue{
+				Entries: map[string]*apiv2.MetadataValue{
 					EntryRootRunID: {
 						Value: structpb.NewStringValue("parent-run-456"),
 					},
 				},
-				State:        apiv2beta1.PluginState_PLUGIN_FAILED,
+				State:        apiv2.PluginState_PLUGIN_FAILED,
 				StateMessage: "config unavailable",
 			},
 		},

@@ -20,10 +20,7 @@ import {
   toGetPodLogsStream,
 } from '../workflow-helper.js';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
-import {
-  AuthorizeResourcesEnum,
-  AuthorizeVerbEnum,
-} from '../src/generated/apisv2beta1/auth/index.js';
+import { AuthorizeResourcesEnum, AuthorizeVerbEnum } from '../src/generated/apisv2/auth/index.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import { getArtifactStoreOrigin } from '../minio-helper.js';
 

@@ -20,7 +20,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { ReactElement } from 'react';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import StopCircle from 'src/icons/StopCircle';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';

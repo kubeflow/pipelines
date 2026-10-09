@@ -20,7 +20,7 @@ import { padding, commonCss } from 'src/Css';
 import ResourceSelector from 'src/pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
 import { Column } from './CustomTable';
-import { V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline } from 'src/apisv2/pipeline';
 import Buttons from 'src/lib/Buttons';
 import { PageProps } from 'src/pages/Page';
 import MD2Tabs from 'src/atoms/MD2Tabs';
@@ -39,7 +39,7 @@ enum NamespacedAndSharedTab {
 export interface PipelinesDialogV2Props extends PageProps {
   open: boolean;
   selectorDialog: string;
-  onClose: (confirmed: boolean, selectedPipeline?: V2beta1Pipeline) => void;
+  onClose: (confirmed: boolean, selectedPipeline?: V2Pipeline) => void;
   namespace: string | undefined; // use context or make it optional?
   pipelineSelectorColumns: Column[];
   toolbarActionMap?: ToolbarActionMap;
@@ -49,7 +49,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.E
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
   const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
-    React.useState<V2beta1Pipeline>();
+    React.useState<V2Pipeline>();
 
   function getPipelinesList(): React.JSX.Element {
     return (

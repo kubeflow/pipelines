@@ -39,7 +39,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { CustomTableRow } from './CustomTableRow';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 
 export enum ExpandState {
   COLLAPSED,
@@ -557,12 +557,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   private _createAndEncodeFilterV2(filterString: string): string {
-    const filter: V2beta1Filter = {
+    const filter: V2Filter = {
       predicates: [
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          operation: V2beta1PredicateOperation.IS_SUBSTRING,
+          operation: V2PredicateOperation.IS_SUBSTRING,
           string_value: filterString,
         },
       ],

@@ -21,12 +21,12 @@ import (
 	"time"
 
 	"github.com/eapache/go-resiliency/retrier"
-	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
-	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	experiment_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
@@ -70,16 +70,16 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunCustomServiceAccount() {
 				Experiment: test.MakeExperiment("authorized-schedule-"+name, "", s.resourceNamespace),
 			})
 			require.NoError(t, err)
-			reference := &recurring_run_model.V2beta1PipelineVersionReference{PipelineID: pipeline.PipelineID}
+			reference := &recurring_run_model.V2PipelineVersionReference{PipelineID: pipeline.PipelineID}
 			if pinned {
 				reference.PipelineVersionID = version.PipelineVersionID
 			}
 			schedule, err := s.recurringRunClient.Create(&recurring_run_params.RecurringRunServiceCreateRecurringRunParams{
-				RecurringRun: &recurring_run_model.V2beta1RecurringRun{
+				RecurringRun: &recurring_run_model.V2RecurringRun{
 					DisplayName:              "authorized-schedule-" + name,
 					ExperimentID:             experiment.ExperimentID,
 					PipelineVersionReference: reference,
-					RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{Parameters: map[string]interface{}{
+					RuntimeConfig: &recurring_run_model.V2RuntimeConfig{Parameters: map[string]interface{}{
 						"param1": "authorized", "param2": "schedule",
 					}},
 					ServiceAccount: serviceAccount,
@@ -126,7 +126,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunCustomServiceAccount() {
 			require.Equal(t, "tampered-schedule-account", patched.Spec.ServiceAccount)
 			require.Equal(t, "tampered-pipeline-id", patched.Spec.PipelineId)
 
-			var executed *run_model.V2beta1Run
+			var executed *run_model.V2Run
 			err = retrier.New(retrier.ConstantBackoff(120, 5*time.Second), nil).Run(func() error {
 				runs, _, _, err := s.runClient.List(&run_params.RunServiceListRunsParams{ExperimentID: util.StringPointer(experiment.ExperimentID)})
 				if err != nil {
@@ -139,7 +139,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunCustomServiceAccount() {
 				if executed.State == nil {
 					return fmt.Errorf("scheduled run %s has no state yet", executed.RunID)
 				}
-				if *executed.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+				if *executed.State != run_model.V2RuntimeStateSUCCEEDED {
 					return fmt.Errorf("scheduled run %s has not succeeded: %s", executed.RunID, *executed.State)
 				}
 				return nil

@@ -20,7 +20,7 @@ import (
 	"sync"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -116,15 +116,15 @@ func initializeTaskStore() (*sql.DB, *TaskStore, *RunStore) {
 	return db, taskStore, runStore
 }
 
-func createTaskPod(name, uid string, typ apiv2beta1.PipelineTask_TaskPodType) *apiv2beta1.PipelineTask_TaskPod {
-	return &apiv2beta1.PipelineTask_TaskPod{
+func createTaskPod(name, uid string, typ apiv2.PipelineTask_TaskPodType) *apiv2.PipelineTask_TaskPod {
+	return &apiv2.PipelineTask_TaskPod{
 		Name: name,
 		Uid:  uid,
 		Type: typ,
 	}
 }
 
-func createTaskPodsAsJSONSlice(pods ...*apiv2beta1.PipelineTask_TaskPod) model.JSONSlice {
+func createTaskPodsAsJSONSlice(pods ...*apiv2.PipelineTask_TaskPod) model.JSONSlice {
 	podsAsSlice, err := model.ProtoSliceToJSONSlice(pods)
 	if err != nil {
 		panic(err)
@@ -142,7 +142,7 @@ func TestTaskAPIFieldMap(t *testing.T) {
 func TestCreateTask_Success(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
-	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR))
+	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR))
 	task := &model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
@@ -186,15 +186,15 @@ func TestCreateTask_ReusesExistingLogicalIdentity(t *testing.T) {
 	firstTask, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_DRIVER)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_DRIVER)),
 		Fingerprint:      "fp-1",
 		Name:             "taskA",
 		ScopePath:        "root.pipeline.taskA",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
 		TypeAttrs:        model.JSONData{},
 	})
 	require.NoError(t, err)
@@ -203,16 +203,16 @@ func TestCreateTask_ReusesExistingLogicalIdentity(t *testing.T) {
 	retriedTask, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_DRIVER)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2.PipelineTask_DRIVER)),
 		Fingerprint:      "fp-2",
 		Name:             "taskA",
 		ParentTaskUUID:   strPTR(""),
 		ScopePath:        "root.pipeline.taskA",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
 		TypeAttrs:        model.JSONData{},
 	})
 	require.NoError(t, err)
@@ -304,11 +304,11 @@ func logicalTaskForTest(parentTaskUUID *string) *model.Task {
 		Name:             "nested-task",
 		ParentTaskUUID:   parentTaskUUID,
 		ScopePath:        "root.outer.inner.nested-task",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
 		TypeAttrs:        model.JSONData{"iterationIndex": float64(0)},
 	}
 }
@@ -322,8 +322,8 @@ func insertTaskForTest(db *sql.DB, taskID, name string) error {
 		) VALUES (?, 'ns1', 'run-1', '[]', 1, 1, 0, '', ?, ?, '[]', '[]', '[]', ?, '{}', ?)`,
 		taskID,
 		name,
-		apiv2beta1.PipelineTask_RUNNING,
-		apiv2beta1.PipelineTask_DAG,
+		apiv2.PipelineTask_RUNNING,
+		apiv2.PipelineTask_DAG,
 		"root."+name,
 	)
 	return err
@@ -337,14 +337,14 @@ func TestCreateTask_DifferentIterationIndexCreatesDistinctTasks(t *testing.T) {
 	firstTask, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_DRIVER)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_DRIVER)),
 		Name:             "loop-body",
 		ScopePath:        "root.loop-body",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
 		TypeAttrs:        model.JSONData{"iterationIndex": float64(0)},
 	})
 	require.NoError(t, err)
@@ -353,14 +353,14 @@ func TestCreateTask_DifferentIterationIndexCreatesDistinctTasks(t *testing.T) {
 	secondTask, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_DRIVER)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2.PipelineTask_DRIVER)),
 		Name:             "loop-body",
 		ScopePath:        "root.loop-body",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
 		TypeAttrs:        model.JSONData{"iterationIndex": float64(1)},
 	})
 	require.NoError(t, err)
@@ -384,7 +384,7 @@ func TestListTasks_BasicAndFilters(t *testing.T) {
 	parent, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-parent",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -400,7 +400,7 @@ func TestListTasks_BasicAndFilters(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
 		ParentTaskUUID:   strPTR(parent.UUID),
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-c1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -416,7 +416,7 @@ func TestListTasks_BasicAndFilters(t *testing.T) {
 		Namespace:        "ns2",
 		RunUUID:          "run-2",
 		ParentTaskUUID:   strPTR(parent.UUID),
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p3", "uid3", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p3", "uid3", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-c2",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -454,8 +454,8 @@ func TestUpdateTask_Success(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	pod1 := createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)
-	pod2 := createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_EXECUTOR)
+	pod1 := createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)
+	pod2 := createTaskPod("p2", "uid2", apiv2.PipelineTask_EXECUTOR)
 	// Create a task
 	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
 	created, err := taskStore.CreateTask(&model.Task{
@@ -514,7 +514,7 @@ func TestUpdateTask_LifecycleMessageSetAndCleared(t *testing.T) {
 	created, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-0",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -557,19 +557,19 @@ func TestUpdateTask_MergesParameters(t *testing.T) {
 
 	// Create a task with initial input parameters
 	val1, _ := structpb.NewValue("initial-input")
-	initialParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	initialParam := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val1,
 		ParameterKey: "common-param",
-		Type:         apiv2beta1.IOType_COMPONENT_INPUT,
+		Type:         apiv2.IOType_COMPONENT_INPUT,
 	}
-	initialParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{initialParam})
+	initialParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{initialParam})
 	assert.NoError(t, err)
 
 	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
 	created, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-0",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -582,16 +582,16 @@ func TestUpdateTask_MergesParameters(t *testing.T) {
 
 	// Simulate first update from iteration 0
 	valIter0, _ := structpb.NewValue("output-from-iter-0")
-	iter0Param := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	iter0Param := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        valIter0,
 		ParameterKey: "loop-output",
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName:  "loop-task",
 			Iteration: int64PTR(0),
 		},
 	}
-	iter0Params, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{iter0Param})
+	iter0Params, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{iter0Param})
 	assert.NoError(t, err)
 
 	update1 := &model.Task{
@@ -607,16 +607,16 @@ func TestUpdateTask_MergesParameters(t *testing.T) {
 
 	// Simulate second update from iteration 1
 	valIter1, _ := structpb.NewValue("output-from-iter-1")
-	iter1Param := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	iter1Param := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        valIter1,
 		ParameterKey: "loop-output",
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName:  "loop-task",
 			Iteration: int64PTR(1),
 		},
 	}
-	iter1Params, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{iter1Param})
+	iter1Params, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{iter1Param})
 	assert.NoError(t, err)
 
 	update2 := &model.Task{
@@ -631,8 +631,8 @@ func TestUpdateTask_MergesParameters(t *testing.T) {
 	assert.Equal(t, 2, len(updated2.OutputParameters), "Should have both iteration 0 and 1 output parameters")
 
 	// Verify both iterations are present
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	outputProtos, err := model.JSONSliceToProtoSlice(updated2.OutputParameters, typeFunc)
 	assert.NoError(t, err)
@@ -651,14 +651,14 @@ func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testin
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
-	outputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	outputs, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{{
 		ParameterKey: "result",
 		Value:        structpb.NewStringValue("stale"),
-		Type:         apiv2beta1.IOType_OUTPUT,
+		Type:         apiv2.IOType_OUTPUT,
 	}})
 	require.NoError(t, err)
 
@@ -667,8 +667,8 @@ func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testin
 		RunUUID:          "run-1",
 		Name:             "retry-me",
 		ScopePath:        "root.retry-me",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Fingerprint:      "fp-retry",
 		Pods:             pods,
 		StatusMetadata:   model.JSONData{"message": "old failure"},
@@ -683,13 +683,13 @@ func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testin
 
 	retried, err := taskStore.GetTask(created.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retried.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), retried.State)
 	assert.Equal(t, int64(0), retried.FinishedInSec)
 	assert.Nil(t, retried.StatusMetadata)
 	assert.Empty(t, retried.Pods)
 	assert.Empty(t, retried.OutputParameters)
 	require.NotEmpty(t, retried.StateHistory)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), getLastTaskState(retried.StateHistory))
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), getLastTaskState(retried.StateHistory))
 }
 
 func TestGetChildTasks_ReturnsChildren(t *testing.T) {
@@ -702,7 +702,7 @@ func TestGetChildTasks_ReturnsChildren(t *testing.T) {
 		RunUUID:          "run-1",
 		Name:             "parent",
 		DisplayName:      "Parent Task",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-p",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -720,7 +720,7 @@ func TestGetChildTasks_ReturnsChildren(t *testing.T) {
 		ParentTaskUUID:   strPTR(parent.UUID),
 		Name:             "child-a",
 		DisplayName:      "First Child",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-a",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -738,7 +738,7 @@ func TestGetChildTasks_ReturnsChildren(t *testing.T) {
 		ParentTaskUUID:   strPTR(parent.UUID),
 		Name:             "child-b",
 		DisplayName:      "Second Child",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-b",
 		State:            2,
 		StateHistory:     model.JSONSlice{},
@@ -765,7 +765,7 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 		RunUUID:          "run-1",
 		Name:             "alpha",
 		DisplayName:      "Alpha Task",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-alpha",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -782,7 +782,7 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 		RunUUID:          "run-1",
 		Name:             "beta",
 		DisplayName:      "Beta Task",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-beta",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -799,7 +799,7 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 		RunUUID:          "run-2",
 		Name:             "gamma",
 		DisplayName:      "Gamma Task",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-gamma",
 		State:            2,
 		StateHistory:     model.JSONSlice{},
@@ -811,9 +811,9 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 	assert.NoError(t, err)
 
 	// name == "beta"
-	f1Proto := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
-			{Key: "name", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_StringValue{StringValue: "beta"}},
+	f1Proto := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
+			{Key: "name", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_StringValue{StringValue: "beta"}},
 		}}
 	f1, err := filter.New(f1Proto)
 	assert.NoError(t, err)
@@ -826,9 +826,9 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 	assert.Equal(t, "beta", res1[0].Name)
 
 	// status == 2
-	f2Proto := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
-			{Key: "status", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_IntValue{IntValue: 2}},
+	f2Proto := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
+			{Key: "status", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_IntValue{IntValue: 2}},
 		},
 	}
 	f2, err := filter.New(f2Proto)
@@ -842,9 +842,9 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 	assert.Equal(t, model.TaskStatus(2), res2[0].State)
 
 	// cache_fingerprint == "fp-alpha"
-	f3Proto := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
-			{Key: "cache_fingerprint", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_StringValue{StringValue: "fp-alpha"}},
+	f3Proto := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
+			{Key: "cache_fingerprint", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_StringValue{StringValue: "fp-alpha"}},
 		}}
 	f3, err := filter.New(f3Proto)
 	assert.NoError(t, err)
@@ -857,10 +857,10 @@ func TestListTasks_FilterPredicates_EqualsOnColumns(t *testing.T) {
 	assert.Equal(t, "fp-alpha", res3[0].Fingerprint)
 
 	// Combined: run_id == "run-1" AND status == 1
-	f4Proto := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
-			{Key: "run_id", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_StringValue{StringValue: "run-1"}},
-			{Key: "status", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_IntValue{IntValue: 1}},
+	f4Proto := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
+			{Key: "run_id", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_StringValue{StringValue: "run-1"}},
+			{Key: "status", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_IntValue{IntValue: 1}},
 		}}
 	f4, err := filter.New(f4Proto)
 	assert.NoError(t, err)
@@ -886,7 +886,7 @@ func TestListTasks_PaginationWithToken(t *testing.T) {
 			Namespace:        "ns1",
 			RunUUID:          "run-1",
 			Name:             fmt.Sprintf("task-%d", i+1),
-			Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+			Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 			Fingerprint:      fmt.Sprintf("fp-%d", i+1),
 			State:            1,
 			StateHistory:     model.JSONSlice{},
@@ -983,7 +983,7 @@ func TestListTasks_SortByParentTaskIdPaginatesThroughNulls(t *testing.T) {
 					Namespace:        "ns1",
 					RunUUID:          s.runID,
 					Name:             fmt.Sprintf("task-%d", i),
-					Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+					Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 					Fingerprint:      fmt.Sprintf("fp-%d", i),
 					State:            1,
 					StateHistory:     model.JSONSlice{},
@@ -1052,27 +1052,27 @@ func TestTaskParameters_PersistAndFetch(t *testing.T) {
 	// Build two simple IOParameter protos for inputs and outputs
 	inVal, _ := structpb.NewValue("in-val")
 	outVal, _ := structpb.NewValue("out-val")
-	inParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	inParam := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        inVal,
 		ParameterKey: "in-name",
 	}
-	outParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	outParam := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        outVal,
 		ParameterKey: "param-y",
-		Producer: &apiv2beta1.IOProducer{
+		Producer: &apiv2.IOProducer{
 			TaskName: "task-x",
 		},
 	}
-	inParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{inParam})
+	inParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{inParam})
 	assert.NoError(t, err)
-	outParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{outParam})
+	outParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{outParam})
 	assert.NoError(t, err)
 
 	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
 	created, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-param",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -1098,7 +1098,7 @@ func TestHydrateArtifactsForTask_GetAndList(t *testing.T) {
 	task, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-art",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -1133,7 +1133,7 @@ func TestHydrateArtifactsForTask_GetAndList(t *testing.T) {
 	_, err = ats1.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  artIn.UUID,
 		TaskID:      task.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		RunUUID:     task.RunUUID,
 		ArtifactKey: "input-key",
 	})
@@ -1143,7 +1143,7 @@ func TestHydrateArtifactsForTask_GetAndList(t *testing.T) {
 	_, err = ats2.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID: artOut.UUID,
 		TaskID:     task.UUID,
-		Type:       model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:       model.IOType(apiv2.IOType_OUTPUT),
 		RunUUID:    task.RunUUID,
 		Producer: model.JSONData{
 			"taskName": "producer-task",
@@ -1197,7 +1197,7 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 	task, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-art-order",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -1229,7 +1229,7 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 	_, err = artifactTaskStore.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  artifactB.UUID,
 		TaskID:      task.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		RunUUID:     task.RunUUID,
 		ArtifactKey: "z-key",
 	})
@@ -1238,7 +1238,7 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 	_, err = artifactTaskStore.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  artifactA.UUID,
 		TaskID:      task.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		RunUUID:     task.RunUUID,
 		ArtifactKey: "a-key",
 	})
@@ -1276,7 +1276,7 @@ func TestGetTaskCountsForRuns(t *testing.T) {
 	_, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -1290,7 +1290,7 @@ func TestGetTaskCountsForRuns(t *testing.T) {
 	_, err = taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid2", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-2",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -1304,7 +1304,7 @@ func TestGetTaskCountsForRuns(t *testing.T) {
 	_, err = taskStore.CreateTask(&model.Task{
 		Namespace:        "ns2",
 		RunUUID:          "run-2",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p3", "uid3", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p3", "uid3", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-3",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -1337,12 +1337,12 @@ func TestMergeParameters_EmptySlices(t *testing.T) {
 
 	// Test merging nil with non-empty
 	val1, _ := structpb.NewValue("value1")
-	param1 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param1 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val1,
 		ParameterKey: "param1",
-		Type:         apiv2beta1.IOType_COMPONENT_INPUT,
+		Type:         apiv2.IOType_COMPONENT_INPUT,
 	}
-	params1, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param1})
+	params1, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param1})
 	assert.NoError(t, err)
 
 	result, err = mergeParameters(nil, params1)
@@ -1357,22 +1357,22 @@ func TestMergeParameters_EmptySlices(t *testing.T) {
 func TestMergeParameters_NoOverlap(t *testing.T) {
 	// Create two parameters with different keys
 	val1, _ := structpb.NewValue("value1")
-	param1 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param1 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val1,
 		ParameterKey: "param1",
-		Type:         apiv2beta1.IOType_COMPONENT_INPUT,
+		Type:         apiv2.IOType_COMPONENT_INPUT,
 	}
 
 	val2, _ := structpb.NewValue("value2")
-	param2 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param2 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val2,
 		ParameterKey: "param2",
-		Type:         apiv2beta1.IOType_OUTPUT,
+		Type:         apiv2.IOType_OUTPUT,
 	}
 
-	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param1})
+	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param1})
 	assert.NoError(t, err)
-	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param2})
+	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param2})
 	assert.NoError(t, err)
 
 	result, err := mergeParameters(oldParams, newParams)
@@ -1380,8 +1380,8 @@ func TestMergeParameters_NoOverlap(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 
 	// Convert back to verify both parameters are present
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
 	assert.NoError(t, err)
@@ -1397,28 +1397,28 @@ func TestMergeParameters_NoOverlap(t *testing.T) {
 func TestMergeParameters_WithProducer_NoIteration(t *testing.T) {
 	// Create parameters with producer but no iteration
 	val1, _ := structpb.NewValue("value-from-task1")
-	param1 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param1 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val1,
 		ParameterKey: "output-param",
-		Type:         apiv2beta1.IOType_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName: "task1",
 		},
 	}
 
 	val2, _ := structpb.NewValue("value-from-task2")
-	param2 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param2 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val2,
 		ParameterKey: "output-param",
-		Type:         apiv2beta1.IOType_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName: "task2",
 		},
 	}
 
-	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param1})
+	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param1})
 	assert.NoError(t, err)
-	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param2})
+	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param2})
 	assert.NoError(t, err)
 
 	result, err := mergeParameters(oldParams, newParams)
@@ -1426,8 +1426,8 @@ func TestMergeParameters_WithProducer_NoIteration(t *testing.T) {
 	// Different task names create different keys, so we should have 2 parameters
 	assert.Equal(t, 2, len(result))
 
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
 	assert.NoError(t, err)
@@ -1443,30 +1443,30 @@ func TestMergeParameters_WithProducer_NoIteration(t *testing.T) {
 func TestMergeParameters_WithProducer_WithIteration(t *testing.T) {
 	// Create parameters with producer including iteration
 	val1, _ := structpb.NewValue("value-iteration-0")
-	param1 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param1 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val1,
 		ParameterKey: "loop-output",
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName:  "loop-task",
 			Iteration: int64PTR(0),
 		},
 	}
 
 	val2, _ := structpb.NewValue("value-iteration-1")
-	param2 := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param2 := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val2,
 		ParameterKey: "loop-output",
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName:  "loop-task",
 			Iteration: int64PTR(1),
 		},
 	}
 
-	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param1})
+	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param1})
 	assert.NoError(t, err)
-	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{param2})
+	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{param2})
 	assert.NoError(t, err)
 
 	result, err := mergeParameters(oldParams, newParams)
@@ -1474,8 +1474,8 @@ func TestMergeParameters_WithProducer_WithIteration(t *testing.T) {
 	// Different iterations create different keys, so we should have 2 parameters
 	assert.Equal(t, 2, len(result))
 
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
 	assert.NoError(t, err)
@@ -1496,19 +1496,19 @@ func TestMergeParameters_RaceConditionScenario(t *testing.T) {
 
 	// Initial state - task already has some parameters
 	valExisting, _ := structpb.NewValue("existing-param")
-	existingParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	existingParam := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        valExisting,
 		ParameterKey: "common-param",
-		Type:         apiv2beta1.IOType_COMPONENT_INPUT,
+		Type:         apiv2.IOType_COMPONENT_INPUT,
 	}
 
 	// Update from iteration 0
 	valIter0, _ := structpb.NewValue("output-from-iter-0")
-	iter0Param := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	iter0Param := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        valIter0,
 		ParameterKey: "loop-output",
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName:  "loop-task",
 			Iteration: int64PTR(0),
 		},
@@ -1516,21 +1516,21 @@ func TestMergeParameters_RaceConditionScenario(t *testing.T) {
 
 	// Update from iteration 1 (happening concurrently)
 	valIter1, _ := structpb.NewValue("output-from-iter-1")
-	iter1Param := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	iter1Param := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        valIter1,
 		ParameterKey: "loop-output",
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName:  "loop-task",
 			Iteration: int64PTR(1),
 		},
 	}
 
-	existingParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{existingParam})
+	existingParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{existingParam})
 	assert.NoError(t, err)
 
 	// First update: merge existing with iteration 0
-	iter0Update, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{iter0Param})
+	iter0Update, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{iter0Param})
 	assert.NoError(t, err)
 
 	result1, err := mergeParameters(existingParams, iter0Update)
@@ -1538,7 +1538,7 @@ func TestMergeParameters_RaceConditionScenario(t *testing.T) {
 	assert.Equal(t, 2, len(result1))
 
 	// Second update: merge result1 with iteration 1
-	iter1Update, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{iter1Param})
+	iter1Update, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{iter1Param})
 	assert.NoError(t, err)
 
 	result2, err := mergeParameters(result1, iter1Update)
@@ -1547,8 +1547,8 @@ func TestMergeParameters_RaceConditionScenario(t *testing.T) {
 	assert.Equal(t, 3, len(result2))
 
 	// Verify all three parameters are present
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	resultProtos, err := model.JSONSliceToProtoSlice(result2, typeFunc)
 	assert.NoError(t, err)
@@ -1582,34 +1582,34 @@ func TestMergeParameters_OrdinaryOutputLaterWins(t *testing.T) {
 	val2, err := structpb.NewValue("value2")
 	require.NoError(t, err)
 
-	oldParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	oldParam := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val1,
 		ParameterKey: "result",
-		Type:         apiv2beta1.IOType_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName: "task1",
 		},
 	}
-	newParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	newParam := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val2,
 		ParameterKey: "result",
-		Type:         apiv2beta1.IOType_OUTPUT,
-		Producer: &apiv2beta1.IOProducer{
+		Type:         apiv2.IOType_OUTPUT,
+		Producer: &apiv2.IOProducer{
 			TaskName: "task1",
 		},
 	}
 
-	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{oldParam})
+	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{oldParam})
 	require.NoError(t, err)
-	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{newParam})
+	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{newParam})
 	require.NoError(t, err)
 
 	result, err := mergeParameters(oldParams, newParams)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(result), "ordinary output updates must replace earlier values")
 
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
 	require.NoError(t, err)
@@ -1623,14 +1623,14 @@ func TestCreateTask_AutoPopulatesStateHistory(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR))
+	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR))
 	task := &model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
 		Pods:             pods,
 		Fingerprint:      "fp-1",
 		Name:             "taskA",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{}, // Empty state history
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
@@ -1651,13 +1651,13 @@ func TestCreateTask_AutoPopulatesStateHistory(t *testing.T) {
 	assert.Equal(t, 1, len(fetched.StateHistory), "Fetched task should have 1 state history entry")
 
 	// Convert and verify state
-	typeFunc := func() *apiv2beta1.PipelineTask_TaskStatus {
-		return &apiv2beta1.PipelineTask_TaskStatus{}
+	typeFunc := func() *apiv2.PipelineTask_TaskStatus {
+		return &apiv2.PipelineTask_TaskStatus{}
 	}
 	histProtos, err := model.JSONSliceToProtoSlice(fetched.StateHistory, typeFunc)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(histProtos))
-	assert.Equal(t, apiv2beta1.PipelineTask_RUNNING, histProtos[0].GetState())
+	assert.Equal(t, apiv2.PipelineTask_RUNNING, histProtos[0].GetState())
 	assert.NotNil(t, histProtos[0].GetUpdateTime())
 	assert.Greater(t, histProtos[0].GetUpdateTime().GetSeconds(), int64(0))
 }
@@ -1669,14 +1669,14 @@ func TestUpdateTask_AutoPopulatesStateHistory(t *testing.T) {
 	defer db.Close()
 
 	// Create initial task in RUNNING state
-	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR))
+	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR))
 	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
 	created, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
 		Pods:             pods,
 		Fingerprint:      "fp-0",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
@@ -1689,7 +1689,7 @@ func TestUpdateTask_AutoPopulatesStateHistory(t *testing.T) {
 	// Update to SUCCEEDED state
 	update := &model.Task{
 		UUID:  created.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 	}
 	updated, err := taskStore.UpdateTask(update)
 	assert.NoError(t, err)
@@ -1698,13 +1698,13 @@ func TestUpdateTask_AutoPopulatesStateHistory(t *testing.T) {
 	assert.Equal(t, 2, len(updated.StateHistory), "Should have 2 state history entries after state change")
 
 	// Verify states in order
-	typeFunc := func() *apiv2beta1.PipelineTask_TaskStatus {
-		return &apiv2beta1.PipelineTask_TaskStatus{}
+	typeFunc := func() *apiv2.PipelineTask_TaskStatus {
+		return &apiv2.PipelineTask_TaskStatus{}
 	}
 	histProtos, err := model.JSONSliceToProtoSlice(updated.StateHistory, typeFunc)
 	assert.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PipelineTask_RUNNING, histProtos[0].GetState())
-	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, histProtos[1].GetState())
+	assert.Equal(t, apiv2.PipelineTask_RUNNING, histProtos[0].GetState())
+	assert.Equal(t, apiv2.PipelineTask_SUCCEEDED, histProtos[1].GetState())
 	assert.Greater(t, histProtos[1].GetUpdateTime().GetSeconds(), histProtos[0].GetUpdateTime().GetSeconds(),
 		"Second state timestamp should be after first")
 }
@@ -1715,14 +1715,14 @@ func TestUpdateTask_StateHistory_MultipleTransitions(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR))
+	pods := createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR))
 	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
 	created, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
 		Pods:             pods,
 		Fingerprint:      "fp-0",
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		StateHistory:     model.JSONSlice{},
 		InputParameters:  model.JSONSlice{},
 		OutputParameters: model.JSONSlice{},
@@ -1734,7 +1734,7 @@ func TestUpdateTask_StateHistory_MultipleTransitions(t *testing.T) {
 	// Transition: RUNNING → SUCCEEDED
 	update1 := &model.Task{
 		UUID:  created.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 	}
 	updated1, err := taskStore.UpdateTask(update1)
 	assert.NoError(t, err)
@@ -1743,21 +1743,21 @@ func TestUpdateTask_StateHistory_MultipleTransitions(t *testing.T) {
 	// Transition: SUCCEEDED → FAILED (hypothetical retry scenario)
 	update2 := &model.Task{
 		UUID:  created.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
 	}
 	updated2, err := taskStore.UpdateTask(update2)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(updated2.StateHistory))
 
 	// Verify all states are preserved
-	typeFunc := func() *apiv2beta1.PipelineTask_TaskStatus {
-		return &apiv2beta1.PipelineTask_TaskStatus{}
+	typeFunc := func() *apiv2.PipelineTask_TaskStatus {
+		return &apiv2.PipelineTask_TaskStatus{}
 	}
 	histProtos, err := model.JSONSliceToProtoSlice(updated2.StateHistory, typeFunc)
 	assert.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PipelineTask_RUNNING, histProtos[0].GetState())
-	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, histProtos[1].GetState())
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, histProtos[2].GetState())
+	assert.Equal(t, apiv2.PipelineTask_RUNNING, histProtos[0].GetState())
+	assert.Equal(t, apiv2.PipelineTask_SUCCEEDED, histProtos[1].GetState())
+	assert.Equal(t, apiv2.PipelineTask_FAILED, histProtos[2].GetState())
 }
 
 // Test helper function getLastTaskState
@@ -1767,22 +1767,22 @@ func TestGetLastTaskState(t *testing.T) {
 	assert.Equal(t, model.TaskStatus(0), getLastTaskState(nil))
 
 	// Valid history with one entry
-	status1 := &apiv2beta1.PipelineTask_TaskStatus{
+	status1 := &apiv2.PipelineTask_TaskStatus{
 		UpdateTime: &timestamppb.Timestamp{Seconds: 100},
-		State:      apiv2beta1.PipelineTask_RUNNING,
+		State:      apiv2.PipelineTask_RUNNING,
 	}
-	history1, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{status1})
+	history1, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskStatus{status1})
 	assert.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), getLastTaskState(history1))
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), getLastTaskState(history1))
 
 	// Valid history with multiple entries
-	status2 := &apiv2beta1.PipelineTask_TaskStatus{
+	status2 := &apiv2.PipelineTask_TaskStatus{
 		UpdateTime: &timestamppb.Timestamp{Seconds: 200},
-		State:      apiv2beta1.PipelineTask_SUCCEEDED,
+		State:      apiv2.PipelineTask_SUCCEEDED,
 	}
-	history2, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{status1, status2})
+	history2, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskStatus{status1, status2})
 	assert.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED), getLastTaskState(history2))
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), getLastTaskState(history2))
 }
 
 func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
@@ -1827,7 +1827,7 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 			Namespace:        "ns1",
 			RunUUID:          task.runID,
 			Name:             task.name,
-			Pods:             createTaskPodsAsJSONSlice(createTaskPod(task.name, task.name, apiv2beta1.PipelineTask_EXECUTOR)),
+			Pods:             createTaskPodsAsJSONSlice(createTaskPod(task.name, task.name, apiv2.PipelineTask_EXECUTOR)),
 			CreatedAtInSec:   int64(i + 1),
 			StartedInSec:     task.startedInSec,
 			Fingerprint:      task.name,

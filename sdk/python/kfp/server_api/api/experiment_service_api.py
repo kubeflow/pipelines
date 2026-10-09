@@ -143,7 +143,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments/{experiment_id}:archive', 'POST',
+            '/apis/v2/experiments/{experiment_id}:archive', 'POST',
             path_params,
             query_params,
             header_params,
@@ -168,7 +168,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param experiment: The experiment to be created. (required)
-        :type experiment: V2beta1Experiment
+        :type experiment: V2Experiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -181,7 +181,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Experiment
+        :rtype: V2Experiment
         """
         kwargs['_return_http_data_only'] = True
         return self.experiment_service_create_experiment_with_http_info(experiment, **kwargs)  # noqa: E501
@@ -196,7 +196,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param experiment: The experiment to be created. (required)
-        :type experiment: V2beta1Experiment
+        :type experiment: V2Experiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -213,7 +213,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Experiment, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Experiment, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -269,14 +269,14 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments', 'POST',
+            '/apis/v2/experiments', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Experiment',  # noqa: E501
+            response_type='V2Experiment',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -285,7 +285,7 @@ class ExperimentServiceApi(object):
             collection_formats=collection_formats)
 
     def experiment_service_delete_experiment(self, experiment_id, **kwargs):  # noqa: E501
-        """Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.  # noqa: E501
+        """Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -313,7 +313,7 @@ class ExperimentServiceApi(object):
         return self.experiment_service_delete_experiment_with_http_info(experiment_id, **kwargs)  # noqa: E501
 
     def experiment_service_delete_experiment_with_http_info(self, experiment_id, **kwargs):  # noqa: E501
-        """Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.  # noqa: E501
+        """Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -391,7 +391,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments/{experiment_id}', 'DELETE',
+            '/apis/v2/experiments/{experiment_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -429,7 +429,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Experiment
+        :rtype: V2Experiment
         """
         kwargs['_return_http_data_only'] = True
         return self.experiment_service_get_experiment_with_http_info(experiment_id, **kwargs)  # noqa: E501
@@ -461,7 +461,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Experiment, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Experiment, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -513,14 +513,14 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments/{experiment_id}', 'GET',
+            '/apis/v2/experiments/{experiment_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Experiment',  # noqa: E501
+            response_type='V2Experiment',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -543,7 +543,7 @@ class ExperimentServiceApi(object):
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/api/filter.proto)).
         :type filter: str
         :param namespace: Which namespace to filter the experiments on.
         :type namespace: str
@@ -559,7 +559,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListExperimentsResponse
+        :rtype: V2ListExperimentsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.experiment_service_list_experiments_with_http_info(**kwargs)  # noqa: E501
@@ -579,7 +579,7 @@ class ExperimentServiceApi(object):
         :type page_size: int
         :param sort_by: Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/api/filter.proto)).
         :type filter: str
         :param namespace: Which namespace to filter the experiments on.
         :type namespace: str
@@ -599,7 +599,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListExperimentsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListExperimentsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -659,14 +659,14 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments', 'GET',
+            '/apis/v2/experiments', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListExperimentsResponse',  # noqa: E501
+            response_type='V2ListExperimentsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -781,7 +781,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/experiments/{experiment_id}:unarchive', 'POST',
+            '/apis/v2/experiments/{experiment_id}:unarchive', 'POST',
             path_params,
             query_params,
             header_params,

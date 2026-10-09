@@ -66,7 +66,7 @@ async function waitForCreatedRunId() {
 
 async function fetchRunById(runId) {
   return browser.execute(async (currentRunId) => {
-    const response = await fetch(`/apis/v2beta1/runs/${currentRunId}`);
+    const response = await fetch(`/apis/v2/runs/${currentRunId}`);
     const responseText = await response.text();
     let responseBody;
     try {
@@ -89,7 +89,7 @@ async function deleteCreatedRun() {
 
   try {
     const deleteResponse = await browser.execute(async (currentRunId) => {
-      const response = await fetch(`/apis/v2beta1/runs/${currentRunId}`, {
+      const response = await fetch(`/apis/v2/runs/${currentRunId}`, {
         method: 'DELETE',
       });
       return {

@@ -18,16 +18,16 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { produce } from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import { RouteParams } from 'src/components/Router';
-import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2Run, V2RunStorageState } from 'src/apisv2/run';
+import { V2Experiment } from 'src/apisv2/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from 'src/lib/Utils';
 import { BrowserRouter } from 'react-router';
-import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { V2PredicateOperation } from 'src/apisv2/filter';
 
 describe('RunListsRouter', () => {
   let navigateSpy: any;
-  let runStorageState = V2beta1RunStorageState.AVAILABLE;
+  let runStorageState = V2RunStorageState.AVAILABLE;
 
   const onSelectionChangeMock = vi.fn();
   const listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns');
@@ -42,7 +42,7 @@ describe('RunListsRouter', () => {
   const archiveRunDisplayName = 'run with id: achiverunid';
   const activeRunDisplayName = 'run with id: activerunid';
 
-  function newMockExperiment(): V2beta1Experiment {
+  function newMockExperiment(): V2Experiment {
     return {
       description: 'mock experiment description',
       experiment_id: 'some-mock-experiment-id',
@@ -55,9 +55,9 @@ describe('RunListsRouter', () => {
       onTabSwitch: vi.fn((newTab: number) => {
         // this.refresh();
         if (newTab === 1) {
-          runStorageState = V2beta1RunStorageState.ARCHIVED;
+          runStorageState = V2RunStorageState.ARCHIVED;
         } else {
-          runStorageState = V2beta1RunStorageState.AVAILABLE;
+          runStorageState = V2RunStorageState.AVAILABLE;
         }
       }),
       hideExperimentColumn: true,
@@ -81,7 +81,7 @@ describe('RunListsRouter', () => {
   beforeEach(() => {
     getRunSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce({} as Partial<V2beta1Run>, (draft) => {
+        produce({} as Partial<V2Run>, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
@@ -95,8 +95,8 @@ describe('RunListsRouter', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.EQUALS,
-              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.EQUALS,
+              string_value: V2RunStorageState.ARCHIVED.toString(),
             },
           ],
         }),

@@ -15,12 +15,11 @@ import os
 import time
 
 import kfp
-from kfp.server_api.models.v2beta1_experiment import V2beta1Experiment
-from kfp.server_api.models.v2beta1_experiment_storage_state import \
-    V2beta1ExperimentStorageState
-from kfp.server_api.models.v2beta1_pipeline import V2beta1Pipeline
-from kfp.server_api.models.v2beta1_pipeline_version import \
-    V2beta1PipelineVersion
+from kfp.server_api.models.v2_experiment import V2Experiment
+from kfp.server_api.models.v2_experiment_storage_state import \
+    V2ExperimentStorageState
+from kfp.server_api.models.v2_pipeline import V2Pipeline
+from kfp.server_api.models.v2_pipeline_version import V2PipelineVersion
 import pytest
 
 from test_data.sdk_compiled_pipelines.valid.sequential_v2 import sequential
@@ -72,7 +71,7 @@ class TestClient:
             print(pipeline)
             if pipeline is not None:
                 pipeline_versions: list[
-                    V2beta1PipelineVersion] = self.kfp_client.list_pipeline_versions(
+                    V2PipelineVersion] = self.kfp_client.list_pipeline_versions(
                         pipeline_id=pipeline_id,
                         page_size=50,
                     ).pipeline_versions
@@ -114,7 +113,7 @@ class TestClient:
             pipeline_name=pipeline_name,
             description=pipeline_desc)
         self.created_pipelines.append(pipeline.pipeline_id)
-        pipelines: list[V2beta1Pipeline] = self.kfp_client.list_pipelines(
+        pipelines: list[V2Pipeline] = self.kfp_client.list_pipelines(
             page_size=50, sort_by='created_at desc').pipelines
         pipeline_exist = False
         for pipe in pipelines:
@@ -154,9 +153,8 @@ class TestClient:
         experiment = self.kfp_client.create_experiment(
             name=experiment_name, description=experiment_desc)
         self.created_experiments.append(experiment.experiment_id)
-        experiment_list: list[
-            V2beta1Experiment] = self.kfp_client.list_experiments(
-                page_size=50).experiments
+        experiment_list: list[V2Experiment] = self.kfp_client.list_experiments(
+            page_size=50).experiments
         experiment_found = False
         for exp in experiment_list:
             if exp.experiment_id == experiment.experiment_id:
@@ -173,12 +171,12 @@ class TestClient:
         self.kfp_client.archive_experiment(experiment.experiment_id)
         archived_experiment = self.kfp_client.get_experiment(
             experiment_id=experiment.experiment_id)
-        assert archived_experiment.storage_state == V2beta1ExperimentStorageState.ARCHIVED, "Experiment not in archived state"
+        assert archived_experiment.storage_state == V2ExperimentStorageState.ARCHIVED, "Experiment not in archived state"
 
         self.kfp_client.unarchive_experiment(experiment.experiment_id)
         archived_experiment = self.kfp_client.get_experiment(
             experiment_id=experiment.experiment_id)
-        assert archived_experiment.storage_state == V2beta1ExperimentStorageState.AVAILABLE, "Experiment not Unarchived, its still in archived state"
+        assert archived_experiment.storage_state == V2ExperimentStorageState.AVAILABLE, "Experiment not Unarchived, its still in archived state"
 
     def test_create_run(self):
         # Upload Pipeline

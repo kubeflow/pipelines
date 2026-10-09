@@ -20,9 +20,9 @@ import * as JsYaml from 'js-yaml';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
-import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { V2PipelineVersion } from 'src/apisv2/pipeline';
+import { V2Run, V2RuntimeState } from 'src/apisv2/run';
+import { V2RecurringRun } from 'src/apisv2/recurringrun';
 import Router, { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import NewRunSwitcher from 'src/pages/NewRunSwitcher';
@@ -246,7 +246,7 @@ describe('NewRunSwitcher', () => {
         pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
         pipeline_spec: undefined,
       });
-      const sdkRun: V2beta1Run = {
+      const sdkRun: V2Run = {
         run_id: TEST_RUN_ID,
         display_name: 'SDK run',
         pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
@@ -254,7 +254,7 @@ describe('NewRunSwitcher', () => {
           pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
           pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
         },
-        state: V2beta1RuntimeState.SUCCEEDED,
+        state: V2RuntimeState.SUCCEEDED,
       };
       vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue(sdkRun);
 
@@ -284,7 +284,7 @@ describe('NewRunSwitcher', () => {
         pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
         pipeline_spec: undefined,
       });
-      const sdkRecurringRun: V2beta1RecurringRun = {
+      const sdkRecurringRun: V2RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'SDK recurring run',
         pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
@@ -325,8 +325,8 @@ describe('NewRunSwitcher', () => {
           metadata: { name: 'from-version' },
           spec: { arguments: { parameters: [{ name: 'output' }] } },
         },
-      } as V2beta1PipelineVersion);
-      const sdkRun: V2beta1Run = {
+      } as V2PipelineVersion);
+      const sdkRun: V2Run = {
         run_id: TEST_RUN_ID,
         display_name: 'SDK run',
         pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
@@ -334,7 +334,7 @@ describe('NewRunSwitcher', () => {
           pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
           pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
         },
-        state: V2beta1RuntimeState.SUCCEEDED,
+        state: V2RuntimeState.SUCCEEDED,
       };
       vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue(sdkRun);
 
@@ -365,8 +365,8 @@ describe('NewRunSwitcher', () => {
           metadata: { name: 'from-version' },
           spec: { arguments: { parameters: [{ name: 'output' }] } },
         },
-      } as V2beta1PipelineVersion);
-      const sdkRecurringRun: V2beta1RecurringRun = {
+      } as V2PipelineVersion);
+      const sdkRecurringRun: V2RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'SDK recurring run',
         pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
@@ -465,11 +465,11 @@ describe('NewRunSwitcher', () => {
     it('throws when both run and recurring run are non-null', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const run: V2beta1Run = {
+      const run: V2Run = {
         run_id: TEST_RUN_ID,
         display_name: 'test run',
       };
-      const recurringRun: V2beta1RecurringRun = {
+      const recurringRun: V2RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'test recurring run',
       };

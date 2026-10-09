@@ -29,7 +29,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet --no-warn-script-location 'requests'  &&\
-          \  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
+          \  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -43,7 +43,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef submit_request(url: str):\n    import requests\n    import os\n\
+          \ *\n\ndef submit_request(url: str):\n    import os\n\n    import requests\n\
           \n    # If running pipeline in multi-user mode, skip submitting request\
           \ to external address.\n    multi_user = os.getenv('MULTI_USER', 'false')\n\
           \    if multi_user.lower() != 'true':\n        return\n\n    scheme = os.getenv('SCHEME',\
@@ -55,7 +55,7 @@ deploymentSpec:
           \ Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\"\
           )\n    if response.status_code != 200:\n        raise Exception(f\"Failed\
           \ to request {url}: {response.status_code}\")\n\n"
-        image: python:3.11
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-submit-request-2:
       container:
         args:
@@ -69,7 +69,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet --no-warn-script-location 'requests'  &&\
-          \  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
+          \  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -83,7 +83,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef submit_request(url: str):\n    import requests\n    import os\n\
+          \ *\n\ndef submit_request(url: str):\n    import os\n\n    import requests\n\
           \n    # If running pipeline in multi-user mode, skip submitting request\
           \ to external address.\n    multi_user = os.getenv('MULTI_USER', 'false')\n\
           \    if multi_user.lower() != 'true':\n        return\n\n    scheme = os.getenv('SCHEME',\
@@ -95,7 +95,7 @@ deploymentSpec:
           \ Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\"\
           )\n    if response.status_code != 200:\n        raise Exception(f\"Failed\
           \ to request {url}: {response.status_code}\")\n\n"
-        image: python:3.11
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   description: A pipeline that requests both in-cluster & external URLs.
   name: pipeline-with-external-request
@@ -121,8 +121,8 @@ root:
           parameters:
             url:
               runtimeValue:
-                constant: ml-pipeline:8888/apis/v2beta1/healthz
+                constant: ml-pipeline:8888/apis/v2/healthz
         taskInfo:
           name: submit-request-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.4
+sdkVersion: kfp-2.17.0

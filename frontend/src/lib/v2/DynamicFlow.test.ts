@@ -18,8 +18,8 @@ import {
   ArtifactArtifactType,
   PipelineTaskTaskState,
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
@@ -33,7 +33,7 @@ import {
   updateFlowElementsState,
 } from './DynamicFlow';
 
-const rootTask: V2beta1PipelineTask = {
+const rootTask: V2PipelineTask = {
   task_id: 'root-task',
   name: 'root',
   type: PipelineTaskTaskType.ROOT,
@@ -68,7 +68,7 @@ describe('DynamicFlow', () => {
     });
 
     it('updates task and artifact nodes from hydrated task data', () => {
-      const preprocessTask: V2beta1PipelineTask = {
+      const preprocessTask: V2PipelineTask = {
         task_id: 'preprocess-task',
         parent_task_id: rootTask.task_id,
         name: 'preprocess',
@@ -99,7 +99,7 @@ describe('DynamicFlow', () => {
           ],
         },
       };
-      const trainTask: V2beta1PipelineTask = {
+      const trainTask: V2PipelineTask = {
         task_id: 'train-task',
         parent_task_id: rootTask.task_id,
         name: 'train',
@@ -147,7 +147,7 @@ describe('DynamicFlow', () => {
     });
 
     it('does not preserve React Flow hidden flags when applying task state', () => {
-      const preprocessTask: V2beta1PipelineTask = {
+      const preprocessTask: V2PipelineTask = {
         task_id: 'preprocess-task',
         parent_task_id: rootTask.task_id,
         name: 'preprocess',
@@ -178,7 +178,7 @@ describe('DynamicFlow', () => {
         type: NodeTypeNames.EXECUTION,
         position: { x: 1, y: 2 },
       };
-      const task: V2beta1PipelineTask = {
+      const task: V2PipelineTask = {
         task_id: 'task-id',
         parent_task_id: rootTask.task_id,
         name: 'exec',
@@ -198,7 +198,7 @@ describe('DynamicFlow', () => {
         artifact_key: 'output',
         artifacts: [{ artifact_id: 'artifact-id', name: 'output' }],
       };
-      const task: V2beta1PipelineTask = {
+      const task: V2PipelineTask = {
         task_id: 'task-id',
         parent_task_id: rootTask.task_id,
         name: 'exec',
@@ -212,20 +212,20 @@ describe('DynamicFlow', () => {
     });
 
     it('filters loop body tasks by selected iteration', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_count: '2' },
       };
-      const iterationZero: V2beta1PipelineTask = {
+      const iterationZero: V2PipelineTask = {
         task_id: 'body-0',
         parent_task_id: loopTask.task_id,
         name: 'body',
         type_attributes: { iteration_index: '0' },
       };
-      const iterationOne: V2beta1PipelineTask = {
+      const iterationOne: V2PipelineTask = {
         task_id: 'body-1',
         parent_task_id: loopTask.task_id,
         name: 'body',
@@ -248,33 +248,33 @@ describe('DynamicFlow', () => {
     });
 
     it('descends into the named task from the selected loop iteration', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_count: '2' },
       };
-      const iterationZeroDag: V2beta1PipelineTask = {
+      const iterationZeroDag: V2PipelineTask = {
         task_id: 'body-0',
         parent_task_id: loopTask.task_id,
         name: 'body',
         type: PipelineTaskTaskType.DAG,
         type_attributes: { iteration_index: '0' },
       };
-      const iterationOneDag: V2beta1PipelineTask = {
+      const iterationOneDag: V2PipelineTask = {
         task_id: 'body-1',
         parent_task_id: loopTask.task_id,
         name: 'body',
         type: PipelineTaskTaskType.DAG,
         type_attributes: { iteration_index: '1' },
       };
-      const iterationZeroChild: V2beta1PipelineTask = {
+      const iterationZeroChild: V2PipelineTask = {
         task_id: 'child-0',
         parent_task_id: iterationZeroDag.task_id,
         name: 'exec',
       };
-      const iterationOneChild: V2beta1PipelineTask = {
+      const iterationOneChild: V2PipelineTask = {
         task_id: 'child-1',
         parent_task_id: iterationOneDag.task_id,
         name: 'exec',
@@ -303,21 +303,21 @@ describe('DynamicFlow', () => {
     });
 
     it('does not attribute a synthetic ParallelFor iteration group to an arbitrary body task', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_count: '2' },
       };
-      const iterationOneBodyA: V2beta1PipelineTask = {
+      const iterationOneBodyA: V2PipelineTask = {
         task_id: 'body-a-1',
         parent_task_id: loopTask.task_id,
         name: 'body-a',
         type: PipelineTaskTaskType.RUNTIME,
         type_attributes: { iteration_index: '1' },
       };
-      const iterationOneBodyB: V2beta1PipelineTask = {
+      const iterationOneBodyB: V2PipelineTask = {
         task_id: 'body-b-1',
         parent_task_id: loopTask.task_id,
         name: 'body-b',
@@ -343,20 +343,20 @@ describe('DynamicFlow', () => {
 
   describe('getTaskRuntimeLayers', () => {
     it('resolves nested DAG and ParallelFor iteration layers from task ancestry', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
         type: PipelineTaskTaskType.LOOP,
       };
-      const iterationDag: V2beta1PipelineTask = {
+      const iterationDag: V2PipelineTask = {
         task_id: 'body-1',
         parent_task_id: loopTask.task_id,
         name: 'body',
         type: PipelineTaskTaskType.DAG,
         type_attributes: { iteration_index: '1' },
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         parent_task_id: iterationDag.task_id,
         name: 'train',
@@ -369,7 +369,7 @@ describe('DynamicFlow', () => {
     });
 
     it('falls back to scope_path when parent task records are unavailable', () => {
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         scope_path: 'root.outer.inner.train',
@@ -379,20 +379,20 @@ describe('DynamicFlow', () => {
     });
 
     it('restores the ParallelFor iteration layer when scope_path ancestry is unavailable', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         name: 'loop',
         scope_path: 'root.loop',
         type: PipelineTaskTaskType.LOOP,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'body-task',
         scope_path: 'root.loop.body.train',
         type_attributes: { iteration_index: '2' },
       };
-      const bodyTask: V2beta1PipelineTask = {
+      const bodyTask: V2PipelineTask = {
         task_id: 'body-task',
         parent_task_id: 'loop-task',
         name: 'body',
@@ -410,19 +410,19 @@ describe('DynamicFlow', () => {
     });
 
     it('does not manufacture nested ParallelFor indices from one leaf iteration', () => {
-      const outerLoop: V2beta1PipelineTask = {
+      const outerLoop: V2PipelineTask = {
         task_id: 'outer-loop',
         name: 'outer',
         scope_path: 'root.outer',
         type: PipelineTaskTaskType.LOOP,
       };
-      const innerLoop: V2beta1PipelineTask = {
+      const innerLoop: V2PipelineTask = {
         task_id: 'inner-loop',
         name: 'inner',
         scope_path: 'root.outer.inner',
         type: PipelineTaskTaskType.LOOP,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'missing-parent',
@@ -434,13 +434,13 @@ describe('DynamicFlow', () => {
     });
 
     it('does not manufacture a nested loop path when only one loop context is visible', () => {
-      const innerLoop: V2beta1PipelineTask = {
+      const innerLoop: V2PipelineTask = {
         task_id: 'inner-loop',
         name: 'inner',
         scope_path: 'root.outer.inner',
         type: PipelineTaskTaskType.LOOP,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'missing-parent',
@@ -452,19 +452,19 @@ describe('DynamicFlow', () => {
     });
 
     it('does not choose an arbitrary same-name loop when scope ancestry is ambiguous', () => {
-      const loopA: V2beta1PipelineTask = {
+      const loopA: V2PipelineTask = {
         task_id: 'loop-a',
         name: 'loop',
         scope_path: 'root.loop',
         type: PipelineTaskTaskType.LOOP,
       };
-      const loopB: V2beta1PipelineTask = {
+      const loopB: V2PipelineTask = {
         task_id: 'loop-b',
         name: 'loop',
         scope_path: 'root.loop',
         type: PipelineTaskTaskType.LOOP,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'missing-parent',
@@ -476,27 +476,27 @@ describe('DynamicFlow', () => {
     });
 
     it('matches same-name contexts by their exact runtime scope', () => {
-      const wrongBody: V2beta1PipelineTask = {
+      const wrongBody: V2PipelineTask = {
         task_id: 'wrong-body',
         name: 'body',
         scope_path: 'root.other.body',
         type: PipelineTaskTaskType.LOOP,
       };
-      const stage: V2beta1PipelineTask = {
+      const stage: V2PipelineTask = {
         task_id: 'stage',
         parent_task_id: 'missing-root',
         name: 'stage',
         scope_path: 'root.stage',
         type: PipelineTaskTaskType.DAG,
       };
-      const body: V2beta1PipelineTask = {
+      const body: V2PipelineTask = {
         task_id: 'body',
         parent_task_id: 'stage',
         name: 'body',
         scope_path: 'root.stage.body',
         type: PipelineTaskTaskType.LOOP,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'body',
@@ -513,14 +513,14 @@ describe('DynamicFlow', () => {
     });
 
     it('uses parent IDs to disambiguate repeated contexts across loop iterations', () => {
-      const loop: V2beta1PipelineTask = {
+      const loop: V2PipelineTask = {
         task_id: 'loop',
         parent_task_id: 'missing-root',
         name: 'loop',
         scope_path: 'root.loop',
         type: PipelineTaskTaskType.LOOP,
       };
-      const bodyZero: V2beta1PipelineTask = {
+      const bodyZero: V2PipelineTask = {
         task_id: 'body-0',
         parent_task_id: 'loop',
         name: 'body',
@@ -528,7 +528,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.DAG,
         type_attributes: { iteration_index: '0' },
       };
-      const bodyOne: V2beta1PipelineTask = {
+      const bodyOne: V2PipelineTask = {
         task_id: 'body-1',
         parent_task_id: 'loop',
         name: 'body',
@@ -536,7 +536,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.DAG,
         type_attributes: { iteration_index: '1' },
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         parent_task_id: 'body-1',
         name: 'train',
@@ -553,21 +553,21 @@ describe('DynamicFlow', () => {
     });
 
     it('rejects linked runtime ancestry whose scope does not match the static path', () => {
-      const linkedWrongBody: V2beta1PipelineTask = {
+      const linkedWrongBody: V2PipelineTask = {
         task_id: 'wrong-body',
         parent_task_id: 'missing-root',
         name: 'body',
         scope_path: 'root.other.body',
         type: PipelineTaskTaskType.DAG,
       };
-      const unlinkedExactBody: V2beta1PipelineTask = {
+      const unlinkedExactBody: V2PipelineTask = {
         task_id: 'exact-body',
         parent_task_id: 'missing-root',
         name: 'body',
         scope_path: 'root.body',
         type: PipelineTaskTaskType.DAG,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         parent_task_id: 'wrong-body',
         name: 'train',
@@ -581,14 +581,14 @@ describe('DynamicFlow', () => {
     });
 
     it('derives each nested loop iteration from its immediate child context', () => {
-      const outer: V2beta1PipelineTask = {
+      const outer: V2PipelineTask = {
         task_id: 'outer',
         parent_task_id: 'missing-root',
         name: 'outer',
         scope_path: 'root.outer',
         type: PipelineTaskTaskType.LOOP,
       };
-      const inner: V2beta1PipelineTask = {
+      const inner: V2PipelineTask = {
         task_id: 'inner',
         parent_task_id: 'outer',
         name: 'inner',
@@ -596,7 +596,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_index: '1' },
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'inner',
@@ -614,28 +614,28 @@ describe('DynamicFlow', () => {
     });
 
     it('preserves condition contexts while reconstructing a loop path', () => {
-      const branches: V2beta1PipelineTask = {
+      const branches: V2PipelineTask = {
         task_id: 'branches',
         parent_task_id: 'missing-root',
         name: 'condition-branches-1',
         scope_path: 'root.condition-branches-1',
         type: PipelineTaskTaskType.CONDITION_BRANCH,
       };
-      const condition: V2beta1PipelineTask = {
+      const condition: V2PipelineTask = {
         task_id: 'condition',
         parent_task_id: 'branches',
         name: 'condition-1',
         scope_path: 'root.condition-branches-1.condition-1',
         type: PipelineTaskTaskType.CONDITION,
       };
-      const loop: V2beta1PipelineTask = {
+      const loop: V2PipelineTask = {
         task_id: 'loop',
         parent_task_id: 'condition',
         name: 'loop',
         scope_path: 'root.condition-branches-1.condition-1.loop',
         type: PipelineTaskTaskType.LOOP,
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         name: 'train',
         parent_task_id: 'loop',
@@ -653,14 +653,14 @@ describe('DynamicFlow', () => {
     });
 
     it('does not combine exact-scope contexts from different runtime ancestry chains', () => {
-      const outer: V2beta1PipelineTask = {
+      const outer: V2PipelineTask = {
         task_id: 'outer-attempt-1',
         parent_task_id: 'missing-root',
         name: 'outer',
         scope_path: 'root.outer',
         type: PipelineTaskTaskType.LOOP,
       };
-      const inner: V2beta1PipelineTask = {
+      const inner: V2PipelineTask = {
         task_id: 'inner-attempt-2',
         parent_task_id: 'outer-attempt-2',
         name: 'inner',
@@ -668,7 +668,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_index: '1' },
       };
-      const nestedTask: V2beta1PipelineTask = {
+      const nestedTask: V2PipelineTask = {
         task_id: 'nested-task',
         parent_task_id: 'inner-attempt-2',
         name: 'train',
@@ -682,7 +682,7 @@ describe('DynamicFlow', () => {
 
   describe('convertSubDagToRuntimeFlowElements', () => {
     it('builds one synthetic sub-DAG node per loop iteration', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
@@ -714,7 +714,7 @@ describe('DynamicFlow', () => {
     });
 
     it('replaces a pre-task loop body with iteration nodes when tasks arrive', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
@@ -758,7 +758,7 @@ describe('DynamicFlow', () => {
     });
 
     it('keeps an iteration running until every declarative body task exists', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
@@ -766,7 +766,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_count: '1' },
       };
-      const bodyA: V2beta1PipelineTask = {
+      const bodyA: V2PipelineTask = {
         task_id: 'body-a-0',
         parent_task_id: loopTask.task_id,
         name: 'body-a',
@@ -774,7 +774,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.RUNTIME,
         type_attributes: { iteration_index: '0' },
       };
-      const bodyB: V2beta1PipelineTask = {
+      const bodyB: V2PipelineTask = {
         task_id: 'body-b-0',
         parent_task_id: loopTask.task_id,
         name: 'body-b',
@@ -977,7 +977,7 @@ describe('DynamicFlow', () => {
     });
 
     it('does not leave ordinary task nodes running after the enclosing run terminates', () => {
-      const runningTask: V2beta1PipelineTask = {
+      const runningTask: V2PipelineTask = {
         task_id: 'preprocess-task',
         parent_task_id: rootTask.task_id,
         name: 'preprocess',
@@ -1003,13 +1003,13 @@ describe('DynamicFlow', () => {
     });
 
     it('does not show stale failed task or sub-DAG nodes after a successful run', () => {
-      const failedExecution: V2beta1PipelineTask = {
+      const failedExecution: V2PipelineTask = {
         task_id: 'execution-task',
         parent_task_id: rootTask.task_id,
         name: 'execution',
         state: PipelineTaskTaskState.FAILED,
       };
-      const failedSubDag: V2beta1PipelineTask = {
+      const failedSubDag: V2PipelineTask = {
         task_id: 'sub-dag-task',
         parent_task_id: rootTask.task_id,
         name: 'sub-dag',
@@ -1045,19 +1045,19 @@ describe('DynamicFlow', () => {
     });
 
     it('does not show stale failed or running children below a successful nested DAG', () => {
-      const successfulDag: V2beta1PipelineTask = {
+      const successfulDag: V2PipelineTask = {
         task_id: 'successful-dag',
         parent_task_id: rootTask.task_id,
         name: 'successful-dag',
         state: PipelineTaskTaskState.SUCCEEDED,
       };
-      const staleFailedChild: V2beta1PipelineTask = {
+      const staleFailedChild: V2PipelineTask = {
         task_id: 'stale-failed-child',
         parent_task_id: successfulDag.task_id,
         name: 'child',
         state: PipelineTaskTaskState.FAILED,
       };
-      const staleRunningChild: V2beta1PipelineTask = {
+      const staleRunningChild: V2PipelineTask = {
         task_id: 'stale-running-child',
         parent_task_id: successfulDag.task_id,
         name: 'running-child',
@@ -1093,7 +1093,7 @@ describe('DynamicFlow', () => {
     });
 
     it('keeps the static loop body when iteration_count is not yet available', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',
@@ -1135,7 +1135,7 @@ describe('DynamicFlow', () => {
     });
 
     it('does not rerun graph layout when the ParallelFor structure is unchanged', () => {
-      const loopTask: V2beta1PipelineTask = {
+      const loopTask: V2PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
         name: 'loop',

@@ -44,7 +44,7 @@ describe('mock backend routes', () => {
     });
 
     it('serves v2 healthz status', async () => {
-      const response = await request.get('/apis/v2beta1/healthz').expect(200);
+      const response = await request.get('/apis/v2/healthz').expect(200);
 
       expect(response.body).toMatchObject({
         apiServerReady: true,
@@ -54,16 +54,14 @@ describe('mock backend routes', () => {
       expect(response.body.frontendCommitHash).toBeDefined();
     });
 
-    it('returns 404 for unknown v2beta1 endpoints', async () => {
-      await request.get('/apis/v2beta1/does-not-exist').expect(404, 'Bad request endpoint.');
+    it('returns 404 for unknown v2 endpoints', async () => {
+      await request.get('/apis/v2/does-not-exist').expect(404, 'Bad request endpoint.');
     });
   });
 
   describe('v2 fixture routes', () => {
     it('lists pipelines with v2 field names, pagination, and total size', async () => {
-      const response = await request
-        .get('/apis/v2beta1/pipelines?page_token=0&page_size=3')
-        .expect(200);
+      const response = await request.get('/apis/v2/pipelines?page_token=0&page_size=3').expect(200);
 
       expect(response.body.next_page_token).toBe('3');
       expect(response.body.total_size).toBeGreaterThan(3);
@@ -78,9 +76,7 @@ describe('mock backend routes', () => {
       const filter = JSON.stringify({
         predicates: [{ key: 'name', operation: 'IS_SUBSTRING', string_value: 'XGBoost' }],
       });
-      const response = await request
-        .get(`/apis/v2beta1/pipelines${buildQuery({ filter })}`)
-        .expect(200);
+      const response = await request.get(`/apis/v2/pipelines${buildQuery({ filter })}`).expect(200);
 
       expect(response.body.pipelines).toHaveLength(1);
       expect(response.body.pipelines[0]).toMatchObject({
@@ -91,7 +87,7 @@ describe('mock backend routes', () => {
 
     it('fetches v2 pipeline versions for a pipeline', async () => {
       const response = await request
-        .get('/apis/v2beta1/pipelines/8fbe3bd6-a01f-11e8-98d0-529269fb1460/versions?page_size=1')
+        .get('/apis/v2/pipelines/8fbe3bd6-a01f-11e8-98d0-529269fb1460/versions?page_size=1')
         .expect(200);
 
       expect(response.body.next_page_token).toBe('1');
@@ -105,7 +101,7 @@ describe('mock backend routes', () => {
     it('fetches a v2 pipeline version by id', async () => {
       const response = await request
         .get(
-          '/apis/v2beta1/pipelines/8fbe3bd6-a01f-11e8-98d0-529269fb1460/versions/9fbe3bd6-a01f-11e8-98d0-529269fb1460',
+          '/apis/v2/pipelines/8fbe3bd6-a01f-11e8-98d0-529269fb1460/versions/9fbe3bd6-a01f-11e8-98d0-529269fb1460',
         )
         .expect(200);
 
@@ -121,7 +117,7 @@ describe('mock backend routes', () => {
         predicates: [{ key: 'storage_state', operation: 'NOT_EQUALS', string_value: 'ARCHIVED' }],
       });
       const response = await request
-        .get(`/apis/v2beta1/experiments${buildQuery({ filter, page_size: 2 })}`)
+        .get(`/apis/v2/experiments${buildQuery({ filter, page_size: 2 })}`)
         .expect(200);
 
       expect(response.body.next_page_token).toBe('2');
@@ -136,7 +132,7 @@ describe('mock backend routes', () => {
     it('lists v2 runs filtered by experiment id', async () => {
       const response = await request
         .get(
-          `/apis/v2beta1/runs${buildQuery({
+          `/apis/v2/runs${buildQuery({
             experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
             page_size: 3,
           })}`,
@@ -154,7 +150,7 @@ describe('mock backend routes', () => {
 
     it('fetches a v2 run by id', async () => {
       const response = await request
-        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b')
+        .get('/apis/v2/runs/e0115ac1-0479-4194-a22d-01e65e09a32b')
         .expect(200);
 
       expect(response.body).toMatchObject({
@@ -167,7 +163,7 @@ describe('mock backend routes', () => {
 
     it('serves representative native tasks for the v2 run details graph', async () => {
       const response = await request
-        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
+        .get('/apis/v2/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
         .expect(200);
 
       expect(response.body.tasks).toHaveLength(3);
@@ -193,7 +189,7 @@ describe('mock backend routes', () => {
     });
 
     it('lists and fetches a native artifact by id', async () => {
-      const listResponse = await request.get('/apis/v2beta1/artifacts').expect(200);
+      const listResponse = await request.get('/apis/v2/artifacts').expect(200);
 
       expect(listResponse.body).toMatchObject({
         total_size: 1,
@@ -207,9 +203,7 @@ describe('mock backend routes', () => {
         ],
       });
 
-      const artifactResponse = await request
-        .get('/apis/v2beta1/artifacts/mock-artifact-1')
-        .expect(200);
+      const artifactResponse = await request.get('/apis/v2/artifacts/mock-artifact-1').expect(200);
 
       expect(artifactResponse.body).toMatchObject({
         artifact_id: 'mock-artifact-1',
@@ -223,12 +217,12 @@ describe('mock backend routes', () => {
 
     it('returns 404 for an unknown native artifact', async () => {
       await request
-        .get('/apis/v2beta1/artifacts/does-not-exist')
+        .get('/apis/v2/artifacts/does-not-exist')
         .expect(404, 'No artifact was found with ID: does-not-exist');
     });
 
     it('serves representative native artifact-task relationships', async () => {
-      const response = await request.get('/apis/v2beta1/artifact_tasks').expect(200);
+      const response = await request.get('/apis/v2/artifact_tasks').expect(200);
 
       expect(response.body.artifact_tasks).toEqual([
         expect.objectContaining({
@@ -247,7 +241,7 @@ describe('mock backend routes', () => {
     it('lists v2 recurring runs filtered by experiment id', async () => {
       const response = await request
         .get(
-          `/apis/v2beta1/recurringruns${buildQuery({
+          `/apis/v2/recurringruns${buildQuery({
             experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
             page_size: 2,
           })}`,

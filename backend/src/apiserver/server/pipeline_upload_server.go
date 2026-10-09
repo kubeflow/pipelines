@@ -191,7 +191,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		pipelineVersionCount.Inc()
 	}
 
-	messageToMarshal := toApiPipeline(newPipeline)
+	messageToMarshal := toAPIPipeline(newPipeline)
 
 	// Marshal the message to bytes
 	marshaler := &protojson.MarshalOptions{
@@ -325,7 +325,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	messageToMarshal := toApiPipelineVersion(newPipelineVersion)
+	messageToMarshal := toAPIPipelineVersion(newPipelineVersion)
 	// Marshal the message to bytes
 	marshaler := &protojson.MarshalOptions{
 		UseProtoNames: true,

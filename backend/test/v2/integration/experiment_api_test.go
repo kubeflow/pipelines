@@ -19,13 +19,13 @@ import (
 	"testing"
 	"time"
 
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
-	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -158,7 +158,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	expectedTrainingExperiment.ExperimentID = trainingExperiment.ExperimentID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
-	expectedTrainingExperiment.StorageState = (*experiment_model.V2beta1ExperimentStorageState)(util.StringPointer("STORAGESTATE_AVAILABLE"))
+	expectedTrainingExperiment.StorageState = (*experiment_model.V2ExperimentStorageState)(util.StringPointer("STORAGESTATE_AVAILABLE"))
 	expectedTrainingExperiment.Namespace = trainingExperiment.Namespace
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
@@ -308,11 +308,11 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.PipelineID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: experiment.ExperimentID,
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
@@ -322,16 +322,16 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	run2, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2RecurringRun{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: experiment.ExperimentID,
-		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &recurring_run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Status:         recurring_run_model.V2beta1RecurringRunStatusENABLED.Pointer(),
+		Status:         recurring_run_model.V2RecurringRunStatusENABLED.Pointer(),
 	}}
 	recurringRun1, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
@@ -344,19 +344,19 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs ------- */
 	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment_model.V2beta1ExperimentStorageStateARCHIVED, experiment.StorageState)
+	assert.Equal(t, experiment_model.V2ExperimentStorageStateARCHIVED, experiment.StorageState)
 	retrievedRun1, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run1.RunID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun1.StorageState)
+	assert.Equal(t, run_model.V2RunStorageStateARCHIVED, retrievedRun1.StorageState)
 	retrievedRun2, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run2.RunID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun2.StorageState)
+	assert.Equal(t, run_model.V2RunStorageStateARCHIVED, retrievedRun2.StorageState)
 	retrievedRecurringRun1, err := s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun1.RecurringRunID})
 	assert.Nil(t, err)
-	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun1.Status)
+	assert.Equal(t, recurring_run_model.V2RecurringRunStatusDISABLED, retrievedRecurringRun1.Status)
 	retrievedRecurringRun2, err := s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun2.RecurringRunID})
 	assert.Nil(t, err)
-	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun2.Status)
+	assert.Equal(t, recurring_run_model.V2RecurringRunStatusDISABLED, retrievedRecurringRun2.Status)
 
 	/* ---------- Unarchive an experiment -----------------*/
 	err = s.experimentClient.Unarchive(&params.ExperimentServiceUnarchiveExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
@@ -364,19 +364,19 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs and jobs --------- */
 	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment_model.V2beta1ExperimentStorageStateAVAILABLE, experiment.StorageState)
+	assert.Equal(t, experiment_model.V2ExperimentStorageStateAVAILABLE, experiment.StorageState)
 	retrievedRun1, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run1.RunID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun1.StorageState)
+	assert.Equal(t, run_model.V2RunStorageStateARCHIVED, retrievedRun1.StorageState)
 	retrievedRun2, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run2.RunID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun2.StorageState)
+	assert.Equal(t, run_model.V2RunStorageStateARCHIVED, retrievedRun2.StorageState)
 	retrievedRecurringRun1, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun1.RecurringRunID})
 	assert.Nil(t, err)
-	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun1.Status)
+	assert.Equal(t, recurring_run_model.V2RecurringRunStatusDISABLED, retrievedRecurringRun1.Status)
 	retrievedRecurringRun2, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun2.RecurringRunID})
 	assert.Nil(t, err)
-	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun2.Status)
+	assert.Equal(t, recurring_run_model.V2RecurringRunStatusDISABLED, retrievedRecurringRun2.Status)
 }
 
 func V2TestExperimentAPI(t *testing.T) {

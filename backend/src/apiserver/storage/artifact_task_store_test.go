@@ -18,7 +18,7 @@ import (
 	"database/sql"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -80,7 +80,7 @@ func TestCreateArtifactTask_Success(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "t1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -97,14 +97,14 @@ func TestCreateArtifactTask_Success(t *testing.T) {
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input-key",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, linkUUID1, link.UUID)
 	assert.Equal(t, art.UUID, link.ArtifactID)
 	assert.Equal(t, task.UUID, link.TaskID)
-	assert.Equal(t, model.IOType(apiv2beta1.IOType_COMPONENT_INPUT), link.Type)
+	assert.Equal(t, model.IOType(apiv2.IOType_COMPONENT_INPUT), link.Type)
 
 	// Fetch back
 	got, err := linkStore.GetArtifactTask(link.UUID)
@@ -134,7 +134,7 @@ func TestCreateArtifactTask_AllowsSameArtifactReuseAcrossDifferentKeys(t *testin
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "consumer",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-shared",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -150,7 +150,7 @@ func TestCreateArtifactTask_AllowsSameArtifactReuseAcrossDifferentKeys(t *testin
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input-a",
 	})
 	assert.NoError(t, err)
@@ -160,7 +160,7 @@ func TestCreateArtifactTask_AllowsSameArtifactReuseAcrossDifferentKeys(t *testin
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input-b",
 	})
 	assert.NoError(t, err)
@@ -195,7 +195,7 @@ func TestCreateArtifactTask_AllowsSameArtifactReuseAcrossDifferentProducerIterat
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "consumer",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-loop-shared",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -207,28 +207,28 @@ func TestCreateArtifactTask_AllowsSameArtifactReuseAcrossDifferentProducerIterat
 	assert.NoError(t, err)
 
 	iteration0 := int64(0)
-	producer0, err := model.ProtoMessageToJSONData(&apiv2beta1.IOProducer{TaskName: "loop-body", Iteration: &iteration0})
+	producer0, err := model.ProtoMessageToJSONData(&apiv2.IOProducer{TaskName: "loop-body", Iteration: &iteration0})
 	assert.NoError(t, err)
 	linkStore.uuid = util.NewFakeUUIDGeneratorOrFatal(linkUUID1, nil)
 	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_ITERATOR_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_ITERATOR_OUTPUT),
 		Producer:    producer0,
 		ArtifactKey: "model",
 	})
 	assert.NoError(t, err)
 
 	iteration1 := int64(1)
-	producer1, err := model.ProtoMessageToJSONData(&apiv2beta1.IOProducer{TaskName: "loop-body", Iteration: &iteration1})
+	producer1, err := model.ProtoMessageToJSONData(&apiv2.IOProducer{TaskName: "loop-body", Iteration: &iteration1})
 	assert.NoError(t, err)
 	linkStore.uuid = util.NewFakeUUIDGeneratorOrFatal(linkUUID2, nil)
 	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_ITERATOR_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_ITERATOR_OUTPUT),
 		Producer:    producer1,
 		ArtifactKey: "model",
 	})
@@ -265,7 +265,7 @@ func TestDeleteOutputArtifactTasksByTaskIDs_RemovesOnlyOutputLinks(t *testing.T)
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "consumer",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-output-delete",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -281,7 +281,7 @@ func TestDeleteOutputArtifactTasksByTaskIDs_RemovesOnlyOutputLinks(t *testing.T)
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "output-a",
 	})
 	assert.NoError(t, err)
@@ -291,7 +291,7 @@ func TestDeleteOutputArtifactTasksByTaskIDs_RemovesOnlyOutputLinks(t *testing.T)
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input-a",
 	})
 	assert.NoError(t, err)
@@ -308,7 +308,7 @@ func TestDeleteOutputArtifactTasksByTaskIDs_RemovesOnlyOutputLinks(t *testing.T)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, total)
 	assert.Len(t, rows, 1)
-	assert.Equal(t, model.IOType(apiv2beta1.IOType_COMPONENT_INPUT), rows[0].Type)
+	assert.Equal(t, model.IOType(apiv2.IOType_COMPONENT_INPUT), rows[0].Type)
 	assert.Equal(t, "input-a", rows[0].ArtifactKey)
 }
 
@@ -331,7 +331,7 @@ func TestDeleteInputArtifactTasksByTaskIDs_RemovesOnlyInputLinks(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "consumer",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-input-delete",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -347,7 +347,7 @@ func TestDeleteInputArtifactTasksByTaskIDs_RemovesOnlyInputLinks(t *testing.T) {
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "output-a",
 	})
 	assert.NoError(t, err)
@@ -357,7 +357,7 @@ func TestDeleteInputArtifactTasksByTaskIDs_RemovesOnlyInputLinks(t *testing.T) {
 		ArtifactID:  art.UUID,
 		TaskID:      task.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input-a",
 	})
 	assert.NoError(t, err)
@@ -374,7 +374,7 @@ func TestDeleteInputArtifactTasksByTaskIDs_RemovesOnlyInputLinks(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, total)
 	assert.Len(t, rows, 1)
-	assert.Equal(t, model.IOType(apiv2beta1.IOType_OUTPUT), rows[0].Type)
+	assert.Equal(t, model.IOType(apiv2.IOType_OUTPUT), rows[0].Type)
 	assert.Equal(t, "output-a", rows[0].ArtifactKey)
 }
 
@@ -408,7 +408,7 @@ func TestListArtifactTasks_Filters(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "t1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -423,7 +423,7 @@ func TestListArtifactTasks_Filters(t *testing.T) {
 		Namespace:        "ns2",
 		RunUUID:          runID2,
 		Name:             "t2",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p2", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-2",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -440,7 +440,7 @@ func TestListArtifactTasks_Filters(t *testing.T) {
 		ArtifactID:  art1.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input1",
 	})
 	assert.NoError(t, err)
@@ -449,7 +449,7 @@ func TestListArtifactTasks_Filters(t *testing.T) {
 		ArtifactID:  art2.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "output1",
 	})
 	assert.NoError(t, err)
@@ -459,7 +459,7 @@ func TestListArtifactTasks_Filters(t *testing.T) {
 		ArtifactID:  art2.UUID,
 		TaskID:      t2.UUID,
 		RunUUID:     runID2,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input2",
 	})
 	assert.NoError(t, err)
@@ -492,7 +492,7 @@ func TestListArtifactTasks_Filters(t *testing.T) {
 	assert.Equal(t, 1, totalRun)
 	assert.Equal(t, art2.UUID, byRun[0].ArtifactID)
 	assert.Equal(t, t2.UUID, byRun[0].TaskID)
-	assert.Equal(t, model.IOType(apiv2beta1.IOType_COMPONENT_INPUT), byRun[0].Type)
+	assert.Equal(t, model.IOType(apiv2.IOType_COMPONENT_INPUT), byRun[0].Type)
 }
 
 func TestListArtifactsForTask_UsingArtifactTasks(t *testing.T) {
@@ -524,7 +524,7 @@ func TestListArtifactsForTask_UsingArtifactTasks(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "t1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -541,7 +541,7 @@ func TestListArtifactsForTask_UsingArtifactTasks(t *testing.T) {
 		ArtifactID:  art1.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input1",
 	})
 	assert.NoError(t, err)
@@ -550,7 +550,7 @@ func TestListArtifactsForTask_UsingArtifactTasks(t *testing.T) {
 		ArtifactID:  art2.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "output1",
 	})
 	assert.NoError(t, err)
@@ -599,7 +599,7 @@ func TestListArtifactTasks_Pagination_PageSizeAndNextPageToken(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "t1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -615,7 +615,7 @@ func TestListArtifactTasks_Pagination_PageSizeAndNextPageToken(t *testing.T) {
 		ArtifactID:  art1.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input1",
 	})
 
@@ -624,7 +624,7 @@ func TestListArtifactTasks_Pagination_PageSizeAndNextPageToken(t *testing.T) {
 		ArtifactID:  art1.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "output1",
 	})
 
@@ -633,7 +633,7 @@ func TestListArtifactTasks_Pagination_PageSizeAndNextPageToken(t *testing.T) {
 		ArtifactID:  art2.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input2",
 	})
 
@@ -687,7 +687,7 @@ func TestListArtifactTasks_Pagination_WithFilter(t *testing.T) {
 		Namespace:        "ns1",
 		RunUUID:          runID1,
 		Name:             "t1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-1",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -702,7 +702,7 @@ func TestListArtifactTasks_Pagination_WithFilter(t *testing.T) {
 		Namespace:        "ns2",
 		RunUUID:          runID2,
 		Name:             "t2",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-2",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
@@ -718,7 +718,7 @@ func TestListArtifactTasks_Pagination_WithFilter(t *testing.T) {
 		ArtifactID:  art1.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input1",
 	})
 
@@ -727,7 +727,7 @@ func TestListArtifactTasks_Pagination_WithFilter(t *testing.T) {
 		ArtifactID:  art2.UUID,
 		TaskID:      t1.UUID,
 		RunUUID:     runID1,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "output1",
 	})
 
@@ -736,7 +736,7 @@ func TestListArtifactTasks_Pagination_WithFilter(t *testing.T) {
 		ArtifactID:  art2.UUID,
 		TaskID:      t2.UUID,
 		RunUUID:     runID2,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		ArtifactKey: "input2",
 	})
 

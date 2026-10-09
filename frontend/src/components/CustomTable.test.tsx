@@ -19,7 +19,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { vi } from 'vitest';
 import CustomTable, { Column, ExpandState, Row } from './CustomTable';
 import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../TestUtils';
-import { V2beta1PredicateOperation } from '../apisv2beta1/filter';
+import { V2PredicateOperation } from '../apisv2/filter';
 import { logger } from 'src/lib/Utils';
 
 type CustomTableProps = React.ComponentProps<typeof CustomTable>;
@@ -702,7 +702,7 @@ describe('CustomTable', () => {
         predicates: [
           {
             key: 'name',
-            operation: V2beta1PredicateOperation.IS_SUBSTRING,
+            operation: V2PredicateOperation.IS_SUBSTRING,
             string_value: 'test filter',
           },
         ],
@@ -739,7 +739,7 @@ describe('CustomTable', () => {
         predicates: [
           {
             key: 'name',
-            operation: V2beta1PredicateOperation.IS_SUBSTRING,
+            operation: V2PredicateOperation.IS_SUBSTRING,
             string_value: 'test filter',
           },
         ],

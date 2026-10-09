@@ -14,7 +14,7 @@
 
 import { ReactElement } from 'react';
 import { Link } from 'react-router';
-import { InputOutputsIOArtifact } from 'src/apisv2beta1/run';
+import { InputOutputsIOArtifact } from 'src/apisv2/run';
 import ArtifactPreview, {
   ArtifactPreviewProps,
   ArtifactPreviewValue,

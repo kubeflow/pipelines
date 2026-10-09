@@ -65,7 +65,7 @@ func (cm *ClientManager) init(opts *Options) error {
 	}
 	cm.k8sClient = k8sClient
 
-	// Initialize connection to new KFP v2beta1 API server
+	// Initialize connection to new KFP v2 API server
 	apiCfg := apiclient.FromEnvWithEndpointOverride(opts.MLPipelineServerAddress, opts.MLPipelineServerPort)
 	kfpAPIClient, apiErr := apiclient.New(apiCfg, tlsCfg)
 	if apiErr != nil {

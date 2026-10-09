@@ -18,16 +18,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {
-  let testV2Pipeline: V2beta1Pipeline = {};
-  let testV2PipelineVersion: V2beta1PipelineVersion = {};
-  let newTestV2PipelineVersion: V2beta1PipelineVersion = {};
-  let thirdPipelineVersion: V2beta1PipelineVersion = {};
+  let testV2Pipeline: V2Pipeline = {};
+  let testV2PipelineVersion: V2PipelineVersion = {};
+  let newTestV2PipelineVersion: V2PipelineVersion = {};
+  let thirdPipelineVersion: V2PipelineVersion = {};
 
   testV2Pipeline = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),

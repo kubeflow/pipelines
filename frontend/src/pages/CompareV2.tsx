@@ -27,7 +27,7 @@ import {
 } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Navigate } from 'react-router';
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2PipelineTask, V2Run } from 'src/apisv2/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
@@ -84,10 +84,10 @@ const ACTIVE_COMPARISON_STALE_TIME = ACTIVE_COMPARISON_REFRESH_INTERVAL;
 const TERMINAL_COMPARISON_STALE_TIME = 60_000;
 
 interface RunComparisonData {
-  run: V2beta1Run;
+  run: V2Run;
   runError?: Error;
   taskError?: Error;
-  tasks: V2beta1PipelineTask[];
+  tasks: V2PipelineTask[];
   terminalTaskReconciliationPending?: boolean;
 }
 
@@ -123,7 +123,7 @@ async function loadRunComparisonData(
     Apis.runServiceApiV2.getRun(runId),
     listAllRunTasks(runId),
   ]);
-  let run: V2beta1Run;
+  let run: V2Run;
   let runError: Error | undefined;
   if (runResult.status === 'rejected') {
     const cachedRun = previousData?.run;
@@ -532,7 +532,7 @@ function NativeArtifactComparison({
   );
 }
 
-function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {
+function collectOutputArtifacts(tasks: V2PipelineTask[]): RunArtifactEntry[] {
   const tasksById = new Map(
     tasks.filter((task) => task.task_id).map((task) => [task.task_id, task]),
   );
@@ -570,7 +570,7 @@ function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[
   );
 }
 
-function getTaskComparisonLabel(task: V2beta1PipelineTask): string {
+function getTaskComparisonLabel(task: V2PipelineTask): string {
   const scope = task.scope_path?.replace(/^root\.?/, '');
   const baseLabel = scope || getTaskDisplayName(task);
   return task.type_attributes?.iteration_index === undefined

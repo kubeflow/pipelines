@@ -25,7 +25,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
@@ -71,7 +71,7 @@ const (
 )
 
 // Converts API experiment to its internal representation.
-func toModelExperiment(apiExperiment *apiv2beta1.Experiment) (*model.Experiment, error) {
+func toModelExperiment(apiExperiment *apiv2.Experiment) (*model.Experiment, error) {
 	name := apiExperiment.GetDisplayName()
 	namespace := apiExperiment.GetNamespace()
 	description := apiExperiment.GetDescription()
@@ -95,22 +95,22 @@ func toModelExperiment(apiExperiment *apiv2beta1.Experiment) (*model.Experiment,
 }
 
 // Converts internal experiment representation to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note: returns nil if a parsing error occurs.
-func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
+func toAPIExperiment(experiment *model.Experiment) *apiv2.Experiment {
 	if experiment == nil {
-		return &apiv2beta1.Experiment{}
+		return &apiv2.Experiment{}
 	}
-	var storageState apiv2beta1.Experiment_StorageState
+	var storageState apiv2.Experiment_StorageState
 	switch experiment.StorageState {
 	case "AVAILABLE", "STORAGESTATE_AVAILABLE":
-		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["AVAILABLE"])
+		storageState = apiv2.Experiment_StorageState(apiv2.Experiment_StorageState_value["AVAILABLE"])
 	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
-		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"])
+		storageState = apiv2.Experiment_StorageState(apiv2.Experiment_StorageState_value["ARCHIVED"])
 	default:
-		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
+		storageState = apiv2.Experiment_StorageState(apiv2.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
 	}
-	return &apiv2beta1.Experiment{
+	return &apiv2.Experiment{
 		ExperimentId:     experiment.UUID,
 		DisplayName:      experiment.Name,
 		Description:      experiment.Description,
@@ -122,17 +122,17 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 }
 
 // Converts an array of internal experiment representations to an array of API experiments.
-// Supports v2beta1 API.
-func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment {
-	apiExperiments := make([]*apiv2beta1.Experiment, 0)
+// Supports v2 API.
+func toAPIExperiments(experiments []*model.Experiment) []*apiv2.Experiment {
+	apiExperiments := make([]*apiv2.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, toApiExperiment(experiment))
+		apiExperiments = append(apiExperiments, toAPIExperiment(experiment))
 	}
 	return apiExperiments
 }
 
 // Converts API pipeline to its internal representation.
-func toModelPipeline(apiPipeline *apiv2beta1.Pipeline) (*model.Pipeline, error) {
+func toModelPipeline(apiPipeline *apiv2.Pipeline) (*model.Pipeline, error) {
 	namespace := apiPipeline.GetNamespace()
 	name := apiPipeline.GetName()
 	displayName := apiPipeline.GetDisplayName()
@@ -171,12 +171,12 @@ func toModelPipeline(apiPipeline *apiv2beta1.Pipeline) (*model.Pipeline, error) 
 }
 
 // Converts internal pipeline representation to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Input pipeline must have UUID, Name, Namespace, and CreateAt set to non-default values.
 // Note: stores details inside the message if a parsing error occurs.
-func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
+func toAPIPipeline(pipeline *model.Pipeline) *apiv2.Pipeline {
 	if pipeline == nil {
-		return &apiv2beta1.Pipeline{
+		return &apiv2.Pipeline{
 			PipelineId: "",
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -188,7 +188,7 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 	}
 
 	if pipeline.UUID == "" {
-		return &apiv2beta1.Pipeline{
+		return &apiv2.Pipeline{
 			PipelineId: "",
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -200,7 +200,7 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 	}
 
 	if pipeline.CreatedAtInSec == 0 {
-		return &apiv2beta1.Pipeline{
+		return &apiv2.Pipeline{
 			PipelineId: pipeline.UUID,
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -212,7 +212,7 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 	}
 
 	if pipeline.Name == "" {
-		return &apiv2beta1.Pipeline{
+		return &apiv2.Pipeline{
 			PipelineId: pipeline.UUID,
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -223,7 +223,7 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 		}
 	}
 
-	return &apiv2beta1.Pipeline{
+	return &apiv2.Pipeline{
 		PipelineId:  pipeline.UUID,
 		Name:        pipeline.Name,
 		DisplayName: pipeline.DisplayName,
@@ -236,19 +236,19 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 
 // Converts arrays of internal pipeline representations and pipeline version representations
 // to an array of API pipelines.
-// Supports v2beta1 API.
-func toApiPipelines(pipelines []*model.Pipeline) []*apiv2beta1.Pipeline {
-	apiPipelines := make([]*apiv2beta1.Pipeline, 0)
+// Supports v2 API.
+func toAPIPipelines(pipelines []*model.Pipeline) []*apiv2.Pipeline {
+	apiPipelines := make([]*apiv2.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, toApiPipeline(pipeline))
+		apiPipelines = append(apiPipelines, toAPIPipeline(pipeline))
 	}
 	return apiPipelines
 }
 
 // Converts API pipeline to its internal representation.
-func toModelPipelineVersion(p *apiv2beta1.PipelineVersion) (*model.PipelineVersion, error) {
+func toModelPipelineVersion(p *apiv2.PipelineVersion) (*model.PipelineVersion, error) {
 	if p.GetPackageUrl() == nil || len(p.GetPackageUrl().GetPipelineUrl()) == 0 {
-		return nil, util.NewInvalidInputError("Failed to convert v2beta1 API pipeline version to its internal representation due to missing pipeline URL")
+		return nil, util.NewInvalidInputError("Failed to convert v2 API pipeline version to its internal representation due to missing pipeline URL")
 	}
 	name := p.GetName()
 	displayName := p.GetDisplayName()
@@ -266,7 +266,7 @@ func toModelPipelineVersion(p *apiv2beta1.PipelineVersion) (*model.PipelineVersi
 	if displayName == "" {
 		displayName = name
 	}
-	// Extract tags if present (v2beta1 only)
+	// Extract tags if present (v2 only)
 	tags := p.GetTags()
 
 	pv := &model.PipelineVersion{
@@ -289,11 +289,11 @@ func toModelPipelineVersion(p *apiv2beta1.PipelineVersion) (*model.PipelineVersi
 }
 
 // Converts internal pipeline version representation to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note: stores details inside the message if a parsing error occurs.
-func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion {
+func toAPIPipelineVersion(pv *model.PipelineVersion) *apiv2.PipelineVersion {
 	if pv == nil {
-		return &apiv2beta1.PipelineVersion{
+		return &apiv2.PipelineVersion{
 			PipelineVersionId: "",
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -305,7 +305,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 	}
 	// Validate pipeline version id
 	if pv.UUID == "" {
-		return &apiv2beta1.PipelineVersion{
+		return &apiv2.PipelineVersion{
 			PipelineVersionId: "",
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -317,7 +317,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 	}
 	// Validate creation time
 	if pv.CreatedAtInSec == 0 {
-		return &apiv2beta1.PipelineVersion{
+		return &apiv2.PipelineVersion{
 			PipelineVersionId: pv.UUID,
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -328,7 +328,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 		}
 	}
 
-	apiPipelineVersion := &apiv2beta1.PipelineVersion{
+	apiPipelineVersion := &apiv2.PipelineVersion{
 		PipelineId:        pv.PipelineId,
 		PipelineVersionId: pv.UUID,
 		Name:              pv.Name,
@@ -345,7 +345,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 
 	// Set package url from pipeline spec URI
 	if pv.PipelineSpecURI != "" {
-		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
+		apiPipelineVersion.PackageUrl = &apiv2.Url{
 			PipelineUrl: string(pv.PipelineSpecURI),
 		}
 	}
@@ -353,7 +353,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 	// Convert pipeline spec
 	spec, err := YamlStringToPipelineSpecStruct(string(pv.PipelineSpec))
 	if err != nil {
-		return &apiv2beta1.PipelineVersion{
+		return &apiv2.PipelineVersion{
 			PipelineVersionId: pv.UUID,
 			Error: util.ToRpcStatus(
 				util.NewInternalServerError(
@@ -370,11 +370,11 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 }
 
 // Converts an array of internal pipeline version representations to an array of API pipeline versions.
-// Supports v2beta1 API.
-func toApiPipelineVersions(pv []*model.PipelineVersion) []*apiv2beta1.PipelineVersion {
-	apiVersions := make([]*apiv2beta1.PipelineVersion, 0)
+// Supports v2 API.
+func toAPIPipelineVersions(pv []*model.PipelineVersion) []*apiv2.PipelineVersion {
+	apiVersions := make([]*apiv2.PipelineVersion, 0)
 	for _, version := range pv {
-		apiVersions = append(apiVersions, toApiPipelineVersion(version))
+		apiVersions = append(apiVersions, toAPIPipelineVersion(version))
 	}
 	return apiVersions
 }
@@ -421,7 +421,7 @@ func toModelParameters(obj interface{}) (string, error) {
 		}
 		return paramsString, nil
 
-	case *apiv2beta1.RuntimeConfig:
+	case *apiv2.RuntimeConfig:
 		runtimeConfig := obj
 		protoParams := runtimeConfig.GetParameters()
 		if protoParams == nil {
@@ -461,7 +461,7 @@ func toMapProtoStructParameters(p string) map[string]*structpb.Value {
 // Converts API trigger to its internal representation.
 // A nil API trigger converts to an empty model trigger, matching recurring
 // runs that do not declare a schedule.
-func toModelTrigger(apiTrigger *apiv2beta1.Trigger) *model.Trigger {
+func toModelTrigger(apiTrigger *apiv2.Trigger) *model.Trigger {
 	modelTrigger := model.Trigger{}
 	if apiTrigger.GetCronSchedule() != nil {
 		cronSchedule := apiTrigger.GetCronSchedule()
@@ -489,14 +489,14 @@ func toModelTrigger(apiTrigger *apiv2beta1.Trigger) *model.Trigger {
 }
 
 // Converts internal trigger representation to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note: returns nil if a parsing error occurs.
-func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
+func toAPITrigger(trigger *model.Trigger) *apiv2.Trigger {
 	if trigger == nil {
-		return &apiv2beta1.Trigger{}
+		return &apiv2.Trigger{}
 	}
 	if trigger.Cron != nil && *trigger.Cron != "" {
-		var cronSchedule apiv2beta1.CronSchedule
+		var cronSchedule apiv2.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
 			cronSchedule.StartTime = timestamppb.New(time.Unix(*trigger.CronScheduleStartTimeInSec, 0))
@@ -504,10 +504,10 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		if trigger.CronScheduleEndTimeInSec != nil {
 			cronSchedule.EndTime = timestamppb.New(time.Unix(*trigger.CronScheduleEndTimeInSec, 0))
 		}
-		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
+		return &apiv2.Trigger{Trigger: &apiv2.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
 	if trigger.IntervalSecond != nil && *trigger.IntervalSecond != 0 {
-		var periodicSchedule apiv2beta1.PeriodicSchedule
+		var periodicSchedule apiv2.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
 			periodicSchedule.StartTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleStartTimeInSec, 0))
@@ -515,10 +515,10 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
 			periodicSchedule.EndTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleEndTimeInSec, 0))
 		}
-		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
+		return &apiv2.Trigger{Trigger: &apiv2.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
 	if trigger.IntervalSecond == nil && trigger.Cron == nil {
-		return &apiv2beta1.Trigger{}
+		return &apiv2.Trigger{}
 	}
 	return nil
 }
@@ -530,7 +530,7 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 	}
 	var params, root string
 	switch obj := obj.(type) {
-	case *apiv2beta1.RuntimeConfig:
+	case *apiv2.RuntimeConfig:
 		apiRuntimeConfigV2 := obj
 		p, err := toModelParameters(apiRuntimeConfigV2.GetParameters())
 		if err != nil {
@@ -556,10 +556,10 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 }
 
 // Converts internal runtime config representation to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note: returns nil if a parsing error occurs.
-func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2beta1.RuntimeConfig {
-	apiRuntimeConfig := apiv2beta1.RuntimeConfig{}
+func toAPIRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2.RuntimeConfig {
+	apiRuntimeConfig := apiv2.RuntimeConfig{}
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return &apiRuntimeConfig
 	}
@@ -589,7 +589,7 @@ func toPipelineSpecRuntimeConfig(cfg *model.RuntimeConfig) *pipelinespec.Pipelin
 }
 
 // Converts API run to its internal representation.
-func toModelRun(apiRunV2 *apiv2beta1.Run) (*model.Run, error) {
+func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 	var namespace, experimentId, pipelineName, pipelineId, pipelineVersionId string
 	var recRunId, runName, runDesc, runId, specParams, cfgParams string
 	var pipelineSpec, workflowSpec, runtimePipelineSpec, runtimeWorkflowSpec string
@@ -747,22 +747,20 @@ func toModelRun(apiRunV2 *apiv2beta1.Run) (*model.Run, error) {
 }
 
 // Converts internal representation of a run to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note: adds error details to the message if a parsing error occurs.
-func toApiRun(r *model.Run) *apiv2beta1.Run {
-	return toApiRunWithPipelineSourcePreference(r, false)
+func toAPIRun(r *model.Run) *apiv2.Run {
+	return toAPIRunWithPipelineSourcePreference(r, false)
 }
 
-// toApiRunWithPipelineSourcePreference converts a run to its API form.
+// toAPIRunWithPipelineSourcePreference converts a run to its API form.
 // When preferEmbeddedPipelineSpec is true and the run stores a pipeline
 // manifest, the response embeds pipeline_spec even if a pipeline version
 // reference is also present. Runtime clients authenticate with run-scoped
 // tokens and cannot call GetPipelineVersion.
-//
-//nolint:staticcheck // ST1003: matches existing toApi* naming in this package
-func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2beta1.Run {
+func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2.Run {
 	r = r.ToV2()
-	runtimeConfig := toApiRuntimeConfig(r.PipelineSpec.RuntimeConfig)
+	runtimeConfig := toAPIRuntimeConfig(r.PipelineSpec.RuntimeConfig) //nolint:staticcheck // Keep the persisted PipelineSpec field explicit.
 	var apiRunErr error
 	if runtimeConfig == nil {
 		apiRunErr = util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")
@@ -785,7 +783,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		apiTasks = nil
 	}
 
-	apiRd := &apiv2beta1.RunDetails{
+	apiRd := &apiv2.RunDetails{
 		PipelineContextId:    r.RunDetails.PipelineContextId,
 		PipelineRunContextId: r.RunDetails.PipelineRunContextId,
 	}
@@ -799,7 +797,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		taskCount = int32(len(apiTasks))
 	}
 
-	apiRunV2 := &apiv2beta1.Run{
+	apiRunV2 := &apiv2.Run{
 		RunId:          r.UUID,
 		ExperimentId:   r.ExperimentId,
 		RecurringRunId: r.RecurringRunId,
@@ -807,19 +805,19 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		Description:    r.Description,
 		ServiceAccount: r.ServiceAccount,
 		RuntimeConfig:  runtimeConfig,
-		StorageState:   toApiRunStorageState(&r.StorageState),
-		State:          toApiRuntimeState(&r.RunDetails.State),
-		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
+		StorageState:   toAPIRunStorageState(&r.StorageState),
+		State:          toAPIRuntimeState(&r.RunDetails.State),          //nolint:staticcheck // Keep the persisted RunDetails field explicit.
+		StateHistory:   toAPIRuntimeStatuses(r.RunDetails.StateHistory), //nolint:staticcheck // Keep the persisted RunDetails field explicit.
 		CreatedAt:      timestamppb.New(time.Unix(r.CreatedAtInSec, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(r.ScheduledAtInSec, 0)),
 		FinishedAt:     timestamppb.New(time.Unix(r.FinishedAtInSec, 0)),
-		RunDetails:     apiRd,
+		RunDetails:     apiRd, //nolint:staticcheck // Preserve run_details for legacy-compatible responses.
 		TaskCount:      taskCount,
 		Tasks:          apiTasks,
 	}
 	apiRunV2.PluginsInput, err = jsonToPluginsInput(largeTextToString(r.PluginsInputString))
 	if err != nil {
-		return &apiv2beta1.Run{
+		return &apiv2.Run{
 			RunId:        r.UUID,
 			ExperimentId: r.ExperimentId,
 			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_input")),
@@ -827,7 +825,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	}
 	apiRunV2.PluginsOutput, err = jsonToPluginsOutput(largeTextToString(r.PluginsOutputString))
 	if err != nil {
-		return &apiv2beta1.Run{
+		return &apiv2.Run{
 			RunId:        r.UUID,
 			ExperimentId: r.ExperimentId,
 			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
@@ -835,14 +833,14 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	}
 	pluginLimitsConfig, err := common.GetPluginLimitsConfig()
 	if err != nil {
-		return &apiv2beta1.Run{
+		return &apiv2.Run{
 			RunId:        r.UUID,
 			ExperimentId: r.ExperimentId,
 			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
 		}
 	}
 	if err = validatePluginsOutputWithLimits(apiRunV2.PluginsOutput, pluginLimitsConfig); err != nil {
-		return &apiv2beta1.Run{
+		return &apiv2.Run{
 			RunId:        r.UUID,
 			ExperimentId: r.ExperimentId,
 			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
@@ -853,7 +851,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	if preferEmbeddedPipelineSpec && r.PipelineSpecManifest != "" {
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
 		if err1 == nil {
-			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
+			apiRunV2.PipelineSource = &apiv2.Run_PipelineSpec{
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
@@ -862,8 +860,8 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	}
 	switch {
 	case apiRunV2.PipelineSource == nil && r.PipelineVersionId != "":
-		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionReference{
-			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+		apiRunV2.PipelineSource = &apiv2.Run_PipelineVersionReference{
+			PipelineVersionReference: &apiv2.PipelineVersionReference{
 				PipelineId:        r.PipelineId,
 				PipelineVersionId: r.PipelineVersionId,
 			},
@@ -871,7 +869,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	case apiRunV2.PipelineSource == nil && r.PipelineSpecManifest != "":
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
 		if err1 == nil {
-			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
+			apiRunV2.PipelineSource = &apiv2.Run_PipelineSpec{
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
@@ -880,7 +878,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	case apiRunV2.PipelineSource == nil && r.WorkflowSpecManifest != "":
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.WorkflowSpecManifest))
 		if err1 == nil {
-			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
+			apiRunV2.PipelineSource = &apiv2.Run_PipelineSpec{
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
@@ -898,7 +896,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	return apiRunV2
 }
 
-func generateAPITasks(tasks []*model.Task) ([]*apiv2beta1.PipelineTask, error) {
+func generateAPITasks(tasks []*model.Task) ([]*apiv2.PipelineTask, error) {
 	// Create map to store parent->children relationships
 	childrenMap := make(map[string][]*model.Task)
 
@@ -910,7 +908,7 @@ func generateAPITasks(tasks []*model.Task) ([]*apiv2beta1.PipelineTask, error) {
 	}
 
 	// Convert each task to API format, building child task info if it has children
-	apiTasks := make([]*apiv2beta1.PipelineTask, 0)
+	apiTasks := make([]*apiv2.PipelineTask, 0)
 	for _, task := range tasks {
 		childTasks := childrenMap[task.UUID]
 
@@ -925,17 +923,17 @@ func generateAPITasks(tasks []*model.Task) ([]*apiv2beta1.PipelineTask, error) {
 }
 
 // Converts an array of internal pipeline version representations to an array of API pipeline versions.
-// Supports v2beta1 API.
-func toApiRuns(runs []*model.Run) []*apiv2beta1.Run {
-	apiRuns := make([]*apiv2beta1.Run, 0)
+// Supports v2 API.
+func toAPIRuns(runs []*model.Run) []*apiv2.Run {
+	apiRuns := make([]*apiv2.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(run))
+		apiRuns = append(apiRuns, toAPIRun(run))
 	}
 	return apiRuns
 }
 
 // Converts API recurring run to its internal representation.
-func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
+func toModelJob(apiJob *apiv2.RecurringRun) (*model.Job, error) {
 	var jobId, jobName, k8sName, namespace, serviceAcc, desc, experimentId, pipelineName string
 	var pipelineId, pipelineVersionId, pipelineSpec, workflowSpec, specParams, cfgParams, pipelineRoot string
 	var maxConcur, createTime, updateTime int64
@@ -1055,11 +1053,11 @@ func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
 }
 
 // Converts API recurring run's mode to its internal representation.
-func toModelJobEnabled(mode apiv2beta1.RecurringRun_Mode) (bool, error) {
+func toModelJobEnabled(mode apiv2.RecurringRun_Mode) (bool, error) {
 	switch mode {
-	case apiv2beta1.RecurringRun_ENABLE:
+	case apiv2.RecurringRun_ENABLE:
 		return true, nil
-	case apiv2beta1.RecurringRun_MODE_UNSPECIFIED, apiv2beta1.RecurringRun_DISABLE:
+	case apiv2.RecurringRun_MODE_UNSPECIFIED, apiv2.RecurringRun_DISABLE:
 		return false, nil
 	default:
 		return false, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's mode is invalid: %v", mode), "Failed to convert API recurring run's mode to its internal representation")
@@ -1067,32 +1065,32 @@ func toModelJobEnabled(mode apiv2beta1.RecurringRun_Mode) (bool, error) {
 }
 
 // Converts internal recurring run's status to API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note: returns STATUS_UNSPECIFIED by default.
 // The mapping from Argo to v2beta:
 // Enabled, Running, Succeeded -> ENABLED
 // Disabled -> DISABLED
 // Error -> STATUS_UNSPECIFIED.
-func toApiRecurringRunStatus(s string) apiv2beta1.RecurringRun_Status {
+func toAPIRecurringRunStatus(s string) apiv2.RecurringRun_Status {
 	switch s {
 	case string(model.StatusStateEnabled), string(swapi.ScheduledWorkflowSucceeded), string(swapi.ScheduledWorkflowRunning), string(swapi.ScheduledWorkflowEnabled):
-		return apiv2beta1.RecurringRun_ENABLED
+		return apiv2.RecurringRun_ENABLED
 	case string(model.StatusStateDisabled), string(swapi.ScheduledWorkflowDisabled):
-		return apiv2beta1.RecurringRun_DISABLED
+		return apiv2.RecurringRun_DISABLED
 	case string(model.StatusStateUnspecified), string(model.StatusStateUnspecifiedV1), string(swapi.ScheduledWorkflowError):
-		return apiv2beta1.RecurringRun_STATUS_UNSPECIFIED
+		return apiv2.RecurringRun_STATUS_UNSPECIFIED
 	default:
-		return apiv2beta1.RecurringRun_STATUS_UNSPECIFIED
+		return apiv2.RecurringRun_STATUS_UNSPECIFIED
 	}
 }
 
 // Converts recurring run's internal representation to its API counterpart.
-// Supports v2beta1 API.
-func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
+// Supports v2 API.
+func toAPIRecurringRun(j *model.Job) *apiv2.RecurringRun {
 	j = j.ToV2()
-	runtimeConfig := toApiRuntimeConfig(j.PipelineSpec.RuntimeConfig)
+	runtimeConfig := toAPIRuntimeConfig(j.PipelineSpec.RuntimeConfig) //nolint:staticcheck // Keep the persisted PipelineSpec field explicit.
 	if runtimeConfig == nil {
-		return &apiv2beta1.RecurringRun{
+		return &apiv2.RecurringRun{
 			RecurringRunId: j.UUID,
 			Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
 		}
@@ -1105,17 +1103,17 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		}
 	}
 
-	apiRecurringRunV2 := &apiv2beta1.RecurringRun{
+	apiRecurringRunV2 := &apiv2.RecurringRun{
 		RecurringRunId: j.UUID,
 		DisplayName:    j.DisplayName,
 		ServiceAccount: j.ServiceAccount,
 		Description:    j.Description,
-		Status:         toApiRecurringRunStatus(j.Conditions),
+		Status:         toAPIRecurringRunStatus(j.Conditions),
 		CreatedAt:      timestamppb.New(time.Unix(j.CreatedAtInSec, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
-		Trigger:        toApiTrigger(&j.Trigger),
+		Trigger:        toAPITrigger(&j.Trigger),
 		RuntimeConfig:  runtimeConfig,
 		Namespace:      j.Namespace,
 		ExperimentId:   j.ExperimentId,
@@ -1123,7 +1121,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 	var err error
 	apiRecurringRunV2.PluginsInput, err = jsonToPluginsInput(largeTextToString(j.PluginsInputString))
 	if err != nil {
-		return &apiv2beta1.RecurringRun{
+		return &apiv2.RecurringRun{
 			RecurringRunId: j.UUID,
 			Error:          util.ToRpcStatus(util.Wrap(err, "Failed to convert recurring run's internal representation to its API counterpart: invalid plugins_input")),
 		}
@@ -1132,54 +1130,54 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 	if j.PipelineId == "" && j.PipelineVersionId == "" {
 		spec, err := YamlStringToPipelineSpecStruct(string(j.PipelineSpecManifest))
 		if err != nil {
-			return &apiv2beta1.RecurringRun{
+			return &apiv2.RecurringRun{
 				RecurringRunId: j.UUID,
 				Error:          util.ToRpcStatus(util.Wrap(err, "Failed to convert recurring run's internal representation to its API counterpart")),
 			}
 		}
 		if len(spec.GetFields()) > 0 {
-			apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineSpec{
+			apiRecurringRunV2.PipelineSource = &apiv2.RecurringRun_PipelineSpec{
 				PipelineSpec: spec,
 			}
 		}
 	} else {
-		apiRecurringRunV2.PipelineSource = &apiv2beta1.RecurringRun_PipelineVersionReference{
-			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+		apiRecurringRunV2.PipelineSource = &apiv2.RecurringRun_PipelineVersionReference{
+			PipelineVersionReference: &apiv2.PipelineVersionReference{
 				PipelineId:        j.PipelineSpec.PipelineId,
 				PipelineVersionId: j.PipelineSpec.PipelineVersionId,
 			},
 		}
 	}
 	if j.Enabled {
-		apiRecurringRunV2.Status = apiv2beta1.RecurringRun_ENABLED
+		apiRecurringRunV2.Status = apiv2.RecurringRun_ENABLED
 		// TODO(gkcalat): consider removing this as Mode is input
-		apiRecurringRunV2.Mode = apiv2beta1.RecurringRun_ENABLE
+		apiRecurringRunV2.Mode = apiv2.RecurringRun_ENABLE
 	} else {
-		apiRecurringRunV2.Status = apiv2beta1.RecurringRun_DISABLED
+		apiRecurringRunV2.Status = apiv2.RecurringRun_DISABLED
 		// TODO(gkcalat): consider removing this as Mode is input
-		apiRecurringRunV2.Mode = apiv2beta1.RecurringRun_DISABLE
+		apiRecurringRunV2.Mode = apiv2.RecurringRun_DISABLE
 	}
 	return apiRecurringRunV2
 }
 
 // Converts an array of recurring run internal representations to an array of their API counterparts.
-// Supports v2beta1 API.
-func toApiRecurringRuns(jobs []*model.Job) []*apiv2beta1.RecurringRun {
-	apiRecurringRuns := make([]*apiv2beta1.RecurringRun, 0)
+// Supports v2 API.
+func toAPIRecurringRuns(jobs []*model.Job) []*apiv2.RecurringRun {
+	apiRecurringRuns := make([]*apiv2.RecurringRun, 0)
 	for _, job := range jobs {
-		apiRecurringRuns = append(apiRecurringRuns, toApiRecurringRun(job))
+		apiRecurringRuns = append(apiRecurringRuns, toAPIRecurringRun(job))
 	}
 	return apiRecurringRuns
 }
 
 // Converts API storage state to its internal representation.
-func toModelStorageState(state apiv2beta1.Run_StorageState) (model.StorageState, error) {
+func toModelStorageState(state apiv2.Run_StorageState) (model.StorageState, error) {
 	switch state {
-	case apiv2beta1.Run_ARCHIVED:
+	case apiv2.Run_ARCHIVED:
 		return model.StorageStateArchived, nil
-	case apiv2beta1.Run_AVAILABLE:
+	case apiv2.Run_AVAILABLE:
 		return model.StorageStateAvailable, nil
-	case apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED:
+	case apiv2.Run_STORAGE_STATE_UNSPECIFIED:
 		return model.StorageStateUnspecified, nil
 	default:
 		return "", util.NewInternalServerError(util.NewInvalidInputError("Storage state cannot be equal to %v", state), "Failed to convert API storage state to its internal representation")
@@ -1187,55 +1185,55 @@ func toModelStorageState(state apiv2beta1.Run_StorageState) (model.StorageState,
 }
 
 // Converts internal storage state representation to its API run's counterpart.
-// Support v2beta1 API.
-func toApiRunStorageState(s *model.StorageState) apiv2beta1.Run_StorageState {
+// Support v2 API.
+func toAPIRunStorageState(s *model.StorageState) apiv2.Run_StorageState {
 	if string(*s) == "" {
-		return apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED
+		return apiv2.Run_STORAGE_STATE_UNSPECIFIED
 	}
 	switch string(*s) {
 	case string(model.StorageStateArchived), string(model.StorageStateArchivedV1):
-		return apiv2beta1.Run_ARCHIVED
+		return apiv2.Run_ARCHIVED
 	case string(model.StorageStateAvailable), string(model.StorageStateAvailableV1):
-		return apiv2beta1.Run_AVAILABLE
+		return apiv2.Run_AVAILABLE
 	case string(model.StorageStateUnspecified), string(model.StorageStateUnspecifiedV1):
-		return apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED
+		return apiv2.Run_STORAGE_STATE_UNSPECIFIED
 	default:
-		return apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED
+		return apiv2.Run_STORAGE_STATE_UNSPECIFIED
 	}
 }
 
 // Converts internal storage state representation to its API experiment's counterpart.
-// Support v2beta1 API.
-func toApiExperimentStorageState(s *model.StorageState) apiv2beta1.Experiment_StorageState {
+// Support v2 API.
+func toAPIExperimentStorageState(s *model.StorageState) apiv2.Experiment_StorageState {
 	if string(*s) == "" {
-		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
+		return apiv2.Experiment_STORAGE_STATE_UNSPECIFIED
 	}
 	switch string(*s) {
 	case string(model.StorageStateArchived), string(model.StorageStateArchivedV1):
-		return apiv2beta1.Experiment_ARCHIVED
+		return apiv2.Experiment_ARCHIVED
 	case string(model.StorageStateAvailable), string(model.StorageStateAvailableV1):
-		return apiv2beta1.Experiment_AVAILABLE
+		return apiv2.Experiment_AVAILABLE
 	case string(model.StorageStateUnspecified), string(model.StorageStateUnspecifiedV1):
-		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
+		return apiv2.Experiment_STORAGE_STATE_UNSPECIFIED
 	default:
-		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
+		return apiv2.Experiment_STORAGE_STATE_UNSPECIFIED
 	}
 }
 
 // Converts API runtime state to its internal representation.
-func toModelRuntimeState(state apiv2beta1.RuntimeState) model.RuntimeState {
-	return model.RuntimeState(apiv2beta1.RuntimeState_name[int32(state)]).ToV2()
+func toModelRuntimeState(state apiv2.RuntimeState) model.RuntimeState {
+	return model.RuntimeState(apiv2.RuntimeState_name[int32(state)]).ToV2()
 }
 
 // Converts internal runtime state representation to its API counterpart.
-// Support v2beta1 API.
-func toApiRuntimeState(s *model.RuntimeState) apiv2beta1.RuntimeState {
-	return apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[s.ToString()])
+// Support v2 API.
+func toAPIRuntimeState(s *model.RuntimeState) apiv2.RuntimeState {
+	return apiv2.RuntimeState(apiv2.RuntimeState_value[s.ToString()])
 }
 
 // Converts API runtime status to its internal representation.
-// Supports v2beta1 API.
-func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, error) {
+// Supports v2 API.
+func toModelRuntimeStatus(s *apiv2.RuntimeStatus) (*model.RuntimeStatus, error) {
 	if s == nil {
 		return &model.RuntimeStatus{}, nil
 	}
@@ -1250,8 +1248,8 @@ func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, er
 }
 
 // Converts an array of API runtime statuses to an array of their internal representations.
-// Support v2beta1 API.
-func toModelRuntimeStatuses(s []*apiv2beta1.RuntimeStatus) ([]*model.RuntimeStatus, error) {
+// Support v2 API.
+func toModelRuntimeStatuses(s []*apiv2.RuntimeStatus) ([]*model.RuntimeStatus, error) {
 	statuses := make([]*model.RuntimeStatus, 0)
 	if s == nil {
 		return statuses, nil
@@ -1267,13 +1265,13 @@ func toModelRuntimeStatuses(s []*apiv2beta1.RuntimeStatus) ([]*model.RuntimeStat
 }
 
 // Converts internal representation of a runtime status to its API counterpart.
-// Supports v2beta1 API.
-func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
+// Supports v2 API.
+func toAPIRuntimeStatus(s *model.RuntimeStatus) *apiv2.RuntimeStatus {
 	if s == nil {
 		return nil
 	}
-	apiStatus := &apiv2beta1.RuntimeStatus{
-		State: toApiRuntimeState(&s.State),
+	apiStatus := &apiv2.RuntimeStatus{
+		State: toAPIRuntimeState(&s.State),
 	}
 	if s.UpdateTimeInSec > 0 {
 		apiStatus.UpdateTime = &timestamppb.Timestamp{Seconds: s.UpdateTimeInSec}
@@ -1285,14 +1283,14 @@ func toApiRuntimeStatus(s *model.RuntimeStatus) *apiv2beta1.RuntimeStatus {
 }
 
 // Converts an array of API runtime statuses to an array of their internal representations.
-// Support v2beta1 API.
-func toApiRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2beta1.RuntimeStatus {
+// Support v2 API.
+func toAPIRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2.RuntimeStatus {
 	if len(s) == 0 {
 		return nil
 	}
-	statuses := make([]*apiv2beta1.RuntimeStatus, 0)
+	statuses := make([]*apiv2.RuntimeStatus, 0)
 	for _, status := range s {
-		statuses = append(statuses, toApiRuntimeStatus(status))
+		statuses = append(statuses, toAPIRuntimeStatus(status))
 	}
 	return statuses
 }
@@ -1352,7 +1350,7 @@ func jsonToPluginsInput(jsonStr *string) (map[string]*structpb.Struct, error) {
 	return result, nil
 }
 
-func pluginsOutputToJSON(pluginsOutput map[string]*apiv2beta1.PluginOutput) (*string, error) {
+func pluginsOutputToJSON(pluginsOutput map[string]*apiv2.PluginOutput) (*string, error) {
 	if len(pluginsOutput) == 0 {
 		return nil, nil
 	}
@@ -1372,7 +1370,7 @@ func pluginsOutputToJSON(pluginsOutput map[string]*apiv2beta1.PluginOutput) (*st
 	return &s, nil
 }
 
-func validatePluginsOutput(pluginsOutput map[string]*apiv2beta1.PluginOutput) error {
+func validatePluginsOutput(pluginsOutput map[string]*apiv2.PluginOutput) error {
 	limits, err := common.GetPluginLimitsConfig()
 	if err != nil {
 		return fmt.Errorf("%s: %w", pluginErrInvalidLimitsConfig, err)
@@ -1380,7 +1378,7 @@ func validatePluginsOutput(pluginsOutput map[string]*apiv2beta1.PluginOutput) er
 	return validatePluginsOutputWithLimits(pluginsOutput, limits)
 }
 
-func validatePluginsOutputWithLimits(pluginsOutput map[string]*apiv2beta1.PluginOutput, limits common.PluginLimitsConfig) error {
+func validatePluginsOutputWithLimits(pluginsOutput map[string]*apiv2.PluginOutput, limits common.PluginLimitsConfig) error {
 	if err := validatePluginsOutputLimits(pluginsOutput, limits); err != nil {
 		return err
 	}
@@ -1430,7 +1428,7 @@ func validatePluginsInputLimits(pluginsInput map[string]*structpb.Struct, limits
 	return nil
 }
 
-func validatePluginsOutputLimits(pluginsOutput map[string]*apiv2beta1.PluginOutput, limits common.PluginLimitsConfig) error {
+func validatePluginsOutputLimits(pluginsOutput map[string]*apiv2.PluginOutput, limits common.PluginLimitsConfig) error {
 	if len(pluginsOutput) > limits.MaxKeys {
 		return fmt.Errorf("%s (%d) exceeds maximum %d", pluginErrPluginsOutputTooManyKeys, len(pluginsOutput), limits.MaxKeys)
 	}
@@ -1468,7 +1466,7 @@ func validatePluginsOutputLimits(pluginsOutput map[string]*apiv2beta1.PluginOutp
 
 func validateSinglePluginOutputLimit(
 	pluginKey string,
-	output *apiv2beta1.PluginOutput,
+	output *apiv2.PluginOutput,
 	limits common.PluginLimitsConfig,
 ) error {
 	if output == nil {
@@ -1540,12 +1538,12 @@ func valueDepth(v *structpb.Value) (int, error) {
 	}
 }
 
-func validatePluginOutputEntries(pluginKey string, entries map[string]*apiv2beta1.MetadataValue) error {
+func validatePluginOutputEntries(pluginKey string, entries map[string]*apiv2.MetadataValue) error {
 	for entryKey, metadata := range entries {
 		if metadata == nil || metadata.Value == nil {
 			continue
 		}
-		if metadata.GetRenderType() != apiv2beta1.MetadataValue_URL {
+		if metadata.GetRenderType() != apiv2.MetadataValue_URL {
 			continue
 		}
 		if err := validateURLMetadataValue(pluginKey, entryKey, metadata); err != nil {
@@ -1555,7 +1553,7 @@ func validatePluginOutputEntries(pluginKey string, entries map[string]*apiv2beta
 	return nil
 }
 
-func validateURLMetadataValue(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) error {
+func validateURLMetadataValue(pluginKey string, entryKey string, metadata *apiv2.MetadataValue) error {
 	urlValue, err := getURLMetadataString(pluginKey, entryKey, metadata)
 	if err != nil {
 		return err
@@ -1577,7 +1575,7 @@ func validateURLMetadataValue(pluginKey string, entryKey string, metadata *apiv2
 	return nil
 }
 
-func getURLMetadataString(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) (string, error) {
+func getURLMetadataString(pluginKey string, entryKey string, metadata *apiv2.MetadataValue) (string, error) {
 	stringValue, isStringValue := metadata.Value.Kind.(*structpb.Value_StringValue)
 	if !isStringValue {
 		return "", fmt.Errorf("plugins_output[%q].entries[%q] URL render_type requires string value", pluginKey, entryKey)
@@ -1603,7 +1601,7 @@ func isAllowedURLScheme(urlScheme string) bool {
 	return lowerScheme == "http" || lowerScheme == "https"
 }
 
-func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, error) {
+func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2.PluginOutput, error) {
 	if jsonStr == nil || *jsonStr == "" {
 		return nil, nil
 	}
@@ -1611,9 +1609,9 @@ func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, 
 	if err := json.Unmarshal([]byte(*jsonStr), &raw); err != nil {
 		return nil, fmt.Errorf("unmarshal plugins_output: %w", err)
 	}
-	result := make(map[string]*apiv2beta1.PluginOutput, len(raw))
+	result := make(map[string]*apiv2.PluginOutput, len(raw))
 	for k, v := range raw {
-		po := &apiv2beta1.PluginOutput{}
+		po := &apiv2.PluginOutput{}
 		if err := protojson.Unmarshal(v, po); err != nil {
 			return nil, fmt.Errorf("unmarshal plugins_output[%q]: %w", k, err)
 		}
@@ -1622,8 +1620,8 @@ func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, 
 	return result, nil
 }
 
-// Converts API v2beta1 artifact to its internal representation.
-func toModelArtifact(a *apiv2beta1.Artifact) (*model.Artifact, error) {
+// Converts API v2 artifact to its internal representation.
+func toModelArtifact(a *apiv2.Artifact) (*model.Artifact, error) {
 	if a == nil {
 		return nil, util.NewInvalidInputError("Artifact cannot be nil")
 	}
@@ -1662,16 +1660,16 @@ func toModelArtifact(a *apiv2beta1.Artifact) (*model.Artifact, error) {
 }
 
 // Converts internal artifact representation to its API counterpart.
-// Supports v2beta1 API.
-func toAPIArtifact(artifact *model.Artifact) (*apiv2beta1.Artifact, error) {
+// Supports v2 API.
+func toAPIArtifact(artifact *model.Artifact) (*apiv2.Artifact, error) {
 	if artifact == nil {
 		return nil, util.NewInvalidInputError("Artifact cannot be nil")
 	}
 
-	apiArtifact := &apiv2beta1.Artifact{
+	apiArtifact := &apiv2.Artifact{
 		ArtifactId:  artifact.UUID,
 		Namespace:   artifact.Namespace,
-		Type:        apiv2beta1.Artifact_ArtifactType(artifact.Type),
+		Type:        apiv2.Artifact_ArtifactType(artifact.Type),
 		Uri:         artifact.URI,
 		Name:        artifact.Name,
 		Description: artifact.Description,
@@ -1695,9 +1693,9 @@ func toAPIArtifact(artifact *model.Artifact) (*apiv2beta1.Artifact, error) {
 }
 
 // Converts an array of internal artifact representations to an array of their API counterparts.
-// Supports v2beta1 API.
-func toAPIArtifacts(artifacts []*model.Artifact) []*apiv2beta1.Artifact {
-	apiArtifacts := make([]*apiv2beta1.Artifact, 0)
+// Supports v2 API.
+func toAPIArtifacts(artifacts []*model.Artifact) []*apiv2.Artifact {
+	apiArtifacts := make([]*apiv2.Artifact, 0)
 	for _, artifact := range artifacts {
 		apiArtifact, err := toAPIArtifact(artifact)
 		if err != nil {
@@ -1709,17 +1707,17 @@ func toAPIArtifacts(artifacts []*model.Artifact) []*apiv2beta1.Artifact {
 }
 
 // Converts internal artifact task representation to its API counterpart.
-// Supports v2beta1 API.
-func toAPIArtifactTask(artifactTask *model.ArtifactTask) *apiv2beta1.ArtifactTask {
+// Supports v2 API.
+func toAPIArtifactTask(artifactTask *model.ArtifactTask) *apiv2.ArtifactTask {
 	if artifactTask == nil {
-		return &apiv2beta1.ArtifactTask{}
+		return &apiv2.ArtifactTask{}
 	}
 
-	apiArtifactTask := &apiv2beta1.ArtifactTask{
+	apiArtifactTask := &apiv2.ArtifactTask{
 		Id:         artifactTask.UUID,
 		ArtifactId: artifactTask.ArtifactID,
 		TaskId:     artifactTask.TaskID,
-		Type:       apiv2beta1.IOType(artifactTask.Type),
+		Type:       apiv2.IOType(artifactTask.Type),
 		RunId:      artifactTask.RunUUID,
 		Key:        artifactTask.ArtifactKey,
 	}
@@ -1728,8 +1726,8 @@ func toAPIArtifactTask(artifactTask *model.ArtifactTask) *apiv2beta1.ArtifactTas
 	if artifactTask.Producer != nil {
 		producer, err := model.JSONDataToProtoMessage(
 			artifactTask.Producer,
-			func() *apiv2beta1.IOProducer {
-				return &apiv2beta1.IOProducer{}
+			func() *apiv2.IOProducer {
+				return &apiv2.IOProducer{}
 			})
 		if err == nil {
 			apiArtifactTask.Producer = producer
@@ -1740,22 +1738,22 @@ func toAPIArtifactTask(artifactTask *model.ArtifactTask) *apiv2beta1.ArtifactTas
 }
 
 // Converts an array of internal artifact task representations to an array of their API counterparts.
-// Supports v2beta1 API.
-func toAPIArtifactTasks(artifactTasks []*model.ArtifactTask) []*apiv2beta1.ArtifactTask {
-	apiArtifactTasks := make([]*apiv2beta1.ArtifactTask, 0)
+// Supports v2 API.
+func toAPIArtifactTasks(artifactTasks []*model.ArtifactTask) []*apiv2.ArtifactTask {
+	apiArtifactTasks := make([]*apiv2.ArtifactTask, 0)
 	for _, artifactTask := range artifactTasks {
 		apiArtifactTasks = append(apiArtifactTasks, toAPIArtifactTask(artifactTask))
 	}
 	return apiArtifactTasks
 }
 
-// Converts API v2beta1 ArtifactTask to its internal representation.
-func toModelArtifactTask(apiAT *apiv2beta1.ArtifactTask) (*model.ArtifactTask, error) {
+// Converts API v2 ArtifactTask to its internal representation.
+func toModelArtifactTask(apiAT *apiv2.ArtifactTask) (*model.ArtifactTask, error) {
 	if apiAT == nil {
 		return nil, util.NewInvalidInputError("ArtifactTask cannot be nil")
 	}
 
-	if apiAT.GetType() == apiv2beta1.IOType_UNSPECIFIED {
+	if apiAT.GetType() == apiv2.IOType_UNSPECIFIED {
 		return nil, util.NewInvalidInputError("ArtifactTask's task id cannot be unspecified")
 	}
 
@@ -1784,11 +1782,11 @@ func toModelArtifactTask(apiAT *apiv2beta1.ArtifactTask) (*model.ArtifactTask, e
 }
 
 // Converts API PipelineTask to its internal representation.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note that InputArtifactsHydrated and OutputArtifactsHydrated are not converted.
 // Those fields are transient hydration-only views, are not stored in DB, and
 // callers must use the artifact APIs if they need to create or mutate artifact links.
-func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
+func toModelTask(apiTask *apiv2.PipelineTask) (*model.Task, error) {
 	if apiTask == nil {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
 	}
@@ -1887,25 +1885,25 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 }
 
 // Converts internal task representation to its API counterpart.
-// Supports v2beta1 API.
+// Supports v2 API.
 // Note that child tasks are not stored in the tasks table so
 // they must be provided as an argument. Artifact payloads are exported only from
 // InputArtifactsHydrated/OutputArtifactsHydrated, so callers that need
 // Inputs.Artifacts or Outputs.Artifacts populated must hydrate artifact links first.
-func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.PipelineTask, error) {
+func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.PipelineTask, error) {
 	if modelTask == nil {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
 	}
 
-	apiTask := &apiv2beta1.PipelineTask{
+	apiTask := &apiv2.PipelineTask{
 		TaskId:           modelTask.UUID,
 		RunId:            modelTask.RunUUID,
 		ParentTaskId:     modelTask.ParentTaskUUID,
 		Name:             modelTask.Name,
 		DisplayName:      modelTask.DisplayName,
 		CacheFingerprint: modelTask.Fingerprint,
-		Inputs:           &apiv2beta1.PipelineTask_InputOutputs{},
-		Outputs:          &apiv2beta1.PipelineTask_InputOutputs{},
+		Inputs:           &apiv2.PipelineTask_InputOutputs{},
+		Outputs:          &apiv2.PipelineTask_InputOutputs{},
 	}
 
 	// Convert timestamps
@@ -1917,17 +1915,17 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	}
 
 	// Convert status
-	apiTask.State = apiv2beta1.PipelineTask_TaskState(modelTask.State)
+	apiTask.State = apiv2.PipelineTask_TaskState(modelTask.State)
 
 	// Convert task type
-	apiTask.Type = apiv2beta1.PipelineTask_TaskType(modelTask.Type)
+	apiTask.Type = apiv2.PipelineTask_TaskType(modelTask.Type)
 
 	// Set pod name from the first pod in PodNames array
 	if modelTask.Pods != nil {
 		apiPods, err := model.JSONSliceToProtoSlice(
 			modelTask.Pods,
-			func() *apiv2beta1.PipelineTask_TaskPod {
-				return &apiv2beta1.PipelineTask_TaskPod{}
+			func() *apiv2.PipelineTask_TaskPod {
+				return &apiv2.PipelineTask_TaskPod{}
 			})
 		if err != nil {
 			return nil, err
@@ -1939,8 +1937,8 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	if modelTask.StatusMetadata != nil {
 		statusMeta, err := model.JSONDataToProtoMessage(
 			modelTask.StatusMetadata,
-			func() *apiv2beta1.PipelineTask_StatusMetadata {
-				return &apiv2beta1.PipelineTask_StatusMetadata{}
+			func() *apiv2.PipelineTask_StatusMetadata {
+				return &apiv2.PipelineTask_StatusMetadata{}
 			})
 		if err != nil {
 			return nil, err
@@ -1952,8 +1950,8 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	if modelTask.StateHistory != nil {
 		apiSH, err := model.JSONSliceToProtoSlice(
 			modelTask.StateHistory,
-			func() *apiv2beta1.PipelineTask_TaskStatus {
-				return &apiv2beta1.PipelineTask_TaskStatus{}
+			func() *apiv2.PipelineTask_TaskStatus {
+				return &apiv2.PipelineTask_TaskStatus{}
 			})
 		if err != nil {
 			return nil, err
@@ -1965,8 +1963,8 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	if modelTask.InputParameters != nil {
 		apiInputParams, err := model.JSONSliceToProtoSlice(
 			modelTask.InputParameters,
-			func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-				return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+			func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+				return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 			})
 		if err != nil {
 			return nil, err
@@ -1978,8 +1976,8 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	if modelTask.OutputParameters != nil {
 		apiOutputParams, err := model.JSONSliceToProtoSlice(
 			modelTask.OutputParameters,
-			func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-				return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+			func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+				return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 			})
 		if err != nil {
 			return nil, err
@@ -1988,7 +1986,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	}
 
 	// Populate artifacts from hydrated fields on the model task with shared converter
-	convertHydrated := func(in []model.TaskArtifactHydrated) ([]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, error) {
+	convertHydrated := func(in []model.TaskArtifactHydrated) ([]*apiv2.PipelineTask_InputOutputs_IOArtifact, error) {
 		if len(in) == 0 {
 			return nil, nil
 		}
@@ -1998,7 +1996,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 		// For ITERATOR_OUTPUT, each distinct iteration gets its own IOArtifact.
 		type groupKey struct {
 			artifactKey  string
-			ioType       apiv2beta1.IOType
+			ioType       apiv2.IOType
 			producerTask string
 			hasIteration bool
 			iterationVal int64
@@ -2013,7 +2011,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 				key.producerTask = h.Producer.TaskName
 				// Only split by iteration for ITERATOR_OUTPUT; ordinary outputs
 				// consolidate all same-key artifacts into a single IOArtifact.
-				if h.Type == apiv2beta1.IOType_ITERATOR_OUTPUT && h.Producer.Iteration != nil {
+				if h.Type == apiv2.IOType_ITERATOR_OUTPUT && h.Producer.Iteration != nil {
 					key.hasIteration = true
 					key.iterationVal = *h.Producer.Iteration
 				}
@@ -2050,11 +2048,11 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 		})
 
 		// Convert grouped artifacts to IOArtifacts
-		out := make([]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, 0, len(grouped))
+		out := make([]*apiv2.PipelineTask_InputOutputs_IOArtifact, 0, len(grouped))
 		for _, key := range keys {
 			hydratedGroup := grouped[key]
 
-			apiArtifacts := make([]*apiv2beta1.Artifact, 0, len(hydratedGroup))
+			apiArtifacts := make([]*apiv2.Artifact, 0, len(hydratedGroup))
 			for _, h := range hydratedGroup {
 				if h.Value != nil {
 					apiArt, err := toAPIArtifact(h.Value)
@@ -2066,13 +2064,13 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 			}
 
 			firstHydrated := hydratedGroup[0]
-			ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+			ioArtifact := &apiv2.PipelineTask_InputOutputs_IOArtifact{
 				Artifacts:   apiArtifacts,
 				ArtifactKey: firstHydrated.Key,
 				Type:        firstHydrated.Type,
 			}
 			if firstHydrated.Producer != nil {
-				ioArtifact.Producer = &apiv2beta1.IOProducer{
+				ioArtifact.Producer = &apiv2.IOProducer{
 					TaskName:  firstHydrated.Producer.TaskName,
 					Iteration: firstHydrated.Producer.Iteration,
 				}
@@ -2096,8 +2094,8 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	if modelTask.TypeAttrs != nil {
 		apiTypeAttrs, err := model.JSONDataToProtoMessage(
 			modelTask.TypeAttrs,
-			func() *apiv2beta1.PipelineTask_TypeAttributes {
-				return &apiv2beta1.PipelineTask_TypeAttributes{}
+			func() *apiv2.PipelineTask_TypeAttributes {
+				return &apiv2.PipelineTask_TypeAttributes{}
 			})
 		if err != nil {
 			return nil, err
@@ -2106,9 +2104,9 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	}
 
 	// Convert child tasks
-	apiChildTasks := make([]*apiv2beta1.PipelineTask_ChildTask, 0)
+	apiChildTasks := make([]*apiv2.PipelineTask_ChildTask, 0)
 	for _, childTask := range childTasks {
-		apiChildTask := &apiv2beta1.PipelineTask_ChildTask{
+		apiChildTask := &apiv2.PipelineTask_ChildTask{
 			TaskId: childTask.UUID,
 			Name:   childTask.Name,
 		}

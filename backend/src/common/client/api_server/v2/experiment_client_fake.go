@@ -16,12 +16,12 @@ package api_server_v2
 
 import (
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
 )
 
-func getDefaultExperiment(id string, name string) *model.V2beta1Experiment {
-	return &model.V2beta1Experiment{
+func getDefaultExperiment(id string, name string) *model.V2Experiment {
+	return &model.V2Experiment{
 		CreatedAt:    strfmt.NewDateTime(),
 		Description:  "EXPERIMENT_DESCRIPTION",
 		ExperimentID: id,
@@ -36,25 +36,25 @@ func NewExperimentClientFake() *ExperimentClientFake {
 }
 
 func (c *ExperimentClientFake) Create(parameters *params.ExperimentServiceCreateExperimentParams) (
-	*model.V2beta1Experiment, error) {
+	*model.V2Experiment, error) {
 	return getDefaultExperiment("500", parameters.Experiment.DisplayName), nil
 }
 
 func (c *ExperimentClientFake) Get(parameters *params.ExperimentServiceGetExperimentParams) (
-	*model.V2beta1Experiment, error) {
+	*model.V2Experiment, error) {
 	return getDefaultExperiment(parameters.ExperimentID, "EXPERIMENT_NAME"), nil
 }
 
 func (c *ExperimentClientFake) List(params *params.ExperimentServiceListExperimentsParams) (
-	[]*model.V2beta1Experiment, int, string, error) {
-	return []*model.V2beta1Experiment{
+	[]*model.V2Experiment, int, string, error) {
+	return []*model.V2Experiment{
 		getDefaultExperiment("100", "MY_FIRST_EXPERIMENT"),
 		getDefaultExperiment("101", "MY_SECOND_EXPERIMENT"),
 	}, 2, "SECOND_TOKEN", nil
 }
 
 func (c *ExperimentClientFake) ListAll(params *params.ExperimentServiceListExperimentsParams,
-	maxResultSize int) ([]*model.V2beta1Experiment, error) {
+	maxResultSize int) ([]*model.V2Experiment, error) {
 	return listAllForExperiment(c, params, 1)
 }
 

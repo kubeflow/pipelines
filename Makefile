@@ -4,10 +4,10 @@
 regenerate-all:
 	@echo "==> Regenerating K8s Native API CRDs..."
 	cd backend/src/crd/kubernetes && $(MAKE) generate manifests
-	@echo "==> Regenerating backend proto code (v2beta1)..."
-	cd backend/api && API_VERSION=v2beta1 $(MAKE) generate
-	@echo "==> Regenerating kfp-server-api-package (v2beta1)..."
-	cd backend/api && API_VERSION=v2beta1 $(MAKE) generate-kfp-server-api-package
+	@echo "==> Regenerating backend proto code (v2)..."
+	cd backend/api && API_VERSION=v2 $(MAKE) generate
+	@echo "==> Regenerating kfp-server-api-package (v2)..."
+	cd backend/api && API_VERSION=v2 $(MAKE) generate-kfp-server-api-package
 	@echo "==> Updating proto test golden files..."
 	cd backend/test/proto_tests && UPDATE_EXPECTED=true go test .
 	@echo "==> Updating compiler test golden files..."

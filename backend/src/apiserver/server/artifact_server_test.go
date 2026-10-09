@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -114,13 +114,13 @@ func TestArtifactServer_CreateArtifact_MultiUserCreateAndGet_Succeeds(t *testing
 	})
 	assert.NoError(t, err)
 
-	req := &apiv2beta1.CreateArtifactRequest{
+	req := &apiv2.CreateArtifactRequest{
 		RunId:       runid1,
 		TaskId:      task.UUID,
 		ProducerKey: "producer-key",
-		Artifact: &apiv2beta1.Artifact{
+		Artifact: &apiv2.Artifact{
 			Namespace:   "ns1",
-			Type:        apiv2beta1.Artifact_Model,
+			Type:        apiv2.Artifact_Model,
 			Uri:         strPTR("gs://b/f"),
 			Name:        "a1",
 			Description: "desc1",
@@ -129,14 +129,14 @@ func TestArtifactServer_CreateArtifact_MultiUserCreateAndGet_Succeeds(t *testing
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.GetArtifactId())
 	assert.Equal(t, "ns1", created.GetNamespace())
-	assert.Equal(t, apiv2beta1.Artifact_Model, created.GetType())
+	assert.Equal(t, apiv2.Artifact_Model, created.GetType())
 	assert.Equal(t, "gs://b/f", created.GetUri())
 	assert.Equal(t, "a1", created.GetName())
 	assert.Equal(t, "desc1", created.GetDescription())
 
 	// Creating an artifact should create an artifact task
 	// Fetch the artifact task
-	artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+	artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
 		TaskIds:  []string{task.UUID},
 		PageSize: 10,
 	})
@@ -147,7 +147,7 @@ func TestArtifactServer_CreateArtifact_MultiUserCreateAndGet_Succeeds(t *testing
 	at := artifactTasks.GetArtifactTasks()[0]
 	assert.Equal(t, created.GetArtifactId(), at.GetArtifactId())
 	assert.Equal(t, task.UUID, at.GetTaskId())
-	assert.Equal(t, apiv2beta1.IOType_OUTPUT, at.GetType())
+	assert.Equal(t, apiv2.IOType_OUTPUT, at.GetType())
 	assert.NotNil(t, at.GetProducer())
 	assert.Equal(t, task.Name, at.GetProducer().GetTaskName())
 	assert.Equal(t, "producer-key", at.GetKey())
@@ -187,14 +187,14 @@ func TestArtifactServer_CreateArtifact_WithIterationIndex(t *testing.T) {
 
 	// Create artifact with iteration_index
 	iterationIndex := int64(5)
-	req := &apiv2beta1.CreateArtifactRequest{
+	req := &apiv2.CreateArtifactRequest{
 		RunId:          runid1,
 		TaskId:         task.UUID,
 		ProducerKey:    "output-artifact",
 		IterationIndex: &iterationIndex,
-		Artifact: &apiv2beta1.Artifact{
+		Artifact: &apiv2.Artifact{
 			Namespace:   "ns1",
-			Type:        apiv2beta1.Artifact_Dataset,
+			Type:        apiv2.Artifact_Dataset,
 			Uri:         strPTR("gs://bucket/iteration-5/data"),
 			Name:        "iteration-dataset",
 			Description: "Dataset from iteration 5",
@@ -203,11 +203,11 @@ func TestArtifactServer_CreateArtifact_WithIterationIndex(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.GetArtifactId())
 	assert.Equal(t, "ns1", created.GetNamespace())
-	assert.Equal(t, apiv2beta1.Artifact_Dataset, created.GetType())
+	assert.Equal(t, apiv2.Artifact_Dataset, created.GetType())
 	assert.Equal(t, "iteration-dataset", created.GetName())
 
 	// Verify the artifact task was created with iteration in producer
-	artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+	artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
 		TaskIds:  []string{task.UUID},
 		PageSize: 10,
 	})
@@ -218,7 +218,7 @@ func TestArtifactServer_CreateArtifact_WithIterationIndex(t *testing.T) {
 	at := artifactTasks.GetArtifactTasks()[0]
 	assert.Equal(t, created.GetArtifactId(), at.GetArtifactId())
 	assert.Equal(t, task.UUID, at.GetTaskId())
-	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, at.GetType())
+	assert.Equal(t, apiv2.IOType_ITERATOR_OUTPUT, at.GetType())
 	assert.Equal(t, "output-artifact", at.GetKey())
 	assert.NotNil(t, at.GetProducer())
 	assert.Equal(t, task.Name, at.GetProducer().GetTaskName())
@@ -256,13 +256,13 @@ func TestArtifactServer_CreateArtifact_RejectsNamespaceMismatch(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = s.CreateArtifact(ctxWithUser(), &apiv2beta1.CreateArtifactRequest{
+	_, err = s.CreateArtifact(ctxWithUser(), &apiv2.CreateArtifactRequest{
 		RunId:       runid1,
 		TaskId:      task.UUID,
 		ProducerKey: "producer-key",
-		Artifact: &apiv2beta1.Artifact{
+		Artifact: &apiv2.Artifact{
 			Namespace: "ns2",
-			Type:      apiv2beta1.Artifact_Model,
+			Type:      apiv2.Artifact_Model,
 			Name:      "mismatched-artifact",
 		},
 	})
@@ -310,13 +310,13 @@ func TestArtifactServer_ListArtifacts_HappyPath(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	_, err = s.CreateArtifact(ctxWithUser(),
-		&apiv2beta1.CreateArtifactRequest{
+		&apiv2.CreateArtifactRequest{
 			RunId:       runid1,
 			TaskId:      listTask.UUID,
 			ProducerKey: "producer-key",
-			Artifact: &apiv2beta1.Artifact{
+			Artifact: &apiv2.Artifact{
 				Namespace:   "ns1",
-				Type:        apiv2beta1.Artifact_Model,
+				Type:        apiv2.Artifact_Model,
 				Uri:         strPTR("gs://b/f"),
 				Name:        "a1",
 				Description: "desc-list",
@@ -324,7 +324,7 @@ func TestArtifactServer_ListArtifacts_HappyPath(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	listResp, err := s.ListArtifacts(ctxWithUser(), &apiv2beta1.ListArtifactRequest{
+	listResp, err := s.ListArtifacts(ctxWithUser(), &apiv2.ListArtifactRequest{
 		Namespace: "ns1",
 		PageSize:  10,
 	})
@@ -339,11 +339,11 @@ func TestArtifactServer_GetArtifact_Errors(t *testing.T) {
 	s := createArtifactServer(resourceManager)
 
 	// Missing ID
-	_, err := s.GetArtifact(context.Background(), &apiv2beta1.GetArtifactRequest{ArtifactId: ""})
+	_, err := s.GetArtifact(context.Background(), &apiv2.GetArtifactRequest{ArtifactId: ""})
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 
 	// Non-existent
-	_, err = s.GetArtifact(context.Background(), &apiv2beta1.GetArtifactRequest{ArtifactId: "does-not-exist"})
+	_, err = s.GetArtifact(context.Background(), &apiv2.GetArtifactRequest{ArtifactId: "does-not-exist"})
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -360,7 +360,7 @@ func TestArtifactServer_Authorization_MultiUser(t *testing.T) {
 
 	// By default FakeResourceManager authorizes everything in MU, unless namespace is empty
 	// ListArtifacts with empty namespace should fail in MU
-	_, err := s.ListArtifacts(ctxWithUser(), &apiv2beta1.ListArtifactRequest{Namespace: ""})
+	_, err := s.ListArtifacts(ctxWithUser(), &apiv2.ListArtifactRequest{Namespace: ""})
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -389,13 +389,13 @@ func TestArtifactServer_SingleUserNamespaceEmpty(t *testing.T) {
 		State:     1,
 	})
 	assert.NoError(t, err)
-	created, err := s.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+	created, err := s.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
 		RunId:       "single-run",
 		TaskId:      singleTask.UUID,
 		ProducerKey: "producer-key",
-		Artifact: &apiv2beta1.Artifact{
+		Artifact: &apiv2.Artifact{
 			Namespace:   "ns1",
-			Type:        apiv2beta1.Artifact_Artifact,
+			Type:        apiv2.Artifact_Artifact,
 			Uri:         strPTR("u"),
 			Name:        "a",
 			Description: "single-desc",
@@ -405,12 +405,12 @@ func TestArtifactServer_SingleUserNamespaceEmpty(t *testing.T) {
 	assert.Equal(t, "", created.GetNamespace())
 
 	// Get artifact and verify it matches
-	fetched, err := s.GetArtifact(context.Background(), &apiv2beta1.GetArtifactRequest{
+	fetched, err := s.GetArtifact(context.Background(), &apiv2.GetArtifactRequest{
 		ArtifactId: created.GetArtifactId(),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "", fetched.GetNamespace())
-	assert.Equal(t, apiv2beta1.Artifact_Artifact, fetched.GetType())
+	assert.Equal(t, apiv2.Artifact_Artifact, fetched.GetType())
 	assert.Equal(t, "u", fetched.GetUri())
 	assert.Equal(t, "a", fetched.GetName())
 	assert.Equal(t, "single-desc", fetched.GetDescription())
@@ -479,7 +479,7 @@ func seedArtifactTasks(t *testing.T) (*ArtifactServer, *resource.FakeClientManag
 	// Artifacts
 	art1, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace:   "ns1",
-		Type:        model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:        model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:         strPTR("u"),
 		Name:        "a1",
 		Description: "d1",
@@ -487,7 +487,7 @@ func seedArtifactTasks(t *testing.T) (*ArtifactServer, *resource.FakeClientManag
 	assert.NoError(t, err)
 	art2, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace:   "ns1",
-		Type:        model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:        model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:         strPTR("u2"),
 		Name:        "a2",
 		Description: "d2",
@@ -495,39 +495,39 @@ func seedArtifactTasks(t *testing.T) (*ArtifactServer, *resource.FakeClientManag
 	assert.NoError(t, err)
 
 	// Links
-	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: art1.UUID,
 			TaskId:     t1.UUID,
 			RunId:      serverRunID1,
-			Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-			Producer: &apiv2beta1.IOProducer{
+			Type:       apiv2.IOType_COMPONENT_INPUT,
+			Producer: &apiv2.IOProducer{
 				TaskName: "t1",
 			},
 			Key: "in1",
 		},
 	})
 	assert.NoError(t, err)
-	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: art2.UUID,
 			TaskId:     t1.UUID,
 			RunId:      serverRunID1,
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer: &apiv2beta1.IOProducer{
+			Type:       apiv2.IOType_OUTPUT,
+			Producer: &apiv2.IOProducer{
 				TaskName: "t1",
 			},
 			Key: "out1",
 		},
 	})
 	assert.NoError(t, err)
-	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: art2.UUID,
 			TaskId:     t2.UUID,
 			RunId:      serverRunID2,
-			Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-			Producer: &apiv2beta1.IOProducer{
+			Type:       apiv2.IOType_COMPONENT_INPUT,
+			Producer: &apiv2.IOProducer{
 				TaskName: "t2",
 			},
 			Key: "in2",
@@ -540,7 +540,7 @@ func seedArtifactTasks(t *testing.T) (*ArtifactServer, *resource.FakeClientManag
 
 func TestArtifactServer_ListArtifactTasks_FilterByTaskIds(t *testing.T) {
 	s, _, t1, _, _, _ := seedArtifactTasks(t)
-	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{TaskIds: []string{t1.UUID}, PageSize: 50})
+	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{TaskIds: []string{t1.UUID}, PageSize: 50})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(2), resp.GetTotalSize())
 	assert.Equal(t, 2, len(resp.GetArtifactTasks()))
@@ -553,7 +553,7 @@ func TestArtifactServer_ListArtifactTasks_FilterByTaskIds(t *testing.T) {
 
 func TestArtifactServer_ListArtifactTasks_FilterByArtifactIds(t *testing.T) {
 	s, _, _, _, _, art2 := seedArtifactTasks(t)
-	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{ArtifactIds: []string{art2.UUID}, PageSize: 50})
+	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{ArtifactIds: []string{art2.UUID}, PageSize: 50})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(2), resp.GetTotalSize())
 	assert.Equal(t, 2, len(resp.GetArtifactTasks()))
@@ -565,7 +565,7 @@ func TestArtifactServer_ListArtifactTasks_FilterByArtifactIds(t *testing.T) {
 
 func TestArtifactServer_ListArtifactTasks_FilterByRunIds(t *testing.T) {
 	s, _, _, t2, _, art2 := seedArtifactTasks(t)
-	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{RunIds: []string{serverRunID2}, PageSize: 50})
+	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{RunIds: []string{serverRunID2}, PageSize: 50})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(1), resp.GetTotalSize())
 	assert.Equal(t, 1, len(resp.GetArtifactTasks()))
@@ -577,7 +577,7 @@ func TestArtifactServer_ListArtifactTasks_FilterByRunIds(t *testing.T) {
 
 func TestArtifactServer_ListArtifactTasks_ErrorWhenNoFilters(t *testing.T) {
 	s, _, _, _, _, _ := seedArtifactTasks(t)
-	_, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{PageSize: 2})
+	_, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{PageSize: 2})
 	assert.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
@@ -622,7 +622,7 @@ func TestArtifactServer_ListArtifactTasks_RejectsEmptyRunIDs(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	s := createArtifactServer(resourceManager)
 
-	_, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+	_, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
 		RunIds:   []string{""},
 		PageSize: 10,
 	})
@@ -634,13 +634,13 @@ func TestArtifactServer_ListArtifactTasks_RejectsEmptyRunIDs(t *testing.T) {
 
 func TestArtifactServer_ListArtifactTasks_Pagination_TaskIds(t *testing.T) {
 	s, _, t1, _, _, _ := seedArtifactTasks(t)
-	page1, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{TaskIds: []string{t1.UUID}, PageSize: 1})
+	page1, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{TaskIds: []string{t1.UUID}, PageSize: 1})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(2), page1.GetTotalSize())
 	assert.Equal(t, 1, len(page1.GetArtifactTasks()))
 	assert.NotEmpty(t, page1.GetNextPageToken())
 
-	page2, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{TaskIds: []string{t1.UUID}, PageToken: page1.GetNextPageToken(), PageSize: 1})
+	page2, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{TaskIds: []string{t1.UUID}, PageToken: page1.GetNextPageToken(), PageSize: 1})
 	assert.NoError(t, err)
 	assert.Equal(t, int32(2), page2.GetTotalSize())
 	assert.Equal(t, 1, len(page2.GetArtifactTasks()))
@@ -655,13 +655,13 @@ func TestArtifactServer_CreateArtifactTask_RejectsRunIDMismatch(t *testing.T) {
 	s, clientManager, t1, _, art1, _ := seedArtifactTasks(t)
 	defer clientManager.Close()
 
-	_, err := s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err := s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: art1.UUID,
 			TaskId:     t1.UUID,
 			RunId:      serverRunID2,
-			Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-			Producer: &apiv2beta1.IOProducer{
+			Type:       apiv2.IOType_COMPONENT_INPUT,
+			Producer: &apiv2.IOProducer{
 				TaskName: "t1",
 			},
 			Key: "bad-run",
@@ -702,18 +702,18 @@ func TestArtifactServer_CreateArtifactTask_RejectsEmptyArtifactNamespace(t *test
 
 	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		Name:      "empty-ns-artifact",
 	})
 	require.NoError(t, err)
 
-	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: artifact.UUID,
 			TaskId:     task.UUID,
 			RunId:      runid1,
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+			Type:       apiv2.IOType_OUTPUT,
+			Producer:   &apiv2.IOProducer{TaskName: task.Name},
 			Key:        "model",
 		},
 	})
@@ -753,18 +753,18 @@ func TestArtifactServer_CreateArtifactTask_RejectsEmptyTaskNamespace(t *testing.
 
 	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		Name:      "ns1-artifact",
 	})
 	require.NoError(t, err)
 
-	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: artifact.UUID,
 			TaskId:     task.UUID,
 			RunId:      runid1,
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+			Type:       apiv2.IOType_OUTPUT,
+			Producer:   &apiv2.IOProducer{TaskName: task.Name},
 			Key:        "model",
 		},
 	})
@@ -804,19 +804,19 @@ func TestArtifactServer_CreateArtifactTasksBulk_RejectsEmptyArtifactNamespace(t 
 
 	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		Name:      "bulk-empty-ns-artifact",
 	})
 	require.NoError(t, err)
 
-	_, err = s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: artifact.UUID,
 				TaskId:     task.UUID,
 				RunId:      runid1,
-				Type:       apiv2beta1.IOType_OUTPUT,
-				Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+				Type:       apiv2.IOType_OUTPUT,
+				Producer:   &apiv2.IOProducer{TaskName: task.Name},
 				Key:        "model",
 			},
 		},
@@ -858,18 +858,18 @@ func TestArtifactServer_CreateArtifactTask_RequiresRunUpdateAuthorization(t *tes
 
 	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		Name:      "authz-artifact",
 	})
 	require.NoError(t, err)
 
-	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
-		ArtifactTask: &apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2.ArtifactTask{
 			ArtifactId: artifact.UUID,
 			TaskId:     task.UUID,
 			RunId:      runid1,
-			Type:       apiv2beta1.IOType_OUTPUT,
-			Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+			Type:       apiv2.IOType_OUTPUT,
+			Producer:   &apiv2.IOProducer{TaskName: task.Name},
 			Key:        "model",
 		},
 	})
@@ -919,7 +919,7 @@ func TestArtifactServer_CreateArtifactTasksBulk_Success(t *testing.T) {
 	// Create artifacts
 	art1, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:       strPTR("uri1"),
 		Name:      "artifact1",
 	})
@@ -927,21 +927,21 @@ func TestArtifactServer_CreateArtifactTasksBulk_Success(t *testing.T) {
 
 	art2, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:       strPTR("uri2"),
 		Name:      "artifact2",
 	})
 	assert.NoError(t, err)
 
 	// Create bulk artifact tasks
-	req := &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	req := &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: art1.UUID,
 				TaskId:     t1.UUID,
 				RunId:      serverRunID1,
-				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-				Producer: &apiv2beta1.IOProducer{
+				Type:       apiv2.IOType_COMPONENT_INPUT,
+				Producer: &apiv2.IOProducer{
 					TaskName: "task1",
 				},
 				Key: "input1",
@@ -950,8 +950,8 @@ func TestArtifactServer_CreateArtifactTasksBulk_Success(t *testing.T) {
 				ArtifactId: art2.UUID,
 				TaskId:     t1.UUID,
 				RunId:      serverRunID1,
-				Type:       apiv2beta1.IOType_OUTPUT,
-				Producer: &apiv2beta1.IOProducer{
+				Type:       apiv2.IOType_OUTPUT,
+				Producer: &apiv2.IOProducer{
 					TaskName: "task1",
 				},
 				Key: "output1",
@@ -960,8 +960,8 @@ func TestArtifactServer_CreateArtifactTasksBulk_Success(t *testing.T) {
 				ArtifactId: art2.UUID,
 				TaskId:     t2.UUID,
 				RunId:      serverRunID1,
-				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-				Producer: &apiv2beta1.IOProducer{
+				Type:       apiv2.IOType_COMPONENT_INPUT,
+				Producer: &apiv2.IOProducer{
 					TaskName: "task2",
 				},
 				Key: "input2",
@@ -986,7 +986,7 @@ func TestArtifactServer_CreateArtifactTasksBulk_Success(t *testing.T) {
 	}
 
 	// Verify they can be listed
-	listResp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+	listResp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
 		TaskIds:  []string{t1.UUID},
 		PageSize: 10,
 	})
@@ -998,14 +998,14 @@ func TestArtifactServer_CreateArtifactTasksBulk_RejectsRunIDMismatch(t *testing.
 	s, clientManager, t1, _, art1, _ := seedArtifactTasks(t)
 	defer clientManager.Close()
 
-	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: art1.UUID,
 				TaskId:     t1.UUID,
 				RunId:      serverRunID2,
-				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-				Producer: &apiv2beta1.IOProducer{
+				Type:       apiv2.IOType_COMPONENT_INPUT,
+				Producer: &apiv2.IOProducer{
 					TaskName: "t1",
 				},
 				Key: "bad-run",
@@ -1020,14 +1020,14 @@ func TestArtifactServer_CreateArtifactTasksBulk_RejectsMixedRuns(t *testing.T) {
 	s, clientManager, t1, t2, art1, art2 := seedArtifactTasks(t)
 	defer clientManager.Close()
 
-	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: art1.UUID,
 				TaskId:     t1.UUID,
 				RunId:      serverRunID1,
-				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-				Producer: &apiv2beta1.IOProducer{
+				Type:       apiv2.IOType_COMPONENT_INPUT,
+				Producer: &apiv2.IOProducer{
 					TaskName: "t1",
 				},
 				Key: "same-request-run-1",
@@ -1036,8 +1036,8 @@ func TestArtifactServer_CreateArtifactTasksBulk_RejectsMixedRuns(t *testing.T) {
 				ArtifactId: art2.UUID,
 				TaskId:     t2.UUID,
 				RunId:      serverRunID2,
-				Type:       apiv2beta1.IOType_COMPONENT_INPUT,
-				Producer: &apiv2beta1.IOProducer{
+				Type:       apiv2.IOType_COMPONENT_INPUT,
+				Producer: &apiv2.IOProducer{
 					TaskName: "t2",
 				},
 				Key: "same-request-run-2",
@@ -1080,19 +1080,19 @@ func TestArtifactServer_CreateArtifactTasksBulk_RequiresRunUpdateAuthorization(t
 
 	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		Name:      "bulk-authz-artifact",
 	})
 	require.NoError(t, err)
 
-	_, err = s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	_, err = s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: artifact.UUID,
 				TaskId:     task.UUID,
 				RunId:      runid1,
-				Type:       apiv2beta1.IOType_OUTPUT,
-				Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+				Type:       apiv2.IOType_OUTPUT,
+				Producer:   &apiv2.IOProducer{TaskName: task.Name},
 				Key:        "model",
 			},
 		},
@@ -1109,8 +1109,8 @@ func TestArtifactServer_CreateArtifactTasksBulk_EmptyRequest(t *testing.T) {
 	s := createArtifactServer(resourceManager)
 
 	// Empty request should fail with validation error
-	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{},
+	_, err := s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{},
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
@@ -1124,8 +1124,8 @@ func TestArtifactServer_CreateArtifactTasksBulk_ValidationError(t *testing.T) {
 	s := createArtifactServer(resourceManager)
 
 	// Request with invalid artifact task (missing required fields)
-	req := &apiv2beta1.CreateArtifactTasksBulkRequest{
-		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+	req := &apiv2.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2.ArtifactTask{
 			{
 				ArtifactId: "art1",
 				// Missing TaskId, RunId, Type
@@ -1186,15 +1186,15 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create multiple artifacts in bulk
-	req := &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	req := &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:       runid1,
 				TaskId:      task1.UUID,
 				ProducerKey: "output1",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace:   "ns1",
-					Type:        apiv2beta1.Artifact_Model,
+					Type:        apiv2.Artifact_Model,
 					Uri:         strPTR("gs://bucket/model1"),
 					Name:        "model1",
 					Description: "First model",
@@ -1204,9 +1204,9 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 				RunId:       runid1,
 				TaskId:      task2.UUID,
 				ProducerKey: "output2",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace:   "ns1",
-					Type:        apiv2beta1.Artifact_Dataset,
+					Type:        apiv2.Artifact_Dataset,
 					Uri:         strPTR("gs://bucket/dataset1"),
 					Name:        "dataset1",
 					Description: "First dataset",
@@ -1216,9 +1216,9 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 				RunId:       runid1,
 				TaskId:      task3.UUID,
 				ProducerKey: "output3",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace:   "ns1",
-					Type:        apiv2beta1.Artifact_Metric,
+					Type:        apiv2.Artifact_Metric,
 					Uri:         strPTR("gs://bucket/metrics1"),
 					Name:        "metrics1",
 					Description: "First metrics",
@@ -1237,7 +1237,7 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 	artifact1 := resp.GetArtifacts()[0]
 	assert.NotEmpty(t, artifact1.GetArtifactId())
 	assert.Equal(t, "ns1", artifact1.GetNamespace())
-	assert.Equal(t, apiv2beta1.Artifact_Model, artifact1.GetType())
+	assert.Equal(t, apiv2.Artifact_Model, artifact1.GetType())
 	assert.Equal(t, "gs://bucket/model1", artifact1.GetUri())
 	assert.Equal(t, "model1", artifact1.GetName())
 	assert.Equal(t, "First model", artifact1.GetDescription())
@@ -1245,20 +1245,20 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 	artifact2 := resp.GetArtifacts()[1]
 	assert.NotEmpty(t, artifact2.GetArtifactId())
 	assert.Equal(t, "ns1", artifact2.GetNamespace())
-	assert.Equal(t, apiv2beta1.Artifact_Dataset, artifact2.GetType())
+	assert.Equal(t, apiv2.Artifact_Dataset, artifact2.GetType())
 	assert.Equal(t, "gs://bucket/dataset1", artifact2.GetUri())
 	assert.Equal(t, "dataset1", artifact2.GetName())
 
 	artifact3 := resp.GetArtifacts()[2]
 	assert.NotEmpty(t, artifact3.GetArtifactId())
 	assert.Equal(t, "ns1", artifact3.GetNamespace())
-	assert.Equal(t, apiv2beta1.Artifact_Metric, artifact3.GetType())
+	assert.Equal(t, apiv2.Artifact_Metric, artifact3.GetType())
 	assert.Equal(t, "gs://bucket/metrics1", artifact3.GetUri())
 	assert.Equal(t, "metrics1", artifact3.GetName())
 
 	// Verify artifact-task relationships were created for each
 	for i, artifact := range resp.GetArtifacts() {
-		artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+		artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
 			ArtifactIds: []string{artifact.GetArtifactId()},
 			PageSize:    10,
 		})
@@ -1268,12 +1268,12 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 
 		at := artifactTasks.GetArtifactTasks()[0]
 		assert.Equal(t, artifact.GetArtifactId(), at.GetArtifactId())
-		assert.Equal(t, apiv2beta1.IOType_OUTPUT, at.GetType())
+		assert.Equal(t, apiv2.IOType_OUTPUT, at.GetType())
 		assert.Equal(t, req.Artifacts[i].ProducerKey, at.GetKey())
 	}
 
 	// Verify artifacts can be listed
-	listResp, err := s.ListArtifacts(ctxWithUser(), &apiv2beta1.ListArtifactRequest{
+	listResp, err := s.ListArtifacts(ctxWithUser(), &apiv2.ListArtifactRequest{
 		Namespace: "ns1",
 		PageSize:  10,
 	})
@@ -1319,15 +1319,15 @@ func TestArtifactServer_CreateArtifactsBulk_DeduplicatesRunAuthorization(t *test
 	})
 	assert.NoError(t, err)
 
-	req := &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	req := &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:       runid1,
 				TaskId:      task1.UUID,
 				ProducerKey: "output1",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "ns1",
-					Type:      apiv2beta1.Artifact_Model,
+					Type:      apiv2.Artifact_Model,
 					Name:      "model1",
 				},
 			},
@@ -1335,9 +1335,9 @@ func TestArtifactServer_CreateArtifactsBulk_DeduplicatesRunAuthorization(t *test
 				RunId:       runid1,
 				TaskId:      task2.UUID,
 				ProducerKey: "output2",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "ns1",
-					Type:      apiv2beta1.Artifact_Dataset,
+					Type:      apiv2.Artifact_Dataset,
 					Name:      "dataset1",
 				},
 			},
@@ -1386,16 +1386,16 @@ func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
 	iter1 := int64(1)
 	iter2 := int64(2)
 
-	req := &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	req := &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:          runid1,
 				TaskId:         task.UUID,
 				ProducerKey:    "iteration-output",
 				IterationIndex: &iter0,
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace:   "ns1",
-					Type:        apiv2beta1.Artifact_Dataset,
+					Type:        apiv2.Artifact_Dataset,
 					Uri:         strPTR("gs://bucket/iter-0"),
 					Name:        "dataset-iter-0",
 					Description: "Dataset from iteration 0",
@@ -1406,9 +1406,9 @@ func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
 				TaskId:         task.UUID,
 				ProducerKey:    "iteration-output",
 				IterationIndex: &iter1,
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace:   "ns1",
-					Type:        apiv2beta1.Artifact_Dataset,
+					Type:        apiv2.Artifact_Dataset,
 					Uri:         strPTR("gs://bucket/iter-1"),
 					Name:        "dataset-iter-1",
 					Description: "Dataset from iteration 1",
@@ -1419,9 +1419,9 @@ func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
 				TaskId:         task.UUID,
 				ProducerKey:    "iteration-output",
 				IterationIndex: &iter2,
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace:   "ns1",
-					Type:        apiv2beta1.Artifact_Dataset,
+					Type:        apiv2.Artifact_Dataset,
 					Uri:         strPTR("gs://bucket/iter-2"),
 					Name:        "dataset-iter-2",
 					Description: "Dataset from iteration 2",
@@ -1437,7 +1437,7 @@ func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
 
 	// Verify all artifacts were created with correct iteration indices
 	for i, artifact := range resp.GetArtifacts() {
-		artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+		artifactTasks, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
 			ArtifactIds: []string{artifact.GetArtifactId()},
 			PageSize:    10,
 		})
@@ -1445,7 +1445,7 @@ func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
 		assert.Equal(t, int32(1), artifactTasks.GetTotalSize())
 
 		at := artifactTasks.GetArtifactTasks()[0]
-		assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, at.GetType())
+		assert.Equal(t, apiv2.IOType_ITERATOR_OUTPUT, at.GetType())
 		assert.NotNil(t, at.GetProducer())
 		assert.NotNil(t, at.GetProducer().Iteration)
 		assert.Equal(t, int64(i), *at.GetProducer().Iteration)
@@ -1466,8 +1466,8 @@ func TestArtifactServer_CreateArtifactsBulk_EmptyRequest(t *testing.T) {
 	assert.Contains(t, err.Error(), "must contain at least one artifact")
 
 	// Empty artifacts list should fail
-	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{},
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{},
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
@@ -1479,14 +1479,14 @@ func TestArtifactServer_CreateArtifactsBulk_RejectsReuseIfExists(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	s := createArtifactServer(resourceManager)
 
-	_, err := s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	_, err := s.CreateArtifactsBulk(ctxWithUser(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				ReuseIfExists: true,
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "ns1",
 					Name:      "model",
-					Type:      apiv2beta1.Artifact_Model,
+					Type:      apiv2.Artifact_Model,
 				},
 				RunId:       "run-1",
 				TaskId:      "task-1",
@@ -1530,8 +1530,8 @@ func TestArtifactServer_CreateArtifactsBulk_ValidationErrors(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test with missing artifact
-	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:       runid1,
 				TaskId:      task.UUID,
@@ -1545,15 +1545,15 @@ func TestArtifactServer_CreateArtifactsBulk_ValidationErrors(t *testing.T) {
 	assert.Contains(t, err.Error(), "Artifact is required")
 
 	// Test with missing namespace
-	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:       runid1,
 				TaskId:      task.UUID,
 				ProducerKey: "output",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "", // Missing namespace!
-					Type:      apiv2beta1.Artifact_Model,
+					Type:      apiv2.Artifact_Model,
 					Name:      "test",
 				},
 			},
@@ -1572,15 +1572,15 @@ func TestArtifactServer_CreateArtifactsBulk_ValidationErrors(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:       runid1,
 				TaskId:      otherTask.UUID, // Task belongs to different run!
 				ProducerKey: "output",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "ns1",
-					Type:      apiv2beta1.Artifact_Model,
+					Type:      apiv2.Artifact_Model,
 					Name:      "test",
 				},
 			},
@@ -1620,15 +1620,15 @@ func TestArtifactServer_CreateArtifactsBulk_RejectsMixedNamespaces(t *testing.T)
 	})
 	assert.NoError(t, err)
 
-	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	_, err = s.CreateArtifactsBulk(ctxWithUser(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
 				RunId:       runid1,
 				TaskId:      task.UUID,
 				ProducerKey: "output1",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "ns1",
-					Type:      apiv2beta1.Artifact_Model,
+					Type:      apiv2.Artifact_Model,
 					Name:      "model1",
 				},
 			},
@@ -1636,9 +1636,9 @@ func TestArtifactServer_CreateArtifactsBulk_RejectsMixedNamespaces(t *testing.T)
 				RunId:       runid1,
 				TaskId:      task.UUID,
 				ProducerKey: "output2",
-				Artifact: &apiv2beta1.Artifact{
+				Artifact: &apiv2.Artifact{
 					Namespace: "ns2",
-					Type:      apiv2beta1.Artifact_Model,
+					Type:      apiv2.Artifact_Model,
 					Name:      "model2",
 				},
 			},

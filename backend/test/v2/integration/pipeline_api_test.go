@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -155,14 +155,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.CreatePipelineAndVersion(&params.PipelineServiceCreatePipelineAndVersionParams{
-		Body: &model.V2beta1CreatePipelineAndVersionRequest{
-			Pipeline: &model.V2beta1Pipeline{
+		Body: &model.V2CreatePipelineAndVersionRequest{
+			Pipeline: &model.V2Pipeline{
 				Name:        "sequential-v2",
 				DisplayName: "sequential",
 				Description: "sequential pipeline",
 			},
-			PipelineVersion: &model.V2beta1PipelineVersion{
-				PackageURL: &model.V2beta1URL{
+			PipelineVersion: &model.V2PipelineVersion{
+				PackageURL: &model.V2URL{
 					PipelineURL: pipelineURL,
 				},
 			},
@@ -194,17 +194,17 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
-		Pipeline: &model.V2beta1Pipeline{DisplayName: "arguments_parameters.zip", Name: "arguments-pipeline-zip"},
+		Pipeline: &model.V2Pipeline{DisplayName: "arguments_parameters.zip", Name: "arguments-pipeline-zip"},
 	})
 	require.Nil(t, err)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(
 		&params.PipelineServiceCreatePipelineVersionParams{
 			PipelineID: argumentUrlPipeline.PipelineID,
-			PipelineVersion: &model.V2beta1PipelineVersion{
+			PipelineVersion: &model.V2PipelineVersion{
 				DisplayName: "argumenturl-v1",
 				Description: "1st version of argument url pipeline",
 				PipelineID:  sequentialPipeline.PipelineID,
-				PackageURL: &model.V2beta1URL{
+				PackageURL: &model.V2URL{
 					PipelineURL: pipelineURL,
 				},
 			},

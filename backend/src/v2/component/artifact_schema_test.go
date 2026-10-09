@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -59,7 +59,7 @@ func TestRuntimeArtifactSchema_ExistingNativeArtifacts(t *testing.T) {
 		})
 	}
 	// Unknown native enum values are not silently assigned a system schema.
-	schema, _ := RuntimeArtifactSchemaAndMetadata(apiV2beta1.Artifact_TYPE_UNSPECIFIED, nil)
+	schema, _ := RuntimeArtifactSchemaAndMetadata(apiV2.Artifact_TYPE_UNSPECIFIED, nil)
 	require.Equal(t, "TYPE_UNSPECIFIED", schema.GetSchemaTitle())
 }
 

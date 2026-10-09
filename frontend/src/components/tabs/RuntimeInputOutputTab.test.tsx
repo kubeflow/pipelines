@@ -14,7 +14,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { ArtifactArtifactType, V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, V2PipelineTask } from 'src/apisv2/run';
 import { RuntimeInputOutputTab } from './RuntimeInputOutputTab';
 
 vi.mock('src/components/ArtifactPreview', () => ({
@@ -25,7 +25,7 @@ vi.mock('src/components/ArtifactPreview', () => ({
 
 describe('RuntimeInputOutputTab', () => {
   it('renders native parameters and artifact links for every input and output', () => {
-    const task: V2beta1PipelineTask = {
+    const task: V2PipelineTask = {
       name: 'train',
       display_name: 'Train model',
       inputs: {
@@ -183,7 +183,7 @@ describe('RuntimeInputOutputTab', () => {
   });
 
   it('ignores stale provider metadata when artifacts share a URI', () => {
-    const task: V2beta1PipelineTask = {
+    const task: V2PipelineTask = {
       name: 'shared-uri',
       outputs: {
         artifacts: [

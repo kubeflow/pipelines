@@ -45,6 +45,7 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -249,8 +250,9 @@ jobs:
     strategy:
       matrix:
         # Partition the API surface across the two existing cache variants.
-        # Complementary filters guarantee that every ApiServerTests spec runs
-        # exactly once, while explicit cache labels divide the expensive run
+        # Complementary filters partition ordinary ApiServerTests specs;
+        # compatibility specs additionally run in every existing job.
+        # Explicit cache labels divide the expensive run
         # matrix evenly between matching deployments.
         # PostgreSQL is scoped to the core multi-user path (cache_enabled=true,
         # artifact proxy off); other pgx combinations have no overlay yet and are
@@ -310,7 +312,7 @@ jobs:
           DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_MULTI_USER_PARALLEL_NODES }}
-          TEST_LABEL=$AUTOMATIC_TEST_LABEL
+          TEST_LABEL="$AUTOMATIC_TEST_LABEL || LegacyAPICompatibility"
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES

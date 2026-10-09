@@ -16,7 +16,7 @@ HEALTH_RESPONSE=""
 for attempt in $(seq 1 30); do
   if HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
     curl -fsS -H 'kubeflow-userid: user@example.com' \
-    "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2beta1/healthz") && \
+    "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2/healthz") && \
     jq -e '.apiServerReady == true' >/dev/null <<<"$HEALTH_RESPONSE"; then
     break
   fi
@@ -35,7 +35,7 @@ done
 # Test 2: Verify proxy can list pipelines
 PIPELINES_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
   curl -fsS -H 'kubeflow-userid: user@example.com' \
-  "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2beta1/pipelines?page_size=1")
+  "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2/pipelines?page_size=1")
 
 if ! echo "$PIPELINES_RESPONSE" | grep -q '"pipelines"'; then
   echo "ERROR: Failed to list pipelines"

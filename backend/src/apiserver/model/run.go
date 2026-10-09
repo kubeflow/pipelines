@@ -92,8 +92,8 @@ func (s RuntimeState) IsValid() bool {
 	}
 }
 
-// Converts to v2beta1-compatible internal representation of runtime state.
-// This should be called before converting to v2beta1 API type or writing to a store.
+// ToV2 converts to the v2-compatible internal representation of runtime state.
+// This should be called before converting to v2 API type or writing to a store.
 func (s RuntimeState) ToV2() RuntimeState {
 	switch s.toUpper() {
 	case RuntimeStateUnspecified, RuntimeStateUnknownV1.toUpper(), RuntimeState(LegacyStateNoStatus).toUpper(), RuntimeState(LegacyStateEmpty).toUpper():
@@ -165,8 +165,8 @@ func (s StorageState) IsValid() bool {
 	}
 }
 
-// Converts to v2beta1-compatible internal representation of storage state.
-// This should be called before converting to v2beta1 API type or writing to a store.
+// ToV2 converts to the v2-compatible internal representation of storage state.
+// This should be called before converting to v2 API type or writing to a store.
 func (s StorageState) ToV2() StorageState {
 	switch s.toUpper() {
 	case StorageStateUnspecified, StorageStateUnspecifiedV1, StorageState(LegacyStateNoStatus).toUpper(), StorageState(LegacyStateError).toUpper(), StorageState(LegacyStateEmpty).toUpper():
@@ -230,8 +230,8 @@ type Run struct {
 	TaskCount int `gorm:"-"` // Not persisted in DB, populated from task query
 }
 
-// Converts to v2beta1-compatible internal representation of run.
-// This should be called before converting to v2beta1 API type or writing to a store.
+// ToV2 converts to the v2-compatible internal representation of a run.
+// This should be called before converting to v2 API type or writing to a store.
 func (r *Run) ToV2() *Run {
 	for _, ref := range r.ResourceReferences {
 		switch ref.ReferenceType {
@@ -274,7 +274,7 @@ type RunDetails struct {
 	StateHistory        []*RuntimeStatus `gorm:"-;"`
 	PluginsInputString  *LargeText       `gorm:"column:PluginsInput; default:null;"`
 	PluginsOutputString *LargeText       `gorm:"column:PluginsOutput; default:null;"`
-	// Serialized runtime details of a run in v2beta1
+	// Serialized runtime details of a run in v2
 	PipelineRuntimeManifest LargeText `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Persisted Argo runtime, also used by v2 reports, logs, and retries.
 	WorkflowRuntimeManifest LargeText `gorm:"column:WorkflowRuntimeManifest; not null;"`
@@ -339,23 +339,23 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"run_id":           "UUID",        // v2beta1 API
-	"id":               "UUID",        // Legacy filter alias retained in the v2beta1 filter contract
-	"display_name":     "DisplayName", // v2beta1 API
-	"name":             "DisplayName", // Legacy filter alias retained in the v2beta1 filter contract
+	"run_id":           "UUID",        // v2 API
+	"id":               "UUID",        // Legacy filter alias retained in the v2 filter contract
+	"display_name":     "DisplayName", // v2 API
+	"name":             "DisplayName", // Legacy filter alias retained in the v2 filter contract
 	"created_at":       "CreatedAtInSec",
 	"finished_at":      "FinishedAtInSec",
 	"description":      "Description",
 	"scheduled_at":     "ScheduledAtInSec",
 	"storage_state":    "StorageState",
 	"status":           "Conditions",
-	"namespace":        "Namespace",               // v2beta1 API
-	"experiment_id":    "ExperimentUUID",          // v2beta1 API
-	"state":            "State",                   // v2beta1 API
-	"state_history":    "StateHistory",            // v2beta1 API
-	"runtime_details":  "PipelineRuntimeManifest", // v2beta1 API
-	"recurring_run_id": "JobUUID",                 // v2beta1 API
-	"pipeline_id":      "PipelineId",              // v2beta1 API
+	"namespace":        "Namespace",               // v2 API
+	"experiment_id":    "ExperimentUUID",          // v2 API
+	"state":            "State",                   // v2 API
+	"state_history":    "StateHistory",            // v2 API
+	"runtime_details":  "PipelineRuntimeManifest", // v2 API
+	"recurring_run_id": "JobUUID",                 // v2 API
+	"pipeline_id":      "PipelineId",              // v2 API
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.

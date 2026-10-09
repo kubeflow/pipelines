@@ -23,7 +23,7 @@ import {
   ExecutionFlowElementData,
   FlowElementDataBase,
 } from 'src/components/graph/Constants';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 
 const nodes = [

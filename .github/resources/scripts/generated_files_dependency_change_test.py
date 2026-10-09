@@ -72,7 +72,7 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
 
     def test_existing_generator_input_requires_validation(self):
         self.assertTrue(
-            requires_validation(['backend/api/v2beta1/run.proto'], manifests(),
+            requires_validation(['backend/api/v2/run.proto'], manifests(),
                                 manifests()))
 
     def test_generator_version_sources_are_wired_to_automation(self):
@@ -120,6 +120,7 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
                     '.github/workflows/validate-generated-files.yml').read_text(
                         encoding='utf-8')
         self.assertIn("- 'go.mod'", workflow)
+        self.assertIn("- 'backend/api/hack/**'", workflow)
         self.assertIn(
             "- 'backend/api/build_kfp_server_api_python_package.sh'",
             workflow,

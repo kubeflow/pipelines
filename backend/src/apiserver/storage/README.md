@@ -330,9 +330,11 @@ For now, the DBDialect + quoting approach provides a robust solution for multi-d
 
 ### Retired API compatibility and database upgrades
 
-The backend serves only the v2beta1 API and accepts pipeline IR, not raw Argo
-pipeline templates. V2 execution still persists Argo runtime manifests for
-reporting, log retrieval, retries, and workflow identity fencing.
+The backend serves the canonical v2 API, with `/apis/v2beta1` and legacy gRPC
+service names retained as compatibility aliases to the same handlers. It accepts
+pipeline IR, not raw Argo pipeline templates. V2 execution still persists Argo
+runtime manifests for reporting, log retrieval, retries, and workflow identity
+fencing.
 
 Historical database columns and migrations are not dropped by API removal:
 `DefaultVersionId`, `WorkflowSpecManifest`, `Parameters`, `Conditions`, and

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	corev1 "k8s.io/api/core/v1"
@@ -127,7 +127,7 @@ func mergeSettings(ns, global map[string]interface{}) map[string]interface{} {
 	return merged
 }
 
-func SetPluginOutputState(output *apiv2beta1.PluginOutput, state apiv2beta1.PluginState, stateMessage string) {
+func SetPluginOutputState(output *apiv2.PluginOutput, state apiv2.PluginState, stateMessage string) {
 	if output == nil {
 		return
 	}

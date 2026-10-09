@@ -23,7 +23,7 @@ import (
 )
 
 func TestTransferRoutesUseDedicatedHandlers(t *testing.T) {
-	for _, path := range []string{"/apis/v2beta1/transfer/export", "/apis/v2beta1/transfer/import"} {
+	for _, path := range []string{"/apis/v2/transfer/export", "/apis/v2/transfer/import"} {
 		t.Run(path, func(t *testing.T) {
 			called := false
 			handle := func(w http.ResponseWriter, r *http.Request) { called = true; w.WriteHeader(http.StatusAccepted) }

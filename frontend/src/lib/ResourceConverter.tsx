@@ -15,10 +15,10 @@
  */
 
 import { BaseResource } from 'src/pages/ResourceSelector';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Experiment } from 'src/apisv2/experiment';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 
-export function convertExperimentToResource(e: V2beta1Experiment): BaseResource {
+export function convertExperimentToResource(e: V2Experiment): BaseResource {
   return {
     id: e.experiment_id,
     name: e.display_name,
@@ -28,7 +28,7 @@ export function convertExperimentToResource(e: V2beta1Experiment): BaseResource 
   };
 }
 
-export function convertPipelineToResource(p: V2beta1Pipeline): BaseResource {
+export function convertPipelineToResource(p: V2Pipeline): BaseResource {
   return {
     id: p.pipeline_id,
     name: p.name,
@@ -39,7 +39,7 @@ export function convertPipelineToResource(p: V2beta1Pipeline): BaseResource {
   };
 }
 
-export function convertPipelineVersionToResource(v: V2beta1PipelineVersion): BaseResource {
+export function convertPipelineVersionToResource(v: V2PipelineVersion): BaseResource {
   return {
     id: v.pipeline_version_id,
     name: v.name,

@@ -46,7 +46,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactTasksBulkRequest
+        :type body: V2CreateArtifactTasksBulkRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -59,7 +59,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1CreateArtifactTasksBulkResponse
+        :rtype: V2CreateArtifactTasksBulkResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.batch_create_artifact_tasks_with_http_info(body, **kwargs)  # noqa: E501
@@ -74,7 +74,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactTasksBulkRequest
+        :type body: V2CreateArtifactTasksBulkRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -91,7 +91,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1CreateArtifactTasksBulkResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2CreateArtifactTasksBulkResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -147,14 +147,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifact_tasks:batchCreate', 'POST',
+            '/apis/v2/artifact_tasks:batchCreate', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1CreateArtifactTasksBulkResponse',  # noqa: E501
+            response_type='V2CreateArtifactTasksBulkResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -172,7 +172,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactsBulkRequest
+        :type body: V2CreateArtifactsBulkRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -185,7 +185,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1CreateArtifactsBulkResponse
+        :rtype: V2CreateArtifactsBulkResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.batch_create_artifacts_with_http_info(body, **kwargs)  # noqa: E501
@@ -200,7 +200,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactsBulkRequest
+        :type body: V2CreateArtifactsBulkRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -217,7 +217,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1CreateArtifactsBulkResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2CreateArtifactsBulkResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -273,14 +273,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifacts:batchCreate', 'POST',
+            '/apis/v2/artifacts:batchCreate', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1CreateArtifactsBulkResponse',  # noqa: E501
+            response_type='V2CreateArtifactsBulkResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -298,7 +298,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactRequest
+        :type body: V2CreateArtifactRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -311,7 +311,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Artifact
+        :rtype: V2Artifact
         """
         kwargs['_return_http_data_only'] = True
         return self.create_artifact_with_http_info(body, **kwargs)  # noqa: E501
@@ -326,7 +326,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactRequest
+        :type body: V2CreateArtifactRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -343,7 +343,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Artifact, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Artifact, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -399,14 +399,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifacts', 'POST',
+            '/apis/v2/artifacts', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Artifact',  # noqa: E501
+            response_type='V2Artifact',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -424,7 +424,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactTaskRequest
+        :type body: V2CreateArtifactTaskRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -437,7 +437,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ArtifactTask
+        :rtype: V2ArtifactTask
         """
         kwargs['_return_http_data_only'] = True
         return self.create_artifact_task_with_http_info(body, **kwargs)  # noqa: E501
@@ -452,7 +452,7 @@ class ArtifactServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreateArtifactTaskRequest
+        :type body: V2CreateArtifactTaskRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -469,7 +469,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ArtifactTask, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ArtifactTask, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -525,14 +525,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifact_tasks', 'POST',
+            '/apis/v2/artifact_tasks', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ArtifactTask',  # noqa: E501
+            response_type='V2ArtifactTask',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -563,7 +563,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Artifact
+        :rtype: V2Artifact
         """
         kwargs['_return_http_data_only'] = True
         return self.get_artifact_with_http_info(artifact_id, **kwargs)  # noqa: E501
@@ -595,7 +595,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Artifact, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Artifact, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -647,14 +647,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifacts/{artifact_id}', 'GET',
+            '/apis/v2/artifacts/{artifact_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Artifact',  # noqa: E501
+            response_type='V2Artifact',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -699,7 +699,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListArtifactTasksResponse
+        :rtype: V2ListArtifactTasksResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.list_artifact_tasks_with_http_info(**kwargs)  # noqa: E501
@@ -745,7 +745,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListArtifactTasksResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListArtifactTasksResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -817,14 +817,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifact_tasks', 'GET',
+            '/apis/v2/artifact_tasks', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListArtifactTasksResponse',  # noqa: E501
+            response_type='V2ListArtifactTasksResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -849,7 +849,7 @@ class ArtifactServiceApi(object):
         :type page_size: int
         :param sort_by: Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -863,7 +863,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListArtifactResponse
+        :rtype: V2ListArtifactResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.list_artifacts_with_http_info(**kwargs)  # noqa: E501
@@ -885,7 +885,7 @@ class ArtifactServiceApi(object):
         :type page_size: int
         :param sort_by: Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -903,7 +903,7 @@ class ArtifactServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListArtifactResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListArtifactResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -963,14 +963,14 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/artifacts', 'GET',
+            '/apis/v2/artifacts', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListArtifactResponse',  # noqa: E501
+            response_type='V2ListArtifactResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

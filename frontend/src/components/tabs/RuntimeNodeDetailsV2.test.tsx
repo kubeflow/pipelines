@@ -21,8 +21,8 @@ import {
   PipelineTaskTaskPodType,
   PipelineTaskTaskState,
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import {
   getTaskDetailsFields,
   getLogsInfo,
@@ -62,7 +62,7 @@ describe('RuntimeNodeDetailsV2', () => {
     type: 'EXECUTION',
   } as const;
 
-  function createTask(overrides: Partial<V2beta1PipelineTask> = {}): V2beta1PipelineTask {
+  function createTask(overrides: Partial<V2PipelineTask> = {}): V2PipelineTask {
     return {
       task_id: TEST_TASK_ID,
       run_id: TEST_RUN_ID,
@@ -76,7 +76,7 @@ describe('RuntimeNodeDetailsV2', () => {
     };
   }
 
-  function renderTask(task: V2beta1PipelineTask, extraProps: Record<string, unknown> = {}) {
+  function renderTask(task: V2PipelineTask, extraProps: Record<string, unknown> = {}) {
     return render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
@@ -438,7 +438,7 @@ describe('RuntimeNodeDetailsV2', () => {
       data: { label: 'producer' },
       id: 'task.producer',
     };
-    const view = (task: V2beta1PipelineTask) => (
+    const view = (task: V2PipelineTask) => (
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           element={producerElement}

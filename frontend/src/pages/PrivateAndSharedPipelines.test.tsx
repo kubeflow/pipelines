@@ -17,7 +17,7 @@
 import { render } from '@testing-library/react';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
-import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2ListPipelinesResponse } from 'src/apisv2/pipeline';
 import { flushPromisesInAct } from 'src/TestUtils';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import PrivateAndSharedPipelines, {
@@ -50,7 +50,7 @@ function generatePageProps(): PageProps {
 const oldPipeline = newMockPipeline();
 const newPipeline = newMockPipeline();
 
-function newMockPipeline(): V2beta1Pipeline {
+function newMockPipeline(): V2Pipeline {
   return {
     pipeline_id: 'run-pipeline-id',
     display_name: 'mock pipeline name',
@@ -67,7 +67,7 @@ describe('PrivateAndSharedPipelines', () => {
     vi.clearAllMocks();
     let listPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
     listPipelineSpy.mockImplementation((...args) => {
-      const response: V2beta1ListPipelinesResponse = {
+      const response: V2ListPipelinesResponse = {
         pipelines: [oldPipeline, newPipeline],
         total_size: 2,
       };

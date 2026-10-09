@@ -278,14 +278,14 @@ spec:
               containerPort: 8887
           readinessProbe:
             httpGet:
-              path: /apis/v2beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
           livenessProbe:
             httpGet:
-              path: /apis/v2beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
@@ -295,7 +295,7 @@ spec:
           # migration.
           startupProbe:
             httpGet:
-              path: /apis/v2beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
             failureThreshold: 12
             periodSeconds: 5

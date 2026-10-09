@@ -129,7 +129,7 @@ describe('Apis', () => {
     };
     const spy = fetchSpy(JSON.stringify(expectedBuildInfo));
     const actualBuildInfo = await Apis.getBuildInfo();
-    expect(spy).toHaveBeenCalledWith('apis/v2beta1/healthz', { credentials: 'same-origin' });
+    expect(spy).toHaveBeenCalledWith('apis/v2/healthz', { credentials: 'same-origin' });
     expect(actualBuildInfo).toEqual(expectedBuildInfo);
   });
 
@@ -452,7 +452,7 @@ describe('Apis', () => {
     );
     expect(result).toEqual({ name: 'resultName' });
     expect(spy).toHaveBeenCalledWith(
-      'apis/v2beta1/pipelines/upload?name=' +
+      'apis/v2/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
         '&display_name=' +
         encodeURIComponent('test display name') +
@@ -478,7 +478,7 @@ describe('Apis', () => {
       'https://github.com/example/repo',
     );
     expect(spy).toHaveBeenCalledWith(
-      'apis/v2beta1/pipelines/upload?name=' +
+      'apis/v2/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
         '&display_name=' +
         encodeURIComponent('test display name') +
@@ -508,7 +508,7 @@ describe('Apis', () => {
       'https://github.com/example/repo',
     );
     expect(spy).toHaveBeenCalledWith(
-      'apis/v2beta1/pipelines/upload_version?name=' +
+      'apis/v2/pipelines/upload_version?name=' +
         encodeURIComponent('test version name') +
         '&pipelineid=' +
         encodeURIComponent('test-pipeline-id') +

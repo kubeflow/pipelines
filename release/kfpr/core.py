@@ -410,7 +410,12 @@ echo "All tools installed"
 cd "$REPO_ROOT"
 git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
-export API_VERSION=v2beta1
+if [ -f "$REPO_ROOT/backend/api/v2/run.proto" ] && \\
+    grep -Eq '^[[:space:]]*package[[:space:]]+kubeflow[.]pipelines[.]backend[.]api[.]v2[[:space:]]*;' "$REPO_ROOT/backend/api/v2/run.proto"; then
+  export API_VERSION=v2
+else
+  export API_VERSION=v2beta1
+fi
 "$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
 '''.strip()

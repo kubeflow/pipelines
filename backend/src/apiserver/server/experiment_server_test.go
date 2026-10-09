@@ -28,7 +28,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -53,17 +53,17 @@ func TestCreateExperiment(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	result, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV2beta1.Experiment{
+	expectedExperiment := &apiV2.Experiment{
 		ExperimentId:     DefaultFakeUUID,
 		DisplayName:      "ex1",
 		Description:      "first experiment",
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		StorageState:     apiV2.Experiment_AVAILABLE,
 		Namespace:        "",
 	}
 	assert.Equal(t, expectedExperiment, result)
@@ -73,9 +73,9 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
-	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to add experiment to experiment table")
 }
@@ -84,9 +84,9 @@ func TestCreateExperiment_EmptyName(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "", Description: "first experiment"}
 	clientManager.DB().Close()
-	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Invalid input error: Experiment must have a non-empty name")
 }
@@ -132,8 +132,8 @@ func TestCreateExperiment_LengthValidation(t *testing.T) {
 				resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 				server := createExperimentServer(resourceManager)
 
-				req := &apiV2beta1.CreateExperimentRequest{
-					Experiment: &apiV2beta1.Experiment{
+				req := &apiV2.CreateExperimentRequest{
+					Experiment: &apiV2.Experiment{
 						DisplayName: tc.name,
 						Namespace:   tc.namespace,
 					},
@@ -161,13 +161,13 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	defer clients.Close()
 
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{
+	experiment := &apiV2.Experiment{
 		DisplayName: "exp1",
 		Description: "first experiment",
 		Namespace:   "ns1",
 	}
 
-	_, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(
 		t,
@@ -188,33 +188,33 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		experiment *apiV2beta1.Experiment
-		want       *apiV2beta1.Experiment
+		experiment *apiV2.Experiment
+		want       *apiV2.Experiment
 		wantError  bool
 		errMsg     string
 	}{
 		{
 			"Valid",
-			&apiV2beta1.Experiment{
+			&apiV2.Experiment{
 				DisplayName:      "exp1",
 				Description:      "first experiment",
 				LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 				Namespace:        "ns1",
 			},
-			&apiV2beta1.Experiment{
+			&apiV2.Experiment{
 				ExperimentId:     DefaultFakeUUID,
 				DisplayName:      "exp1",
 				Description:      "first experiment",
 				LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 				Namespace:        "ns1",
-				StorageState:     apiV2beta1.Experiment_AVAILABLE,
+				StorageState:     apiV2.Experiment_AVAILABLE,
 			},
 			false,
 			"",
 		},
 		{
 			"Invalid - missing namespace",
-			&apiV2beta1.Experiment{
+			&apiV2.Experiment{
 				DisplayName: "exp1",
 				Description: "first experiment",
 			},
@@ -224,7 +224,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		},
 		{
 			"Invalid - missing name",
-			&apiV2beta1.Experiment{
+			&apiV2.Experiment{
 				Description: "first experiment",
 				Namespace:   "ns1",
 			},
@@ -234,7 +234,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		got, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: tt.experiment})
+		got, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{Experiment: tt.experiment})
 		if tt.wantError {
 			assert.NotNil(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)
@@ -251,19 +251,19 @@ func TestGetExperiment(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	result, err := server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV2beta1.Experiment{
+	expectedExperiment := &apiV2.Experiment{
 		ExperimentId:     createResult.ExperimentId,
 		DisplayName:      "ex1",
 		Description:      "first experiment",
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		StorageState:     apiV2.Experiment_AVAILABLE,
 		Namespace:        "",
 	}
 	assert.Equal(t, expectedExperiment, result)
@@ -273,12 +273,12 @@ func TestGetExperiment_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	_, err = server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to get experiment")
 }
@@ -296,7 +296,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 
 	server := createExperimentServer(manager)
 
-	_, err := server.GetExperiment(ctx, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
+	_, err := server.GetExperiment(ctx, &apiV2.GetExperimentRequest{ExperimentId: experiment.UUID})
 	assert.NotNil(t, err)
 	assert.Contains(
 		t,
@@ -314,24 +314,24 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{
+	experiment := &apiV2.Experiment{
 		DisplayName: "exp1",
 		Description: "first experiment",
 		Namespace:   "ns1",
 	}
 
-	createResult, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperiment(ctx, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	result, err := server.GetExperiment(ctx, &apiV2.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.Nil(t, err)
-	expectedExperiment := &apiV2beta1.Experiment{
+	expectedExperiment := &apiV2.Experiment{
 		ExperimentId:     createResult.ExperimentId,
 		DisplayName:      "exp1",
 		Description:      "first experiment",
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 		Namespace:        "ns1",
-		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		StorageState:     apiV2.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -340,18 +340,18 @@ func TestListExperiments(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{})
-	expectedExperiment := []*apiV2beta1.Experiment{{
+	result, err := server.ListExperiments(context.Background(), &apiV2.ListExperimentsRequest{})
+	expectedExperiment := []*apiV2.Experiment{{
 		ExperimentId:     createResult.ExperimentId,
 		DisplayName:      "ex1",
 		Description:      "first experiment",
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		StorageState:     apiV2.Experiment_AVAILABLE,
 		Namespace:        "",
 	}}
 	assert.Nil(t, err)
@@ -367,18 +367,18 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(manager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "exp2"}
-	experiment2, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	experiment := &apiV2.Experiment{DisplayName: "exp2"}
+	experiment2, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
 	// Create a generic run object
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
-	genericRun := &apiV2beta1.Run{
-		PipelineSource: &apiV2beta1.Run_PipelineSpec{
+	genericRun := &apiV2.Run{
+		PipelineSource: &apiV2.Run_PipelineSpec{
 			PipelineSpec: pipelineSpecStruct,
 		},
-		RuntimeConfig: &apiV2beta1.RuntimeConfig{
+		RuntimeConfig: &apiV2.RuntimeConfig{
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
 			},
@@ -391,7 +391,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	genericRun.DisplayName = "run1"
 	genericRun.ExperimentId = experiment1.UUID
-	_, err = runServer.CreateRun(nil, &apiV2beta1.CreateRunRequest{Run: genericRun})
+	_, err = runServer.CreateRun(context.Background(), &apiV2.CreateRunRequest{Run: genericRun})
 	assert.Nil(t, err)
 
 	// Create a run in experiment 2
@@ -400,41 +400,41 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	genericRun.DisplayName = "run2"
 	genericRun.ExperimentId = experiment2.ExperimentId
-	_, err = runServer.CreateRun(nil, &apiV2beta1.CreateRunRequest{Run: genericRun})
+	_, err = runServer.CreateRun(context.Background(), &apiV2.CreateRunRequest{Run: genericRun})
 	assert.Nil(t, err)
 
 	// Expected runs, note that because run 2 in experiment 2
 	// was created last, experiment 2 has the latest run execution
 	experimentServer := createExperimentServer(manager)
-	expected1 := &apiV2beta1.Experiment{
+	expected1 := &apiV2.Experiment{
 		ExperimentId:     experiment1.UUID,
 		DisplayName:      "exp1",
 		Description:      "",
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(5, 0)),
-		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		StorageState:     apiV2.Experiment_AVAILABLE,
 		Namespace:        "",
 	}
-	expected2 := &apiV2beta1.Experiment{
+	expected2 := &apiV2.Experiment{
 		ExperimentId:     experiment2.ExperimentId,
 		DisplayName:      "exp2",
 		Description:      "",
 		CreatedAt:        timestamppb.New(time.Unix(4, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(7, 0)),
-		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		StorageState:     apiV2.Experiment_AVAILABLE,
 		Namespace:        "",
 	}
 
 	// First list runs sorted by last_run_created_at ascending
-	listExperimentsRequest := &apiV2beta1.ListExperimentsRequest{SortBy: "last_run_created_at asc"}
+	listExperimentsRequest := &apiV2.ListExperimentsRequest{SortBy: "last_run_created_at asc"}
 	result, err := experimentServer.ListExperiments(nil, listExperimentsRequest)
 	assert.Nil(t, err)
-	assert.Equal(t, []*apiV2beta1.Experiment{expected1, expected2}, result.Experiments)
+	assert.Equal(t, []*apiV2.Experiment{expected1, expected2}, result.Experiments)
 
 	// Then list runs sorted by last_run_created_at descending, note the order is switched
-	listExperimentsRequest = &apiV2beta1.ListExperimentsRequest{SortBy: "last_run_created_at desc"}
+	listExperimentsRequest = &apiV2.ListExperimentsRequest{SortBy: "last_run_created_at desc"}
 	result, err = experimentServer.ListExperiments(nil, listExperimentsRequest)
-	assert.Equal(t, []*apiV2beta1.Experiment{expected2, expected1}, result.Experiments)
+	assert.Equal(t, []*apiV2.Experiment{expected2, expected1}, result.Experiments)
 	assert.NoError(t, err)
 }
 
@@ -442,12 +442,12 @@ func TestListExperiments_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
 
-	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{})
+	_, err = server.ListExperiments(context.Background(), &apiV2.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed")
 }
@@ -464,7 +464,7 @@ func TestListExperiments_Unauthorized(t *testing.T) {
 	defer clients.Close()
 
 	server := createExperimentServer(manager)
-	_, err := server.ListExperiments(ctx, &apiV2beta1.ListExperimentsRequest{Namespace: "ns1"})
+	_, err := server.ListExperiments(ctx, &apiV2.ListExperimentsRequest{Namespace: "ns1"})
 	assert.NotNil(t, err)
 	assert.Contains(
 		t,
@@ -483,47 +483,47 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{
+	experiment := &apiV2.Experiment{
 		DisplayName: "exp1",
 		Description: "first experiment",
 		Namespace:   "ns1",
 	}
 
-	createResult, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
 	tests := []struct {
 		name                string
-		request             *apiV2beta1.ListExperimentsRequest
+		request             *apiV2.ListExperimentsRequest
 		wantError           bool
 		errorMessage        string
-		expectedExperiments []*apiV2beta1.Experiment
+		expectedExperiments []*apiV2.Experiment
 	}{
 		{
 			"Valid",
-			&apiV2beta1.ListExperimentsRequest{Namespace: "ns1"},
+			&apiV2.ListExperimentsRequest{Namespace: "ns1"},
 			false,
 			"",
-			[]*apiV2beta1.Experiment{{
+			[]*apiV2.Experiment{{
 				ExperimentId:     createResult.ExperimentId,
 				DisplayName:      "exp1",
 				Description:      "first experiment",
 				CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 				LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 				Namespace:        "ns1",
-				StorageState:     apiV2beta1.Experiment_AVAILABLE,
+				StorageState:     apiV2.Experiment_AVAILABLE,
 			}},
 		},
 		{
 			"Valid but empty result",
-			&apiV2beta1.ListExperimentsRequest{Namespace: "ns2"},
+			&apiV2.ListExperimentsRequest{Namespace: "ns2"},
 			false,
 			"",
-			[]*apiV2beta1.Experiment{},
+			[]*apiV2.Experiment{},
 		},
 		{
 			"Missing namespace",
-			&apiV2beta1.ListExperimentsRequest{},
+			&apiV2.ListExperimentsRequest{},
 			true,
 			"An experiment cannot have an empty namespace in multi-user mode",
 			nil,
@@ -541,7 +541,7 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListExperiments_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(apiV2beta1.Experiment{}, "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(apiV2.Experiment{}, "CreatedAt")) {
 				t.Errorf("TestListExperiments_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}
@@ -554,15 +554,15 @@ func TestDeleteExperiments_SingleUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
-	resultExperiment, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	resultExperiment, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	_, err = server.DeleteExperiment(nil, &apiV2beta1.DeleteExperimentRequest{ExperimentId: "ex2"})
+	_, err = server.DeleteExperiment(context.Background(), &apiV2.DeleteExperimentRequest{ExperimentId: "ex2"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
-	_, err = server.DeleteExperiment(nil, &apiV2beta1.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
+	_, err = server.DeleteExperiment(context.Background(), &apiV2.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
 	assert.Nil(t, err)
 }
 
@@ -577,15 +577,15 @@ func TestDeleteExperiments_MultiUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment", Namespace: "ns1"}
-	resultExperiment, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	experiment := &apiV2.Experiment{DisplayName: "ex1", Description: "first experiment", Namespace: "ns1"}
+	resultExperiment, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	_, err = server.DeleteExperiment(ctx, &apiV2beta1.DeleteExperimentRequest{ExperimentId: "ex2"})
+	_, err = server.DeleteExperiment(ctx, &apiV2.DeleteExperimentRequest{ExperimentId: "ex2"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
-	_, err = server.DeleteExperiment(ctx, &apiV2beta1.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
+	_, err = server.DeleteExperiment(ctx, &apiV2.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
 	assert.Nil(t, err)
 }
 
@@ -593,15 +593,15 @@ func TestGetExperiment_JsonOmitEmpty(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{
+	experiment := &apiV2.Experiment{
 		DisplayName: "exp1",
 		Description: "test description",
 	}
 
-	result, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
-	getResult, err := server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: result.ExperimentId})
+	getResult, err := server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: result.ExperimentId})
 	assert.Nil(t, err)
 
 	// Convert to JSON using the custom marshaler used by runtime servers

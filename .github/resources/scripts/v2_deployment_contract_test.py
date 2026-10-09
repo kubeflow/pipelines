@@ -18,6 +18,8 @@ from pathlib import Path
 import re
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -30,7 +32,7 @@ class V2DeploymentContractTest(unittest.TestCase):
                 manifest = (ROOT / 'manifests/kustomize/base/pipeline' /
                             filename).read_text()
                 self.assertEqual(
-                    manifest.count('path: /apis/v2beta1/healthz'), count)
+                    manifest.count('path: /apis/v2/healthz'), count)
                 self.assertNotIn('/apis/v1beta1', manifest)
 
     def test_generation_and_release_only_generate_v2_clients(self):
@@ -38,7 +40,7 @@ class V2DeploymentContractTest(unittest.TestCase):
                      '.github/workflows/validate-generated-files.yml'):
             with self.subTest(path=path):
                 text = (ROOT / path).read_text()
-                self.assertIn('v2beta1', text)
+                self.assertIn('v2', text)
                 self.assertNotIn('v1beta1', text)
 
     def test_backend_dev_targets_submit_ir_from_existing_sources(self):
@@ -69,6 +71,66 @@ class V2DeploymentContractTest(unittest.TestCase):
             workflow.index(forwarding),
             workflow.index('- name: API integration tests v2'))
 
+    def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
+            self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/upgrade-test.yml').read_text())
+        for job in workflow['jobs'].values():
+            self.assertEqual(job['if'], '${{ false }}')
+        steps = {
+            step['name']: step
+            for step in workflow['jobs']['upgrade-test']['steps']
+        }
+        prepare = steps['Prepare for Upgrade']
+        self.assertIn('-- -useLegacyAPIPrefix=true', prepare['run'])
+        self.assertFalse(prepare.get('continue-on-error', False))
+        self.assertFalse(steps['Forward API port'].get('continue-on-error',
+                                                       False))
+        self.assertIn("steps.prepare-upgrade.outcome == 'success'",
+                      steps['Deploy from Branch']['if'])
+        self.assertIn("steps.prepare-upgrade.outcome == 'success'",
+                      steps['Verify Upgrade']['if'])
+        self.assertNotIn('useLegacyAPIPrefix', str(steps['Verify Upgrade']))
+        self.assertEqual(steps['Stop port forwarding']['if'], '${{ always() }}')
+
+    def test_legacy_api_specs_reuse_existing_cluster_jobs(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text())
+        for name in ('api-test-standalone', 'api-test-k8s-native',
+                     'api-test-multi-user'):
+            with self.subTest(job=name):
+                steps = workflow['jobs'][name]['steps']
+                self.assertEqual(
+                    sum(
+                        step.get('uses') == './.github/actions/create-cluster'
+                        for step in steps), 1)
+                self.assertEqual(
+                    sum(
+                        step.get('uses') == './.github/actions/deploy'
+                        for step in steps), 1)
+                tests = next(
+                    step for step in steps if step['name'] == 'Run Tests')
+                self.assertEqual(tests['uses'],
+                                 './.github/actions/test-and-report')
+                self.assertNotIn('LEGACY_API_COMPATIBILITY_TESTS',
+                                 tests.get('env', {}))
+                self.assertEqual(tests['with']['test_directory'],
+                                 '${{ env.API_TESTS_DIR }}')
+        multi_user = next(
+            step for step in workflow['jobs']['api-test-multi-user']['steps']
+            if step['name'] == 'Configure Input Variables')
+        self.assertIn(
+            'TEST_LABEL="$AUTOMATIC_TEST_LABEL || LegacyAPICompatibility"',
+            multi_user['run'])
+        specs = (
+            ROOT /
+            'backend/test/v2/api/legacy_compatibility_api_test.go').read_text()
+        self.assertNotIn('LEGACY_API_COMPATIBILITY_TESTS', specs)
+        self.assertNotIn('Skip(', specs)
+        self.assertIn('constants.APIServerTests', specs)
+        self.assertFalse(
+            any('compatibility' in name for name in workflow['jobs']))
+
     def test_visualization_service_is_not_deployed_or_generated(self):
         for root in ('manifests/kustomize', '.github/resources/manifests'):
             for path in (ROOT / root).rglob('kustomization.yaml'):
@@ -79,15 +141,14 @@ class V2DeploymentContractTest(unittest.TestCase):
                                        'Dockerfile.visualization',
                                        'visualizationserver.yaml'):
                         self.assertNotIn(identifier, text)
-        for path in ('backend/api/v2beta1/visualization.proto',
+        for path in ('backend/api/v2/visualization.proto',
                      'backend/Dockerfile.visualization',
                      'backend/src/apiserver/visualization/server.py',
-                     'frontend/src/apisv2beta1/visualization'):
+                     'frontend/src/apisv2/visualization'):
             with self.subTest(path=path):
                 self.assertFalse((ROOT / path).exists())
-        for path in (
-                'backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json',
-                'docs/_static/kfp_api_single_file.swagger.json'):
+        for path in ('backend/api/v2/swagger/kfp_api_single_file.swagger.json',
+                     'docs/_static/kfp_api_single_file.swagger.json'):
             with self.subTest(path=path):
                 text = (ROOT / path).read_text()
                 self.assertNotIn('VisualizationService', text)

@@ -55,7 +55,7 @@ Started workers
 Wait for shut down
 ```
 
-Create recurring runs using the v2beta1 RecurringRunService or the KFP SDK.
+Create recurring runs using the v2 RecurringRunService or the KFP SDK.
 The API server accepts pipeline IR or pipeline-version references and creates
 ScheduledWorkflow resources. Embedded Argo templates are execution details of
 IR compilation; submitting raw user-authored Workflow templates is not supported.

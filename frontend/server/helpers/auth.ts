@@ -5,7 +5,7 @@ import {
   AuthorizeVerbEnum,
   Configuration as AuthConfiguration,
   AuthServiceApi,
-} from '../src/generated/apisv2beta1/auth/index.js';
+} from '../src/generated/apisv2/auth/index.js';
 import { parseError, ErrorDetails } from '../utils.js';
 
 export type AuthorizeFn = (

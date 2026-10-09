@@ -17,7 +17,7 @@ package driver
 import (
 	"testing"
 
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -30,11 +30,11 @@ func TestConvertArtifactsToArtifactList_MultipleMetrics(t *testing.T) {
 	precision := 0.87
 	recall := 0.91
 
-	artifacts := []*apiV2beta1.Artifact{
+	artifacts := []*apiV2.Artifact{
 		{
 			ArtifactId:  "artifact-1",
 			Name:        "accuracy",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &accuracy,
 			Metadata: map[string]*structpb.Value{
 				"accuracy": structpb.NewNumberValue(accuracy),
@@ -43,7 +43,7 @@ func TestConvertArtifactsToArtifactList_MultipleMetrics(t *testing.T) {
 		{
 			ArtifactId:  "artifact-2",
 			Name:        "precision",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &precision,
 			Metadata: map[string]*structpb.Value{
 				"precision": structpb.NewNumberValue(precision),
@@ -52,7 +52,7 @@ func TestConvertArtifactsToArtifactList_MultipleMetrics(t *testing.T) {
 		{
 			ArtifactId:  "artifact-3",
 			Name:        "recall",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &recall,
 			Metadata: map[string]*structpb.Value{
 				"recall": structpb.NewNumberValue(recall),
@@ -90,11 +90,11 @@ func TestConvertArtifactsToArtifactList_MultipleMetrics(t *testing.T) {
 func TestConvertArtifactsToArtifactList_SingleMetric(t *testing.T) {
 	accuracy := 0.95
 
-	artifacts := []*apiV2beta1.Artifact{
+	artifacts := []*apiV2.Artifact{
 		{
 			ArtifactId:  "artifact-1",
 			Name:        "accuracy",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &accuracy,
 			Metadata: map[string]*structpb.Value{
 				"accuracy": structpb.NewNumberValue(accuracy),
@@ -120,17 +120,17 @@ func TestConvertArtifactsToArtifactList_NonMetrics(t *testing.T) {
 	uri1 := "s3://bucket/dataset1"
 	uri2 := "s3://bucket/dataset2"
 
-	artifacts := []*apiV2beta1.Artifact{
+	artifacts := []*apiV2.Artifact{
 		{
 			ArtifactId: "artifact-1",
 			Name:       "dataset1",
-			Type:       apiV2beta1.Artifact_Dataset,
+			Type:       apiV2.Artifact_Dataset,
 			Uri:        &uri1,
 		},
 		{
 			ArtifactId: "artifact-2",
 			Name:       "dataset2",
-			Type:       apiV2beta1.Artifact_Dataset,
+			Type:       apiV2.Artifact_Dataset,
 			Uri:        &uri2,
 		},
 	}
@@ -159,17 +159,17 @@ func TestConvertArtifactsToArtifactList_MixedTypes(t *testing.T) {
 	accuracy := 0.95
 	uri := "s3://bucket/model"
 
-	artifacts := []*apiV2beta1.Artifact{
+	artifacts := []*apiV2.Artifact{
 		{
 			ArtifactId:  "artifact-1",
 			Name:        "accuracy",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &accuracy,
 		},
 		{
 			ArtifactId: "artifact-2",
 			Name:       "model",
-			Type:       apiV2beta1.Artifact_Model,
+			Type:       apiV2.Artifact_Model,
 			Uri:        &uri,
 		},
 	}
@@ -185,7 +185,7 @@ func TestConvertArtifactsToArtifactList_MixedTypes(t *testing.T) {
 // TestConvertArtifactsToArtifactList_EmptyList tests that empty artifact list
 // is handled correctly
 func TestConvertArtifactsToArtifactList_EmptyList(t *testing.T) {
-	artifacts := []*apiV2beta1.Artifact{}
+	artifacts := []*apiV2.Artifact{}
 
 	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
@@ -200,11 +200,11 @@ func TestConvertArtifactsToArtifactList_MetricsWithURIAndMetadata(t *testing.T) 
 	precision := 0.87
 	uri := "s3://bucket/metrics.json"
 
-	artifacts := []*apiV2beta1.Artifact{
+	artifacts := []*apiV2.Artifact{
 		{
 			ArtifactId:  "artifact-1",
 			Name:        "accuracy",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			Uri:         &uri,
 			NumberValue: &accuracy,
 			Metadata: map[string]*structpb.Value{
@@ -214,7 +214,7 @@ func TestConvertArtifactsToArtifactList_MetricsWithURIAndMetadata(t *testing.T) 
 		{
 			ArtifactId:  "artifact-2",
 			Name:        "precision",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &precision,
 			Metadata: map[string]*structpb.Value{
 				"precision": structpb.NewNumberValue(precision),
@@ -245,18 +245,18 @@ func TestConvertArtifactsToArtifactList_MetricsNumberValueInMetadata(t *testing.
 	precision := 0.87
 
 	// Test with multiple metrics where one has no metadata field
-	artifacts := []*apiV2beta1.Artifact{
+	artifacts := []*apiV2.Artifact{
 		{
 			ArtifactId:  "artifact-1",
 			Name:        "accuracy",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &accuracy,
 			// No metadata field - NumberValue should still be included in merged metadata
 		},
 		{
 			ArtifactId:  "artifact-2",
 			Name:        "precision",
-			Type:        apiV2beta1.Artifact_Metric,
+			Type:        apiV2.Artifact_Metric,
 			NumberValue: &precision,
 			Metadata: map[string]*structpb.Value{
 				"precision": structpb.NewNumberValue(precision),
@@ -281,10 +281,10 @@ func TestConvertArtifactsToArtifactList_MetricsNumberValueInMetadata(t *testing.
 }
 
 func TestConvertArtifactToRuntimeArtifact_RestoresCustomSchemaTitle(t *testing.T) {
-	artifact := &apiV2beta1.Artifact{
+	artifact := &apiV2.Artifact{
 		ArtifactId: "artifact-1",
 		Name:       "vertex-model",
-		Type:       apiV2beta1.Artifact_Artifact,
+		Type:       apiV2.Artifact_Artifact,
 		Metadata: map[string]*structpb.Value{
 			"_kfp_schema_title":   structpb.NewStringValue("google.VertexModel"),
 			"_kfp_schema_version": structpb.NewStringValue("0.0.7"),
@@ -307,11 +307,11 @@ func TestConvertArtifactToRuntimeArtifact_RestoresCustomSchemaTitle(t *testing.T
 }
 
 func TestConvertArtifactsToArtifactList_MetricSchemaMetadata(t *testing.T) {
-	artifacts := []*apiV2beta1.Artifact{}
+	artifacts := []*apiV2.Artifact{}
 	for _, name := range []string{"accuracy", "precision"} {
-		artifacts = append(artifacts, &apiV2beta1.Artifact{
+		artifacts = append(artifacts, &apiV2.Artifact{
 			Name: name,
-			Type: apiV2beta1.Artifact_Metric,
+			Type: apiV2.Artifact_Metric,
 			Metadata: map[string]*structpb.Value{
 				"_kfp_schema_version": structpb.NewStringValue("0.0.1"),
 				name:                  structpb.NewNumberValue(0.9),
@@ -330,18 +330,18 @@ func TestConvertArtifactsToArtifactList_MetricSchemaMetadata(t *testing.T) {
 func TestCachedArtifactSchemaReconstruction(t *testing.T) {
 	for _, title := range []string{"system.Dataset", "example.CustomDataset"} {
 		t.Run(title, func(t *testing.T) {
-			nativeType := apiV2beta1.Artifact_Dataset
+			nativeType := apiV2.Artifact_Dataset
 			metadata := map[string]*structpb.Value{
 				"_kfp_schema_version": structpb.NewStringValue("1.2.3"),
 			}
 			if title != "system.Dataset" {
-				nativeType = apiV2beta1.Artifact_Artifact
+				nativeType = apiV2.Artifact_Artifact
 				metadata["_kfp_schema_title"] = structpb.NewStringValue(title)
 			}
-			original := &apiV2beta1.PipelineTask_InputOutputs{
-				Artifacts: []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			original := &apiV2.PipelineTask_InputOutputs{
+				Artifacts: []*apiV2.PipelineTask_InputOutputs_IOArtifact{{
 					ArtifactKey: "Output",
-					Artifacts: []*apiV2beta1.Artifact{{
+					Artifacts: []*apiV2.Artifact{{
 						Name: "dataset", Type: nativeType, Metadata: metadata,
 					}},
 				}},

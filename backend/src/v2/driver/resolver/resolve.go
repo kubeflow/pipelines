@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 )
 
@@ -33,7 +33,7 @@ var ErrResolvedParameterNull = errors.New("the resolved input is null")
 type ParameterMetadata struct {
 	// This is the key of the parameter in this task's inputs.
 	Key                string
-	ParameterIO        *apiV2beta1.PipelineTask_InputOutputs_IOParameter
+	ParameterIO        *apiV2.PipelineTask_InputOutputs_IOParameter
 	InputParameterSpec *pipelinespec.TaskInputsSpec_InputParameterSpec
 	ParameterIterator  *pipelinespec.ParameterIteratorSpec
 }
@@ -44,7 +44,7 @@ type ArtifactMetadata struct {
 	// InputArtifactSpec is mutually exclusive with ArtifactIterator
 	InputArtifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec
 	ArtifactIterator  *pipelinespec.ArtifactIteratorSpec
-	ArtifactIO        *apiV2beta1.PipelineTask_InputOutputs_IOArtifact
+	ArtifactIO        *apiV2.PipelineTask_InputOutputs_IOArtifact
 }
 
 // InputMetadata collects artifacts and parameters as arrays because

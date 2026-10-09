@@ -30,13 +30,12 @@ __all__ = [
     'ListExperimentsResponse',
 ]
 
-Pipeline = kfp.server_api.V2beta1Pipeline
-PipelineVersion = kfp.server_api.V2beta1PipelineVersion
-Run = kfp.server_api.V2beta1Run
-Experiment = kfp.server_api.V2beta1Experiment
+Pipeline = kfp.server_api.V2Pipeline
+PipelineVersion = kfp.server_api.V2PipelineVersion
+Run = kfp.server_api.V2Run
+Experiment = kfp.server_api.V2Experiment
 
-ListPipelinesResponse = kfp.server_api.V2beta1ListPipelinesResponse
-ListPipelineVersionsResponse = (
-    kfp.server_api.V2beta1ListPipelineVersionsResponse)
-ListRunsResponse = kfp.server_api.V2beta1ListRunsResponse
-ListExperimentsResponse = kfp.server_api.V2beta1ListExperimentsResponse
+ListPipelinesResponse = kfp.server_api.V2ListPipelinesResponse
+ListPipelineVersionsResponse = (kfp.server_api.V2ListPipelineVersionsResponse)
+ListRunsResponse = kfp.server_api.V2ListRunsResponse
+ListExperimentsResponse = kfp.server_api.V2ListExperimentsResponse
