@@ -47,7 +47,7 @@ func TestListJobsWithoutRecurringRunState(t *testing.T) {
 
 	// Inventory must never seed trusted state from legacy records.
 	_, err = store.GetRecurringRunState("1")
-	require.ErrorContains(t, err, "recreate it through the KFP API")
+	require.ErrorContains(t, err, "complete recurring-run adoption in KFP 2.18 before upgrading")
 	_, err = store.ListJobsWithoutRecurringRunState("", 0)
 	require.Error(t, err)
 	_, err = store.ListJobsWithoutRecurringRunState("", 1001)

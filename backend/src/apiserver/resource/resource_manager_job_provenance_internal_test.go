@@ -79,8 +79,9 @@ func TestChangeJobMode_UsesSelectedPipelineProvenance(t *testing.T) {
 				DisplayName: "source-job", Enabled: true, ExperimentId: experiment.UUID, PipelineSpec: pipelineSpec,
 			})
 			require.NoError(t, err)
-			seedHistoricalEmbeddedSchedule(t, manager, job)
 			require.NoError(t, manager.ChangeJobMode(ctx, job.UUID, false))
+			// Reintroduce the historical embedded fixture after normal mode synchronization.
+			seedHistoricalEmbeddedSchedule(t, manager, job)
 			if !test.v2 && test.pinned {
 				_, err = store.db.Exec(`UPDATE "pipeline_versions" SET "PipelineSpec" = ? WHERE "UUID" = ?`, manifest, job.PipelineVersionId)
 				require.NoError(t, err)

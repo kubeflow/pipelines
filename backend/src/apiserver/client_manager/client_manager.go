@@ -548,6 +548,11 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	util.TerminateIfError(err)
 	dbDialect := sqldrv.NewDBDialect(driverName)
 
+	// Validate the upgrade source before any schema or data migration.
+	if common.IsMultiUserMode() {
+		util.TerminateIfError(requireCompletedRecurringRunAdoption(db))
+	}
+
 	legacy, err := isLegacySchema(db)
 	if err != nil {
 		glog.Fatalf("failed to detect schema version: %v", err)
