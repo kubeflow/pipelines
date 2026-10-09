@@ -120,7 +120,7 @@ with dsl.ExitHandler(cleanup_task):
 ## Data passing rules
 
 - Pass **parameters** via function arguments: `task_b(input=task_a.output)`.
-- Pass **artifacts** with typed paths: `output: dsl.OutputPath(str)`, `input_artifact: dsl.InputPath()`.
+- Pass **artifacts** with typed paths: `output: dsl.OutputPath(Dataset)`, `input_artifact: dsl.Input[Dataset]`.
 - Avoid v1 `.apply()`; in v2, use `.after()` when you need explicit ordering without a data dependency (see `samples/core/kubernetes_pvc/kubernetes_pvc.py` and `samples/core/execution_order/execution_order.py`).
 
 ## Kubernetes config
