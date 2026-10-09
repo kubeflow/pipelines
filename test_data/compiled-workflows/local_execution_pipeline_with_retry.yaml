@@ -205,10 +205,6 @@ spec:
             fieldPath: metadata.namespace
       - name: KFP_RETRY_INDEX
         value: '{{retries}}'
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}

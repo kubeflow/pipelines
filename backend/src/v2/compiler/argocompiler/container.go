@@ -613,8 +613,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 					MountPath: dotConfigScratchLocation,
 				},
 			},
-			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+			Env: append(commonEnvs, mlPipelineAPIClientEnvVars()...),
 		},
 	}
 	setRuntimeRole(executor, util.ExecutionRuntimeRoleLauncher)
