@@ -178,9 +178,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Remove retained pagination source API
+        if: ${{ always() && steps.create-cluster.outcome == 'success' }}
+        shell: bash
+        run: |
+          kubectl -n kubeflow delete deployment/pagination-source --ignore-not-found=true --cascade=foreground --wait=true --timeout=120s
+
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}
         with:
           test_directory: ${{ env.TESTS_DIR }}
           test_label: "UpgradeVerification"

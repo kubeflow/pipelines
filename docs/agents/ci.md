@@ -68,3 +68,11 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   payloads, and workflow specifications, but reports retain namespace, resource,
   service-account and run identifiers. Use only the synthetic CI cluster and
   review report contents before sharing; these artifacts are not anonymized.
+
+- The pagination upgrade fixture retains its source API through mixed-version
+  verification and evidence upload, then removes that deployment before general
+  upgrade verification. Cleanup runs after failures and cancellation, tolerates
+  an absent fixture, and waits for foreground deletion of its Pods. General
+  upgrade verification uses an explicit non-cancellation condition so pagination,
+  evidence-upload, or cleanup failure cannot silently skip it; those failures
+  still fail the job.
