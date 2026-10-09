@@ -13,14 +13,20 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
 )
@@ -210,4 +216,117 @@ func TestManagedScheduleWritersRejectsInheritedContainerClaim(t *testing.T) {
 	deployments, pods := handoffFixtures()
 	pods[0].Spec.Containers[0].Image = "registry/writer:old"
 	require.Error(t, RegisterManagedScheduleWriter(context.Background(), handoffClient(deployments, pods), "kubeflow", pods[0].Name))
+}
+
+func TestManagedScheduleWriterHandoffCachesOnlySuccess(t *testing.T) {
+	deployments, pods := handoffFixtures()
+	client := handoffClient(deployments, pods)
+	ready := NewManagedScheduleWriterHandoff(client, "kubeflow", pods[0].Name)
+	fail := true
+	client.PrependReactor("get", "deployments", func(ktesting.Action) (bool, runtime.Object, error) {
+		if fail {
+			return true, nil, apierrors.NewServiceUnavailable("temporary outage")
+		}
+		return false, nil, nil
+	})
+	require.Error(t, ready(context.Background()))
+	fail = false
+	require.NoError(t, ready(context.Background()))
+	calls := len(client.Actions())
+	fail = true
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); require.NoError(t, ready(context.Background())) }()
+	}
+	wg.Wait()
+	require.Len(t, client.Actions(), calls, "completed handoff must not read Kubernetes again")
+	// A replacement process must perform its own handoff.
+	require.Error(t, NewManagedScheduleWriterHandoff(client, "kubeflow", pods[0].Name)(context.Background()))
+}
+
+func TestManagedScheduleWriterConfigurationFailsWithoutPolling(t *testing.T) {
+	for _, test := range []struct {
+		name, namespace, pod string
+		forbidden            bool
+	}{
+		{name: "namespace missing", pod: "controller"},
+		{name: "name missing", namespace: "kubeflow"},
+		{name: "wrong pod name", namespace: "kubeflow", pod: "custom-hostname"},
+		{name: "RBAC missing", namespace: "kubeflow", pod: "ml-pipeline-scheduledworkflow-pod", forbidden: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			deployments, pods := handoffFixtures()
+			client := handoffClient(deployments, pods)
+			if test.forbidden {
+				client.PrependReactor("get", "pods", func(ktesting.Action) (bool, runtime.Object, error) {
+					return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, test.pod, fmt.Errorf("denied"))
+				})
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err := WaitForManagedScheduleWriters(ctx, client, test.namespace, test.pod, func(error) { t.Error("configuration error entered retry loop") })
+			require.Error(t, err)
+			require.NoError(t, ctx.Err(), "configuration errors must return before polling timeout")
+			require.Contains(t, err.Error(), "POD_NAME")
+		})
+	}
+}
+
+func TestManagedScheduleWriterTransientFailureStillWaits(t *testing.T) {
+	deployments, pods := handoffFixtures()
+	client := handoffClient(deployments, pods)
+	client.PrependReactor("get", "pods", func(ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewServiceUnavailable("retry")
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	waits := 0
+	err := WaitForManagedScheduleWriters(ctx, client, "kubeflow", pods[0].Name, func(error) { waits++; cancel() })
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, 1, waits)
+}
+
+func TestManagedScheduleWriterRegistrationRaceRetries(t *testing.T) {
+	deployments, pods := handoffFixtures()
+	pods[0].Annotations = nil
+	client := handoffClient(deployments, pods)
+	client.PrependReactor("patch", "pods", func(ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewInvalid(schema.GroupKind{Kind: "Pod"}, pods[0].Name,
+			field.ErrorList{field.Invalid(field.NewPath("metadata", "resourceVersion"), "1", "JSON Patch test failed")})
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	waits := 0
+	err := WaitForManagedScheduleWriters(ctx, client, "kubeflow", pods[0].Name, func(err error) {
+		require.True(t, apierrors.IsConflict(err))
+		waits++
+		cancel()
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, 1, waits)
+}
+
+func TestManagedScheduleWriterHandoffCanceledWaiter(t *testing.T) {
+	deployments, pods := handoffFixtures()
+	client := handoffClient(deployments, pods)
+	ready := NewManagedScheduleWriterHandoff(client, "kubeflow", pods[0].Name)
+	started, release := make(chan struct{}), make(chan struct{})
+	var first sync.Once
+	client.PrependReactor("get", "deployments", func(ktesting.Action) (bool, runtime.Object, error) {
+		first.Do(func() { close(started); <-release })
+		return false, nil, nil
+	})
+	done := make(chan error, 1)
+	go func() { done <- ready(context.Background()) }()
+	<-started
+	defer func() { close(release); require.NoError(t, <-done) }()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	waiter := make(chan error, 1)
+	go func() { waiter <- ready(ctx) }()
+	select {
+	case err := <-waiter:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Error("canceled caller waited for another caller's Kubernetes request")
+	}
 }

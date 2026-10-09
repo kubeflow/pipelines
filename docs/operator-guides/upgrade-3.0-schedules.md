@@ -50,6 +50,16 @@ same writer protocol to recognize a completed managed rollout. This coordination
 retries automatically; operators do not need to shut down all schedule writers
 or perform a coordinated cutover.
 
+Each process caches its first successful handoff; a new process verifies the
+handoff again. The cached result assumes legacy writers will not be reintroduced
+into the running installation. A downgrade to legacy writers requires a separate
+coordinated rollback plan; it is not a supported live rolling downgrade.
+
+Retain `POD_NAME` and `POD_NAMESPACE` from the manifest's Kubernetes downward API.
+The controller exits on invalid Pod identity or denied handoff permissions rather
+than waiting indefinitely for a configuration error to resolve. Correct its
+configuration or RBAC and allow Kubernetes to restart it.
+
 During an incomplete handoff, schedule creation and enable/disable operations
 can return retryable `Unavailable` errors before changing
 persistent state. Retry after the rollout completes. Schedule reads and ordinary
@@ -66,6 +76,15 @@ for that rollout. It does not contain a second
 legacy conversion path. Scheduling counters, pending execution identities, and
 concurrency limits remain authoritative across retries; recovery must not reseed
 them from editable Kubernetes status.
+
+After handoff, each API process performs one paginated startup repair of existing
+Kubernetes schedule objects from trusted SQL state, including records already
+marked ready. Each attempt is bounded. Repair updates existing objects; it does
+not recreate missing objects, reseed progress, or acknowledge a pending execution.
+Failed records remain eligible for the ordinary reconciliation loop. Background
+and submission-triggered retries share per-record capped exponential backoff, so
+a persistent error does not repeatedly synchronize the same schedule on every
+request or prevent other schedules from recovering.
 
 See [scheduled service accounts](scheduled-service-accounts.md) for authorization,
 revocation, and execution recovery limits.
