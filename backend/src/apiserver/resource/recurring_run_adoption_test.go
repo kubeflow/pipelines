@@ -64,6 +64,7 @@ func TestAdoptLegacyRecurringRunResumesInterruptedCutoverFromSQL(t *testing.T) {
 	db, err := clients.TransferDB()
 	require.NoError(t, err)
 	require.NoError(t, db.Delete(&model.RecurringRunState{}, &model.RecurringRunState{JobUUID: job.UUID}).Error)
+	require.NoError(t, db.Delete(&model.RecurringRunAdoption{}, &model.RecurringRunAdoption{ID: "legacy-2.18:" + job.UUID}).Error)
 	interrupted := &adoptionInterruptedCR{ScheduledWorkflowInterface: clients.SwfClient().ScheduledWorkflow("ns1"), failUpdate: true}
 	manager.swfClient = interrupted
 	_, err = manager.AdoptLegacyRecurringRuns(ctx)
@@ -71,7 +72,7 @@ func TestAdoptLegacyRecurringRunResumesInterruptedCutoverFromSQL(t *testing.T) {
 	receipt, err := storage.GetLegacyRecurringRunAdoption(db)
 	require.NoError(t, err)
 	require.False(t, receipt.Ready)
-	require.ErrorContains(t, manager.PrepareRecurringRun(ctx, &model.Run{RecurringRunId: job.UUID}), "adoption is incomplete")
+	require.ErrorContains(t, manager.RequireRecurringRunAdoptionReady(ctx, job.UUID), "adoption is incomplete")
 
 	// A new process resumes the recorded inventory, even if CR progress changed
 	// after the SQL commit. This is not a second adoption of the mutable CR.

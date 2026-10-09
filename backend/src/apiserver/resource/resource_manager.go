@@ -138,14 +138,18 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManagerOptions struct {
-	CollectMetrics       bool                              `json:"collect_metrics,omitempty"`
-	CacheDisabled        bool                              `json:"cache_disabled,omitempty"`
-	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
-	MLPipelineTLSEnabled bool                              `json:"ml_pipeline_tls_enabled,omitempty"`
-	DefaultRunAsUser     *int64                            `json:"default_run_as_user,omitempty"`
-	DefaultRunAsGroup    *int64                            `json:"default_run_as_group,omitempty"`
-	DefaultRunAsNonRoot  *bool                             `json:"default_run_as_non_root,omitempty"`
-	DefaultHostUsers     *bool                             `json:"default_host_users,omitempty"`
+	// ScheduleWritersReady fences mutations while legacy schedule writers hand off.
+	ScheduleWritersReady func(context.Context) error `json:"-"`
+	// EnsureRecurringRunAdopted repairs legacy progress before a scheduled submission.
+	EnsureRecurringRunAdopted func(context.Context, string) error `json:"-"`
+	CollectMetrics            bool                                `json:"collect_metrics,omitempty"`
+	CacheDisabled             bool                                `json:"cache_disabled,omitempty"`
+	DefaultWorkspace          *corev1.PersistentVolumeClaimSpec   `json:"default_workspace,omitempty"`
+	MLPipelineTLSEnabled      bool                                `json:"ml_pipeline_tls_enabled,omitempty"`
+	DefaultRunAsUser          *int64                              `json:"default_run_as_user,omitempty"`
+	DefaultRunAsGroup         *int64                              `json:"default_run_as_group,omitempty"`
+	DefaultRunAsNonRoot       *bool                               `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers          *bool                               `json:"default_host_users,omitempty"`
 }
 
 type ResourceManager struct {
@@ -1763,6 +1767,11 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
+	if common.IsMultiUserMode() && r.options.ScheduleWritersReady != nil {
+		if err := r.options.ScheduleWritersReady(ctx); err != nil {
+			return nil, util.NewUnavailableServerError(err, "Recurring run creation is waiting for schedule writer handoff; retry later")
+		}
+	}
 	scheduledWorkflow, _, _, err := r.prepareJobWorkflow(ctx, job)
 	if err != nil {
 		return nil, err
@@ -1917,6 +1926,14 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 	job, err := r.GetJob(jobId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to change recurring run's mode to enable:%v. Check if recurring run %v exists", enable, jobId)
+	}
+	if common.IsMultiUserMode() {
+		if r.options.ScheduleWritersReady != nil {
+			if err := r.options.ScheduleWritersReady(ctx); err != nil {
+				return util.NewUnavailableServerError(err, "Recurring run mode change is waiting for schedule writer handoff; retry later")
+			}
+		}
+		return r.changeAdoptableJobMode(ctx, job, enable)
 	}
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {

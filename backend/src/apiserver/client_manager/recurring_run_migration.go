@@ -33,7 +33,7 @@ func reportRecurringRunMigration(store recurringRunMigrationStore, warnf func(st
 			return err
 		}
 		for _, candidate := range candidates {
-			warnf("recurring_run_migration action=adopt_or_recreate id=%q namespace=%q scheduledworkflow=%q enabled=%t: no trusted scheduling state; complete the one-time legacy adoption cutover or recreate through the KFP API; see docs/operator-guides/scheduled-service-accounts.md", candidate.ID, candidate.Namespace, candidate.Name, candidate.Enabled)
+			warnf("recurring_run_migration action=automatic_adoption_pending id=%q namespace=%q scheduledworkflow=%q enabled=%t: no trusted scheduling state; automatic adoption will retry after the managed rollout handoff; see docs/operator-guides/scheduled-service-accounts.md", candidate.ID, candidate.Namespace, candidate.Name, candidate.Enabled)
 			afterID = candidate.ID
 			count++
 		}
@@ -42,7 +42,7 @@ func reportRecurringRunMigration(store recurringRunMigrationStore, warnf func(st
 		}
 	}
 	if count > 0 {
-		warnf("recurring_run_migration affected_jobs=%d: existing recurring runs require one-time adoption or recreation before their next execution", count)
+		warnf("recurring_run_migration affected_jobs=%d: existing recurring runs are queued for automatic adoption before their next execution", count)
 	} else {
 		glog.Info("recurring_run_migration affected_jobs=0")
 	}

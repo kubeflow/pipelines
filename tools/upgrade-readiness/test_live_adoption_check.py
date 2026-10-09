@@ -10,10 +10,10 @@ from datetime import datetime
 from datetime import timezone
 import json
 from pathlib import Path
-import subprocess
 import unittest
 from unittest import mock
 
+from live_adoption_availability import validate_samples
 from live_adoption_check import adoption_job_diagnostics
 from live_adoption_check import adoption_log_categories
 from live_adoption_check import adoption_stack_frames
@@ -32,6 +32,7 @@ from live_adoption_check import sql
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
 from live_adoption_check import validate_idempotent
+from live_adoption_check import wait_active
 from live_adoption_check import wait_adoption_job
 
 
@@ -281,7 +282,7 @@ class AdoptionTests(unittest.TestCase):
                 mock.patch('live_adoption_check.kube') as command, \
                 mock.patch('live_adoption_check.write_object'), \
                 mock.patch('live_adoption_check.time.monotonic', side_effect=[0, 0]):
-            observation = prepare_active(Path('/unused'), fixture)
+            observation = wait_active(Path('/unused'), fixture)
         self.assertTrue(observation['recoverable_unacknowledged_submission'])
         self.assertTrue(observation['persisted_run_nonterminal'])
         self.assertFalse(observation['controller_acknowledged'])
@@ -396,7 +397,7 @@ class AdoptionTests(unittest.TestCase):
                     with self.assertRaisesRegex(
                             AdoptionError,
                             'source_active_run_not_persisted') as error:
-                        prepare_active(Path('/unused'), fixture)
+                        wait_active(Path('/unused'), fixture)
                 evidence = error.exception.source_observation
                 self.assertEqual(evidence['fresh_workflow_count'],
                                  0 if missing == 'workflow' else 1)
@@ -407,37 +408,113 @@ class AdoptionTests(unittest.TestCase):
                 self.assertTrue(evidence['schedule_enabled'])
                 self.assertTrue(evidence['job_enabled'])
 
-    def test_offline_environment_setup_never_waits_for_live_api(self):
+    def test_online_receipts_preserve_progress_and_definitions(self):
+        fixture, before, after = inventory()
+        after['receipts'] = [
+            dict(
+                ID='legacy-2.18:' + str(i),
+                Ready=1,
+                AdoptedCount=1,
+                CompletedAt=200,
+                JobIDs=json.dumps([str(i)])) for i in range(3)
+        ]
+        validate_adoption(before, after, fixture, online=True)
+        for mutate in (
+                lambda v: v['receipts'].pop(),
+                lambda v: v['receipts'][0].update(Ready=0),
+                lambda v: v['states'][0].update(LastRunIndex=0),
+                lambda v: v['jobs'][1].update(Enabled=1),
+                lambda v: v['runs'].append(dict(v['runs'][0], UUID='extra')),
+        ):
+            changed = copy.deepcopy(after)
+            mutate(changed)
+            with self.assertRaises(AdoptionError):
+                validate_adoption(before, changed, fixture, online=True)
+
+    def test_disabled_adoption_requires_same_history_and_separate_ready_receipts(
+            self):
+        fixture, before, after = inventory()
+        for value in (before, after):
+            for job in value['jobs']:
+                job['Enabled'] = 0
+            for schedule in value['schedules']:
+                schedule['enabled'] = False
+            for run in value['runs']:
+                run['State'] = 'SUCCEEDED'
+            for workflow in value['workflows']:
+                workflow['suspended'] = False
+        after['receipts'] = [
+            dict(
+                ID='legacy-2.18:' + str(i),
+                Ready=1,
+                AdoptedCount=1,
+                CompletedAt=200,
+                JobIDs=json.dumps([str(i)])) for i in range(3)
+        ]
+        validate_adoption(before, after, fixture, online=True)
+        for mutation in (
+                lambda v: v['receipts'][1].update(Ready=0),
+                lambda v: v['jobs'][1].update(UUID='replacement'),
+                lambda v: v['runs'].append(dict(v['runs'][0], UUID='extra')),
+                lambda v: v['states'][0].update(LastRunIndex=0),
+        ):
+            changed = copy.deepcopy(after)
+            mutation(changed)
+            with self.assertRaises(AdoptionError):
+                validate_adoption(before, changed, fixture, online=True)
+
+    def test_online_active_template_is_restored_before_baseline(self):
+        fixture = {'schedules': [dict(scenario='default', schedule_uid='0')]}
+        original = dict(spec=json.dumps(dict(spec=dict(entrypoint='main'))))
+        source = dict(
+            metadata=dict(uid='0', name='source'),
+            spec=dict(enabled=False, workflow=original))
+        baseline = dict(
+            jobs=[dict(UUID='0', Enabled=0, PipelineSpecManifest='ir')])
+        restored = copy.deepcopy(baseline)
+        restored['jobs'][0]['Enabled'] = 1
+        for failure in (False, True):
+            with mock.patch('live_adoption_check.get', return_value={'items': [source]}), \
+                    mock.patch('live_adoption_check.snapshot', side_effect=[baseline, restored]), \
+                    mock.patch('live_adoption_check.wait_active', side_effect=AdoptionError('timeout') if failure else None), \
+                    mock.patch('live_adoption_check.kube') as command:
+                if failure:
+                    with self.assertRaisesRegex(AdoptionError, 'timeout'):
+                        prepare_active(Path('/unused'), fixture)
+                else:
+                    prepare_active(Path('/unused'), fixture)
+            patches = [
+                json.loads(call.args[-1]) for call in command.call_args_list
+            ]
+            self.assertTrue(
+                json.loads(patches[0][1]['value']['spec'])['spec']['suspend'])
+            self.assertEqual(patches[-1][1]['value'], original)
+            self.assertEqual(patches[-1][0],
+                             dict(op='test', path='/metadata/uid', value='0'))
+
+    def test_online_fixture_has_no_operator_cutover(self):
         root = Path(__file__).resolve().parents[2]
-        shared = (
-            root /
-            '.github/resources/scripts/readiness-schedules.sh').read_text()
-        helper = shared.split('set_api_env() {',
-                              1)[1].split('configure_controllers() {', 1)[0]
         script = (
             root /
             '.github/resources/scripts/readiness-adoption.sh').read_text()
-        offline = script.split('else\n',
-                               1)[1].split('  for attempt in first repeat;',
-                                           1)[0]
-        # A live configure call fails this execution. Offline setup must first
-        # prove stopped writers, then only mutate deployment environment.
-        harness = """set -eu
-stopped=false
-check() { [[ "$1" == stopped ]]; stopped=true; }
-configure_api() { exit 91; }
-configure_controllers() { :; }
-kube() {
-  [[ "$stopped" == true ]] || exit 92
-  [[ "$*" == '-n kubeflow set env deployment/ml-pipeline '* ]] || exit 93
-}
-set_api_env() {""" + helper + offline
-        subprocess.run(['bash', '-c', harness], check=True, timeout=5)
-        resumed = script.split('scale deployment/ml-pipeline --replicas=1',
-                               1)[1]
-        self.assertLess(
-            resumed.index('configure_api enforce'),
-            resumed.index('for controller in'))
+        self.assertNotIn('scale ', script)
+        self.assertNotIn('check job ', script)
+        self.assertNotIn('check stopped', script)
+        self.assertIn('check snapshot --online', script)
+        self.assertIn('check adopted --online', script)
+        self.assertIn('availability start', script)
+        self.assertIn('availability stop', script)
+
+    def test_availability_reports_isolated_drain_but_rejects_outage(self):
+        validate_samples(
+            dict(samples=100, failures=1, longest_failure_streak=1))
+        for evidence in (
+                dict(samples=29, failures=0, longest_failure_streak=0),
+                dict(samples=100, failures=2, longest_failure_streak=1),
+                dict(samples=1000, failures=2, longest_failure_streak=2),
+        ):
+            with self.assertRaises(AdoptionError):
+                validate_samples(evidence)
 
     def test_offline_fence_rejects_live_and_terminating_writers(self):
         deployment = dict(

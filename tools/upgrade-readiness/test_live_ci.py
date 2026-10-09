@@ -427,20 +427,19 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
         self.assertIn("steps.prepare-upgrade.outcome == 'success'", text)
         self.assertNotIn('KFP_ENABLE_MLMD_UPGRADE_TESTS', text)
 
-    def test_legacy_rejection_precedes_recreated_functional_observation(self):
+    def test_automatic_adoption_preserves_source_ids_before_policy_observation(
+            self):
         script = SCRIPT.read_text()
         target = script.split('else\n  configure_api enforce', 1)[1]
         self.assertLess(
-            target.index('verify_legacy_schedules.py'),
-            target.index('fixture --phase recreate'))
-        self.assertLess(
-            target.index('fixture --phase recreate'),
-            target.index('capture enforce'))
+            target.index('adopted-disabled'), target.index('capture enforce'))
         self.assertLess(
             target.index('capture enforce'), target.index('observe enforce'))
+        self.assertNotIn('fixture --phase recreate', target)
+        self.assertNotIn('verify_legacy_schedules.py', target)
+        self.assertIn('source-disabled', script)
         self.assertIn('source-$mode-prediction.json', script)
         self.assertIn('check_fixture_policy.py', target)
-        self.assertIn('--legacy-migration', script)
         self.assertNotIn('remap_predictions', script)
 
     def test_source_namespace_restore_occurs_after_drain_and_baseline(self):

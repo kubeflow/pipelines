@@ -1,0 +1,29 @@
+# Registration is written by each running process, not a Pod template.
+# Dynamic Pod names prevent resourceNames restriction; permissions stay in the
+# installation namespace and are granted only to the two control-plane accounts.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-schedule-writer-handoff
+rules:
+- apiGroups: ['']
+  resources: [pods]
+  verbs: [get, list, patch]
+- apiGroups: [apps]
+  resources: [deployments]
+  resourceNames: [ml-pipeline, ml-pipeline-scheduledworkflow]
+  verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-schedule-writer-handoff
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ml-pipeline-schedule-writer-handoff
+subjects:
+- kind: ServiceAccount
+  name: ml-pipeline
+- kind: ServiceAccount
+  name: ml-pipeline-scheduledworkflow

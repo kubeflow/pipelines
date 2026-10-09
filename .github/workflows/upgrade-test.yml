@@ -246,10 +246,10 @@ jobs:
       - name: Populate 2.17.2 and capture target predictions
         run: bash .github/resources/scripts/readiness-schedules.sh source
 
-      - name: Prepare populated offline adoption cutover
+      - name: Prepare populated online adoption and API availability probe
         run: bash .github/resources/scripts/readiness-adoption.sh source
 
-      - name: Deploy same-run candidate images with writers stopped
+      - name: Roll out same-run candidate images with writers running
         uses: ./.github/actions/deploy
         with:
           cluster_name: kfp-readiness
@@ -260,6 +260,18 @@ jobs:
 
       - name: Adopt legacy schedules and verify live continuation
         run: bash .github/resources/scripts/readiness-adoption.sh target
+
+      - name: Capture rollout API availability evidence
+        if: ${{ always() }}
+        run: |
+          PYTHONPATH=tools/upgrade-readiness python3 tools/upgrade-readiness/live_adoption_availability.py stop \
+            --state "$RUNNER_TEMP/readiness-schedules"
+
+      - name: Capture managed writer handoff evidence
+        if: ${{ always() }}
+        run: |
+          PYTHONPATH=tools/upgrade-readiness python3 tools/upgrade-readiness/live_adoption_check.py handoff \
+            --state "$RUNNER_TEMP/readiness-schedules"
 
       - name: Upload isolated-fixture readiness evidence
         if: ${{ always() }}

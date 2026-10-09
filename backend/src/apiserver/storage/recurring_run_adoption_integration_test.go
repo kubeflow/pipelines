@@ -8,7 +8,10 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"testing"
+
+	"gorm.io/gorm"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -112,5 +115,71 @@ func testLegacyRecurringRunAdoptionProductionDatabase(t *testing.T, sqlDB *sql.D
 		require.Equal(t, receipt, again)
 		require.NoError(t, db.Model(&model.RecurringRunState{}).Count(&count).Error)
 		require.EqualValues(t, 2, count)
+	}
+}
+
+func TestOnlineRecurringRunAdoptionProductionDatabases(t *testing.T) {
+	for _, driver := range []string{"mysql", "pgx"} {
+		t.Run(driver, func(t *testing.T) {
+			dbs, d := recurringIntegrationDatabases(t, driver)
+			connections := make([]*gorm.DB, len(dbs))
+			for i, sqlDB := range dbs {
+				var err error
+				connections[i], err = OpenTransferDB(sqlDB, driver)
+				require.NoError(t, err)
+			}
+			db := connections[0]
+			candidate := adoptionTestCandidate(t, db, "online-a", true)
+			errs := recurringConcurrent(len(connections), func(i int) error { return ApplyLegacyRecurringRunAdoptionForJob(connections[i], candidate, 1000) })
+			for _, err := range errs {
+				require.NoError(t, err)
+			}
+			var count int64
+			require.NoError(t, db.Model(&model.RecurringRunState{}).Where(&model.RecurringRunState{JobUUID: candidate.Job.UUID}).Count(&count).Error)
+			require.EqualValues(t, 1, count)
+			pending, err := ListPendingLegacyRecurringRunAdoptions(db, "", 100)
+			require.NoError(t, err)
+			require.Len(t, pending, 1)
+			store := NewJobStore(dbs[0], util.NewFakeTimeForEpoch(), nil, d)
+			_, err = store.ClaimRecurringRun(candidate.Job.UUID, "next", 7, 580, 590, "version")
+			require.ErrorContains(t, err, "synchronization is pending")
+			require.NoError(t, SynchronizeLegacyRecurringRunAdoption(db, candidate.Job.UUID, func(*model.Job, *model.RecurringRunState) error { return nil }))
+			_, err = store.ClaimRecurringRun(candidate.Job.UUID, "next", 7, 580, 590, "version")
+			require.NoError(t, err)
+			// Real driver upsert and pending query, with durable recovery after a failed
+			// ready-receipt update following the simulated Kubernetes side effect.
+			require.NoError(t, SetRecurringRunModeForReconciliation(db, candidate.Job, false, 1001))
+			require.NoError(t, db.Callback().Update().Before("gorm:update").Register("fail_online_receipt", func(tx *gorm.DB) {
+				if tx.Statement.Table == "recurring_run_adoptions" {
+					tx.AddError(fmt.Errorf("interrupted receipt acknowledgment"))
+				}
+			}))
+			err = SynchronizeLegacyRecurringRunAdoption(db, candidate.Job.UUID, func(job *model.Job, state *model.RecurringRunState) error {
+				require.False(t, job.Enabled)
+				require.True(t, state.Pending)
+				return nil
+			})
+			require.ErrorContains(t, err, "interrupted receipt acknowledgment")
+			require.NoError(t, db.Callback().Update().Remove("fail_online_receipt"))
+			receipt, err := GetLegacyRecurringRunAdoptionForJob(db, candidate.Job.UUID)
+			require.NoError(t, err)
+			require.False(t, receipt.Ready)
+			pending, err = ListPendingLegacyRecurringRunAdoptions(db, "", 100)
+			require.NoError(t, err)
+			require.Len(t, pending, 1)
+			require.NoError(t, SynchronizeLegacyRecurringRunAdoption(db, candidate.Job.UUID, func(job *model.Job, _ *model.RecurringRunState) error { require.False(t, job.Enabled); return nil }))
+			pending, err = ListPendingLegacyRecurringRunAdoptions(db, "", 100)
+			require.NoError(t, err)
+			require.Empty(t, pending)
+			// Native initialization seals provenance in its original SQL transaction.
+			native, err := store.CreateJob(&model.Job{UUID: "online-native", K8SName: "native", Namespace: "test", Enabled: true})
+			require.NoError(t, err)
+			receipt, err = GetLegacyRecurringRunAdoptionForJob(db, native.UUID)
+			require.NoError(t, err)
+			require.NotNil(t, receipt)
+			require.True(t, receipt.Ready)
+			require.NoError(t, db.Delete(&model.RecurringRunState{}, &model.RecurringRunState{JobUUID: native.UUID}).Error)
+			require.ErrorContains(t, ApplyLegacyRecurringRunAdoptionForJob(db, RecurringRunAdoptionCandidate{Job: *native, State: model.RecurringRunState{JobUUID: native.UUID}}, 1002), "refusing to reseed")
+		})
 	}
 }

@@ -26,6 +26,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -300,19 +301,17 @@ func main() {
 		glog.Fatalf("Failed to get Workspace PVC Spec: %v", err)
 	}
 
-	resourceManager := resource.NewResourceManager(
-		clientManager,
-		&resource.ResourceManagerOptions{
-			CollectMetrics:       *collectMetricsFlag,
-			CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
-			DefaultWorkspace:     pvcSpec,
-			MLPipelineTLSEnabled: tlsCfg != nil,
-			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
-			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
-			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
-			DefaultHostUsers:     parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
-		},
-	)
+	resourceOptions := &resource.ResourceManagerOptions{
+		CollectMetrics:       *collectMetricsFlag,
+		CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
+		DefaultWorkspace:     pvcSpec,
+		MLPipelineTLSEnabled: tlsCfg != nil,
+		DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
+		DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
+		DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
+		DefaultHostUsers:     parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
+	}
+	resourceManager := resource.NewResourceManager(clientManager, resourceOptions)
 	if *adoptLegacyRecurringRuns {
 		receipt, err := resourceManager.AdoptLegacyRecurringRuns(backgroundCtx)
 		if err != nil {
@@ -333,8 +332,31 @@ func main() {
 		}
 	}
 
-	wg.Add(1)
-	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	if common.IsMultiUserMode() {
+		podName, err := os.Hostname()
+		if err != nil {
+			glog.Fatalf("Cannot determine API Pod identity: %v", err)
+		}
+		kubeClient := clientManager.KubernetesCoreClient().GetClientSet()
+		namespace := common.GetPodNamespace()
+		writersReady := func(ctx context.Context) error {
+			if err := util.RegisterManagedScheduleWriter(ctx, kubeClient, namespace, podName); err != nil {
+				return err
+			}
+			return util.ManagedScheduleWritersReady(ctx, kubeClient, namespace)
+		}
+		resourceOptions.ScheduleWritersReady = writersReady
+		adoption := resource.NewAutomaticRecurringRunAdoption(resourceManager, writersReady)
+		resourceOptions.EnsureRecurringRunAdopted = adoption.Ensure
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			adoption.Run(backgroundCtx)
+		}()
+	} else {
+		wg.Add(1)
+		go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	}
 
 	// Start run GC when a retention window is configured. The collector
 	// re-validates the required database index on every tick and skips

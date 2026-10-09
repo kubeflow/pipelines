@@ -212,19 +212,39 @@ def validate_inventory(value, fixture):
     return ids
 
 
-def validate_adoption(before, after, fixture):
+def validate_adoption(before, after, fixture, online=False):
     ids = validate_inventory(before, fixture)
     validate_inventory(after, fixture)
     require(before['jobs'] == after['jobs'], 'stored_definition_changed')
-    require(before['runs'] == after['runs'], 'historical_run_changed')
-    require(before['workflows'] == after['workflows'],
-            'workflow_changed_offline')
-    require(len(after['receipts']) == 1, 'single_receipt_required')
-    receipt = after['receipts'][0]
-    require(
-        receipt['ID'] == 'legacy-2.18' and receipt['Ready'] == 1 and
-        receipt['AdoptedCount'] == len(ids) and receipt['CompletedAt'] > 0 and
-        set(json.loads(receipt['JobIDs'])) == ids, 'invalid_receipt')
+    if online:
+        if any(j['Enabled'] for j in before['jobs']):
+            validate_continuation(before, after, fixture, held=True)
+        else:
+            require(before['runs'] == after['runs'], 'disabled_history_changed')
+            require(before['workflows'] == after['workflows'],
+                    'disabled_workflows_changed')
+        receipts = indexed(after['receipts'], 'ID')
+        require(
+            set(receipts) == {'legacy-2.18:' + uid for uid in ids},
+            'record_receipt_inventory_mismatch')
+        for uid in ids:
+            receipt = receipts['legacy-2.18:' + uid]
+            require(
+                receipt['Ready'] == 1 and receipt['AdoptedCount'] == 1 and
+                receipt['CompletedAt'] > 0 and
+                json.loads(receipt['JobIDs']) == [uid], 'invalid_receipt')
+        receipt = after['receipts']
+    else:
+        require(before['runs'] == after['runs'], 'historical_run_changed')
+        require(before['workflows'] == after['workflows'],
+                'workflow_changed_offline')
+        require(len(after['receipts']) == 1, 'single_receipt_required')
+        receipt = after['receipts'][0]
+        require(
+            receipt['ID'] == 'legacy-2.18' and receipt['Ready'] == 1 and
+            receipt['AdoptedCount'] == len(ids) and
+            receipt['CompletedAt'] > 0 and
+            set(json.loads(receipt['JobIDs'])) == ids, 'invalid_receipt')
     states = indexed(after['states'], 'JobUUID')
     require(set(states) == ids, 'adoption_state_inventory_mismatch')
     original = indexed(before['schedules'], 'uid')
@@ -319,6 +339,12 @@ def validate_continuation(before, current, fixture, held=False, drained=False):
         require(not any(s['enabled'] for s in current['schedules']),
                 'fixture_schedule_not_disabled')
     if held:
+        active = [w for w in before['workflows'] if w['suspended']]
+        require(len(active) == 1, 'one_active_workflow_required')
+        require(
+            str(new_runs[active[0]['run_id']]['State'] or
+                new_runs[active[0]['run_id']]['Conditions']).upper()
+            not in TERMINAL, 'source_active_run_finished_while_held')
         require(not extra, 'active_run_escaped_concurrency_accounting')
     else:
         require(
@@ -614,6 +640,50 @@ def wait_adoption_job(name):
 
 
 def prepare_active(state, fixture):
+    # Suspend the embedded source template before enabling, so even an
+    # immediately scheduled Argo controller cannot finish the trivial fixture.
+    # Restore the exact template before taking the upgrade baseline.
+    case = next(r for r in fixture['schedules'] if r['scenario'] == 'default')
+    schedules = get(NAMESPACE, 'scheduledworkflows')['items']
+    source = next(
+        s for s in schedules if s['metadata']['uid'] == case['schedule_uid'])
+    require(not source['spec'].get('enabled'), 'source_schedule_not_disabled')
+    original = copy.deepcopy(source['spec']['workflow'])
+    held = copy.deepcopy(original)
+    embedded = json.loads(held['spec']) if isinstance(held['spec'],
+                                                      str) else held['spec']
+    require(
+        isinstance(embedded, dict) and isinstance(embedded.get('spec'), dict),
+        'source_embedded_workflow_missing')
+    embedded['spec']['suspend'] = True
+    held['spec'] = json.dumps(embedded) if isinstance(original['spec'],
+                                                      str) else embedded
+    patch = lambda value: kube(
+        '-n', NAMESPACE, 'patch', 'scheduledworkflow/' + source['metadata'][
+            'name'], '--type=json', '-p',
+        json.dumps([
+            dict(op='test', path='/metadata/uid', value=case['schedule_uid']),
+            dict(op='replace', path='/spec/workflow', value=value)
+        ]))
+    original_jobs = snapshot()['jobs']
+    patch(held)
+    try:
+        observation = wait_active(state, fixture)
+    finally:
+        patch(original)
+    expected = copy.deepcopy(original_jobs)
+    for job in expected:
+        if job['UUID'] == case['schedule_uid']:
+            job['Enabled'] = 1
+    deadline = time.monotonic() + 120
+    while time.monotonic() < deadline:
+        if snapshot()['jobs'] == expected:
+            return observation
+        time.sleep(3)
+    raise AdoptionError('source_definition_not_restored')
+
+
+def wait_active(state, fixture):
     client = FixtureClient('http://127.0.0.1:8888', state / 'token')
     case = next(r for r in fixture['schedules'] if r['scenario'] == 'default')
     baseline = snapshot()
@@ -642,8 +712,6 @@ def prepare_active(state, fixture):
         if fresh:
             require(len(fresh) == 1, 'multiple_active_workflows')
             workflow = fresh[0]
-            kube('-n', NAMESPACE, 'patch', 'workflow/' + workflow['name'],
-                 '--type=merge', '-p', '{"spec":{"suspend":true}}')
             run = next(
                 (r for r in current['runs'] if r['UUID'] == workflow['run_id']),
                 None)
@@ -744,9 +812,11 @@ def main():
     parser.add_argument(
         'phase',
         choices=('active', 'snapshot', 'stopped', 'job', 'wait-job', 'adopted',
-                 'idempotent', 'held', 'completed', 'drained'))
+                 'idempotent', 'held', 'completed', 'drained', 'handoff',
+                 'source-disabled', 'adopted-disabled'))
     parser.add_argument('--state', required=True)
     parser.add_argument('--job-name')
+    parser.add_argument('--online', action='store_true')
     args = parser.parse_args()
     state = Path(args.state)
     fixture = read_object(state / 'fixture/state.json')
@@ -756,7 +826,65 @@ def main():
         phase=args.phase,
         outcome='inconclusive')
     try:
-        if args.phase == 'active':
+        if args.phase == 'handoff':
+            report['writers'] = []
+            for name in ('ml-pipeline', 'ml-pipeline-scheduledworkflow'):
+                deployment = get('kubeflow', 'deployment/' + name)
+                pods = json.loads(
+                    kube('-n', 'kubeflow', 'get', 'pods', '-l', 'app=' + name,
+                         '-o', 'json'))['items']
+                evidence = dict(
+                    deployment=name,
+                    desired=deployment['spec'].get('replicas', 1),
+                    generation=deployment['metadata']['generation'],
+                    status=deployment.get('status', {}),
+                    pods=[])
+                container_name = 'ml-pipeline-api-server' if name == 'ml-pipeline' else name
+                for pod in pods:
+                    configured = next(c for c in pod['spec']['containers']
+                                      if c['name'] == container_name)
+                    status = next((c for c in pod.get('status', {}).get(
+                        'containerStatuses', [])
+                                   if c['name'] == container_name), {})
+                    evidence['pods'].append(
+                        dict(
+                            name=pod['metadata']['name'],
+                            terminating=bool(
+                                pod['metadata'].get('deletionTimestamp')),
+                            registered=bool(pod['metadata'].get(
+                                'annotations', {}
+                            ).get(
+                                'pipelines.kubeflow.org/schedule-writer-protocol'
+                            )),
+                            requested_image=configured['image'],
+                            reported_image=status.get('image'),
+                            image_id=status.get('imageID'),
+                            restart_count=status.get('restartCount'),
+                            running='running' in status.get('state', {})))
+                report['writers'].append(evidence)
+        elif args.phase in ('source-disabled', 'adopted-disabled'):
+            current = snapshot(adopted=args.phase == 'adopted-disabled')
+            validate_inventory(current, fixture)
+            require(
+                not any(j['Enabled'] for j in current['jobs']) and
+                not any(s['enabled'] for s in current['schedules']),
+                'disabled_source_schedules_required')
+            require(
+                all(
+                    str(r['State'] or r['Conditions']).upper() == 'SUCCEEDED'
+                    for r in current['runs']), 'source_runs_not_drained')
+            baseline = state / 'before-disabled-adoption.json'
+            if args.phase == 'source-disabled':
+                write_object(baseline, current)
+            else:
+                report['receipts'] = validate_adoption(
+                    read_object(baseline), current, fixture, online=True)
+                # This fixture marker is written only after live SQL receipts,
+                # scheduling state, and original source identities all validate.
+                fixture['adopted'] = True
+                write_object(state / 'fixture/state.json', fixture)
+            report['schedule_uids'] = sorted(j['UUID'] for j in current['jobs'])
+        elif args.phase == 'active':
             report['source_observation'] = prepare_active(state, fixture)
         elif args.phase == 'wait-job':
             report['job_evidence'] = wait_adoption_job(args.job_name)
@@ -775,7 +903,8 @@ def main():
         elif args.phase == 'stopped':
             require_stopped()
         elif args.phase == 'snapshot':
-            require_stopped()
+            if not args.online:
+                require_stopped()
             current = snapshot()
             report['source_progress'] = source_progress_shapes(current)
             validate_inventory(current, fixture)
@@ -799,11 +928,19 @@ def main():
             before = read_object(state / 'before-adoption.json')
             current = snapshot(adopted=True)
             if args.phase == 'adopted':
-                report['receipt'] = validate_adoption(before, current, fixture)
+                report['receipt'] = validate_adoption(before, current, fixture,
+                                                      args.online)
                 write_object(state / 'after-adoption.json', current)
             elif args.phase == 'idempotent':
-                validate_idempotent(
-                    read_object(state / 'after-adoption.json'), current)
+                first = read_object(state / 'after-adoption.json')
+                if args.online:
+                    validate_adoption(before, current, fixture, online=True)
+                    require(
+                        first['receipts'] == current['receipts'] and
+                        first['states'] == current['states'],
+                        'rerun_changed_adoption')
+                else:
+                    validate_idempotent(first, current)
             else:
                 validate_continuation(before, current, fixture,
                                       args.phase == 'held',

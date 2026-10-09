@@ -92,6 +92,9 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 		return nil, util.NewFailedPreconditionError(errors.New("recurring run is disabled"),
 			"Enable recurring run %s through the KFP API before triggering runs", jobID)
 	}
+	if err := s.requireAdoptionReadyForClaim(tx, jobID); err != nil {
+		return nil, err
+	}
 	state, err := s.getRecurringRunState(tx, jobID, true)
 	if err != nil {
 		return nil, err

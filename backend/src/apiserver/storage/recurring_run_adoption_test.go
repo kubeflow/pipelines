@@ -174,15 +174,18 @@ func TestLegacyRecurringRunAdoptionRollsBack(t *testing.T) {
 
 func TestLegacyRecurringRunAdoptionRejectsInvalidProgress(t *testing.T) {
 	tests := map[string]func(*model.RecurringRunState){
-		"mismatched identity":       func(s *model.RecurringRunState) { s.JobUUID = "other" },
-		"pending claim":             func(s *model.RecurringRunState) { s.Pending = true },
-		"negative index":            func(s *model.RecurringRunState) { s.LastRunIndex = -1 },
-		"overflowing index":         func(s *model.RecurringRunState) { s.LastRunIndex = math.MaxInt64 },
-		"negative scheduled":        func(s *model.RecurringRunState) { s.LastScheduledAtInSec = -1 },
-		"negative created":          func(s *model.RecurringRunState) { s.LastCreatedAtInSec = -1 },
-		"overflowing scheduled":     func(s *model.RecurringRunState) { s.LastScheduledAtInSec = math.MaxInt64 },
-		"overflowing created":       func(s *model.RecurringRunState) { s.LastCreatedAtInSec = math.MaxInt64 },
-		"created before scheduled":  func(s *model.RecurringRunState) { s.LastCreatedAtInSec = s.LastScheduledAtInSec - 1 },
+		"mismatched identity":   func(s *model.RecurringRunState) { s.JobUUID = "other" },
+		"pending claim":         func(s *model.RecurringRunState) { s.Pending = true },
+		"negative index":        func(s *model.RecurringRunState) { s.LastRunIndex = -1 },
+		"overflowing index":     func(s *model.RecurringRunState) { s.LastRunIndex = math.MaxInt64 },
+		"negative scheduled":    func(s *model.RecurringRunState) { s.LastScheduledAtInSec = -1 },
+		"negative created":      func(s *model.RecurringRunState) { s.LastCreatedAtInSec = -1 },
+		"overflowing scheduled": func(s *model.RecurringRunState) { s.LastScheduledAtInSec = math.MaxInt64 },
+		"overflowing created":   func(s *model.RecurringRunState) { s.LastCreatedAtInSec = math.MaxInt64 },
+		"created before scheduled": func(s *model.RecurringRunState) {
+			s.LastCreatedAtInSec = s.LastScheduledAtInSec - 1
+			s.LastRunUUID = ""
+		},
 		"missing scheduled":         func(s *model.RecurringRunState) { s.LastScheduledAtInSec = 0 },
 		"missing request key":       func(s *model.RecurringRunState) { s.RequestKey = "" },
 		"long request key":          func(s *model.RecurringRunState) { s.RequestKey = strings.Repeat("a", 256) },

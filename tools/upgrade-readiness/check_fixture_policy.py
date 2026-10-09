@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Evaluate recreated fixtures on the target; never a pre-upgrade
+"""Evaluate adopted or recreated fixtures on the target; never a pre-upgrade
 prediction."""
 
 import argparse
@@ -30,8 +30,8 @@ import schedule_policy
 def assess(client, context, fixture, policy):
     if (context != CONTEXT or fixture.get('context') != CONTEXT or
             fixture.get('namespace') != NAMESPACE or
-            not fixture.get('recreated') or not fixture.get('prepared') or
-            fixture.get('enabled') is not False):
+            not (fixture.get('recreated') or fixture.get('adopted')) or
+            not fixture.get('prepared') or fixture.get('enabled') is not False):
         raise ValueError('disabled_recreated_fixtures_required')
     records, failures, coverage = collect(client, [NAMESPACE])
     if failures or coverage['list_completed_namespaces'] != [NAMESPACE]:
@@ -68,7 +68,8 @@ def assess(client, context, fixture, policy):
     if len(findings) != 3:
         raise ValueError('three_fixture_cases_required')
     return dict(
-        scope='post_recreation_target_policy_check',
+        scope='post_adoption_target_policy_check'
+        if fixture.get('adopted') else 'post_recreation_target_policy_check',
         pre_upgrade_prediction_validated=False,
         target_revision=bundle['target_revision'],
         mode=bundle['mode'],
@@ -86,8 +87,7 @@ def main():
             Client(args.endpoint, args.token_file), args.context,
             read_object(args.fixture_state), read_object(args.policy))
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
-        parser.exit(1,
-                    'Unable to establish recreated fixture policy evidence.\n')
+        parser.exit(1, 'Unable to establish target fixture policy evidence.\n')
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

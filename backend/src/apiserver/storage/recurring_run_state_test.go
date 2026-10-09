@@ -85,6 +85,7 @@ func TestRecurringRunClaimClearsAdoptedExecutionIdentity(t *testing.T) {
 	var job model.Job
 	require.NoError(t, orm.Take(&job, &model.Job{UUID: "1"}).Error)
 	require.NoError(t, orm.Delete(&model.RecurringRunState{}, &model.RecurringRunState{JobUUID: "1"}).Error)
+	require.NoError(t, orm.Delete(&model.RecurringRunAdoption{}, &model.RecurringRunAdoption{ID: legacyRecurringRunRecordPrefix + "1"}).Error)
 	state := model.RecurringRunState{
 		JobUUID: "1", RequestKey: "legacy-tick", PipelineVersionID: "legacy-version",
 		LastRunUUID: "original-random-execution-id", LastRunIndex: 7,
@@ -92,6 +93,7 @@ func TestRecurringRunClaimClearsAdoptedExecutionIdentity(t *testing.T) {
 	}
 	_, err = ApplyLegacyRecurringRunAdoption(orm, []RecurringRunAdoptionCandidate{{Job: job, State: state}}, 1000)
 	require.NoError(t, err)
+	require.NoError(t, CompleteLegacyRecurringRunAdoption(orm))
 	stored, err := store.GetRecurringRunState("1")
 	require.NoError(t, err)
 	require.Equal(t, state, *stored)

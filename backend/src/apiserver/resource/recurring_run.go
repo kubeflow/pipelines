@@ -35,9 +35,6 @@ func (r *ResourceManager) PrepareRecurringRun(ctx context.Context, run *model.Ru
 	if !common.IsMultiUserMode() || run.RecurringRunId == "" {
 		return nil
 	}
-	if err := r.requireRecurringRunAdoptionReady(ctx); err != nil {
-		return err
-	}
 	job, err := r.GetJob(run.RecurringRunId)
 	if err != nil {
 		return util.Wrap(err, "Failed to resolve the authorized recurring run; create schedules through the KFP API")
@@ -74,6 +71,13 @@ func (r *ResourceManager) PrepareRecurringRun(ctx context.Context, run *model.Ru
 			return util.NewPermissionDeniedError(fmt.Errorf("recurring run and experiment namespaces differ"),
 				"A recurring run can only create runs in its own namespace and experiment")
 		}
+	}
+	if r.options != nil && r.options.EnsureRecurringRunAdopted != nil {
+		if err := r.options.EnsureRecurringRunAdopted(ctx, job.UUID); err != nil {
+			return err
+		}
+	} else if err := r.requireRecurringRunAdoptionReady(ctx); err != nil {
+		return err
 	}
 	swf, err := r.getScheduledWorkflowClient(namespace).Get(ctx, job.K8SName, v1.GetOptions{})
 	if err != nil {

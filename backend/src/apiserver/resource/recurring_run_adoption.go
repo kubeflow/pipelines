@@ -79,6 +79,10 @@ func (r *ResourceManager) recurringRunAdoptionDB(ctx context.Context) (*gorm.DB,
 }
 
 func (r *ResourceManager) legacyRecurringRunCandidates(ctx context.Context, db *gorm.DB) ([]storage.RecurringRunAdoptionCandidate, error) {
+	transferred, err := r.transferScheduleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
 	inventory, ok := r.jobStore.(interface {
 		ListJobsWithoutRecurringRunState(string, uint64) ([]storage.RecurringRunMigrationCandidate, error)
 	})
@@ -102,6 +106,9 @@ func (r *ResourceManager) legacyRecurringRunCandidates(ctx context.Context, db *
 			return candidates, nil
 		}
 		for _, entry := range page {
+			if transferred[entry.ID] {
+				return nil, fmt.Errorf("transferred scheduling state is missing; refusing to reseed progress")
+			}
 			// GetJob resolves older reference-backed identity columns. Keep the
 			// raw row separately for the transaction's unchanged-snapshot check.
 			var snapshot model.Job

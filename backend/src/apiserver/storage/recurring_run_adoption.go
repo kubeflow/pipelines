@@ -87,6 +87,13 @@ func ApplyLegacyRecurringRunAdoption(db *gorm.DB, candidates []RecurringRunAdopt
 			if !exists || !sameRecurringRunAdoptionJob(current, candidate.Job) {
 				return fmt.Errorf("recurring run %s changed; rebuild and review the adoption inventory", current.UUID)
 			}
+			sealed, err := GetLegacyRecurringRunAdoptionForJob(tx, current.UUID)
+			if err != nil {
+				return err
+			}
+			if sealed != nil {
+				return fmt.Errorf("adopted scheduling state is missing; refusing to reseed progress")
+			}
 			if err := tx.Create(&candidate.State).Error; err != nil {
 				return err
 			}
@@ -145,7 +152,7 @@ func validateRecurringRunAdoption(candidate RecurringRunAdoptionCandidate) error
 	}
 	if state.Pending || state.LastRunIndex < 0 || state.LastRunIndex == math.MaxInt64 ||
 		state.LastScheduledAtInSec < 0 || state.LastScheduledAtInSec == math.MaxInt64 ||
-		state.LastCreatedAtInSec < state.LastScheduledAtInSec || state.LastCreatedAtInSec == math.MaxInt64 {
+		state.LastCreatedAtInSec < 0 || state.LastCreatedAtInSec == math.MaxInt64 {
 		return fmt.Errorf("recurring run %s has invalid scheduling progress; review its legacy status", candidate.Job.UUID)
 	}
 	if state.LastRunIndex == 0 {
@@ -153,6 +160,11 @@ func validateRecurringRunAdoption(candidate RecurringRunAdoptionCandidate) error
 			return fmt.Errorf("recurring run %s has progress without a run index; review its legacy status", candidate.Job.UUID)
 		}
 		return nil
+	}
+	// An identity-verified retained execution may predate a later acknowledged
+	// controller timestamp. Preserve its real creation time, never synthesize it.
+	if state.LastCreatedAtInSec == 0 || (state.LastCreatedAtInSec < state.LastScheduledAtInSec && state.LastRunUUID == "") {
+		return fmt.Errorf("adoption progress lacks a valid historical creation time")
 	}
 	if state.LastScheduledAtInSec == 0 {
 		return fmt.Errorf("recurring run %s has no scheduled time for its run index; review its legacy status", candidate.Job.UUID)

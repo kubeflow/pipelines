@@ -7,16 +7,20 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swf "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swffake "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/fake"
 	swfclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,4 +111,56 @@ func TestTransferScheduleUsesPluginAwarePreparation(t *testing.T) {
 	require.Empty(t, swf.Spec.Workflow.Spec)
 	require.False(t, swf.Spec.Enabled)
 	require.Equal(t, "pipeline-runner", staged.ServiceAccount)
+}
+
+func TestTransferScheduleWaitsForWriterHandoffBeforeReturningStagedCandidate(t *testing.T) {
+	initEnvVars()
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	for _, existing := range []bool{false, true} {
+		t.Run(fmt.Sprintf("existing=%t", existing), func(t *testing.T) {
+			store := NewFakeClientManagerOrFatalV2()
+			defer store.Close()
+			ready := true
+			manager := NewResourceManager(store, &ResourceManagerOptions{ScheduleWritersReady: func(context.Context) error {
+				if !ready {
+					return errors.New("old writer remains")
+				}
+				return nil
+			}})
+			client := newTransferSwfClient()
+			manager.swfClient = client
+			adapter := transferSchedules{r: manager}
+			ctx := multiUserContext()
+			experiment, err := manager.CreateExperiment(&model.Experiment{Name: "Transfer", Namespace: "ns1"})
+			require.NoError(t, err)
+			job := model.Job{UUID: "source-job", Namespace: "ns1", DisplayName: "Schedule", ExperimentId: experiment.UUID, MaxConcurrency: 1, PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"test"}`}}}
+			var first *model.Job
+			if existing {
+				first, err = adapter.Prepare(ctx, "source", &job, "digest", []byte(job.PipelineSpecManifest), false)
+				require.NoError(t, err)
+			}
+			ready = false
+			client.client.ClearActions()
+			blocked, err := adapter.Prepare(ctx, "source", &job, "digest", []byte(job.PipelineSpecManifest), false)
+			require.Error(t, err)
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+			require.Nil(t, blocked, "the engine must receive no candidate to finalize")
+			require.Empty(t, client.client.Actions(), "handoff must precede any staged CR access")
+			preview, err := adapter.Prepare(ctx, "source", &job, "digest", []byte(job.PipelineSpecManifest), true)
+			require.NoError(t, err)
+			require.NotNil(t, preview)
+			for _, action := range client.client.Actions() {
+				require.Equal(t, "get", action.GetVerb())
+			}
+			ready = true
+			staged, err := adapter.Prepare(ctx, "source", &job, "digest", []byte(job.PipelineSpecManifest), false)
+			require.NoError(t, err)
+			require.False(t, staged.Enabled)
+			if existing {
+				require.Equal(t, first.UUID, staged.UUID)
+			}
+		})
+	}
 }

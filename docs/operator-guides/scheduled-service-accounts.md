@@ -125,42 +125,93 @@ The runner separately needs its normal pipeline execution permissions.
 
 ## Upgrade and revocation
 
-### One-time adoption for existing multi-user installations
+### Automatic adoption for existing multi-user installations
 
-KFP 2.18 provides an explicit, offline `--adopt-legacy-recurring-runs` command.
-It accepts existing **database-stored schedule definitions as the upgrade
-baseline**, initializes their API-owned scheduling progress once, and restores
-the corresponding CRs to API routing. Enabled schedules remain enabled; disabled
-schedules remain disabled. Existing executions do not need to finish. Normal
-service-account, pipeline, namespace, concurrency, and execution-policy checks
-still apply to subsequent submissions. This does not add controller permission
-to use custom service accounts.
+The standard 2.18 managed rollout automatically adopts legacy database-stored
+schedules. Apply the complete release manifests; ordinary upgrades require no
+operator stop/migrate/restart sequence or migration Job. API listeners remain
+available while migration runs in the background, subject to normal deployment
+availability. The upgraded controller waits automatically for the managed
+API/controller rollout to finish and incompatible or terminating writer Pods to
+leave before beginning scheduling.
+
+During that automatic handoff, the upgraded API rejects schedule creation and
+enable/disable requests with retryable `Unavailable` **before any mutation**.
+Clients retry after handoff completes; those requests are not accepted or queued
+as durable intent during the wait. This prevents old API reporters from undoing a
+new enabled-state change or executing a newly created schedule outside the new
+protocol. Run operations, reads, reporting, and deletion remain available. Existing
+legacy schedules retain the old behavior until the handoff; the new controller
+waits. This scheduling-write pause is automatic and requires no operator cutover.
+
+Adoption accepts existing **database-stored schedule definitions as the upgrade
+baseline**, initializes their API-owned progress, and restores corresponding CRs
+to API routing. Enabled schedules remain enabled; disabled schedules remain
+disabled. Existing executions do not need to finish. Normal service-account,
+pipeline, namespace, concurrency, and execution-policy checks still apply to
+subsequent submissions. Adoption grants no new custom-account permission.
 
 This is a fix-forward compatibility policy, **not proof that each historical
 creator was entitled to submit the stored definition**. An unauthorized definition
 persisted before the upgrade can survive adoption if it passes current execution
 checks. Installations responding to a suspected compromise should investigate and
 recreate affected definitions instead. Ordinary upgrades do not require per-user
-review or schedule recreation. CR-only schedules without an API job are not
-adopted and still require API creation by an authorized caller.
+review or recreation. CR-only schedules without an API job still require API
+creation by an authorized caller.
 
 Adoption checks exact CR identity and reconciles its last submitted index/time
 with retained execution records. It accounts for one persisted submission whose
 controller acknowledgement was interrupted. Active workflows must have matching,
 non-terminal API run records so they cannot escape concurrency accounting.
-Inconsistent identities or progress stop the command without partially inserting
-states. Resolve the reported inconsistency and retry; do not reset counters or
-delete active run records to make it pass.
+Inconsistent identities or progress block that record and produce a retry
+diagnostic. Resolve the inconsistency; do not reset counters or delete active run
+records to make migration pass.
 
-The command writes all states and a receipt in one database transaction, then
-synchronizes Kubernetes from that saved state. Until synchronization completes,
-the receipt has `Ready=false` and the upgraded API refuses recurring-run
-submissions. A retry resumes this synchronization without reimporting CR edits.
-After `Ready=true`, rerunning the command is a no-op, including if a scheduling
-state was subsequently deleted. This is one adoption per installation, not a
-general-purpose state-repair or recurring migration service.
+The background scan processes bounded pages, including disabled schedules, and
+limits each record attempt. It advances past failed records and retries later;
+one malformed record does not prevent other records from migrating or ordinary
+API requests from being served. A schedule submission can also trigger its own
+migration after the managed writer handoff. Each imported record's state and
+receipt are committed atomically before Kubernetes synchronization. If that
+synchronization fails, the record remains pending and retries from saved state
+without reimporting CR edits. New API-created schedules also retain a durable
+seal so deleted state cannot be misclassified as a legacy record and reimported.
+An incomplete receipt blocks only its recorded
+schedule, not healthy or newly created schedules. After handoff, authorized enable/disable changes persist
+the desired database mode before Kubernetes synchronization; a failed update
+retains a pending marker for retry. Removing an adopted state does
+not permit reseeding it: investigate missing state rather than deleting receipts.
 
-### Cutover
+### Managed rollout and diagnostics
+
+1. Back up the database and ScheduledWorkflow objects together, then apply the
+   complete 2.18 configuration, images, and RBAC through the normal rollout.
+   Retain the controller's restriction against direct `workflows/create`, its
+   pipeline-read permissions, and approved custom-account grants.
+2. Wait for the managed API/controller Deployments to roll out. Their upgraded
+   processes register their own Pod identities; do not supply registration
+   annotations through Pod templates. Retain the manifest-provided Pod identity
+   environment and permissions to inspect Deployments and register Pods.
+3. Inspect API/controller logs if scheduling waits. The handoff requires the
+   standard `ml-pipeline` and `ml-pipeline-scheduledworkflow` Deployments in the
+   installation namespace to finish replacing old Pods. Resolve stuck rollouts,
+   terminating or incompatible Pods, and missing handoff permissions.
+4. Inspect `Automatic recurring-run adoption will retry schedule` diagnostics and
+   the inventory below. Verify next-tick execution, disabled state, preserved
+   progress, concurrency accounting, and duplicate prevention. Recover missing
+   persistence reports or other inconsistent records while unrelated schedules
+   continue; running pipeline tasks need not drain.
+
+The automatic handoff does not discover separate installations or external
+processes sharing the database. Customized or renamed deployments need an
+explicit plan covering every writer and the managed handoff configuration.
+Do not restore old writable APIs or controllers after adoption. The offline
+command below is available for controlled recovery, not ordinary startup.
+
+### Offline recovery (advanced)
+
+Only use `--adopt-legacy-recurring-runs` for a coordinated recovery that requires
+the offline command. It is not required for an ordinary managed rollout.
 
 Use a maintenance window for **API availability and schedule submissions**, not
 for running tasks to drain. Back up the database and ScheduledWorkflow objects
@@ -221,17 +272,21 @@ provide zero-downtime API transport or transparently replay failed client calls.
 
 ### Inventory and status
 
-Each multi-user API replica logs `recurring_run_migration action=adopt_or_recreate`
-at startup for every job missing trusted scheduling state, including disabled jobs.
-The messages contain its ID, namespace, ScheduledWorkflow name and enabled state;
-they omit execution inputs. A final `affected_jobs` count summarizes the inventory.
-An `inventory_failed` error means the inventory is incomplete, not that no jobs
-need migration. Rerun the read-only inventory below after database recovery.
+At startup, `recurring_run_migration action=automatic_adoption_pending` identifies
+jobs without trusted scheduling state, including disabled jobs. `affected_jobs`
+summarizes that startup snapshot; an `inventory_failed` error means collection is
+incomplete, not that no jobs need migration. The background worker may make
+progress after the snapshot.
 
-Inspect the API startup logs and Kubernetes schedule identities:
+The API logs `Automatic recurring-run adoption is waiting and will retry` while
+managed writers are not ready or inventory collection fails, and
+`Automatic recurring-run adoption will retry schedule` for record-specific
+failures. These are retry diagnostics, not a complete inventory or a count of
+successful migrations. Missing logs are not evidence that no schedules remain.
+Use a read-only database check and inspect Kubernetes schedule identities:
 
 ```bash
-kubectl -n kubeflow logs deployment/ml-pipeline --all-pods=true --all-containers=true --prefix | grep recurring_run_migration
+kubectl -n kubeflow logs deployment/ml-pipeline --all-pods=true --all-containers=true --prefix | grep 'Automatic recurring-run adoption'
 kubectl get scheduledworkflows.kubeflow.org --all-namespaces \
   -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,UID:.metadata.uid,ENABLED:.spec.enabled'
 ```
@@ -258,14 +313,18 @@ ORDER BY j."UUID";
 ```
 
 Match database IDs to Kubernetes UIDs. A CR without a matching API job requires
-API creation. Before the first upgraded API/adoption command has prepared the
-schema, the state and receipt tables do not exist yet. The command logs its
+API creation. Before the upgraded API has prepared the schema, the state and receipt tables do not exist yet. The offline command logs its
 durable adoption count and timestamp; the `recurring_run_adoptions` table contains
 `ID`, `AdoptedCount`, `CompletedAt` (Unix seconds when the SQL snapshot committed),
 `JobIDs` (JSON inventory), and `Ready`. Inspect it with a read-only database
-connection. An absent receipt means adoption has not committed; `Ready=false`
-means synchronization must resume; `Ready=true` seals the adopted baseline.
+connection. Automatic migration uses receipt IDs `legacy-2.18:<job UUID>` for
+individual records; the offline command uses `legacy-2.18` with its listed job IDs. An absent
+receipt means no adoption receipt was committed for that scope; `Ready=false`
+means synchronization must resume; `Ready=true` seals those recorded definitions.
+A global receipt does not freeze later inventory or block unrelated schedules.
 
+The missing-state query does not include records whose state was committed but
+Kubernetes synchronization is pending; also inspect receipts with `Ready=false`.
 Jobs that already have scheduling state are not readopted. If an earlier rollout
 overlapped old and new API writers, separately investigate definitions those old
 writers could have modified; adoption cannot identify or undo that history.
@@ -479,15 +538,26 @@ starting another execution; changing policy does not stop that running workload.
 
 ### Populated adoption CI coverage
 
-The opt-in upgrade workflow input `run_readiness_adoption=true` exercises the
-offline command against real 2.17.2 history in an isolated Kind cluster. It checks
-SQL definitions and progress, enabled/disabled schedules, receipt idempotency,
-and absence of duplicate workflow indices. A persisted submission may be one
-index ahead of the legacy trigger acknowledgement; the fixture requires adoption
-to recover its original run identity and due time, without editing source progress.
-An actual persisted source Workflow is suspended across cutover: the candidate must count it against concurrency,
-finish it after resumption, and successfully execute the next tick. This is
-separate from the unadopted-schedule rejection/recreation tests. It does not test
-API retries inside already-running task containers or claim zero-downtime
-execution. Record the candidate SHA and hosted result before claiming live
-adoption acceptance.
+The opt-in upgrade workflow input `run_readiness_adoption=true` populates real
+2.17.2 schedule history and applies the candidate with the normal rolling
+Deployment update. It does not stop API/controller replicas or invoke the offline
+command. A source child Workflow is suspended with Argo while its schedule's
+original template is restored before baseline capture. The fixture probes the API
+Service across manifest application and checks automatic adoption, preserved
+SQL definitions/progress, enabled/disabled state, active-run concurrency,
+completion of the suspended run after resumption, and the next tick without
+duplicate workflow indices. The probes cover their selected API endpoint, not
+every API operation or transparent retry inside task containers.
+
+The separate `run_readiness_schedules=true` lane now waits for automatic adoption
+of the same source schedule IDs before the enforce/audit/revocation matrix. It
+no longer requires rejection and recreation as the normal legacy migration path.
+Historical passing rejection/recreation or offline-command runs remain evidence
+for those older paths only.
+
+Current live online acceptance remains pending until a recorded candidate run
+finishes and its reports are inspected. Fixture implementation and unit tests are
+not live acceptance. Verify the scheduling-write pause rejects before mutation,
+post-handoff retry succeeds, and bad records remain isolated without blocking
+healthy schedules. Neither API probes nor a suspended workflow alone establish
+all application-level availability or recovery behavior.
