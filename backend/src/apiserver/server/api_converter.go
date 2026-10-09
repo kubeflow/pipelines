@@ -42,7 +42,6 @@ const (
 	urlSchemeData       = "data:"
 	urlSchemeVBScript   = "vbscript:"
 
-	pluginErrInvalidLimitsConfig      = "invalid plugin limits configuration"
 	pluginErrPluginsInputTooManyKeys  = "number of plugins_input entries"
 	pluginErrPluginsInputNilEntry     = "plugins_input[%q] must not be nil"
 	pluginErrPluginsInputInvalidValue = "plugins_input[%q] contains invalid nested value"
@@ -570,22 +569,6 @@ func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2beta1.RuntimeCon
 	apiRuntimeConfig.Parameters = runtimeParams
 	apiRuntimeConfig.PipelineRoot = string(modelRuntime.PipelineRoot)
 	return &apiRuntimeConfig
-}
-
-// Converts internal runtime config representation to PipelineSpec's runtime config.
-// Note: returns nil if a parsing error occurs.
-func toPipelineSpecRuntimeConfig(cfg *model.RuntimeConfig) *pipelinespec.PipelineJob_RuntimeConfig {
-	if cfg == nil {
-		return &pipelinespec.PipelineJob_RuntimeConfig{}
-	}
-	runtimeParams := toMapProtoStructParameters(string(cfg.Parameters))
-	if runtimeParams == nil {
-		return nil
-	}
-	return &pipelinespec.PipelineJob_RuntimeConfig{
-		ParameterValues:    runtimeParams,
-		GcsOutputDirectory: string(cfg.PipelineRoot),
-	}
 }
 
 // Converts API run to its internal representation.
@@ -1206,24 +1189,6 @@ func toApiRunStorageState(s *model.StorageState) apiv2beta1.Run_StorageState {
 	}
 }
 
-// Converts internal storage state representation to its API experiment's counterpart.
-// Support v2beta1 API.
-func toApiExperimentStorageState(s *model.StorageState) apiv2beta1.Experiment_StorageState {
-	if string(*s) == "" {
-		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
-	}
-	switch string(*s) {
-	case string(model.StorageStateArchived), string(model.StorageStateArchivedV1):
-		return apiv2beta1.Experiment_ARCHIVED
-	case string(model.StorageStateAvailable), string(model.StorageStateAvailableV1):
-		return apiv2beta1.Experiment_AVAILABLE
-	case string(model.StorageStateUnspecified), string(model.StorageStateUnspecifiedV1):
-		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
-	default:
-		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
-	}
-}
-
 // Converts API runtime state to its internal representation.
 func toModelRuntimeState(state apiv2beta1.RuntimeState) model.RuntimeState {
 	return model.RuntimeState(apiv2beta1.RuntimeState_name[int32(state)]).ToV2()
@@ -1372,14 +1337,6 @@ func pluginsOutputToJSON(pluginsOutput map[string]*apiv2beta1.PluginOutput) (*st
 	}
 	s := string(out)
 	return &s, nil
-}
-
-func validatePluginsOutput(pluginsOutput map[string]*apiv2beta1.PluginOutput) error {
-	limits, err := common.GetPluginLimitsConfig()
-	if err != nil {
-		return fmt.Errorf("%s: %w", pluginErrInvalidLimitsConfig, err)
-	}
-	return validatePluginsOutputWithLimits(pluginsOutput, limits)
 }
 
 func validatePluginsOutputWithLimits(pluginsOutput map[string]*apiv2beta1.PluginOutput, limits common.PluginLimitsConfig) error {
