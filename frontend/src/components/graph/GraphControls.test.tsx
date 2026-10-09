@@ -71,7 +71,7 @@ it('uses fullscreen controls at the bottom and dispatches each action', () => {
 });
 
 it.each([
-  ['Expand all', 'Expand all sub-DAGs (large groups may require individual expansion)'],
+  ['Expand all', 'Expand all sub-DAGs'],
   ['Collapse all', 'Collapse all sub-DAGs'],
   ['Zoom in', 'Zoom in'],
   ['Zoom out', 'Zoom out'],
