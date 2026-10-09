@@ -7,7 +7,7 @@ import type { FlowElementDataBase } from 'src/components/graph/Constants';
 export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
 
 /** A local graph element and the DAG instance that owns its task/artifact IDs. */
-export interface ScopedFlowElement {
+export interface LayerFlowElement {
   element: PipelineFlowElement;
   layers: string[];
 }

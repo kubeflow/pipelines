@@ -20,13 +20,13 @@ import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCa
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import {
-  convertSubDagToFlowElements,
-  getNodeName,
-  PipelineFlowElement,
-} from 'src/lib/v2/StaticFlow';
+import { convertSubDagToFlowElements, getNodeName } from 'src/lib/v2/StaticFlow';
 import { tryConvertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import type { LayerElementsResolver, ScopedFlowElement } from 'src/lib/v2/FlowTypes';
+import type {
+  LayerElementsResolver,
+  LayerFlowElement,
+  PipelineFlowElement,
+} from 'src/lib/v2/FlowTypes';
 
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
@@ -54,7 +54,7 @@ function PipelineDetailsV2({
 }: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selection, setSelection] = useState<ScopedFlowElement | null>(null);
+  const [selection, setSelection] = useState<LayerFlowElement | null>(null);
   const pipelineSpec = useMemo(
     () => (templateString ? tryConvertYamlToV2PipelineSpec(templateString) : undefined),
     [templateString],

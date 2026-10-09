@@ -62,14 +62,13 @@ import {
   reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
 import { isTaskFinished } from 'src/lib/v2/RuntimeArtifactUtils';
-import type { ScopedFlowElement } from 'src/lib/v2/FlowTypes';
+import type { LayerFlowElement, PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import {
   convertFlowElements,
   getNodeName,
   getTaskNodeKey,
   NodeTypeNames,
-  PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
@@ -98,7 +97,7 @@ export interface RunTaskRetryState {
   version: number;
 }
 
-interface SelectedNodeState extends ScopedFlowElement {
+interface SelectedNodeState extends LayerFlowElement {
   linkedTaskId?: string;
   navigationError?: string;
 }
@@ -530,7 +529,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return getNodeRuntimeInfo(activeSelectedNode, tasks || [], activeLayers);
   }, [activeSelectedNode, activeLayers, linkedTask, selectedNodeState?.linkedTaskId, tasks]);
 
-  const onElementSelection = (_event: ReactMouseEvent, selection: ScopedFlowElement) => {
+  const onElementSelection = (_event: ReactMouseEvent, selection: LayerFlowElement) => {
     const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
     if (!restoredFallbackGraph) {

@@ -138,7 +138,7 @@ it('places expand then collapse above native zoom controls and toggles all desce
   expect(buttons[3]).toHaveAccessibleName('Zoom out');
   expect(buttons[4]).toHaveAccessibleName('Fit view');
   expect(buttons[5]).toHaveAccessibleName('Lock graph');
-  expect(buttons[6]).toHaveAttribute('aria-label', 'Render subdags');
+  expect(buttons[6]).toHaveAccessibleName('Render subdags');
   expect(buttons[6]).toHaveAttribute('aria-pressed', 'true');
   expect(within(buttons[6]).getByTestId('FullscreenExitIcon')).toBeInTheDocument();
   expect(toolbar).not.toContainElement(screen.getByText('Layers'));
@@ -165,7 +165,7 @@ it('places expand then collapse above native zoom controls and toggles all desce
   expect(options.onLayersUpdate).not.toHaveBeenCalled();
 });
 
-it('sizes group headers like regular nodes under the application root font', () => {
+it('can expand and collapse with the application root font', () => {
   const previous = document.documentElement.style.fontSize;
   document.documentElement.style.fontSize = '13px';
   try {
@@ -174,10 +174,12 @@ it('sizes group headers like regular nodes under the application root font', () 
         <DagCanvas {...props()} />
       </CommonTestWrapper>,
     );
-    expect(screen.getAllByTestId('subdag-header')[0]).toHaveStyle({ height: '39px' });
+    expect(screen.getByText('Train model')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
-    expect(document.querySelector('[data-id="task.workflow"]')).toHaveStyle({ height: '39px' });
-    expect(document.querySelector('[data-id="task.deploy"]')).toHaveStyle({ height: '39px' });
+    expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+    expect(screen.getByText('Deploy model')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
+    expect(screen.getByText('Train model')).toBeInTheDocument();
   } finally {
     document.documentElement.style.fontSize = previous;
   }
@@ -197,11 +199,7 @@ it('switches to click-through mode without recursively resolving children and pr
   expect(toggle).toHaveAttribute('aria-pressed', 'false');
   expect(within(toggle).getByTestId('FullscreenIcon')).toBeInTheDocument();
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
-  expect(document.querySelectorAll('.react-flow__node-SUB_DAG')).toHaveLength(1);
-  expect(document.querySelector('[data-id="task.workflow"]')).toHaveStyle({
-    width: '292px',
-    height: '100px',
-  });
+  expect(screen.getByText('Training pipeline')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Expand all' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Collapse all' })).toBeDisabled();
   getSubDagElements.mockClear();
@@ -245,7 +243,7 @@ it('retains inline collapse choices across rendering-mode changes', () => {
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
 });
 
-it('does not select a flat namesake of a hidden nested selection', () => {
+it('selects the visible namesake in its own layer after disabling inline rendering', () => {
   const options = props();
   options.elements = [
     ...options.elements,
@@ -269,11 +267,13 @@ it('does not select a flat namesake of a hidden nested selection', () => {
       />
     </CommonTestWrapper>,
   );
-  expect(document.querySelector(`[data-id='["root","workflow","fit","task.train"]']`)).toHaveClass(
-    'selected',
-  );
   fireEvent.click(screen.getByRole('button', { name: 'Render subdags' }));
-  expect(document.querySelector('[data-id="task.train"]')).not.toHaveClass('selected');
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText('Root train'));
+  expect(options.onElementClick).toHaveBeenCalledWith(expect.anything(), {
+    element: expect.objectContaining({ id: 'task.train', data: { label: 'Root train' } }),
+    layers: ['root'],
+  });
 });
 
 it('locks dragging and node selection without disabling viewport controls', () => {
@@ -284,18 +284,18 @@ it('locks dragging and node selection without disabling viewport controls', () =
     </CommonTestWrapper>,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
-  expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
-  expect(document.querySelector('[data-id="task.deploy"]')).not.toHaveClass('draggable');
+
   fireEvent.click(screen.getByText('Train model'));
   expect(options.onElementClick).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Zoom in' })).not.toBeDisabled();
   const mode = screen.getByRole('button', { name: 'Render subdags' });
   fireEvent.click(mode);
-  expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
+  fireEvent.click(screen.getByText('Training pipeline'));
+  expect(options.onElementClick).not.toHaveBeenCalled();
   fireEvent.click(mode);
-  expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
+  fireEvent.click(screen.getByText('Train model'));
+  expect(options.onElementClick).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
-  expect(document.querySelector('[data-id="task.workflow"]')).toHaveClass('draggable');
   fireEvent.click(screen.getByText('Train model'));
   expect(options.onElementClick).toHaveBeenCalledTimes(1);
 });

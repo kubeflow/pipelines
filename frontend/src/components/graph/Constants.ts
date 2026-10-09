@@ -20,16 +20,18 @@ export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
 export type FlowElementDataBase = {
   label: string;
   taskId?: string;
-  groupKind?: SubDagKind;
   [key: string]: any;
 };
 
-export type SubDagFlowElementData = FlowElementDataBase & {
+export type SubDagTaskData = FlowElementDataBase & {
   groupKind?: SubDagKind;
-  // Callback action if a SubDag expand button is clicked.
-  expand: (nodeKey: string) => void;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
+};
+
+export type SubDagFlowElementData = SubDagTaskData & {
+  // Callback action if a SubDag expand button is clicked.
+  expand: (nodeKey: string) => void;
 };
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
