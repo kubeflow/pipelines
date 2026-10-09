@@ -35,6 +35,7 @@ RUNTIME_DIRECTORIES = (
     'failing',
     'gpu-scheduling',
     'dra',
+    'scale',
 )
 IMAGE_EXCEPTIONS = {
     'argostub/createpvc':
