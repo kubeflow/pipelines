@@ -15,15 +15,33 @@
  */
 
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderWithoutTheme, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
 import UploadPipelineDialog, {
   ImportMethod,
   PIPELINE_PACKAGE_ACCEPT,
   PIPELINE_PACKAGE_REJECT_MESSAGE,
   pipelinePackageValidator,
 } from './UploadPipelineDialog';
+
+function render(element: React.ReactElement) {
+  return renderWithoutTheme(<ThemeProvider defaultTheme='light'>{element}</ThemeProvider>);
+}
+beforeEach(() => {
+  localStorage.clear();
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    matches: false,
+    media,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 describe('PIPELINE_PACKAGE_ACCEPT', () => {
   it('accepts only backend-supported formats', () => {

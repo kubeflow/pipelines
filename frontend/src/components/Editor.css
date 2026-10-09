@@ -1,0 +1,58 @@
+/* Ace keeps its session, workers and editing behavior; the inherited palette owns its colors. */
+.kfp-theme .ace_editor.ace-github {
+  color: var(--foreground);
+  background: var(--card);
+  font-family: var(--kfp-font-mono);
+  line-height: 1.6;
+}
+.kfp-theme .ace_editor.ace-github .ace_gutter {
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+.kfp-theme .ace_editor.ace-github .ace_print-margin {
+  background: var(--border);
+}
+.kfp-theme .ace_editor.ace-github .ace_cursor {
+  color: var(--foreground);
+}
+.kfp-theme .ace_editor.ace-github .ace_marker-layer .ace_selection {
+  background: var(--primary-soft);
+}
+.kfp-theme .ace_editor.ace-github .ace_marker-layer .ace_active-line,
+.kfp-theme .ace_editor.ace-github .ace_gutter-active-line {
+  background: var(--muted);
+}
+.kfp-theme .ace_editor.ace-github .ace_marker-layer .ace_selected-word {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.kfp-theme .ace_editor.ace-github .ace_comment {
+  color: var(--muted-foreground);
+}
+.kfp-theme .ace_editor.ace-github .ace_keyword,
+.kfp-theme .ace_editor.ace-github .ace_storage,
+.kfp-theme .ace_editor.ace-github .ace_variable {
+  color: var(--primary);
+}
+.kfp-theme .ace_editor.ace-github .ace_string {
+  color: var(--status-succeeded);
+}
+.kfp-theme .ace_editor.ace-github .ace_constant.ace_numeric,
+.kfp-theme .ace_editor.ace-github .ace_constant.ace_language,
+.kfp-theme .ace_editor.ace-github .ace_constant.ace_buildin {
+  color: var(--status-warning);
+}
+.kfp-theme .ace_editor.ace-github .ace_support.ace_function {
+  color: var(--primary);
+}
+.kfp-theme .ace_editor.ace-github .ace_invalid {
+  color: var(--status-failed-foreground);
+  background: var(--status-failed);
+}
+.kfp-theme .ace_editor.ace-github .ace_fold {
+  border-color: var(--foreground);
+  background: var(--primary-soft);
+}
+.kfp-theme .ace_editor.ace-github .ace_scroller {
+  background: transparent;
+}

@@ -1,0 +1,1139 @@
+/*
+ * Copyright 2022 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ModalDialog } from 'src/components/ui/dialog';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router';
+import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { Button } from 'src/components/ui/button';
+import { Checkbox } from 'src/components/ui/checkbox';
+import { LoaderCircle, Plus } from 'lucide-react';
+import { ExternalLink } from 'src/atoms/ExternalLink';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { TextField } from 'src/components/ui/text-field';
+import { CustomRendererProps } from 'src/components/CustomTable';
+import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+import { Description } from 'src/components/Description';
+import RunParametersForm from 'src/components/RunParametersForm';
+import { getSafeReturnPath, QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import Trigger from 'src/components/Trigger';
+import { loadYaml } from 'src/lib/YamlLoad';
+import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
+import { useKeyedState } from 'src/hooks/useKeyedState';
+import {
+  getInitialParameterState,
+  type RuntimeParameters,
+  type SpecParameters,
+} from 'src/lib/NewRunParametersUtils';
+import { URLParser } from 'src/lib/URLParser';
+import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
+import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import { PageProps } from './Page';
+import PipelineSelectorDialog from 'src/components/PipelineSelectorDialog';
+import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurringrun';
+import ResourceSelector from 'src/pages/ResourceSelector';
+import {
+  convertExperimentToResource,
+  convertPipelineVersionToResource,
+} from 'src/lib/ResourceConverter';
+import './CreateRunForm.css';
+import { ToolbarActionMap } from 'src/lib/PageChromeTypes';
+import { CreateExperimentQueryPage } from './query/CreateExperimentQueryPage';
+
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
+  return <Description description={props.value || ''} forceInline={true} />;
+};
+
+interface RunV2Props {
+  namespace?: string;
+  existingRunId: string | null;
+  existingRun?: V2beta1Run;
+  existingRecurringRunId: string | null;
+  existingRecurringRun?: V2beta1RecurringRun;
+  existingPipeline?: V2beta1Pipeline;
+  handlePipelineIdChange: (pipelineId: string) => void;
+  existingPipelineVersion?: V2beta1PipelineVersion;
+  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
+  templateString?: string;
+  chosenExperiment?: V2beta1Experiment;
+}
+
+type CreateRunFormProps = RunV2Props & PageProps;
+
+export type { RuntimeParameters, SpecParameters } from 'src/lib/NewRunParametersUtils';
+
+const hashString64 = (value: string): string => {
+  let first = 0x9e3779b1;
+  let second = 0x85ebca77;
+
+  for (let index = 0; index < value.length; index++) {
+    const charCode = value.charCodeAt(index);
+    first = Math.imul(first ^ charCode, 2654435761);
+    second = Math.imul(second ^ charCode, 1597334677);
+  }
+
+  first =
+    Math.imul(first ^ (first >>> 16), 2246822507) ^ Math.imul(second ^ (second >>> 13), 3266489909);
+  second =
+    Math.imul(second ^ (second >>> 16), 2246822507) ^ Math.imul(first ^ (first >>> 13), 3266489909);
+
+  return `${(first >>> 0).toString(16).padStart(8, '0')}${(second >>> 0)
+    .toString(16)
+    .padStart(8, '0')}`;
+};
+
+const getEmptyTemplateData = () => ({
+  defaultPipelineRoot: undefined as string | undefined,
+  specParameters: {} as SpecParameters,
+});
+
+const getTemplateData = (templateString?: string) => {
+  if (!templateString) {
+    return getEmptyTemplateData();
+  }
+
+  try {
+    const spec = convertYamlToV2PipelineSpec(templateString);
+    return {
+      defaultPipelineRoot: spec.defaultPipelineRoot,
+      specParameters: spec.root?.inputDefinitions?.parameters ?? {},
+    };
+  } catch (error) {
+    logger.error('Cannot parse pipeline template.', error);
+    return getEmptyTemplateData();
+  }
+};
+
+type CloneOrigin = {
+  isClone: boolean;
+  isRecurring: boolean;
+  run?: V2beta1Run;
+  recurringRun?: V2beta1RecurringRun;
+};
+
+function getCloneOrigin(run?: V2beta1Run, recurringRun?: V2beta1RecurringRun) {
+  let cloneOrigin: CloneOrigin = {
+    isClone: run !== undefined || recurringRun !== undefined,
+    isRecurring: recurringRun !== undefined,
+    run: run,
+    recurringRun: recurringRun,
+  };
+  return cloneOrigin;
+}
+
+function getPipelineDetailsUrl(
+  props: CreateRunFormProps,
+  isRecurring: boolean,
+  existingRunId: string | null,
+  originalRecurringRunId: string | null,
+): string {
+  const urlParser = new URLParser(props);
+
+  const pipelineDetailsUrlfromRun = existingRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
+    : '';
+
+  const pipelineDetailsUrlfromRecurringRun = originalRecurringRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRecurringRunId]: originalRecurringRunId })
+    : '';
+
+  return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
+}
+
+export async function getLatestVersion(pipelineId: string) {
+  try {
+    const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
+      pipelineId,
+      undefined,
+      1, // Only need the latest one
+      'created_at desc',
+    );
+    return listVersionsResponse.pipeline_versions
+      ? listVersionsResponse.pipeline_versions[0]
+      : undefined;
+  } catch (err) {
+    logger.error('Cannot retrieve pipeline version list.', err);
+    return;
+  }
+}
+
+function getRunValidationErrorMessage(
+  runName: string,
+  existingPipeline?: V2beta1Pipeline,
+  existingPipelineVersion?: V2beta1PipelineVersion,
+  isTemplatePullSuccess?: boolean,
+) {
+  if (isTemplatePullSuccess) {
+    return runName ? '' : 'Run name cannot be empty.';
+  }
+  if (!existingPipeline) {
+    return 'A pipeline must be selected';
+  }
+  if (!existingPipelineVersion) {
+    return 'A pipeline version must be selected';
+  }
+  return '';
+}
+
+function getDefaultRunName(
+  runDisplayName?: string,
+  recurringRunDisplayName?: string,
+  pipelineVersionDisplayName?: string,
+) {
+  if (runDisplayName) {
+    return 'Clone of ' + runDisplayName;
+  }
+  if (recurringRunDisplayName) {
+    return 'Clone of ' + recurringRunDisplayName;
+  }
+  if (pipelineVersionDisplayName) {
+    return 'Run of ' + pipelineVersionDisplayName + ' (' + generateRandomString(5) + ')';
+  }
+  return '';
+}
+
+function CreateRunForm(props: CreateRunFormProps) {
+  // List of elements we need to create Pipeline Run.
+  const {
+    existingRunId,
+    existingRun,
+    existingRecurringRunId,
+    existingRecurringRun,
+    existingPipeline,
+    handlePipelineIdChange,
+    existingPipelineVersion,
+    handlePipelineVersionIdChange,
+    templateString,
+    chosenExperiment,
+  } = props;
+  const pipelineSelectionGeneration = React.useRef(0);
+  // External sync: invalidate pending latest-version reads on scope change or unmount.
+  useEffect(
+    () => () => {
+      pipelineSelectionGeneration.current++;
+    },
+    [props.namespace],
+  );
+  const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
+  const urlParser = new URLParser(props);
+  const returnPath = getSafeReturnPath(urlParser.get(QUERY_PARAMS.returnTo));
+  const [customRunName, setCustomRunName] = useState<string | null>(null);
+  const [runDescription, setRunDescription] = useState('');
+  const [serviceAccount, setServiceAccount] = useState('');
+  const [isStartingNewRun, setIsStartingNewRun] = useState(false);
+  const [openNewExperiment, setOpenNewExperiment] = useState(false);
+  const [isRecurringRun, setIsRecurringRun] = useState(
+    urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
+  );
+  const initialTrigger = cloneOrigin.recurringRun?.trigger
+    ? cloneOrigin.recurringRun.trigger
+    : undefined;
+  const [trigger, setTrigger] = useState(initialTrigger);
+  const initialMaxConCurrentRuns =
+    cloneOrigin.recurringRun?.max_concurrency !== undefined
+      ? cloneOrigin.recurringRun.max_concurrency
+      : '10';
+  const [maxConcurrentRuns, setMaxConcurrentRuns] = useState(initialMaxConCurrentRuns);
+  const [isMaxConcurrentRunValid, setIsMaxConcurrentRunValid] = useState(true);
+  const initialCatchup =
+    cloneOrigin.recurringRun?.no_catchup !== undefined
+      ? !cloneOrigin.recurringRun.no_catchup
+      : true;
+  const [needCatchup, setNeedCatchup] = useState(initialCatchup);
+  const [useLatestVersion, setUseLatestVersion] = useState(false);
+  const existingRunDisplayName = existingRun?.display_name;
+  const existingRecurringRunDisplayName = existingRecurringRun?.display_name;
+  const existingPipelineVersionDisplayName = existingPipelineVersion?.display_name;
+  const [pipelineName, setPipelineName] = useKeyedState<string>(
+    existingPipeline?.pipeline_id ?? '',
+    existingPipeline?.display_name ?? '',
+  );
+  const [selectedExperiment, setSelectedExperiment] = useKeyedState<V2beta1Experiment | undefined>(
+    chosenExperiment?.experiment_id ?? '',
+    chosenExperiment,
+  );
+  const experimentId = selectedExperiment?.experiment_id ?? '';
+  const experimentName = selectedExperiment?.display_name ?? '';
+  // Prefix the "latest version" mode key so toggling the checkbox cannot reuse a concrete version id.
+  const [pipelineVersionName, setPipelineVersionName] = useKeyedState<string>(
+    useLatestVersion
+      ? `latest:${existingPipeline?.pipeline_id ?? ''}`
+      : (existingPipelineVersion?.pipeline_version_id ?? ''),
+    useLatestVersion ? '' : (existingPipelineVersion?.display_name ?? ''),
+  );
+  const defaultRunName = useMemo(
+    () =>
+      getDefaultRunName(
+        existingRunDisplayName,
+        existingRecurringRunDisplayName,
+        existingPipelineVersionDisplayName,
+      ),
+    [existingRunDisplayName, existingRecurringRunDisplayName, existingPipelineVersionDisplayName],
+  );
+  const runName = customRunName ?? defaultRunName;
+
+  const clonedRuntimeConfig = cloneOrigin.isRecurring
+    ? cloneOrigin.recurringRun?.runtime_config
+    : cloneOrigin.run?.runtime_config;
+  const { defaultPipelineRoot, specParameters } = useMemo(
+    () => getTemplateData(templateString),
+    [templateString],
+  );
+  /* eslint-disable react-hooks/preserve-manual-memoization --
+   * These memoized clone inputs can be mutated by generated API types. Keep the
+   * existing identity boundaries until React Compiler adoption revisits them.
+   */
+  const clonedRuntimeConfigKey = useMemo(
+    () => JSON.stringify(clonedRuntimeConfig ?? null),
+    [clonedRuntimeConfig],
+  );
+  const parameterStateKey = useMemo(
+    () =>
+      `${(templateString ?? '').length}:${hashString64(
+        templateString ?? '',
+      )}:${clonedRuntimeConfigKey.length}:${hashString64(clonedRuntimeConfigKey)}`,
+    [clonedRuntimeConfigKey, templateString],
+  );
+  const initialParameterState = useMemo(
+    () => getInitialParameterState(specParameters, clonedRuntimeConfig),
+    [clonedRuntimeConfig, specParameters],
+  );
+  /* eslint-enable react-hooks/preserve-manual-memoization */
+  const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
+  const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
+    parameterStateKey,
+    initialParameterState.runtimeParameters,
+  );
+  const [pipelineRoot, handlePipelineRootChange] = useKeyedState<string | undefined>(
+    parameterStateKey,
+    initialPipelineRoot,
+  );
+  const [isParameterValid, handleParameterValidityChange] = useKeyedState<boolean>(
+    parameterStateKey,
+    initialParameterState.isValid,
+  );
+  const labelTextAdjective = isRecurringRun ? 'recurring ' : '';
+  const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
+
+  const isTemplatePullSuccess = templateString ? true : false;
+  const validationErrorMessage = getRunValidationErrorMessage(
+    runName,
+    existingPipeline,
+    existingPipelineVersion,
+    isTemplatePullSuccess,
+  );
+  const isStartButtonEnabled =
+    !!templateString && !validationErrorMessage && isParameterValid && isMaxConcurrentRunValid;
+
+  const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
+  const titleAdjective = cloneOrigin.isClone ? '' : 'new';
+
+  // Pipeline version reference from selected pipeline (version) when "creating" run
+  const pipelineVersionRefNew: V2beta1PipelineVersionReference | undefined = cloneOrigin.isClone
+    ? undefined
+    : {
+        pipeline_id: existingPipeline?.pipeline_id,
+        pipeline_version_id: existingPipelineVersion?.pipeline_version_id,
+      };
+
+  // Pipeline version reference from existing run or recurring run when "cloning" run
+  const pipelineVersionRefClone = cloneOrigin.isRecurring
+    ? cloneOrigin.recurringRun?.pipeline_version_reference
+    : cloneOrigin.run?.pipeline_version_reference;
+
+  // Creat new experiment option
+  const createNewExperiment = {
+    action1: {
+      action: () => setOpenNewExperiment(true),
+      disabledTitle: 'create experiment to new run disabled title',
+      icon: Plus,
+      id: 'create experiment to new run id',
+      title: 'Create new experiment',
+      tooltip: 'Create new experiment',
+    },
+  };
+
+  // Title and list of actions on the top of page.
+  useEffect(() => {
+    props.updateToolbar({
+      actions: {},
+      pageTitle: isRecurringRun
+        ? `${titleVerb} a recurring run`
+        : `${titleVerb} a ${titleAdjective} run`,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecurringRun]);
+
+  // Defines the behavior when user clicks `Start` button.
+  const newRunMutation = useMutation({
+    mutationFn: (run: V2beta1Run) => {
+      return Apis.runServiceApiV2.createRun(run);
+    },
+  });
+  const newRecurringRunMutation = useMutation({
+    mutationFn: (recurringRun: V2beta1RecurringRun) => {
+      return Apis.recurringRunServiceApi.createRecurringRun(recurringRun);
+    },
+  });
+
+  const startRun = async () => {
+    const submittedIsRecurringRun = isRecurringRun;
+
+    let newRun: V2beta1Run = {
+      description: runDescription,
+      display_name: runName,
+      experiment_id: selectedExperiment?.experiment_id,
+      // pipeline_spec and pipeline_version_reference is exclusive.
+      pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
+        ? (loadYaml(templateString || '') as object)
+        : undefined,
+      pipeline_version_reference: useLatestVersion
+        ? { pipeline_id: existingPipeline?.pipeline_id }
+        : cloneOrigin.isClone
+          ? pipelineVersionRefClone
+          : pipelineVersionRefNew,
+      runtime_config: {
+        pipeline_root: pipelineRoot,
+        parameters: runtimeParameters,
+      },
+      service_account: serviceAccount,
+    };
+
+    let newRecurringRun: V2beta1RecurringRun = Object.assign(
+      newRun,
+      submittedIsRecurringRun
+        ? {
+            max_concurrency: maxConcurrentRuns || '1',
+            no_catchup: !needCatchup,
+            mode: RecurringRunMode.ENABLE,
+            trigger: trigger,
+          }
+        : {
+            max_concurrency: undefined,
+            no_catchup: undefined,
+            mode: undefined,
+            trigger: undefined,
+          },
+    );
+    setIsStartingNewRun(true);
+
+    try {
+      if (submittedIsRecurringRun) {
+        const data = await newRecurringRunMutation.mutateAsync(newRecurringRun);
+        setIsStartingNewRun(false);
+        if (data.recurring_run_id) {
+          props.navigate(
+            RoutePage.RECURRING_RUN_DETAILS.replace(
+              ':' + RouteParams.recurringRunId,
+              data.recurring_run_id,
+            ),
+          );
+        } else {
+          props.navigate(RoutePage.RECURRING_RUNS);
+        }
+
+        props.updateSnackbar({
+          message: `Successfully started new recurring Run: ${data.display_name}`,
+          open: true,
+        });
+      } else {
+        const data = await newRunMutation.mutateAsync(newRun);
+        setIsStartingNewRun(false);
+        if (data.run_id) {
+          props.navigate(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
+        } else {
+          props.navigate(RoutePage.RUNS);
+        }
+
+        props.updateSnackbar({
+          message: `Successfully started new Run: ${data.display_name}`,
+          open: true,
+        });
+      }
+    } catch (error) {
+      const errorMessage = await errorToMessage(error);
+      props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        onClose: () => setIsStartingNewRun(false),
+        content: errorMessage,
+        title: submittedIsRecurringRun ? 'Recurring run creation failed' : 'Run creation failed',
+      });
+    }
+  };
+
+  return (
+    <div className='kfp-run-form'>
+      <section className='kfp-new-run-fields' aria-labelledby='run-details-heading'>
+        <h2 id='run-details-heading'>Run details</h2>
+
+        {cloneOrigin.isClone && (
+          <div>
+            <div>
+              <span>{usePipelineFromRunLabel}</span>
+            </div>
+            <div className='kfp-new-run-clone-link'>
+              {/* TODO(jlyaoyuli): View pipelineDetails from existing recurring run*/}
+              {cloneOrigin.isClone && (
+                <Link
+                  to={getPipelineDetailsUrl(
+                    props,
+                    cloneOrigin.isRecurring,
+                    existingRunId,
+                    existingRecurringRunId,
+                  )}
+                >
+                  [View pipeline]
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!cloneOrigin.isClone && (
+          <div className='kfp-new-run-pipeline'>
+            {/* Pipeline selection */}
+            <PipelineSelector
+              key={props.namespace || ''}
+              {...props}
+              pipelineName={pipelineName}
+              handlePipelineChange={async (updatedPipeline) => {
+                const generation = ++pipelineSelectionGeneration.current;
+                if (updatedPipeline.pipeline_id) {
+                  const latestVersion = await getLatestVersion(updatedPipeline.pipeline_id);
+                  if (generation !== pipelineSelectionGeneration.current) return;
+                  if (updatedPipeline.display_name) setPipelineName(updatedPipeline.display_name);
+                  const searchString = urlParser.build({
+                    [QUERY_PARAMS.experimentId]: experimentId || '',
+                    [QUERY_PARAMS.pipelineId]: updatedPipeline.pipeline_id || '',
+                    [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
+                    [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
+                  });
+                  props.navigate(searchString, { replace: true });
+                  handlePipelineVersionIdChange(latestVersion?.pipeline_version_id!);
+                  handlePipelineIdChange(updatedPipeline.pipeline_id);
+                }
+              }}
+            />
+
+            {/* Checkbox: Always Use Latest Version*/}
+            {isRecurringRun && (
+              <label className='flex items-center gap-2'>
+                <Checkbox
+                  checked={useLatestVersion}
+                  onCheckedChange={setUseLatestVersion}
+                  disabled={!existingPipeline}
+                />
+                Always use the latest pipeline version
+              </label>
+            )}
+
+            {/* Pipeline version selection */}
+            <PipelineVersionSelector
+              key={JSON.stringify([props.namespace, existingPipeline?.pipeline_id])}
+              {...props}
+              isRecurringRun={isRecurringRun}
+              pipeline={existingPipeline}
+              pipelineVersionName={pipelineVersionName}
+              useLatestVersion={useLatestVersion}
+              handlePipelineVersionChange={(updatedPipelineVersion) => {
+                if (updatedPipelineVersion.display_name) {
+                  setPipelineVersionName(updatedPipelineVersion.display_name);
+                }
+                if (existingPipeline?.pipeline_id && updatedPipelineVersion.pipeline_version_id) {
+                  const searchString = urlParser.build({
+                    [QUERY_PARAMS.experimentId]: experimentId || '',
+                    [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
+                    [QUERY_PARAMS.pipelineVersionId]:
+                      updatedPipelineVersion.pipeline_version_id || '',
+                    [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
+                  });
+                  props.navigate(searchString, { replace: true });
+                  handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* Run info inputs */}
+        <TextField
+          label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
+          required={true}
+          onChange={(event) => setCustomRunName(event.target.value)}
+          autoFocus={true}
+          value={runName}
+        />
+        <TextField
+          label='Description'
+          multiline={true}
+          onChange={(event) => setRunDescription(event.target.value)}
+          required={false}
+          value={runDescription}
+        />
+
+        {/* Experiment selection */}
+        <div>This run will be associated with the following experiment</div>
+        <ExperimentSelector
+          key={props.namespace || ''}
+          {...props}
+          isOpenNewExperiment={openNewExperiment}
+          onCancelNewExperiment={() => setOpenNewExperiment(false)}
+          toolbarActionMap={createNewExperiment}
+          experimentName={experimentName}
+          handleExperimentChange={(experiment) => {
+            setSelectedExperiment(experiment);
+            if (experiment.experiment_id) {
+              let searchString;
+              if (existingPipeline?.pipeline_id && existingPipelineVersion?.pipeline_version_id) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
+                  [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
+                  [QUERY_PARAMS.pipelineVersionId]:
+                    existingPipelineVersion.pipeline_version_id || '',
+                });
+              } else if (existingRunId) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
+                  [QUERY_PARAMS.cloneFromRun]: existingRunId || '',
+                });
+              } else if (existingRecurringRunId) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
+                  [QUERY_PARAMS.cloneFromRecurringRun]: existingRecurringRunId || '',
+                });
+              } else {
+                // Enter new run page from run list (none of pipeline is selected)
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
+                });
+              }
+              props.navigate(searchString, { replace: true });
+            }
+          }}
+        />
+
+        {/* Service account selection */}
+        <div>
+          This run will use the following Kubernetes service account.{' '}
+          <HelpButton
+            label='About service accounts'
+            helpText={
+              <div>
+                Note, the service account needs{' '}
+                <ExternalLink href='https://argoproj.github.io/argo-workflows/workflow-rbac/'>
+                  minimum permissions required by argo workflows
+                </ExternalLink>{' '}
+                and extra permissions the specific task requires.
+              </div>
+            }
+          />
+        </div>
+        <TextField
+          value={serviceAccount}
+          onChange={(event) => setServiceAccount(event.target.value)}
+          required={false}
+          label='Service Account'
+        />
+
+        {/* One-off/Recurring Run Type */}
+        {/* TODO(zijianjoy): Support Recurring Run */}
+        <fieldset className='kfp-new-run-mode'>
+          <legend>Run Type</legend>
+          {cloneOrigin.isClone === true && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+          {cloneOrigin.isClone === false && (
+            <>
+              <label id='oneOffToggle' className='inline-flex items-center gap-2 mr-4'>
+                <input
+                  type='radio'
+                  name='runType'
+                  checked={!isRecurringRun}
+                  onChange={() => setIsRecurringRun(false)}
+                />
+                One-off
+              </label>
+              <label id='recurringToggle' className='inline-flex items-center gap-2 mr-4'>
+                <input
+                  type='radio'
+                  name='runType'
+                  checked={isRecurringRun}
+                  onChange={() => setIsRecurringRun(true)}
+                />
+                Recurring
+              </label>
+            </>
+          )}
+        </fieldset>
+
+        {/* Recurring run controls */}
+        {isRecurringRun && (
+          <>
+            <h3>Run trigger</h3>
+            <div>Choose a method by which new runs will be triggered</div>
+
+            <Trigger
+              initialProps={{
+                trigger: trigger,
+                maxConcurrentRuns: maxConcurrentRuns,
+                catchup: needCatchup,
+              }}
+              onChange={({ trigger, maxConcurrentRuns, catchup }) => {
+                setTrigger(trigger);
+                setMaxConcurrentRuns(maxConcurrentRuns!);
+                setIsMaxConcurrentRunValid(
+                  Number.isInteger(Number(maxConcurrentRuns)) && Number(maxConcurrentRuns) > 0,
+                );
+                setNeedCatchup(catchup);
+              }}
+            />
+          </>
+        )}
+
+        {/* PipelineRoot and Run Parameters */}
+        <RunParametersForm
+          key={parameterStateKey}
+          pipelineRoot={pipelineRoot}
+          initialParameterState={initialParameterState}
+          handlePipelineRootChange={handlePipelineRootChange}
+          titleMessage={
+            existingPipeline || cloneOrigin.isClone
+              ? Object.keys(specParameters).length
+                ? 'Specify parameters required by the pipeline'
+                : 'This pipeline has no parameters'
+              : 'Parameters will appear after you select a pipeline'
+          }
+          specParameters={specParameters}
+          clonedRuntimeConfig={clonedRuntimeConfig}
+          handleParameterChange={handleParameterChange}
+          setIsValidInput={handleParameterValidityChange}
+        />
+      </section>
+      <aside className='kfp-run-form-summary' aria-labelledby='run-summary-heading'>
+        <h2 id='run-summary-heading'>Summary</h2>
+        <dl>
+          <div>
+            <dt>Pipeline</dt>
+            <dd>
+              {pipelineName || (cloneOrigin.isClone ? 'Saved pipeline definition' : 'Not selected')}
+            </dd>
+          </div>
+          <div>
+            <dt>Version</dt>
+            <dd>
+              {useLatestVersion
+                ? 'Latest at execution time'
+                : pipelineVersionName ||
+                  (cloneOrigin.isClone ? 'Saved pipeline definition' : 'Not selected')}
+            </dd>
+          </div>
+          <div>
+            <dt>Experiment</dt>
+            <dd>{experimentName || 'Not selected'}</dd>
+          </div>
+          <div>
+            <dt>Mode</dt>
+            <dd>{isRecurringRun ? 'Recurring' : 'One-off'}</dd>
+          </div>
+          <div>
+            <dt>Parameters</dt>
+            <dd>{Object.keys(specParameters).length}</dd>
+          </div>
+        </dl>
+        {/* Create/Cancel buttons */}
+        <div className='kfp-run-form-actions'>
+          <Button
+            id='startNewRunBtn'
+            disabled={!isStartButtonEnabled || isStartingNewRun}
+            aria-busy={isStartingNewRun || undefined}
+            onClick={startRun}
+          >
+            {isStartingNewRun && <LoaderCircle className='kfp-page-spinner' aria-hidden='true' />}
+            Start
+          </Button>
+          <Button
+            id='exitNewRunPageBtn'
+            variant='secondary'
+            onClick={() => {
+              props.navigate(returnPath || RoutePage.RUNS);
+            }}
+          >
+            {'Cancel'}
+          </Button>
+          {validationErrorMessage && (
+            <p role='alert' className='kfp-run-form-validation'>
+              {validationErrorMessage}
+            </p>
+          )}
+          {/* TODO(zijianjoy): Show error when custom pipelineRoot or parameters are missing. */}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+export default CreateRunForm;
+
+const PIPELINE_SELECTOR_COLUMNS = [
+  {
+    customRenderer: NameWithTooltip,
+    flex: 1,
+    label: 'Pipeline name',
+    sortKey: PipelineSortKeys.DISPLAY_NAME,
+  },
+  { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
+  { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+];
+
+const PIPELINE_VERSION_SELECTOR_COLUMNS = [
+  {
+    customRenderer: NameWithTooltip,
+    flex: 2,
+    label: 'Version name',
+    sortKey: PipelineVersionSortKeys.NAME,
+  },
+  // TODO(jingzhang36): version doesn't have description field; remove it and
+  // fix the rendering.
+  { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
+  { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+];
+
+const EXPERIMENT_SELECTOR_COLUMNS = [
+  {
+    customRenderer: NameWithTooltip,
+    flex: 1,
+    label: 'Experiment name',
+    sortKey: ExperimentSortKeys.NAME,
+  },
+  { label: 'Description', flex: 2 },
+  { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
+];
+
+interface PipelineSelectorSpecificProps {
+  namespace?: string;
+  pipelineName: string | undefined;
+  handlePipelineChange: (pipeline: V2beta1Pipeline) => void;
+}
+type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
+
+function PipelineSelector(props: PipelineSelectorProps) {
+  const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
+
+  return (
+    <>
+      <TextField
+        value={props.pipelineName || ''}
+        required={true}
+        label='Pipeline'
+        readOnly
+        trailingContent={
+          <Button
+            variant='secondary'
+            id='choosePipelineBtn'
+            onClick={() => setPipelineSelectorOpen(true)}
+          >
+            Choose
+          </Button>
+        }
+      />
+
+      {/* Pipeline selector dialog */}
+      <PipelineSelectorDialog
+        {...props}
+        open={pipelineSelectorOpen}
+        onClose={(confirmed, selectedPipeline?: V2beta1Pipeline) => {
+          if (confirmed && selectedPipeline) {
+            props.handlePipelineChange(selectedPipeline);
+          }
+          setPipelineSelectorOpen(false);
+        }}
+        namespace={props.namespace}
+        pipelineSelectorColumns={PIPELINE_SELECTOR_COLUMNS}
+        // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
+      ></PipelineSelectorDialog>
+    </>
+  );
+}
+
+// A choice is valid only for the latest detail read in this open, scoped selector.
+function usePendingResource<T>(
+  load: (id: string) => Promise<T>,
+  updateDialog: PageProps['updateDialog'],
+  errorTitle: string,
+) {
+  const [pending, setPending] = useState<T>();
+  const generation = React.useRef(0);
+  // External sync: ignore network completion after the selector scope unmounts.
+  useEffect(
+    () => () => {
+      generation.current++;
+    },
+    [],
+  );
+  const reset = () => {
+    generation.current++;
+    setPending(undefined);
+  };
+  const select = async (id: string) => {
+    const request = ++generation.current;
+    setPending(undefined);
+    try {
+      const resource = await load(id);
+      if (request === generation.current) setPending(resource);
+    } catch (error) {
+      const message = await errorToMessage(error);
+      if (request === generation.current)
+        updateDialog({ title: errorTitle, content: message, buttons: [{ text: 'Dismiss' }] });
+    }
+  };
+  return { pending, select, reset };
+}
+
+interface PipelineVersionSelectorSpecificProps {
+  namespace?: string;
+  pipeline: V2beta1Pipeline | undefined;
+  pipelineVersionName: string | undefined;
+  handlePipelineVersionChange: (pipelineVersion: V2beta1PipelineVersion) => void;
+  useLatestVersion: boolean;
+  isRecurringRun: boolean;
+}
+type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
+
+function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
+  const [pipelineVersionSelectorOpen, setPipelineVersionSelectorOpen] = useState(false);
+  const choice = usePendingResource(
+    (id) => Apis.pipelineServiceApiV2.getPipelineVersion(props.pipeline?.pipeline_id!, id),
+    props.updateDialog,
+    'Unable to select pipeline version',
+  );
+  const close = () => {
+    choice.reset();
+    setPipelineVersionSelectorOpen(false);
+  };
+
+  return (
+    <>
+      <TextField
+        value={props.pipelineVersionName || ''}
+        required={!props.useLatestVersion}
+        label='Pipeline Version'
+        readOnly
+        data-testid='pipeline-version-input-field'
+        trailingContent={
+          <Button
+            variant='secondary'
+            id='choosePipelineVersionBtn'
+            onClick={() => {
+              choice.reset();
+              setPipelineVersionSelectorOpen(true);
+            }}
+            disabled={!props.pipeline || props.useLatestVersion}
+          >
+            Choose
+          </Button>
+        }
+      />
+      {/* Pipeline version selector dialog */}
+      <ModalDialog
+        open={pipelineVersionSelectorOpen}
+        onClose={close}
+        id='pipelineVersionSelectorDialog'
+        title={'Choose a pipeline version'}
+        size='lg'
+      >
+        <div style={{ whiteSpace: 'normal' }}>
+          <ResourceSelector
+            {...props}
+            title='Choose a pipeline version'
+            hideTitle
+            filterLabel='Filter pipeline versions'
+            listApi={async (
+              page_token?: string,
+              page_size?: number,
+              sort_by?: string,
+              filter?: string,
+            ) => {
+              const response = await Apis.pipelineServiceApiV2.listPipelineVersions(
+                props.pipeline ? props.pipeline.pipeline_id! : '',
+                page_token,
+                page_size,
+                sort_by,
+                filter,
+              );
+              return {
+                nextPageToken: response.next_page_token || '',
+                resources:
+                  response.pipeline_versions?.map((v) => convertPipelineVersionToResource(v)) || [],
+              };
+            }}
+            columns={PIPELINE_VERSION_SELECTOR_COLUMNS}
+            emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
+            initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
+            selectionChanged={choice.select}
+            // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
+          />
+        </div>
+        <div className='kfp-page-dialog-actions'>
+          <Button id='cancelPipelineVersionSelectionBtn' onClick={close} variant='secondary'>
+            Cancel
+          </Button>
+          <Button
+            id='usePipelineVersionBtn'
+            onClick={() => {
+              if (choice.pending) props.handlePipelineVersionChange(choice.pending);
+              close();
+            }}
+            variant='secondary'
+            disabled={!choice.pending}
+          >
+            Use this pipeline version
+          </Button>
+        </div>
+      </ModalDialog>
+    </>
+  );
+}
+
+interface ExperimentSelectorSpecificProps {
+  namespace?: string;
+  experimentName: string | undefined;
+  handleExperimentChange: (experiment: V2beta1Experiment) => void;
+  toolbarActionMap?: ToolbarActionMap;
+  isOpenNewExperiment: boolean;
+  onCancelNewExperiment: () => void;
+}
+type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
+
+function ExperimentSelector(props: ExperimentSelectorProps) {
+  const [experimentSelectorOpen, setExperimentSelectorOpen] = useState(false);
+  const choice = usePendingResource(
+    (id) => Apis.experimentServiceApiV2.getExperiment(id),
+    props.updateDialog,
+    'Unable to select experiment',
+  );
+  const close = () => {
+    choice.reset();
+    setExperimentSelectorOpen(false);
+  };
+
+  return (
+    <>
+      <TextField
+        value={props.experimentName || ''}
+        required={true}
+        label='Experiment'
+        readOnly
+        trailingContent={
+          <Button
+            variant='secondary'
+            id='chooseExperimentBtn'
+            onClick={() => {
+              choice.reset();
+              setExperimentSelectorOpen(true);
+            }}
+          >
+            Choose
+          </Button>
+        }
+      />
+
+      {/* Experiment selector dialog */}
+      <ModalDialog
+        open={experimentSelectorOpen}
+        onClose={close}
+        id='experimentSelectorDialog'
+        title={props.isOpenNewExperiment ? 'New experiment' : 'Choose an experiment'}
+        size='lg'
+      >
+        {props.isOpenNewExperiment ? (
+          <CreateExperimentQueryPage onCancel={props.onCancelNewExperiment} {...props} />
+        ) : (
+          <>
+            <div style={{ whiteSpace: 'normal' }}>
+              <ResourceSelector
+                {...props}
+                toolbarActionMap={props.toolbarActionMap}
+                title='Choose an experiment'
+                hideTitle
+                filterLabel='Filter experiments'
+                listApi={async (
+                  page_token?: string,
+                  page_size?: number,
+                  sort_by?: string,
+                  filter?: string,
+                ) => {
+                  // A new run can only be created in an unarchived experiment.
+                  // Therefore, when listing experiments here for selection, we
+                  // only list unarchived experiments.
+                  const new_filter = JSON.parse(
+                    decodeURIComponent(filter || '{"predicates": []}'),
+                  ) as V2beta1Filter;
+                  new_filter.predicates = (new_filter.predicates || []).concat([
+                    {
+                      key: 'storage_state',
+                      operation: V2beta1PredicateOperation.NOT_EQUALS,
+                      string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+                    },
+                  ]);
+                  const response = await Apis.experimentServiceApiV2.listExperiments(
+                    page_token,
+                    page_size,
+                    sort_by,
+                    encodeURIComponent(JSON.stringify(new_filter)),
+                    props.namespace,
+                  );
+                  return {
+                    nextPageToken: response.next_page_token || '',
+                    resources:
+                      response.experiments?.map((e) => convertExperimentToResource(e)) || [],
+                  };
+                }}
+                columns={EXPERIMENT_SELECTOR_COLUMNS}
+                emptyMessage='No experiments found. Create an experiment and then try again.'
+                initialSortColumn={ExperimentSortKeys.CREATED_AT}
+                selectionChanged={choice.select}
+              />
+            </div>
+            <div className='kfp-page-dialog-actions'>
+              <Button id='cancelExperimentSelectionBtn' onClick={close} variant='secondary'>
+                Cancel
+              </Button>
+              <Button
+                id='useExperimentBtn'
+                onClick={() => {
+                  if (choice.pending) props.handleExperimentChange(choice.pending);
+                  close();
+                }}
+                variant='secondary'
+                disabled={!choice.pending}
+              >
+                Use this experiment
+              </Button>
+            </div>
+          </>
+        )}
+      </ModalDialog>
+    </>
+  );
+}

@@ -25,7 +25,7 @@ describe('NameWithTooltip', () => {
         id='test-id'
       />,
     );
-    expect(screen.getByText('My Pipeline')).toBeInTheDocument();
+    expect(screen.getByText('My Pipeline')).toHaveAttribute('title', 'Name: pipeline-123');
   });
 
   it('falls back to name when display_name is not available', () => {

@@ -16,12 +16,12 @@
 
 import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import { ExperimentInfo } from 'src/lib/ExperimentInfo';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link } from 'react-router';
-import { RoutePage, RouteParams } from 'src/components/Router';
-import { commonCss, color } from 'src/Css';
+import { RoutePageFactory } from 'src/components/Router';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
 import {
   V2beta1RecurringRun,
@@ -29,7 +29,8 @@ import {
   V2beta1Trigger,
 } from 'src/apisv2beta1/recurringrun';
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
-import { Tooltip } from '@mui/material';
+import { RecurringRunSwitch } from 'src/components/runs/RecurringRunSwitch';
+import 'src/components/runs/ExperimentWorkflows.css';
 
 /** Extracts start_time and end_time from the trigger's cron or periodic schedule. */
 export function getScheduleTimes(trigger?: V2beta1Trigger): { startTime?: Date; endTime?: Date } {
@@ -157,6 +158,14 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return (
       <div>
         <CustomTable
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label='Recurring runs'
+              singular='schedule'
+              plural='schedules'
+            />
+          )}
           columns={columns}
           rows={rows}
           selectedIds={this.props.selectedIds}
@@ -194,15 +203,14 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-        <Link
-          className={commonCss.link}
-          onClick={(e) => e.stopPropagation()}
-          to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, props.id)}
-        >
-          {props.value}
-        </Link>
-      </Tooltip>
+      <Link
+        className='kfp-workflow-link'
+        title={props.value || ''}
+        onClick={(e) => e.stopPropagation()}
+        to={RoutePageFactory.recurringRunDetails(props.id)}
+      >
+        {props.value}
+      </Link>
     );
   };
 
@@ -215,9 +223,9 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     }
     return (
       <Link
-        className={commonCss.link}
+        className='kfp-workflow-link'
         onClick={(e) => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
+        to={RoutePageFactory.experimentDetails(props.value.id)}
       >
         {props.value.displayName}
       </Link>
@@ -252,43 +260,26 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
     props: CustomRendererProps<V2beta1RecurringRunStatus>,
   ) => {
-    if (!props.value) {
-      return <div>-</div>;
-    }
-    const textColor =
-      props.value === V2beta1RecurringRunStatus.ENABLED
-        ? color.success
-        : props.value === V2beta1RecurringRunStatus.DISABLED
-          ? color.inactive
-          : color.errorText;
-    return <div style={{ color: textColor }}>{props.value}</div>;
+    return (
+      <RecurringRunSwitch
+        id={props.id}
+        name={
+          this.state.recurringRuns.find((item) => item.recurringRun.recurring_run_id === props.id)
+            ?.recurringRun.display_name || props.id
+        }
+        status={props.value}
+        onUpdated={this.refresh.bind(this)}
+      />
+    );
   };
 
   public _scheduleStatusCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
-  ) => {
-    if (!props.value) {
-      return <div>-</div>;
-    }
-    let textColor: string;
-    switch (props.value) {
-      case 'Active':
-        textColor = color.success;
-        break;
-      case 'Scheduled':
-        textColor = color.theme;
-        break;
-      case 'Expired':
-        textColor = color.warningText;
-        break;
-      case 'Disabled':
-        textColor = color.inactive;
-        break;
-      default:
-        textColor = color.inactive;
-    }
-    return <div style={{ color: textColor }}>{props.value}</div>;
-  };
+  ) => (
+    <span className='kfp-schedule-status' data-status={props.value}>
+      {props.value || '-'}
+    </span>
+  );
 
   protected async _loadRecurringRuns(request: ListRequest): Promise<string> {
     let displayRecurringRuns: DisplayRecurringRun[];

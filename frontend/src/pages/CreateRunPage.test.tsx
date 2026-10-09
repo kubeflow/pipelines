@@ -1,0 +1,558 @@
+/*
+ * Copyright 2026 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as JsYaml from 'js-yaml';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import * as features from 'src/features';
+import { CommonTestWrapper } from 'src/TestWrapper';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import Router, { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { Apis } from 'src/lib/Apis';
+import CreateRunPage from 'src/pages/CreateRunPage';
+import { PageProps } from 'src/pages/Page';
+import React from 'react';
+import { vi } from 'vitest';
+import v2XGYamlTemplateString from 'src/data/test/xgboost_sample_pipeline.yaml?raw';
+import {
+  ORIGINAL_TEST_PIPELINE,
+  ORIGINAL_TEST_PIPELINE_ID,
+  ORIGINAL_TEST_PIPELINE_VERSION,
+  ORIGINAL_TEST_PIPELINE_VERSION_ID,
+  ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+  NEW_EXPERIMENT,
+  generatePropsNoPipelineDef,
+  generatePropsNewRun,
+} from './__tests__/newRunTestFixtures';
+
+describe('NewRunSwitcher', () => {
+  const TEST_RUN_ID = 'test-run-id';
+  const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
+
+  function generatePropsCloneRun(runId = TEST_RUN_ID): PageProps {
+    return {
+      navigate: vi.fn(),
+      location: {
+        pathname: RoutePage.NEW_RUN,
+        search: `?${QUERY_PARAMS.cloneFromRun}=${runId}`,
+      } as any,
+      params: {},
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a run' },
+      updateBanner: vi.fn(),
+      updateDialog: vi.fn(),
+      updateSnackbar: vi.fn(),
+      updateToolbar: vi.fn(),
+    };
+  }
+
+  function generatePropsCloneRecurringRun(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
+    return {
+      navigate: vi.fn(),
+      location: {
+        pathname: RoutePage.NEW_RUN,
+        search: `?${QUERY_PARAMS.cloneFromRecurringRun}=${recurringRunId}`,
+      } as any,
+      params: {},
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a recurring run' },
+      updateBanner: vi.fn(),
+      updateDialog: vi.fn(),
+      updateSnackbar: vi.fn(),
+      updateToolbar: vi.fn(),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  describe('v2 run creation', () => {
+    // Keep the real router and both modal phases; their jsdom style work needs more time
+    // under coverage than the default unit-test budget.
+    it('reloads the latest pipeline version after inline experiment creation', async () => {
+      const olderVersion = {
+        ...ORIGINAL_TEST_PIPELINE_VERSION,
+        display_name: 'older pipeline version',
+        pipeline_version_id: 'older-version-id',
+      };
+      const latestVersion = {
+        ...ORIGINAL_TEST_PIPELINE_VERSION,
+        display_name: 'latest pipeline version',
+        pipeline_version_id: 'latest-version-id',
+      };
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (key) => key === features.FeatureKey.FUNCTIONAL_COMPONENT,
+      );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = vi
+        .spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
+        .mockImplementation((_pipelineId, versionId) =>
+          Promise.resolve(
+            versionId === latestVersion.pipeline_version_id ? latestVersion : olderVersion,
+          ),
+        );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions').mockResolvedValue({
+        pipeline_versions: [latestVersion],
+        total_size: 1,
+      });
+      vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments').mockResolvedValue({
+        experiments: [],
+        total_size: 0,
+      });
+      vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment').mockResolvedValue(NEW_EXPERIMENT);
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(NEW_EXPERIMENT);
+      const router = createMemoryRouter(
+        [
+          {
+            path: '*',
+            element: <Router configs={[{ path: RoutePage.NEW_RUN, Component: CreateRunPage }]} />,
+          },
+        ],
+        {
+          initialEntries: [
+            `${RoutePage.NEW_RUN}?${QUERY_PARAMS.pipelineId}=${ORIGINAL_TEST_PIPELINE_ID}` +
+              `&${QUERY_PARAMS.pipelineVersionId}=${olderVersion.pipeline_version_id}`,
+          ],
+        },
+      );
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>,
+      );
+
+      expect(await screen.findByDisplayValue(olderVersion.display_name)).toBeVisible();
+      fireEvent.click(screen.getAllByText('Choose')[2]);
+      fireEvent.click(await screen.findByText('Create new experiment'));
+      fireEvent.change(await screen.findByLabelText(/Experiment name/), {
+        target: { value: 'new-experiment' },
+      });
+      fireEvent.click(screen.getByText('Next'));
+
+      await waitFor(() =>
+        expect(router.state.location.search).toContain(
+          `${QUERY_PARAMS.pipelineVersionId}=${latestVersion.pipeline_version_id}`,
+        ),
+      );
+      await waitFor(() =>
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          latestVersion.pipeline_version_id,
+        ),
+      );
+      expect(await screen.findByDisplayValue(latestVersion.display_name)).toBeVisible();
+    }, 10_000);
+
+    it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsNoPipelineDef(null)} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+
+      screen.getByText('Pipeline Root');
+      screen.getByText('A pipeline must be selected');
+    });
+
+    it(
+      'shows experiment name in new run v2 if experiment is selected' +
+        '(enter from experiment details)',
+      async () => {
+        const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
+
+        render(
+          <CommonTestWrapper>
+            <ThemeProvider>
+              <CreateRunPage {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
+            </ThemeProvider>
+          </CommonTestWrapper>,
+        );
+
+        await waitFor(() => {
+          expect(getExperimentSpy).toHaveBeenCalled();
+        });
+
+        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
+      },
+    );
+
+    it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsNewRun()} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
+
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
+    });
+  });
+
+  describe('loading and clone scenarios', () => {
+    it('shows loading message while queries are in-flight', () => {
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockReturnValue(new Promise(() => {}));
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockReturnValue(
+        new Promise(() => {}),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsNewRun()} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.getByText('Currently loading pipeline information')).toBeInTheDocument();
+    });
+
+    it('resolves template from cloned run.pipeline_spec', async () => {
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue({
+        description: '',
+        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: undefined,
+      });
+      const sdkRun: V2beta1Run = {
+        run_id: TEST_RUN_ID,
+        display_name: 'SDK run',
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
+        pipeline_version_reference: {
+          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+          pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        },
+        state: V2beta1RuntimeState.SUCCEEDED,
+      };
+      vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue(sdkRun);
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsCloneRun()} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith(TEST_RUN_ID);
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        );
+      });
+
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
+    });
+
+    it('resolves template from cloned recurring_run.pipeline_spec', async () => {
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue({
+        description: '',
+        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: undefined,
+      });
+      const sdkRecurringRun: V2beta1RecurringRun = {
+        recurring_run_id: TEST_RECURRING_RUN_ID,
+        display_name: 'SDK recurring run',
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
+        pipeline_version_reference: {
+          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+          pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        },
+      };
+      vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockResolvedValue(sdkRecurringRun);
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsCloneRecurringRun()} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith(
+          TEST_RECURRING_RUN_ID,
+        );
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        );
+      });
+
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
+    });
+
+    it('prefers inline pipeline_spec over version-derived template when cloning a run', async () => {
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue({
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: {
+          apiVersion: 'argoproj.io/v1alpha1',
+          kind: 'Workflow',
+          metadata: { name: 'from-version' },
+          spec: { arguments: { parameters: [{ name: 'output' }] } },
+        },
+      } as V2beta1PipelineVersion);
+      const sdkRun: V2beta1Run = {
+        run_id: TEST_RUN_ID,
+        display_name: 'SDK run',
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
+        pipeline_version_reference: {
+          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+          pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        },
+        state: V2beta1RuntimeState.SUCCEEDED,
+      };
+      vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue(sdkRun);
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsCloneRun()} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith(TEST_RUN_ID);
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        );
+        expect(screen.getByText('Pipeline Root')).toBeInTheDocument();
+      });
+    });
+
+    it('prefers inline recurring_run.pipeline_spec over version-derived template when cloning', async () => {
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue({
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: {
+          apiVersion: 'argoproj.io/v1alpha1',
+          kind: 'Workflow',
+          metadata: { name: 'from-version' },
+          spec: { arguments: { parameters: [{ name: 'output' }] } },
+        },
+      } as V2beta1PipelineVersion);
+      const sdkRecurringRun: V2beta1RecurringRun = {
+        recurring_run_id: TEST_RECURRING_RUN_ID,
+        display_name: 'SDK recurring run',
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
+        pipeline_version_reference: {
+          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+          pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        },
+      };
+      vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockResolvedValue(sdkRecurringRun);
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...generatePropsCloneRecurringRun()} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith(
+          TEST_RECURRING_RUN_ID,
+        );
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        );
+        expect(screen.getByText('Pipeline Root')).toBeInTheDocument();
+      });
+    });
+
+    it('shows error banner when pipeline version fetch fails', async () => {
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockRejectedValue(
+        new Error('Version not found'),
+      );
+
+      const props = generatePropsNewRun();
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...props} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(props.updateBanner).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message:
+              'Error: failed to retrieve run creation data. Click Details for more information.',
+            additionalInfo: 'Version not found',
+            mode: 'error',
+          }),
+        );
+      });
+    });
+
+    it('clears error banner when queries succeed (fail-to-recover transition)', async () => {
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockResolvedValue(
+        ORIGINAL_TEST_PIPELINE_VERSION,
+      );
+
+      const props = generatePropsNewRun();
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...props} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(props.updateBanner).toHaveBeenLastCalledWith({});
+      });
+    });
+
+    it('shows error banner when experiment fetch fails', async () => {
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+        new Error('Experiment unavailable'),
+      );
+
+      const props = generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id);
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <CreateRunPage {...props} />
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(props.updateBanner).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message:
+              'Error: failed to retrieve run creation data. Click Details for more information.',
+            additionalInfo: 'Experiment unavailable',
+            mode: 'error',
+          }),
+        );
+      });
+    });
+
+    it('throws when both run and recurring run are non-null', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const run: V2beta1Run = {
+        run_id: TEST_RUN_ID,
+        display_name: 'test run',
+      };
+      const recurringRun: V2beta1RecurringRun = {
+        recurring_run_id: TEST_RECURRING_RUN_ID,
+        display_name: 'test recurring run',
+      };
+      vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue(run);
+      vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockResolvedValue(recurringRun);
+
+      class ErrorBoundary extends React.Component<
+        { children: React.ReactNode },
+        { hasError: boolean }
+      > {
+        state = { hasError: false };
+        static getDerivedStateFromError() {
+          return { hasError: true };
+        }
+        render() {
+          if (this.state.hasError) {
+            return <div data-testid='error-boundary'>Error caught</div>;
+          }
+          return this.props.children;
+        }
+      }
+
+      const props: PageProps = {
+        navigate: vi.fn(),
+        location: {
+          pathname: RoutePage.NEW_RUN,
+          search: `?${QUERY_PARAMS.cloneFromRun}=${TEST_RUN_ID}&${QUERY_PARAMS.cloneFromRecurringRun}=${TEST_RECURRING_RUN_ID}`,
+        } as any,
+        params: {},
+        toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
+        updateBanner: vi.fn(),
+        updateDialog: vi.fn(),
+        updateSnackbar: vi.fn(),
+        updateToolbar: vi.fn(),
+      };
+
+      render(
+        <CommonTestWrapper>
+          <ThemeProvider>
+            <ErrorBoundary>
+              <CreateRunPage {...props} />
+            </ErrorBoundary>
+          </ThemeProvider>
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+});

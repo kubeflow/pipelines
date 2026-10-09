@@ -5,10 +5,12 @@ exports[`HTMLViewer > does not break on empty data 1`] = `<DocumentFragment />`;
 exports[`HTMLViewer > renders a smaller snapshot version 1`] = `
 <DocumentFragment>
   <iframe
-    class="iframe_f1438udb"
+    class="kfp-html-viewer"
     sandbox="allow-scripts"
     src="about:blank"
     srcdoc="<html><body><div>Hello World!</div></body></html>"
+    style="height: 100px; min-height: 100px;"
+    title="HTML report"
   />
 </DocumentFragment>
 `;
@@ -16,10 +18,12 @@ exports[`HTMLViewer > renders a smaller snapshot version 1`] = `
 exports[`HTMLViewer > renders some basic HTML 1`] = `
 <DocumentFragment>
   <iframe
-    class="iframe_f1rwn2in"
+    class="kfp-html-viewer"
     sandbox="allow-scripts"
     src="about:blank"
     srcdoc="<html><body><div>Hello World!</div></body></html>"
+    style="min-height: 600px;"
+    title="HTML report"
   />
 </DocumentFragment>
 `;

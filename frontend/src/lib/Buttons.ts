@@ -14,11 +14,25 @@
  * limitations under the License.
  */
 
-import AddIcon from '@mui/icons-material/Add';
-import CollapseIcon from '@mui/icons-material/UnfoldLess';
-import ExpandIcon from '@mui/icons-material/UnfoldMore';
+import {
+  Plus as AddIcon,
+  Archive,
+  ArrowUpFromLine,
+  Copy,
+  GitCompareArrows,
+  Pause,
+  Play,
+  Repeat,
+  RefreshCw,
+  RotateCcw,
+  Square,
+  Trash2,
+  Upload,
+  ChevronsDownUp as CollapseIcon,
+  ChevronsUpDown as ExpandIcon,
+} from 'lucide-react';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { ToolbarActionMap } from 'src/components/Toolbar';
+import { ToolbarActionMap } from 'src/lib/PageChromeTypes';
 import { PageProps } from 'src/pages/Page';
 import { Apis } from './Apis';
 import { URLParser } from './URLParser';
@@ -70,6 +84,7 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.ARCHIVE] = {
+      icon: Archive,
       action: () =>
         resourceName === 'run'
           ? this._archiveRun(getSelectedIds(), useCurrentResource, callback)
@@ -87,6 +102,7 @@ export default class Buttons {
 
   public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
     this._map[ButtonKeys.CLONE_RUN] = {
+      icon: Copy,
       action: () => this._cloneRun(getSelectedIds()),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
@@ -100,6 +116,7 @@ export default class Buttons {
 
   public cloneRecurringRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
     this._map[ButtonKeys.CLONE_RECURRING_RUN] = {
+      icon: Copy,
       action: () => this._cloneRun(getSelectedIds(), true),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
@@ -116,6 +133,7 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.RETRY] = {
+      icon: RotateCcw,
       action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
@@ -139,6 +157,7 @@ export default class Buttons {
 
   public compareRuns(getSelectedIds: () => string[]): Buttons {
     this._map[ButtonKeys.COMPARE] = {
+      icon: GitCompareArrows,
       action: () => this._compareRuns(getSelectedIds()),
       disabled: true,
       disabledTitle: 'Select multiple runs to compare',
@@ -159,6 +178,7 @@ export default class Buttons {
     useCurrentResource: boolean,
   ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
+      icon: Trash2,
       action: () =>
         resourceName === 'pipeline'
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
@@ -182,6 +202,7 @@ export default class Buttons {
     useCurrentResource: boolean,
   ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
+      icon: Trash2,
       action: () =>
         this._deletePipelineVersion(
           getSelectedPipelineAndVersionIds(),
@@ -207,6 +228,7 @@ export default class Buttons {
     useCurrentResource: boolean,
   ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
+      icon: Trash2,
       action: async () => {
         await this._dialogDeletePipelinesAndPipelineVersions(
           getSelectedIds(),
@@ -227,6 +249,7 @@ export default class Buttons {
 
   public disableRecurringRun(getId: () => string): Buttons {
     this._map[ButtonKeys.DISABLE_RECURRING_RUN] = {
+      icon: Pause,
       action: () => this._setRecurringRunEnabledState(getId(), false),
       disabled: true,
       disabledTitle: 'Run schedule already disabled',
@@ -239,6 +262,7 @@ export default class Buttons {
 
   public enableRecurringRun(getId: () => string): Buttons {
     this._map[ButtonKeys.ENABLE_RECURRING_RUN] = {
+      icon: Play,
       action: () => this._setRecurringRunEnabledState(getId(), true),
       disabled: true,
       disabledTitle: 'Run schedule already enabled',
@@ -265,8 +289,7 @@ export default class Buttons {
       action: () => this._createNewExperiment(getPipelineId ? getPipelineId() : ''),
       icon: AddIcon,
       id: 'newExperimentBtn',
-      outlined: true,
-      primary: true,
+      variant: 'default',
       style: { minWidth: 185 },
       title: 'Create experiment',
       tooltip: 'Create a new experiment',
@@ -279,8 +302,7 @@ export default class Buttons {
       action: () => this._createNewRun(false, getExperimentId ? getExperimentId() : undefined),
       icon: AddIcon,
       id: 'createNewRunBtn',
-      outlined: true,
-      primary: true,
+      variant: 'default',
       style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
@@ -296,8 +318,7 @@ export default class Buttons {
       action: () => this._createNewRunFromPipelineVersion(getPipelineId(), getPipelineVersionId()),
       icon: AddIcon,
       id: 'createNewRunBtn',
-      outlined: true,
-      primary: true,
+      variant: 'default',
       style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
@@ -308,10 +329,9 @@ export default class Buttons {
   public newRecurringRunPrimary(experimentId: string): Buttons {
     this._map[ButtonKeys.NEW_RECURRING_RUN] = {
       action: () => this._createNewRun(true, experimentId),
-      icon: AddIcon,
+      icon: Repeat,
       id: 'createNewRecurringRunBtn',
-      outlined: true,
-      primary: true,
+      variant: 'default',
       style: { minWidth: 195 },
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
@@ -322,9 +342,9 @@ export default class Buttons {
   public newRecurringRun(experimentId: string): Buttons {
     this._map[ButtonKeys.NEW_RECURRING_RUN] = {
       action: () => this._createNewRun(true, experimentId),
-      icon: AddIcon,
+      icon: Repeat,
       id: 'createNewRecurringRunBtn',
-      outlined: true,
+      variant: 'secondary',
       style: { minWidth: 195 },
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
@@ -335,9 +355,9 @@ export default class Buttons {
   public newPipelineVersion(label: string, getPipelineId?: () => string): Buttons {
     this._map[ButtonKeys.NEW_PIPELINE_VERSION] = {
       action: () => this._createNewPipelineVersion(getPipelineId ? getPipelineId() : ''),
-      icon: AddIcon,
+      icon: Upload,
       id: 'createPipelineVersionBtn',
-      outlined: true,
+      variant: 'secondary',
       style: { minWidth: 160 },
       title: label,
       tooltip: 'Upload pipeline version',
@@ -347,6 +367,7 @@ export default class Buttons {
 
   public refresh(action: () => void): Buttons {
     this._map[ButtonKeys.REFRESH] = {
+      icon: RefreshCw,
       action,
       id: 'refreshBtn',
       title: 'Refresh',
@@ -362,6 +383,7 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.RESTORE] = {
+      icon: ArrowUpFromLine,
       action: () =>
         resourceName === 'run'
           ? this._restore(getSelectedIds(), useCurrentResource, callback)
@@ -381,6 +403,7 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
     this._map[ButtonKeys.TERMINATE_RUN] = {
+      icon: Square,
       action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
@@ -394,9 +417,9 @@ export default class Buttons {
   public upload(action: () => void): Buttons {
     this._map[ButtonKeys.UPLOAD_PIPELINE] = {
       action,
-      icon: AddIcon,
+      icon: Upload,
       id: 'uploadBtn',
-      outlined: true,
+      variant: 'secondary',
       style: { minWidth: 160 },
       title: 'Upload pipeline',
       tooltip: 'Upload pipeline',

@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-import { hasFinishedV2, statusBgColors, statusToBgColorV2 } from './StatusUtils';
-import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import {
+  getRunStatus,
+  getTaskStatus,
+  getTaskTimelineTone,
+  hasFinishedV2,
+  statusBgColors,
+  statusToBgColorV2,
+} from './StatusUtils';
+import { PipelineTaskTaskState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 describe('StatusUtils', () => {
   describe('hasFinishedV2', () => {
@@ -79,4 +86,43 @@ describe('StatusUtils', () => {
       });
     });
   });
+});
+
+// Exhaustive fixtures force newly added API states to receive an explicit UX decision.
+const runtimePresentations: Record<V2beta1RuntimeState, [string, string]> = {
+  SUCCEEDED: ['Succeeded', 'succeeded'],
+  RUNNING: ['Running', 'running'],
+  FAILED: ['Failed', 'failed'],
+  PENDING: ['Pending', 'neutral'],
+  CANCELING: ['Canceling', 'running'],
+  CANCELED: ['Canceled', 'neutral'],
+  PAUSED: ['Paused', 'warning'],
+  SKIPPED: ['Skipped', 'neutral'],
+  RUNTIME_STATE_UNSPECIFIED: ['Unknown', 'neutral'],
+};
+const taskPresentations: Record<PipelineTaskTaskState, [string, string, string]> = {
+  SUCCEEDED: ['Succeeded', 'succeeded', 'succeeded'],
+  RUNNING: ['Running', 'running', 'running'],
+  FAILED: ['Failed', 'failed', 'failed'],
+  SKIPPED: ['Skipped', 'neutral', 'neutral'],
+  CACHED: ['Cached', 'succeeded', 'neutral'],
+  RUNTIME_STATE_UNSPECIFIED: ['Unknown', 'neutral', 'neutral'],
+};
+
+it.each(Object.values(V2beta1RuntimeState))('classifies runtime %s', (state) => {
+  const [label, tone] = runtimePresentations[state];
+  expect(getRunStatus(state)).toEqual({ label, tone });
+});
+it.each(Object.values(PipelineTaskTaskState))(
+  'classifies task %s across graph and timeline',
+  (state) => {
+    const [label, tone, timelineTone] = taskPresentations[state];
+    expect(getTaskStatus(state)).toEqual({ label, tone });
+    expect(getTaskTimelineTone(state)).toBe(timelineTone);
+  },
+);
+it('keeps unexecuted graph tasks and absent runtime state neutral', () => {
+  expect(getTaskStatus()).toEqual({ label: 'Task', tone: 'neutral' });
+  expect(getRunStatus()).toEqual({ label: 'Unknown', tone: 'neutral' });
+  expect(getTaskTimelineTone()).toBe('neutral');
 });

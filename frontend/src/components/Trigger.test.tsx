@@ -31,9 +31,8 @@ const PERIODIC_DEFAULT = {
 const CRON_DEFAULT = { cron: '0 0 * * * ?', end_time: undefined, start_time: undefined };
 
 async function selectOption(selectElement: HTMLElement, optionText: string): Promise<void> {
-  fireEvent.mouseDown(selectElement);
   const option = await screen.findByRole('option', { name: optionText });
-  fireEvent.click(option);
+  fireEvent.change(selectElement, { target: { value: (option as HTMLOptionElement).value } });
 }
 
 function getTriggerTypeSelect(): HTMLElement {
@@ -104,8 +103,8 @@ describe('Trigger', () => {
     const { asFragment, unmount } = render(<Trigger />);
     await selectOption(getTriggerTypeSelect(), 'Cron');
     await selectOption(getIntervalCategorySelect(), 'Week');
-    fireEvent.click(screen.getByRole('button', { name: 'M' }));
-    fireEvent.click(screen.getByRole('button', { name: 'W' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Monday' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Wednesday' }));
     expect(asFragment()).toMatchSnapshot();
     unmount();
   });
@@ -125,6 +124,29 @@ describe('Trigger', () => {
       screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
     });
   });
+
+  it.each(['Start', 'End'])(
+    'associates %s date/time errors with both fields and clears them after recovery',
+    (boundary) => {
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: `Has ${boundary.toLowerCase()} date` }));
+      const date = screen.getByLabelText(`${boundary} date`);
+      const time = screen.getByLabelText(`${boundary} time`) as HTMLInputElement;
+      // Native time inputs sanitize malformed values; use the existing invalid-format fixture.
+      time.type = 'text';
+      fireEvent.change(time, { target: { value: 'invalid-time' } });
+      const message = `Invalid ${boundary.toLowerCase()} date or time, ${boundary.toLowerCase()} time won't be set`;
+      expect(date).toBeInvalid();
+      expect(time).toBeInvalid();
+      expect(date).toHaveAccessibleDescription(message);
+      expect(time).toHaveAccessibleDescription(message);
+      fireEvent.change(time, { target: { value: '08:35' } });
+      expect(date).toBeValid();
+      expect(time).toBeValid();
+      expect(date).not.toHaveAttribute('aria-describedby');
+      expect(time).not.toHaveAttribute('aria-describedby');
+    },
+  );
 
   describe('interval trigger', () => {
     it('builds an every-hour trigger by default', () => {
@@ -463,10 +485,9 @@ describe('Trigger', () => {
       await selectOption(getIntervalCategorySelect(), 'Week');
 
       fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
-      fireEvent.click(screen.getByRole('button', { name: 'M' }));
-      fireEvent.click(screen.getByRole('button', { name: 'F' }));
-      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
-      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
+      fireEvent.click(screen.getByRole('button', { name: 'Monday' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Friday' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Saturday' }));
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -482,10 +503,9 @@ describe('Trigger', () => {
       await selectOption(getIntervalCategorySelect(), 'Week');
 
       fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
-      fireEvent.click(screen.getByRole('button', { name: 'M' }));
-      fireEvent.click(screen.getByRole('button', { name: 'F' }));
-      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
-      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
+      fireEvent.click(screen.getByRole('button', { name: 'Monday' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Friday' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Saturday' }));
 
       fireEvent.click(screen.getByRole('checkbox', { name: /allow editing cron expression/i }));
       fireEvent.change(screen.getByLabelText('cron expression'), {

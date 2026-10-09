@@ -25,20 +25,31 @@ export class LocalStorage {
   }
 
   public static isNavbarCollapsed(): boolean {
-    return localStorage.getItem(LocalStorageKey.navbarCollapsed) === 'true';
+    try {
+      return localStorage.getItem(LocalStorageKey.navbarCollapsed) === 'true';
+    } catch {
+      return false;
+    }
   }
 
   public static saveNavbarCollapsed(value: boolean): void {
-    localStorage.setItem(LocalStorageKey.navbarCollapsed, value.toString());
+    try {
+      localStorage.setItem(LocalStorageKey.navbarCollapsed, value.toString());
+    } catch {
+      // Navigation remains usable when browser policy or quota blocks storage.
+    }
   }
 
   public static getTablePageSize(pageId?: string): number {
     const key = pageId
       ? `${LocalStorageKey.tablePageSize}_${pageId}`
       : LocalStorageKey.tablePageSize;
-    const value = localStorage.getItem(key);
-    const parsed = Number(value);
-    return [10, 20, 50, 100].includes(parsed) ? parsed : 10;
+    try {
+      const parsed = Number(localStorage.getItem(key));
+      return [10, 20, 50, 100].includes(parsed) ? parsed : 10;
+    } catch {
+      return 10;
+    }
   }
 
   public static saveTablePageSize(value: number, pageId?: string): void {
@@ -46,6 +57,10 @@ export class LocalStorage {
     const key = pageId
       ? `${LocalStorageKey.tablePageSize}_${pageId}`
       : LocalStorageKey.tablePageSize;
-    localStorage.setItem(key, normalizedValue.toString());
+    try {
+      localStorage.setItem(key, normalizedValue.toString());
+    } catch {
+      // Paging remains usable when browser policy or quota blocks storage.
+    }
   }
 }

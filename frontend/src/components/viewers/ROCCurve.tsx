@@ -27,48 +27,19 @@ import {
   YAxis,
 } from 'recharts';
 import Viewer, { ViewerConfig } from './Viewer';
-import { color, commonCss, fontsize } from '../../Css';
-import { stylesheet } from 'typestyle';
+import './ComparisonViewers.css';
 
 const axisTickStyle = {
-  fill: color.grey,
-  fontSize: fontsize.small,
+  fill: 'var(--muted-foreground, #626979)',
+  fontSize: 11,
   fontWeight: 400,
 } as const;
 
 const axisLabelStyle = {
-  fill: color.strong,
-  fontSize: fontsize.small + 1,
+  fill: 'var(--foreground, #15171e)',
+  fontSize: 12,
   fontWeight: 500,
 } as const;
-
-const css = stylesheet({
-  crosshair: {
-    backgroundColor: color.tooltipBg,
-    borderRadius: 5,
-    boxShadow: `1px 1px 5px ${color.tooltipShadow}`,
-    color: color.background,
-    padding: 10,
-  },
-  crosshairLabel: {
-    color: color.background,
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap',
-  },
-  legendItem: {
-    alignItems: 'center',
-    display: 'flex',
-    marginRight: 12,
-  },
-  legendSwatch: {
-    borderRadius: 2,
-    display: 'inline-block',
-    flexShrink: 0,
-    height: 10,
-    marginRight: 6,
-    width: 10,
-  },
-});
 
 // Used the following color palette, with some slight brightness modifications, as reference:
 // https://alumni.media.mit.edu/~wad/color/palette.html
@@ -278,7 +249,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             { x: 0, y: 0 },
             { x: 1, y: 1 },
           ]}
-          stroke={color.disabledBg}
+          stroke='var(--border-strong, #d3d6df)'
           strokeWidth={1}
           strokeDasharray='4 4'
         />
@@ -303,7 +274,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
         )}
         {!isSmall && (
           <Tooltip
-            cursor={{ stroke: color.weak }}
+            cursor={{ stroke: 'var(--muted-foreground, #626979)' }}
             content={(tooltipProps) => this.renderTooltipContent(tooltipProps, datasets, labels)}
           />
         )}
@@ -325,12 +296,12 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
         ) : (
           chart
         )}
-        <div className={commonCss.flex}>
+        <div className='kfp-roc-flex'>
           {/* Legend */}
           {showLegend && (
             <div style={{ flexGrow: 1, ...(this.props.labels ? { minWidth: 0 } : {}) }}>
               <div
-                className={commonCss.flex}
+                className='kfp-roc-flex'
                 role={this.props.labels ? 'list' : undefined}
                 aria-label={this.props.labels ? 'Selected ROC curve provenance' : undefined}
                 style={this.props.labels ? { flexWrap: 'wrap', gap: 6 } : undefined}
@@ -338,14 +309,14 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
                 {datasets.map((_, i) => (
                   <div
                     key={`legend-${i}`}
-                    className={css.legendItem}
+                    className='kfp-roc-legend-item'
                     role={this.props.labels ? 'listitem' : undefined}
                     style={this.props.labels ? { minWidth: 0, maxWidth: '100%' } : undefined}
                     onMouseEnter={() => this.setState({ highlightIndex: i })}
                     onMouseLeave={() => this.setState({ highlightIndex: -1 })}
                   >
                     <span
-                      className={css.legendSwatch}
+                      className='kfp-roc-legend-swatch'
                       style={{
                         backgroundColor: colors[i] || colors[colors.length - 1],
                       }}
@@ -441,9 +412,9 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 
   private renderTooltipRows(rows: TooltipRow[], labels: string[]): React.JSX.Element {
     return (
-      <div className={css.crosshair}>
+      <div className='kfp-roc-tooltip'>
         {rows.map((row) => (
-          <div key={row.index} className={css.crosshairLabel}>
+          <div key={row.index} className='kfp-roc-tooltip-label'>
             {`${labels[row.index]}: ${row.label}`}
           </div>
         ))}

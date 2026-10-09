@@ -14,57 +14,55 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
-
-import { Radio, Tooltip, FormControlLabel } from '@mui/material';
+import { useId, useState } from 'react';
+import { PipelineTabsHeaders } from '../pages/PipelinesPage';
+import './pipelines/PipelineForms.css';
 
 export interface PrivateSharedSelectorProps {
   onChange: (isPrivate: boolean) => void;
+  value?: boolean;
 }
-
 export enum PipelineButtonTooltips {
   PRIVATE = 'Only people who have access to this namespace will be able to view and use this pipeline.',
   SHARED = 'Everyone in your organization will be able to view and use this pipeline.',
 }
 
-const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (
-  props,
-): React.JSX.Element | null => {
-  const [namespacedPipeline, setNamespacedPipeline] = React.useState(true);
-
-  const updateSelection = (isPrivate: boolean) => {
-    setNamespacedPipeline(isPrivate);
-    props.onChange(isPrivate);
+export default function PrivateSharedSelector({ onChange, value }: PrivateSharedSelectorProps) {
+  const id = useId();
+  const [localValue, setLocalValue] = useState(true);
+  const isPrivate = value ?? localValue;
+  const select = (next: boolean) => {
+    if (value === undefined) setLocalValue(next);
+    onChange(next);
   };
-
   return (
-    <React.Fragment>
-      <div>Select if the new pipeline will be private or shared.</div>
-      <div className={classes(commonCss.flex, padding(10, 'b'))}>
-        <Tooltip title={PipelineButtonTooltips.PRIVATE} placement='top-start'>
-          <FormControlLabel
-            id='createNewPrivatePipelineBtn'
-            label={PipelineTabsHeaders.PRIVATE}
-            checked={namespacedPipeline === true}
-            control={<Radio color='primary' />}
-            onChange={() => updateSelection(true)}
-          />
-        </Tooltip>
-        <Tooltip title={PipelineButtonTooltips.SHARED} placement='top-start'>
-          <FormControlLabel
-            id='createNewSharedPipelineBtn'
-            label={PipelineTabsHeaders.SHARED}
-            checked={namespacedPipeline === false}
-            control={<Radio color='primary' />}
-            onChange={() => updateSelection(false)}
-          />
-        </Tooltip>
-      </div>
-    </React.Fragment>
+    <fieldset className='kfp-pipeline-choice'>
+      <legend>Select if the new pipeline will be private or shared.</legend>
+      <label title={PipelineButtonTooltips.PRIVATE}>
+        <input
+          id='createNewPrivatePipelineBtn'
+          type='radio'
+          name={id}
+          checked={isPrivate}
+          onChange={() => select(true)}
+          aria-describedby={`${id}-scope`}
+        />
+        {PipelineTabsHeaders.PRIVATE}
+      </label>
+      <label title={PipelineButtonTooltips.SHARED}>
+        <input
+          id='createNewSharedPipelineBtn'
+          type='radio'
+          name={id}
+          checked={!isPrivate}
+          onChange={() => select(false)}
+          aria-describedby={`${id}-scope`}
+        />
+        {PipelineTabsHeaders.SHARED}
+      </label>
+      <p id={`${id}-scope`} className='kfp-pipeline-form-hint'>
+        {isPrivate ? PipelineButtonTooltips.PRIVATE : PipelineButtonTooltips.SHARED}
+      </p>
+    </fieldset>
   );
-};
-
-export default PrivateSharedSelector;
+}

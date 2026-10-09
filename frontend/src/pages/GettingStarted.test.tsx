@@ -91,11 +91,11 @@ describe('GettingStarted page', () => {
     expect(pipelineListSpy.mock.calls).toMatchSnapshot();
     expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(
       'href',
-      '#/pipelines/details/pipeline-id-data?',
+      '#/pipelines/details/pipeline-id-data',
     );
     expect(screen.getByRole('link', { name: 'DSL - Control structures' })).toHaveAttribute(
       'href',
-      '#/pipelines/details/pipeline-id-control?',
+      '#/pipelines/details/pipeline-id-control',
     );
   });
 
@@ -121,7 +121,7 @@ describe('GettingStarted page', () => {
     );
     expect(screen.getByRole('link', { name: 'DSL - Control structures' })).toHaveAttribute(
       'href',
-      '#/pipelines/details/pipeline-id-control?',
+      '#/pipelines/details/pipeline-id-control',
     );
   });
 });

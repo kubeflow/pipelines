@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { testBestPractices } from 'src/TestUtils';
@@ -140,21 +140,21 @@ describe('PipelineVersionCard', () => {
   });
 
   it('shows version list', async () => {
-    const { getByRole } = render(
+    const onVersionSelected = vi.fn().mockResolvedValue(undefined);
+    render(
       <PipelineVersionCard
         pipeline={TEST_PIPELINE}
         selectedVersion={OLD_TEST_PIPELINE_VERSION}
         versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={(versionId) => {
-          return Promise.resolve();
-        }}
+        handleVersionSelected={onVersionSelected}
       ></PipelineVersionCard>,
     );
 
     await userEvent.click(screen.getByText('Show Summary'));
 
-    fireEvent.mouseDown(getByRole('combobox'));
-    await screen.findByRole('listbox');
-    screen.getByRole('option', { name: NEW_VERSION_NAME });
+    const select = screen.getByRole('combobox', { name: 'Version' });
+    expect(select).toHaveValue(OLD_TEST_PIPELINE_VERSION_ID);
+    await userEvent.selectOptions(select, NEW_TEST_PIPELINE_VERSION_ID);
+    expect(onVersionSelected).toHaveBeenCalledWith(NEW_TEST_PIPELINE_VERSION_ID);
   });
 });

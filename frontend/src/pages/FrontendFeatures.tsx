@@ -14,81 +14,62 @@
  * limitations under the License.
  */
 
-import { Button, Switch, TableCell, Table, TableBody, TableHead, TableRow } from '@mui/material';
-import * as React from 'react';
-import { commonCss, padding } from 'src/Css';
-import { getFeatureList, initFeatures, saveFeatures } from 'src/features';
-import { classes } from 'typestyle';
+import { useState } from 'react';
+import { Button } from 'src/components/ui/button';
+import { Switch } from 'src/components/ui/switch';
+import { getFeatureList, saveFeatures } from 'src/features';
+import './SecondaryPages.css';
 
-interface FrontendFeaturesProps {}
-
-// Secret page which developer can enable/disable pre-release features on UI.
-const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
-  initFeatures();
-  const srcFeatures = getFeatureList();
-  const [features, setFeatures] = React.useState(srcFeatures);
-
-  const reset = () => {
-    setFeatures(srcFeatures);
-  };
+// The application initializes feature storage once before rendering.
+export default function FrontendFeatures() {
+  const [features, setFeatures] = useState(getFeatureList);
+  const reset = () => setFeatures(getFeatureList());
   const submit = () => {
     saveFeatures(features);
     setFeatures(getFeatureList());
   };
 
-  const toggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const index = features.findIndex((f) => f.name === event.target.name);
-    if (index < 0) {
-      console.log(`unable to find index for feature name: ${event.target.name}`);
-      return;
-    }
-    const newFeatures = [...features];
-    newFeatures[index].active = event.target.checked;
-    setFeatures(newFeatures);
-  };
-
   return (
-    <div className={classes(commonCss.page, padding(20, 't'))}>
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <div style={{ alignSelf: 'flex-end', flexDirection: 'initial' }}>
-          <Button variant='contained' color='primary' onClick={submit}>
-            Save changes
-          </Button>
-          <Button variant='contained' color='secondary' onClick={reset}>
-            Reset
-          </Button>
-        </div>
-        <Table aria-label=' table'>
-          <TableHead>
-            <TableRow>
-              <TableCell>Feature Flag Name</TableCell>
-              <TableCell align='left'>Description</TableCell>
-              <TableCell align='right'>Enabled</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {features.map((f) => (
-              <TableRow key={f.name}>
-                <TableCell component='th' scope='row'>
-                  {f.name}
-                </TableCell>
-                <TableCell align='left'>{f.description}</TableCell>
-                <TableCell align='right'>
-                  <Switch
-                    checked={f.active}
-                    onChange={toggleChange}
-                    color='primary'
-                    name={f.name}
-                    inputProps={{ 'aria-label': 'primary checkbox' }}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <section className='kfp-secondary-page' aria-label='Frontend features'>
+      <h1>Frontend features</h1>
+      <div className='kfp-secondary-actions'>
+        <Button onClick={submit}>Save changes</Button>
+        <Button variant='secondary' onClick={reset}>
+          Reset
+        </Button>
       </div>
-    </div>
+      <div className='kfp-feature-table-scroll'>
+        <table className='kfp-feature-table' aria-label='Frontend features'>
+          <thead>
+            <tr>
+              <th>Feature flag name</th>
+              <th>Description</th>
+              <th>Enabled</th>
+            </tr>
+          </thead>
+          <tbody>
+            {features.map((feature) => (
+              <tr key={feature.name}>
+                <th scope='row'>{feature.name}</th>
+                <td>{feature.description}</td>
+                <td>
+                  <Switch
+                    checked={feature.active}
+                    aria-label={`Enable ${feature.name}`}
+                    onCheckedChange={(active) =>
+                      setFeatures((previous) =>
+                        previous.map((item) =>
+                          item.name === feature.name ? { ...item, active } : item,
+                        ),
+                      )
+                    }
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
-};
-
-export default FrontendFeatures;
+}

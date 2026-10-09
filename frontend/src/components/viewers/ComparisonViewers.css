@@ -1,0 +1,257 @@
+.kfp-visualization-section {
+  min-width: 0;
+  padding: 16px;
+}
+.kfp-visualization-heading {
+  margin-bottom: 16px;
+}
+.kfp-visualization-section h3,
+.kfp-roc-heading {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.kfp-visualization-section abbr {
+  cursor: help;
+  text-decoration: none;
+  color: var(--muted-foreground, #626979);
+}
+.kfp-roc-section {
+  min-width: 0;
+  padding: 8px 0 0;
+}
+.kfp-comparison-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-top: 16px;
+}
+.kfp-comparison-panel {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+.kfp-curve-swatch {
+  border-radius: 2px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 10px;
+  width: 10px;
+}
+.kfp-visualization-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+.kfp-visualization-selectors > * {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.kfp-visualization-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--foreground-2, #4a4f5c);
+}
+.kfp-visualization-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--muted-foreground, #626979);
+  border-radius: 8px;
+  background: var(--background, #f5f6f9);
+  color: var(--foreground, #15171e);
+  font: inherit;
+  font-size: 13px;
+}
+.kfp-visualization-popup-positioner {
+  z-index: 1400;
+}
+.kfp-visualization-popup {
+  max-height: min(360px, var(--available-height));
+  max-width: min(680px, var(--available-width));
+  min-width: var(--anchor-width);
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border-strong, #d3d6df);
+  border-radius: 8px;
+  background: var(--card, #fff);
+  color: var(--foreground, #15171e);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 18%);
+}
+.kfp-visualization-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 10px 6px 28px;
+  position: relative;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: default;
+}
+.kfp-visualization-option[data-highlighted] {
+  background: var(--muted, #f0f1f5);
+}
+.kfp-visualization-option[data-disabled] {
+  opacity: 0.5;
+}
+.kfp-visualization-check {
+  position: absolute;
+  left: 6px;
+}
+.kfp-visualization-selectors nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.kfp-visualization-error-details {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.kfp-plot-card {
+  min-width: 0;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--border, #e3e5ec);
+  border-radius: 12px;
+  background: var(--card, #fff);
+  color: var(--foreground, #15171e);
+}
+.kfp-plot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kfp-plot-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kfp-plot-content,
+.kfp-plot-fullscreen {
+  min-width: 0;
+  overflow: auto;
+}
+.kfp-plot-fullscreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+.kfp-roc-flex {
+  display: flex;
+}
+.kfp-roc-legend-item {
+  align-items: center;
+  display: flex;
+  margin-right: 12px;
+}
+.kfp-roc-legend-swatch {
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 10px;
+  margin-right: 6px;
+  width: 10px;
+}
+.kfp-roc-tooltip {
+  background: var(--foreground, #15171e);
+  border-radius: 5px;
+  color: var(--background, #f5f6f9);
+  padding: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+}
+.kfp-roc-tooltip-label {
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.kfp-confusion-matrix {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  position: relative;
+  width: fit-content;
+}
+.kfp-confusion-matrix[data-small] {
+  pointer-events: none;
+  font-size: 11px;
+}
+.kfp-confusion-cell {
+  border: 1px solid var(--card, #fff);
+  position: relative;
+  text-align: center;
+  vertical-align: middle;
+}
+.kfp-confusion-active-label {
+  border-radius: 5px;
+  color: var(--primary, #2563d9);
+  font-weight: 600;
+}
+.kfp-confusion-y-axis-label {
+  color: var(--foreground, #15171e);
+  font-size: 15px;
+  height: 25px;
+  padding-right: 20px;
+  text-align: right;
+}
+.kfp-confusion-x-axis-label {
+  color: var(--foreground, #15171e);
+  font-size: 15px;
+  font-weight: 600;
+  padding-top: 12px;
+  text-align: center;
+}
+.kfp-confusion-xlabel {
+  font-weight: 400;
+  padding-top: 8px;
+  text-align: center;
+  vertical-align: top;
+}
+.kfp-confusion-ylabel {
+  margin-right: 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+.kfp-confusion-overlay {
+  background: #000;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.kfp-confusion-legend {
+  background: linear-gradient(
+    color-mix(in srgb, var(--primary, #2563d9) 25%, var(--card, #fff)),
+    var(--card, #fff)
+  );
+  border-right: 1px solid var(--muted-foreground, #626979);
+  margin-left: 20px;
+  min-width: 10px;
+  position: relative;
+  width: 10px;
+}
+.kfp-confusion-legend-label {
+  left: 15px;
+  position: absolute;
+  top: -7px;
+}
+.kfp-confusion-legend-notch {
+  border-top: 1px solid var(--muted-foreground, #626979);
+  left: 100%;
+  padding-left: 5px;
+  position: absolute;
+  width: 5px;
+}

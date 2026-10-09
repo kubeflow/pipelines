@@ -203,12 +203,12 @@ describe('RecurringRunsManager', () => {
     expect(link).toHaveAttribute('href', '/recurringrun/details/recurringrun1');
   });
 
-  it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
+  it('disables an enabled schedule with its switch', async () => {
     renderManager();
     await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
     const row = getRowById('recurringrun1');
-    const button = within(row).getByRole('button', { name: 'Enabled' });
+    const button = within(row).getByRole('switch');
     fireEvent.click(button);
 
     await TestUtils.flushPromises();
@@ -216,12 +216,12 @@ describe('RecurringRunsManager', () => {
     expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('recurringrun1');
   });
 
-  it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
+  it('enables a disabled schedule with its switch', async () => {
     renderManager();
     await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
     const row = getRowById('recurringrun2');
-    const button = within(row).getByRole('button', { name: 'Disabled' });
+    const button = within(row).getByRole('switch');
     fireEvent.click(button);
 
     await TestUtils.flushPromises();
@@ -229,17 +229,61 @@ describe('RecurringRunsManager', () => {
     expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('recurringrun2');
   });
 
-  it("renders an enable button if the run's enabled field is undefined, clicking the button calls enable API", async () => {
+  it('preserves enabling a schedule whose enabled field is undefined', async () => {
     renderManager();
     await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
     const row = getRowById('recurringrun3');
-    const button = within(row).getByRole('button', { name: 'Disabled' });
+    const button = within(row).getByRole('switch');
     fireEvent.click(button);
 
     await TestUtils.flushPromises();
     expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
     expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('recurringrun3');
+  });
+
+  it('keeps the switch busy through refresh and suppresses duplicate mutations', async () => {
+    renderManager();
+    const control = await screen.findByRole('switch', {
+      name: 'Enable schedule test recurring run name',
+    });
+    let finishRefresh!: () => void;
+    const refresh = vi.spyOn(managerRef!.current!, 'refresh').mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishRefresh = resolve;
+        }),
+    );
+    fireEvent.click(control);
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(control).toHaveAttribute('aria-busy', 'true');
+    fireEvent.click(control);
+    expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
+    await act(async () => finishRefresh());
+    await waitFor(() => expect(control).toHaveAttribute('aria-busy', 'false'));
+  });
+
+  it('retains the error dialog and refreshes after a failed switch mutation', async () => {
+    const assertErrors = expectErrors();
+    renderManager();
+    const control = await screen.findByRole('switch', {
+      name: 'Enable schedule test recurring run name',
+    });
+    const refresh = vi.spyOn(managerRef!.current!, 'refresh');
+    TestUtils.makeErrorResponseOnce(disableRecurringRunSpy as any, 'permission denied');
+    fireEvent.click(control);
+    await waitFor(() =>
+      expect(updateDialogSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error',
+          content: 'Error changing enabled state of recurring run:\npermission denied',
+        }),
+      ),
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(control).toBeChecked();
+    expect(control).toHaveAttribute('aria-busy', 'false');
+    assertErrors();
   });
 
   it('reloads the list of runs after enable/disabling', async () => {
@@ -248,7 +292,7 @@ describe('RecurringRunsManager', () => {
 
     listRecurringRunsSpy.mockClear();
     const row = getRowById('recurringrun1');
-    const button = within(row).getByRole('button', { name: 'Enabled' });
+    const button = within(row).getByRole('switch');
     fireEvent.click(button);
 
     await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1));
