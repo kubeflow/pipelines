@@ -2452,6 +2452,48 @@ func TestArchiveExpiredRuns_SetsArchivedAt(t *testing.T) {
 	assert.True(t, run.ArchivedAtInSec > 0, "archive pass must stamp ArchivedAtInSec")
 }
 
+// Two RetryRun callers racing for the same terminal run: the first claim wins
+// generation 1 and fences the second (row is PENDING, not terminal). The unit
+// DB is single-connection SQLite, so this asserts the fencing contract
+// sequentially; production Postgres/MySQL add row locks under SelectForUpdate.
+func TestClaimRunForRetry_SecondCallerFencedWhileClaimHolds(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-claim-fence",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-claim-fence",
+		DisplayName:  "run-claim-fence",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, firstGen, firstErr := runStore.ClaimRunForRetry("run-claim-fence", false)
+	require.Nil(t, firstErr)
+	assert.Equal(t, int64(1), firstGen)
+
+	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-claim-fence", false)
+	require.NotNil(t, secondErr, "second claim must be fenced while the first holds")
+	assert.Contains(t, secondErr.Error(), "not in a terminal state")
+
+	_, _, _, _, takeoverFreshErr := runStore.ClaimRunForRetry("run-claim-fence", true)
+	require.NotNil(t, takeoverFreshErr, "takeover must not steal a fresh claim")
+	assert.Contains(t, takeoverFreshErr.Error(), "not in a terminal state")
+}
+
 // Regression: a retry that crashes after committing its claim but before
 // creating the workflow leaves the row PENDING with no workflow to report it.
 // A later claim must be able to take over once the claim has aged out (or its
