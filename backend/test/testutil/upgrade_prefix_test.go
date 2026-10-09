@@ -73,6 +73,13 @@ func TestUpgradePreparationUsesOldServerAndVerificationUsesV2(t *testing.T) {
 		case "/pipelines":
 			_, _ = w.Write([]byte(`{"pipelines":[{"pipeline_id":"pipeline"}]}`))
 		case "/runs":
+			var body map[string]any
+			assert.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			if _, present := body["tasks"]; present {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(`{"code":3,"message":"unknown field tasks"}`))
+				return
+			}
 			_, _ = w.Write([]byte(`{"run_id":"run"}`))
 		case "/recurringruns":
 			_, _ = w.Write([]byte(`{"recurring_run_id":"recurring"}`))

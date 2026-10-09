@@ -28,11 +28,21 @@ PipelineSpec IR (`api/v2alpha1`) and Kubernetes CRDs
 (`pipelines.kubeflow.org/v2beta1`) have version lifecycles independent of the backend API. Old clients can call the new server;
 new v2 clients require a server that exposes v2 (upgrade the server first).
 
-Make schema changes under `backend/api/v2`. The descriptor parity regression
-in `backend/src/apiserver/api_compat_test.go` compares v2 against the frozen
-`v2beta1/legacy_descriptor.pb` snapshot, protecting the shared-handler assumption.
+Make schema changes under `backend/api/v2`. The descriptor compatibility regression
+in `backend/src/apiserver/api_compat_test.go` checks v2 against the frozen
+`v2beta1/legacy_descriptor.pb` snapshot: existing fields, enums, RPCs, and HTTP
+bindings must remain compatible, but additive v2 changes are allowed.
 Incompatible future changes require explicit compatibility adapters rather than
 changes to that historical baseline. There is no second editable proto tree.
+
+## Observe legacy usage
+
+The API server exports `kfp_api_legacy_requests_total{protocol="http"}` and
+`kfp_api_legacy_requests_total{protocol="grpc"}` on `/metrics`. These count
+requests entering legacy routes, including unsuccessful requests; canonical
+requests do not increment them. Labels never contain resource IDs or raw paths.
+This preserves an operational usage signal while shared interceptors retain
+canonical method names.
 
 ## Generate Go clients and OpenAPI definitions
 
@@ -86,8 +96,8 @@ cd frontend
 npm run apis:all
 ```
 
-This regenerates browser and server clients from the v2 contracts and removes
-the retired internal v2beta1 TypeScript client directories.
+This regenerates browser and server clients from the v2 contracts. Each target
+owns only its output directory; unrelated or historical trees are not deleted.
 
 ## API reference documentation
 

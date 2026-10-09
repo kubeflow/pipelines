@@ -9,7 +9,8 @@ its aliases automatically; `make -C backend/api generate-compat` regenerates
 only the Go shims. Never regenerate the frozen snapshot from v2.
 Python generation also creates legacy `V2beta1…` model import aliases.
 Backend generation refreshes `docs/_static/kfp_api_single_file.swagger.json`;
-frontend generation removes the retired internal `apisv2beta1` client trees.
+frontend generation writes only selected canonical output trees. Legacy Go file
+descriptor exports resolve to the frozen snapshot, while model aliases use v2.
 Do not rename the independent PipelineSpec IR or Kubernetes CRD versions.
 
 | Output | Source | Regenerate |
@@ -37,6 +38,8 @@ Do not rename the independent PipelineSpec IR or Kubernetes CRD versions.
   Generated REST documentation remains under `backend/api/v2/python_http_client`.
 - Bundled Python modules use `sdk/python/kfp/version.py`; backend `VERSION`
   remains independent. Regenerate the server client after SDK version changes.
+- Go HTTP generation omits unset `Run.tasks` from JSON create bodies: the field
+  is an output list and older servers reject it even when its value is null.
 - Python HTTP client generation omits OpenAPI's unimplemented API/model test
   stubs and unused tox configuration. Real coverage remains in SDK client tests
   and `backend/api/v2/python_http_client_smoke`.

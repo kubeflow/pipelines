@@ -27,6 +27,16 @@ import (
 //go:embed legacy_descriptor.pb
 var legacyDescriptor []byte
 
+// MustFileDescriptor returns a frozen legacy file for generated compatibility
+// exports. A missing file indicates a corrupt snapshot or generator mismatch.
+func MustFileDescriptor(path string) protoreflect.FileDescriptor {
+	file, err := protoregistry.GlobalFiles.FindFileByPath(path)
+	if err != nil || file.Package() != "kubeflow.pipelines.backend.api.v2beta1" {
+		panic(fmt.Sprintf("legacy descriptor %s is unavailable; restore the checksum-pinned snapshot and regenerate compatibility shims", path))
+	}
+	return file
+}
+
 type descriptorResolver struct {
 	local *protoregistry.Files
 }

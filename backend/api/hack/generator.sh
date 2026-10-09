@@ -157,6 +157,11 @@ sed -i -- 's/Tags map\[string\]string `json:"tags,omitempty"`/Tags map[string]st
     backend/api/${API_VERSION}/go_http_client/pipeline_client/pipeline_service/pipeline_service_update_pipeline_responses.go \
     backend/api/${API_VERSION}/go_http_client/pipeline_client/pipeline_service/pipeline_service_update_pipeline_version_responses.go
 
+# Unset response-only task lists must not be serialized into CreateRun bodies:
+# older v2beta1 servers reject even null values of this newer field.
+sed -i -- 's/Tasks \[\]\*V2PipelineTask `json:"tasks"`/Tasks []*V2PipelineTask `json:"tasks,omitempty"`/g' \
+    backend/api/${API_VERSION}/go_http_client/run_model/${API_VERSION}_run.go
+
 # Generate legacy import shims from the canonical implementation.
 go run ./backend/api/hack/generate_compat
 

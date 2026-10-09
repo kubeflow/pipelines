@@ -18,7 +18,31 @@ import (
 	legacyModel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
+
+func TestLegacyFileHandlesMatchFrozenRegistry(t *testing.T) {
+	for _, file := range []protoreflect.FileDescriptor{
+		legacy.File_backend_api_v2beta1_artifact_proto,
+		legacy.File_backend_api_v2beta1_auth_proto,
+		legacy.File_backend_api_v2beta1_experiment_proto,
+		legacy.File_backend_api_v2beta1_filter_proto,
+		legacy.File_backend_api_v2beta1_healthz_proto,
+		legacy.File_backend_api_v2beta1_pipeline_proto,
+		legacy.File_backend_api_v2beta1_recurring_run_proto,
+		legacy.File_backend_api_v2beta1_report_proto,
+		legacy.File_backend_api_v2beta1_run_proto,
+		legacy.File_backend_api_v2beta1_runtime_config_proto,
+	} {
+		t.Run(file.Path(), func(t *testing.T) {
+			require.Equal(t, protoreflect.FullName("kubeflow.pipelines.backend.api.v2beta1"), file.Package())
+			registered, err := protoregistry.GlobalFiles.FindFileByPath(file.Path())
+			require.NoError(t, err)
+			require.Same(t, registered, file)
+		})
+	}
+}
 
 func TestLegacyGoModelsAreCanonicalAliases(t *testing.T) {
 	old := &legacy.Experiment{DisplayName: "experiment"}
