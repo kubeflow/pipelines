@@ -67,6 +67,23 @@ class PreCommitWorkflowTest(unittest.TestCase):
             self.workflow,
         )
 
+    def test_isort_hook_matches_sdk_formatter_pin(self):
+        project = tomllib.loads(
+            (REPOSITORY_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+        sdk_pins = [
+            dependency for dependency in project['project']
+            ['optional-dependencies']['lint']
+            if dependency.startswith('isort==')
+        ]
+        self.assertEqual(len(sdk_pins), 1, 'SDK isort must have one exact pin')
+        hooks = [
+            hook for repo in yaml.safe_load(self.config)['repos']
+            for hook in repo['hooks'] if hook['id'] == 'isort'
+        ]
+        self.assertEqual(len(hooks), 1)
+        self.assertIn(sdk_pins[0], hooks[0].get('additional_dependencies', []),
+                      'pre-commit and SDK must install the same isort version')
+
     def test_workflow_fails_closed_when_the_event_base_is_unavailable(self):
         self.assertIn('Unable to resolve the event base commit', self.workflow)
         self.assertNotIn('git rev-parse HEAD^', self.workflow)

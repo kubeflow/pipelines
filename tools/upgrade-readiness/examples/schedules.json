@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "apiVersion": "kubeflow.org/v1beta1",
+      "kind": "ScheduledWorkflow",
+      "metadata": {
+        "name": "nightly-training",
+        "namespace": "team-a",
+        "uid": "example-recurring-run"
+      },
+      "spec": {
+        "enabled": true,
+        "serviceAccount": "training-runner",
+        "pipelineId": "example-pipeline",
+        "pipelineVersionId": "example-version"
+      }
+    },
+    {
+      "apiVersion": "kubeflow.org/v1beta1",
+      "kind": "ScheduledWorkflow",
+      "metadata": {
+        "name": "paused-evaluation",
+        "namespace": "team-a"
+      },
+      "spec": {
+        "enabled": false,
+        "pipelineId": "example-pipeline"
+      }
+    },
+    {
+      "apiVersion": "kubeflow.org/v1beta1",
+      "kind": "ScheduledWorkflow",
+      "metadata": {
+        "name": "legacy-training",
+        "namespace": "team-a"
+      },
+      "spec": {
+        "enabled": true,
+        "workflow": {
+          "spec": "entrypoint: train\nserviceAccountName: legacy-runner\n"
+        }
+      }
+    }
+  ]
+}
