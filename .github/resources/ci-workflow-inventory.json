@@ -127,6 +127,12 @@
       "pull_request": null
     },
     {
+      "path": ".github/workflows/ci-passed-stale-revoke.yml",
+      "name": "Revoke Stale CI Passed",
+      "header_sha256": "0b898939ddfa0f2f5c8ce33c2f8bed081496cc27eef951d7216a119574a0434f",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
       "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
