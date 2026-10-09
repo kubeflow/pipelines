@@ -420,3 +420,26 @@ func TestManagedScheduleWriterWaitsForMissingDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestManagedScheduleWriterDeploymentDisappearsDuringRecheck(t *testing.T) {
+	deployments, pods := handoffFixtures()
+	client := handoffClient(deployments, pods)
+	reads := 0
+	client.PrependReactor("get", "deployments", func(action ktesting.Action) (bool, runtime.Object, error) {
+		reads++
+		if reads == len(scheduleWriterDeployments)+1 {
+			name := action.(ktesting.GetAction).GetName()
+			return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "deployments"}, name)
+		}
+		return false, nil, nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	waits := 0
+	err := WaitForManagedScheduleWriters(ctx, client, "kubeflow", pods[1].Name, func(err error) {
+		require.Contains(t, err.Error(), "disappeared during handoff")
+		waits++
+		cancel()
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, 1, waits)
+}

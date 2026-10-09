@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -51,16 +52,54 @@ func TestStartupRepairPagesPersistWorkWithoutReseeding(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestStartupRepairDoesNotReplaceMalformedGlobalReceipt(t *testing.T) {
-	sqlDB, _, _ := initializeDBAndStore()
+func TestStartupRepairSkipsMalformedGlobalReceiptWithoutStarvingSealedJobs(t *testing.T) {
+	sqlDB, _, jobs := initializeDBAndStore()
 	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
 	db, err := gorm.Open(sqlite.New(sqlite.Config{Conn: sqlDB}), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.Delete(&model.RecurringRunAdoption{}, &model.RecurringRunAdoption{ID: legacyRecurringRunRecordPrefix + "1"}).Error)
 	require.NoError(t, db.Create(&model.RecurringRunAdoption{ID: LegacyRecurringRunAdoptionID, AdoptedCount: 1, JobIDs: `["1","1"]`, Ready: true}).Error)
-	_, err = PrepareRecurringRunStartupRepairs(db, "", 1, 200)
+	_, err = jobs.CreateJob(&model.Job{UUID: "z-sealed", Namespace: "n1", Enabled: false})
+	require.NoError(t, err)
+	page, err := PrepareRecurringRunStartupRepairs(db, "", 100, 200)
+	require.NoError(t, err)
+	require.Equal(t, "1", page[0].ID)
+	require.Equal(t, "z-sealed", page[len(page)-1].ID)
+	_, err = GetLegacyRecurringRunAdoptionForJob(db, "1")
 	require.ErrorContains(t, err, "invalid legacy adoption inventory")
+	sealed, err := GetLegacyRecurringRunAdoptionForJob(db, "z-sealed")
+	require.NoError(t, err)
+	require.False(t, sealed.Ready)
 	var count int64
 	require.NoError(t, db.Model(&model.RecurringRunAdoption{}).Where(&model.RecurringRunAdoption{ID: legacyRecurringRunRecordPrefix + "1"}).Count(&count).Error)
 	require.Zero(t, count)
+}
+
+func TestPendingRepairScanIsolatesMalformedGlobalInventory(t *testing.T) {
+	for _, ready := range []bool{false, true} {
+		t.Run(fmt.Sprint(ready), func(t *testing.T) {
+			sqlDB, _, jobs := initializeDBAndStore()
+			t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+			db, err := gorm.Open(sqlite.New(sqlite.Config{Conn: sqlDB}), &gorm.Config{})
+			require.NoError(t, err)
+			require.NoError(t, db.Delete(&model.RecurringRunAdoption{}, &model.RecurringRunAdoption{ID: legacyRecurringRunRecordPrefix + "1"}).Error)
+			require.NoError(t, db.Create(&model.RecurringRunAdoption{ID: LegacyRecurringRunAdoptionID, AdoptedCount: 1, JobIDs: `["1","1"]`, Ready: ready}).Error)
+			_, err = jobs.CreateJob(&model.Job{UUID: "z-sealed", Namespace: "n1", Enabled: false})
+			require.NoError(t, err)
+			_, err = PrepareRecurringRunStartupRepairs(db, "", 100, 200)
+			require.NoError(t, err)
+			page, err := ListPendingLegacyRecurringRunAdoptions(db, "", 100)
+			require.NoError(t, err)
+			require.Equal(t, "z-sealed", page[len(page)-1].ID)
+			_, err = GetLegacyRecurringRunAdoptionForJob(db, "1")
+			require.ErrorContains(t, err, "invalid legacy adoption inventory")
+			if !ready {
+				require.Equal(t, "1", page[0].ID)
+			}
+			require.NoError(t, SynchronizeLegacyRecurringRunAdoption(db, "z-sealed", func(*model.Job, *model.RecurringRunState) error { return nil }))
+			receipt, err := GetLegacyRecurringRunAdoptionForJob(db, "z-sealed")
+			require.NoError(t, err)
+			require.True(t, receipt.Ready)
+		})
+	}
 }

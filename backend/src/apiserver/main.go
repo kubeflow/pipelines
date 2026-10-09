@@ -328,6 +328,7 @@ func main() {
 		resourceOptions.ScheduleWritersReady = writersReady
 		synchronization := resource.NewAutomaticRecurringRunSynchronization(resourceManager, writersReady)
 		resourceOptions.EnsureRecurringRunSynchronized = synchronization.Ensure
+		resourceOptions.EnsureRecurringRunModeChanged = synchronization.EnsureAfterModeChange
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

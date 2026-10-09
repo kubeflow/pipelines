@@ -16,6 +16,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/gorm"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -103,6 +104,7 @@ func (r *ResourceManager) SynchronizeRecurringRun(ctx context.Context, id string
 			if live == nil || string(live.UID) != job.UUID || live.Name != job.K8SName || live.Namespace != job.Namespace {
 				return recurringRunIdentityError(id)
 			}
+			original := live
 			live = live.DeepCopy()
 			live.Spec = canonical.Spec
 			// A mode reconciliation must not acknowledge an in-flight claim.
@@ -113,6 +115,9 @@ func (r *ResourceManager) SynchronizeRecurringRun(ctx context.Context, id string
 					last := metav1.NewTime(time.Unix(state.LastScheduledAtInSec, 0))
 					live.Status.Trigger.LastTriggeredTime = &last
 				}
+			}
+			if equality.Semantic.DeepEqual(original.Spec, live.Spec) && equality.Semantic.DeepEqual(original.Status, live.Status) {
+				return nil
 			}
 			_, err = r.getScheduledWorkflowClient(job.Namespace).Update(syncCtx, live)
 			return err
@@ -162,8 +167,8 @@ func (r *ResourceManager) changeAdoptableJobMode(ctx context.Context, job *model
 	if err := storage.SetRecurringRunModeForReconciliation(db, snapshot, enabled, r.time.Now().Unix()); err != nil {
 		return err
 	}
-	if r.options != nil && r.options.EnsureRecurringRunSynchronized != nil {
-		return r.options.EnsureRecurringRunSynchronized(ctx, job.UUID)
+	if r.options != nil && r.options.EnsureRecurringRunModeChanged != nil {
+		return r.options.EnsureRecurringRunModeChanged(ctx, job.UUID)
 	}
 	return r.SynchronizeRecurringRun(ctx, job.UUID)
 }

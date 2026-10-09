@@ -173,13 +173,16 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 		}
 		claim, err := scheduleWriterClaim(&pod)
 		if err != nil || pod.Annotations[scheduleWriterAnnotation] != claim {
-			return fmt.Errorf("managed writer Pod %s is incompatible or terminating", pod.Name)
+			return fmt.Errorf("managed writer Pod %s is incompatible or terminating; wait for its replacement and verify both managed writer Deployments use compatible images", pod.Name)
 		}
 		counts[pod.Labels["app"]]++
 	}
 	for _, name := range scheduleWriterDeployments {
 		previous := deployments[name]
 		current, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return fmt.Errorf("managed writer Deployment %s disappeared during handoff; wait for installation or rollout to recreate it", name)
+		}
 		if err != nil {
 			return fmt.Errorf("recheck managed writer Deployment %s: %w", name, err)
 		}

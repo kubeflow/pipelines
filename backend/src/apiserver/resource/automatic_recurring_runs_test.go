@@ -18,6 +18,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -189,28 +190,71 @@ func TestAutomaticRetryCacheIsBounded(t *testing.T) {
 	require.Len(t, a.retries, recurringRunRetryLimit)
 }
 
-func TestAutomaticRetryDoesNotCacheCallerCancellation(t *testing.T) {
+func TestAutomaticRetryDoesNotReplayInterruptedAttempt(t *testing.T) {
+	for _, failure := range []error{context.Canceled, context.DeadlineExceeded, status.Error(codes.Canceled, "inner cancellation"), status.Error(codes.DeadlineExceeded, "inner timeout")} {
+		t.Run(failure.Error(), func(t *testing.T) {
+			f := &automaticSynchronizerFake{ready: map[string]bool{}, resultError: failure}
+			a := NewAutomaticRecurringRunSynchronization(f, func(context.Context) error { return nil })
+			now := time.Unix(1000, 0)
+			a.now = func() time.Time { return now }
+			for i := 0; i < 5; i++ {
+				require.ErrorIs(t, a.Ensure(context.Background(), "record"), failure)
+				for j := 0; j < 5; j++ {
+					require.True(t, util.IsUserErrorCodeMatch(a.Ensure(context.Background(), "record"), codes.Unavailable))
+				}
+				require.Len(t, f.adopted, i+1)
+				require.Equal(t, recurringRunRetryInitial*time.Duration(1<<i), a.retries["record"].delay)
+				now = a.retries["record"].next
+			}
+			f.resultError = nil
+			require.NoError(t, a.Ensure(context.Background(), "record"))
+			require.NotContains(t, a.retries, "record")
+		})
+	}
+}
+
+func TestAutomaticRetryCancelledCallerDoesNotClearBackoff(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	f := &automaticSynchronizerFake{ready: map[string]bool{}, failures: map[string]bool{"bad": true}, hook: cancel}
+	f := &automaticSynchronizerFake{ready: map[string]bool{}, failures: map[string]bool{"record": true}, hook: cancel}
 	a := NewAutomaticRecurringRunSynchronization(f, func(context.Context) error { return nil })
-	require.Error(t, a.Ensure(ctx, "bad"))
-	require.NotContains(t, a.retries, "bad")
-	f.hook = nil
-	f.failures["bad"] = false
-	require.NoError(t, a.Ensure(context.Background(), "bad"))
+	require.Error(t, a.Ensure(ctx, "record"))
+	require.True(t, util.IsUserErrorCodeMatch(a.Ensure(context.Background(), "record"), codes.Unavailable))
+	retry := a.retries["record"]
+	require.ErrorIs(t, a.Ensure(ctx, "record"), context.Canceled)
+	require.Same(t, retry, a.retries["record"])
+	require.Len(t, f.adopted, 1)
+}
+
+func TestAutomaticModeChangeSupersedesBackoff(t *testing.T) {
+	f := &automaticSynchronizerFake{ready: map[string]bool{}, failures: map[string]bool{"record": true}}
+	a := NewAutomaticRecurringRunSynchronization(f, func(context.Context) error { return nil })
+	require.Error(t, a.Ensure(context.Background(), "record"))
+	f.failures["record"] = false
+	require.NoError(t, a.EnsureAfterModeChange(context.Background(), "record"))
 	require.Len(t, f.adopted, 2)
 }
 
-func TestAutomaticRetryDoesNotReplayInnerContextStatus(t *testing.T) {
-	for _, code := range []codes.Code{codes.Canceled, codes.DeadlineExceeded} {
-		t.Run(code.String(), func(t *testing.T) {
-			f := &automaticSynchronizerFake{ready: map[string]bool{}, resultError: status.Error(code, "inner request ended")}
-			a := NewAutomaticRecurringRunSynchronization(f, func(context.Context) error { return nil })
-			require.Error(t, a.Ensure(context.Background(), "record"))
-			require.NotContains(t, a.retries, "record")
-			f.resultError = nil
-			require.NoError(t, a.Ensure(context.Background(), "record"))
-			require.Len(t, f.adopted, 2)
-		})
-	}
+func TestAutomaticModeChangeWaitsForExistingAttempt(t *testing.T) {
+	entered, release := make(chan struct{}), make(chan struct{})
+	calls := 0
+	f := &automaticSynchronizerFake{ready: map[string]bool{}, failures: map[string]bool{"record": true}, hook: func() {
+		calls++
+		if calls == 1 {
+			close(entered)
+			<-release
+		}
+	}}
+	a := NewAutomaticRecurringRunSynchronization(f, func(context.Context) error { return nil })
+	first := make(chan error, 1)
+	go func() { first <- a.Ensure(context.Background(), "record") }()
+	<-entered
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	require.ErrorIs(t, a.EnsureAfterModeChange(ctx, "record"), context.DeadlineExceeded)
+	second := make(chan error, 1)
+	go func() { second <- a.EnsureAfterModeChange(context.Background(), "record") }()
+	close(release)
+	require.Error(t, <-first)
+	require.ErrorContains(t, <-second, "bad record")
+	require.Len(t, f.adopted, 2)
 }
