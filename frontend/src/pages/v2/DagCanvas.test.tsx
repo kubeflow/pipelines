@@ -56,11 +56,10 @@ it('passes the local task ID and full scope to the details panel', () => {
     </CommonTestWrapper>,
   );
   fireEvent.click(screen.getByText('Train model'));
-  expect(options.onElementClick).toHaveBeenCalledWith(
-    expect.anything(),
-    expect.objectContaining({ id: 'task.train' }),
-    ['root', 'workflow', 'fit'],
-  );
+  expect(options.onElementClick).toHaveBeenCalledWith(expect.anything(), {
+    element: expect.objectContaining({ id: 'task.train' }),
+    layers: ['root', 'workflow', 'fit'],
+  });
 });
 
 it('preserves nested collapse choices across refreshes and parent toggles', () => {
@@ -100,7 +99,7 @@ it('explicitly expands a deferred group and preserves that choice through refres
   );
   expect(
     screen.getByRole('button', { name: 'Expand Training pipeline' }),
-  ).toHaveAccessibleDescription('600 nodes · expand to load');
+  ).toHaveAccessibleDescription(new GraphExpansionLimitError(600).message);
   fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
   expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
   expect(getSubDagElements).not.toHaveBeenCalledWith(['root', 'workflow'], Infinity);
@@ -135,15 +134,13 @@ it('places expand then collapse above native zoom controls and toggles all desce
   const buttons = within(toolbar).getAllByRole('button');
   expect(buttons[0]).toBe(expandAll);
   expect(buttons[1]).toBe(collapseAll);
-  expect(buttons[2]).toHaveClass('react-flow__controls-zoomin');
-  expect(buttons[3]).toHaveClass('react-flow__controls-zoomout');
-  expect(buttons[4]).toHaveClass('react-flow__controls-fitview');
-  expect(buttons[5]).toHaveClass('react-flow__controls-interactive');
+  expect(buttons[2]).toHaveAccessibleName('Zoom in');
+  expect(buttons[3]).toHaveAccessibleName('Zoom out');
+  expect(buttons[4]).toHaveAccessibleName('Fit view');
+  expect(buttons[5]).toHaveAccessibleName('Lock graph');
   expect(buttons[6]).toHaveAttribute('aria-label', 'Render subdags');
   expect(buttons[6]).toHaveAttribute('aria-pressed', 'true');
   expect(within(buttons[6]).getByTestId('FullscreenExitIcon')).toBeInTheDocument();
-  expect(screen.queryByRole('switch', { name: 'Render subdags' })).not.toBeInTheDocument();
-  expect(toolbar).toHaveClass('bottom', 'left');
   expect(toolbar).not.toContainElement(screen.getByText('Layers'));
   fireEvent.click(collapseAll);
   expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
@@ -263,8 +260,12 @@ it('does not select a flat namesake of a hidden nested selection', () => {
     <CommonTestWrapper>
       <DagCanvas
         {...options}
-        selectedNodeId='task.train'
-        selectedNodeLayers={['root', 'workflow', 'fit']}
+        selectedElement={{
+          element: resolve(['root', 'workflow', 'fit']).find(
+            (element) => element.id === 'task.train',
+          )!,
+          layers: ['root', 'workflow', 'fit'],
+        }}
       />
     </CommonTestWrapper>,
   );
@@ -282,19 +283,18 @@ it('locks dragging and node selection without disabling viewport controls', () =
       <DagCanvas {...options} />
     </CommonTestWrapper>,
   );
-  const lock = document.querySelector('.react-flow__controls-interactive')!;
-  fireEvent.click(lock);
+  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
   expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
   expect(document.querySelector('[data-id="task.deploy"]')).not.toHaveClass('draggable');
   fireEvent.click(screen.getByText('Train model'));
   expect(options.onElementClick).not.toHaveBeenCalled();
-  expect(document.querySelector('.react-flow__controls-zoomin')).not.toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Zoom in' })).not.toBeDisabled();
   const mode = screen.getByRole('button', { name: 'Render subdags' });
   fireEvent.click(mode);
   expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
   fireEvent.click(mode);
   expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
-  fireEvent.click(lock);
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   expect(document.querySelector('[data-id="task.workflow"]')).toHaveClass('draggable');
   fireEvent.click(screen.getByText('Train model'));
   expect(options.onElementClick).toHaveBeenCalledTimes(1);

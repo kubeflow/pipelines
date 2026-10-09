@@ -14,7 +14,8 @@ import {
   nestedArtifactSpec,
 } from 'src/data/test/groupedFlow';
 import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
-import { convertSubDagToFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
+import type { LayerElementsResolver, ScopedFlowElement } from 'src/lib/v2/FlowTypes';
 import { createRuntimeLayerResolver } from 'src/lib/v2/DynamicFlow';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import nestedLoops from 'src/data/test/pipeline_with_loops_and_conditions.yaml?raw';
@@ -33,13 +34,12 @@ function GroupedDag({
   nodesDraggable?: boolean;
 }) {
   const [layers, setLayers] = useState(initialLayers);
-  const [selection, setSelection] = useState<{ element: PipelineFlowElement; layers: string[] }>();
-  const resolve = useMemo(
+  const [selection, setSelection] = useState<ScopedFlowElement>();
+  const resolve = useMemo<LayerElementsResolver>(
     () =>
       tasks
         ? createRuntimeLayerResolver(spec, tasks)
-        : (scope: string[], maxNodes?: number) =>
-            convertSubDagToFlowElements(spec, scope, maxNodes),
+        : (layers, maxNodes) => convertSubDagToFlowElements(spec, layers, maxNodes),
     [spec, tasks],
   );
   const elements = useMemo(() => resolve(layers), [resolve, layers]);
@@ -68,9 +68,8 @@ function GroupedDag({
           getSubDagElements={resolve}
           setFlowElements={() => {}}
           nodesDraggable={nodesDraggable}
-          selectedNodeId={selection?.element.id}
-          selectedNodeLayers={selection?.layers}
-          onElementClick={(_event, element, scope) => setSelection({ element, layers: scope })}
+          selectedElement={selection}
+          onElementClick={(_event, selection) => setSelection(selection)}
         />
       </div>
       {selection && (

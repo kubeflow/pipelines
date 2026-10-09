@@ -12,17 +12,18 @@ import {
   PipelineFlowElement,
 } from './StaticFlow';
 
-export type LayerElements = (layers: string[], maxNodes?: number) => PipelineFlowElement[];
+import type { LayerElementsResolver, ScopedFlowElement } from './FlowTypes';
+import { getFlowNodeSize, NODE_CARD_HEIGHT } from './FlowNodeSize';
 export const AUTOMATIC_EXPANSION_NODE_LIMIT = 500;
 export const GROUP_NODE_TYPE = 'subDagGroup';
-export const GROUP_HEADER_HEIGHT = 48;
+export const GROUP_HEADER_HEIGHT = NODE_CARD_HEIGHT;
 const GROUP_PADDING = 24;
 
 export interface GroupedFlow {
   nodes: Node<FlowElementDataBase>[];
   edges: Edge[];
   /** Keep local IDs and scope for the existing task/artifact detail APIs. */
-  sources: Map<string, { element: PipelineFlowElement; layers: string[] }>;
+  sources: Map<string, ScopedFlowElement>;
   width: number;
   height: number;
 }
@@ -42,7 +43,7 @@ export function scopedNodeId(layers: string[], nodeId: string): string {
 export function buildGroupedFlow(
   elements: PipelineFlowElement[],
   layers: string[],
-  getLayerElements: LayerElements,
+  getLayerElements: LayerElementsResolver,
   collapsed: ReadonlySet<string>,
   options: { expanded?: ReadonlySet<string>; collapseAll?: boolean; nodeScale?: number } = {},
 ): GroupedFlow {
@@ -66,24 +67,23 @@ export function buildGroupedFlow(
       sources.set(id, { element, layers });
       const group = element.type === NodeTypeNames.SUB_DAG;
       let isCollapsed = collapsed.has(id) || (collapseAll && !expanded.has(id));
-      // Card widths include status icons (256px) and artifact cards (240px).
-      let width =
-        (element.type === NodeTypeNames.ARTIFACT ? 240 : element.data.state ? 256 : 224) *
-        nodeScale;
-      let height = 48 * nodeScale;
+      let { width, height } = getFlowNodeSize(element, nodeScale);
       let expansionError: string | undefined;
       let expansionDeferred: string | undefined;
       let empty = false;
       if (group) {
-        width = (element.data.state ? 320 : 288) * nodeScale;
-        height = headerHeight;
         if (!isCollapsed) {
           try {
             const componentRef = element.data.componentRefName as string | undefined;
             if (componentRef && ancestorComponents.has(componentRef)) {
-              throw new Error(`Circular sub-DAG component reference: ${componentRef}.`);
+              throw new Error(
+                `Circular sub-DAG component reference: ${componentRef}. Remove the recursive component reference from the pipeline spec.`,
+              );
             }
-            if (layers.length >= 64) throw new Error('Sub-DAG nesting exceeds 64 layers.');
+            if (layers.length >= 64)
+              throw new Error(
+                'Sub-DAG nesting exceeds 64 layers. Reduce the nesting depth or open a deeper layer directly.',
+              );
             const explicitlyExpanded = expanded.has(id);
             if (!explicitlyExpanded && remaining === 0) throw new GraphExpansionLimitError();
             const childLayers = [...layers, getTaskKeyFromNodeKey(element.id)];
@@ -108,10 +108,7 @@ export function buildGroupedFlow(
           } catch (error) {
             if (error instanceof GraphExpansionLimitError) {
               isCollapsed = true;
-              expansionDeferred =
-                error.nodeCount === undefined
-                  ? 'Automatic limit · expand to load'
-                  : `${error.nodeCount.toLocaleString('en-US')} nodes · expand to load`;
+              expansionDeferred = error.message;
               width = Math.max(width, 320 * nodeScale);
             } else {
               expansionError = error instanceof Error ? error.message : String(error);

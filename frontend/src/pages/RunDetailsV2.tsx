@@ -62,6 +62,7 @@ import {
   reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
 import { isTaskFinished } from 'src/lib/v2/RuntimeArtifactUtils';
+import type { ScopedFlowElement } from 'src/lib/v2/FlowTypes';
 import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import {
   convertFlowElements,
@@ -97,9 +98,7 @@ export interface RunTaskRetryState {
   version: number;
 }
 
-interface SelectedNodeState {
-  element: PipelineFlowElement;
-  layers?: string[];
+interface SelectedNodeState extends ScopedFlowElement {
   linkedTaskId?: string;
   navigationError?: string;
 }
@@ -490,7 +489,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     appliedLinkedTaskId.current = linkedTaskId;
     setLayers(targetLayers);
     setFlowElements(targetElements);
-    setSelectedNodeState({ element: targetElement, linkedTaskId, navigationError });
+    setSelectedNodeState({
+      element: targetElement,
+      layers: targetLayers,
+      linkedTaskId,
+      navigationError,
+    });
   }, [
     linkedTask,
     linkedTaskId,
@@ -508,9 +512,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       ? selectedNodeState.navigationError
       : undefined) || layerNavigationError;
   const linkedTargetIsResolved = !linkedTaskId || !tasks || !!linkedTask;
-  const activeSelectedNode =
-    linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState?.element || null : null;
-  const activeLayers = selectedNodeState?.layers ?? layers;
+  const activeSelection =
+    linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState : null;
+  const activeSelectedNode = activeSelection?.element ?? null;
+  const activeLayers = activeSelection?.layers ?? layers;
   const selectedNodeRuntimeInfo = useMemo(() => {
     const linkedTaskNodeId = linkedTask
       ? getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task')
@@ -525,16 +530,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return getNodeRuntimeInfo(activeSelectedNode, tasks || [], activeLayers);
   }, [activeSelectedNode, activeLayers, linkedTask, selectedNodeState?.linkedTaskId, tasks]);
 
-  const onElementSelection = (
-    _event: ReactMouseEvent,
-    element: PipelineFlowElement,
-    scope: string[],
-  ) => {
+  const onElementSelection = (_event: ReactMouseEvent, selection: ScopedFlowElement) => {
     const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
     if (!restoredFallbackGraph) {
       setLayerNavigationError(null);
-      setSelectedNodeState({ element, layers: scope });
+      setSelectedNodeState(selection);
     }
   };
 
@@ -598,8 +599,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
               getSubDagElements={selectedNodeState?.navigationError ? undefined : getSubDagElements}
-              selectedNodeLayers={activeLayers}
-              selectedNodeId={activeSelectedNode?.id}
+              selectedElement={activeSelection}
               focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
               onElementClick={onElementSelection}
               setFlowElements={(elems) => setFlowElements(elems)}

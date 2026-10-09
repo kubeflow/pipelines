@@ -46,8 +46,8 @@ function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps)
 export interface GraphControlsProps {
   showSubDagControls: boolean;
   hasSubDags: boolean;
-  renderSubdags: boolean;
-  onRenderSubdagsChange: (enabled: boolean) => void;
+  renderSubDags: boolean;
+  onRenderSubDagsChange: (enabled: boolean) => void;
   locked: boolean;
   onLockChange: (locked: boolean) => void;
   onExpandAll: () => void;
@@ -57,8 +57,8 @@ export interface GraphControlsProps {
 export default function GraphControls({
   showSubDagControls,
   hasSubDags,
-  renderSubdags,
-  onRenderSubdagsChange,
+  renderSubDags,
+  onRenderSubDagsChange,
   locked,
   onLockChange,
   onExpandAll,
@@ -80,9 +80,9 @@ export default function GraphControls({
           <PaletteButton
             label='Expand all'
             tooltip={
-              renderSubdags ? 'Expand all sub-DAGs' : 'Enable sub-DAG rendering to expand all'
+              renderSubDags ? 'Expand all sub-DAGs' : 'Enable sub-DAG rendering to expand all'
             }
-            disabled={!renderSubdags || !hasSubDags}
+            disabled={!renderSubDags || !hasSubDags}
             onClick={onExpandAll}
           >
             <UnfoldMoreIcon />
@@ -90,9 +90,9 @@ export default function GraphControls({
           <PaletteButton
             label='Collapse all'
             tooltip={
-              renderSubdags ? 'Collapse all sub-DAGs' : 'Enable sub-DAG rendering to collapse all'
+              renderSubDags ? 'Collapse all sub-DAGs' : 'Enable sub-DAG rendering to collapse all'
             }
-            disabled={!renderSubdags || !hasSubDags}
+            disabled={!renderSubDags || !hasSubDags}
             onClick={onCollapseAll}
           >
             <UnfoldLessIcon />
@@ -140,11 +140,11 @@ export default function GraphControls({
       {showSubDagControls && (
         <PaletteButton
           label='Render subdags'
-          aria-pressed={renderSubdags}
-          tooltip={renderSubdags ? 'Disable inline sub-DAG rendering' : 'Render sub-DAGs inline'}
-          onClick={() => onRenderSubdagsChange(!renderSubdags)}
+          aria-pressed={renderSubDags}
+          tooltip={renderSubDags ? 'Disable inline sub-DAG rendering' : 'Render sub-DAGs inline'}
+          onClick={() => onRenderSubDagsChange(!renderSubDags)}
         >
-          {renderSubdags ? <FullscreenExitIcon /> : <FullscreenIcon />}
+          {renderSubDags ? <FullscreenExitIcon /> : <FullscreenIcon />}
         </PaletteButton>
       )}
     </Panel>

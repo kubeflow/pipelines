@@ -37,13 +37,10 @@ import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
-import {
-  buildGroupedFlow,
-  GROUP_NODE_TYPE,
-  LayerElements,
-  scopedNodeId,
-} from 'src/lib/v2/GroupedFlow';
+import { buildGroupedFlow, GROUP_NODE_TYPE, scopedNodeId } from 'src/lib/v2/GroupedFlow';
 import { color } from 'src/Css';
+import { getFlowNodeSize } from 'src/lib/v2/FlowNodeSize';
+import type { LayerElementsResolver, ScopedFlowElement } from 'src/lib/v2/FlowTypes';
 import {
   buildGraphLayout,
   getTaskKeyFromNodeKey,
@@ -62,11 +59,10 @@ export interface DagCanvasProps {
   setFlowElements: (elements: PipelineFlowElement[]) => void;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
-  onElementClick: (event: ReactMouseEvent, element: PipelineFlowElement, layers: string[]) => void;
-  getSubDagElements?: LayerElements;
-  selectedNodeLayers?: string[];
+  onElementClick: (event: ReactMouseEvent, selection: ScopedFlowElement) => void;
+  getSubDagElements?: LayerElementsResolver;
+  selectedElement?: ScopedFlowElement | null;
   nodesDraggable?: boolean;
-  selectedNodeId?: string;
   focusNodeId?: string;
 }
 
@@ -77,10 +73,9 @@ export default function DagCanvas({
   setFlowElements,
   onElementClick,
   nodesDraggable = true,
-  selectedNodeId,
+  selectedElement,
   focusNodeId,
   getSubDagElements,
-  selectedNodeLayers = layers,
 }: DagCanvasProps) {
   // Node cards use rem-based Tailwind dimensions. Match their actual size in
   // both the application's 13px root font and standalone Storybook's 16px root.
@@ -89,7 +84,7 @@ export default function DagCanvas({
   );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
-  const [renderSubdags, setRenderSubdags] = useState(true);
+  const [renderSubDags, setRenderSubDags] = useState(true);
   const [locked, setLocked] = useState(false);
   const canDrag = nodesDraggable && !locked;
   const [expansion, setExpansion] = useState({
@@ -100,14 +95,14 @@ export default function DagCanvas({
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const grouped = useMemo(
     () =>
-      renderSubdags && getSubDagElements
+      renderSubDags && getSubDagElements
         ? buildGroupedFlow(elements, layers, getSubDagElements, expansion.collapsed, {
             expanded: expansion.expanded,
             collapseAll: expansion.allCollapsed,
             nodeScale,
           })
         : undefined,
-    [elements, layers, getSubDagElements, expansion, nodeScale, renderSubdags],
+    [elements, layers, getSubDagElements, expansion, nodeScale, renderSubDags],
   );
   const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
     setExpansion((previous) => {
@@ -125,43 +120,39 @@ export default function DagCanvas({
     // A changed group size requires a fresh layout, not stale drag offsets.
     setPositions({});
   }, []);
+  const resetPositionsAndFitView = useCallback(() => {
+    setPositions({});
+    requestAnimationFrame(() => {
+      void reactFlowInstance.current?.fitView();
+    });
+  }, []);
   const expandAll = useCallback(() => {
     // Keep explicit opt-ins, but do not bypass the automatic budget for new groups.
     setExpansion((previous) => ({ ...previous, collapsed: new Set(), allCollapsed: false }));
-    setPositions({});
-    requestAnimationFrame(() => {
-      void reactFlowInstance.current?.fitView();
-    });
-  }, []);
+    resetPositionsAndFitView();
+  }, [resetPositionsAndFitView]);
   const collapseAll = useCallback(() => {
     setExpansion({ collapsed: new Set(), expanded: new Set(), allCollapsed: true });
-    setPositions({});
-    requestAnimationFrame(() => {
-      void reactFlowInstance.current?.fitView();
-    });
-  }, []);
-  const changeRenderingMode = useCallback((enabled: boolean) => {
-    setRenderSubdags(enabled);
-    setPositions({});
-    requestAnimationFrame(() => {
-      void reactFlowInstance.current?.fitView();
-    });
-  }, []);
-  const selectedScopeVisible =
-    selectedNodeLayers.length === layers.length &&
-    selectedNodeLayers.every((layer, index) => layer === layers[index]);
-  const selectedId =
-    grouped && selectedNodeId
-      ? scopedNodeId(selectedNodeLayers, selectedNodeId)
-      : selectedScopeVisible
-        ? selectedNodeId
-        : undefined;
-  const focusedId =
-    grouped && focusNodeId
-      ? scopedNodeId(selectedNodeLayers, focusNodeId)
-      : selectedScopeVisible
-        ? focusNodeId
-        : undefined;
+    resetPositionsAndFitView();
+  }, [resetPositionsAndFitView]);
+  const changeRenderingMode = useCallback(
+    (enabled: boolean) => {
+      setRenderSubDags(enabled);
+      resetPositionsAndFitView();
+    },
+    [resetPositionsAndFitView],
+  );
+  const selectionLayers = selectedElement?.layers ?? layers;
+  const selectionVisible =
+    selectionLayers.length === layers.length &&
+    selectionLayers.every((layer, index) => layer === layers[index]);
+  const visibleNodeId = (id?: string) => {
+    if (!id) return undefined;
+    if (grouped) return scopedNodeId(selectionLayers, id);
+    return selectionVisible ? id : undefined;
+  };
+  const selectedId = visibleNodeId(selectedElement?.element.id);
+  const focusedId = visibleNodeId(focusNodeId);
   const subDagExpand = useCallback(
     (nodeKey: string) => {
       const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
@@ -177,18 +168,7 @@ export default function DagCanvas({
     return buildGraphLayout(
       elements.map((element) => {
         if (!isNode(element)) return { ...element };
-        const subDag = element.type === NodeTypeNames.SUB_DAG;
-        const width =
-          (subDag
-            ? 288
-            : element.type === NodeTypeNames.ARTIFACT
-              ? 240
-              : element.data.state
-                ? 256
-                : 224) *
-            nodeScale +
-          (subDag ? 4 : 0);
-        const height = (subDag ? 96 : 48) * nodeScale + (subDag ? 4 : 0);
+        const { width, height } = getFlowNodeSize(element, nodeScale, 'click-through');
         return {
           ...element,
           width,
@@ -268,20 +248,10 @@ export default function DagCanvas({
     [elements, grouped, setFlowElements, canDrag],
   );
 
-  const handleNodeClick = useCallback(
-    (event: ReactMouseEvent, node: PipelineNode) => {
+  const handleElementClick = useCallback(
+    (event: ReactMouseEvent, element: PipelineFlowElement) => {
       if (locked) return;
-      const source = grouped?.sources.get(node.id);
-      onElementClick(event, source?.element ?? node, source?.layers ?? layers);
-    },
-    [grouped, layers, onElementClick, locked],
-  );
-
-  const handleEdgeClick = useCallback(
-    (event: ReactMouseEvent, edge: Edge) => {
-      if (locked) return;
-      const source = grouped?.sources.get(edge.id);
-      onElementClick(event, source?.element ?? edge, source?.layers ?? layers);
+      onElementClick(event, grouped?.sources.get(element.id) ?? { element, layers });
     },
     [grouped, layers, onElementClick, locked],
   );
@@ -329,8 +299,8 @@ export default function DagCanvas({
             minZoom={0.05}
             nodeTypes={nodeTypes}
             edgeTypes={{}}
-            onNodeClick={handleNodeClick}
-            onEdgeClick={handleEdgeClick}
+            onNodeClick={handleElementClick}
+            onEdgeClick={handleElementClick}
             onNodesChange={onNodesChange}
             onNodeDragStop={canDrag ? onNodeDragStop : undefined}
             deleteKeyCode={null}
@@ -339,8 +309,8 @@ export default function DagCanvas({
             <GraphControls
               showSubDagControls={!!getSubDagElements}
               hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
-              renderSubdags={renderSubdags}
-              onRenderSubdagsChange={changeRenderingMode}
+              renderSubDags={renderSubDags}
+              onRenderSubDagsChange={changeRenderingMode}
               locked={locked}
               onLockChange={setLocked}
               onExpandAll={expandAll}

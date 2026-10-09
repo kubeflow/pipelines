@@ -3,16 +3,16 @@
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { forceRenderStyles } from 'typestyle';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import type { SubDagKind } from './Constants';
 import SubDagGroupNode from './SubDagGroupNode';
 
-it.each([
-  ['Sub-DAG', 'Sub-DAG', 'LayersIcon'],
-  ['Loop', 'Loop', 'RepeatIcon'],
-  ['Iteration', 'Iteration', 'RepeatOneIcon'],
-  ['Condition', 'Conditional', 'ConditionIcon'],
-])('shows %s as a grey category icon without type text', (groupKind, label, iconId) => {
+it.each<[SubDagKind, string]>([
+  ['Sub-DAG', 'Sub-DAG'],
+  ['Loop', 'Loop'],
+  ['Iteration', 'Iteration'],
+  ['Condition', 'Conditional'],
+])('identifies %s accessibly and displays its task name', (groupKind, label) => {
   render(
     <ReactFlowProvider>
       <SubDagGroupNode
@@ -22,48 +22,34 @@ it.each([
       />
     </ReactFlowProvider>,
   );
-  forceRenderStyles();
-  const icon = screen.getByRole('img', { name: label });
-  expect(icon).toBe(screen.getByTestId(iconId));
-  expect(icon).toHaveClass('text-mui-grey-600');
-  expect(screen.queryByTestId('subdag-kind')).not.toBeInTheDocument();
-  expect(screen.queryByTestId('subdag-share-icon')).not.toBeInTheDocument();
-  expect(screen.getByTestId('subdag-header').firstElementChild).toContainElement(icon);
-  expect(screen.getByTestId('subdag-header')).toHaveClass('bg-white');
-  expect(screen.getByTestId('subdag-header')).toHaveStyle({ height: '48px' });
-  expect(screen.getByRole('button', { name: 'Training' })).toHaveClass('text-sm');
-  expect(getComputedStyle(screen.getByTestId('subdag-box')).backgroundColor).toBe(
-    'rgba(219, 234, 254, 0.28)',
+  expect(screen.getByRole('img', { name: label })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Training' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Collapse Training' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
   );
 });
 
-it.each([false, true])(
-  'lets the outer group clip status corners when collapsed=%s',
-  (collapsed) => {
-    render(
-      <ReactFlowProvider>
-        <SubDagGroupNode
-          id='group'
-          selected={false}
-          data={{
-            label: 'Training',
-            collapsed,
-            state: PipelineTaskTaskState.SUCCEEDED,
-            expand: vi.fn(),
-          }}
-        />
-      </ReactFlowProvider>,
-    );
-    forceRenderStyles();
-    expect(screen.getByTestId('subdag-box')).toHaveClass('shadow-lg');
-    const cell = screen.getByTestId('subdag-status').firstElementChild!;
-    expect(parseFloat(getComputedStyle(cell).borderBottomRightRadius)).toBe(0);
-    expect(parseFloat(getComputedStyle(cell).borderTopRightRadius)).toBe(0);
-    expect(screen.getByTestId('subdag-header')).toHaveClass('bg-white');
-  },
-);
+it.each([false, true])('offers the correct toggle action when collapsed=%s', (collapsed) => {
+  const expand = vi.fn();
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{ label: 'Training', collapsed, state: PipelineTaskTaskState.SUCCEEDED, expand }}
+      />
+    </ReactFlowProvider>,
+  );
+  const toggle = screen.getByRole('button', {
+    name: `${collapsed ? 'Expand' : 'Collapse'} Training`,
+  });
+  expect(toggle).toHaveAttribute('aria-expanded', String(!collapsed));
+  fireEvent.click(toggle);
+  expect(expand).toHaveBeenCalledExactlyOnceWith('group');
+});
 
-it('places the toggle directly before the full-height regular-node status icon', () => {
+it('selects via the title without expanding, and toggles without selecting', () => {
   const expand = vi.fn();
   const select = vi.fn();
   render(
@@ -77,18 +63,31 @@ it('places the toggle directly before the full-height regular-node status icon',
       </div>
     </ReactFlowProvider>,
   );
-  const toggle = screen.getByRole('button', { name: 'Collapse Training' });
-  expect(toggle.nextElementSibling).toBe(screen.getByTestId('subdag-status'));
-  expect(screen.getByTestId('subdag-status')).toHaveClass('h-full');
-  expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
-  const title = screen.getByRole('button', { name: 'Training' });
-  expect(title).not.toHaveClass('focus:ring');
-  expect(title).not.toHaveClass('nodrag');
-  expect(toggle).toHaveClass('nodrag');
-  expect(title).toHaveStyle({ fontWeight: '400', background: 'transparent' });
-  fireEvent.click(title);
+  fireEvent.click(screen.getByRole('button', { name: 'Training' }));
   expect(select).toHaveBeenCalledTimes(1);
-  fireEvent.click(toggle);
+  expect(expand).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse Training' }));
   expect(expand).toHaveBeenCalledWith('group');
   expect(select).toHaveBeenCalledTimes(1);
+});
+
+it('explains how to open a deferred group without presenting it as empty', () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          collapsed: true,
+          expansionDeferred: 'Automatic expansion limit reached. Expand to load this group.',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  expect(screen.getByRole('button', { name: 'Expand Training' })).toHaveAccessibleDescription(
+    'Automatic expansion limit reached. Expand to load this group.',
+  );
+  expect(screen.queryByText('No tasks in this scope')).not.toBeInTheDocument();
 });

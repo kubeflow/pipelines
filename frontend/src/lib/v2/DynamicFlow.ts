@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { Node } from '@xyflow/react';
+import type { LayerElementsResolver } from './FlowTypes';
 import {
   InputOutputsIOArtifact,
   PipelineTaskTaskState,
@@ -92,16 +93,31 @@ export function convertSubDagToRuntimeFlowElements(
   tasks: V2beta1PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
-  existingFlowContext?: RuntimeFlowContext,
+): PipelineFlowElement[] {
+  return buildRuntimeLayer(
+    spec,
+    layers,
+    buildRuntimeFlowContext(layers, tasks, runIsTerminal, runCompletedSuccessfully),
+  );
+}
+
+function buildRuntimeLayer(
+  spec: PipelineSpec,
+  layers: string[],
+  context: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
   }
 
-  const taskIndex = existingFlowContext?.taskIndex || buildTaskIndex(tasks);
-  const runtimeContext =
-    existingFlowContext?.runtimeLayerContext || getRuntimeLayerContext(layers, taskIndex);
+  const {
+    taskIndex,
+    runtimeLayerContext: runtimeContext,
+    runIsTerminal,
+    runCompletedSuccessfully,
+    maxNodes,
+  } = context;
   const componentsMap = spec.components;
 
   for (let index = 1; index < layers.length; index++) {
@@ -136,15 +152,11 @@ export function convertSubDagToRuntimeFlowElements(
         expectedTaskCount,
         runIsTerminal,
         runCompletedSuccessfully,
-        existingFlowContext?.maxNodes,
-      ) ||
-      annotateExpectedTaskCount(
-        buildDag(spec, componentSpec, existingFlowContext?.maxNodes),
-        expectedTaskCount,
-      )
+        maxNodes,
+      ) || annotateExpectedTaskCount(buildDag(spec, componentSpec, maxNodes), expectedTaskCount)
     );
   }
-  return buildDag(spec, componentSpec, existingFlowContext?.maxNodes);
+  return buildDag(spec, componentSpec, maxNodes);
 }
 
 /** Resolve many visible scopes from one task index, rather than re-indexing each iteration. */
@@ -153,7 +165,7 @@ export function createRuntimeLayerResolver(
   tasks: V2beta1PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
-): (layers: string[], maxNodes?: number) => PipelineFlowElement[] {
+): LayerElementsResolver {
   const taskIndex = buildTaskIndex(tasks);
   return (layers, maxNodes = Infinity) => {
     const context: RuntimeFlowContext = {
@@ -163,14 +175,7 @@ export function createRuntimeLayerResolver(
       runCompletedSuccessfully,
       maxNodes,
     };
-    const elements = convertSubDagToRuntimeFlowElements(
-      spec,
-      layers,
-      tasks,
-      runIsTerminal,
-      runCompletedSuccessfully,
-      context,
-    );
+    const elements = buildRuntimeLayer(spec, layers, context);
     return reconcileRuntimeFlowElements(layers, elements, tasks, context);
   };
 }
