@@ -27,21 +27,12 @@ jobs:
           persist-credentials: false
 
       - name: Install OSV-Scanner
-        env:
-          OSV_SCANNER_VERSION: '2.5.0'
-          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
-        run: |
-          curl -fsSL --retry 5 --retry-all-errors \
-            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
-            --output osv-scanner
-          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
-          chmod +x osv-scanner
-          ./osv-scanner --version
+        uses: ./.github/actions/setup-osv-scanner
 
       - name: Scan dependency manifests and lockfiles
         run: |
           scan_exit_code=0
-          ./osv-scanner scan source \
+          osv-scanner scan source \
             --recursive \
             --no-resolve \
             --experimental-exclude backend/api/v2beta1/python_http_client \
@@ -124,16 +115,7 @@ jobs:
           persist-credentials: false
 
       - name: Install OSV-Scanner
-        env:
-          OSV_SCANNER_VERSION: '2.5.0'
-          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
-        run: |
-          curl -fsSL --retry 5 --retry-all-errors \
-            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
-            --output osv-scanner
-          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
-          chmod +x osv-scanner
-          ./osv-scanner --version
+        uses: ./.github/actions/setup-osv-scanner
 
       - name: Scan deployed container image
         env:
@@ -142,7 +124,7 @@ jobs:
           bash .github/resources/scripts/docker-pull-with-retry.sh "${IMAGE}"
 
           scan_exit_code=0
-          ./osv-scanner scan image "${IMAGE}" \
+          osv-scanner scan image "${IMAGE}" \
             --format sarif \
             --output-file osv-image-results.sarif \
             || scan_exit_code=$?

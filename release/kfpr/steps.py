@@ -457,7 +457,9 @@ def step_publish_images(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner and metadata.
     """
-    context.runner.run(image_workflow_command(context.metadata))
+    context.runner.run(
+        image_workflow_command(context.metadata, context.allow_fixable_cves,
+                               context.allow_fixable_cves_images))
     watch_latest_workflow_run(context.runner, 'image-builds-release.yml',
                               context.metadata.release_branch)
 

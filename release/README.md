@@ -196,6 +196,145 @@ gates complete successfully, it continues waiting for the PR to merge.
 `watch-publish-images` watches the latest image publication workflow for the saved release branch
 without dispatching a new workflow run.
 
+## Release image CVE gate
+
+The current 3.x non-dry-run `publish-images` workflow scans each
+architecture-specific image by immutable digest before publishing its versioned
+or `latest` manifests. Release and reporting workflows share the checksum-verified
+OSV-Scanner 2.5.0 installation. The installer, retry helper, and enforcement policy
+come from the release workflow's immutable commit, independently of the image
+source commit. Each image is pulled and exported with its platform explicitly
+selected, then scanned as an archive with findings of every severity included.
+
+The policy blocks CVEs with a published fix for the scanned package and ecosystem.
+It recognizes advisory IDs, aliases, grouped aliases, and upstream CVE IDs, and
+normalizes PyPI package names and Ubuntu LTS/Pro ecosystem variants. A CVE whose
+affected package cannot be matched also blocks, with an `UNDETERMINED` explanation;
+it is never silently treated as having no fix. Matched findings without a
+published fix, or advisories without a CVE identifier, do not block publication.
+
+Maintainers can explicitly allow findings for selected images. For example, to
+allow the legacy proxy while retaining enforcement for the API server and driver:
+
+```bash
+kfpr run publish-images \
+  --release-type minor \
+  --version 3.0.0 \
+  --state-file release-3.0-state.json \
+  --allow-fixable-cves-for-image kfp-inverse-proxy-agent \
+  --done
+```
+
+Repeat `--allow-fixable-cves-for-image` for multiple images. Use bare image names
+from the release workflow's matrix; an unmatched name grants no exception.
+`--allow-fixable-cves` allows findings for **all** images instead. Both flags are
+available on the full `kfpr run` flow and are never saved in the checkpoint: pass
+them again when a later invocation needs the same exception. Add `--dry-run` and
+omit `--done` to preview the single-step command without dispatching.
+
+For direct GitHub Actions dispatch, supply the JSON array input
+`allow_fixable_cves_images` (default: `[]`):
+
+```bash
+gh workflow run image-builds-release.yml \
+  --repo kubeflow/pipelines \
+  --ref release-3.0 \
+  -f src_branch=release-3.0 \
+  -f target_tag=3.0.0 \
+  -f overwrite_imgs=false \
+  -f set_latest=true \
+  -f dry_run=false \
+  -f 'allow_fixable_cves_images=["kfp-inverse-proxy-agent"]'
+```
+
+The boolean `allow_fixable_cves=true` input enables the all-image exception.
+The GitHub **Run workflow** form exposes both inputs. An overridden policy step
+prints a warning and its findings, and still uploads the JSON report. Scanner
+failures and missing, invalid, or malformed reports remain fatal. Exit 128
+("no packages found") remains fatal because it provides no package coverage;
+none of these exceptions skips scanning or turns a failed scan into a pass.
+
+### Automatic remediation PRs
+
+A blocked publication produces a readable job summary and a
+`cve-result-<image>-<architecture>.json` record alongside each raw OSV report.
+Once the image matrix finishes, the remediation workflow combines both
+architectures' results, lists the source
+files and next steps, and prepares supported fixes:
+
+- Go standard-library CVEs in KFP-built binaries: update the compiler within its
+  current minor series using the repository's managed Go updater. Rebuild all
+  six KFP Go images because they share that compiler.
+- Frontend server npm CVEs: update `frontend/server/package-lock.json` in place,
+  keeping existing dependency constraints and excluding major upgrades.
+
+Other findings—including OS packages, dependencies inside third-party binaries,
+and unresolved ownership—remain in the report for manual remediation. A fix
+version in an OSV advisory does not by itself identify which repository file
+needs changing. Automatic fixes require complete reports from the same run
+attempt for every release image and both architectures; scanner failures do not
+initiate speculative updates. Use **Re-run all jobs** for a retry.
+
+Before opening a PR, the workflow runs the relevant Go or frontend server tests,
+builds every affected image on native AMD64 and ARM64, and rescans them. Every
+targeted blocker must disappear without introducing new blocking findings.
+Unrelated existing blockers may remain and are disclosed with the verification
+results. The release stays blocked until its findings are resolved or explicitly
+overridden; preparing a fix never publishes release images.
+
+The PR targets the actual source branch only while it still points to the scanned
+commit. Tag/SHA inputs and branches that moved receive a report without a PR.
+Repeated runs reuse the deterministic remediation PR only when its bot-authored
+commit still matches the verified patch. Changed branches require manual review;
+the workflow never force-pushes or overwrites human changes. Both the PR and its DCO-signed commit are authored by
+`github-actions[bot]`. The workflow uses only the short-lived `GITHUB_TOKEN`;
+there are no extra credentials to provision or rotate. The repository must allow
+Actions to create PRs. GitHub requires a maintainer to approve the resulting PR
+workflow runs before normal PR CI starts; the remediation's own tests and image
+rescans have already run. Review and merge remain normal maintainer actions.
+
+Automatic PR creation defaults to enabled. Set `create_cve_fix_pr=false` in the
+**Run workflow** form or add `-f create_cve_fix_pr=false` to direct `gh workflow
+run image-builds-release.yml` dispatch to retain reports without preparing PRs.
+This setting does not change the CVE gate or its existing exception inputs.
+The remediation plan and proposed patch are retained as
+`release-cve-remediation-<attempt>` artifacts, with native verification records
+under `release-cve-verification-<architecture>-<attempt>`.
+
+The 2.18 CLI path dispatches the workflow from `release-2.18`, so merging this
+policy into master alone does not gate 2.18 publication. Selectively backport the
+shared OSV installer, trusted policy checkout and its commit input, retry uploader,
+scan and exception inputs, enforcement helper, tests, and release-workflow wiring
+before relying on this gate or requesting exceptions there. `kfpr` omits exception
+inputs unless requested, preserving default dispatch to older release workflows.
+Preserve the 2.18 image inventory; do not backport the 3.x ARM64 requirements.
+Automatic remediation also needs a branch-specific backport of its mappings and
+verification inventory; the current workflow requires the 3.x two-architecture
+image set.
+
+If the gate fails:
+
+1. Download the `fixable-cve-scan-<image>-<architecture>-<attempt>` artifacts;
+   each contains `osv-results.json`. An upload retry may append a retry suffix.
+   Image jobs continue after another image's failure so all completed scans can
+   report their findings.
+2. Update the affected dependency, base image, or build toolchain to the fixed
+   version, or investigate an `UNDETERMINED` package match.
+3. Merge the fix into the release branch and start a new `publish-images`
+   invocation, or explicitly allow the affected images for that invocation.
+   A failed gate leaves images pushed only by digest; release tags are created
+   after the entire matrix passes, so this recovery does not require overwrite.
+   `kfpr` always sends `overwrite_imgs=false` and has no overwrite flag.
+
+For transient failures with unchanged source and inputs, use GitHub's **Re-run all
+jobs**. Scan report names include the attempt number to avoid artifact conflicts.
+The downstream manifest job requires digest artifacts from that same attempt,
+so rerunning only failed jobs cannot reuse successful lanes' earlier artifacts.
+Resolve the findings or explicitly allow them before running
+`create-backend-release`. `kfpr` watches the image workflow with failure
+propagation enabled, so a failed gate stops the release flow and leaves
+`publish-images` incomplete in the checkpoint.
+
 `confirm-rtd` prompts for a Read the Docs API token, keeps it only in process memory, and uses it
 to activate release versions, trigger builds, wait for successful builds, and update project
 defaults. If the API call fails, `kfpr` asks whether to fall back to the manual checklist.

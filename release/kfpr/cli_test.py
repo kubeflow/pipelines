@@ -2,6 +2,7 @@
 """Tests for the kfpr CLI."""
 
 import contextlib
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -254,6 +255,125 @@ class CliTest(unittest.TestCase):
 
             self.assertEqual(result.exit_code, 0, result.stdout)
             self.assertFalse(state_file.exists())
+
+    def test_publish_images_cve_override_is_explicit(self):
+        for allow_cves in (False, True):
+            with self.subTest(
+                    allow_cves=allow_cves), TemporaryDirectory() as tmpdir:
+                command = [
+                    'run',
+                    'publish-images',
+                    '--state-file',
+                    str(Path(tmpdir) / 'state.json'),
+                    '--release-type',
+                    'major',
+                    '--version',
+                    '3.0.0',
+                    '--fork-remote',
+                    'upstream',
+                    '--dry-run',
+                ]
+                if allow_cves:
+                    command.append('--allow-fixable-cves')
+                result = CliRunner().invoke(app, command)
+                self.assertEqual(result.exit_code, 0, result.stdout)
+                self.assertIn('workflow run image-builds-release.yml',
+                              result.stdout)
+                if allow_cves:
+                    self.assertIn('-f allow_fixable_cves=true', result.stdout)
+                else:
+                    self.assertNotIn('allow_fixable_cves=', result.stdout)
+
+    def test_publish_images_scoped_override_supports_multiple_images(self):
+        with TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / 'state.json'
+            images = ['kfp-inverse-proxy-agent', 'kfp-cache-server']
+            result = CliRunner().invoke(app, [
+                'run',
+                'publish-images',
+                '--state-file',
+                str(state_file),
+                '--release-type',
+                'minor',
+                '--version',
+                '2.18.0',
+                '--fork-remote',
+                'upstream',
+                '--dry-run',
+                '--allow-fixable-cves-for-image',
+                images[0],
+                '--allow-fixable-cves-for-image',
+                images[1],
+            ])
+            self.assertEqual(result.exit_code, 0, result.stdout)
+            self.assertIn(f'allow_fixable_cves_images={json.dumps(images)}',
+                          result.stdout)
+            self.assertNotIn('allow_fixable_cves=true', result.stdout)
+            self.assertFalse(state_file.exists())
+
+    def test_publish_images_rejects_invalid_override_image(self):
+        with TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / 'state.json'
+            result = CliRunner().invoke(app, [
+                'run',
+                'publish-images',
+                '--state-file',
+                str(state_file),
+                '--allow-fixable-cves-for-image',
+                'ghcr.io/kubeflow/kfp-driver',
+                '--dry-run',
+            ])
+            self.assertEqual(result.exit_code, 2, result.stdout)
+            self.assertIn('without a registry, tag, or digest',
+                          _strip_ansi(result.output))
+            self.assertFalse(state_file.exists())
+
+    def test_full_run_and_next_cve_override_is_invocation_only(self):
+        for command in ('run', 'next'):
+            with self.subTest(command=command), TemporaryDirectory() as tmpdir:
+                state = ReleaseState(Path(tmpdir) / 'state.json')
+                state.answers.update({
+                    'release_type': 'major',
+                    'version': '3.0.0',
+                    'fork_remote': 'upstream',
+                    'include_backend': True,
+                    'include_sdk': False,
+                    'previous_release': '2.18.0',
+                    'release_source_branch': 'master',
+                })
+                for step in steps.build_steps('major', True, False):
+                    if step.step_id == 'publish-images':
+                        break
+                    state.mark_done(step.step_id)
+                state.save()
+                args = [command, '--state-file', str(state.path), '--dry-run']
+                if command == 'run':
+                    args.append('--force')
+                handler = mock.Mock()
+                with mock.patch('kfpr.cli.run_steps', handler), mock.patch.dict(
+                        'kfpr.cli.STEP_HANDLERS', {'publish-images': handler}):
+                    result = CliRunner().invoke(
+                        app, args + [
+                            '--allow-fixable-cves',
+                            '--allow-fixable-cves-for-image',
+                            'kfp-inverse-proxy-agent'
+                        ])
+                    self.assertEqual(result.exit_code, 0, result.stdout)
+                    self.assertTrue(
+                        handler.call_args.args[0].allow_fixable_cves)
+                    self.assertEqual(
+                        handler.call_args.args[0].allow_fixable_cves_images,
+                        ('kfp-inverse-proxy-agent',))
+                    self.assertNotIn('allow_fixable_cves_images',
+                                     ReleaseState.load(state.path).answers)
+                    self.assertNotIn('allow_fixable_cves',
+                                     ReleaseState.load(state.path).answers)
+                    result = CliRunner().invoke(app, args)
+                    self.assertEqual(result.exit_code, 0, result.stdout)
+                    self.assertFalse(
+                        handler.call_args.args[0].allow_fixable_cves)
+                    self.assertEqual(
+                        handler.call_args.args[0].allow_fixable_cves_images, ())
 
     def test_watch_publish_images_watches_without_dispatching(self):
         with TemporaryDirectory() as tmpdir:

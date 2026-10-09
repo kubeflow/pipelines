@@ -92,6 +92,10 @@ ci_artifact_files() {
         done
       done
       ;;
+    release-cve-result-files)
+      PYTHONPATH="$(dirname -- "${BASH_SOURCE[0]}")" python3 -c \
+        'from arm64_smoke import IMAGES; from release_cve_plan import PLATFORMS; print("\n".join("cve-result-{}-{}.json".format(image, platform.split("/")[1]) for image in sorted(IMAGES) for platform in sorted(PLATFORMS)))'
+      ;;
     published-image-files)
       PYTHONPATH="$(dirname -- "${BASH_SOURCE[0]}")" python3 -c \
         'from arm64_smoke import IMAGES; print("\n".join(f"{image}.json" for image in sorted(IMAGES)))'

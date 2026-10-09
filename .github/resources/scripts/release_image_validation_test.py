@@ -320,9 +320,183 @@ class WorkflowTests(unittest.TestCase):
 
     def setUp(self):
         root = Path(__file__).resolve().parents[3]
-        self.jobs = yaml.safe_load(
-            (root /
-             '.github/workflows/image-builds-release.yml').read_text())['jobs']
+        self.workflow = yaml.safe_load(
+            (root / '.github/workflows/image-builds-release.yml').read_text())
+        self.jobs = self.workflow['jobs']
+
+    def run_scoped_override_validator(self, value):
+        validator = next(step for step in self.jobs['resolve-source']['steps']
+                         if step.get('name') == 'Validate scoped CVE overrides')
+        self.assertEqual(validator['env']['ALLOW_FIXABLE_CVES_IMAGES'],
+                         '${{ inputs.allow_fixable_cves_images }}')
+        return subprocess.run(
+            ['bash', '-eo', 'pipefail', '-c', validator['run']],
+            env={
+                **os.environ,
+                'PATH':
+                    f'{Path(sys.executable).parent}{os.pathsep}{os.environ["PATH"]}',
+                'ALLOW_FIXABLE_CVES_IMAGES':
+                    value,
+            },
+            text=True,
+            capture_output=True,
+            check=False)
+
+    def test_scoped_override_validator_accepts_empty_single_and_multiple_images(
+            self):
+        scoped_input = self.workflow[True]['workflow_dispatch']['inputs'][
+            'allow_fixable_cves_images']
+        self.assertEqual(scoped_input['type'], 'string')
+        self.assertEqual(scoped_input['default'], '[]')
+        self.assertEqual(self.jobs['build-images-for-release']['needs'],
+                         'resolve-source')
+        for images in ([], ['kfp-inverse-proxy-agent'],
+                       ['kfp-inverse-proxy-agent', 'kfp-api-server']):
+            with self.subTest(images=images):
+                result = self.run_scoped_override_validator(json.dumps(images))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if images:
+                    self.assertIn(
+                        'CVE exceptions requested for: ' + ', '.join(images),
+                        result.stdout)
+                else:
+                    self.assertEqual(result.stdout, '')
+
+    def test_scoped_override_validator_rejects_malformed_or_non_image_inputs(
+            self):
+        invalid = [
+            '',
+            'not JSON',
+            'null',
+            '{}',
+            '"kfp-inverse-proxy-agent"',
+            '[null]',
+            '[true]',
+            '[1]',
+            '[[]]',
+        ]
+        for name in ('', ' ', 'KFP-API-SERVER', 'kfp-api-server:3.0.0',
+                     'ghcr.io/kubeflow/kfp-api-server',
+                     'kfp-api-server@sha256:' + 'a' * 64, '../kfp-api-server',
+                     'kfp-api-server; echo bypass', '$(echo bypass)'):
+            invalid.append(json.dumps(['kfp-inverse-proxy-agent', name]))
+        for value in invalid:
+            with self.subTest(value=value):
+                result = self.run_scoped_override_validator(value)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('CVE exceptions requested for:', result.stdout)
+
+    def test_cve_override_is_explicit_and_preserves_required_scan(self):
+        root = Path(__file__).resolve().parents[3]
+        reusable = yaml.safe_load(
+            (root / '.github/workflows/build-and-push.yml').read_text())
+        for workflow, event in ((self.workflow, 'workflow_dispatch'),
+                                (reusable, 'workflow_call')):
+            override = workflow[True][event]['inputs']['allow_fixable_cves']
+            self.assertEqual(override['type'], 'boolean')
+            self.assertIs(override['default'], False)
+        inputs = self.jobs['build-images-for-release']['with']
+        self.assertEqual(
+            inputs['allow_fixable_cves'],
+            '${{ inputs.allow_fixable_cves || contains(fromJSON(inputs.allow_fixable_cves_images), matrix.image.name) }}'
+        )
+        self.assertEqual(inputs['scan_fixable_cves'], '${{ !inputs.dry_run }}')
+        job = reusable['jobs']['build-and-push-images']
+        self.assertFalse(job.get('continue-on-error', False))
+        steps = job['steps']
+        scan = next(step for step in steps if step.get('id') == 'osv_scan')
+        setup = next(
+            step for step in steps if step.get('uses') ==
+            './.release-policy/.github/actions/setup-osv-scanner')
+        self.assertEqual(setup['if'], scan['if'])
+        self.assertNotIn('allow_fixable_cves', scan['if'])
+        self.assertFalse(scan.get('continue-on-error', False))
+        self.assertIn('steps.push.outputs.digest', scan['env']['IMAGE_REF'])
+        policy = next(
+            step for step in steps
+            if step.get('name') == 'Enforce fixable CVE policy')
+        self.assertEqual(policy['if'],
+                         "${{ steps.osv_scan.outcome == 'success' }}")
+        self.assertEqual(policy['env']['ALLOW_FIXABLE_CVES'],
+                         '${{ inputs.allow_fixable_cves }}')
+        self.assertIn('--allow-fixable-cves', policy['run'])
+        self.assertFalse(policy.get('continue-on-error', False))
+        upload = next(
+            step for step in steps
+            if step.get('name') == 'Upload CVE scan report')
+        self.assertEqual(
+            upload['if'],
+            "${{ always() && steps.osv_scan.outcome != 'skipped' }}")
+        self.assertEqual(upload['with']['if-no-files-found'], 'error')
+        self.assertEqual(
+            set(upload['with']['path'].split()),
+            {'osv-results.json', 'cve-result-*.json'})
+        self.assertEqual(
+            upload['uses'],
+            './.release-policy/.github/actions/upload-artifact-with-retry')
+        self.assertEqual(
+            upload['with']['name'],
+            'fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}'
+        )
+        self.assertFalse(
+            self.jobs['build-images-for-release']['strategy']['fail-fast'])
+        self.assertIn('build-images-for-release',
+                      self.jobs['create-manifests']['needs'])
+
+    def test_release_policy_uses_workflow_commit_independently_of_build_source(
+            self):
+        root = Path(__file__).resolve().parents[3]
+        reusable = yaml.safe_load(
+            (root / '.github/workflows/build-and-push.yml').read_text())
+        build = self.jobs['build-images-for-release']
+        self.assertEqual(build['uses'],
+                         './.github/workflows/build-and-push.yml')
+        self.assertEqual(build['with']['release_policy_sha'],
+                         '${{ github.workflow_sha }}')
+        self.assertEqual(build['with']['src_branch'],
+                         '${{ needs.resolve-source.outputs.sha }}')
+        self.assertEqual(
+            reusable[True]['workflow_call']['inputs']['release_policy_sha']
+            ['default'], '')
+        steps = reusable['jobs']['build-and-push-images']['steps']
+        scan = next(step for step in steps if step.get('id') == 'osv_scan')
+        checkout = next(
+            step for step in steps
+            if step.get('name') == 'Checkout release policy')
+        guard = next(
+            step for step in steps
+            if step.get('name') == 'Prepare release policy checkout')
+        self.assertEqual(guard['if'], scan['if'])
+        self.assertEqual(checkout['if'], scan['if'])
+        self.assertEqual(checkout['with']['ref'],
+                         '${{ inputs.release_policy_sha }}')
+        self.assertEqual(checkout['with']['path'], '.release-policy')
+        self.assertIs(checkout['with']['persist-credentials'], False)
+        self.assertIs(checkout['with']['clean'], True)
+        self.assertIs(checkout['with']['sparse-checkout-cone-mode'], False)
+        self.assertEqual(
+            set(checkout['with']['sparse-checkout'].splitlines()), {
+                '.github/actions/setup-osv-scanner',
+                '.github/actions/upload-artifact-with-retry',
+                '.github/resources/scripts/helper-functions.sh',
+                '.github/resources/scripts/check_fixable_cves.py',
+            })
+        build_index = next(index for index, step in enumerate(steps)
+                           if step.get('id') == 'push')
+        self.assertLess(build_index, steps.index(guard))
+        self.assertLess(steps.index(guard), steps.index(checkout))
+        self.assertLess(steps.index(checkout), steps.index(scan))
+
+    def test_cve_scan_uses_the_build_platform(self):
+        build = self.jobs['build-images-for-release']
+        self.assertEqual(build['with']['platforms'],
+                         '${{ matrix.arch.platform }}')
+        root = Path(__file__).resolve().parents[3]
+        workflow = yaml.safe_load(
+            (root / '.github/workflows/build-and-push.yml').read_text())
+        steps = workflow['jobs']['build-and-push-images']['steps']
+        scan = next(step for step in steps if step.get('id') == 'osv_scan')
+        self.assertEqual(scan['env'].get('PLATFORM'), '${{ inputs.platforms }}')
 
     def test_validation_runs_natively_after_publication_and_skips_dry_runs(
             self):

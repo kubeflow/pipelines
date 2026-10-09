@@ -1,0 +1,52 @@
+{
+  "results": [
+    {
+      "source": {"path": "/lib/apk/db/installed", "type": "os"},
+      "packages": [
+        {
+          "package": {
+            "name": "openssl",
+            "os_package_name": "libcrypto3",
+            "version": "3.1.0-r4",
+            "ecosystem": "Alpine:v3.18"
+          },
+          "vulnerabilities": [
+            {
+              "id": "ALPINE-CVE-2023-2650",
+              "upstream": ["CVE-2023-2650"],
+              "affected": [
+                {
+                  "package": {
+                    "ecosystem": "Alpine:v3.17",
+                    "name": "openssl",
+                    "purl": "pkg:apk/alpine/openssl?arch=source"
+                  },
+                  "ranges": [
+                    {"type": "ECOSYSTEM", "events": [{"introduced": "1.0.2"}, {"fixed": "3.0.9-r0"}]}
+                  ]
+                },
+                {
+                  "package": {
+                    "ecosystem": "Alpine:v3.18",
+                    "name": "openssl",
+                    "purl": "pkg:apk/alpine/openssl?arch=source"
+                  },
+                  "ranges": [
+                    {"type": "ECOSYSTEM", "events": [{"introduced": "1.0.2"}, {"fixed": "3.1.1-r0"}]}
+                  ]
+                }
+              ]
+            }
+          ],
+          "groups": [
+            {
+              "ids": ["ALPINE-CVE-2023-2650"],
+              "aliases": ["ALPINE-CVE-2023-2650", "CVE-2023-2650"],
+              "max_severity": "6.5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

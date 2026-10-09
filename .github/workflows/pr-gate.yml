@@ -14,9 +14,13 @@ on:
 jobs:
   check-pr-author:
     # Use the PR author, including when a maintainer triggers the event.
+    # Same-repository CVE fix PRs need no issue; their CI still needs approval.
     if: >-
       github.event.pull_request.user.login != 'dependabot[bot]' &&
-      github.event.pull_request.user.login != 'copybara-service[bot]'
+      github.event.pull_request.user.login != 'copybara-service[bot]' &&
+      !(github.event.pull_request.user.login == 'github-actions[bot]' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        startsWith(github.event.pull_request.head.ref, 'codex/cve-fix-'))
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:

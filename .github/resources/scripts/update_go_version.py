@@ -20,6 +20,7 @@ extending it.
 """
 
 import argparse
+from collections.abc import Callable
 from dataclasses import dataclass
 import json
 from pathlib import Path
