@@ -8,7 +8,7 @@ def get_venv_python():
     """Locates the project's local virtual environment Python interpreter."""
     # Since this script runs from within the monorepo, resolve paths relative to the root
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(script_dir, "..", "..", "..", ".."))
+    repo_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
    
     venv_paths = [
         os.path.join(repo_root, ".venv", "bin", "python"),
@@ -27,7 +27,7 @@ def validate_pipeline(pipeline_path):
     Returns exit code, stdout, and stderr.
     """
     if not os.path.exists(pipeline_path):
-        return 1, "", f"Error: Target file {pipeline_path} does not exist."
+        return 1, "", f"Error: Target file {pipeline_path} does not exist. Action: Verify the file path and generate the Python script before running evaluation."
 
     python_exe = get_venv_python()
     print(f"[*] Compiling pipeline statically using: {python_exe}")
@@ -71,6 +71,10 @@ except Exception as e:
 
 # Dynamically load the pipeline script
 abs_path = os.path.abspath(pipeline_path)
+file_dir = os.path.dirname(abs_path)
+
+sys.path.insert(0, file_dir)
+
 spec = importlib.util.spec_from_file_location("eval_target_pipeline", abs_path)
 if not spec or not spec.loader:
     print(f"[!] Could not load spec for pipeline file at {abs_path}", file=sys.stderr)
@@ -105,7 +109,7 @@ if not pipeline_func:
             break
 
 if not pipeline_func:
-    print(f"[!] Error: Could not locate a @dsl.pipeline decorated function in {pipeline_path}", file=sys.stderr)
+    print(f"[!] Error: Could not locate a @dsl.pipeline decorated function in {pipeline_path}", Action: Decorate your main workflow function with @dsl.pipeline)
     sys.exit(1)
 
 # Instantiate client and submit run using create_run_from_pipeline_func
@@ -148,22 +152,29 @@ except Exception as e:
 print(f"[*] Fetching final execution evidence using get_run(run_id='{run_id}')...")
 try:
     run_info = client.get_run(run_id=run_id)
+    run_data = {
+        "run_id": run_info.run_id,
+        "display_name": run_info.display_name,
+        "state": str(run_info.state),
+        "created_at": str(run_info.created_at),
+        "finished_at": str(run_info.finished_at)
+    }
+    # Save to pipeline_path.run.json
+    output_file = pipeline_path + ".run.json"
+    with open(output_file, "w") as f:
+        json.dump(run_data, f, indent=2)
+    print(f"[✓] Execution evidence saved to {output_file}")
+
 except Exception as e:
     print(f"[!] Failed to retrieve run info using get_run: {e}", file=sys.stderr)
     sys.exit(1)
 
-state = getattr(run_info, "state", None)
-if state is None and hasattr(run_info, "run"):
-    state = getattr(run_info.run, "state", None)
 
-state_str = str(state).upper() if state else "UNKNOWN"
-print(f"[*] Run State captured via get_run: {state_str}")
-
-if "SUCCEEDED" in state_str or "COMPLETED" in state_str:
+if "SUCCEEDED" in run_data["state"] or "COMPLETED" in run_data["state"]:
     print(f"[✓] BACKEND VERIFICATION PASSED: Pipeline run {run_id} executed and SUCCEEDED on backend.")
     sys.exit(0)
 else:
-    print(f"[!] BACKEND VERIFICATION FAILED: Pipeline run {run_id} finished with non-successful state: {state_str}", file=sys.stderr)
+    print(f"[!] BACKEND VERIFICATION FAILED: Pipeline run {run_id} finished with non-successful state: {run_data['state']}", file=sys.stderr)
     sys.exit(1)
 """
 
@@ -228,7 +239,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Step 1: Run static compilation validation
     return_code, stdout, stderr = validate_pipeline(args.pipeline_file)
    
     if return_code != 0:
@@ -241,26 +251,31 @@ def main():
     print("\n[✓] STATIC VALIDATION PASSED: The pipeline compiles into a valid KFP v2 YAML workflow specification.")
     expected_yaml = args.pipeline_file + ".yaml"
     if not os.path.exists(expected_yaml):
-        sys.stderr.write(f"[!] VALIDATION FAILED: Expected output YAML not found at: {expected_yaml}\n")
+        sys.stderr.write(
+            f"[!] VALIDATION FAILED: Expected output YAML not found at: {expected_yaml}\n"
+            f"Action: Ensure the pipeline file includes an entrypoint block that compiles "
+            f"the pipeline using the KFP compiler:\n\n"
+            f"   if __name__ == '__main__':\n"
+            f"       compiler.Compiler().compile(pipeline_func={args.pipeline_file.split('.')[0]}, __file__ + '.yaml')\n\n"
+            )
         sys.exit(1)
     print(f"[✓] Output specification saved successfully at: {expected_yaml}")
 
-    # Step 2: Live Backend Execution Verification (if --run / --run-e2e flag is set)
     if args.run_e2e:
         pipeline_args = json.loads(args.arguments) if args.arguments else None
-        b_code, b_stdout, b_stderr = run_backend_verification(
+        backend_exit_code, backend_stdout, backend_stderr = run_backend_verification(
             args.pipeline_file,
             host=args.host,
             namespace=args.namespace,
             timeout=args.timeout,
             pipeline_args=pipeline_args,
         )
-        if b_stdout:
-            print(b_stdout)
-        if b_code != 0:
-            sys.stderr.write(f"\n[!] BACKEND EXECUTION VERIFICATION FAILED (Exit Code {b_code})\n")
-            if b_stderr:
-                sys.stderr.write(b_stderr)
+        if backend_stdout:
+            print(backend_stdout)
+        if backend_exit_code != 0:
+            sys.stderr.write(f"\n[!] BACKEND EXECUTION VERIFICATION FAILED (Exit Code {backend_exit_code})\n")
+            if backend_stderr:
+                sys.stderr.write(backend_stderr)
             sys.exit(1)
 
     sys.exit(0)
