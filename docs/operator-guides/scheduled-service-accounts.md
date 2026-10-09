@@ -135,6 +135,11 @@ availability. The upgraded controller waits automatically for the managed
 API/controller rollout to finish and incompatible or terminating writer Pods to
 leave before beginning scheduling.
 
+Each process caches its first successful handoff; a new process verifies it again.
+This assumes legacy writers will not be reintroduced after handoff. Downgrading
+to legacy writers requires a separate coordinated rollback plan, not a live
+rolling downgrade.
+
 During that automatic handoff, the upgraded API rejects schedule creation and
 enable/disable requests with retryable `Unavailable` **before any mutation**.
 Clients retry after handoff completes; those requests are not accepted or queued
@@ -182,6 +187,14 @@ the desired database mode before Kubernetes synchronization; a failed update
 retains a pending marker for retry. Removing an adopted state does
 not permit reseeding it: investigate missing state rather than deleting receipts.
 
+After handoff, each API process also performs one paginated startup repair of
+existing Kubernetes schedule objects from trusted SQL state, including records
+already marked ready. Each attempt is bounded. This repair never recreates missing
+objects, reseeds progress, or acknowledges a pending execution. Failed records
+remain eligible for ordinary reconciliation. Background and submission-triggered
+retries share per-record capped exponential backoff; persistent failures do not
+synchronize the same record on every request or prevent other records recovering.
+
 ### Managed rollout and diagnostics
 
 1. Back up the database and ScheduledWorkflow objects together, then apply the
@@ -191,11 +204,14 @@ not permit reseeding it: investigate missing state rather than deleting receipts
 2. Wait for the managed API/controller Deployments to roll out. Their upgraded
    processes register their own Pod identities; do not supply registration
    annotations through Pod templates. Retain the manifest-provided Pod identity
-   environment and permissions to inspect Deployments and register Pods.
+   environment (`POD_NAME` and `POD_NAMESPACE` from the Kubernetes downward API)
+   and permissions to inspect Deployments and register Pods.
 3. Inspect API/controller logs if scheduling waits. The handoff requires the
    standard `ml-pipeline` and `ml-pipeline-scheduledworkflow` Deployments in the
    installation namespace to finish replacing old Pods. Resolve stuck rollouts,
-   terminating or incompatible Pods, and missing handoff permissions.
+   terminating or incompatible Pods, and missing handoff permissions. The
+   controller exits on invalid Pod identity or denied handoff permissions; correct
+   its configuration or RBAC and allow Kubernetes to restart it.
 4. Inspect `Automatic recurring-run adoption will retry schedule` diagnostics and
    the inventory below. Verify next-tick execution, disabled state, preserved
    progress, concurrency accounting, and duplicate prevention. Recover missing

@@ -333,18 +333,13 @@ func main() {
 	}
 
 	if common.IsMultiUserMode() {
-		podName, err := os.Hostname()
-		if err != nil {
-			glog.Fatalf("Cannot determine API Pod identity: %v", err)
+		podName := os.Getenv("POD_NAME")
+		namespace := common.GetPodNamespace()
+		if podName == "" || namespace == "" {
+			glog.Fatal("Managed schedule writer identity is missing; set POD_NAME and POD_NAMESPACE from the Downward API")
 		}
 		kubeClient := clientManager.KubernetesCoreClient().GetClientSet()
-		namespace := common.GetPodNamespace()
-		writersReady := func(ctx context.Context) error {
-			if err := util.RegisterManagedScheduleWriter(ctx, kubeClient, namespace, podName); err != nil {
-				return err
-			}
-			return util.ManagedScheduleWritersReady(ctx, kubeClient, namespace)
-		}
+		writersReady := util.NewManagedScheduleWriterHandoff(kubeClient, namespace, podName)
 		resourceOptions.ScheduleWritersReady = writersReady
 		adoption := resource.NewAutomaticRecurringRunAdoption(resourceManager, writersReady)
 		resourceOptions.EnsureRecurringRunAdopted = adoption.Ensure

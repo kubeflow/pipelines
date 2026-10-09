@@ -23,7 +23,8 @@ import (
 
 // RequireRecurringRunAdoptionReady checks only this record. An incomplete
 // historical global receipt must not stall unrelated or newly created schedules.
-func (r *ResourceManager) RequireRecurringRunAdoptionReady(ctx context.Context, id string) error {
+func (r *ResourceManager) RequireRecurringRunAdoptionReady(ctx context.Context, id string) (operationErr error) {
+	defer func() { operationErr = recurringRunOperationError(operationErr, id) }()
 	if _, err := r.jobStore.GetRecurringRunState(id); err != nil {
 		return err
 	}
@@ -51,7 +52,8 @@ func (r *ResourceManager) ListLegacyRecurringRunAdoptionCandidates(ctx context.C
 
 // AdoptLegacyRecurringRun is called only after the automatic legacy-writer
 // handoff fence. Ordinary APIs remain available while individual records retry.
-func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string) error {
+func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string) (result error) {
+	defer func() { result = recurringRunOperationError(result, id) }()
 	if !common.IsMultiUserMode() {
 		return nil
 	}
@@ -115,7 +117,7 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 				return err
 			}
 			if live == nil || string(live.UID) != job.UUID || live.Name != job.K8SName || live.Namespace != job.Namespace {
-				return fmt.Errorf("backing ScheduledWorkflow identity changed")
+				return recurringRunIdentityError(id)
 			}
 			live = live.DeepCopy()
 			live.Spec = canonical.Spec
@@ -191,7 +193,8 @@ func (r *ResourceManager) legacyRecurringRunCandidate(ctx context.Context, db *g
 
 // changeAdoptableJobMode authorizes before locking, then verifies the captured
 // definition under the same lock used by adoption before changing either store.
-func (r *ResourceManager) changeAdoptableJobMode(ctx context.Context, job *model.Job, enabled bool) error {
+func (r *ResourceManager) changeAdoptableJobMode(ctx context.Context, job *model.Job, enabled bool) (operationErr error) {
+	defer func() { operationErr = recurringRunOperationError(operationErr, job.UUID) }()
 	db, err := r.recurringRunAdoptionDB(ctx)
 	if err != nil {
 		return err
@@ -210,7 +213,7 @@ func (r *ResourceManager) changeAdoptableJobMode(ctx context.Context, job *model
 			return err
 		}
 		if swf == nil || string(swf.UID) != job.UUID {
-			return fmt.Errorf("ScheduledWorkflow identity differs from its job")
+			return recurringRunIdentityError(job.UUID)
 		}
 		if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
 			execution, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
@@ -253,7 +256,7 @@ func (r *ResourceManager) changeAdoptableJobMode(ctx context.Context, job *model
 				return err
 			}
 			if live == nil || string(live.UID) != current.UUID {
-				return fmt.Errorf("ScheduledWorkflow identity differs from its job")
+				return recurringRunIdentityError(job.UUID)
 			}
 			// Update retains both UID and resourceVersion as API-server preconditions.
 			live = live.DeepCopy()

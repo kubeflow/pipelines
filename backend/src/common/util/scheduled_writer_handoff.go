@@ -15,11 +15,14 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -78,6 +81,21 @@ func RegisterManagedScheduleWriter(ctx context.Context, client kubernetes.Interf
 	if err != nil {
 		return fmt.Errorf("get schedule writer Pod: %w", err)
 	}
+	containerName := pod.Labels["app"]
+	switch containerName {
+	case "ml-pipeline":
+		containerName = "ml-pipeline-api-server"
+	case "ml-pipeline-scheduledworkflow":
+	default:
+		return apierrors.NewBadRequest("schedule writer Pod has no managed app label; apply the standard API/controller Deployment")
+	}
+	found := false
+	for _, container := range pod.Spec.Containers {
+		found = found || container.Name == containerName
+	}
+	if !found {
+		return apierrors.NewBadRequest("schedule writer Pod has no managed container; apply the standard API/controller Deployment")
+	}
 	if pod.UID == "" || pod.ResourceVersion == "" || pod.DeletionTimestamp != nil {
 		return fmt.Errorf("schedule writer Pod is not a live identified Pod")
 	}
@@ -103,6 +121,11 @@ func RegisterManagedScheduleWriter(ctx context.Context, client kubernetes.Interf
 	}
 	_, err = client.CoreV1().Pods(namespace).Patch(ctx, podName, types.JSONPatchType, patch, metav1.PatchOptions{})
 	if err != nil {
+		// JSON Patch test failures use HTTP 422, not 409. A concurrent Pod
+		// status/metadata update invalidates our resourceVersion precondition.
+		if apierrors.IsInvalid(err) {
+			err = apierrors.NewConflict(schema.GroupResource{Resource: "pods"}, podName, err)
+		}
 		return fmt.Errorf("register schedule writer Pod: %w", err)
 	}
 	return nil
@@ -156,14 +179,50 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 	return nil
 }
 
-// WaitForManagedScheduleWriters registers this process before waiting for peers,
-// avoiding an API/controller registration cycle. It never starts legacy workers
-// when registration or rollout checks fail; cancellation stops the wait.
+// NewManagedScheduleWriterHandoff returns a process-local, one-way upgrade
+// fence. A successful handoff is retained across later compatible rollouts;
+// downgrading to a legacy writer requires a separately coordinated rollback.
+// Failed checks are retried, and concurrent callers share the first success.
+func NewManagedScheduleWriterHandoff(client kubernetes.Interface, namespace, podName string) func(context.Context) error {
+	var complete atomic.Bool
+	gate := make(chan struct{}, 1)
+	gate <- struct{}{}
+	return func(ctx context.Context) error {
+		if complete.Load() {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-gate:
+		}
+		defer func() { gate <- struct{}{} }()
+		if complete.Load() {
+			return nil
+		}
+		if err := RegisterManagedScheduleWriter(ctx, client, namespace, podName); err != nil {
+			return err
+		}
+		if err := ManagedScheduleWritersReady(ctx, client, namespace); err != nil {
+			return err
+		}
+		complete.Store(true)
+		return nil
+	}
+}
+
+// WaitForManagedScheduleWriters registers this process before waiting for peers.
+// Invalid identity and access configuration fail startup; rollout progress and
+// transient API failures retry until cancellation.
 func WaitForManagedScheduleWriters(ctx context.Context, client kubernetes.Interface, namespace, podName string, onWait func(error)) error {
+	if namespace == "" || podName == "" {
+		return fmt.Errorf("managed schedule writer identity is missing; set POD_NAMESPACE and POD_NAME from the Downward API")
+	}
+	ready := NewManagedScheduleWriterHandoff(client, namespace, podName)
 	return wait.PollUntilContextCancel(ctx, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		err := RegisterManagedScheduleWriter(ctx, client, namespace, podName)
-		if err == nil {
-			err = ManagedScheduleWritersReady(ctx, client, namespace)
+		err := ready(ctx)
+		if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) || apierrors.IsNotFound(err) || apierrors.IsBadRequest(err) || apierrors.IsInvalid(err) {
+			return false, fmt.Errorf("managed schedule writer configuration is invalid; verify POD_NAME/POD_NAMESPACE and apply the complete managed-writer RBAC and Deployments: %w", err)
 		}
 		if err != nil && onWait != nil {
 			onWait(err)

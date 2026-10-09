@@ -163,10 +163,7 @@ func main() {
 	}
 
 	if multiUser {
-		podName, err := os.Hostname()
-		if err != nil {
-			log.Fatalf("Cannot identify managed schedule writer Pod: %v", err)
-		}
+		podName := os.Getenv("POD_NAME")
 		lastReason := ""
 		err = commonutil.WaitForManagedScheduleWriters(ctx, kubeClient, os.Getenv("POD_NAMESPACE"), podName, func(err error) {
 			if err.Error() != lastReason {
@@ -175,7 +172,10 @@ func main() {
 			}
 		})
 		if err != nil {
-			return
+			if ctx.Err() != nil {
+				return
+			}
+			log.Fatalf("Cannot start managed schedule writer: %v", err)
 		}
 	}
 
