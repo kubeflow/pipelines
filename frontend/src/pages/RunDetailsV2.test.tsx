@@ -43,7 +43,7 @@ import { RunDetailsV2 } from './RunDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { readFileSync } from 'node:fs';
 import { loopSpec, loopTasks } from 'src/data/test/groupedFlow';
-import { scopedNodeId } from 'src/lib/v2/GroupedFlow';
+import { layerNodeId } from 'src/lib/v2/GroupedFlow';
 
 const tensorboardYaml = readFileSync(
   `${__dirname}/../../../test/frontend-integration-test/tensorboard-example.yaml`,
@@ -310,7 +310,7 @@ describe('RunDetailsV2', () => {
         />
       </CommonTestWrapper>,
     );
-    const nodeId = scopedNodeId(['root', 'sweep', 'sweep.1'], 'task.train');
+    const nodeId = layerNodeId(['root', 'sweep', 'sweep.1'], 'task.train');
     await waitFor(() =>
       expect(document.querySelector(`[data-id='${nodeId}']`)).toBeInTheDocument(),
     );
@@ -360,7 +360,7 @@ describe('RunDetailsV2', () => {
     );
     fireEvent.click(await screen.findByText('Task Details'));
     await screen.findByText('outer-train');
-    const nodeId = scopedNodeId(['root', 'sweep', 'sweep.1'], 'task.train');
+    const nodeId = layerNodeId(['root', 'sweep', 'sweep.1'], 'task.train');
     fireEvent.click(document.querySelector(`[data-id='${nodeId}']`)!);
     // The router spy leaves the old URL in place until navigation completes.
     // Selection must already resolve the clicked instance, not its namesake.

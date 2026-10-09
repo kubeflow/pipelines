@@ -9,11 +9,10 @@ import {
   GraphExpansionLimitError,
   isNode,
   NodeTypeNames,
-  PipelineFlowElement,
 } from './StaticFlow';
 
-import type { LayerElementsResolver, ScopedFlowElement } from './FlowTypes';
-import { getFlowNodeSize, NODE_CARD_HEIGHT } from './FlowNodeSize';
+import type { LayerElementsResolver, LayerFlowElement, PipelineFlowElement } from './FlowTypes';
+import { getFlowNodeSize, NODE_CARD_HEIGHT, SUB_DAG_STATUS_CARD_WIDTH } from './FlowNodeSize';
 export const AUTOMATIC_EXPANSION_NODE_LIMIT = 500;
 export const GROUP_NODE_TYPE = 'subDagGroup';
 export const GROUP_HEADER_HEIGHT = NODE_CARD_HEIGHT;
@@ -22,22 +21,22 @@ const GROUP_PADDING = 24;
 export interface GroupedFlow {
   nodes: Node<FlowElementDataBase>[];
   edges: Edge[];
-  /** Keep local IDs and scope for the existing task/artifact detail APIs. */
-  sources: Map<string, ScopedFlowElement>;
+  /** Keep local IDs and their layer for the existing task/artifact detail APIs. */
+  sources: Map<string, LayerFlowElement>;
   width: number;
   height: number;
 }
 
-export function scopedNodeId(layers: string[], nodeId: string): string {
+export function layerNodeId(layers: string[], nodeId: string): string {
   // Preserve existing root IDs for links and integrations; nested IDs include
   // the full instance path, not just a reused component or task name.
   return layers.length === 1 ? nodeId : JSON.stringify([...layers, nodeId]);
 }
 
 /**
- * Lay out scopes bottom-up, treating each expanded scope as a sized node in its
- * parent. Cross-scope dependencies terminate at the group boundary, not at an
- * arbitrary internal task. Runtime iteration scopes use the same layer resolver
+ * Lay out layers bottom-up, treating each expanded layer as a sized node in its
+ * parent. Cross-layer dependencies terminate at the group boundary, not at an
+ * arbitrary internal task. Runtime iteration layers use the same resolver
  * as focused navigation, so repeated component instances remain distinct.
  */
 export function buildGroupedFlow(
@@ -61,7 +60,7 @@ export function buildGroupedFlow(
     remaining = Math.max(0, remaining - layerNodes.length);
     const sources: GroupedFlow['sources'] = new Map();
     const children = new Map<string, GroupedFlow>();
-    const idFor = (id: string) => scopedNodeId(layers, id);
+    const idFor = (id: string) => layerNodeId(layers, id);
     const nodes = layerNodes.map((element) => {
       const id = idFor(element.id);
       sources.set(id, { element, layers });
@@ -104,12 +103,12 @@ export function buildGroupedFlow(
             children.set(id, child);
             empty = child.nodes.length === 0;
             width = Math.max(width, child.width + 2 * GROUP_PADDING);
-            height += Math.max(child.height, 48) + 2 * GROUP_PADDING;
+            height += Math.max(child.height, NODE_CARD_HEIGHT) + 2 * GROUP_PADDING;
           } catch (error) {
             if (error instanceof GraphExpansionLimitError) {
               isCollapsed = true;
               expansionDeferred = error.message;
-              width = Math.max(width, 320 * nodeScale);
+              width = Math.max(width, SUB_DAG_STATUS_CARD_WIDTH * nodeScale);
             } else {
               expansionError = error instanceof Error ? error.message : String(error);
               height += 72;

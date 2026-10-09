@@ -18,11 +18,8 @@ import type * as React from 'react';
 import { CircularProgress } from '@mui/material';
 import * as JsYaml from 'js-yaml';
 import { Apis } from 'src/lib/Apis';
-import {
-  convertFlowElements,
-  convertSubDagToFlowElements,
-  PipelineFlowElement,
-} from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';

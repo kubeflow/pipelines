@@ -37,17 +37,20 @@ import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
-import { buildGroupedFlow, GROUP_NODE_TYPE, scopedNodeId } from 'src/lib/v2/GroupedFlow';
+import { buildGroupedFlow, GROUP_NODE_TYPE, layerNodeId } from 'src/lib/v2/GroupedFlow';
 import { color } from 'src/Css';
 import { getFlowNodeSize } from 'src/lib/v2/FlowNodeSize';
-import type { LayerElementsResolver, ScopedFlowElement } from 'src/lib/v2/FlowTypes';
+import type {
+  LayerElementsResolver,
+  LayerFlowElement,
+  PipelineFlowElement,
+} from 'src/lib/v2/FlowTypes';
 import {
   buildGraphLayout,
   getTaskKeyFromNodeKey,
   isNode,
   NodeTypeNames,
   NODE_TYPES,
-  PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 
 type PipelineNode = Node<FlowElementDataBase>;
@@ -59,9 +62,9 @@ export interface DagCanvasProps {
   setFlowElements: (elements: PipelineFlowElement[]) => void;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
-  onElementClick: (event: ReactMouseEvent, selection: ScopedFlowElement) => void;
+  onElementClick: (event: ReactMouseEvent, selection: LayerFlowElement) => void;
   getSubDagElements?: LayerElementsResolver;
-  selectedElement?: ScopedFlowElement | null;
+  selectedElement?: LayerFlowElement | null;
   nodesDraggable?: boolean;
   focusNodeId?: string;
 }
@@ -148,7 +151,7 @@ export default function DagCanvas({
     selectionLayers.every((layer, index) => layer === layers[index]);
   const visibleNodeId = (id?: string) => {
     if (!id) return undefined;
-    if (grouped) return scopedNodeId(selectionLayers, id);
+    if (grouped) return layerNodeId(selectionLayers, id);
     return selectionVisible ? id : undefined;
   };
   const selectedId = visibleNodeId(selectedElement?.element.id);
@@ -161,14 +164,14 @@ export default function DagCanvas({
     [layers, onLayersUpdate],
   );
 
-  const singleLayerElements = useMemo(() => {
+  const clickThroughElements = useMemo(() => {
     if (grouped) return elements;
-    // The legacy sub-DAG card is taller than an execution node and has a 2px border.
+    // The click-through sub-DAG card is taller than an execution node and has a 2px border.
     // Lay out the visible layer using rendered sizes, without resolving any children.
     return buildGraphLayout(
       elements.map((element) => {
         if (!isNode(element)) return { ...element };
-        const { width, height } = getFlowNodeSize(element, nodeScale, 'click-through');
+        const { width, height } = getFlowNodeSize(element, nodeScale, false);
         return {
           ...element,
           width,
@@ -181,7 +184,7 @@ export default function DagCanvas({
   }, [elements, grouped, nodeScale]);
   const nodes = useMemo(
     () =>
-      (grouped?.nodes ?? singleLayerElements.filter(isNode)).map((node) => {
+      (grouped?.nodes ?? clickThroughElements.filter(isNode)).map((node) => {
         const selectedNode = {
           ...node,
           position: positions[positionKey(node)] ?? node.position,
@@ -200,7 +203,7 @@ export default function DagCanvas({
           : selectedNode;
       }),
     [
-      singleLayerElements,
+      clickThroughElements,
       grouped,
       positions,
       selectedId,
@@ -211,8 +214,8 @@ export default function DagCanvas({
     ],
   );
   const edges = useMemo(
-    () => grouped?.edges ?? singleLayerElements.filter((el): el is Edge => !isNode(el)),
-    [singleLayerElements, grouped],
+    () => grouped?.edges ?? clickThroughElements.filter((el): el is Edge => !isNode(el)),
+    [clickThroughElements, grouped],
   );
 
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);

@@ -11,12 +11,7 @@ import {
 import dagre from 'dagre';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
-import {
-  buildGroupedFlow,
-  GROUP_HEADER_HEIGHT,
-  GROUP_NODE_TYPE,
-  scopedNodeId,
-} from './GroupedFlow';
+import { buildGroupedFlow, GROUP_HEADER_HEIGHT, GROUP_NODE_TYPE, layerNodeId } from './GroupedFlow';
 import { convertSubDagToFlowElements, NodeTypeNames } from './StaticFlow';
 import {
   createRuntimeLayerResolver,
@@ -78,11 +73,11 @@ describe('buildGroupedFlow', () => {
         resolve(['root']),
         ['root'],
         resolve,
-        new Set([scopedNodeId(['root', 'workflow'], 'task.fit')]),
+        new Set([layerNodeId(['root', 'workflow'], 'task.fit')]),
         { nodeScale },
       );
       const group = graph.nodes.find(
-        (node) => node.id === scopedNodeId(['root', 'workflow'], 'task.fit'),
+        (node) => node.id === layerNodeId(['root', 'workflow'], 'task.fit'),
       )!;
       const parent = graph.nodes.find((node) => node.id === group.parentId)!;
       expect(group.data.collapsed).toBe(true);
@@ -103,9 +98,9 @@ describe('buildGroupedFlow', () => {
       ]),
     );
     const model = graph.nodes.find(
-      (node) => node.id === scopedNodeId(['root', 'workflow', 'fit'], 'artifact.train.model'),
+      (node) => node.id === layerNodeId(['root', 'workflow', 'fit'], 'artifact.train.model'),
     )!;
-    expect(model.parentId).toBe(scopedNodeId(['root', 'workflow'], 'task.fit'));
+    expect(model.parentId).toBe(layerNodeId(['root', 'workflow'], 'task.fit'));
     expect(graph.sources.get(model.id)?.layers).toEqual(['root', 'workflow', 'fit']);
     expect(graph.sources.get(model.id)?.element.id).toBe('artifact.train.model');
   });
@@ -137,7 +132,7 @@ describe('buildGroupedFlow', () => {
   });
 
   it('retains descendant collapse state when a parent is reopened', () => {
-    const child = scopedNodeId(['root', 'workflow'], 'task.fit');
+    const child = layerNodeId(['root', 'workflow'], 'task.fit');
     const collapsed = new Set(['task.workflow', child]);
     expect(staticGraph(nestedArtifactSpec, collapsed).nodes).toHaveLength(3);
     expect(staticGraph(nestedArtifactSpec, collapsed).height).toBeLessThan(staticGraph().height);
@@ -307,12 +302,24 @@ describe('buildGroupedFlow', () => {
       );
     }
     const artifact = graph.sources.get(
-      scopedNodeId(['root', 'sweep', 'sweep.1'], 'artifact.train.model'),
+      layerNodeId(['root', 'sweep', 'sweep.1'], 'artifact.train.model'),
     )!;
     expect(
       getNodeRuntimeInfo(artifact.element, loopTasks, artifact.layers).artifactGroup?.artifacts?.[0]
         .artifact_id,
     ).toBe('2');
+  });
+
+  it('uses terminal run state when resolving multiple layers through a shared task index', () => {
+    const resolve = createRuntimeLayerResolver(loopSpec, loopTasks, true, true);
+    const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
+    const loop = graph.nodes.find((node) => node.id === 'task.sweep')!;
+    const runningTask = graph.nodes.find((node) => node.data.taskId === 'evaluate-1')!;
+    expect(loop.data.state).toBe(PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED);
+    expect(runningTask.data.state).toBe(PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED);
+    expect(graph.nodes.find((node) => node.data.taskId === 'train-0')?.data.state).toBe(
+      PipelineTaskTaskState.CACHED,
+    );
   });
 
   it('uses the declarative loop body before iteration metadata arrives', () => {

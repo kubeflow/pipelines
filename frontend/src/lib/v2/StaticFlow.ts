@@ -15,14 +15,17 @@
 import dagre from 'dagre';
 import { Edge, MarkerType, Node, Position } from '@xyflow/react';
 import ArtifactNode from 'src/components/graph/ArtifactNode';
-import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
+import {
+  ArtifactFlowElementData,
+  FlowElementDataBase,
+  SubDagTaskData,
+} from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 
 import type { PipelineFlowElement } from './FlowTypes';
-export type { PipelineFlowElement } from './FlowTypes';
 
 export class GraphExpansionLimitError extends Error {
   constructor(nodeCount?: number) {
@@ -214,7 +217,7 @@ function addTaskNodes(
       flowGraph.push(node);
     } else if (componentSpec.dag) {
       // dag exists means this is a sub-DAG instance.
-      const node: Node<FlowElementDataBase> = {
+      const node: Node<SubDagTaskData> = {
         id: getTaskNodeKey(taskKey),
         data: {
           label: name,

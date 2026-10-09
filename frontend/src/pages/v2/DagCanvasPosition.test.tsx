@@ -6,7 +6,7 @@ import type { ReactFlowProps, Node, Edge } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { nestedArtifactSpec } from 'src/data/test/groupedFlow';
 import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
-import { scopedNodeId } from 'src/lib/v2/GroupedFlow';
+import { layerNodeId } from 'src/lib/v2/GroupedFlow';
 import DagCanvas from './DagCanvas';
 
 // Drive live position changes and drag-stop without depending on jsdom SVG geometry.
@@ -26,6 +26,7 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
           key={node.id}
           data-testid={node.id}
           data-draggable={String(node.draggable)}
+          aria-pressed={node.selected ?? false}
           onMouseMove={() =>
             onNodesChange?.([
               { type: 'position', id: node.id, position: { x: 45, y: 90 }, dragging: true },
@@ -67,7 +68,7 @@ it('updates leaves and groups during dragging without changing child-relative po
   fireEvent.mouseMove(leaf);
   expect(leaf).toHaveTextContent('{"x":45,"y":90}');
   const group = screen.getByTestId('task.workflow');
-  const child = screen.getByTestId(scopedNodeId(['root', 'workflow'], 'task.prepare'));
+  const child = screen.getByTestId(layerNodeId(['root', 'workflow'], 'task.prepare'));
   const childPosition = child.textContent;
   expect(group).toHaveAttribute('data-draggable', 'true');
   fireEvent.mouseMove(group);
@@ -128,10 +129,41 @@ it('rejects live drag updates while locked, including after a refresh', () => {
   expect(screen.getByTestId('task.workflow')).toHaveTextContent('{"x":45,"y":90}');
 });
 
+it('passes selection to the correct layer rather than a hidden node’s flat namesake', () => {
+  const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
+  const layers = ['root', 'workflow', 'fit'];
+  const nested = resolve(layers).find((element) => element.id === 'task.train')!;
+  render(
+    <DagCanvas
+      layers={['root']}
+      elements={[
+        ...resolve(['root']),
+        {
+          id: 'task.train',
+          type: 'EXECUTION',
+          data: { label: 'Root train' },
+          position: { x: 0, y: 0 },
+        },
+      ]}
+      getSubDagElements={resolve}
+      selectedElement={{ element: nested, layers }}
+      onLayersUpdate={vi.fn()}
+      onElementClick={vi.fn()}
+      setFlowElements={vi.fn()}
+    />,
+  );
+  expect(screen.getByTestId(layerNodeId(layers, 'task.train'))).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Render subdags' }));
+  expect(screen.getByTestId('task.train')).toHaveAttribute('aria-pressed', 'false');
+});
+
 it('keeps drag positions separate for focused and parent-relative coordinate frames', () => {
   const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
   const focusedLayers = ['root', 'workflow', 'fit'];
-  const id = scopedNodeId(focusedLayers, 'task.train');
+  const id = layerNodeId(focusedLayers, 'task.train');
   const canvas = (layers: string[]) => (
     <DagCanvas
       layers={layers}

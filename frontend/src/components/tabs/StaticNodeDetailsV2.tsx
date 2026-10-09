@@ -28,8 +28,8 @@ import {
   getTaskKeyFromNodeKey,
   isArtifactNode,
   isTaskNode,
-  PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
 

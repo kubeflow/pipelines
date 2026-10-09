@@ -16,7 +16,7 @@ it.each([1, 13 / 16])(
       const node = { type, data: { label: 'Task', state } };
       const size = { width: width * scale, height: 48 * scale };
       expect(getFlowNodeSize(node, scale)).toEqual(size);
-      expect(getFlowNodeSize(node, scale, 'click-through')).toEqual(size);
+      expect(getFlowNodeSize(node, scale, false)).toEqual(size);
     }
   },
 );
@@ -32,7 +32,7 @@ it.each([1, 13 / 16])(
         scale,
       ),
     ).toEqual({ width: 320 * scale, height: 48 * scale });
-    expect(getFlowNodeSize(group, scale, 'click-through')).toEqual({
+    expect(getFlowNodeSize(group, scale, false)).toEqual({
       width: 288 * scale + 4,
       height: 96 * scale + 4,
     });
