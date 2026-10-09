@@ -172,7 +172,4 @@ def customer_churn_pipeline(
 
 
 if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=customer_churn_pipeline,
-        package_path=__file__ + '.yaml',
-    )
+    compiler.Compiler().compile(customer_churn_pipeline, __file__ + '.yaml')

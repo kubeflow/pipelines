@@ -15,7 +15,6 @@ Generate KFP v2 pipelines that match this repo's SDK, samples, and conventions.
 
 1. Read the closest existing sample in `samples/core/` for the feature being used.
 2. Prefer **v2 DSL** (`@dsl.component`, `@dsl.container_component`, `@dsl.pipeline`) — not v1 `ContainerOp` or `load_component_from_url` unless maintaining legacy code.
-3. Reuse existing components from `components/` when possible instead of inlining container logic.
 
 ## Output location
 
@@ -175,7 +174,6 @@ If validation fails, read the traceback, fix the generated pipeline, and re-run 
 
 - Do **not** generate v1 `ContainerOp`, `dsl.get_pipeline_conf()`, or `@dsl.pipeline` with `pipeline_func=` keyword.
 - Do **not** import heavy SDK modules inside `@dsl.component` bodies unless needed at runtime.
-- Do **not** duplicate logic that already exists in `components/` — load or import shared components instead.
 
 ## Related docs
 

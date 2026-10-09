@@ -166,7 +166,4 @@ def image_anomaly_detection_pipeline(
 
 
 if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=image_anomaly_detection_pipeline,
-        package_path=__file__ + '.yaml',
-    )
+    compiler.Compiler().compile(image_anomaly_detection_pipeline, __file__ + '.yaml')

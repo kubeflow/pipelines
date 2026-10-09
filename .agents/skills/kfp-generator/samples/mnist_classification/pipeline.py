@@ -195,7 +195,4 @@ def mnist_classification_pipeline(
 
 
 if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=mnist_classification_pipeline,
-        package_path=__file__ + '.yaml',
-    )
+    compiler.Compiler().compile(mnist_classification_pipeline, __file__ + '.yaml')
