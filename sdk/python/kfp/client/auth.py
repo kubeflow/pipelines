@@ -24,7 +24,6 @@ import wsgiref.simple_server
 import wsgiref.util
 
 import google.auth
-import google.auth.app_engine
 import google.auth.compute_engine.credentials
 import google.auth.iam
 from google.auth.transport.requests import Request
@@ -148,15 +147,6 @@ def get_service_account_credentials(
     if isinstance(bootstrap_credentials, google.oauth2.credentials.Credentials):
         logging.info('Found OAuth2 credentials and skip SA auth.')
         return None
-    if isinstance(bootstrap_credentials, google.auth.app_engine.Credentials):
-        # import requests_toolbelt.adapters.appengine here for those who run KFP
-        # in environments where the appengine adapter dependency stack may be
-        # unavailable, preventing breaks due to https://github.com/kubeflow/pipelines/issues/9326#issuecomment-1535491761
-        # whenever the user runs `import kfp`.
-        # by putting the import statement here, only those invoking the KFP SDK client
-        # from within App Engine are strictly required to have urllib3<2.0.0.
-        import requests_toolbelt.adapters.appengine
-        requests_toolbelt.adapters.appengine.monkeypatch()
     # For service account's using the Compute Engine metadata service,
     # service_account_email isn't available until refresh is called.
     bootstrap_credentials.refresh(Request())

@@ -1,9 +1,13 @@
 """Unit tests for notebook components and embedded artifacts."""
 
 import base64
+import importlib.util
 import io
 import json
 import os
+import pathlib
+import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -56,7 +60,7 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         container = my_nb.component_spec.implementation.container
         command = ' '.join(container.command)
         self.assertIn('nbclient>=0.10,<1', command)
-        self.assertIn('ipykernel>=6,<7', command)
+        self.assertIn('ipykernel>=6', command)
         self.assertIn('jupyter_client>=7,<9', command)
         self.assertNotIn('fastjsonschema<2.22', command)
 
@@ -70,7 +74,7 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         container = my_nb.component_spec.implementation.container
         command = ' '.join(container.command)
         self.assertNotIn('nbclient>=0.10,<1', command)
-        self.assertNotIn('ipykernel>=6,<7', command)
+        self.assertNotIn('ipykernel>=6', command)
         self.assertNotIn('jupyter_client>=7,<9', command)
         self.assertNotIn('fastjsonschema<2.22', command)
 
@@ -85,6 +89,107 @@ class TestNotebookExecutorTemplate(unittest.TestCase):
         self.assertIn('dsl.run_notebook = kfp_run_notebook', source)
         self.assertIn('class KFPStreamingNotebookClient(NotebookClient):',
                       source)
+
+    @unittest.skipUnless(
+        all(
+            importlib.util.find_spec(name) is not None
+            for name in ('nbclient', 'ipykernel', 'jupyter_client')),
+        'Install kfp[notebooks] to exercise the notebook kernel')
+    def test_generated_executor_runs_python_kernel(self):
+        from kfp.dsl.templates import notebook_executor
+        import nbformat
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            kernel_dir = pathlib.Path(tmpdir, 'jupyter', 'kernels', 'python3')
+            kernel_dir.mkdir(parents=True)
+            kernel_dir.joinpath('kernel.json').write_text(
+                json.dumps({
+                    'argv': [
+                        sys.executable, '-m', 'ipykernel_launcher', '-f',
+                        '{connection_file}'
+                    ],
+                    'display_name': 'Test Python',
+                    'language': 'python',
+                }),
+                encoding='utf-8')
+            env = dict(os.environ, JUPYTER_PATH=str(kernel_dir.parent.parent))
+            for name in ('JUPYTER_CONFIG_DIR', 'JUPYTER_DATA_DIR',
+                         'JUPYTER_RUNTIME_DIR', 'IPYTHONDIR'):
+                directory = pathlib.Path(tmpdir, name.lower())
+                directory.mkdir()
+                env[name] = str(directory)
+
+            for tagged, fail in ((False, False), (True, False), (False, True)):
+                with self.subTest(tagged_parameters=tagged, failure=fail):
+                    cells = []
+                    if tagged:
+                        cells.append(
+                            nbformat.v4.new_code_cell(
+                                'value = -1\npayload = {}',
+                                metadata={'tags': ['parameters']}))
+                    cells.append(
+                        nbformat.v4.new_code_cell('''import json, sys
+from pathlib import Path
+print('notebook stdout', flush=True)
+print('notebook stderr', file=sys.stderr, flush=True)
+Path(output_path).write_text(json.dumps({
+    'value': value, 'payload': payload, 'python': sys.executable
+}))
+'''))
+                    if fail:
+                        cells.append(
+                            nbformat.v4.new_code_cell(
+                                "raise ValueError('notebook failure')"))
+                    notebook = nbformat.v4.new_notebook(cells=cells)
+                    raw = nbformat.writes(notebook).encode('utf-8')
+                    archive = io.BytesIO()
+                    with tarfile.open(fileobj=archive, mode='w:gz') as tar:
+                        info = tarfile.TarInfo('notebook.ipynb')
+                        info.size = len(raw)
+                        tar.addfile(info, io.BytesIO(raw))
+                    source = notebook_executor.get_notebook_executor_source(
+                        base64.b64encode(archive.getvalue()).decode('ascii'),
+                        'notebook.ipynb')
+                    output_path = pathlib.Path(tmpdir, 'result.json')
+                    output_path.unlink(missing_ok=True)
+                    params = {
+                        'value': 42,
+                        'payload': {
+                            'text': "quoted ' value",
+                            'enabled': True
+                        },
+                        'output_path': str(output_path),
+                    }
+                    script = pathlib.Path(tmpdir, 'executor.py')
+                    script.write_text(
+                        'from kfp import dsl\n' + source +
+                        f'\ndsl.run_notebook(**{params!r})\n',
+                        encoding='utf-8')
+                    result = subprocess.run(
+                        [sys.executable, str(script)],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=60)
+                    self.assertIn('notebook stdout', result.stdout)
+                    self.assertIn('notebook stderr',
+                                  result.stdout + result.stderr)
+                    self.assertIn('[nb cell ', result.stdout)
+                    self.assertEqual(
+                        json.loads(output_path.read_text(encoding='utf-8')), {
+                            'value': 42,
+                            'payload': params['payload'],
+                            'python': sys.executable,
+                        })
+                    if fail:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn('Notebook execution failed',
+                                      result.stderr)
+                        self.assertIn('notebook failure', result.stderr)
+                        self.assertNotIn('Execution complete', result.stdout)
+                    else:
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertIn('Execution complete', result.stdout)
 
 
 class TestNotebookParameterInjection(unittest.TestCase):

@@ -718,7 +718,7 @@ def create_notebook_component_from_func(
     if packages_to_install is None:
         packages_to_install = [
             'nbclient>=0.10,<1',
-            'ipykernel>=6,<7',
+            'ipykernel>=6',
             'jupyter_client>=7,<9',
         ]
 

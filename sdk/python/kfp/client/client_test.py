@@ -15,6 +15,7 @@
 import json
 from logging import WARNING
 import os
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -889,6 +890,68 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
         )
         kwargs.update(overrides)
         return self.client._load_config(**kwargs)
+
+    def test_kube_config_exec_credentials_refresh_authorization(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        token_path = os.path.join(directory, 'token')
+        config_path = os.path.join(directory, 'config')
+        # Expired exec credentials force the real kubeconfig loader to refresh
+        # on each request, including replacement of its refresh hook.
+        script = ('import json, pathlib, sys; '
+                  'print(json.dumps({"apiVersion": '
+                  '"client.authentication.k8s.io/v1beta1", '
+                  '"kind": "ExecCredential", "status": {'
+                  '"token": pathlib.Path(sys.argv[1]).read_text(), '
+                  '"expirationTimestamp": "2000-01-01T00:00:00Z"}}))')
+        kube_config = {
+            'apiVersion':
+                'v1',
+            'kind':
+                'Config',
+            'clusters': [{
+                'name': 'test',
+                'cluster': {
+                    'server': 'https://127.0.0.1:6443'
+                },
+            }],
+            'contexts': [{
+                'name': 'test',
+                'context': {
+                    'cluster': 'test',
+                    'user': 'test'
+                },
+            }],
+            'current-context':
+                'test',
+            'users': [{
+                'name': 'test',
+                'user': {
+                    'exec': {
+                        'apiVersion': 'client.authentication.k8s.io/v1beta1',
+                        'command': sys.executable,
+                        'args': ['-c', script, token_path],
+                    },
+                },
+            }],
+        }
+        with open(config_path, 'w') as stream:
+            yaml.safe_dump(kube_config, stream)
+        with open(token_path, 'w') as stream:
+            stream.write('initial-token')
+        with patch.dict(
+                os.environ,
+            {}, clear=True), patch(
+                'kubernetes.config.kube_config.KUBE_CONFIG_DEFAULT_LOCATION',
+                config_path):
+            config = self._load_config(kube_context='test')
+            self.assertEqual(
+                config.host, 'https://127.0.0.1:6443/' +
+                client.Client._KUBE_PROXY_PATH.format('my-namespace'))
+            for token in ('initial-token', 'refreshed-token', 'rotated-token'):
+                with open(token_path, 'w') as stream:
+                    stream.write(token)
+                self.assertEqual(config.auth_settings()['Bearer']['value'],
+                                 'Bearer ' + token)
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')
