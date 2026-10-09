@@ -140,3 +140,61 @@ func TestWorkflow_Hydrate_RejectsRemainingOffloadMarker(t *testing.T) {
 	assert.Contains(t, err.Error(), "OffloadNodeStatusVersion")
 	assert.Equal(t, "offload-hash", workflow.Status.OffloadNodeStatusVersion)
 }
+
+// TestOffloadHydration_EndToEnd_MemoryRepo walks the durable-offload contract used by
+// terminal report + RetryRun: save → clear CR nodes → Hydrate succeeds → delete offload
+// (simulating Argo GC) → Hydrate fails. Terminal hydrate-before-persist is why retry
+// still works after Workflow+offload GC (see resource package GC survival tests).
+func TestOffloadHydration_EndToEnd_MemoryRepo(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	SetWorkflowHydratorForTest(t, NewAlwaysOffloadWorkflowHydrator(repo))
+
+	nodes := workflowapi.Nodes{
+		"ok": {
+			ID:    "ok",
+			Name:  "my-wf",
+			Phase: workflowapi.NodeSucceeded,
+			Type:  workflowapi.NodeTypePod,
+		},
+		"fail": {
+			ID:    "fail",
+			Name:  "my-wf.step2",
+			Phase: workflowapi.NodeFailed,
+			Type:  workflowapi.NodeTypePod,
+		},
+	}
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-wf",
+			Namespace: "ns1",
+			UID:       "wf-uid",
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowFailed,
+			Nodes: nodes,
+		},
+	})
+
+	require.NoError(t, workflow.Dehydrate(context.Background()))
+	require.Empty(t, workflow.Status.Nodes)
+	require.NotEmpty(t, workflow.Status.OffloadNodeStatusVersion)
+	version := workflow.Status.OffloadNodeStatusVersion
+
+	require.NoError(t, workflow.Hydrate(context.Background()))
+	assert.Empty(t, workflow.Status.OffloadNodeStatusVersion)
+	assert.Equal(t, workflowapi.NodeFailed, workflow.Status.Nodes["fail"].Phase)
+
+	// Simulate a CR that only retains the offload pointer (post-dehydrate / controller view).
+	workflow.Status.Nodes = nil
+	workflow.Status.OffloadNodeStatusVersion = version
+	require.NoError(t, workflow.Hydrate(context.Background()))
+	assert.Equal(t, workflowapi.NodeSucceeded, workflow.Status.Nodes["ok"].Phase)
+
+	// Argo GC removes the offload row once no live Workflow holds the UID.
+	require.NoError(t, repo.Delete(context.Background(), string(workflow.UID), version))
+	workflow.Status.Nodes = nil
+	workflow.Status.OffloadNodeStatusVersion = version
+	err := workflow.Hydrate(context.Background())
+	require.Error(t, err, "hydrate must fail after offload GC; durable snapshot must already be in the run record")
+	assert.Equal(t, version, workflow.Status.OffloadNodeStatusVersion)
+}

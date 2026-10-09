@@ -249,3 +249,78 @@ func TestInitWorkflowHydrator_InstallsLazyWhenConfigMapMissing(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not ready")
 }
+
+// Offload enabled in ConfigMap but credential Secret absent: TryInit fails, yet
+// compressed/inline hydrate still works. Offloaded hydrate stays fail-closed until
+// Secrets + DB are reachable (lazy retry). Creating the Secret alone is not enough
+// without a real DB — see util.TestLazyOffloadHydrator_SecretMissingThenPresent for
+// the injectable success path and the README Validation checklist for real Postgres.
+func TestInitWorkflowHydrator_OffloadEnabledSecretMissing_CompressedHydrateWorks(t *testing.T) {
+	t.Cleanup(viper.Reset)
+	viper.Reset()
+	viper.Set(common.PodNamespace, "kubeflow-pipelines")
+	viper.Set(common.ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+	viper.AutomaticEnv()
+
+	previous := util.CurrentWorkflowHydrator()
+	util.SetWorkflowHydrator(hydratorfake.Noop)
+	t.Cleanup(func() {
+		util.SetWorkflowHydrator(previous)
+	})
+
+	kube := k8sfake.NewClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "workflow-controller-configmap",
+			Namespace: "kubeflow-pipelines",
+		},
+		Data: map[string]string{
+			"persistence": `archive: true
+nodeStatusOffLoad: true
+clusterName: default
+postgresql:
+  host: postgres.example.invalid
+  port: 5432
+  database: argo
+  tableName: argo_workflows
+  userNameSecret:
+    name: argo-postgres-config
+    key: username
+  passwordSecret:
+    name: argo-postgres-config
+    key: password
+`,
+		},
+	})
+	cm := &ClientManager{
+		k8sCoreClient: stubKubernetesCore{client: kube},
+	}
+	cm.initWorkflowHydrator(context.Background())
+
+	h := util.CurrentWorkflowHydrator()
+	require.NotSame(t, hydratorfake.Noop, h)
+
+	lazyOK, tryErr := util.TryInitLazyOffloadHydrator(h, context.Background())
+	require.Error(t, tryErr, "missing persist Secret must keep offload init failing")
+	assert.False(t, lazyOK)
+
+	inline := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "inline-wf", UID: "inline-uid"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: workflowapi.Nodes{
+				"ok": {ID: "ok", Name: "inline-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+			},
+		},
+	}
+	require.NoError(t, h.Hydrate(context.Background(), inline))
+
+	offloaded := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "offload-wf", UID: "offload-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+	err := h.Hydrate(context.Background(), offloaded)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not ready")
+	assert.Equal(t, "offload-hash", offloaded.Status.OffloadNodeStatusVersion)
+}
