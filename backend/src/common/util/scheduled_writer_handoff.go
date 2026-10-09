@@ -143,6 +143,11 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 	deployments := make(map[string]*appsv1.Deployment, len(scheduleWriterDeployments))
 	for _, name := range scheduleWriterDeployments {
 		deployment, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			// Peer Deployments may be created after this Pod during installation.
+			// Keep this rollout wait distinct from a missing self Pod identity.
+			return fmt.Errorf("managed writer Deployment %s does not exist yet; waiting for installation or rollout", name)
+		}
 		if err != nil {
 			return fmt.Errorf("get managed writer Deployment %s: %w", name, err)
 		}

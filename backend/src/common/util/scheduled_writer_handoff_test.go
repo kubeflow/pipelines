@@ -395,3 +395,28 @@ func TestManagedScheduleWriterRegistrationRequiresRuntimeIdentity(t *testing.T) 
 		require.Error(t, RegisterManagedScheduleWriter(context.Background(), handoffClient(deployments, pods), "kubeflow", pods[0].Name))
 	}
 }
+
+func TestManagedScheduleWriterWaitsForMissingDeployment(t *testing.T) {
+	for _, missing := range scheduleWriterDeployments {
+		t.Run(missing, func(t *testing.T) {
+			t.Parallel()
+			deployments, pods := handoffFixtures()
+			client := handoffClient(deployments, pods)
+			deployment, err := client.AppsV1().Deployments("kubeflow").Get(context.Background(), missing, metav1.GetOptions{})
+			require.NoError(t, err)
+			require.NoError(t, client.AppsV1().Deployments("kubeflow").Delete(context.Background(), missing, metav1.DeleteOptions{}))
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			waits := 0
+			err = WaitForManagedScheduleWriters(ctx, client, "kubeflow", pods[1].Name, func(err error) {
+				waits++
+				require.Contains(t, err.Error(), missing)
+				require.Contains(t, err.Error(), "waiting for installation or rollout")
+				_, createErr := client.AppsV1().Deployments("kubeflow").Create(ctx, deployment, metav1.CreateOptions{})
+				require.NoError(t, createErr)
+			})
+			require.NoError(t, err, "handoff must recover without restarting the controller")
+			require.Equal(t, 1, waits)
+		})
+	}
+}
