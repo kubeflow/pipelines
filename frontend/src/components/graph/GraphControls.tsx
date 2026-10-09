@@ -80,9 +80,7 @@ export default function GraphControls({
           <PaletteButton
             label='Expand all'
             tooltip={
-              renderSubdags
-                ? 'Expand all sub-DAGs'
-                : 'Enable sub-DAG rendering to expand all'
+              renderSubdags ? 'Expand all sub-DAGs' : 'Enable sub-DAG rendering to expand all'
             }
             disabled={!renderSubdags || !hasSubDags}
             onClick={onExpandAll}
