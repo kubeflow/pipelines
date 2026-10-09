@@ -322,6 +322,19 @@ PY
   drain source
   # Full cluster snapshot is intentional for this controlled RBAC-only fixture.
   kube get roles,rolebindings,clusterroles,clusterrolebindings --all-namespaces -o json >"$state/source-rbac.json"
+  # This isolated fixture enables multi-user mode on the standalone overlay.
+  # Explicitly include its handoff grant; ordinary standalone installs omit it.
+  python3 - <<'HANDOFF'
+from pathlib import Path
+import yaml
+path = Path('.github/resources/manifests/standalone/default/kustomization.yaml')
+manifest = yaml.safe_load(path.read_text())
+resource = '../../../../../manifests/kustomize/base/installs/multi-user/managed-schedule-writers.yaml'
+if resource not in manifest.setdefault('resources', []):
+    manifest['resources'].append(resource)
+manifest['namespace'] = 'kubeflow'
+path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+HANDOFF
   kube kustomize --load-restrictor LoadRestrictionsNone .github/resources/manifests/standalone/default >"$state/candidate.yaml"
   kube kustomize manifests/kustomize/cluster-scoped-resources >"$state/candidate-cluster.yaml"
   python3 - "$state" <<'PY'

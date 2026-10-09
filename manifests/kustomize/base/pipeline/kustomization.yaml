@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - metadata-writer
   - ui-signing-key
-  - managed-schedule-writers.yaml
   - ml-pipeline-apiserver-deployment.yaml
   - ml-pipeline-apiserver-role.yaml
   - ml-pipeline-apiserver-rolebinding.yaml

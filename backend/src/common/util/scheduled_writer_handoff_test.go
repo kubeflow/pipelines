@@ -199,6 +199,7 @@ func TestManagedScheduleWriterWaitRegistersBeforeFence(t *testing.T) {
 
 func TestManagedScheduleWritersRejectsInheritedContainerClaim(t *testing.T) {
 	for _, mutation := range []func(*corev1.Pod){
+		func(p *corev1.Pod) { p.UID = "replacement-pod" },
 		func(p *corev1.Pod) { p.Spec.Containers[0].Image = "registry/writer:old" },
 		func(p *corev1.Pod) {
 			p.Spec.Containers[0].Image = "registry/writer:old"
@@ -215,7 +216,12 @@ func TestManagedScheduleWritersRejectsInheritedContainerClaim(t *testing.T) {
 	}
 	deployments, pods := handoffFixtures()
 	pods[0].Spec.Containers[0].Image = "registry/writer:old"
-	require.Error(t, RegisterManagedScheduleWriter(context.Background(), handoffClient(deployments, pods), "kubeflow", pods[0].Name))
+	client := handoffClient(deployments, pods)
+	require.Error(t, ManagedScheduleWritersReady(context.Background(), client, "kubeflow"))
+	// A compatible process can attest its current incarnation again. The
+	// requested image is hashed, but its name need not match runtime reporting.
+	require.NoError(t, RegisterManagedScheduleWriter(context.Background(), client, "kubeflow", pods[0].Name))
+	require.NoError(t, ManagedScheduleWritersReady(context.Background(), client, "kubeflow"))
 }
 
 func TestManagedScheduleWriterHandoffCachesOnlySuccess(t *testing.T) {
@@ -328,5 +334,64 @@ func TestManagedScheduleWriterHandoffCanceledWaiter(t *testing.T) {
 		require.ErrorIs(t, err, context.Canceled)
 	case <-time.After(time.Second):
 		t.Error("canceled caller waited for another caller's Kubernetes request")
+	}
+}
+
+func TestManagedScheduleWritersIgnoreCompletedPods(t *testing.T) {
+	for _, phase := range []corev1.PodPhase{corev1.PodFailed, corev1.PodSucceeded} {
+		t.Run(string(phase), func(t *testing.T) {
+			deployments, pods := handoffFixtures()
+			completed := pods[0].DeepCopy()
+			completed.Name = "leftover-terminal-pod"
+			completed.UID = "leftover"
+			completed.Annotations = nil
+			completed.Status.Phase = phase
+			completed.Status.Reason = "Evicted"
+			completed.Status.ContainerStatuses[0].State = corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{}}
+			pods = append(pods, completed)
+			client := handoffClient(deployments, pods)
+			require.NoError(t, ManagedScheduleWritersReady(context.Background(), client, "kubeflow"))
+			require.Error(t, RegisterManagedScheduleWriter(context.Background(), client, "kubeflow", completed.Name))
+			// The same leftover is a fence if it is not terminal.
+			completed.Status.Phase = corev1.PodPending
+			require.Error(t, ManagedScheduleWritersReady(context.Background(), handoffClient(deployments, pods), "kubeflow"))
+		})
+	}
+}
+
+func TestManagedScheduleWriterRuntimeImageNames(t *testing.T) {
+	for _, test := range []struct{ name, requested, reported string }{
+		{"short image", "kfp-api-server:2.18.0", "docker.io/library/kfp-api-server:2.18.0"},
+		{"tag resolved to digest", "mirror.example/kfp:release", "mirror.example/kfp@sha256:resolved"},
+		{"digest pin", "ghcr.io/kubeflow/kfp-api-server@sha256:pinned", "runtime-cache/kfp:resolved"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			deployments, pods := handoffFixtures()
+			pods[0].Annotations = nil
+			pods[0].Spec.Containers[0].Image = test.requested
+			pods[0].Status.ContainerStatuses[0].Image = test.reported
+			client := handoffClient(deployments, pods)
+			require.NoError(t, RegisterManagedScheduleWriter(context.Background(), client, "kubeflow", pods[0].Name))
+			require.NoError(t, ManagedScheduleWritersReady(context.Background(), client, "kubeflow"))
+			pod, err := client.CoreV1().Pods("kubeflow").Get(context.Background(), pods[0].Name, metav1.GetOptions{})
+			require.NoError(t, err)
+			pod.Status.ContainerStatuses[0].ContainerID = "containerd://replacement"
+			_, err = client.CoreV1().Pods("kubeflow").UpdateStatus(context.Background(), pod, metav1.UpdateOptions{})
+			require.NoError(t, err)
+			require.Error(t, ManagedScheduleWritersReady(context.Background(), client, "kubeflow"))
+		})
+	}
+}
+
+func TestManagedScheduleWriterRegistrationRequiresRuntimeIdentity(t *testing.T) {
+	for _, mutate := range []func(*corev1.Pod){
+		func(p *corev1.Pod) { p.Status.ContainerStatuses[0].ImageID = "" },
+		func(p *corev1.Pod) { p.Status.ContainerStatuses[0].ContainerID = "" },
+		func(p *corev1.Pod) { p.Status.ContainerStatuses[0].State.Running = nil },
+	} {
+		deployments, pods := handoffFixtures()
+		pods[0].Annotations = nil
+		mutate(pods[0])
+		require.Error(t, RegisterManagedScheduleWriter(context.Background(), handoffClient(deployments, pods), "kubeflow", pods[0].Name))
 	}
 }
