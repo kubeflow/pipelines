@@ -128,6 +128,43 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 
+	It("runs all 120 nodes of a cache-disabled DAG", Label("E2EScale"), func() {
+		var pipelineDir = "valid/scale"
+		pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, "dag_120.yaml")
+		uploadedPipeline, err := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+		Expect(err).NotTo(HaveOccurred())
+		testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+		version := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+		runID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext,
+			uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &version.PipelineVersionID,
+			experimentID, nil, 1200)
+
+		run := testutil.GetPipelineRun(runClient, &runID)
+		AddReportEntry("120-node DAG run", run)
+		Expect(run.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED.Pointer()),
+			"120-node DAG did not succeed; run ID: %s", runID)
+
+		expectedNames := make([]string, 120)
+		for nodeID := range expectedNames {
+			expectedNames[nodeID] = fmt.Sprintf("scale-node-%03d", nodeID)
+		}
+		// Task persistence may lag the terminal run update.
+		Eventually(func(g Gomega) {
+			run := testutil.GetPipelineRun(runClient, &runID)
+			var actualNames []string
+			for _, task := range run.Tasks {
+				if !strings.HasPrefix(task.DisplayName, "scale-node-") {
+					continue // The root DAG is a task too.
+				}
+				actualNames = append(actualNames, task.DisplayName)
+				g.Expect(task.State).To(Equal(run_model.PipelineTaskTaskStateSUCCEEDED.Pointer()), task.DisplayName)
+				g.Expect(task.Pods).To(ContainElement(HaveField("Type", Equal(run_model.PipelineTaskTaskPodTypeEXECUTOR.Pointer()))),
+					"Task %s must have an executor pod, not only a driver or cache hit", task.DisplayName)
+			}
+			g.Expect(actualNames).To(ConsistOf(expectedNames), "Expected exactly 120 executed DAG nodes")
+		}, time.Minute, 2*time.Second).Should(Succeed())
+	})
+
 	// Few of the following pipelines randomly fail in Multi User Mode during CI run - which is why a FlakeAttempt is added, but we need to investigate, create ticket and fix it in the future
 	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", E2eCritical), func() {
 		var pipelineDir = "valid/critical"
