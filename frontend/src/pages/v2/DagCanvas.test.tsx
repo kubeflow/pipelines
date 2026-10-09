@@ -139,6 +139,10 @@ it('places expand then collapse above native zoom controls and toggles all desce
   expect(buttons[3]).toHaveClass('react-flow__controls-zoomout');
   expect(buttons[4]).toHaveClass('react-flow__controls-fitview');
   expect(buttons[5]).toHaveClass('react-flow__controls-interactive');
+  expect(buttons[6]).toHaveAttribute('aria-label', 'Render subdags');
+  expect(buttons[6]).toHaveAttribute('aria-pressed', 'true');
+  expect(within(buttons[6]).getByTestId('FullscreenExitIcon')).toBeInTheDocument();
+  expect(screen.queryByRole('switch', { name: 'Render subdags' })).not.toBeInTheDocument();
   expect(toolbar).toHaveClass('bottom', 'left');
   expect(toolbar).not.toContainElement(screen.getByText('Layers'));
   fireEvent.click(collapseAll);
@@ -190,10 +194,11 @@ it('switches to click-through mode without recursively resolving children and pr
       <DagCanvas {...options} />
     </CommonTestWrapper>,
   );
-  const toggle = screen.getByRole('switch', { name: 'Render subdags' });
-  expect(toggle).toBeChecked();
+  const toggle = screen.getByRole('button', { name: 'Render subdags' });
+  expect(toggle).toHaveAttribute('aria-pressed', 'true');
   fireEvent.click(toggle);
-  expect(toggle).not.toBeChecked();
+  expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  expect(within(toggle).getByTestId('FullscreenIcon')).toBeInTheDocument();
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
   expect(document.querySelectorAll('.react-flow__node-SUB_DAG')).toHaveLength(1);
   expect(document.querySelector('[data-id="task.workflow"]')).toHaveStyle({
@@ -208,7 +213,7 @@ it('switches to click-through mode without recursively resolving children and pr
       <DagCanvas {...options} elements={resolve(['root'])} />
     </CommonTestWrapper>,
   );
-  expect(toggle).not.toBeChecked();
+  expect(toggle).toHaveAttribute('aria-pressed', 'false');
   expect(getSubDagElements).not.toHaveBeenCalled();
   fireEvent.click(screen.getByTestId('expand-button'));
   expect(options.onLayersUpdate).toHaveBeenCalledWith(['root', 'workflow']);
@@ -218,7 +223,7 @@ it('switches to click-through mode without recursively resolving children and pr
       <DagCanvas {...options} layers={layers} elements={resolve(layers)} />
     </CommonTestWrapper>,
   );
-  expect(toggle).not.toBeChecked();
+  expect(toggle).toHaveAttribute('aria-pressed', 'false');
   expect(screen.getByText('Prepare data')).toBeInTheDocument();
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
   fireEvent.click(toggle);
@@ -234,7 +239,7 @@ it('retains inline collapse choices across rendering-mode changes', () => {
     </CommonTestWrapper>,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Collapse Training and evaluation' }));
-  const toggle = screen.getByRole('switch', { name: 'Render subdags' });
+  const toggle = screen.getByRole('button', { name: 'Render subdags' });
   fireEvent.click(toggle);
   fireEvent.click(toggle);
   expect(
@@ -266,8 +271,33 @@ it('does not select a flat namesake of a hidden nested selection', () => {
   expect(document.querySelector(`[data-id='["root","workflow","fit","task.train"]']`)).toHaveClass(
     'selected',
   );
-  fireEvent.click(screen.getByRole('switch', { name: 'Render subdags' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Render subdags' }));
   expect(document.querySelector('[data-id="task.train"]')).not.toHaveClass('selected');
+});
+
+it('locks dragging and node selection without disabling viewport controls', () => {
+  const options = props();
+  render(
+    <CommonTestWrapper>
+      <DagCanvas {...options} />
+    </CommonTestWrapper>,
+  );
+  const lock = document.querySelector('.react-flow__controls-interactive')!;
+  fireEvent.click(lock);
+  expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
+  expect(document.querySelector('[data-id="task.deploy"]')).not.toHaveClass('draggable');
+  fireEvent.click(screen.getByText('Train model'));
+  expect(options.onElementClick).not.toHaveBeenCalled();
+  expect(document.querySelector('.react-flow__controls-zoomin')).not.toBeDisabled();
+  const mode = screen.getByRole('button', { name: 'Render subdags' });
+  fireEvent.click(mode);
+  expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
+  fireEvent.click(mode);
+  expect(document.querySelector('[data-id="task.workflow"]')).not.toHaveClass('draggable');
+  fireEvent.click(lock);
+  expect(document.querySelector('[data-id="task.workflow"]')).toHaveClass('draggable');
+  fireEvent.click(screen.getByText('Train model'));
+  expect(options.onElementClick).toHaveBeenCalledTimes(1);
 });
 
 it('supports keyboard collapse and expansion', async () => {

@@ -12,8 +12,11 @@ import DagCanvas from './DagCanvas';
 // Drive live position changes and drag-stop without depending on jsdom SVG geometry.
 vi.mock('@xyflow/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@xyflow/react')>()),
+  MiniMap: () => null,
+  Background: () => null,
   ReactFlow: ({
     nodes,
+    children,
     onNodesChange,
     onNodeDragStop,
   }: ReactFlowProps<Node<FlowElementDataBase>, Edge>) => (
@@ -42,6 +45,7 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
           {JSON.stringify(node.position)}
         </button>
       ))}
+      {children}
     </div>
   ),
 }));
@@ -87,6 +91,8 @@ it('still respects a read-only host for both leaves and groups', () => {
       setFlowElements={vi.fn()}
     />,
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   for (const id of ['task.workflow', 'task.deploy']) {
     const node = screen.getByTestId(id);
     const position = node.textContent;
@@ -95,6 +101,31 @@ it('still respects a read-only host for both leaves and groups', () => {
     fireEvent.click(node);
     expect(node.textContent).toBe(position);
   }
+});
+
+it('rejects live drag updates while locked, including after a refresh', () => {
+  const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
+  const options = {
+    layers: ['root'],
+    elements: resolve(['root']),
+    getSubDagElements: resolve,
+    onLayersUpdate: vi.fn(),
+    onElementClick: vi.fn(),
+    setFlowElements: vi.fn(),
+  };
+  const { rerender } = render(<DagCanvas {...options} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
+  rerender(<DagCanvas {...options} elements={resolve(['root'])} />);
+  for (const id of ['task.workflow', 'task.deploy']) {
+    const node = screen.getByTestId(id);
+    const position = node.textContent;
+    fireEvent.mouseMove(node);
+    fireEvent.click(node);
+    expect(node.textContent).toBe(position);
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
+  fireEvent.mouseMove(screen.getByTestId('task.workflow'));
+  expect(screen.getByTestId('task.workflow')).toHaveTextContent('{"x":45,"y":90}');
 });
 
 it('keeps drag positions separate for focused and parent-relative coordinate frames', () => {
