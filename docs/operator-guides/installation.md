@@ -3,7 +3,7 @@
 :::{warning}
 Upgrading an existing installation to 2.18? Read the
 [2.18 upgrade checklist](upgrade-2.18.md) before applying manifests. It covers
-schedule adoption or reviewed recreation, coordinated API/controller/RBAC rollout, explicit pipeline
+automatic schedule adoption, coordinated API/controller/RBAC rollout, explicit pipeline
 lookup namespaces, and the UI signing-key startup requirement.
 :::
 

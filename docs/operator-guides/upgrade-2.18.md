@@ -18,68 +18,84 @@ omit that setup.
 
 | Area | What changes | Operator action |
 | --- | --- | --- |
-| Legacy multi-user schedules | Jobs without API-owned scheduling state no longer execute. This includes disabled jobs when later enabled. Audit mode does not bypass the requirement. | Choose one-time offline adoption of the stored baseline, or review and recreate definitions through the API before their next execution. See [schedule migration](scheduled-service-accounts.md#upgrade-and-revocation). |
+| Legacy multi-user schedules | Jobs without API-owned scheduling state no longer execute. This includes disabled jobs when later enabled. Audit mode does not bypass the requirement. | Apply the complete manifests for automatic adoption of stored definitions and progress. Investigate and recreate affected definitions if that baseline is unsuitable. See [schedule migration](scheduled-service-accounts.md#upgrade-and-revocation). |
 | API, controller, and RBAC | Multi-user scheduled executions go through the API under the controller's identity. Custom accounts require scoped authorization for both the creator and controller. | Apply the complete release manifests together, retain `--multiUser=true` and removal of controller `workflows/create`, and update custom roles. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
 | UI signing key | The complete default manifests automatically create or reuse a persistent signing key and start the UI when it is available. First adoption briefly interrupts the UI and invalidates old TensorBoard URLs. | Apply the complete manifests, wait for the UI rollout, then reopen TensorBoard. No manual key generation is needed. Custom overlays and GitOps have separate checks. See [UI startup](#prepare-the-ui-signing-key). |
 
 ## Plan the multi-user rollout
 
-Choose the schedule migration policy before the maintenance window:
+### Standard managed installations: automatic schedule adoption
 
-- **Adoption:** explicitly accept database-stored definitions as the existing
-  installation's baseline. The one-time adoption command preserves enabled and
-  disabled schedules and retained execution progress. It does not prove that
-  historical creators were authorized to submit those definitions. Current
-  execution-policy and service-account checks still apply. This option avoids
-  per-user review and recreation for ordinary upgrades.
-- **Reviewed recreation:** investigate and recreate affected definitions if the
-  installation may have been compromised or accepting the stored baseline is
-  unsuitable. Use independently reviewed pipeline and parameter sources, not an
-  unreviewed copy of a mutable ScheduledWorkflow or old database row. CR-only
-  schedules without an API job always require API creation by an authorized caller.
+Apply the complete 2.18 manifests through the normal managed rollout. **Ordinary
+upgrades do not require an operator stop/migrate/restart sequence, a migration
+Job, or per-user schedule recreation.** The API continues serving ordinary
+requests while adoption runs in the background; normal deployment availability
+still depends on your replica count and rollout settings.
 
-For either path, coordinate the API, controller, and RBAC cutover:
+While the managed writer handoff is pending, the upgraded API returns retryable
+`Unavailable` for schedule creation and enable/disable requests before changing
+SQL or Kubernetes state. Retry them after the rollout; they are not queued as
+accepted intent during the wait. Run operations, reads, reporting, and deletion
+remain available. Existing legacy schedules retain old behavior until handoff,
+while the new controller waits. This is an automatic scheduling-write pause, not
+an operator-managed outage.
+
+The upgraded controller automatically waits for the managed API/controller
+Deployments to finish rolling out and for incompatible or terminating writer Pods
+to leave. Each upgraded process registers its own Pod; operators must not copy
+registration annotations into Pod templates. After this handoff, adoption restores
+API routing for legacy schedules while preserving their enabled/disabled state
+and retained execution progress. Existing tasks do not need to finish.
+
+Migration processes bounded pages, including disabled schedules, with a timeout
+for each record. Failed records are logged and retried without preventing later
+records from migrating or blocking ordinary API availability. A schedule whose
+state or Kubernetes synchronization is incomplete remains blocked until its own
+migration succeeds; healthy and newly created schedules are independent.
 
 1. Back up the database, ScheduledWorkflow objects, deployment configuration, and
-   existing signing Secret. Inventory schedules, their accounts, and custom roles.
-   Record replica counts and pause GitOps/autoscaling that could restore old pods.
-2. Block recurring-run creation, recreation, and direct schedule edits. Stop all
-   ScheduledWorkflow controllers and wait for their pods to exit. Stop every old
-   API replica and wait for termination and outstanding database transactions to
-   finish. This includes all installations sharing the database: an old API's
-   persistence-report handler can overwrite stored execution inputs.
-3. Apply the complete release configuration, images, and scoped RBAC with API and
-   controller replicas kept at zero. Retain `--multiUser=true`, the controller's
-   restriction against direct `workflows/create`, and its pipeline-read permissions.
-   Keep API/controller scheduling timezone configuration consistent.
-4. For **adoption**, run the upgraded API binary once as an isolated Job with
-   `--adopt-legacy-recurring-runs`, following the
-   [cutover procedure](scheduled-service-accounts.md#cutover). Require successful
-   exit and `recurring_run_adoption id=legacy-2.18 ready=true` before resuming
-   scheduling. An incomplete receipt requires resolving the diagnostic and retrying
-   synchronization; never delete the receipt or reset counters to force adoption.
-   Existing tasks need not finish, but active workflows must have matching API run
-   records. Follow the documented recovery procedure for an unreported workflow.
-5. Restore the upgraded API replicas and wait for readiness. Inspect its migration
-   logs and perform the [database/CR cross-check](scheduled-service-accounts.md#inventory-and-status).
-   An inventory error is not evidence of zero affected schedules. For **recreation**,
-   disable old schedules through the API and create reviewed replacements, initially
-   disabled. Account for existing executions before enabling replacements: disabling
-   a schedule does not stop its runs. Do not seed scheduling-state rows manually.
-6. Restore only upgraded controller replicas. For adoption, verify that an enabled
-   schedule submits its next tick, disabled schedules stay disabled, retained progress
-   and concurrency limits are honored, and no duplicate execution appears. For
-   recreation, enable a reviewed replacement and verify its execution, selected
-   account, namespace, and concurrency behavior before migrating the rest. Recheck
-   inventory and retire obsolete schedules through the API when history is no longer
-   needed. Resume normal edits and deployment automation after verification.
+   signing Secret. Inventory schedules, intended accounts, and custom roles.
+2. Apply the complete release configuration, images, and RBAC. Retain the managed
+   API/controller Pod identity configuration and handoff permissions, controller
+   `--multiUser=true`, restriction against direct `workflows/create`, and pipeline
+   read permissions. Keep API/controller scheduling timezones consistent.
+3. Wait for the Deployments to roll out. Inspect API/controller logs for handoff
+   waits and per-schedule adoption retries. Resolve incompatible remaining Pods,
+   missing RBAC, or failed rollouts rather than bypassing the handoff.
+4. Verify that enabled schedules submit their next ticks, disabled schedules stay
+   disabled, retained progress and concurrency limits are honored, and no duplicate
+   execution appears. Check both previously active and idle schedules. Investigate
+   persistent record-specific migration errors; do not reset counters or delete
+   state/receipts to force migration.
 
-The maintenance window pauses API availability and new scheduled submissions;
-running tasks are not terminated. Calls made during the API outage depend on their
-normal retry behavior. Do not overlap old and new API writers or restart an old
-controller against adopted state. Investigate any earlier mixed-version overlap
-separately: missing-state inventory and adoption cannot detect or undo all historical
-changes. Once adoption commits, roll forward with the upgraded components.
+Adoption accepts **database-stored definitions as the existing installation's
+baseline**. It does not prove that historical creators were authorized to submit
+those definitions. Current pipeline, namespace, execution-policy, and
+service-account checks still apply; adoption grants no new custom-account access.
+If the installation may have been compromised or this baseline is unsuitable,
+investigate and recreate affected definitions from independently reviewed sources.
+CR-only schedules without an API job still require API creation by an authorized
+caller. Account for existing executions before enabling replacements: disabling a
+schedule does not stop its runs.
+
+### Customized deployments and recovery
+
+The automatic handoff covers the standard `ml-pipeline` and
+`ml-pipeline-scheduledworkflow` Deployments and their labeled Pods in the
+installation namespace. It does not discover separate installations or external
+writers sharing the database. Custom overlays must retain the handoff configuration
+and permissions and account for every writer; renamed or unmanaged deployments
+need an equivalent coordinated migration plan. Image-only upgrades omit required
+RBAC and configuration.
+
+The offline `--adopt-legacy-recurring-runs` command remains a recovery tool, not a
+prerequisite for normal startup. Use its detailed recovery procedure only when
+needed, with old API/controller writers stopped and outstanding transactions
+drained. Never run it concurrently with uncontrolled writers. Missing or mismatched
+execution records require investigation or report recovery, not counter resets.
+Do not restore old writable APIs after adoption or restart an old controller
+against adopted state. Adoption cannot detect or undo all changes from an earlier
+unsafe mixed-version rollout.
 
 The [detailed schedule guide](scheduled-service-accounts.md#upgrade-and-revocation)
 includes inventory queries, account-specific grants, revocation behavior, and

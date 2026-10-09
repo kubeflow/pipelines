@@ -1,7 +1,7 @@
 # RBAC and client migration for 2.18
 
 Start with the [2.18 upgrade checklist](upgrade-2.18.md) for rollout ordering,
-legacy schedule adoption or reviewed recreation and UI startup. A separate
+automatic legacy schedule adoption and UI startup. A separate
 {ref}`lookup compatibility warning <make-pipeline-lookup-namespaces-explicit>`
 applies to custom integrations using the pipeline-by-name API, not ordinary
 SDK/CLI usage.
