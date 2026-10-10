@@ -53,6 +53,9 @@ type Client struct {
 type Config struct {
 	// Endpoint in host:port form, e.g. ml-pipeline.kubeflow:8887
 	Endpoint string
+	// TokenSource overrides projected-file credentials for this client only.
+	// When nil, the client reads the launcher token at KFPTokenPath.
+	TokenSource TokenSource
 	// Optional gRPC connection backoff settings propagated from the API server.
 	BackoffBaseDelay  string
 	BackoffMultiplier string
@@ -101,7 +104,7 @@ func New(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 	dialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(defaultMaxCallRecvMsgSize)),
 		grpc.WithTransportCredentials(creds),
-		grpc.WithPerRPCCredentials(newTokenPerRPCCredentials(tlsCfg != nil)),
+		grpc.WithPerRPCCredentials(newTokenPerRPCCredentials(tlsCfg != nil, cfg.TokenSource)),
 	}
 	connectParams, err := cfg.connectParams()
 	if err != nil {
