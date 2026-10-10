@@ -40,9 +40,12 @@ trap reporting_cleanup EXIT
 if [[ "$reporting_phase" == cleanup ]]; then exit 0; fi
 
 if [[ "$reporting_phase" == source ]]; then
+  # Source preparation restores controller namespaces after its own drain.
+  configure_controllers
   start_forward
   mint_token
   check prepare --endpoint "$endpoint" --token-file "$state/token"
+  restore_controller_namespaces
   exit 0
 fi
 
