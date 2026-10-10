@@ -843,6 +843,90 @@ async function run(liveTip) {
                     'expression': 'b' * 40 + ':.github/workflows',
                 })
 
+    def test_push_revocation_revokes_only_stale_success(self):
+        script = r"""
+const {revokeStaleGreens} = require(process.argv[1]);
+const crypto = require('node:crypto');
+const B1 = 'a'.repeat(40);
+const B2 = 'c'.repeat(40);
+const stamp = base => crypto.createHash('sha256')
+  .update(JSON.stringify(['master', base])).digest('hex');
+const successDesc = base =>
+  'Expected CI and all checks passed; base policy ' + stamp(base) + '.';
+const statuses = {
+  stale: {state: 'success', description: successDesc(B1)},
+  fresh: {state: 'success', description: successDesc(B2)},
+  legacy: {state: 'success', description: 'Expected CI and all checks passed for this head.'},
+  failure: {state: 'failure', description: 'some failure'},
+  pending: {state: 'pending', description: 'some pending'},
+  blocked: {state: 'success', description: successDesc(B1)},
+};
+const prs = [
+  {number: 1, head: {sha: 'stale'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 2, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 3, head: {sha: 'legacy'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 4, head: {sha: 'failure'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 5, head: {sha: 'pending'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 6, head: {sha: 'blocked'}, base: {ref: 'master', sha: B1},
+    labels: [{name: 'needs-ok-to-test'}]},
+];
+const listCalls = [];
+const writes = [];
+const github = {
+  rest: {pulls: {list: {}}, repos: {
+    getCombinedStatusForRef: async ({ref}) => ({
+      data: {statuses: statuses[ref] ?
+        [{context: 'ci-passed', ...statuses[ref]}] : []}}),
+    createCommitStatus: async request => {writes.push(request);},
+  }},
+  paginate: async (method, params) => {listCalls.push(params); return prs;},
+};
+github.paginate.iterator = async function* (method, params) {
+  yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+  yield await github.rest.repos.getCombinedStatusForRef(params);
+};
+const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
+revokeStaleGreens({github, context, tip: B2}).then(count => {
+  console.log(JSON.stringify({count, writes, listCalls}));
+}).catch(e => {console.error(e); process.exit(1);});
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertEqual(actual['count'], 2)
+        self.assertEqual([write['sha'] for write in actual['writes']],
+                         ['stale', 'legacy'])
+        for write in actual['writes']:
+            self.assertEqual(write['context'], 'ci-passed')
+            self.assertEqual(write['state'], 'failure')
+            self.assertEqual(write['description'],
+                             'Base advanced; re-test against new master.')
+            self.assertLessEqual(len(write['description']), 140)
+        self.assertEqual(actual['listCalls'][0]['base'], 'master')
+        self.assertEqual(actual['listCalls'][0]['state'], 'open')
+        self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_rejects_non_sha_tip(self):
+        script = r"""
+const {revokeStaleGreens} = require(process.argv[1]);
+const github = {rest: {pulls: {list: {}}},
+  paginate: async () => {throw new Error('must not list');}};
+revokeStaleGreens({github, context: {repo: {owner: 'o', repo: 'r'}}, tip: 'main'})
+  .then(() => console.log(JSON.stringify({error: null})))
+  .catch(e => console.log(JSON.stringify({error: e.message})));
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertEqual(actual['error'],
+                         'Stale revocation requires a full base commit SHA')
+
 
 if __name__ == '__main__':
     unittest.main()
