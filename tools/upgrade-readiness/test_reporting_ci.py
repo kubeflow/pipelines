@@ -49,7 +49,16 @@ cleanup() { echo cleanup >>"$state/calls"; rm -f "$state/token"; }
                 python = commands / 'python3'
                 python.write_text(r"""#!/usr/bin/env bash
 set -euo pipefail
-[[ "$3" == --fixture-state && "$4" == "$TEST_STATE/fixture/state.json" ]]
+# Endpoint arguments precede fixture-state for prepare/recover, but not restore.
+args=("$@")
+fixture_paths=0
+for ((i=0; i<${#args[@]}; i++)); do
+  if [[ "${args[i]}" == --fixture-state ]]; then
+    [[ "${args[i+1]}" == "$TEST_STATE/fixture/state.json" ]] || exit 1
+    fixture_paths=$((fixture_paths + 1))
+  fi
+done
+[[ "$fixture_paths" == 1 ]] || exit 1
 echo "$2" >>"$TEST_STATE/calls"
 [[ "$2" != "$FAIL_PHASE" ]]
 """)
