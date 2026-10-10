@@ -10,6 +10,7 @@ set -euo pipefail
 reporting_phase=${1:?Specify source, target, or cleanup}
 [[ "$reporting_phase" == source || "$reporting_phase" == target || "$reporting_phase" == cleanup ]]
 source .github/resources/scripts/readiness-schedules.sh library
+fixture_dir=$state/fixture
 reporting_state=$state/reporting
 mkdir -p "$reporting_state"
 check() {

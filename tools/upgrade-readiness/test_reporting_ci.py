@@ -5,6 +5,7 @@
 # Distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
 """Execute reporting cleanup and verify the opt-in evidence boundary."""
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -17,6 +18,61 @@ WORKFLOW = ROOT / '.github/workflows/upgrade-test.yml'
 
 
 class ReportingCITest(unittest.TestCase):
+
+    def test_script_defines_fixture_path_and_cleans_up_after_phase_errors(self):
+        # The release library provides state, but does not define fixture_dir.
+        for phase, fail_phase in (('source', ''), ('source', 'prepare'),
+                                  ('target', 'recover'), ('cleanup', '')):
+            with self.subTest(phase=phase, failure=fail_phase), \
+                 tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                scripts = root / '.github/resources/scripts'
+                scripts.mkdir(parents=True)
+                library = r"""state=$TEST_STATE
+helpers=helpers
+endpoint=http://127.0.0.1:8888
+context=kind-kfp-readiness
+configure_controllers() { :; }
+configure_api() { :; }
+start_forward() { :; }
+mint_token() { touch "$state/token"; }
+restore_controller_namespaces() { :; }
+cleanup() { echo cleanup >>"$state/calls"; rm -f "$state/token"; }
+"""
+                (scripts / 'readiness-schedules.sh').write_text(library)
+                state = root / 'state'
+                (state / 'fixture').mkdir(parents=True)
+                (state / 'fixture/state.json').write_text('{}')
+                (state / 'token').write_text('synthetic')
+                commands = root / 'bin'
+                commands.mkdir()
+                python = commands / 'python3'
+                python.write_text(r"""#!/usr/bin/env bash
+set -euo pipefail
+[[ "$3" == --fixture-state && "$4" == "$TEST_STATE/fixture/state.json" ]]
+echo "$2" >>"$TEST_STATE/calls"
+[[ "$2" != "$FAIL_PHASE" ]]
+""")
+                python.chmod(0o755)
+                env = dict(
+                    os.environ,
+                    TEST_STATE=str(state),
+                    FAIL_PHASE=fail_phase,
+                    PATH=str(commands) + os.pathsep + os.environ['PATH'])
+                env.pop('fixture_dir', None)
+                result = subprocess.run(['bash', str(SCRIPT), phase],
+                                        cwd=root,
+                                        env=env,
+                                        capture_output=True,
+                                        text=True)
+                self.assertEqual(result.returncode, 1 if fail_phase else 0,
+                                 result.stderr)
+                calls = (state / 'calls').read_text().splitlines()
+                expected = [] if phase == 'cleanup' else [
+                    'prepare' if phase == 'source' else 'recover'
+                ]
+                self.assertEqual(calls, expected + ['restore', 'cleanup'])
+                self.assertFalse((state / 'token').exists())
 
     def test_source_restores_watchers_then_prepares_and_resets_for_apply(self):
         source = SCRIPT.read_text().split(
