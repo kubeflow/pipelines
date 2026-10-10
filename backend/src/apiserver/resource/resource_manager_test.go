@@ -2277,7 +2277,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2294,7 +2294,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2312,7 +2312,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2330,7 +2330,7 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2348,7 +2348,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2367,7 +2367,7 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	store.DB().Close()
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -3670,7 +3670,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		DisplayName:  "pp 1",
 		Enabled:      true,
@@ -3692,7 +3692,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -3711,7 +3711,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -3729,7 +3729,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -3749,7 +3749,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp1",
 		ExperimentId: experimentID,
@@ -6561,7 +6561,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	manager.CreateDefaultExperiment("")
+	manager.CreateDefaultExperiment(context.Background(), "")
 	// Create pipeline
 
 	p := createPipelineV1("1")
@@ -6966,7 +6966,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	experimentID, err := manager.CreateDefaultExperiment("")
+	experimentID, err := manager.CreateDefaultExperiment(context.Background(), "")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -6990,7 +6990,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	experimentID, err := manager.CreateDefaultExperiment("multi-user")
+	experimentID, err := manager.CreateDefaultExperiment(multiUserContext(), "multi-user")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -8813,7 +8813,7 @@ func TestGetValidExperimentNamespacePair_MultiUserCreatesDefaultPerNamespace(t *
 
 	// An omitted experiment id resolves to a default experiment created in the
 	// caller's own namespace.
-	experimentID, namespace, err := manager.GetValidExperimentNamespacePair("", "ns1")
+	experimentID, namespace, err := manager.GetValidExperimentNamespacePair(multiUserContext(), "", "ns1")
 	require.NoError(t, err)
 	assert.Equal(t, "ns1", namespace)
 	require.NotEmpty(t, experimentID)
@@ -8825,7 +8825,7 @@ func TestGetValidExperimentNamespacePair_MultiUserCreatesDefaultPerNamespace(t *
 
 	// A second namespace must get its own default, not a reference to ns1's.
 	// The global default_experiments row cannot distinguish the two.
-	otherExperimentID, otherNamespace, err := manager.GetValidExperimentNamespacePair("", "ns2")
+	otherExperimentID, otherNamespace, err := manager.GetValidExperimentNamespacePair(multiUserContext(), "", "ns2")
 	require.NoError(t, err)
 	assert.Equal(t, "ns2", otherNamespace)
 	assert.NotEqual(t, experimentID, otherExperimentID, "ns2 must not reuse ns1's default experiment")
@@ -8835,7 +8835,7 @@ func TestGetValidExperimentNamespacePair_MultiUserCreatesDefaultPerNamespace(t *
 	assert.Equal(t, "ns2", otherExperiment.Namespace)
 
 	// Resolving again returns the existing default rather than creating another.
-	repeatID, _, err := manager.GetValidExperimentNamespacePair("", "ns1")
+	repeatID, _, err := manager.GetValidExperimentNamespacePair(multiUserContext(), "", "ns1")
 	require.NoError(t, err)
 	assert.Equal(t, experimentID, repeatID)
 }
@@ -8849,7 +8849,7 @@ func TestGetValidExperimentNamespacePair_MultiUserRequiresNamespace(t *testing.T
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
 	// Without a namespace there is nowhere to put the default experiment.
-	_, _, err := manager.GetValidExperimentNamespacePair("", "")
+	_, _, err := manager.GetValidExperimentNamespacePair(context.Background(), "", "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "namespace is required")
 }
@@ -8861,7 +8861,7 @@ func TestGetValidExperimentNamespacePair_SingleUserUnchanged(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	experimentID, namespace, err := manager.GetValidExperimentNamespacePair("", "")
+	experimentID, namespace, err := manager.GetValidExperimentNamespacePair(context.Background(), "", "")
 	require.NoError(t, err)
 	assert.Empty(t, namespace)
 	require.NotEmpty(t, experimentID)
@@ -8888,7 +8888,7 @@ func TestCreateDefaultExperiment_LookupFailureIsNotTreatedAsAbsent(t *testing.T)
 	// Break the database so the existence check fails for a reason other than absence.
 	store.Close()
 
-	_, err = manager.CreateDefaultExperiment("ns1")
+	_, err = manager.CreateDefaultExperiment(context.Background(), "ns1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to check for an existing default experiment",
 		"a broken lookup must surface as a failed check, not as a failed create")
@@ -8907,6 +8907,60 @@ func (s *lookupMissesOnceExperimentStore) GetExperimentByNameNamespace(name stri
 		return nil, util.NewResourceNotFoundError("Experiment", name)
 	}
 	return s.ExperimentStoreInterface.GetExperimentByNameNamespace(name, namespace)
+}
+
+// Denies only experiment writes, mirroring a caller who may create runs in a
+// namespace but is not allowed to create experiments there.
+type denyExperimentCreateSARClient struct{}
+
+func (denyExperimentCreateSARClient) Create(_ context.Context, sar *authzv1.SubjectAccessReview, _ v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	ra := sar.Spec.ResourceAttributes
+	allowed := ra == nil || ra.Resource != common.RbacResourceTypeExperiments
+	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{Allowed: allowed}}, nil
+}
+
+func TestCreateDefaultExperiment_RequiresExperimentCreatePermission(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, store.Close()) })
+	store.SubjectAccessReviewClientFake = denyExperimentCreateSARClient{}
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Creating the namespace's default is an experiment write, so a caller who
+	// cannot create experiments must not get one created on their behalf.
+	_, err = manager.CreateDefaultExperiment(multiUserContext(), "ns1")
+	require.Error(t, err)
+
+	// The refusal must leave nothing behind.
+	_, err = store.ExperimentStore().GetExperimentByNameNamespace("Default", "ns1")
+	require.Error(t, err, "no default experiment may be persisted when the create is refused")
+}
+
+func TestCreateDefaultExperiment_ReusesExistingWithoutCreatePermission(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, store.Close()) })
+	store.SubjectAccessReviewClientFake = denyExperimentCreateSARClient{}
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Seed the default directly, as an authorized caller would have.
+	existing, err := store.ExperimentStore().CreateExperiment(&model.Experiment{
+		Name:         "Default",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+	})
+	require.NoError(t, err)
+
+	// Reuse performs no write, so it must not require create permission.
+	got, err := manager.CreateDefaultExperiment(multiUserContext(), "ns1")
+	require.NoError(t, err, "reusing an existing default must not require experiment create permission")
+	assert.Equal(t, existing.UUID, got)
 }
 
 func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.T) {
@@ -8929,7 +8983,7 @@ func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.
 	// The loser's lookup misses, so its insert collides on (Name, Namespace).
 	manager.experimentStore = &lookupMissesOnceExperimentStore{ExperimentStoreInterface: manager.experimentStore}
 
-	got, err := manager.CreateDefaultExperiment("ns1")
+	got, err := manager.CreateDefaultExperiment(multiUserContext(), "ns1")
 	require.NoError(t, err, "a concurrent create must not fail an otherwise valid request")
 	assert.Equal(t, winner.UUID, got, "the loser must adopt the winner's experiment")
 }
