@@ -127,6 +127,13 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input field. Namespace for the run. Ignored when run.namespace is set.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -738,6 +745,10 @@
             "$ref": "#/definitions/v2beta1PluginOutput"
           },
           "description": "Output. Plugin-specific outputs populated by backend components.\nEach key is a plugin name and the value contains the plugin's output entries and state."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Optional input field. Namespace this run belongs to. Derived from the\nparent experiment when experiment_id is set. In multi-user mode with\nexperiment_id omitted, this selects the namespace whose default\nexperiment the run is placed in."
         }
       }
     },

@@ -1177,6 +1177,13 @@
             "schema": {
               "$ref": "#/definitions/v2beta1RecurringRun"
             }
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input field. Namespace for the recurring run. Ignored when\nrecurring_run.namespace is set.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -1499,6 +1506,13 @@
           {
             "name": "experiment_id",
             "description": "The ID of the parent experiment.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input field. Namespace for the run. Ignored when run.namespace is set.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -2377,8 +2391,7 @@
         },
         "namespace": {
           "type": "string",
-          "description": "TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.\nOutput only. Namespace this recurring run belongs to. Derived from the parent experiment.",
-          "readOnly": true
+          "description": "TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.\nOptional input field. Namespace this recurring run belongs to. Derived\nfrom the parent experiment when experiment_id is set."
         },
         "experiment_id": {
           "type": "string",
@@ -2739,6 +2752,10 @@
             "$ref": "#/definitions/v2beta1PluginOutput"
           },
           "description": "Output. Plugin-specific outputs populated by backend components.\nEach key is a plugin name and the value contains the plugin's output entries and state."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Optional input field. Namespace this run belongs to. Derived from the\nparent experiment when experiment_id is set. In multi-user mode with\nexperiment_id omitted, this selects the namespace whose default\nexperiment the run is placed in."
         }
       }
     },

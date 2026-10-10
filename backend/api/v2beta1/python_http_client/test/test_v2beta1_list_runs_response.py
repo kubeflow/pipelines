@@ -124,7 +124,8 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                         render_type = 'UNSPECIFIED', )
                                     }, 
                                 state_message = '0', )
-                            }, )
+                            }, 
+                        namespace = '0', )
                     ], 
                 total_size = 56, 
                 next_page_token = '0'

@@ -52,7 +52,8 @@ class V2beta1Run(object):
         'recurring_run_id': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]',
         'plugins_input': 'dict(str, object)',
-        'plugins_output': 'dict(str, V2beta1PluginOutput)'
+        'plugins_output': 'dict(str, V2beta1PluginOutput)',
+        'namespace': 'str'
     }
 
     attribute_map = {
@@ -75,10 +76,11 @@ class V2beta1Run(object):
         'recurring_run_id': 'recurring_run_id',
         'state_history': 'state_history',
         'plugins_input': 'plugins_input',
-        'plugins_output': 'plugins_output'
+        'plugins_output': 'plugins_output',
+        'namespace': 'namespace'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, namespace=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -104,6 +106,7 @@ class V2beta1Run(object):
         self._state_history = None
         self._plugins_input = None
         self._plugins_output = None
+        self._namespace = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -146,6 +149,8 @@ class V2beta1Run(object):
             self.plugins_input = plugins_input
         if plugins_output is not None:
             self.plugins_output = plugins_output
+        if namespace is not None:
+            self.namespace = namespace
 
     @property
     def experiment_id(self):
@@ -594,6 +599,29 @@ class V2beta1Run(object):
         """
 
         self._plugins_output = plugins_output
+
+    @property
+    def namespace(self):
+        """Gets the namespace of this V2beta1Run.  # noqa: E501
+
+        Optional input field. Namespace this run belongs to. Derived from the parent experiment when experiment_id is set. In multi-user mode with experiment_id omitted, this selects the namespace whose default experiment the run is placed in.  # noqa: E501
+
+        :return: The namespace of this V2beta1Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, namespace):
+        """Sets the namespace of this V2beta1Run.
+
+        Optional input field. Namespace this run belongs to. Derived from the parent experiment when experiment_id is set. In multi-user mode with experiment_id omitted, this selects the namespace whose default experiment the run is placed in.  # noqa: E501
+
+        :param namespace: The namespace of this V2beta1Run.  # noqa: E501
+        :type namespace: str
+        """
+
+        self._namespace = namespace
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -739,11 +739,13 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label(constants.NEGATIV
 
 			PIt("Create a run in an experiment that is not in the namespace that you have access to", func() {
 			})
-			It("Create a run without an experiment in a Multi User Mode deployment", func() {
+			// An omitted experiment id now falls back to the namespace's default
+			// experiment, so the namespace is what the request cannot do without.
+			It("Create a run without an experiment or a namespace in a Multi User Mode deployment", func() {
 				createRunRequest := &runparams.RunServiceCreateRunParams{Run: createPipelineRunPayload(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, nil, pipelineRuntimeInputs)}
 				_, createRunError := runClient.Create(createRunRequest)
 				Expect(createRunError).To(HaveOccurred(), "Expected the pipeline run creation to have failed")
-				Expect(createRunError.Error()).To(ContainSubstring("Experiment id can not be empty in multi-user mode"), "Expected the pipeline run creation failure to have a specific error message in the response")
+				Expect(createRunError.Error()).To(ContainSubstring("A run cannot have an empty namespace in multi-user mode"), "Expected the pipeline run creation failure to have a specific error message in the response")
 
 			})
 		})

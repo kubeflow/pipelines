@@ -1209,6 +1209,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	}
 	var namespace, experimentId, pipelineName, pipelineId, pipelineVersionId string
 	var recRunId, runName, runDesc, runId, specParams, cfgParams string
+	var runNamespace string
 	var pipelineSpec, workflowSpec, runtimePipelineSpec, runtimeWorkflowSpec string
 	var pipelineRoot, storageState, serviceAcc string
 	var createTime, scheduleTime, finishTime int64
@@ -1244,6 +1245,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run name cannot be empty"), "Failed to convert a v1beta1 API run detail to its internal representation")
 		}
 		namespace = getNamespaceFromResourceReferenceV1(apiRunV1.GetResourceReferences())
+		runNamespace = namespace
 		experimentId = getExperimentIdFromResourceReferencesV1(apiRunV1.GetResourceReferences())
 		recRunId = getJobIdFromResourceReferencesV1(apiRunV1.GetResourceReferences())
 		runId = apiRunV1.GetId()
@@ -1282,6 +1284,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		serviceAcc = apiRunV1.GetServiceAccount()
 	case *apiv2beta1.Run:
 		apiRunV2 := r
+		runNamespace = apiRunV2.GetNamespace()
 		if temp, err := toModelTasks(apiRunV2.GetRunDetails().GetTaskDetails()); err == nil {
 			tasks = temp
 		} else {
@@ -1387,10 +1390,11 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
 	modelRun := model.Run{
-		UUID:           runId,
-		DisplayName:    runName,
-		Description:    runDesc,
-		Namespace:      namespace,
+		UUID:        runId,
+		DisplayName: runName,
+		Description: runDesc,
+		// Optional; resolves the default experiment when experiment_id is omitted.
+		Namespace:      runNamespace,
 		ExperimentId:   experimentId,
 		RecurringRunId: recRunId,
 		StorageState:   model.StorageState(storageState),
@@ -1590,6 +1594,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 	apiRunV2 := &apiv2beta1.Run{
 		RunId:          r.UUID,
 		ExperimentId:   r.ExperimentId,
+		Namespace:      r.Namespace,
 		RecurringRunId: r.RecurringRunId,
 		DisplayName:    r.DisplayName,
 		Description:    r.Description,

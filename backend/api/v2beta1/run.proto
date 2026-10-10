@@ -208,6 +208,12 @@ message Run {
   // Output. Plugin-specific outputs populated by backend components.
   // Each key is a plugin name and the value contains the plugin's output entries and state.
   map<string, PluginOutput> plugins_output = 20;
+
+  // Optional input field. Namespace this run belongs to. Derived from the
+  // parent experiment when experiment_id is set. In multi-user mode with
+  // experiment_id omitted, this selects the namespace whose default
+  // experiment the run is placed in.
+  string namespace = 24;
 }
 
 // Reference to an existing pipeline version.
@@ -420,6 +426,9 @@ message CreateRunRequest {
 
   // Run to be created.
   Run run = 2;
+
+  // Optional input field. Namespace for the run. Ignored when run.namespace is set.
+  string namespace = 3;
 }
 
 message GetRunRequest {

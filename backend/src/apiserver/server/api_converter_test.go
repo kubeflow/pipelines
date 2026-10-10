@@ -4381,6 +4381,7 @@ func Test_toApiRun(t *testing.T) {
 			},
 			&apiv2beta1.Run{
 				ExperimentId:   "exp123",
+				Namespace:      "ns123",
 				RunId:          "run123",
 				DisplayName:    "displayName123",
 				StorageState:   apiv2beta1.Run_ARCHIVED,
