@@ -316,6 +316,29 @@ func TestScheduledWorkflow_ParametersAsString_Unknown(t *testing.T) {
 	assert.Empty(t, result)
 }
 
+func TestScheduledWorkflow_ParametersAsString_V1ValuesInV2Path(t *testing.T) {
+	// Simulates swf_saver.go:57 forcing v2beta1 on a v1 SWF.
+	// v1 parameter values are plain strings, not valid JSON.
+	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "caching-enabled", Value: "enabled"},
+					{Name: "config-path", Value: "config-path"},
+				},
+			},
+		},
+	})
+	result, err := workflow.ParametersAsString()
+	assert.Nil(t, err)
+	assert.Contains(t, result, `"caching-enabled":"enabled"`)
+	assert.Contains(t, result, `"config-path":"config-path"`)
+}
+
 func TestScheduledWorkflow_Get(t *testing.T) {
 	swf := &swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-schedule"},
