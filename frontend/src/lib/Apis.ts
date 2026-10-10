@@ -42,6 +42,10 @@ import { StoragePath, StorageService } from './StoragePath';
 const v2beta1Prefix = 'apis/v2beta1';
 
 export interface ListRequest {
+  /** Whether this request may still update its table after asynchronous work. */
+  isCurrent?: () => boolean;
+  /** Signal a handled request error without confusing it with an empty successful page. */
+  onFailure?: () => void;
   filter?: string;
   orderAscending?: boolean;
   pageSize?: number;
