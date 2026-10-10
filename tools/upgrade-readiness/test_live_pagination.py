@@ -6,6 +6,8 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -66,6 +68,76 @@ class PaginationTest(unittest.TestCase):
                 fixture.criteria('fixture', version=version))['predicates'][0]
             self.assertEqual(predicate[key], 'EQUALS')
             self.assertNotIn('operation' if key == 'op' else 'op', predicate)
+
+    def test_source_serializes_original_and_extended_cases(self):
+        rows = {'experiments': [], 'runs': []}
+        seen_endpoints = set()
+
+        def transport(port,
+                      method,
+                      body=None,
+                      endpoint='/apis/v2beta1/experiments',
+                      **params):
+            seen_endpoints.add(endpoint)
+            if endpoint.endswith(':reportMetrics'):
+                return {'results': [{'status': 'OK'}]}
+            collection = endpoint.rsplit('/', 1)[1]
+            v1 = '/v1beta1/' in endpoint
+            identity = 'id' if v1 else collection[:-1] + '_id'
+            if method == 'POST':
+                value = str(len(rows[collection]))
+                rows[collection].append({'id': value, **body})
+                return ({
+                    'run': {
+                        'id': value
+                    }
+                } if collection == 'runs' else {
+                    identity: value
+                })
+            selected = rows[collection]
+            token = params.get('page_token')
+            offset = 0
+            if token:
+                saved = json.loads(token)
+                selected = [
+                    row for row in selected if row['id'] in saved['ids']
+                ]
+                offset = saved['offset']
+            elif 'filter' in params:
+                predicate = json.loads(params['filter'])['predicates'][0]
+                self.assertIn('op' if v1 else 'operation', predicate)
+                marker = predicate.get(
+                    'string_value') or predicate['string_values']['values'][0]
+                selected = [
+                    row for row in selected if row['description'] == marker
+                ]
+            size = params['page_size']
+            result = {
+                collection: [{
+                    identity: row['id']
+                } for row in selected[offset:offset + size]]
+            }
+            if offset + size < len(selected):
+                result['next_page_token'] = json.dumps({
+                    'ids': [row['id'] for row in selected],
+                    'offset': offset + size
+                })
+            return result
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+                fixture, 'request', side_effect=transport):
+            path = Path(directory) / 'state.json'
+            fixture.source(path, 'example/api:2.17.2')
+            state = json.loads(path.read_text())
+        self.assertEqual([case['operation'] for case in state['cases']],
+                         ['EQUALS', 'IS_SUBSTRING', 'IN'])
+        self.assertEqual(len(state['extended']), 32)
+        for case in state['cases'] + state['extended']:
+            self.assertEqual(case['source_baseline']['outcome'], 'passed')
+            self.assertTrue(case['first']['next_page_token'])
+        self.assertIn('/apis/v1beta1/experiments', seen_endpoints)
+        self.assertIn('/apis/v1beta1/runs', seen_endpoints)
+        self.assertIn('/apis/v2beta1/runs', seen_endpoints)
 
     def test_source_image_pin_is_required(self):
         with self.assertRaisesRegex(ValueError, 'pinned'):

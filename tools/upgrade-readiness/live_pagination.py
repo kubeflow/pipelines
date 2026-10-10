@@ -142,7 +142,7 @@ def source(state_path, source_image):
         # 2.17.2 cannot compare a repeated IN criterion after token JSON decode.
         baseline = walk([8888], spec, expected, first, repeat=operation != 'IN')
         cases.append({
-            ('op' if version == 'v1beta1' else 'operation'): operation,
+            'operation': operation,
             'filter': spec,
             'first': first,
             'source_baseline': baseline
