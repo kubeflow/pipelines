@@ -30,8 +30,14 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
+
+const currentOrderingVersion uint = 1
+const orderingTokenPrefix = "kfp1:"
+
+var orderingTokenEnvelopePattern = regexp.MustCompile(`^kfp[0-9]+:`)
 
 // token represents a WHERE clause when making a ListXXX query. It can either
 // represent a query for an initial set of results, in which page
@@ -40,6 +46,8 @@ import (
 // page of results), with the two values pointing to the first record in the
 // next set of results.
 type token struct {
+	// OrderingVersion identifies NULL-last cursor semantics; it is not an authorization claim.
+	OrderingVersion uint `json:",omitempty"`
 	// SortByFieldName is the user-facing field name used for pagination state
 	// and GetFieldValue lookups. SQL identifiers are validated separately.
 	SortByFieldName string
@@ -107,6 +115,12 @@ func (t *token) unmarshal(pageToken string) error {
 	errorF := func(err error) error {
 		return util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
 	}
+	hasEnvelope := strings.HasPrefix(pageToken, orderingTokenPrefix)
+	if hasEnvelope {
+		pageToken = strings.TrimPrefix(pageToken, orderingTokenPrefix)
+	} else if orderingTokenEnvelopePattern.MatchString(pageToken) {
+		return util.NewPaginationRestartRequiredError()
+	}
 	b, err := base64.StdEncoding.DecodeString(pageToken)
 	if err != nil {
 		return errorF(err)
@@ -156,6 +170,9 @@ func (t *token) unmarshal(pageToken string) error {
 		}
 	}
 
+	if hasEnvelope && t.OrderingVersion != currentOrderingVersion {
+		return util.NewPaginationRestartRequiredError()
+	}
 	return nil
 }
 
@@ -173,7 +190,9 @@ func (t *token) marshal() (string, error) {
 // encapsulates all the logic required for making the query for an initial set
 // of results as well as subsequent pages of results.
 type Options struct {
-	PageSize int
+	// Derived from the trusted endpoint model, never serialized as authority.
+	orderingVersionRequired bool
+	PageSize                int
 	// SkipCount, if true, tells the store to skip computing the total
 	// count of matching rows and avoid the extra query it requires.
 	// Defaults to false, preserving the existing behavior of always
@@ -213,7 +232,43 @@ func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
 	if err := t.unmarshal(nextPageToken); err != nil {
 		return nil, err
 	}
-	return &Options{PageSize: pageSize, token: t}, nil
+	return &Options{PageSize: pageSize, token: t, orderingVersionRequired: strings.HasPrefix(nextPageToken, orderingTokenPrefix)}, nil
+}
+
+// ValidateOrdering checks compatibility using the endpoint's model, not token model claims.
+// An ordinary cursor value cannot prove that the remaining result set contains no NULLs.
+func (o *Options) ValidateOrdering(listable Listable) error {
+	required := o.requiresOrderingVersion(listable)
+	if o.OrderingVersion > currentOrderingVersion || (o.OrderingVersion == 0 && required) {
+		return util.NewPaginationRestartRequiredError()
+	}
+	o.orderingVersionRequired = required
+	return nil
+}
+
+func (o *Options) requiresOrderingVersion(listable Listable) bool {
+	var fields []string
+	switch listable := listable.(type) {
+	case *model.Pipeline:
+		fields = []string{"Namespace"}
+	case *model.PipelineVersion:
+		fields = []string{"Description"}
+	case *model.Job:
+		fields = []string{"UpdatedAtInSec"}
+	case *model.Run:
+		if !listable.IsRegularField(o.SortByFieldName) {
+			return true
+		}
+		fields = []string{"State", "StateHistory", "JobUUID", "ScheduledAtInSec", "FinishedAtInSec"}
+	case *model.Task, model.Task:
+		fields = []string{"Name", "DisplayName", "ParentTaskUUID", "StartedInSec", "FinishedInSec", "StatusMetadata", "StateHistory", "InputParameters", "OutputParameters", "ScopePath", "LifecycleMessage"}
+	}
+	for _, field := range fields {
+		if strings.EqualFold(field, o.SortByFieldName) || strings.EqualFold(field, o.SortBySQLColumn) {
+			return true
+		}
+	}
+	return false
 }
 
 // NewOptions creates a new Options struct for the given listable. It uses
@@ -226,8 +281,9 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	}
 
 	token := &token{
-		KeyFieldName: listable.PrimaryKeyColumnName(),
-		ModelName:    listable.GetModelName(),
+		OrderingVersion: currentOrderingVersion,
+		KeyFieldName:    listable.PrimaryKeyColumnName(),
+		ModelName:       listable.GetModelName(),
 	}
 
 	// Ignore the case of the letter. Split query string by space.
@@ -254,12 +310,15 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 
 	// Probe the sort field type using the listable instance. SortByFieldName is
 	// the user-facing name, which GetFieldValue resolves to the model field
-	// value. String fields return "" (string type); numeric fields
-	// return int64(0) or similar. Nullable string fields return a nil *string.
-	probeVal := listable.GetFieldValue(token.SortByFieldName)
-	_, isString := probeVal.(string)
-	_, isNullableString := probeVal.(*string)
-	token.SortByFieldIsString = isString || isNullableString
+	// value. Include named string types and nullable pointers to them, whose
+	// continuation-token values decode as plain strings.
+	probeType := reflect.TypeOf(listable.GetFieldValue(token.SortByFieldName))
+	if probeType != nil {
+		if probeType.Kind() == reflect.Pointer {
+			probeType = probeType.Elem()
+		}
+		token.SortByFieldIsString = probeType.Kind() == reflect.String
+	}
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
@@ -272,7 +331,9 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 		}
 		token.Filter = filter
 	}
-	return &Options{PageSize: pageSize, token: token}, nil
+	opts := &Options{PageSize: pageSize, token: token}
+	opts.orderingVersionRequired = opts.requiresOrderingVersion(listable)
+	return opts, nil
 }
 
 // AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
@@ -538,7 +599,11 @@ func (o *Options) NextPageToken(listable Listable) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return t.marshal()
+	encoded, err := t.marshal()
+	if err == nil && o.orderingVersionRequired {
+		encoded = orderingTokenPrefix + encoded
+	}
+	return encoded, err
 }
 
 func (o *Options) GetSortByFieldValue() interface{} {
@@ -577,6 +642,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	}
 
 	return &token{
+		OrderingVersion:     currentOrderingVersion,
 		SortByFieldName:     o.SortByFieldName,
 		SortBySQLColumn:     o.SortBySQLColumn,
 		SortByFieldValue:    sortByField,

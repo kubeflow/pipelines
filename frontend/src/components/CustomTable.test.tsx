@@ -21,6 +21,8 @@ import CustomTable, { Column, ExpandState, Row } from './CustomTable';
 import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../TestUtils';
 import { V2beta1PredicateOperation } from '../apisv2beta1/filter';
 import { logger } from 'src/lib/Utils';
+import { PaginationRestartRequired } from 'src/lib/Pagination';
+import { ListRequest } from 'src/lib/Apis';
 
 type CustomTableProps = React.ComponentProps<typeof CustomTable>;
 
@@ -811,4 +813,132 @@ describe('CustomTable', () => {
     secondWrapper.unmount();
     window.location.hash = '';
   });
+});
+
+describe('pagination restart recovery', () => {
+  it('retries once from page one, preserving the original query and replacing saved cursors', async () => {
+    const requests: ListRequest[] = [];
+    let upgraded = false;
+    const reload = vi.fn(async (request: ListRequest) => {
+      requests.push({ ...request });
+      if (request.pageToken === 'old-token') {
+        request.filter = 'callback-mutated-filter';
+        throw new PaginationRestartRequired();
+      }
+      return upgraded ? 'new-token' : 'old-token';
+    });
+    const updateSelection = vi.fn();
+    const wrapper = renderTable({
+      reload,
+      updateSelection,
+      initialSortColumn: 'name',
+      initialSortOrder: 'asc',
+      initialFilterString: 'preserved',
+    });
+    await flushPromisesInAct();
+    const first = requests[0];
+    upgraded = true;
+    requests.length = 0;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('next-page-btn'));
+    });
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toEqual({ ...first, pageToken: '' });
+    expect(wrapper.state('currentPage')).toBe(0);
+    expect(wrapper.state('tokenList')).toEqual(['', 'new-token']);
+    expect(updateSelection).toHaveBeenCalledWith([]);
+    expect(screen.getByRole('status')).toHaveTextContent('restarted from page one');
+    wrapper.unmount();
+  });
+
+  it('stops after a rejected first-page retry and hides the old rows', async () => {
+    const reload = vi.fn().mockResolvedValue('old-token');
+    const wrapper = renderTable({ reload, rows, columns });
+    await flushPromisesInAct();
+    reload.mockClear().mockRejectedValue(new PaginationRestartRequired());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('next-page-btn'));
+    });
+    expect(reload).toHaveBeenCalledTimes(2);
+    expect(wrapper.state('tokenList')).toEqual(['']);
+    expect(wrapper.state('currentPage')).toBe(0);
+    expect(screen.queryByText('cell1')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Start this listing again');
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
+    wrapper.unmount();
+  });
+
+  it('does not retry a rejection of an initial first-page request', async () => {
+    const reload = vi.fn().mockRejectedValue(new PaginationRestartRequired());
+    const wrapper = renderTable({ reload });
+    await flushPromisesInAct();
+    // The test setup enables StrictMode: two mounts, with no retries.
+    expect(reload).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('status')).toHaveTextContent('Start this listing again');
+    wrapper.unmount();
+  });
+
+  it('does not let an older page request overwrite a recovered cursor', async () => {
+    const reload = vi
+      .fn<(request: ListRequest) => Promise<string>>()
+      .mockResolvedValue('old-token');
+    const wrapper = renderTable({ reload });
+    await flushPromisesInAct();
+    let resolveOld!: (value: string) => void;
+    let oldRequest!: ListRequest;
+    reload
+      .mockImplementationOnce((request) => {
+        oldRequest = request;
+        return new Promise<string>((resolve) => {
+          resolveOld = resolve;
+        });
+      })
+      .mockImplementation(async (request) => {
+        if (request.pageToken) throw new PaginationRestartRequired();
+        return 'fresh-token';
+      });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('next-page-btn'));
+    });
+    await act(async () => {
+      await wrapper.instance().reload({ pageToken: 'old-token' });
+    });
+    expect(oldRequest.isCurrent?.()).toBe(false);
+    await act(async () => {
+      resolveOld('stale-next-token');
+    });
+    expect(wrapper.state('currentPage')).toBe(0);
+    expect(wrapper.state('tokenList')).toEqual(['', 'fresh-token']);
+    wrapper.unmount();
+  });
+
+  it.each(['handled', 'thrown'])(
+    'keeps old rows hidden when the first-page retry fails with a %s error',
+    async (failure) => {
+      const reload = vi
+        .fn<(request: ListRequest) => Promise<string>>()
+        .mockResolvedValue('old-token');
+      const wrapper = renderTable({ reload, rows, columns });
+      await flushPromisesInAct();
+      reload.mockClear().mockImplementation(async (request) => {
+        if (request.pageToken) throw new PaginationRestartRequired();
+        if (failure === 'thrown') throw new Error('Network unavailable');
+        request.onFailure?.(); // Existing list callback displayed the network/API error.
+        return '';
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('next-page-btn'));
+      });
+      expect(reload).toHaveBeenCalledTimes(2);
+      expect(wrapper.state('tokenList')).toEqual(['']);
+      expect(screen.queryByText('cell1')).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('first page could not be loaded');
+      reload.mockResolvedValue('');
+      await act(async () => {
+        await wrapper.instance().reload();
+      });
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      wrapper.unmount();
+    },
+  );
 });
