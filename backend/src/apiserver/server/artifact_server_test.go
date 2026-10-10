@@ -1408,6 +1408,7 @@ func TestArtifactServer_CreateArtifactsBulk_ReplayedWriteDoesNotDuplicate(t *tes
 				RunId:       runID,
 				TaskId:      task.UUID,
 				ProducerKey: "output",
+				OperationId: "bulk-replay-1",
 				Artifact: &apiv2beta1.Artifact{
 					Namespace:   "ns1",
 					Type:        apiv2beta1.Artifact_Model,
@@ -1501,6 +1502,7 @@ func TestArtifactServer_CreateArtifactsBulk_ReplayPayloadConflict(t *testing.T) 
 				RunId:       runID,
 				TaskId:      task.UUID,
 				ProducerKey: "output",
+				OperationId: "bulk-conflict-1",
 				Artifact: &apiv2beta1.Artifact{
 					Namespace:   "ns1",
 					Type:        apiv2beta1.Artifact_Model,
@@ -1601,6 +1603,7 @@ func TestArtifactServer_CreateArtifactsBulk_ConflictRollsBackWholeBatch(t *testi
 				RunId:       runID,
 				TaskId:      task2.UUID,
 				ProducerKey: "output-2",
+				OperationId: "bulk-atomicity-2",
 				Artifact: &apiv2beta1.Artifact{
 					Namespace:   "ns1",
 					Type:        apiv2beta1.Artifact_Model,
@@ -1629,6 +1632,7 @@ func TestArtifactServer_CreateArtifactsBulk_ConflictRollsBackWholeBatch(t *testi
 				RunId:       runID,
 				TaskId:      task1.UUID,
 				ProducerKey: "output-1",
+				OperationId: "bulk-atomicity-1",
 				Artifact: &apiv2beta1.Artifact{
 					Namespace: "ns1",
 					Type:      apiv2beta1.Artifact_Model,
@@ -1640,6 +1644,7 @@ func TestArtifactServer_CreateArtifactsBulk_ConflictRollsBackWholeBatch(t *testi
 				RunId:       runID,
 				TaskId:      task2.UUID,
 				ProducerKey: "output-2",
+				OperationId: "bulk-atomicity-2",
 				Artifact: &apiv2beta1.Artifact{
 					Namespace:   "ns1",
 					Type:        apiv2beta1.Artifact_Model,
@@ -1652,6 +1657,7 @@ func TestArtifactServer_CreateArtifactsBulk_ConflictRollsBackWholeBatch(t *testi
 				RunId:       runID,
 				TaskId:      task3.UUID,
 				ProducerKey: "output-3",
+				OperationId: "bulk-atomicity-3",
 				Artifact: &apiv2beta1.Artifact{
 					Namespace: "ns1",
 					Type:      apiv2beta1.Artifact_Model,
