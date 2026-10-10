@@ -84,6 +84,11 @@ func TestValidatedListOptions_LegacyEndpointMixedCaseCursors(t *testing.T) {
 						filterSpec = fmt.Sprintf(`{"predicates":[{"key":%q,%q:"EQUALS","string_value":"alpha"}]}`, tc.apiField, operation)
 					}
 					opts, err := validatedListOptions(tc.model, base64.StdEncoding.EncodeToString(encoded), 10, sortBy, filterSpec, tc.version)
+					if tc.name == "task_v1" && !desc {
+						require.Error(t, err)
+						require.Contains(t, err.Error(), "Clear page_token")
+						continue
+					}
 					require.NoError(t, err)
 					query := opts.AddFilterToSelect(sq.Select("UUID").From(quote(tc.table)), quote)
 					querySQL, args, err := opts.AddPaginationToSelect(query, quote, "").ToSql()

@@ -142,6 +142,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "CreatedTimestamp", IsDesc: true},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "CreatedTimestamp",
 				SortByFieldValue:  int64(1234),
 				SortByFieldPrefix: "",
@@ -156,6 +157,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "PrimaryKey", IsDesc: true},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "PrimaryKey",
 				SortByFieldValue:  "uuid123",
 				SortByFieldPrefix: "",
@@ -170,6 +172,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "FakeName", IsDesc: false},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
@@ -188,6 +191,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
@@ -206,6 +210,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "m1",
 				SortByFieldValue:  1.0,
 				SortByFieldPrefix: "",
@@ -433,6 +438,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "CreatedTimestamp",
@@ -448,6 +454,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "CreatedTimestamp",
@@ -463,6 +470,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -478,6 +486,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -493,6 +502,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -508,6 +518,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "PrimaryKey",
