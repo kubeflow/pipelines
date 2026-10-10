@@ -6,6 +6,7 @@ Documentation for operators deploying and configuring Kubeflow Pipelines.
 :maxdepth: 1
 
 installation
+upgrade-3.0-schedules
 supported-platforms
 gcp-inverse-proxy-removal
 server-config

@@ -72,7 +72,8 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	ctx := signals.SetupSignalHandler()
+	stopCh := ctx.Done()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
@@ -159,6 +160,23 @@ func main() {
 	)
 	if err != nil {
 		log.Fatalf("Failed to instantiate the controller: %v", err)
+	}
+
+	if multiUser {
+		podName := os.Getenv("POD_NAME")
+		lastReason := ""
+		err = commonutil.WaitForManagedScheduleWriters(ctx, kubeClient, os.Getenv("POD_NAMESPACE"), podName, func(err error) {
+			if err.Error() != lastReason {
+				log.Warnf("Waiting for managed schedule writers: %v", err)
+				lastReason = err.Error()
+			}
+		})
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			log.Fatalf("Cannot start managed schedule writer: %v", err)
+		}
 	}
 
 	go scheduleInformerFactory.Start(stopCh)
