@@ -29,6 +29,7 @@ WORKFLOW_JOBS = {
         'api-test-multi-user',
     ),
     '.github/workflows/e2e-test-frontend.yml': ('frontend-integration-test',),
+    '.github/workflows/frontend-deployment-qualification.yml': ('rehearsal',),
     '.github/workflows/e2e-test.yml': (
         'end-to-end-scenario-tests',
         'end-to-end-critical-scenario-multi-user-tests',
@@ -79,6 +80,27 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                                   job)
                     self.assertIn('image_tag: latest', job)
                     self.assertIn('image_registry: kind-registry:5000', job)
+
+    def test_frontend_rollback_waits_for_images_after_cluster_creation(self):
+        workflow = (ROOT /
+                    '.github/workflows/frontend-deployment-qualification.yml'
+                   ).read_text(encoding='utf-8')
+        rehearsal = _job_block(workflow, 'rehearsal')
+        self.assertNotRegex(rehearsal, r'(?m)^    needs:')
+        cluster = rehearsal.index('uses: ./.github/actions/create-cluster')
+        deploy = rehearsal.index('uses: ./.github/actions/deploy')
+        candidate = rehearsal.index(
+            'Retain candidate image archive after the shared image barrier')
+        legacy = rehearsal.index('Wait for the immutable legacy image artifact')
+        register = rehearsal.index(
+            'Register immutable frontend images and asset manifests')
+        self.assertLess(cluster, deploy)
+        self.assertLess(deploy, candidate)
+        self.assertLess(candidate, legacy)
+        self.assertLess(legacy, register)
+        self.assertIn('GH_TOKEN: ${{ github.token }}', rehearsal)
+        self.assertIn('legacy-image', rehearsal)
+        self.assertIn('legacy-frontend', rehearsal)
 
     def test_deploy_waits_before_downloading_images(self):
         deploy_action = yaml.safe_load(

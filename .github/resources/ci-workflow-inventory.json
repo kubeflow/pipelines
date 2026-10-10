@@ -342,6 +342,24 @@
       }
     },
     {
+      "path": ".github/workflows/frontend-browser-qualification.yml",
+      "name": "Frontend Browser Qualification",
+      "header_sha256": "ec24dfe60ad4af74027b8b8e54396ff75e2126e742793102fb2b145facd24526",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/frontend-deployment-qualification.yml",
+      "name": "Frontend Deployment Qualification",
+      "header_sha256": "7b68b597b3ba2b099d4820b0d3d65e16619f1c09c43b672d69cf8bd5731b35a9",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/frontend-performance-qualification.yml",
+      "name": "Frontend Performance Qualification",
+      "header_sha256": "1dae8e4b4f84e0508147ae0be585b8bedc442fcc8b11c8cf0a358ea41fd0280b",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/frontend.yml",
       "name": "Frontend Tests",
       "header_sha256": "001bebc844b9ef685036c3c5c57405c278b0fe3e0699145d4bbd57bbb794645b",
