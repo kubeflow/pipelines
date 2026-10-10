@@ -302,8 +302,10 @@ def capture_source_case(case):
             first = case_page(8888, case)
             if not first.get('next_page_token'):
                 raise ValueError('source did not generate a continuation token')
-            baseline = observe_walk([8888], case, expected)
+            baseline = case_walk([8888], case, expected)
         except (ApiError, ValueError) as error:
+            if isinstance(error, ApiError) and error.status not in (400, 500):
+                raise
             # Preserve the complete inventory without inventing an old token.
             first = None
             baseline = {

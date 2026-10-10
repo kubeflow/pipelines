@@ -213,7 +213,7 @@ class ExtendedPaginationTest(unittest.TestCase):
         with mock.patch.object(fixture, 'request', side_effect=create), \
              mock.patch.object(fixture, 'full_inventory', side_effect=lambda port, case: case['created_ids']), \
              mock.patch.object(fixture, 'case_page', return_value={'next_page_token': 'actual-source'}), \
-             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'passed'}):
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}):
             cases = fixture.prepare_extended('marker')
         self.assertEqual(len(cases), 32)
         self.assertEqual({case['endpoint'] for case in cases}, {
@@ -270,6 +270,21 @@ class ExtendedPaginationTest(unittest.TestCase):
                          'preexisting_source_pagination_failure')
         self.assertEqual(result['saved_source_continuation']['outcome'],
                          'not_available')
+
+    def test_source_first_page_auth_and_availability_errors_are_fatal(self):
+        for status in (401, 403, 503):
+            with self.subTest(status=status), mock.patch.object(
+                    fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+                 mock.patch.object(fixture, 'case_page', side_effect=fixture.ApiError(status)):
+                with self.assertRaises(fixture.ApiError):
+                    fixture.capture_source_case(self.case)
+
+    def test_source_later_page_auth_error_is_fatal(self):
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_page', return_value=self.case['first']), \
+             mock.patch.object(fixture, 'case_walk', side_effect=fixture.ApiError(403)):
+            with self.assertRaises(fixture.ApiError):
+                fixture.capture_source_case(self.case)
 
     def test_source_first_page_failure_does_not_invent_a_saved_cursor(self):
         with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
