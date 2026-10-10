@@ -65,6 +65,7 @@ import (
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -4714,7 +4715,7 @@ func TestGetNamespaceFromRunID_PrefersPersistedRunNamespace(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	namespace, err := manager.getNamespaceFromRunId(run.UUID)
+	namespace, err := manager.getNamespaceFromRunID(run.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, "run-namespace", namespace)
 }
@@ -7871,7 +7872,7 @@ func TestRetryRun_AdoptionFiresPluginRetryHook(t *testing.T) {
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
 	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0, PluginsOutput = ? WHERE UUID = ?`,
-		`{"mlflow":{"runId":"abc"}}`, runDetail.UUID)
+		`{"mlflow":{"runID":"abc"}}`, runDetail.UUID)
 	require.NoError(t, err)
 
 	run, err := manager.GetRun(runDetail.UUID)
@@ -8653,6 +8654,72 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
+func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	namespace := common.GetPodNamespace()
+	defer store.Close()
+
+	// Seed a parent DAG task
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		RunUUID:     run.UUID,
+		Namespace:   namespace,
+		UUID:        string(uuid.NewUUID()),
+		Name:        "parent-dag",
+		Fingerprint: "fp-dag",
+		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Pods:        model.JSONSlice{map[string]interface{}{"name": "dag-driver-pod"}},
+		Type:        model.TaskType(apiv2beta1.PipelineTask_DAG),
+		TypeAttrs:   model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	// Seed a RUNNING task for this run, inserting manually to bypass FakeUUIDGenerator unique constraint collision
+	_, err = store.DB().Exec("INSERT INTO tasks (UUID, Namespace, RunUUID, pods, State, Name, Fingerprint, ParentTaskUUID, Type, TypeAttrs, CreatedAtInSec) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"uuid-2", namespace, run.UUID, "[{\"name\":\"my-pod-name\"}]", model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), "stranded", "fp1", dagTask.UUID, 0, "{}", 1)
+	require.NoError(t, err)
+
+	strandedTask, err := store.TaskStore().GetTask("uuid-2")
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"my-pod-name": {
+					ID:         "my-pod-name",
+					Phase:      v1alpha1.NodeFailed,
+					FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
+				},
+				"dag-driver-pod": {
+					ID:    "dag-driver-pod",
+					Phase: v1alpha1.NodeSucceeded,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	assert.Nil(t, err)
+
+	// Verify stranded task was updated to FAILED
+	updatedTask, err := store.TaskStore().GetTask(strandedTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedTask.State)
+	assert.Equal(t, int64(9999), updatedTask.FinishedInSec)
+
+	// Verify the parent DAG was also failed by the aggregator
+	updatedDag, err := store.TaskStore().GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedDag.State)
+}
 func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
 		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
