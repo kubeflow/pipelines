@@ -16,6 +16,8 @@ package resource
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -84,7 +86,7 @@ func TestCreateRunFirstRecurringReportPreservesResolvedInputs(t *testing.T) {
 					PipelineSpec: model.PipelineSpec{
 						PipelineId: pipeline.UUID,
 						RuntimeConfig: model.RuntimeConfig{
-							Parameters: `{"text":"selected-value"}`, PipelineRoot: "selected-root",
+							Parameters: `{"text":"tick-[[Index]]-[[ScheduledTime]]-[[CurrentTime]]-[[RunUUID]]"}`, PipelineRoot: "schedule-root",
 						},
 					},
 				})
@@ -96,6 +98,14 @@ func TestCreateRunFirstRecurringReportPreservesResolvedInputs(t *testing.T) {
 				input := &model.Run{
 					DisplayName: "scheduled-tick", RecurringRunId: job.UUID,
 					Namespace: job.Namespace, ExperimentId: job.ExperimentId, PipelineSpec: job.PipelineSpec,
+				}
+				if !multiUser {
+					// The single-user controller expands these macros before CreateRun.
+					formatter := util.NewSWFParameterFormatter("", 100, 200, 1)
+					input.RuntimeConfig.Parameters = model.LargeText(formatter.Format(string(job.RuntimeConfig.Parameters)))
+					input.PipelineRoot = "per-run-root"
+					input.ScheduledAtInSec = 100
+					require.NotEqual(t, job.RuntimeConfig, input.RuntimeConfig)
 				}
 				require.NoError(t, manager.PrepareRecurringRun(ctx, input))
 				var firstReport *model.Run
@@ -114,6 +124,16 @@ func TestCreateRunFirstRecurringReportPreservesResolvedInputs(t *testing.T) {
 						require.NoError(t, err)
 						require.NotEqual(t, version.UUID, latest.UUID)
 						workflow := execution.(*util.Workflow)
+						if multiUser {
+							for _, parameter := range workflow.SpecParameters() {
+								require.NotEqual(t, recurringRunRuntimeConfigParameter, parameter.Name)
+							}
+							// Namespace users may edit the Workflow, but the persisted
+							// recurring run remains authoritative in multi-user mode.
+							workflow.SetSpecParameter(recurringRunRuntimeConfigParameter, encodeRecurringRuntimeConfigForTest(t, model.RuntimeConfig{
+								Parameters: `{"text":"forged-value"}`, PipelineRoot: "forged-root",
+							}))
+						}
 						workflow.Status.Phase = test.phase
 						if test.phase == workflowapi.WorkflowSucceeded {
 							workflow.Status.FinishedAt = metav1.NewTime(time.Unix(200, 0))
@@ -131,6 +151,9 @@ func TestCreateRunFirstRecurringReportPreservesResolvedInputs(t *testing.T) {
 						require.Equal(t, input.PipelineSpecManifest, firstReport.PipelineSpecManifest)
 						require.NotEmpty(t, firstReport.PipelineSpecManifest)
 						require.Equal(t, input.RuntimeConfig, firstReport.RuntimeConfig)
+						if multiUser {
+							require.Equal(t, job.RuntimeConfig, firstReport.RuntimeConfig)
+						}
 						require.Equal(t, execution.ServiceAccount(), firstReport.ServiceAccount)
 						require.Equal(t, test.state, firstReport.State)
 						if test.phase == workflowapi.WorkflowSucceeded {
@@ -255,6 +278,9 @@ func TestRecurringRunReportPipelineSpecRequiresMatchingSchedulingClaim(t *testin
 				Labels:      map[string]string{util.LabelKeyWorkflowRunId: runID},
 				Annotations: map[string]string{annotationKeyRecurringRunPipelineVersion: test.versionID},
 			}})
+			// Even malformed snapshots are ignored; the scheduling claim and job
+			// supply the trusted inputs in multi-user mode.
+			workflow.SetSpecParameter(recurringRunRuntimeConfigParameter, "not base64")
 			resolved, err := manager.recurringRunReportPipelineSpec(job, workflow)
 			if test.wantError {
 				require.ErrorContains(t, err, "workflow does not match the selected scheduling claim")
@@ -265,4 +291,133 @@ func TestRecurringRunReportPipelineSpecRequiresMatchingSchedulingClaim(t *testin
 			}
 		})
 	}
+}
+
+func encodeRecurringRuntimeConfigForTest(t *testing.T, config model.RuntimeConfig) string {
+	t.Helper()
+	serialized, err := json.Marshal(config)
+	require.NoError(t, err)
+	return base64.StdEncoding.EncodeToString(serialized)
+}
+
+func TestRecurringRunReportPipelineSpecRestoresRuntimeConfig(t *testing.T) {
+	for _, source := range []string{"latest", "pinned", "inline", "legacy missing snapshot", "unannotated snapshot"} {
+		t.Run(source, func(t *testing.T) {
+			previousMode := viper.Get(common.MultiUserMode)
+			viper.Set(common.MultiUserMode, false)
+			t.Cleanup(func() { viper.Set(common.MultiUserMode, previousMode) })
+			store, manager, pipeline, version := initWithPipeline(t)
+			defer store.Close()
+			job := &model.Job{PipelineSpec: model.PipelineSpec{
+				PipelineId: pipeline.UUID,
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters: `{"text":"[[ScheduledTime]]"}`, PipelineRoot: "schedule-root",
+				},
+			}}
+			selected := model.RuntimeConfig{
+				Parameters: `{"text":"19700101000140-[[RunUUID]]-{{workflow.name}}"}`, PipelineRoot: "selected-root",
+			}
+			workflow := util.NewWorkflow(&workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{annotationKeyRecurringRunPipelineVersion: version.UUID},
+			}})
+			workflow.SetSpecParameter(recurringRunRuntimeConfigParameter, encodeRecurringRuntimeConfigForTest(t, selected))
+			wantConfig := selected
+			switch source {
+			case "pinned":
+				job.PipelineVersionId = version.UUID
+				job.PipelineSpecManifest = version.PipelineSpec
+				require.NoError(t, manager.DeletePipelineVersion(version.UUID))
+			case "inline":
+				job.PipelineId = ""
+				job.PipelineSpecManifest = version.PipelineSpec
+				workflow.SetAnnotations(annotationKeyRecurringRunPipelineVersion, "")
+			case "legacy missing snapshot":
+				workflow.SetSpecParameters(nil)
+				wantConfig = job.RuntimeConfig
+			case "unannotated snapshot":
+				workflow.Annotations = nil
+				wantConfig = job.RuntimeConfig
+			}
+			original := job.PipelineSpec
+			resolved, err := manager.recurringRunReportPipelineSpec(job, workflow)
+			require.NoError(t, err)
+			require.Equal(t, wantConfig, resolved.RuntimeConfig)
+			require.Equal(t, original, job.PipelineSpec, "recovery must not modify the recurring run")
+		})
+	}
+}
+
+func TestRecurringRunReportPipelineSpecRejectsMalformedRuntimeConfig(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		value *string
+	}{
+		{name: "invalid base64", value: util.StringPointer("not base64")},
+		{name: "invalid JSON", value: util.StringPointer(base64.StdEncoding.EncodeToString([]byte("{")))},
+		{name: "null JSON", value: util.StringPointer(base64.StdEncoding.EncodeToString([]byte("null")))},
+		{name: "array JSON", value: util.StringPointer(base64.StdEncoding.EncodeToString([]byte("[]")))},
+		{name: "missing value"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			previousMode := viper.Get(common.MultiUserMode)
+			viper.Set(common.MultiUserMode, false)
+			t.Cleanup(func() { viper.Set(common.MultiUserMode, previousMode) })
+			manager := &ResourceManager{}
+			job := &model.Job{PipelineSpec: model.PipelineSpec{
+				PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+				RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"retained-value"}`},
+			}}
+			workflow := util.NewWorkflow(&workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{annotationKeyRecurringRunPipelineVersion: ""},
+			}})
+			workflow.SetSpecParameters(util.SpecParameters{{Name: recurringRunRuntimeConfigParameter, Value: test.value}})
+			original := job.PipelineSpec
+			resolved, err := manager.recurringRunReportPipelineSpec(job, workflow)
+			require.Error(t, err)
+			require.Empty(t, resolved, "a malformed snapshot must not recover a partial specification")
+			require.Equal(t, original, job.PipelineSpec)
+			workflow.Annotations = nil
+			resolved, err = manager.recurringRunReportPipelineSpec(job, workflow)
+			require.NoError(t, err, "legacy workflows must not interpret a reserved parameter as recovery metadata")
+			require.Equal(t, original, resolved)
+		})
+	}
+}
+
+func TestCreateRunExecutionPreservesLargeRuntimeConfig(t *testing.T) {
+	previousMode := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, false)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previousMode) })
+	store, manager, _ := initWithExperiment(t)
+	defer store.Close()
+	parameters, err := json.Marshal(map[string]string{
+		"text": strings.Repeat("x", 256*1024) + "-[[RunUUID]]-{{workflow.name}}",
+	})
+	require.NoError(t, err)
+	run := &model.Run{
+		UUID: "large-config-run", DisplayName: "large-config", RecurringRunId: "schedule-uid",
+		PipelineSpec: model.PipelineSpec{RuntimeConfig: model.RuntimeConfig{
+			Parameters: model.LargeText(parameters), PipelineRoot: "selected-root",
+		}},
+	}
+	created, newExecution, err := manager.createRunExecution(context.Background(), run, recurringExecutionFixture(run))
+	require.NoError(t, err)
+	require.True(t, newExecution)
+	var snapshot string
+	for _, parameter := range created.SpecParameters() {
+		if parameter.Name == recurringRunRuntimeConfigParameter {
+			require.NotNil(t, parameter.Value)
+			snapshot = *parameter.Value
+		}
+	}
+	require.Greater(t, len(snapshot), 256*1024, "runtime inputs must not be limited by the annotation size ceiling")
+	require.NotContains(t, snapshot, "{{", "Argo must not substitute expressions inside the preserved inputs")
+	annotationBytes := 0
+	for key, value := range created.ExecutionObjectMeta().Annotations {
+		annotationBytes += len(key) + len(value)
+	}
+	require.Less(t, annotationBytes, 256*1024)
+	resolved, err := manager.recurringRunReportPipelineSpec(&model.Job{}, created)
+	require.NoError(t, err)
+	require.Equal(t, run.RuntimeConfig, resolved.RuntimeConfig)
 }

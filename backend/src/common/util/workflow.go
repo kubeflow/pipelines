@@ -471,6 +471,19 @@ func (w *Workflow) SetSpecParameters(params SpecParameters) {
 	w.Spec.Arguments.Parameters = desiredSlice
 }
 
+// SetSpecParameter sets one argument value without rebuilding unrelated parameters.
+func (w *Workflow) SetSpecParameter(name, value string) {
+	for i := range w.Spec.Arguments.Parameters {
+		if w.Spec.Arguments.Parameters[i].Name == name {
+			w.Spec.Arguments.Parameters[i] = workflowapi.Parameter{Name: name, Value: workflowapi.AnyStringPtr(value)}
+			return
+		}
+	}
+	w.Spec.Arguments.Parameters = append(w.Spec.Arguments.Parameters, workflowapi.Parameter{
+		Name: name, Value: workflowapi.AnyStringPtr(value),
+	})
+}
+
 func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 	switch w.Status.Phase {
 	case workflowapi.WorkflowFailed, workflowapi.WorkflowError:

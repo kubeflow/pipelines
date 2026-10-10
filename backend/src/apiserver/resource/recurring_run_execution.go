@@ -16,6 +16,8 @@ package resource
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -26,7 +28,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const annotationKeyRecurringRunPipelineVersion = "pipelines.kubeflow.org/recurring-run-pipeline-version"
+const (
+	annotationKeyRecurringRunPipelineVersion = "pipelines.kubeflow.org/recurring-run-pipeline-version"
+	recurringRunRuntimeConfigParameter       = "kfp-recurring-run-runtime-config"
+)
 
 // createRunExecution uses Kubernetes name uniqueness to arbitrate concurrent
 // recurring-run submissions before either request has persisted its run.
@@ -37,6 +42,15 @@ func (r *ResourceManager) createRunExecution(ctx context.Context, run *model.Run
 		// The first workflow report can precede the run insert. Record the
 		// selected version so recovery never resolves a newer default version.
 		execution.SetAnnotations(annotationKeyRecurringRunPipelineVersion, run.PipelineVersionId)
+		if !common.IsMultiUserMode() {
+			config, err := json.Marshal(run.RuntimeConfig)
+			if err != nil {
+				return nil, false, util.Wrap(err, "Failed to preserve recurring-run runtime config")
+			}
+			// Arguments avoid the annotation size limit; base64 keeps template
+			// substitution from modifying the submitted parameter strings.
+			execution.SetSpecParameter(recurringRunRuntimeConfigParameter, base64.StdEncoding.EncodeToString(config))
+		}
 	}
 	client := r.getWorkflowClient(execution.ExecutionNamespace())
 	created, err := client.Create(ctx, execution, metav1.CreateOptions{})
@@ -76,6 +90,14 @@ func (r *ResourceManager) recurringRunReportPipelineSpec(job *model.Job, executi
 		if claim.LastRunIndex <= 0 || metadata.Labels[util.LabelKeyWorkflowRunId] != runID || versionID != claim.PipelineVersionID {
 			return model.PipelineSpec{}, util.NewInvalidInputError("Failed to recover recurring run: workflow does not match the selected scheduling claim")
 		}
+	} else {
+		config, err := recurringRunRuntimeConfigSnapshot(execution)
+		if err != nil {
+			return model.PipelineSpec{}, err
+		}
+		if config != nil {
+			pipelineSpec.RuntimeConfig = *config
+		}
 	}
 	if versionID == "" {
 		return pipelineSpec, nil
@@ -94,6 +116,31 @@ func (r *ResourceManager) recurringRunReportPipelineSpec(job *model.Job, executi
 		return model.PipelineSpec{}, util.Wrap(err, "Failed to recover the selected recurring-run pipeline version")
 	}
 	return pipelineSpec, nil
+}
+
+// Older workflows have no snapshot and retain the recurring-run configuration.
+func recurringRunRuntimeConfigSnapshot(execution util.ExecutionSpec) (*model.RuntimeConfig, error) {
+	for _, parameter := range execution.SpecParameters() {
+		if parameter.Name != recurringRunRuntimeConfigParameter {
+			continue
+		}
+		if parameter.Value == nil {
+			return nil, util.NewInvalidInputError("Cannot recover recurring-run runtime config from an empty snapshot; recreate the run")
+		}
+		data, err := base64.StdEncoding.DecodeString(*parameter.Value)
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(err, "Cannot decode recurring-run runtime config snapshot; recreate the run")
+		}
+		var config *model.RuntimeConfig
+		if err := json.Unmarshal(data, &config); err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(err, "Cannot parse recurring-run runtime config snapshot; recreate the run")
+		}
+		if config == nil {
+			return nil, util.NewInvalidInputError("Cannot recover recurring-run runtime config from a null snapshot; recreate the run")
+		}
+		return config, nil
+	}
+	return nil, nil
 }
 
 func sameRecurringRunExecution(run *model.Run, requested, existing util.ExecutionSpec) bool {
