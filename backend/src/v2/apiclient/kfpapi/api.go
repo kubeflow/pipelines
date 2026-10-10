@@ -42,6 +42,7 @@ type API interface {
 	ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error)
 
 	// Task operations
+	FinalizeStoppedDriver(ctx context.Context, runID string, generation int64, taskName, parentTaskID string, iterationIndex *int64) error
 	CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error)
 	UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error)
 	UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error)
@@ -69,12 +70,18 @@ type API interface {
 // It is a thin wrapper delegating to the generated gRPC clients.
 
 type clientAdapter struct {
-	c *apiclient.Client
+	c          *apiclient.Client
+	generation int64
 }
 
 // New wraps the apiclient.Client into an API interface.
 func New(c *apiclient.Client) API {
-	return &clientAdapter{c: c}
+	return NewWithRetryGeneration(c, 0)
+}
+
+// NewWithRetryGeneration captures the workflow generation before runtime work starts.
+func NewWithRetryGeneration(c *apiclient.Client, generation int64) API {
+	return &clientAdapter{c: c, generation: generation}
 }
 
 // Implement API by forwarding calls to typed clients.
@@ -85,22 +92,6 @@ func (k *clientAdapter) GetRun(ctx context.Context, req *gc.GetRunRequest) (*gc.
 
 func (k *clientAdapter) ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error) {
 	return k.c.Run.ListRuns(ctx, req)
-}
-
-func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.CreateTask(ctx, req)
-}
-
-func (k *clientAdapter) UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.UpdateTask(ctx, req)
-}
-
-func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error) {
-	return k.c.Run.UpdateTasksBulk(ctx, req)
-}
-
-func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.GetTask(ctx, req)
 }
 
 func (k *clientAdapter) ListTasks(ctx context.Context, req *gc.ListTasksRequest) (*gc.ListTasksResponse, error) {
@@ -212,6 +203,9 @@ func (k *clientAdapter) UpdateStatuses(ctx context.Context, run *gc.Run, pipelin
 // or when we have reached Root.
 // This function is separated from UpdateStatuses so that it can be used by the mock api client in tests.
 func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTask) error {
+	// Keep the originating attempt across refreshed ancestor snapshots. A late
+	// update must not acquire a newer generation and bypass the storage fence.
+	generationSource := currentTask
 	// Create a map of task IDs to tasks for quick lookup
 	taskMap := taskMapByID(run)
 
@@ -225,7 +219,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// If current task has no parent, we've reached the root
 		if currentTask.ParentTaskId == nil || *currentTask.ParentTaskId == "" {
 			// Evaluate the root task's status based on its children
-			if err := evaluateAndUpdateParentStatus(ctx, run, currentTask, kfpAPIClient); err != nil {
+			if err := evaluateAndUpdateParentStatus(ctx, run, currentTask, generationSource, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate root task %s status: %w", currentTask.GetTaskId(), err)
 			}
 			break
@@ -285,7 +279,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// propagation — fail-fast means some siblings may never reach a terminal
 		// state after a definitive failure.
 		if anyFailed {
-			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
+			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, generationSource, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
 			}
 			// Stop traversal after updating a root parent to avoid a redundant
@@ -317,7 +311,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		}
 
 		// Evaluate and update parent's status based on its children
-		if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
+		if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, generationSource, kfpAPIClient); err != nil {
 			return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
 		}
 		// Stop traversal after updating a root parent to avoid a redundant
@@ -366,6 +360,7 @@ func evaluateAndUpdateParentStatus(
 	ctx context.Context,
 	run *gc.Run,
 	parentTask *gc.PipelineTask,
+	generationSource *gc.PipelineTask,
 	kfpAPIClient API,
 ) error {
 	// Collect all direct children of this parent
@@ -420,6 +415,7 @@ func evaluateAndUpdateParentStatus(
 	// Update the parent task status
 	parentTask.State = newStatus
 	parentTask.EndTime = timestamppb.New(time.Now())
+	util.CopyDriverRetryGeneration(parentTask, generationSource)
 	_, err := kfpAPIClient.UpdateTask(ctx, &gc.UpdateTaskRequest{
 		TaskId: parentTask.GetTaskId(),
 		Task:   parentTask,

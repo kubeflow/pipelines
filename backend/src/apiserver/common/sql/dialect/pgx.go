@@ -97,6 +97,9 @@ func (pgxDialect) IsDuplicateKeyError(err error) bool {
 func (d pgxDialect) Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
 	q := d.QuoteIdentifier
 	ib := d.QueryBuilder().Insert(q(table))
+	if !overwrite {
+		return ib.Suffix("ON CONFLICT (" + joinQuoted(q, keyCols) + ") DO NOTHING")
+	}
 	sets := make([]string, 0, len(updateCols))
 	for _, c := range updateCols {
 		if overwrite {
@@ -123,4 +126,16 @@ func joinQuoted(q func(string) string, cols []string) string {
 		out[i] = q(c)
 	}
 	return strings.Join(out, ", ")
+}
+
+func (pgxDialect) SelectForShare(query string) string {
+	return query + " FOR SHARE"
+}
+
+func (pgxDialect) JSONExtractText(column string, path ...string) string {
+	arguments := []string{column}
+	for _, key := range path {
+		arguments = append(arguments, "'"+escapeSQLString(key)+"'")
+	}
+	return "json_extract_path_text(" + strings.Join(arguments, ", ") + ")"
 }

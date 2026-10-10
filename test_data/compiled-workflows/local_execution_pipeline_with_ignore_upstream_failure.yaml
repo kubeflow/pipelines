@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
+    pipelines.kubeflow.org/retry-generation: "0"
     workflows.argoproj.io/pod-name-format: v1
   generateName: pipeline-with-ignore-upstream-failure-
 spec:
@@ -67,6 +68,8 @@ spec:
       command:
       - driver
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -150,6 +153,146 @@ spec:
         name: kfp-launcher
         optional: true
       name: kfp-launcher-config
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-ignore-upstream-failure
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --namespace
+      - $(NAMESPACE)
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --cache_disabled=false
+      - --log_level
+      - "1"
+      - --publish_logs
+      - "true"
+      - --ml_pipeline_tls_enabled=false
+      - --ca_cert_path
+      - ""
+      - --exit_task_name
+      - '{{inputs.parameters.exit-task-name}}'
+      - --exit_task_status
+      - '{{inputs.parameters.exit-task-status}}'
+      command:
+      - driver
+      env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
+    inputs:
+      parameters:
+      - name: task-name
+      - name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: exit-task-name
+      - name: exit-task-status
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
+        pipelines.kubeflow.org/template-name: exit-system-container-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: container-driver
+    name: exit-system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+            expirationSeconds: 7200
+            path: token
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
@@ -173,6 +316,8 @@ spec:
       command:
       - should-be-overridden-during-runtime
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -292,8 +437,14 @@ spec:
             value: write-marker
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: exit-task-name
+            value: '{{inputs.parameters.exit-task-name}}'
+          - name: exit-task-status
+            value: '{{inputs.parameters.exit-task-status}}'
         name: write-marker-driver
-        template: system-container-driver
+        template: exit-system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
@@ -307,6 +458,10 @@ spec:
     inputs:
       parameters:
       - name: parent-dag-task-id
+      - name: exit-task-name
+      - name: exit-task-status
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: exit-hook-root-write-marker
     outputs: {}
@@ -334,6 +489,12 @@ spec:
               parameters:
               - name: parent-dag-task-id
                 value: '{{inputs.parameters.parent-dag-task-id}}'
+              - name: exit-task-name
+                value: fail-always
+              - name: exit-task-status
+                value: '{{tasks.fail-always.status}}'
+              - name: iteration-index
+                value: "-1"
             template: exit-hook-root-write-marker
         name: fail-always
         template: system-container-executor
@@ -392,6 +553,8 @@ spec:
       command:
       - driver
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:

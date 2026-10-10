@@ -18,6 +18,7 @@
 package dialect
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -76,6 +77,14 @@ type DBDialect interface {
 	// SelectForUpdate appends a row-locking clause to query for dialects
 	// that support it. Dialects with no concurrent-writer story are a no-op.
 	SelectForUpdate(query string) string
+
+	// SelectForShare allows concurrent readers while blocking updates to the
+	// selected rows until the transaction completes. SQLite is a no-op.
+	SelectForShare(query string) string
+
+	// JSONExtractText reads a nested object value as SQL text. Column must be
+	// an already-quoted JSON column expression; path contains object keys.
+	JSONExtractText(column string, path ...string) string
 }
 
 // NewDBDialect constructs a DBDialect for the given backend name.
@@ -117,4 +126,15 @@ func QualifiedColumn(q QuoteFunction, table string) func(string) string {
 func escapeSQLString(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	return strings.ReplaceAll(s, "'", "''")
+}
+
+func jsonObjectPath(keys []string) string {
+	var path strings.Builder
+	path.WriteByte('$')
+	for _, key := range keys {
+		quoted, _ := json.Marshal(key)
+		path.WriteByte('.')
+		path.Write(quoted)
+	}
+	return path.String()
 }

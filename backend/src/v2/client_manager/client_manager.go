@@ -3,6 +3,8 @@ package client_manager
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
@@ -71,7 +73,14 @@ func (cm *ClientManager) init(opts *Options) error {
 	if apiErr != nil {
 		return fmt.Errorf("failed to init KFP API client: %w", apiErr)
 	}
-	var kfpAPI = kfpapi.New(kfpAPIClient)
+	generation := int64(0)
+	if value := os.Getenv(util.DriverRetryGenerationEnv); value != "" {
+		generation, err = strconv.ParseInt(value, 10, 64)
+		if err != nil || generation < 0 {
+			return fmt.Errorf("invalid immutable driver retry generation %q", value)
+		}
+	}
+	var kfpAPI = kfpapi.NewWithRetryGeneration(kfpAPIClient, generation)
 	cm.kfpAPIClient = kfpAPI
 	return nil
 }

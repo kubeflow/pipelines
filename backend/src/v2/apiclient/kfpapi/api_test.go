@@ -7,6 +7,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -192,7 +193,17 @@ func TestUpdateStatuses_PropagatesThroughNestedParentsOnce(t *testing.T) {
 		Name:         "leaf",
 		ParentTaskId: &midTask.TaskId,
 		State:        gc.PipelineTask_FAILED,
+		StatusMetadata: &gc.PipelineTask_StatusMetadata{CustomProperties: map[string]*structpb.Value{
+			util.DriverRetryGenerationKey: structpb.NewStringValue("7"),
+			util.DriverRetryAttemptKey:    structpb.NewStringValue("2"),
+			"_kfp_driver_checkpoint":      structpb.NewStringValue("leaf-checkpoint"),
+		}},
 	}
+	rootTask.StatusMetadata = &gc.PipelineTask_StatusMetadata{CustomProperties: map[string]*structpb.Value{
+		util.DriverRetryGenerationKey: structpb.NewStringValue("8"),
+		util.DriverRetryAttemptKey:    structpb.NewStringValue("0"),
+		"_kfp_driver_checkpoint":      structpb.NewStringValue("root-checkpoint"),
+	}}
 	run := &gc.Run{
 		RunId: "run-nested",
 		Tasks: []*gc.PipelineTask{rootTask, midTask, failedLeaf},
@@ -210,6 +221,16 @@ func TestUpdateStatuses_PropagatesThroughNestedParentsOnce(t *testing.T) {
 	require.Equal(t, gc.PipelineTask_FAILED, api.updatedTasks[0].GetState())
 	require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[1].GetTaskId())
 	require.Equal(t, gc.PipelineTask_FAILED, api.updatedTasks[1].GetState())
+	for _, task := range api.updatedTasks {
+		require.Equal(t, "7", task.GetStatusMetadata().GetCustomProperties()[util.DriverRetryGenerationKey].GetStringValue(),
+			"ancestor refresh must retain the originating attempt's generation")
+		require.Equal(t, failedLeaf.GetTaskId(), task.GetStatusMetadata().GetCustomProperties()[util.DriverRetrySourceTaskKey].GetStringValue())
+		require.Equal(t, "2", task.GetStatusMetadata().GetCustomProperties()[util.DriverRetrySourceAttemptKey].GetStringValue())
+	}
+	require.NotContains(t, api.updatedTasks[0].GetStatusMetadata().GetCustomProperties(), util.DriverRetryAttemptKey)
+	require.Equal(t, "0", api.updatedTasks[1].GetStatusMetadata().GetCustomProperties()[util.DriverRetryAttemptKey].GetStringValue())
+	require.NotContains(t, api.updatedTasks[0].GetStatusMetadata().GetCustomProperties(), "_kfp_driver_checkpoint")
+	require.Equal(t, "root-checkpoint", api.updatedTasks[1].GetStatusMetadata().GetCustomProperties()["_kfp_driver_checkpoint"].GetStringValue())
 }
 
 func TestUpdateStatuses_AllSucceededUpdatesParentOnce(t *testing.T) {

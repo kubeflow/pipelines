@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
+    pipelines.kubeflow.org/retry-generation: "0"
     workflows.argoproj.io/pod-name-format: v1
   generateName: echo-
 spec:
@@ -68,6 +69,8 @@ spec:
       command:
       - driver
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -174,6 +177,8 @@ spec:
       command:
       - should-be-overridden-during-runtime
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -360,6 +365,8 @@ spec:
       command:
       - driver
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:

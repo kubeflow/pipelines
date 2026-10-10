@@ -23,6 +23,7 @@ import (
 	argofake "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned/fake"
 	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
 	argolister "github.com/argoproj/argo-workflows/v4/pkg/client/listers/workflow/v1alpha1"
+	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
@@ -2447,6 +2449,19 @@ func TestUpsertRuntimeEnvVars_Annotation_UpsertReplacesExisting(t *testing.T) {
 	assert.Equal(t, corev1.EnvVar{Name: "NEW", Value: "fresh"}, env[1])
 }
 
+func TestUpsertRuntimeEnvVars_PreservesImmutableGeneration(t *testing.T) {
+	driver := annotatedTemplate("driver", ExecutionRuntimeRoleDriver)
+	driver.Container.Env = []corev1.EnvVar{{Name: DriverRetryGenerationEnv, Value: "{{workflow.annotations." + AnnotationKeyRetryGeneration + "}}"}}
+	w := workflowWithTemplates(driver)
+	before := w.DeepCopy()
+	err := w.UpsertRuntimeEnvVars([]corev1.EnvVar{
+		{Name: "PLUGIN_CONFIG", Value: "enabled"},
+		{Name: DriverRetryGenerationEnv, Value: "9"},
+	}, ExecutionRuntimeRoleDriver)
+	require.ErrorContains(t, err, "reserved for KFP runtime identity")
+	assert.Equal(t, before, w.Workflow, "invalid environment configuration must not partially mutate the workflow")
+}
+
 func TestUpsertRuntimeEnvVars_Annotation_UpsertsSecretKeyRef(t *testing.T) {
 	w := workflowWithTemplates(
 		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
@@ -2498,6 +2513,84 @@ func TestWorkflow_CanRetryRejectsLegacyFormats(t *testing.T) {
 	}
 	workflow := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{PodMetadata: &workflowapi.Metadata{Annotations: map[string]string{"pipelines.kubeflow.org/v2_component": "true"}}}})
 	assert.NoError(t, workflow.CanRetry())
+}
+
+func TestDisableTaskDriverRetries_OnlyMarkedDrivers(t *testing.T) {
+	marked := annotatedTemplate("task-driver", ExecutionRuntimeRoleDriver)
+	marked.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	marked.Container.Args = []string{
+		"--task_name=task", "--driver_retry_enabled={{inputs.parameters.driver-retry-enabled}}", "--driver_retry_attempt={{inputs.parameters.driver-retry-attempt}}",
+	}
+	marked.Inputs.Parameters = []workflowapi.Parameter{
+		{Name: "task-name", Default: workflowapi.AnyStringPtr("task")},
+		{Name: DriverRetryEnabledParameter, Default: workflowapi.AnyStringPtr("true")},
+		{Name: DriverRetryAttemptParameter, Default: workflowapi.AnyStringPtr("{{retries}}")},
+	}
+	limit := intstr.FromInt32(3)
+	marked.RetryStrategy = &workflowapi.RetryStrategy{Limit: &limit, RetryPolicy: workflowapi.RetryPolicyAlways}
+	root := annotatedTemplate("root-driver", ExecutionRuntimeRoleDriver)
+	legacy := annotatedTemplate("legacy-driver", ExecutionRuntimeRoleDriver)
+	legacy.RetryStrategy = marked.RetryStrategy.DeepCopy()
+	launcher := annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher)
+	launcher.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	launcher.RetryStrategy = marked.RetryStrategy.DeepCopy()
+	dag := dagTemplate("dag")
+	dag.Metadata.Annotations = map[string]string{
+		AnnotationKeyRuntimeRole: string(ExecutionRuntimeRoleDriver), AnnotationKeyTaskDriverRetry: "true",
+	}
+	unknown := annotatedTemplate("unknown-role", "unknown")
+	unknown.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	ignored := annotatedTemplate("disabled-marker", ExecutionRuntimeRoleDriver)
+	ignored.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "false"
+	w := workflowWithTemplates(marked, root, legacy, launcher, dag, unknown, ignored)
+	defaultLimit := intstr.FromInt32(2)
+	w.Spec.TemplateDefaults = &workflowapi.Template{RetryStrategy: &workflowapi.RetryStrategy{
+		Limit: &defaultLimit, RetryPolicy: workflowapi.RetryPolicyOnError,
+	}}
+	before := w.DeepCopy()
+
+	assert.Equal(t, 1, w.DisableTaskDriverRetries())
+	changed := w.Spec.Templates[0]
+	assert.Nil(t, changed.RetryStrategy, "marked drivers must inherit deployment retry defaults like unconfigured drivers")
+	assert.NotContains(t, changed.Metadata.Annotations, AnnotationKeyTaskDriverRetry)
+	assert.Equal(t, before.Spec.Templates[0].Container.Args, changed.Container.Args)
+	assert.Equal(t, before.Spec.Templates[0].Inputs.Parameters[0], changed.Inputs.Parameters[0])
+	assert.Equal(t, "false", changed.Inputs.GetParameterByName(DriverRetryEnabledParameter).Default.String())
+	assert.Equal(t, "0", changed.Inputs.GetParameterByName(DriverRetryAttemptParameter).Default.String())
+	assert.Equal(t, before.Spec.Templates[1:], w.Spec.Templates[1:])
+	assert.Equal(t, before.Spec.TemplateDefaults, w.Spec.TemplateDefaults)
+
+	after := w.DeepCopy()
+	assert.Zero(t, w.DisableTaskDriverRetries())
+	assert.Equal(t, after, w.Workflow)
+}
+
+func TestDisableTaskDriverRetries_OverridesTemplateValuesWithoutParsingArguments(t *testing.T) {
+	driver := annotatedTemplate("task-driver", ExecutionRuntimeRoleDriver)
+	driver.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	driver.Container.Args = []string{"--future-recovery={{inputs.parameters.driver-retry-enabled}}", "--future-attempt={{inputs.parameters.driver-retry-attempt}}"}
+	driver.Inputs.Parameters = []workflowapi.Parameter{
+		{Name: DriverRetryEnabledParameter, Value: workflowapi.AnyStringPtr("true")},
+		{Name: DriverRetryAttemptParameter, Value: workflowapi.AnyStringPtr("{{retries}}")},
+	}
+	w := workflowWithTemplates(driver)
+	assert.Equal(t, 1, w.DisableTaskDriverRetries())
+	assert.Equal(t, driver.Container.Args, w.Spec.Templates[0].Container.Args)
+	resolved, err := argocommon.ProcessArgs(argoContext, &w.Spec.Templates[0], &workflowapi.Arguments{}, nil, nil, false, "", nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"--future-recovery=false", "--future-attempt=0"}, resolved.Container.Args)
+	for name, expected := range map[string]string{DriverRetryEnabledParameter: "false", DriverRetryAttemptParameter: "0"} {
+		parameter := w.Spec.Templates[0].Inputs.GetParameterByName(name)
+		require.NotNil(t, parameter)
+		assert.Nil(t, parameter.Value)
+		assert.Equal(t, expected, parameter.Default.String())
+	}
+}
+
+func TestDisableTaskDriverRetries_EmptyWorkflow(t *testing.T) {
+	for _, workflow := range []*Workflow{nil, {}, NewWorkflow(&workflowapi.Workflow{})} {
+		assert.Zero(t, workflow.DisableTaskDriverRetries())
+	}
 }
 
 func TestWorkflow_ServiceAccountsCollectsPodIdentities(t *testing.T) {

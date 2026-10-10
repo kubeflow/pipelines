@@ -176,6 +176,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 				// For debugging, the system template identity now lives in pod
 				// metadata instead of the pod name itself; see addSystemPodMetadata.
 				"workflows.argoproj.io/pod-name-format": "v1",
+				util.AnnotationKeyRetryGeneration:       "0",
 			},
 			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
 			// TODO(Bobgy): figure out what annotations we should use for v2 engine.

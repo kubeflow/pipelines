@@ -368,9 +368,10 @@ func (c *ClientManager) init(options *Options) error {
 	// Log archive
 	c.logArchive = initLogArchive()
 
+	// Recovery RPCs authenticate projected run tokens in every deployment mode.
+	c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 	if common.IsMultiUserMode() {
 		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
-		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")

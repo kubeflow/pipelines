@@ -21,7 +21,6 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
-	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -38,7 +37,20 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func Container(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, driverErr error) {
+func Container(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (*Execution, error) {
+	if !opts.DriverRetryEnabled {
+		return container(ctx, opts, clientManager)
+	}
+	if opts.Container == nil {
+		return nil, fmt.Errorf("container spec is required for driver retries")
+	}
+	if _, native := dummyImages[opts.Container.GetImage()]; native {
+		return nil, fmt.Errorf("task-derived driver retries do not support Kubernetes platform operations; disable driver retries for this task")
+	}
+	return recoverDriver(ctx, opts, clientManager, container)
+}
+
+func container(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, driverErr error) {
 	defer func() {
 		if driverErr != nil {
 			driverErr = fmt.Errorf("driver.Container(%s) failed: %w", opts.Info(), driverErr)
@@ -109,6 +121,9 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	// launcher leaves the task RUNNING; parent status cannot complete yet, so
 	// skip the expensive full-run refresh until a driver-terminal state.
 	defer func() {
+		if driverErr != nil && opts.DriverRetryEnabled {
+			return
+		}
 		if driverErr != nil {
 			taskIDToUpdate := taskToCreate.GetTaskId()
 			if taskIDToUpdate == "" && execution != nil && execution.TaskID != "" {
@@ -259,9 +274,13 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			pipelineRoot,
 			opts.TaskName,
 			opts.Component.GetOutputDefinitions(),
-			uuid.NewString(),
+			driverOutputAllocationID(opts),
 			opts.PublishLogs,
 		)
+	}
+
+	if opts.DriverRetryTask != nil {
+		taskToCreate.StatusMetadata = proto.Clone(opts.DriverRetryTask.GetStatusMetadata()).(*apiV2beta1.PipelineTask_StatusMetadata)
 	}
 
 	var inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter
@@ -297,7 +316,15 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			pvcNames = append(pvcNames, GetWorkspacePVCName(opts.RunName))
 		}
 
-		fingerPrint, cachedTask, driverErr = getFingerPrintsAndID(ctx, execution, clientManager.KFPAPIClient(), &opts, pvcNames)
+		cachedTask, driverErr = recoveredDriverCache(opts)
+		if driverErr != nil {
+			return execution, driverErr
+		}
+		if cachedTask != nil {
+			fingerPrint = opts.DriverRetryTask.GetCacheFingerprint()
+		} else {
+			fingerPrint, cachedTask, driverErr = getFingerPrintsAndID(ctx, execution, clientManager.KFPAPIClient(), &opts, pvcNames)
+		}
 		if driverErr != nil {
 			return execution, driverErr
 		}
@@ -358,10 +385,17 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			if driverErr != nil {
 				return execution, driverErr
 			}
+			if driverErr = saveDriverCacheDecision(ctx, opts, clientManager.KFPAPIClient(), cachedOutputs, fingerPrint); driverErr != nil {
+				return execution, driverErr
+			}
+			if opts.DriverRetryTask != nil {
+				taskToCreate.StatusMetadata = proto.Clone(opts.DriverRetryTask.GetStatusMetadata()).(*apiV2beta1.PipelineTask_StatusMetadata)
+			}
 			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
 			*execution.Cached = true
+			attemptLocalFields := taskToCreate
 			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
@@ -369,21 +403,12 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			if createErr != nil {
 				return execution, fmt.Errorf("failed to update task: %w", createErr)
 			}
-			taskToCreate = createdTask
-			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
-			taskToCreate.Outputs = cachedOutputs
-			taskToCreate.EndTime = timestamppb.Now()
-			if taskToCreate.StatusMetadata == nil {
-				taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
-			}
-			if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
-				TaskId: taskToCreate.GetTaskId(),
-				Task:   taskToCreate,
-				RunId:  taskToCreate.GetRunId(),
-			}); updateErr != nil {
+			// CreateTask can return the recovery skeleton without resolved inputs.
+			createdTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, attemptLocalFields)
+			if updateErr != nil {
 				return execution, fmt.Errorf("failed to update cached task state: %w", updateErr)
 			}
-			createdTask = taskToCreate
+			taskToCreate = createdTask
 
 			driverErr = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())
 			if driverErr != nil {

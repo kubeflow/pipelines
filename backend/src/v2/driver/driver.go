@@ -49,7 +49,7 @@ type TaskConfig struct {
 }
 
 func isReservedRuntimeEnvVar(name string) bool {
-	return name == component.EnvPodName || name == component.EnvPodUID || name == component.EnvNamespace
+	return name == component.EnvPodName || name == component.EnvPodUID || name == component.EnvNamespace || name == util.DriverRetryGenerationEnv
 }
 
 func validateReservedRuntimeEnvVar(name string) error {
@@ -241,6 +241,11 @@ func initPodSpecPatch(
 	}
 
 	// Append necessary env variables for task-level plugin(s).
+	for _, envVar := range pluginEnvVarSlice {
+		if err := validateReservedRuntimeEnvVar(envVar.Name); err != nil {
+			return nil, err
+		}
+	}
 	userEnvVar = append(userEnvVar, pluginEnvVarSlice...)
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)

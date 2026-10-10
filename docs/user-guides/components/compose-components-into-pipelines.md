@@ -167,6 +167,56 @@ The KFP SDK provides the following task methods for setting task-level configura
 
 See the [`PipelineTask` reference documentation][pipelinetask] for more information about these methods.
 
+#### Retry coverage on Argo Workflows
+
+On the KFP backend with Argo Workflows, `.set_retry()` configures eligible
+container and nested pipeline drivers as well as container executors. A
+**driver** resolves inputs, checks the cache, and prepares execution. The
+**executor** runs the component after its driver succeeds.
+
+Each phase has its own retry budget and backoff. For example,
+`task.set_retry(num_retries=3, policy='Always')` permits an initial driver attempt
+and up to three driver retries, followed by an initial executor attempt and up
+to three executor retries. Driver retries do not consume executor retries or
+rerun a nested pipeline's completed tasks. Setting `num_retries=0` disables
+retries for both eligible phases.
+
+An explicit `policy` applies to both phases. With the default `policy=None`,
+eligible drivers use `Always` so failures while resolving inputs or contacting
+backend services can retry. Executors retain the deployment's Argo policy:
+KFP's bundled configuration supplies `OnError`, which covers errors such as pod
+deletion or node loss. See
+[Argo retry policies](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/).
+
+Automatic driver retries reuse the logical task, output locations, and saved
+preparation results. They recover partially completed metadata writes without
+creating a new task for each attempt. A manual retry of the pipeline run starts
+a new recovery generation for tasks that need to run again. Completed tasks
+and their saved results remain preserved.
+
+When Argo stops retrying a failed driver because of its policy, retry count, or
+backoff deadline, a finalizer marks the task and its unfinished parent DAGs
+failed while independent branches can continue. The API server also reconciles
+unfinished retry tasks when it receives a failed or canceled workflow report.
+Recovery checkpoints and ownership are stored separately from public task
+status metadata and are available only through the authenticated runtime API.
+
+Driver retry coverage has these limits:
+
+- The root pipeline driver has no task-level retry policy and retains the
+  deployment's driver recovery policy. Unconfigured tasks also retain that
+  policy.
+- Native Kubernetes PVC creation and deletion are excluded until their resource
+  identity and deletion operations can safely replay. They retain their
+  existing deployment retry policy.
+- When task plugins are enabled, the API server removes task-configured driver
+  retry overrides because plugin side effects are not yet safe for the expanded
+  replay behavior. Drivers retain the deployment retry policy, including the
+  bundled `OnError` limit of two retries. Executor retries remain configured.
+
+[Issue #14020](https://github.com/kubeflow/pipelines/issues/14020) tracks the
+remaining driver replay-safety work, including plugin hooks and PVC operations.
+
 ### Pipelines as components
 
 Pipelines can themselves be used as components in other pipelines, just as you would use any other single-step component in a pipeline. For example, we could easily recompose the preceding `pythagorean` pipeline to use an inner helper pipeline `square_and_sum`:

@@ -24,13 +24,17 @@ import (
 	"testing"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	runtimeapi "github.com/kubeflow/pipelines/backend/api/runtime/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func TestAPIRegistration_V2Only(t *testing.T) {
@@ -43,10 +47,12 @@ func TestAPIRegistration_V2Only(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{})
 	rpc := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
 	registerRPCServices(rpc, manager)
-	require.Len(t, rpc.GetServiceInfo(), 7)
+	require.Len(t, rpc.GetServiceInfo(), 8)
+	const runtimeService = "kubeflow.pipelines.backend.runtime.DriverTaskService"
+	require.Contains(t, rpc.GetServiceInfo(), runtimeService)
 	require.NotContains(t, rpc.GetServiceInfo(), "kubeflow.pipelines.backend.api.v2beta1.VisualizationService")
 	for name := range rpc.GetServiceInfo() {
-		require.True(t, strings.HasPrefix(name, "kubeflow.pipelines.backend.api.v2beta1."), name)
+		require.True(t, name == runtimeService || strings.HasPrefix(name, "kubeflow.pipelines.backend.api.v2beta1."), name)
 	}
 	for _, service := range []string{"AuthService", "ReportService", "ArtifactService"} {
 		require.Contains(t, rpc.GetServiceInfo(), "kubeflow.pipelines.backend.api.v2beta1."+service)
@@ -57,6 +63,13 @@ func TestAPIRegistration_V2Only(t *testing.T) {
 	t.Cleanup(rpc.Stop)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
+	connection, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, connection.Close()) })
+	// Even single-user deployments cannot opt into recovery with a header.
+	privateContext := metadata.NewOutgoingContext(ctx, metadata.Pairs("x-kfp-driver-recovery-view", "full"))
+	_, err = runtimeapi.NewDriverTaskServiceClient(connection).GetTask(privateContext, &runtimeapi.GetTaskRequest{RunId: "run", TaskId: "task", IncludeRecovery: true})
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
 	gateway := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher), runtime.WithMarshalerOption(runtime.MIMEWildcard, common.CustomMarshaler()))
 	registerGatewayServices(func(register RegisterHttpHandlerFromEndpoint, _ string) {
 		require.NoError(t, register(ctx, gateway, listener.Addr().String(), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}))
@@ -72,6 +85,7 @@ func TestAPIRegistration_V2Only(t *testing.T) {
 		return recorder
 	}
 	request(http.MethodGet, "/apis/v2beta1/auth?namespace=ns1&resources=VIEWERS&verb=GET", "", http.StatusOK)
+	request(http.MethodPost, "/apis/runtime/tasks", `{}`, http.StatusNotFound)
 	request(http.MethodPost, "/apis/v2beta1/visualizations/ns1", `{"type":"CUSTOM","arguments":"{}"}`, http.StatusNotFound)
 	// Report routes reach validation, rather than an unregistered-route 404.
 	request(http.MethodPost, "/apis/v2beta1/workflows", `"invalid"`, http.StatusBadRequest)

@@ -71,6 +71,23 @@ const (
 	// identify the logical role of the pod (driver, launcher, etc.).  It is
 	// used by UpsertRuntimeEnvVars to target the right containers.
 	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
+
+	// AnnotationKeyTaskDriverRetry marks driver templates using a task's retry policy.
+	AnnotationKeyTaskDriverRetry = "pipelines.kubeflow.org/task-driver-retry"
+
+	// These keys are the driver's in-process representation of recovery state.
+	// The runtime adapter transfers them as typed private RPC fields; neither
+	// public task metadata nor the database StatusMetadata column stores them.
+	DriverRetryGenerationKey = "_kfp_driver_retry_generation"
+	// DriverRetryAttemptKey identifies the automatic driver attempt owning a task.
+	DriverRetryAttemptKey = "_kfp_driver_retry_attempt"
+	// DriverRetrySourceTaskKey and DriverRetrySourceAttemptKey fence dependent
+	// writes against their originating driver. Storage does not persist them.
+	DriverRetrySourceTaskKey    = "_kfp_driver_retry_source_task"
+	DriverRetrySourceAttemptKey = "_kfp_driver_retry_source_attempt"
+	// DriverCheckpointKey and DriverCachedOutputsKey hold durable replay payloads.
+	DriverCheckpointKey    = "_kfp_driver_checkpoint"
+	DriverCachedOutputsKey = "_kfp_driver_cached_outputs"
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.
