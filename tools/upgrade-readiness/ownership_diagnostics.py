@@ -106,8 +106,10 @@ def collect(client, namespaces):
         try:
             workflow = json.loads(manifest)
             metadata = workflow.get('metadata', {})
-            if workflow.get('kind') != 'Workflow' or not isinstance(
-                    metadata, dict):
+            # Typed stored Workflows may omit TypeMeta; the server decodes
+            # these directly into Workflow. Still reject explicit other kinds.
+            if workflow.get('kind') not in (
+                    None, '', 'Workflow') or not isinstance(metadata, dict):
                 raise ValueError()
             if not all(
                     isinstance(metadata.get(key), str) and metadata[key]

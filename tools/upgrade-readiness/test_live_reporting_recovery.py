@@ -75,6 +75,40 @@ class ReportingRecoveryTest(unittest.TestCase):
         self.assertIn('source_recurring_run', output.getvalue())
         self.assertNotIn('secret', output.getvalue())
 
+    def test_partial_ownership_evidence_survives_wait_failure(self):
+        resource = 'runs/' + recovery.NAMESPACE + '/source-run'
+        findings = [
+            dict(
+                resource=resource,
+                status='review_required',
+                rule='ownership.stored_identity_unreadable')
+        ]
+        coverage = dict(completed_scopes=['runs/' + recovery.NAMESPACE])
+        with mock.patch('ownership_diagnostics.collect', return_value=(findings, coverage)), \
+             mock.patch.object(recovery, 'write_object') as write:
+            self.assertIsNone(
+                recovery.ownership_evidence(mock.Mock(),
+                                            [dict(run_id='source-run')],
+                                            Path('/evidence')))
+        self.assertEqual(write.call_args.args[0].name,
+                         'reporting-ownership.json')
+        self.assertEqual(write.call_args.args[1]['findings'], findings)
+
+    def test_incomplete_collection_fails_without_claiming_identity_missing(
+            self):
+        failure = dict(
+            resource='runs/' + recovery.NAMESPACE,
+            status='unknown',
+            rule='ownership.collection_request_budget_exceeded')
+        with mock.patch('ownership_diagnostics.collect', return_value=([failure], dict(completed_scopes=[]))), \
+             mock.patch.object(recovery, 'write_object') as write:
+            with self.assertRaisesRegex(ValueError, 'collection_incomplete'):
+                recovery.ownership_evidence(mock.Mock(),
+                                            [dict(run_id='source-run')],
+                                            Path('/evidence'))
+        self.assertEqual(write.call_count, 1)
+        self.assertEqual(write.call_args.args[1]['findings'], [failure])
+
     def test_fault_preserves_other_permissions(self):
         rules = [
             dict(

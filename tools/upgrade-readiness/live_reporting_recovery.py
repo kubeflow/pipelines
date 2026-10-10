@@ -230,13 +230,22 @@ def prepare_pair(client, read_client, state_dir):
     return wait_for(captured, 120, phase='source_workflow_capture')
 
 
-def ownership_evidence(client, records):
+def ownership_evidence(client, records, state_dir=None):
     from ownership_diagnostics import collect
     findings, coverage = collect(client, [NAMESPACE])
     resources = {
         'runs/' + NAMESPACE + '/' + record['run_id'] for record in records
     }
-    selected = [f for f in findings if f['resource'] in resources]
+    selected = [
+        f for f in findings
+        if f['resource'] in resources or f['resource'] == 'runs/' + NAMESPACE
+    ]
+    evidence = dict(
+        scope='source_ownership_evidence', findings=selected, coverage=coverage)
+    if state_dir is not None:
+        write_object(state_dir / 'reporting-ownership.json', evidence)
+    require('runs/' + NAMESPACE in coverage.get('completed_scopes', []),
+            'reporting_source_ownership_collection_incomplete')
     for resource in resources:
         observed = {
             f['rule']
@@ -262,9 +271,10 @@ def prepare(client, read_client, state_dir):
         scope='source_reporting_recovery',
         runs=prepared[0]['runs'],
         deletion_runs=prepared[1]['runs'])
+    write_object(state_dir / 'reporting-source.json', result)
     evidence = wait_for(
         lambda: ownership_evidence(read_client, result['runs'] + result[
-            'deletion_runs']),
+            'deletion_runs'], state_dir),
         180,
         phase='source_stored_ownership')
     write_object(state_dir / 'reporting-ownership.json', evidence)

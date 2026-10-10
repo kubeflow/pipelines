@@ -124,6 +124,35 @@ class OwnershipTest(unittest.TestCase):
                             metadata=dict(name='wf', uid='uid'))))))
         self.assertIn('stored_identity_present', self.reasons(findings))
 
+    def test_stored_identity_allows_omitted_type_metadata(self):
+        # Typed informer objects can omit TypeMeta when persisted. The server
+        # decodes these into Workflow without requiring kind/apiVersion.
+        for kind in (None, '', 'Workflow'):
+            with self.subTest(kind=kind):
+                manifest = dict(
+                    metadata=dict(name='wf', uid='uid', namespace='team'))
+                if kind is not None:
+                    manifest['kind'] = kind
+                findings, _, _ = self.assess(
+                    detail=dict(
+                        run=dict(id='run'),
+                        pipeline_runtime=dict(
+                            workflow_manifest=json.dumps(manifest))))
+                self.assertEqual(
+                    self.reasons(findings)['stored_identity_present'],
+                    'observed')
+
+    def test_explicit_wrong_kind_is_unknown(self):
+        findings, _, _ = self.assess(
+            detail=dict(
+                run=dict(id='run'),
+                pipeline_runtime=dict(
+                    workflow_manifest=json.dumps(
+                        dict(kind='Pod', metadata=dict(name='wf',
+                                                       uid='uid'))))))
+        self.assertEqual(
+            self.reasons(findings)['stored_identity_unreadable'], 'unknown')
+
     def test_invalid_manifest_is_unknown(self):
         findings, _, _ = self.assess(
             detail=dict(
