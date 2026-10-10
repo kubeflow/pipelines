@@ -274,6 +274,15 @@ describe('SideNav', () => {
     expect(spy).toHaveBeenCalledWith(false);
   });
 
+  it('labels the chevron toggle with the action it performs', async () => {
+    renderSideNav(RoutePage.PIPELINES);
+    await waitFor(() => expect(isCollapsed()).toBe(false));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    await waitFor(() => expect(isCollapsed()).toBe(true));
+    expect(screen.getByRole('button', { name: 'Expand navigation' })).toBeInTheDocument();
+  });
+
   it('does not collapse if collapse state is saved in localStorage, and window resizes', async () => {
     localStorageIsCollapsedSpy.mockImplementation(() => false);
     localStorageHasKeySpy.mockImplementation(() => true);

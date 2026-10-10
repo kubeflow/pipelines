@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 The Kubeflow Authors
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-import HelpIcon from '@mui/icons-material/Help';
-import React, { ReactNode } from 'react';
-import { CardTooltip } from './CardTooltip';
-import { IconButton } from '@mui/material';
+import { render, screen } from '@testing-library/react';
+import { HelpButton } from './HelpButton';
 
-interface HelpButtonProps {
-  helpText?: ReactNode;
-}
-export const HelpButton: React.FC<HelpButtonProps> = ({ helpText }) => {
-  return (
-    <CardTooltip helpText={helpText}>
-      <IconButton size='large' aria-label='Help'>
-        <HelpIcon />
-      </IconButton>
-    </CardTooltip>
-  );
-};
+describe('HelpButton', () => {
+  it('gives the icon-only button an accessible name', () => {
+    render(<HelpButton helpText='Some help text' />);
+    expect(screen.getByRole('button', { name: 'Help' })).toBeInTheDocument();
+  });
+});

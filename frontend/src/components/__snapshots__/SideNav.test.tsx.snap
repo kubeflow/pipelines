@@ -405,6 +405,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -887,6 +888,7 @@ exports[`SideNav > populates the display build information using the default pro
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -1352,6 +1354,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -1817,6 +1820,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -2282,6 +2286,7 @@ exports[`SideNav > renders collapsed state 1`] = `
         class="separator_furuwhr collapsedSeparator_f1umkwuk"
       />
       <button
+        aria-label="Expand navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj collapsedChevron_f18a0vkk css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -2747,6 +2752,7 @@ exports[`SideNav > renders expanded state 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -3212,6 +3218,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -3677,6 +3684,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -4142,6 +4150,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -4607,6 +4616,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -5072,6 +5082,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -5537,6 +5548,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -6002,6 +6014,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -6467,6 +6480,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -6932,6 +6946,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -7397,6 +7412,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
@@ -7913,6 +7929,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
         class="separator_furuwhr"
       />
       <button
+        aria-label="Collapse navigation"
         class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
         data-testid="chevron-toggle"
         tabindex="0"
