@@ -126,14 +126,14 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 			return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 		}
 	}
-	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(run.ExperimentId, run.Namespace)
+	experimentID, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(ctx, run.ExperimentId, run.Namespace)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
+		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentID and namespace combination")
 	}
 	if common.IsMultiUserMode() && namespace == "" {
 		return nil, util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
 	}
-	run.ExperimentId = experimentId
+	run.ExperimentId = experimentID
 	run.Namespace = namespace
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{

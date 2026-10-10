@@ -3422,7 +3422,7 @@ func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, f
 }
 
 // Creates the default experiment entry.
-func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, error) {
+func (r *ResourceManager) CreateDefaultExperiment(ctx context.Context, namespace string) (string, error) {
 	// default_experiments holds a single global row, so it cannot record a
 	// default per namespace. In multi-user mode the namespace's default is
 	// resolved by name below instead; consulting the global id here would
@@ -3447,6 +3447,21 @@ func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, err
 		return "", util.Wrapf(err, "Failed to check for an existing default experiment in namespace %v", namespace)
 	}
 	if defaultExperiment == nil {
+		// Creating the default is an experiment write, so it needs experiment
+		// create permission. Reusing one that already exists does not, which
+		// keeps callers that may only create runs working once it is present.
+		if err := r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Group:     common.RbacPipelinesGroup,
+			Version:   common.RbacPipelinesVersion,
+			Resource:  common.RbacResourceTypeExperiments,
+			// The explicit endpoint names the experiment it creates, so RBAC
+			// grants narrowed to resourceNames ["Default"] must match here too.
+			Name: "Default",
+		}); err != nil {
+			return "", util.Wrapf(err, "Failed to create the default experiment in namespace %v", namespace)
+		}
 		defaultExperiment, err = r.CreateExperiment(&model.Experiment{
 			Name:         "Default",
 			Description:  "All runs created without specifying an experiment will be grouped here.",
@@ -3946,14 +3961,14 @@ func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string,
 //  2. If experimentId is empty, replaces it with the default experimentId from the given namespace.
 //     Creates the default experiment in the given namespace (could be empty in single-user mode) if it is missing.
 //  3. Replaces empty namespace with the parent namespace of the given experimentId.
-func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, namespace string) (string, string, error) {
-	if experimentId != "" {
-		ns, err := r.GetNamespaceFromExperimentId(experimentId)
+func (r *ResourceManager) GetValidExperimentNamespacePair(ctx context.Context, experimentID string, namespace string) (string, string, error) {
+	if experimentID != "" {
+		ns, err := r.GetNamespaceFromExperimentId(experimentID)
 		if err != nil {
-			return "", "", util.Wrapf(err, "Failed to fetch namespace for experiment %v", experimentId)
+			return "", "", util.Wrapf(err, "Failed to fetch namespace for experiment %v", experimentID)
 		}
 		if namespace != "" && namespace != ns {
-			return "", "", util.NewInvalidInputError("Experiment %v belongs to namespace '%v' instead of '%v'", experimentId, ns, namespace)
+			return "", "", util.NewInvalidInputError("Experiment %v belongs to namespace '%v' instead of '%v'", experimentID, ns, namespace)
 		}
 		namespace = ns
 	} else {
@@ -3963,13 +3978,13 @@ func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, n
 			return "", "", util.NewInvalidInputError("A namespace is required when experiment id is empty in multi-user mode")
 		}
 		// Returns the namespace's default experiment, creating it if missing.
-		defExpID, err := r.CreateDefaultExperiment(namespace)
+		defExpID, err := r.CreateDefaultExperiment(ctx, namespace)
 		if err != nil {
 			return "", "", util.Wrapf(err, "Experiment id is empty. Failed to resolve the default experiment in namespace %v", namespace)
 		}
-		experimentId = defExpID
+		experimentID = defExpID
 	}
-	return experimentId, namespace, nil
+	return experimentID, namespace, nil
 }
 
 // GetTask Fetches a task entry.
