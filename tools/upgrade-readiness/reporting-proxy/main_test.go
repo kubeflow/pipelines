@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -232,5 +233,75 @@ func TestScheduledAndMetricsForwardAuthentication(t *testing.T) {
 	}
 	if _, err := p.ReportRunMetricsV1(ctx, metrics); err != upstream {
 		t.Fatal("changed metrics error")
+	}
+}
+
+func TestTerminalReportWithoutTypeMeta(t *testing.T) {
+	p, err := newProxy(fixtureNamespace, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := selectedReport(t, nil)
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(req.Workflow), &payload); err != nil {
+		t.Fatal(err)
+	}
+	delete(payload, "kind")
+	delete(payload, "apiVersion")
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Workflow = string(raw)
+	deleted := false
+	p.deleteWorkflow = func(_ context.Context, selected target) error {
+		if selected.WorkflowUID != "workflow-uid" {
+			t.Fatal("wrong deletion identity")
+		}
+		deleted = true
+		return nil
+	}
+	p.reports = reportClient{report: func(_ context.Context, got *api.ReportWorkflowRequest) (*emptypb.Empty, error) {
+		if !deleted || got != req {
+			t.Fatal("report changed or forwarded before deletion")
+		}
+		return &emptypb.Empty{}, nil
+	}}
+	if _, err := p.ReportWorkflowV1(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if !deleted || !p.targets["run-id"].Deleted {
+		t.Fatal("typed informer report was not intercepted")
+	}
+}
+
+type healthTransport func(*http.Request) (*http.Response, error)
+
+func (f healthTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestHealthRoutesForwardVersionedAPIHealth(t *testing.T) {
+	original := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = original })
+	p, err := newProxy(fixtureNamespace, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/healthz", "/apis/v1beta1/healthz"} {
+		for _, code := range []int{http.StatusOK, http.StatusServiceUnavailable} {
+			calls := 0
+			const body = `{"api_server_ready":true,"tag_name":"2.18.0"}`
+			http.DefaultTransport = healthTransport(func(r *http.Request) (*http.Response, error) {
+				calls++
+				if r.Method != http.MethodGet || r.URL.String() != "http://ml-pipeline:8888/apis/v1beta1/healthz" {
+					t.Fatalf("unexpected health upstream: %s %s", r.Method, r.URL)
+				}
+				return &http.Response{StatusCode: code, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+			})
+			recorder := httptest.NewRecorder()
+			p.httpHandler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
+			if recorder.Code != code || recorder.Body.String() != body || calls != 1 {
+				t.Fatalf("route %s lost upstream status/body: %d %s calls=%d", path, recorder.Code, recorder.Body.String(), calls)
+			}
+		}
 	}
 }

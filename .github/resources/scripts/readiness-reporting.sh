@@ -100,7 +100,10 @@ objects = [
 (state / 'proxy-resources.json').write_text(json.dumps(dict(apiVersion='v1', kind='List', items=objects)))
 PY
 kube apply -f "$reporting_state/proxy-resources.json" >/dev/null
-kube -n kubeflow rollout status deployment/kfp-reporting-proxy --timeout=180s
+if ! kube -n kubeflow rollout status deployment/kfp-reporting-proxy --timeout=180s; then
+  check proxy-diagnostics
+  exit 1
+fi
 kube -n kubeflow get deployment/ml-pipeline-persistenceagent -o json >"$reporting_state/agent-before.json"
 python3 - "$reporting_state" <<'PY'
 import json

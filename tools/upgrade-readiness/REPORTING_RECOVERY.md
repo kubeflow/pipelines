@@ -39,7 +39,9 @@ cleanup. Invoke the helper's `restore` phase with `--fixture-state` and
 concurrent RBAC edits. That file is private operational state, not an evidence artifact.
 Upload only `reporting-source.json`, `reporting-blocked.json` and
 `reporting-recovered.json`, `reporting-deleted.json` and
-`reporting-ownership.json`. They contain synthetic resource identifiers and no
+`reporting-ownership.json`, and optional `reporting-proxy-diagnostics.json`. The
+last file records only rollout status, allowlisted failure reasons and probe
+status codes; it is diagnostic evidence, not acceptance. These files contain synthetic resource identifiers and no
 raw Workflow specifications, tokens or logs.
 
 After outage recovery, deploy the test-only report proxy configured with exact

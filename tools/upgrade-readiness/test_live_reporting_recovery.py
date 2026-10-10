@@ -6,6 +6,7 @@
 """Fail-closed evidence checks for the live persistence recovery fixture."""
 import copy
 import io
+import json
 from pathlib import Path
 import unittest
 from unittest import mock
@@ -137,6 +138,56 @@ class ReportingRecoveryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'invalid_restore'):
                 recovery.restore(Path('/fixture'))
             kube.assert_not_called()
+
+    def test_proxy_rollout_diagnostics_project_only_safe_runtime_fields(self):
+        pod = dict(
+            metadata=dict(
+                uid='proxy-uid', annotations=dict(secret='secret-marker')),
+            spec=dict(containers=[dict(env=[dict(value='secret-marker')])]),
+            status=dict(
+                phase='Running',
+                conditions=[dict(type='PodScheduled', status='True')],
+                containerStatuses=[
+                    dict(
+                        name='kfp-reporting-proxy',
+                        ready=False,
+                        restartCount=3,
+                        state=dict(
+                            waiting=dict(
+                                reason='CrashLoopBackOff',
+                                message='secret-marker')),
+                        lastState=dict(
+                            terminated=dict(
+                                reason='OOMKilled',
+                                exitCode=137,
+                                message='secret-marker')))
+                ]))
+        with mock.patch.object(
+                recovery,
+                'kube',
+                side_effect=[
+                    json.dumps(dict(items=[pod])),
+                    json.dumps(
+                        dict(items=[
+                            dict(
+                                involvedObject=dict(uid='proxy-uid'),
+                                reason='Unhealthy',
+                                message='Readiness probe failed: HTTP probe failed with statuscode: 503 secret-marker'
+                            )
+                        ])),
+                    'private secret-marker\n2026/01/01 fixture requires in-cluster credentials\n',
+                    'private secret-marker'
+                ]):
+            report = recovery.proxy_diagnostics()
+        self.assertNotIn('secret-marker', str(report))
+        self.assertEqual(report['events'],
+                         [dict(reason='Unhealthy', probe_http_status=503)])
+        self.assertFalse(report['pods'][0]['ready'])
+        self.assertEqual(report['fixed_startup_errors'],
+                         ['fixture requires in-cluster credentials'])
+        self.assertEqual(
+            report['pods'][0]['containers'][0]['states']['lastState'],
+            dict(mode='terminated', reason='OOMKilled', exit_code=137))
 
     def test_fault_preserves_other_permissions(self):
         rules = [

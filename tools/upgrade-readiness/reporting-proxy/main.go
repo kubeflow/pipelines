@@ -107,9 +107,11 @@ func (p *proxy) ReportWorkflowV1(ctx context.Context, request *api.ReportWorkflo
 	ctx, cancel := outgoing(ctx)
 	defer cancel()
 	var report workflowReport
-	// Unselected and malformed reports are passed unchanged to the real API.
+	// Typed informer objects can omit TypeMeta. Explicitly conflicting types,
+	// unselected identities and malformed reports pass unchanged to the real API.
 	if json.Unmarshal([]byte(request.GetWorkflow()), &report) != nil ||
-		report.Kind != "Workflow" || report.APIVersion != "argoproj.io/v1alpha1" ||
+		(report.Kind != "" && report.Kind != "Workflow") ||
+		(report.APIVersion != "" && report.APIVersion != "argoproj.io/v1alpha1") ||
 		report.Metadata.Namespace != fixtureNamespace ||
 		(report.Status.Phase != "Succeeded" && report.Status.Phase != "Failed" && report.Status.Phase != "Error") {
 		return p.reports.ReportWorkflowV1(ctx, request)
@@ -206,7 +208,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://ml-pipeline:8888/healthz", nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://ml-pipeline:8888/apis/v1beta1/healthz", nil)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -221,6 +223,14 @@ func health(w http.ResponseWriter, r *http.Request) {
 	// Initialization reads the API version from the health response.
 	w.WriteHeader(response.StatusCode)
 	_, _ = io.Copy(w, io.LimitReader(response.Body, 65536))
+}
+
+func (p *proxy) httpHandler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", health)
+	mux.HandleFunc("/apis/v1beta1/healthz", health)
+	mux.HandleFunc("/apis/v2beta1/reporting-fixture-evidence", p.serveEvidence)
+	return mux
 }
 
 func run() error {
@@ -252,10 +262,7 @@ func run() error {
 	server := grpc.NewServer(grpc.MaxRecvMsgSize(16 * 1024 * 1024))
 	api.RegisterReportServiceServer(server, p)
 	api.RegisterRunServiceServer(server, p)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", health)
-	mux.HandleFunc("/apis/v2beta1/reporting-fixture-evidence", p.serveEvidence)
-	httpServer := &http.Server{Addr: ":8888", Handler: mux, ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 40 * time.Second, IdleTimeout: 30 * time.Second}
+	httpServer := &http.Server{Addr: ":8888", Handler: p.httpHandler(), ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 40 * time.Second, IdleTimeout: 30 * time.Second}
 	failures := make(chan error, 2)
 	go func() { failures <- server.Serve(listener) }()
 	go func() { failures <- httpServer.ListenAndServe() }()

@@ -267,6 +267,7 @@ jobs:
             ${{ runner.temp }}/readiness-schedules/reporting/reporting-recovered.json
             ${{ runner.temp }}/readiness-schedules/reporting/reporting-deleted.json
             ${{ runner.temp }}/readiness-schedules/reporting/reporting-ownership.json
+            ${{ runner.temp }}/readiness-schedules/reporting/reporting-proxy-diagnostics.json
           if-no-files-found: ignore
           retention-days: 7
       - name: Remove isolated readiness cluster

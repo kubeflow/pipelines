@@ -94,6 +94,22 @@ echo "$2" >>"$TEST_STATE/calls"
             source.index('check prepare'),
             source.index('restore_controller_namespaces'))
 
+    def test_proxy_rollout_failure_collects_safe_diagnostics_and_stays_failure(
+            self):
+        source = SCRIPT.read_text()
+        block = re.search(
+            r'if ! kube -n kubeflow rollout status deployment/kfp-reporting-proxy[^\n]*; then\n[\s\S]*?\nfi',
+            source).group(0)
+        for code in (0, 1):
+            program = 'kube() { return ' + str(
+                code) + '; }; check() { echo "$*"; };\n' + block
+            result = subprocess.run(['bash', '-c', program],
+                                    capture_output=True,
+                                    text=True)
+            self.assertEqual(result.returncode, code)
+            self.assertEqual(result.stdout.strip(),
+                             'proxy-diagnostics' if code else '')
+
     def test_restore_attempts_both_faults_and_propagates_each_failure(self):
         source = SCRIPT.read_text()
         function = re.search(r'(restore_faults\(\) \{[\s\S]*?^\})', source,
@@ -175,7 +191,7 @@ kube() {
         expected = {
             'reporting-source.json', 'reporting-blocked.json',
             'reporting-recovered.json', 'reporting-deleted.json',
-            'reporting-ownership.json'
+            'reporting-ownership.json', 'reporting-proxy-diagnostics.json'
         }
         self.assertEqual({path.rsplit('/', 1)[-1] for path in paths}, expected)
         self.assertTrue(

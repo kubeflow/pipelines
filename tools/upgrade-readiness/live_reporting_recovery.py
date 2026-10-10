@@ -16,6 +16,7 @@ import copy
 import http.client
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -477,6 +478,117 @@ def observe(client, records, recovered=False):
     return output
 
 
+def proxy_diagnostics():
+    """Capture rollout reasons without container configuration or log
+    bodies."""
+    reasons = {
+        'CrashLoopBackOff', 'ImagePullBackOff', 'ErrImagePull',
+        'ErrImageNeverPull', 'CreateContainerConfigError',
+        'CreateContainerError', 'RunContainerError', 'ContainerCreating',
+        'PodInitializing', 'Completed', 'Error', 'OOMKilled'
+    }
+    pods = json.loads(
+        kube('-n', 'kubeflow', 'get', 'pods', '-l', 'app=kfp-reporting-proxy',
+             '-o', 'json')).get('items', [])
+    require(
+        isinstance(pods, list) and len(pods) <= 10, 'proxy_diagnostic_limit')
+    projected = []
+    pod_uids = {pod.get('metadata', {}).get('uid') for pod in pods} - {None, ''}
+    for pod in pods:
+        status = pod.get('status', {})
+        phase = status.get('phase')
+        containers = []
+        for item in status.get('containerStatuses', []):
+            if item.get('name') != 'kfp-reporting-proxy':
+                continue
+            states = {}
+            for category in ('state', 'lastState'):
+                for mode, value in item.get(category, {}).items():
+                    if mode not in ('running', 'waiting', 'terminated'):
+                        continue
+                    reason = value.get('reason')
+                    states[category] = dict(
+                        mode=mode,
+                        reason=reason if reason in reasons else 'other')
+                    code = value.get('exitCode')
+                    if type(code) is int and 0 <= code <= 255:
+                        states[category]['exit_code'] = code
+            containers.append(
+                dict(
+                    ready=item.get('ready') is True,
+                    restart_count=item.get('restartCount') if type(
+                        item.get('restartCount')) is int else None,
+                    states=states))
+        projected.append(
+            dict(
+                phase=phase if phase in ('Pending', 'Running', 'Succeeded',
+                                         'Failed', 'Unknown') else 'unknown',
+                scheduled=any(
+                    c.get('type') == 'PodScheduled' and
+                    c.get('status') == 'True'
+                    for c in status.get('conditions', [])),
+                ready=any(
+                    c.get('type') == 'Ready' and c.get('status') == 'True'
+                    for c in status.get('conditions', [])),
+                containers=containers))
+    events = []
+    try:
+        raw_events = get('events', 'kubeflow').get('items', [])
+        require(
+            isinstance(raw_events, list) and len(raw_events) <= 1000,
+            'proxy_event_limit')
+        for event in raw_events:
+            if event.get('involvedObject', {}).get('uid') not in pod_uids:
+                continue
+            reason = event.get('reason')
+            if reason not in ('Unhealthy', 'FailedScheduling', 'Failed',
+                              'BackOff', 'Pulled', 'Created', 'Started'):
+                reason = 'other'
+            item = dict(reason=reason)
+            message = event.get('message', '')
+            if reason == 'Unhealthy' and isinstance(message, str):
+                match = re.search(
+                    r'HTTP probe failed with statuscode: ([1-5][0-9]{2})',
+                    message)
+                if match:
+                    item['probe_http_status'] = int(match.group(1))
+                elif 'connection refused' in message:
+                    item['probe_connection'] = 'refused'
+                elif 'timeout' in message.lower(
+                ) or 'deadline exceeded' in message.lower():
+                    item['probe_connection'] = 'timeout'
+            if reason == 'FailedScheduling' and isinstance(message, str):
+                item['insufficient_cpu'] = 'Insufficient cpu' in message
+                item['insufficient_memory'] = 'Insufficient memory' in message
+            events.append(item)
+    except Exception:
+        events = [dict(reason='event_collection_failed')]
+    fixed_errors = ('fixture namespace or target limit invalid',
+                    'fixture requires one to ten explicit targets',
+                    'fixture target identity invalid or duplicated',
+                    'fixture requires in-cluster credentials',
+                    'fixture Kubernetes client unavailable',
+                    'fixture upstream unavailable',
+                    'fixture grpc listener unavailable',
+                    'fixture listener stopped')
+    observed = []
+    for previous in (False, True):
+        try:
+            args = ('--previous',) if previous else ()
+            logs = kube('-n', 'kubeflow', 'logs',
+                        'deployment/kfp-reporting-proxy', '--tail=20', *args)
+            observed.extend(
+                error for error in fixed_errors if any(
+                    line.endswith(error) for line in logs.splitlines()))
+        except Exception:
+            pass
+    return dict(
+        scope='proxy_rollout_diagnostics',
+        pods=projected,
+        events=events,
+        fixed_startup_errors=sorted(set(observed)))
+
+
 def timeout_diagnostics():
     """Only synthetic phase counts and controller watch namespace shapes."""
     result = dict(namespace=NAMESPACE, workflows={}, controllers={})
@@ -619,7 +731,9 @@ def recover(client, state, state_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        'phase', choices=('prepare', 'source', 'recover', 'delete', 'restore'))
+        'phase',
+        choices=('prepare', 'source', 'recover', 'delete', 'restore',
+                 'proxy-diagnostics'))
     parser.add_argument('--fixture-state', type=Path, required=True)
     parser.add_argument('--state-dir', type=Path, required=True)
     parser.add_argument('--endpoint')
@@ -630,6 +744,12 @@ def main():
     fixture = read_object(args.fixture_state)
     verify_state(CONTEXT, fixture)
     args.state_dir.mkdir(parents=True, exist_ok=True)
+    if args.phase == 'proxy-diagnostics':
+        result = proxy_diagnostics()
+        write_object(args.state_dir / 'reporting-proxy-diagnostics.json',
+                     result)
+        print(json.dumps(result, sort_keys=True), file=sys.stderr)
+        return
     if args.phase == 'restore':
         restore(args.state_dir)
         return
