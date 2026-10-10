@@ -436,11 +436,15 @@ pagination must return that entire ordered inventory. The report distinguishes:
 On MySQL, 2.17.2 ascending sorts place SQL NULL values first; 2.18 places them
 last in both directions. A continuation saved before upgrade can therefore repeat
 NULL rows already seen on an earlier source page. This affects ascending lists
-whose selected sort column actually contains NULLs, including legacy task
-`display_name` and pipeline-version `description` values. It is not a blanket
-requirement to restart every listing. Nullable descending order already places
+whose selected sort column actually contains NULLs. Tested examples include task
+`display_name`, pipeline-version `description`, pipeline `namespace`, run `state`,
+`scheduled_at` and `finished_at`, and recurring-run/job `updated_at`. An empty
+string or zero timestamp is not a SQL NULL. Lists without NULLs are not affected
+by this ordering change. Nullable descending order already places
 NULLs last on MySQL, although 2.17.2 can independently fail to produce a cursor
-when the lookahead value is NULL.
+when the lookahead value is NULL. The source also cannot create a run
+`recurring_run_id` cursor; this is a preexisting pagination failure, not a working
+old continuation that 2.18 can preserve.
 
 For an affected ascending list, or another confirmed ordering change (such as
 mixed-case strings on a case-sensitive database collation), finish the API
