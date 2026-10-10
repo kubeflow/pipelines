@@ -105,6 +105,19 @@ class ClientTest(unittest.TestCase):
         self.assertEqual('GET', request.method)
         self.assertEqual(20, client._opener.open.call_args.kwargs['timeout'])
 
+    def test_only_v1_run_detail_is_allowed(self):
+        client = self.client()
+        client._opener.open.return_value = Response(b'{}')
+        self.assertEqual(client.get('/apis/v1beta1/runs/run-id'), {})
+        self.assertEqual(client._opener.open.call_args.args[0].method, 'GET')
+        for path in ('/apis/v1beta1/jobs/job', '/apis/v1beta1/runs/id:retry',
+                     '/apis/v1beta1/runs/id/artifacts', '/apis/v1beta1/runs/..',
+                     '/apis/v1beta1/runs/%2e%2e',
+                     '/apis/v1beta1/runs/id%2fextra'):
+            with self.subTest(path=path), self.assertRaisesRegex(
+                    kfp_http.CollectionError, '^invalid_api_path$'):
+                client.get(path)
+
     def test_invalid_tokens_and_ca_are_sanitized(self):
         with tempfile.TemporaryDirectory() as directory:
             token = Path(directory) / 'token'
