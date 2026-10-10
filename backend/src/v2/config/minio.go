@@ -23,7 +23,7 @@ type MinioProviderConfig S3ProviderConfig
 // ProvideSessionInfo provides the SessionInfo for minio provider.
 // this is the same as s3ProviderConfig.ProvideSessionInfo except
 // the provider is set to minio
-func (p MinioProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionInfo, error) {
+func (p MinioProviderConfig) ProvideSessionInfo(path string, isTrustedQuery bool) (objectstore.SessionInfo, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
@@ -42,7 +42,7 @@ func (p MinioProviderConfig) ProvideSessionInfo(path string) (objectstore.Sessio
 
 	s3ProviderConfig := S3ProviderConfig(p)
 
-	info, err := s3ProviderConfig.ProvideSessionInfo(path)
+	info, err := s3ProviderConfig.ProvideSessionInfo(path, isTrustedQuery)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}

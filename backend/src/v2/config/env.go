@@ -59,7 +59,7 @@ type BucketProviders struct {
 }
 
 type SessionInfoProvider interface {
-	ProvideSessionInfo(path string) (objectstore.SessionInfo, error)
+	ProvideSessionInfo(path string, isTrustedQuery bool) (objectstore.SessionInfo, error)
 }
 
 // Config is the KFP runtime configuration.
@@ -85,7 +85,7 @@ func (c *Config) DefaultPipelineRoot() string {
 	return c.data[configKeyDefaultPipelineRoot]
 }
 
-func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, error) {
+func (c *Config) GetStoreSessionInfo(path string, isTrustedQuery bool) (objectstore.SessionInfo, error) {
 	provider, err := objectstore.ParseProviderFromPath(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
@@ -123,7 +123,7 @@ func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, erro
 		return objectstore.SessionInfo{}, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
 	}
 
-	sess, err := sessProvider.ProvideSessionInfo(path)
+	sess, err := sessProvider.ProvideSessionInfo(path, isTrustedQuery)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
