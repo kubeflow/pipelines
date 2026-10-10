@@ -170,7 +170,7 @@ describe('mock backend routes', () => {
         .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
         .expect(200);
 
-      expect(response.body.tasks).toHaveLength(3);
+      expect(response.body.tasks).toHaveLength(4);
       expect(response.body.tasks).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ task_id: 'mock-task-root', type: 'ROOT' }),
@@ -190,6 +190,57 @@ describe('mock backend routes', () => {
           }),
         ]),
       );
+    });
+
+    it('serves deterministic retry and cache timings for the run timeline', async () => {
+      const response = await request
+        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
+        .expect(200);
+      const retried = response.body.tasks.find((task) => task.task_id === 'mock-task-consumer');
+      expect(retried.state_history.map((status) => status.state)).toEqual([
+        'RUNNING',
+        'FAILED',
+        'RUNNING',
+        'SUCCEEDED',
+      ]);
+      const cached = response.body.tasks.find((task) => task.task_id === 'mock-task-cached');
+      expect(cached).toMatchObject({
+        state: 'CACHED',
+        create_time: '2026-01-01T00:02:05.000Z',
+        end_time: '2026-01-01T00:02:07.000Z',
+        parent_task_id: 'mock-task-root',
+      });
+      for (const task of [retried, cached]) {
+        const timestamps = task.state_history.map((status) => Date.parse(status.update_time));
+        expect(timestamps).toEqual([...timestamps].sort((a, b) => a - b));
+        expect(timestamps[0]).toBe(Date.parse(task.create_time));
+        expect(timestamps.at(-1)).toBe(Date.parse(task.end_time));
+      }
+    });
+
+    it('fetches a native task by run and task id for artifact lineage', async () => {
+      const response = await request
+        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks/mock-task-producer')
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        run_id: 'e0115ac1-0479-4194-a22d-01e65e09a32b',
+        task_id: 'mock-task-producer',
+        display_name: 'Chicago taxi trips dataset',
+        outputs: {
+          artifacts: [{ artifact_key: 'table', artifacts: [{ artifact_id: 'mock-artifact-1' }] }],
+        },
+      });
+    });
+
+    it.each([
+      ['e0115ac1-0479-4194-a22d-01e65e09a32b', 'does-not-exist'],
+      ['mock-run-0', 'mock-task-producer'],
+      ['does-not-exist', 'mock-task-producer'],
+    ])('returns 404 for unavailable task %s/%s', async (runId, taskId) => {
+      await request
+        .get(`/apis/v2beta1/runs/${runId}/tasks/${taskId}`)
+        .expect(404, `No task was found with ID: ${taskId} in run: ${runId}`);
     });
 
     it('lists and fetches a native artifact by id', async () => {
