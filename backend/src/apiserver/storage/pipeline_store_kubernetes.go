@@ -1,9 +1,10 @@
 package storage
 
 import (
+	"cmp"
 	"context"
 	"fmt"
-	"slices"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -116,52 +117,89 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 		pipelines = append(pipelines, k8sPipeline.ToModel())
 	}
 
-	// Because controller-client does not have sorting, use this function to sort by fields.
-	sort.SliceStable(pipelines, func(i, j int) bool {
-		if opts.SortByFieldName != "" {
-			elementA := pipelines[i].GetFieldValue(opts.SortByFieldName)
-			elementB := pipelines[j].GetFieldValue(opts.SortByFieldName)
+	return sortAndPaginate(pipelines, opts)
+}
 
-			if elementA != nil && elementB != nil {
-				switch elementA.(type) {
-				case int64:
-					return elementA.(int64) > elementB.(int64)
-				case float64:
-					return elementA.(float64) > elementB.(float64)
-				case string:
-					return strings.ToLower(elementA.(string)) > strings.ToLower(elementB.(string))
-				default:
-					glog.Warningf("Field type %T in %s not recognized. Sorting will not work.", elementA, opts.SortByFieldName)
-					return false
-				}
-			}
+// sortAndPaginate orders items by the requested field and then by primary key,
+// as the SQL stores do, and returns the page that opts points at. The cache
+// returns objects in no particular order, so the key tiebreak is what keeps
+// pages consistent between calls. The page starts at the first item at or after
+// the token's position, so it does not depend on that item still existing.
+func sortAndPaginate[T list.Listable](items []T, opts *list.Options) ([]T, int, string, error) {
+	key := func(item T) string {
+		return fmt.Sprint(item.GetFieldValue(item.PrimaryKeyColumnName()))
+	}
+	sortValue := func(item T) interface{} {
+		if opts.SortByFieldName == "" {
+			return nil
 		}
-		return false
+		return item.GetFieldValue(opts.SortByFieldName)
+	}
+	// position compares an item with a (sort value, key) pair in list order.
+	position := func(item T, otherSortValue interface{}, otherKey string) int {
+		order := compareSortValues(sortValue(item), otherSortValue)
+		if order == 0 {
+			order = strings.Compare(key(item), otherKey)
+		}
+		if opts.IsDesc {
+			return -order
+		}
+		return order
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		return position(items[i], sortValue(items[j]), key(items[j])) < 0
 	})
-	if !opts.IsDesc {
-		slices.Reverse(pipelines)
+
+	start := 0
+	if opts.KeyFieldValue != nil && fmt.Sprint(opts.KeyFieldValue) != "" {
+		tokenKey := fmt.Sprint(opts.KeyFieldValue)
+		start = sort.Search(len(items), func(i int) bool {
+			return position(items[i], opts.SortByFieldValue, tokenKey) >= 0
+		})
 	}
 
-	// If there's pagination, find the index of the first element of the next page
-	nextPage := 0
-	for p, pipeline := range pipelines {
-		if opts.KeyFieldValue != "" {
-			if strings.Compare(fmt.Sprint(opts.KeyFieldValue), pipeline.UUID) == 0 {
-				nextPage = p
-				break
-			}
-		}
+	end := start + opts.PageSize
+	if end >= len(items) {
+		return items[start:], len(items), "", nil
 	}
+	nextPageToken, err := opts.NextPageToken(items[end])
+	return items[start:end], len(items), nextPageToken, err
+}
 
-	// Split results on multiple pages if needed
-	upperBound := nextPage + opts.PageSize
-	npt := ""
-	if len(pipelines) > upperBound {
-		npt, err = opts.NextPageToken(pipelines[upperBound])
-	} else {
-		upperBound = len(pipelines)
+// compareSortValues compares two sort field values: numbers numerically and
+// everything else as case-insensitive strings. A page token carries numbers as
+// float64 after its JSON round trip, so all numeric kinds compare as float64.
+func compareSortValues(a, b interface{}) int {
+	aNumber, aIsNumber := sortValueAsFloat(a)
+	bNumber, bIsNumber := sortValueAsFloat(b)
+	if aIsNumber && bIsNumber {
+		return cmp.Compare(aNumber, bNumber)
 	}
-	return pipelines[nextPage:upperBound], len(pipelines), npt, err
+	return strings.Compare(sortValueAsString(a), sortValueAsString(b))
+}
+
+func sortValueAsFloat(value interface{}) (float64, bool) {
+	v := reflect.ValueOf(value)
+	switch {
+	case !v.IsValid():
+		return 0, false
+	case v.CanInt():
+		return float64(v.Int()), true
+	case v.CanUint():
+		return float64(v.Uint()), true
+	case v.CanFloat():
+		return v.Float(), true
+	default:
+		return 0, false
+	}
+}
+
+func sortValueAsString(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+	return strings.ToLower(fmt.Sprint(value))
 }
 
 func (k *PipelineStoreKubernetes) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -608,52 +646,7 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *
 		pipelineVersions = append(pipelineVersions, pipelineVersion)
 	}
 
-	// Because controller-client does not have sorting, use this function to sort by fields.
-	sort.SliceStable(pipelineVersions, func(i, j int) bool {
-		if opts.SortByFieldName != "" {
-			elementA := pipelineVersions[i].GetFieldValue(opts.SortByFieldName)
-			elementB := pipelineVersions[j].GetFieldValue(opts.SortByFieldName)
-
-			if elementA != nil && elementB != nil {
-				switch elementA.(type) {
-				case int64:
-					return elementA.(int64) > elementB.(int64)
-				case float64:
-					return elementA.(float64) > elementB.(float64)
-				case string:
-					return strings.ToLower(elementA.(string)) > strings.ToLower(elementB.(string))
-				default:
-					glog.Warningf("Field type %T in %s not recognized. Sorting will not work.", elementA, opts.SortByFieldName)
-					return false
-				}
-			}
-		}
-		return false
-	})
-	if !opts.IsDesc {
-		slices.Reverse(pipelineVersions)
-	}
-
-	// If there's pagination, find the index of the first element of the next page
-	nextPage := 0
-	if opts.KeyFieldValue != "" {
-		for p, pipelineVersion := range pipelineVersions {
-			if strings.Compare(fmt.Sprint(opts.KeyFieldValue), pipelineVersion.UUID) == 0 {
-				nextPage = p
-				break
-			}
-		}
-	}
-
-	// Split results on multiple pages if needed
-	upperBound := nextPage + opts.PageSize
-	npt := ""
-	if len(pipelineVersions) > upperBound {
-		npt, err = opts.NextPageToken(pipelineVersions[upperBound])
-	} else {
-		upperBound = len(pipelineVersions)
-	}
-	return pipelineVersions[nextPage:upperBound], len(pipelineVersions), npt, err
+	return sortAndPaginate(pipelineVersions, opts)
 }
 
 func (k *PipelineStoreKubernetes) DeletePipelineVersion(pipelineVersionId string) error {
