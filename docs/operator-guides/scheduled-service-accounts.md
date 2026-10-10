@@ -149,6 +149,16 @@ protocol. Run operations, reads, reporting, and deletion remain available. Exist
 legacy schedules retain the old behavior until the handoff; the new controller
 waits. This scheduling-write pause is automatic and requires no operator cutover.
 
+A handoff rejection means the requested operation was **not applied**. In
+particular, a rejected disable request leaves the schedule enabled; do not report
+it as paused. Retry the same operation with bounded exponential backoff after
+the rollout completes, then read the schedule back to confirm its enabled state.
+If the retry budget expires, surface the failure and inspect the managed rollout
+and API/controller logs instead of assuming the request was queued. This advice
+applies to the explicit handoff rejection; a generic connection timeout does not
+prove a create request was rejected before mutation. Check for an existing
+created schedule before resubmitting an ambiguously completed create request.
+
 Adoption accepts existing **database-stored schedule definitions as the upgrade
 baseline**, initializes their API-owned progress, and restores corresponding CRs
 to API routing. Enabled schedules remain enabled; disabled schedules remain

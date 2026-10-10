@@ -20,6 +20,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -204,45 +205,77 @@ func TestOnlineDisableMissingCRStillRevokesAuthorization(t *testing.T) {
 }
 
 func TestOnlineScheduleMutationsWaitForWriterHandoff(t *testing.T) {
-	manager, clients := onlineAdoptionManager(t)
-	job := onlineLegacyJob(t, clients, true)
-	ctx := context.Background()
-	ready := false
-	manager.options.ScheduleWritersReady = func(context.Context) error {
-		if !ready {
-			return fmt.Errorf("old writers remain")
-		}
-		return nil
+	for _, enable := range []bool{false, true} {
+		t.Run(fmt.Sprintf("enable=%t", enable), func(t *testing.T) {
+			manager, clients := onlineAdoptionManager(t)
+			job := onlineLegacyJob(t, clients, !enable)
+			ctx := context.Background()
+			ready := false
+			manager.options.ScheduleWritersReady = func(context.Context) error {
+				if !ready {
+					return fmt.Errorf("private writer infrastructure detail")
+				}
+				return nil
+			}
+			liveBefore, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+			require.NoError(t, err)
+			liveBefore = liveBefore.DeepCopy()
+			storedBefore, err := clients.JobStore().GetJob(job.UUID)
+			require.NoError(t, err)
+			db, err := clients.TransferDB()
+			require.NoError(t, err)
+			assertNotApplied := func(err error) {
+				t.Helper()
+				require.Error(t, err)
+				status := util.ToGRPCStatus(err)
+				require.Equal(t, codes.Unavailable, status.Code())
+				require.Equal(t, err.(*util.UserError).ExternalMessage(), status.Message())
+				require.Contains(t, status.Message(), "was not applied")
+				require.Contains(t, status.Message(), "handoff")
+				require.Contains(t, status.Message(), "after handoff completes")
+				require.NotContains(t, status.Message(), "private writer infrastructure detail")
+			}
+			assertNotApplied(manager.ChangeJobMode(ctx, job.UUID, enable))
+			current, err := clients.JobStore().GetJob(job.UUID)
+			require.NoError(t, err)
+			require.Equal(t, storedBefore, current)
+			live, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, liveBefore, live)
+			var states, receipts int64
+			require.NoError(t, db.Model(&model.RecurringRunState{}).Count(&states).Error)
+			require.NoError(t, db.Model(&model.RecurringRunAdoption{}).Count(&receipts).Error)
+			require.Zero(t, states)
+			require.Zero(t, receipts)
+			var before int64
+			require.NoError(t, db.Model(&model.Job{}).Count(&before).Error)
+			newJob := &model.Job{DisplayName: "new", Namespace: "ns1", Enabled: true, PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{ "text": "world" }`}}}
+			_, err = manager.CreateJob(ctx, newJob)
+			assertNotApplied(err)
+			require.Empty(t, newJob.UUID)
+			var after int64
+			require.NoError(t, db.Model(&model.Job{}).Count(&after).Error)
+			require.Equal(t, before, after)
+			require.NoError(t, db.Model(&model.RecurringRunState{}).Count(&states).Error)
+			require.NoError(t, db.Model(&model.RecurringRunAdoption{}).Count(&receipts).Error)
+			require.Zero(t, states)
+			require.Zero(t, receipts)
+			_, err = clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, "job-", metav1.GetOptions{})
+			require.Error(t, err)
+			ready = true
+			require.NoError(t, manager.ChangeJobMode(ctx, job.UUID, enable))
+			current, err = clients.JobStore().GetJob(job.UUID)
+			require.NoError(t, err)
+			require.Equal(t, enable, current.Enabled)
+			live, err = clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, enable, live.Spec.Enabled)
+			created, err := manager.CreateJob(ctx, newJob)
+			require.NoError(t, err)
+			require.NotEmpty(t, created.UUID)
+			require.NoError(t, manager.RequireRecurringRunAdoptionReady(ctx, created.UUID))
+		})
 	}
-	require.ErrorContains(t, manager.ChangeJobMode(ctx, job.UUID, false), "handoff")
-	current, err := clients.JobStore().GetJob(job.UUID)
-	require.NoError(t, err)
-	require.True(t, current.Enabled)
-	live, err := clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, job.K8SName, metav1.GetOptions{})
-	require.NoError(t, err)
-	require.True(t, live.Spec.Enabled)
-	db, err := clients.TransferDB()
-	require.NoError(t, err)
-	var before int64
-	require.NoError(t, db.Model(&model.Job{}).Count(&before).Error)
-	newJob := &model.Job{DisplayName: "new", Namespace: "ns1", Enabled: true, PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{ "text": "world" }`}}}
-	_, err = manager.CreateJob(ctx, newJob)
-	require.ErrorContains(t, err, "handoff")
-	require.Empty(t, newJob.UUID)
-	var after int64
-	require.NoError(t, db.Model(&model.Job{}).Count(&after).Error)
-	require.Equal(t, before, after)
-	_, err = clients.SwfClient().ScheduledWorkflow("ns1").Get(ctx, "job-", metav1.GetOptions{})
-	require.Error(t, err)
-	ready = true
-	require.NoError(t, manager.ChangeJobMode(ctx, job.UUID, false))
-	current, err = clients.JobStore().GetJob(job.UUID)
-	require.NoError(t, err)
-	require.False(t, current.Enabled)
-	created, err := manager.CreateJob(ctx, newJob)
-	require.NoError(t, err)
-	require.NotEmpty(t, created.UUID)
-	require.NoError(t, manager.RequireRecurringRunAdoptionReady(ctx, created.UUID))
 }
 
 func TestOnlineAndManualAdoptionRefuseMissingTransferredState(t *testing.T) {
