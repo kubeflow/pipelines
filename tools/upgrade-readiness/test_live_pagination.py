@@ -70,6 +70,13 @@ class PaginationTest(unittest.TestCase):
             self.assertNotIn('operation' if key == 'op' else 'op', predicate)
 
     def test_source_serializes_original_and_extended_cases(self):
+        self.capture_source_with_transport()
+
+    def test_source_records_old_metric_sort_failure_after_independent_inventory(
+            self):
+        self.capture_source_with_transport(metric_failure=True)
+
+    def capture_source_with_transport(self, metric_failure=False):
         rows = {'experiments': [], 'runs': []}
         seen_endpoints = set()
 
@@ -94,6 +101,9 @@ class PaginationTest(unittest.TestCase):
                 } if collection == 'runs' else {
                     identity: value
                 })
+            if metric_failure and params.get('sort_by',
+                                             '').startswith('metric:'):
+                raise fixture.ApiError(500, endpoint)
             selected = rows[collection]
             token = params.get('page_token')
             offset = 0
@@ -133,8 +143,14 @@ class PaginationTest(unittest.TestCase):
                          ['EQUALS', 'IS_SUBSTRING', 'IN'])
         self.assertEqual(len(state['extended']), 32)
         for case in state['cases'] + state['extended']:
-            self.assertEqual(case['source_baseline']['outcome'], 'passed')
-            self.assertTrue(case['first']['next_page_token'])
+            if metric_failure and case.get('sort', '').startswith('metric:'):
+                self.assertEqual(case['source_baseline']['phase'],
+                                 'sorted_inventory')
+                self.assertIsNone(case['source_order'])
+                self.assertIsNone(case['first'])
+            else:
+                self.assertEqual(case['source_baseline']['outcome'], 'passed')
+                self.assertTrue(case['first']['next_page_token'])
         self.assertIn('/apis/v1beta1/experiments', seen_endpoints)
         self.assertIn('/apis/v1beta1/runs', seen_endpoints)
         self.assertIn('/apis/v2beta1/runs', seen_endpoints)
@@ -211,6 +227,39 @@ class ExtendedPaginationTest(unittest.TestCase):
         self.assertEqual(len(runs), 7)
         self.assertEqual(runs[0]['name'].lower(), runs[1]['name'].lower())
         self.assertNotEqual(runs[0]['name'], runs[1]['name'])
+
+    def test_source_membership_failure_is_fatal(self):
+        for error in (fixture.ApiError(500), ValueError('missing fixture row')):
+            with self.subTest(error=error), mock.patch.object(
+                    fixture, 'full_inventory', side_effect=error):
+                with self.assertRaises(type(error)):
+                    fixture.capture_source_case(self.case)
+
+    def test_source_sorted_membership_mismatch_is_fatal(self):
+        with mock.patch.object(
+                fixture,
+                'full_inventory',
+                side_effect=[['a', 'b', 'c'],
+                             ValueError('lost fixture row')]):
+            with self.assertRaisesRegex(ValueError, 'lost fixture row'):
+                fixture.capture_source_case(self.case)
+
+    def test_unknown_source_order_is_not_a_comparison_change(self):
+        self.case.update(
+            source_order=None,
+            first=None,
+            source_baseline={
+                'outcome': 'failed',
+                'phase': 'sorted_inventory'
+            })
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'failed'}):
+            result = fixture.validate_extended([self.case])[0]
+        self.assertEqual(result['disposition'],
+                         'preexisting_source_pagination_failure')
+        self.assertEqual(result['saved_source_continuation']['outcome'],
+                         'not_available')
 
     def test_source_first_page_failure_does_not_invent_a_saved_cursor(self):
         with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \

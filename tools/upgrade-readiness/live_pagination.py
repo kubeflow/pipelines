@@ -282,26 +282,33 @@ def full_inventory(port, case):
 
 
 def capture_source_case(case):
+    # Establish membership using an independent, stable sort before probing the
+    # selected sort. Old servers can fail the sort itself, even without a cursor.
+    full_inventory(8888, {**case, 'sort': case['identity'] + ' asc'})
+    first = None
+    expected = None
     try:
         expected = full_inventory(8888, case)
-    except (ApiError, ValueError) as error:
-        raise ValueError('source inventory failed: ' + case['endpoint'] +
-                         ' sort=' + case['sort'] + ': ' + str(error)) from error
-    first = None
-    try:
-        first = case_page(8888, case)
-        if not first.get('next_page_token'):
-            raise ValueError('source did not generate a continuation token')
-        baseline = observe_walk([8888], case, expected)
-    except (ApiError, ValueError) as error:
-        # 2.17.2 cannot emit a cursor when its lookahead metric value is NULL.
-        # Keep the independently verified inventory and do not invent a token.
-        first = None
+    except ApiError as error:
         baseline = {
             'outcome': 'failed',
             'reason': str(error),
-            'phase': 'first_page'
+            'phase': 'sorted_inventory'
         }
+    else:
+        try:
+            first = case_page(8888, case)
+            if not first.get('next_page_token'):
+                raise ValueError('source did not generate a continuation token')
+            baseline = observe_walk([8888], case, expected)
+        except (ApiError, ValueError) as error:
+            # Preserve the complete inventory without inventing an old token.
+            first = None
+            baseline = {
+                'outcome': 'failed',
+                'reason': str(error),
+                'phase': 'first_page'
+            }
     case.update(source_order=expected, first=first, source_baseline=baseline)
     return case
 
@@ -427,7 +434,9 @@ def validate_extended(cases):
                 'reason': 'source_could_not_emit_cursor'
             })
         source_good = case['source_baseline']['outcome'] == 'passed'
-        changed_order = case['source_order'] != expected
+        changed_order = (
+            case['source_order'] is not None and
+            case['source_order'] != expected)
         mixed = [
             observe_walk(ports, case, expected)
             for ports in ([8889, 8888], [8888, 8889])

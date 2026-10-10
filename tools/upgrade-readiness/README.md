@@ -429,8 +429,11 @@ pagination must return that entire ordered inventory. The report distinguishes:
   candidate traversal must still succeed.
 - `preexisting_source_pagination_failure`: the source traversal already fails;
   this is not evidence of a newly introduced upgrade regression. Candidate fresh
-  pagination must still succeed. A source first-page error is recorded separately;
-  if 2.17.2 cannot emit a cursor (for example, a NULL metric lookahead), saved-token
+  pagination must still succeed. Membership is first checked independently with
+  an identity sort. If the source's selected sort itself fails (observed for run
+  metric sorts on 2.17.2/MySQL), its ordering is unknown and recorded as
+  `sorted_inventory` failure, not a comparison change. A source first-page error
+  is recorded separately. Whenever 2.17.2 cannot emit a cursor, saved-token
   continuation is `not_available`, never represented by a fresh candidate request.
 
 On MySQL, 2.17.2 ascending sorts place SQL NULL values first; 2.18 places them
