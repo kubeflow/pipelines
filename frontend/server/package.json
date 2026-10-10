@@ -22,7 +22,7 @@
     "@types/crypto-js": "^3.1.43",
     "@types/express": "^5.0.6",
     "@types/gunzip-maybe": "^1.4.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.4",
     "@types/supertest": "^2.0.8",
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
