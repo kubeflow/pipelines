@@ -433,11 +433,20 @@ pagination must return that entire ordered inventory. The report distinguishes:
   if 2.17.2 cannot emit a cursor (for example, a NULL metric lookahead), saved-token
   continuation is `not_available`, never represented by a fresh candidate request.
 
-For a confirmed ordering change, finish the API rollout, discard the affected
-continuation token, and restart that list request from page one with the same
-filters and sort. Do not append that fresh traversal to partial old results
-without deduplicating by resource ID. No server restart or database migration is
-required. During mixed-version service, pin the complete traversal to one API
+On MySQL, 2.17.2 ascending sorts place SQL NULL values first; 2.18 places them
+last in both directions. A continuation saved before upgrade can therefore repeat
+NULL rows already seen on an earlier source page. This affects ascending lists
+whose selected sort column actually contains NULLs, including legacy task
+`display_name` and pipeline-version `description` values. It is not a blanket
+requirement to restart every listing. Nullable descending order already places
+NULLs last on MySQL, although 2.17.2 can independently fail to produce a cursor
+when the lookahead value is NULL.
+
+For an affected ascending list, or another confirmed ordering change (such as
+mixed-case strings on a case-sensitive database collation), finish the API
+rollout, discard the old continuation token and partial results, and restart that
+list request from page one with the same filters and sort. Do not append that fresh traversal to partial old results
+without deduplicating by resource ID. During mixed-version service, pin the complete traversal to one API
 version or wait until rollout finishes. A token rejected after changing a request's
 filter is a separate client error; keep filters consistent across pages.
 
