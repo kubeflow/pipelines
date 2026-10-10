@@ -52,6 +52,11 @@
 
 ## Bug fixes and other changes
 
+* Correct the `PipelineTaskFinalStatus` field documentation to describe the
+  values KFP actually produces. `state` is one of `SUCCEEDED`, `FAILED`,
+  `SKIPPED` or `CACHED` — never `CANCELLED` — and `pipeline_job_resource_name`
+  is the pipeline run name.
+
 # 2.15.2
 
 ## Bug fixes and other changes
