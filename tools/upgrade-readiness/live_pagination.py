@@ -290,6 +290,8 @@ def capture_source_case(case):
     try:
         expected = full_inventory(8888, case)
     except ApiError as error:
+        if error.status != 500:
+            raise
         baseline = {
             'outcome': 'failed',
             'reason': str(error),

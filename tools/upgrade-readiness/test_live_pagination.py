@@ -235,6 +235,16 @@ class ExtendedPaginationTest(unittest.TestCase):
                 with self.assertRaises(type(error)):
                     fixture.capture_source_case(self.case)
 
+    def test_source_request_errors_are_fatal(self):
+        for status in (400, 401, 403, 404):
+            with self.subTest(status=status), mock.patch.object(
+                    fixture,
+                    'full_inventory',
+                    side_effect=[['a', 'b', 'c'],
+                                 fixture.ApiError(status)]):
+                with self.assertRaises(fixture.ApiError):
+                    fixture.capture_source_case(self.case)
+
     def test_source_sorted_membership_mismatch_is_fatal(self):
         with mock.patch.object(
                 fixture,
