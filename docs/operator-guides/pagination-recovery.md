@@ -40,8 +40,33 @@ fails, the error is displayed; the UI does not retry indefinitely.
 
 ## SDK and custom clients
 
-Existing SDK clients expose the API error; upgrading the server does not add
-automatic recovery to already installed clients. On this specific error:
+The updated Python SDK exports `kfp.client.is_pagination_restart_required(error)`
+to recognize this condition without matching message text. List methods still
+raise the original API exception and do not retry. Upgrading the server does not
+add this helper or automatic recovery to already installed clients.
+
+```python
+from kfp.client import is_pagination_restart_required
+
+try:
+    page = client.list_runs(page_token=saved_token, sort_by="finished_at")
+except Exception as error:
+    if is_pagination_restart_required(error):
+        # Discard or reconcile earlier results before starting a new traversal.
+        saved_token = None
+    raise
+```
+
+The updated `kfp` CLI prints restart guidance and exits nonzero. Remove
+`--page-token` only after discarding or reconciling earlier output. It does not
+silently print a replacement first page.
+
+The handwritten Go API clients preserve this condition through wrapped errors.
+Use `api_server.IsPaginationRestartRequired(err)` to recognize it. Their list
+methods do not retry; `ListAll` returns an error without partial results. If
+reusing its request parameters, clear the page token before a new traversal.
+
+On this specific error:
 
 1. Discard the saved page token and any accumulated results from that traversal.
 2. Repeat the original list request without `page_token`, retaining its criteria.
