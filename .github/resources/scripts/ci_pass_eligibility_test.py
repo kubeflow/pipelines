@@ -79,7 +79,10 @@ jobs:
         isBinary: false, isTruncated: false}}))}}};
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
-    get: async () => ({data: structuredClone(pr)})},
+    get: async () => {
+      if (options.pullFailure) throw Error('Pull read unavailable');
+      return {data: structuredClone(pr)};
+    }},
   actions: {listWorkflowRunsForRepo: methods.runs},
   checks: {listForRef: async () => {
     if (options.checkApiFailure) throw Error('Checks API unavailable');
@@ -153,6 +156,7 @@ github.paginate.iterator = async function* () {
   try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   if (options.recoverBeforeFinal) options.conclusion = 'success';
+  if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
   try {
     await gate.finalize({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
@@ -781,23 +785,65 @@ async function run(liveTip) {
             with self.subTest(pr=pr):
                 self.assert_last_status(exercise({'pr': pr}), 'failure')
 
-    def test_closed_pr_invalidates_prior_success_without_polling(self):
-        for merged in [False, True]:
-            with self.subTest(merged=merged):
-                result = exercise({
-                    'action': 'closed',
-                    'initialStatus': 'success',
-                    'pr': {
-                        'state': 'closed',
-                        'merged': merged
-                    },
-                })
-                self.assertNotIn('error', result)
-                self.assert_last_status(result, 'failure')
-                self.assertNotIn('ready', result['outputs'])
-                self.assertIn(['remove-label', 'ci-passed'], result['calls'])
-                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
-                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+    def test_closed_unmerged_pr_invalidates_prior_success_without_polling(self):
+        result = exercise({
+            'action': 'closed',
+            'initialStatus': 'success',
+            'pr': {
+                'state': 'closed',
+                'merged': False
+            },
+        })
+        self.assertNotIn('error', result)
+        self.assert_last_status(result, 'failure')
+        self.assertNotIn('ready', result['outputs'])
+        self.assertIn(['remove-label', 'ci-passed'], result['calls'])
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+        self.assertNotIn(['status', 'success', 'head'], result['calls'])
+
+    def test_merged_pr_preserves_published_status(self):
+        result = exercise({
+            'action': 'closed',
+            'initialStatus': 'success',
+            'pr': {
+                'state': 'closed',
+                'merged': True
+            },
+        })
+        self.assertNotIn('error', result)
+        self.assertNotIn('ready', result['outputs'])
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+        self.assertNotIn(['remove-label', 'ci-passed'], result['calls'])
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_merge_during_reconciliation_preserves_status(self):
+        # PR open when prepare runs (publishes provisional pending), merged by
+        # the time finalize re-reads it. finalize must publish nothing.
+        result = exercise({
+            'initialStatus': 'success',
+            'mergeBeforeFinal': True,
+        })
+        self.assertNotIn('error', result)
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'pending', 'head']])
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_merged_pr_resolve_failure_does_not_publish_failure(self):
+        # A transient pull read failure on a merged PR's closed event must not
+        # republish a failure onto the merged head.
+        result = exercise({
+            'action': 'closed',
+            'pr': {
+                'state': 'closed',
+                'merged': True
+            },
+            'pullFailure': True,
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+
+    def test_open_pr_resolve_failure_publishes_failure(self):
+        result = exercise({'pullFailure': True})
+        self.assertIn(['status', 'failure', 'head'], result['calls'])
 
     def test_revocation_before_publication_fails(self):
         self.assert_last_status(
