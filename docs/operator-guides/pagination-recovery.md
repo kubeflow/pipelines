@@ -3,12 +3,14 @@
 A page token identifies a position within an ordered listing. It does not describe
 which rows a client has already consumed. Kubeflow Pipelines 2.18 places database
 NULL values last; older MySQL ascending listings placed them first. Continuing a
-cursor across that change can skip or repeat records.
+cursor across that change can skip or repeat records. Older descending pagination
+also omitted trailing NULL rows, and historical scanners could encode a NULL cursor
+as an empty string or zero. Both sort directions therefore require protection.
 
 ## Server behavior
 
 New tokens carry an ordering version. The server rejects unversioned tokens for
-ascending sorts whose fields can contain NULL, even when the particular cursor
+sorts whose fields can contain NULL in either direction, even when the particular cursor
 contains a non-NULL value: other rows in the same listing may still be NULL.
 Compatible legacy tokens remain accepted. An unsupported ordering version also
 requires a new listing. Existing identifier, filter and authorization checks remain

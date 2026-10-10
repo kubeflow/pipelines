@@ -247,9 +247,6 @@ func (o *Options) ValidateOrdering(listable Listable) error {
 }
 
 func (o *Options) requiresOrderingVersion(listable Listable) bool {
-	if o.IsDesc {
-		return false
-	}
 	var fields []string
 	switch listable := listable.(type) {
 	case *model.Pipeline:
