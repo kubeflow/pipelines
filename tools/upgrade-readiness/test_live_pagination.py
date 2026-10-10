@@ -118,8 +118,11 @@ class PaginationTest(unittest.TestCase):
                 self.assertIn('op' if v1 else 'operation', predicate)
                 marker = predicate.get(
                     'string_value') or predicate['string_values']['values'][0]
+                operation = predicate['op' if v1 else 'operation']
                 selected = [
-                    row for row in selected if row['description'] == marker
+                    row for row in selected
+                    if (marker in row['description'] if operation ==
+                        'IS_SUBSTRING' else row['description'] == marker)
                 ]
             size = params['page_size']
             result = {
@@ -139,6 +142,9 @@ class PaginationTest(unittest.TestCase):
             path = Path(directory) / 'state.json'
             fixture.source(path, 'example/api:2.17.2')
             state = json.loads(path.read_text())
+            # Later fixture creation must not change any original filter's set.
+            for case in state['cases']:
+                fixture.walk([8888], case['filter'], state['expected'])
         self.assertEqual([case['operation'] for case in state['cases']],
                          ['EQUALS', 'IS_SUBSTRING', 'IN'])
         self.assertEqual(len(state['extended']), 32)

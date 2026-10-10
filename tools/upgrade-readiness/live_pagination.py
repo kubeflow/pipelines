@@ -153,7 +153,7 @@ def source(state_path, source_image):
             'source_image': source_image,
             'expected': expected,
             'cases': cases,
-            'extended': prepare_extended(marker)
+            'extended': prepare_extended('extended-' + uuid.uuid4().hex)
         }))
 
 
