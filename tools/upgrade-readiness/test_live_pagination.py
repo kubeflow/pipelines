@@ -279,6 +279,15 @@ class ExtendedPaginationTest(unittest.TestCase):
                 with self.assertRaises(fixture.ApiError):
                     fixture.capture_source_case(self.case)
 
+    def test_source_later_page_failure_preserves_real_saved_cursor(self):
+        first = self.case['first']
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_page', return_value=first), \
+             mock.patch.object(fixture, 'case_walk', side_effect=fixture.ApiError(400)):
+            result = fixture.capture_source_case(self.case)
+        self.assertEqual(result['first'], first)
+        self.assertEqual(result['source_baseline']['phase'], 'traversal')
+
     def test_source_later_page_auth_error_is_fatal(self):
         with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
              mock.patch.object(fixture, 'case_page', return_value=self.case['first']), \

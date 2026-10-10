@@ -302,7 +302,17 @@ def capture_source_case(case):
             first = case_page(8888, case)
             if not first.get('next_page_token'):
                 raise ValueError('source did not generate a continuation token')
-            baseline = case_walk([8888], case, expected)
+            try:
+                baseline = case_walk([8888], case, expected)
+            except (ApiError, ValueError) as error:
+                if isinstance(error,
+                              ApiError) and error.status not in (400, 500):
+                    raise
+                baseline = {
+                    'outcome': 'failed',
+                    'reason': str(error),
+                    'phase': 'traversal'
+                }
         except (ApiError, ValueError) as error:
             if isinstance(error, ApiError) and error.status not in (400, 500):
                 raise
