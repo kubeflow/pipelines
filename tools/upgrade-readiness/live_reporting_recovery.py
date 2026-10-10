@@ -143,9 +143,9 @@ class SourceClient(FixtureClient):
             connection.close()
 
 
-
 def reference(kind, uid):
     return dict(key=dict(type=kind, id=uid), relationship='OWNER')
+
 
 def v1_workflow():
     # A real V1 workflow, with no V2 IR, launcher or package installation.
