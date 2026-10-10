@@ -140,16 +140,6 @@ func ListPendingLegacyRecurringRunAdoptions(db *gorm.DB, afterID string, limit u
 	if limit == 0 || limit > 1000 {
 		return nil, fmt.Errorf("adoption page size must be between 1 and 1000")
 	}
-	global, err := GetLegacyRecurringRunAdoption(db)
-	if err != nil {
-		return nil, err
-	}
-	var globalIDs []string
-	invalidGlobal := false
-	if global != nil && !global.Ready {
-		globalIDs, err = legacyAdoptionIDs(global)
-		invalidGlobal = err != nil
-	}
 	q := db.Statement.Quote
 	jobID, stateID, receiptID := q("jobs.UUID"), q("recurring_run_states.JobUUID"), q("recurring_run_adoptions.ID")
 	recordID := "? || " + jobID
@@ -162,14 +152,14 @@ func ListPendingLegacyRecurringRunAdoptions(db *gorm.DB, afterID string, limit u
 		Where(jobID+" > ?", afterID)
 	condition := stateID + " IS NULL OR " + q("recurring_run_adoptions.Ready") + " = ?"
 	args := []any{false}
-	if invalidGlobal {
-		// Return unsealed jobs for individual validation without starving repairs
-		// backed by valid per-record receipts. Never trust malformed inventory.
-		condition += " OR " + receiptID + " IS NULL"
-	} else if len(globalIDs) > 0 {
-		condition += " OR (" + jobID + " IN ? AND " + receiptID + " IS NULL)"
-		args = append(args, globalIDs)
-	}
+	// A pending global receipt makes unsealed jobs potential candidates. Do not
+	// decode or bind its entire inventory for every page. Per-record recovery
+	// validates membership and provenance before mutating either store; returning
+	// nonmembers here also preserves keyset progress through a full candidate page.
+	pendingGlobal := db.Table("recurring_run_adoptions AS global_adoption").Select("1").
+		Where(q("global_adoption.ID")+" = ? AND "+q("global_adoption.Ready")+" = ?", LegacyRecurringRunAdoptionID, false)
+	condition += " OR (" + receiptID + " IS NULL AND EXISTS (?))"
+	args = append(args, pendingGlobal)
 	var jobs []model.Job
 	if err := query.Where("("+condition+")", args...).Select(q("jobs") + ".*").Order(jobID).Limit(int(limit)).Find(&jobs).Error; err != nil {
 		return nil, err
