@@ -155,9 +155,13 @@ def _run_local_pipeline_implementation(
         else:
             raise ValueError(f'Got unknown task status {dag_status.name}')
     finally:
-        # Clean up the workspace directory
-        workspace_root = config.LocalExecutionConfig.instance.workspace_root
-        if workspace_root and os.path.exists(workspace_root):
+        # Clean up the workspace directory, but only when KFP created it. A
+        # workspace_root provided to local.init() belongs to the user and may
+        # hold data they expect to outlive the run.
+        instance = config.LocalExecutionConfig.instance
+        workspace_root = instance.workspace_root
+        if (instance.workspace_is_temporary and workspace_root and
+                os.path.exists(workspace_root)):
             shutil.rmtree(workspace_root)
             logging.info(f'Cleaned up workspace: {workspace_root}')
 
