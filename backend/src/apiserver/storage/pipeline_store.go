@@ -1240,8 +1240,28 @@ func (s *PipelineStore) getPipelineVersionByCol(colName, colVal string, status m
 	return versions[0], nil
 }
 
+// pipelineVersionListRow retains nullable descriptions for pagination without
+// changing the public model's scalar representation.
+type pipelineVersionListRow struct {
+	*model.PipelineVersion
+	description sql.NullString
+}
+
+func (v *pipelineVersionListRow) GetFieldValue(name string) interface{} {
+	if name == "Description" {
+		return v.description
+	}
+	return v.PipelineVersion.GetFieldValue(name)
+}
+
 // Converts SQL response into []PipelineVersion.
 func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.PipelineVersion, error) {
+	versions, _, err := s.scanPipelineVersionsRowsWithDescriptions(rows)
+	return versions, err
+}
+
+func (s *PipelineStore) scanPipelineVersionsRowsWithDescriptions(rows *sql.Rows) ([]*model.PipelineVersion, []sql.NullString, error) {
+	var descriptions []sql.NullString
 	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
 		var uuid, name, displayName, parameters, pipelineId, codeSourceUrl, status, description, pipelineSpec, pipelineSpecURI sql.NullString
@@ -1259,9 +1279,10 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 			&pipelineSpec,
 			&pipelineSpecURI,
 		); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if uuid.Valid {
+			descriptions = append(descriptions, description)
 			pipelineVersions = append(
 				pipelineVersions,
 				&model.PipelineVersion{
@@ -1280,7 +1301,7 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 			)
 		}
 	}
-	return pipelineVersions, nil
+	return pipelineVersions, descriptions, rows.Err()
 }
 
 func (s *PipelineStore) GetAnyPipelineVersionID(pipelineID string) (string, error) {
@@ -1379,7 +1400,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Optio
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineID)
 	}
-	pipelineVersions, err := s.scanPipelineVersionsRows(rows)
+	pipelineVersions, descriptions, err := s.scanPipelineVersionsRowsWithDescriptions(rows)
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipeline versions for pipeline %v", pipelineID)
@@ -1433,7 +1454,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Optio
 	if len(pipelineVersions) <= opts.PageSize {
 		return pipelineVersions, totalSizeCount, "", nil
 	}
-	npt, err := opts.NextPageToken(pipelineVersions[opts.PageSize])
+	npt, err := opts.NextPageToken(&pipelineVersionListRow{PipelineVersion: pipelineVersions[opts.PageSize], description: descriptions[opts.PageSize]})
 	return pipelineVersions[:opts.PageSize], totalSizeCount, npt, err
 }
 
