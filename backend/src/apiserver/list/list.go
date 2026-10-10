@@ -293,10 +293,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 
 	// Probe the sort field type using the listable instance. SortByFieldName is
 	// the user-facing name, which GetFieldValue resolves for both regular fields
-	// and metric names. String fields return "" (string type); numeric fields
-	// return int64(0) or similar.
+	// and metric names. Include named string types such as LargeText and
+	// RuntimeState, which decode as plain strings in continuation tokens.
 	probeVal := listable.GetFieldValue(token.SortByFieldName)
-	_, token.SortByFieldIsString = probeVal.(string)
+	token.SortByFieldIsString = reflect.ValueOf(probeVal).Kind() == reflect.String
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"

@@ -1402,3 +1402,32 @@ func TestNextPageToken_PreservesSQLNullAndZeroValues(t *testing.T) {
 		})
 	}
 }
+
+func TestNewOptions_NamedStringsUseSameOrderAcrossPages(t *testing.T) {
+	for _, tc := range []struct {
+		name, sort string
+		row        Listable
+	}{
+		{"pipeline description", "description", &model.Pipeline{UUID: "id", Description: model.LargeText("Bravo")}},
+		{"version description", "description", &model.PipelineVersion{UUID: "id", Description: model.LargeText("Bravo")}},
+		{"task state", "state", &model.Task{UUID: "id", State: model.RuntimeStateRunning}},
+		{"task state history", "state_history", &model.Task{UUID: "id", StateHistoryString: model.LargeText("[]")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, err := NewOptions(tc.row, 2, tc.sort, nil)
+			assert.NoError(t, err)
+			assert.True(t, opts.SortByFieldIsString)
+			first, _, err := opts.AddSortingToSelect(sq.Select("*"), testQuote, "").ToSql()
+			assert.NoError(t, err)
+			token, err := opts.NextPageToken(tc.row)
+			assert.NoError(t, err)
+			next, err := NewOptionsFromToken(token, 2)
+			assert.NoError(t, err)
+			assert.True(t, next.SortByFieldIsString)
+			resumed, _, err := next.AddSortingToSelect(sq.Select("*"), testQuote, "").ToSql()
+			assert.NoError(t, err)
+			assert.Equal(t, strings.Split(first, " ORDER BY ")[1], strings.Split(resumed, " ORDER BY ")[1])
+			assert.Contains(t, first, "LOWER(")
+		})
+	}
+}
