@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -450,6 +451,22 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	}
 	if _, err = tx.Exec(stateSQL, stateArgs...); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to initialize scheduling state for recurring run %s", j.UUID)
+	}
+
+	// Seal native scheduling provenance in the same transaction. Missing state
+	// must never turn a previously initialized schedule into an import candidate.
+	ids, err := json.Marshal([]string{j.UUID})
+	if err != nil {
+		return nil, err
+	}
+	receiptSQL, receiptArgs, err := qb.Insert(q("recurring_run_adoptions")).
+		Columns(q("ID"), q("AdoptedCount"), q("CompletedAt"), q("JobIDs"), q("Ready")).
+		Values(legacyRecurringRunRecordPrefix+j.UUID, 1, j.CreatedAtInSec, string(ids), true).ToSql()
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(receiptSQL, receiptArgs...); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to seal scheduling state for recurring run %s", j.UUID)
 	}
 
 	err = tx.Commit()

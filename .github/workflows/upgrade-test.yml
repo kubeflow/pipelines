@@ -17,6 +17,11 @@ on:
 
   workflow_dispatch:
     inputs:
+      run_readiness_adoption:
+        description: 'Run isolated populated legacy-schedule adoption acceptance'
+        type: boolean
+        required: false
+        default: false
       run_readiness_schedules:
         description: 'Run isolated scheduling acceptance after candidate policy review'
         type: boolean
@@ -147,7 +152,8 @@ jobs:
     # Explicitly activate only after reviewing the candidate scheduling policy.
     if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' || (github.event_name == 'workflow_dispatch' && inputs.run_readiness_schedules) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Include policy transitions, retry backoff and the retained V1 API lane.
+    timeout-minutes: 90
     permissions:
       actions: read
       contents: read
@@ -188,7 +194,7 @@ jobs:
           image_registry: kind-registry:5000
           forward_port: 'false'
 
-      - name: Compare live enforce and audit schedule outcomes
+      - name: Compare live scheduling modes, revocation and V1 outcomes
         run: bash .github/resources/scripts/readiness-schedules.sh target
 
       - name: Upload isolated-fixture readiness evidence
@@ -196,6 +202,82 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: readiness-schedules-${{ github.run_id }}
+          path: ${{ runner.temp }}/readiness-schedules/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove isolated readiness cluster
+        if: ${{ always() }}
+        run: kind delete cluster --name kfp-readiness
+
+  readiness-adoption:
+    # Explicitly activate only after reviewing the candidate scheduling policy.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_readiness_adoption }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CLUSTER_NAME: kfp-readiness
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: '3.11'
+          cache-scope: readiness-adoption
+          cache-dependency-hash: ${{ hashFiles('tools/upgrade-readiness/requirements.txt') }}
+
+      - name: Install fixture manifest reader
+        run: python3 -m pip install -r tools/upgrade-readiness/requirements.txt
+
+      - name: Require integrated scheduling policy
+        run: bash .github/resources/scripts/readiness-schedules.sh preflight
+
+      - name: Create isolated readiness cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: 'v1.36.1'
+          cluster_name: kfp-readiness
+
+      - name: Populate 2.17.2 and capture target predictions
+        run: bash .github/resources/scripts/readiness-schedules.sh source
+
+      - name: Prepare populated online adoption and API availability probe
+        run: bash .github/resources/scripts/readiness-adoption.sh source
+
+      - name: Roll out same-run candidate images with writers running
+        uses: ./.github/actions/deploy
+        with:
+          cluster_name: kfp-readiness
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: 'false'
+
+      - name: Adopt legacy schedules and verify live continuation
+        run: bash .github/resources/scripts/readiness-adoption.sh target
+
+      - name: Capture rollout API availability evidence
+        if: ${{ always() }}
+        run: |
+          PYTHONPATH=tools/upgrade-readiness python3 tools/upgrade-readiness/live_adoption_availability.py stop \
+            --state "$RUNNER_TEMP/readiness-schedules"
+
+      - name: Capture managed writer handoff evidence
+        if: ${{ always() }}
+        run: |
+          PYTHONPATH=tools/upgrade-readiness python3 tools/upgrade-readiness/live_adoption_check.py handoff \
+            --state "$RUNNER_TEMP/readiness-schedules"
+
+      - name: Upload isolated-fixture readiness evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: readiness-adoption-${{ github.run_id }}
           path: ${{ runner.temp }}/readiness-schedules/reports/*.json
           if-no-files-found: ignore
           retention-days: 7

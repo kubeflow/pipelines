@@ -77,6 +77,51 @@ func TestRecurringRunStateLifecycle(t *testing.T) {
 	require.ErrorContains(t, err, "recreate it through the KFP API")
 }
 
+func TestRecurringRunClaimClearsAdoptedExecutionIdentity(t *testing.T) {
+	db, _, store := initializeDBAndStore()
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	orm, err := OpenTransferDB(db, "sqlite")
+	require.NoError(t, err)
+	var job model.Job
+	require.NoError(t, orm.Take(&job, &model.Job{UUID: "1"}).Error)
+	require.NoError(t, orm.Delete(&model.RecurringRunState{}, &model.RecurringRunState{JobUUID: "1"}).Error)
+	require.NoError(t, orm.Delete(&model.RecurringRunAdoption{}, &model.RecurringRunAdoption{ID: legacyRecurringRunRecordPrefix + "1"}).Error)
+	state := model.RecurringRunState{
+		JobUUID: "1", RequestKey: "legacy-tick", PipelineVersionID: "legacy-version",
+		LastRunUUID: "original-random-execution-id", LastRunIndex: 7,
+		LastScheduledAtInSec: 520, LastCreatedAtInSec: 525,
+	}
+	_, err = ApplyLegacyRecurringRunAdoption(orm, []RecurringRunAdoptionCandidate{{Job: job, State: state}}, 1000)
+	require.NoError(t, err)
+	require.NoError(t, CompleteLegacyRecurringRunAdoption(orm))
+	stored, err := store.GetRecurringRunState("1")
+	require.NoError(t, err)
+	require.Equal(t, state, *stored)
+	_, err = store.ClaimRecurringRun("1", "legacy-tick", 7, 580, 590, "new-version")
+	require.ErrorContains(t, err, "already completed")
+	stored, err = store.GetRecurringRunState("1")
+	require.NoError(t, err)
+	require.Equal(t, state, *stored)
+	next, err := store.ClaimRecurringRun("1", "next-tick", 7, 580, 590, "new-version")
+	require.NoError(t, err)
+	require.EqualValues(t, 8, next.LastRunIndex)
+	require.Empty(t, next.LastRunUUID)
+	stored, err = store.GetRecurringRunState("1")
+	require.NoError(t, err)
+	require.Equal(t, next, stored)
+}
+
+func TestRecurringRunStateHistoricalIdentityMigration(t *testing.T) {
+	db := adoptionTestDB(t)
+	state := model.RecurringRunState{JobUUID: "existing", RequestKey: "tick", LastRunIndex: 1}
+	require.NoError(t, db.Create(&state).Error)
+	require.NoError(t, db.Migrator().DropColumn(&model.RecurringRunState{}, "LastRunUUID"))
+	require.NoError(t, db.AutoMigrate(&model.RecurringRunState{}))
+	var migrated model.RecurringRunState
+	require.NoError(t, db.Take(&migrated, &model.RecurringRunState{JobUUID: state.JobUUID}).Error)
+	require.Equal(t, state, migrated)
+}
+
 func TestRecurringRunStateRequiresEnabledRegisteredJob(t *testing.T) {
 	db, _, store := initializeDBAndStore()
 	t.Cleanup(func() { require.NoError(t, db.Close()) })

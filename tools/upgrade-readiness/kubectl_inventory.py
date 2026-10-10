@@ -33,13 +33,17 @@ def kill_process_group(process):
         pass
 
 
-def kubectl_get(context, namespace, resource):
+def kubectl_get(context, namespace, resource, *, all_namespaces=False):
     """Bound time and buffered output; never print kubectl stderr or raw
     objects."""
     command = ['kubectl', '--context', context, '--request-timeout=20s']
+    if all_namespaces and namespace:
+        raise ValueError('namespace_and_all_namespaces_are_exclusive')
     if namespace:
         command += ['--namespace', namespace]
     command += ['get', resource, '--chunk-size=200', '-o', 'json']
+    if all_namespaces:
+        command += ['--all-namespaces']
     # Cap bytes while streaming, not after kubectl has filled memory or disk.
     chunks = bytearray()
     try:

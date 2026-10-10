@@ -21,7 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-// RecurringRunMigrationCandidate identifies a job requiring operator review and recreation.
+// RecurringRunMigrationCandidate identifies a job requiring adoption or recreation.
 // Execution inputs are deliberately excluded from the startup inventory.
 type RecurringRunMigrationCandidate struct {
 	ID        string

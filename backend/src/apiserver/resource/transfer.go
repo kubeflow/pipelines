@@ -97,6 +97,14 @@ func (r *ResourceManager) ImportTransfer(ctx context.Context, namespace string, 
 type transferSchedules struct{ r *ResourceManager }
 
 func (a transferSchedules) Prepare(ctx context.Context, source string, original *model.Job, digest string, validationSpec []byte, dry bool) (*model.Job, error) {
+	// Even an existing staged CR can lead to a new SQL job when the engine
+	// finalizes this result. Keep all non-preview schedule creation behind the
+	// same old-writer fence as CreateJob, before returning a staging candidate.
+	if !dry && common.IsMultiUserMode() && a.r.options.ScheduleWritersReady != nil {
+		if err := a.r.options.ScheduleWritersReady(ctx); err != nil {
+			return nil, util.NewUnavailableServerError(err, "Recurring run transfer is waiting for schedule writer handoff; retry later")
+		}
+	}
 	j := *original
 	j.Enabled = false
 	j.NoCatchup = true

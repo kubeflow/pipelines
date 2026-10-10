@@ -54,7 +54,7 @@ class FixtureClient:
 
     def post(self, path, body):
         if not re.fullmatch(
-                r'/apis/v2beta1/(experiments|recurringruns)(/[a-zA-Z0-9_.-]+:(enable|disable))?',
+                r'/apis/(?:v2beta1/(?:experiments|recurringruns)(?:/[a-zA-Z0-9_.-]+:(?:enable|disable))?|v1beta1/(?:experiments|jobs(?:/[a-zA-Z0-9][a-zA-Z0-9_.-]*/(?:enable|disable))?))',
                 path):
             raise FixtureError('invalid_fixture_api_path')
         payload = json.dumps(body).encode('utf-8')

@@ -44,6 +44,12 @@ func TestRecurringRunProductionDatabases(t *testing.T) {
 	for _, driver := range []string{"mysql", "pgx"} {
 		t.Run(driver, func(t *testing.T) {
 			dbs, d := recurringIntegrationDatabases(t, driver)
+			t.Run("reference-backed-capacity", func(t *testing.T) {
+				testRecurringRunActiveCount(t, dbs[0], d)
+			})
+			t.Run("reference-backed-replay", func(t *testing.T) {
+				testRecurringRunReplayLookup(t, dbs[0], d)
+			})
 			placeholder := "?"
 			if driver == "pgx" {
 				placeholder = "$1"
@@ -63,6 +69,30 @@ func TestRecurringRunProductionDatabases(t *testing.T) {
 				return &model.Run{UUID: util.NewDeterministicUUID(id + "/tick/1"), DisplayName: key, RecurringRunId: id,
 					Namespace: "test", RunDetails: model.RunDetails{State: model.RuntimeStateRunning}}
 			}
+
+			t.Run("startup-repair", func(t *testing.T) {
+				id := "startup-repair"
+				createJob(t, id)
+				orm, err := OpenTransferDB(dbs[0], d.Name())
+				require.NoError(t, err)
+				state, err := jobs[0].ClaimRecurringRun(id, "pending", 0, 100, 110, "")
+				require.NoError(t, err)
+				page, err := PrepareRecurringRunStartupRepairs(orm, "startup-", 1, 200)
+				require.NoError(t, err)
+				require.Len(t, page, 1)
+				require.Equal(t, id, page[0].ID)
+				receipt, err := GetLegacyRecurringRunAdoptionForJob(orm, id)
+				require.NoError(t, err)
+				require.False(t, receipt.Ready)
+				current, err := jobs[1].GetRecurringRunState(id)
+				require.NoError(t, err)
+				require.Equal(t, state, current)
+				_, err = jobs[1].ClaimRecurringRun(id, "pending", 0, 100, 110, "")
+				require.ErrorContains(t, err, "synchronization is pending")
+				next, err := PrepareRecurringRunStartupRepairs(orm, id, 1, 200)
+				require.NoError(t, err)
+				require.Empty(t, next)
+			})
 			for _, sameKey := range []bool{false, true} {
 				t.Run(fmt.Sprintf("concurrent-claims/same-key-%v", sameKey), func(t *testing.T) {
 					id := fmt.Sprintf("claims-%v", sameKey)
