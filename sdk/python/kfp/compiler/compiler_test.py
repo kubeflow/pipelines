@@ -2410,6 +2410,21 @@ class TestTopologyValidation(unittest.TestCase):
 
         self.assertTrue(my_pipeline.pipeline_spec)
 
+    def test_parallelfor_with_string_interpolation_in_exithandler(self):
+        # Regression test for #12390: f-string with loop item inside ExitHandler
+
+        @dsl.component
+        def exit_comp():
+            print('Running exit task!')
+
+        @dsl.pipeline
+        def my_pipeline(items: List[str]):
+            with dsl.ExitHandler(exit_comp()):
+                with dsl.ParallelFor(items) as item:
+                    print_and_return(text=f'Item: {item}')
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
 
 class TestYamlComments(unittest.TestCase):
 

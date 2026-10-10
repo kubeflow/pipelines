@@ -211,6 +211,23 @@ def get_inputs_for_all_groups(
         task_condition_inputs = list(condition_channels[task.name])
 
         for channel in task.channel_inputs + task_condition_inputs:
+            # If a loop argument's identity is lost (e.g. during string
+            # interpolation), restore it by matching against known loop
+            # arguments.
+            is_pipeline_channel = isinstance(channel,
+                                             pipeline_channel.PipelineChannel)
+            if is_pipeline_channel and getattr(channel, 'task_name',
+                                               None) is None:
+                for loop_group in name_to_for_loop_group.values():
+                    loop_arg = loop_group.loop_argument
+                    if loop_arg.full_name == channel.full_name:
+                        channel = loop_arg
+                        break
+                    elif hasattr(loop_arg, '_referenced_subvars'):
+                        for subvar in loop_arg._referenced_subvars.values():
+                            if subvar.full_name == channel.full_name:
+                                channel = subvar
+                                break
 
             # If the value is already provided (immediate value), then no
             # need to expose it as input for its parent groups.
