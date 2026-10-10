@@ -36,7 +36,7 @@ class PaginationRestartTest(unittest.TestCase):
     def test_recognizes_structured_error_without_message(self):
         error = self.error()
         for body in (error.body, error.body.encode('utf-8')):
-            with self.subTest(body_type=type(body)):
+            with self.subTest(body_type=type(body).__name__):
                 error.body = body
                 self.assertTrue(is_pagination_restart_required(error))
                 self.assertEqual(error.body, body)
