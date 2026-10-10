@@ -17,6 +17,7 @@ import http.client
 import json
 from pathlib import Path
 import subprocess
+import sys
 import time
 
 from fixture_http import FixtureClient
@@ -209,7 +210,7 @@ def prepare_pair(client, read_client, state_dir):
             require(len(records) <= 1, 'reporting_multiple_source_ticks')
             return records
 
-        records = wait_for(scheduled_run, 300)
+        records = wait_for(scheduled_run, 300, phase='source_recurring_run')
         state['recurring_run_id'] = api_identifier(
             field(records[0], 'run_id', 'runId'))
         write_object(path, state)
@@ -226,7 +227,7 @@ def prepare_pair(client, read_client, state_dir):
         }
         return capture(read_client, run_ids) if set(run_ids) <= found else None
 
-    return wait_for(captured, 120)
+    return wait_for(captured, 120, phase='source_workflow_capture')
 
 
 def ownership_evidence(client, records):
@@ -263,7 +264,9 @@ def prepare(client, read_client, state_dir):
         deletion_runs=prepared[1]['runs'])
     evidence = wait_for(
         lambda: ownership_evidence(read_client, result['runs'] + result[
-            'deletion_runs']), 180)
+            'deletion_runs']),
+        180,
+        phase='source_stored_ownership')
     write_object(state_dir / 'reporting-ownership.json', evidence)
     return result
 
@@ -357,7 +360,10 @@ def delete_captured(client, proxy, state):
                     value=record['workflow_uid']),
                 dict(op='replace', path='/spec/suspend', value=False)
             ]))
-    result = wait_for(lambda: deleted_evidence(client, proxy, records), 600)
+    result = wait_for(
+        lambda: deleted_evidence(client, proxy, records),
+        600,
+        phase='captured_deletion')
     require(worker_pods() == original_worker,
             'reporting_worker_restarted_during_deletion')
     return dict(
@@ -457,14 +463,58 @@ def observe(client, records, recovered=False):
     return output
 
 
-def wait_for(check, seconds):
+def timeout_diagnostics():
+    """Only synthetic phase counts and controller watch namespace shapes."""
+    result = dict(namespace=NAMESPACE, workflows={}, controllers={})
+    items = get('workflows.argoproj.io').get('items', [])
+    require(isinstance(items, list) and len(items) <= 1000, 'diagnostic_limit')
+    for item in items:
+        phase = item.get('status', {}).get('phase')
+        phase = phase if phase in ('Pending', 'Running', 'Succeeded', 'Failed',
+                                   'Error') else 'unknown'
+        result['workflows'][phase] = result['workflows'].get(phase, 0) + 1
+    for name in ('ml-pipeline-scheduledworkflow',
+                 'ml-pipeline-persistenceagent'):
+        obj = get('deployment/' + name, 'kubeflow')
+        values = []
+        for container in obj.get('spec',
+                                 {}).get('template',
+                                         {}).get('spec',
+                                                 {}).get('containers', []):
+            if container.get('name') != name:
+                continue
+            for env in container.get('env', []):
+                if env.get('name') != 'NAMESPACE':
+                    continue
+                if env.get('valueFrom',
+                           {}).get('fieldRef',
+                                   {}).get('fieldPath') == 'metadata.namespace':
+                    values.append('deployment_namespace')
+                else:
+                    value = env.get('value')
+                    values.append(
+                        value if value in (NAMESPACE, 'kubeflow') else 'other')
+        result['controllers'][name] = values
+    return result
+
+
+def wait_for(check, seconds, phase='lookup_permission'):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         value = check()
         if value:
             return value
         time.sleep(5)
-    raise ValueError('reporting_recovery_deadline_exceeded')
+    report = dict(
+        scope='reporting_timeout_diagnostics',
+        phase=phase,
+        timeout_seconds=seconds)
+    try:
+        report['observation'] = timeout_diagnostics()
+    except Exception:
+        report['observation'] = 'diagnostic_collection_failed'
+    print(json.dumps(report, sort_keys=True), file=sys.stderr)
+    raise ValueError('reporting_' + phase + '_deadline_exceeded')
 
 
 def recover(client, state, state_dir):
@@ -509,7 +559,10 @@ def recover(client, state, state_dir):
                         value=record['workflow_uid']),
                     dict(op='replace', path='/spec/suspend', value=False)
                 ]))
-        blocked = wait_for(lambda: observe(client, records), 600)
+        blocked = wait_for(
+            lambda: observe(client, records),
+            600,
+            phase='terminal_during_fault')
         # Hold across informer delivery and retry windows; a single early read
         # before the worker received terminal state is not fault evidence.
         for _ in range(6):
@@ -535,7 +588,10 @@ def recover(client, state, state_dir):
                 dict(op='replace', path='/rules', value=rules)
             ]))
     wait_for(lambda: permitted('get', 'ml-pipeline'), 60)
-    recovered = wait_for(lambda: observe(client, records, recovered=True), 600)
+    recovered = wait_for(
+        lambda: observe(client, records, recovered=True),
+        600,
+        phase='persistence_catchup')
     require(worker_pods() == original_worker,
             'reporting_worker_restarted_during_recovery')
     return dict(

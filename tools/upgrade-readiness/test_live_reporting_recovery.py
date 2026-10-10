@@ -34,6 +34,47 @@ def run():
 
 class ReportingRecoveryTest(unittest.TestCase):
 
+    def test_timeout_diagnostics_never_include_raw_specs_or_env_values(self):
+        obj = dict(
+            spec=dict(
+                template=dict(
+                    spec=dict(containers=[
+                        dict(
+                            name='ml-pipeline-scheduledworkflow',
+                            env=[
+                                dict(name='TOKEN', value='secret-value'),
+                                dict(name='NAMESPACE', value='secret-value')
+                            ])
+                    ]))))
+        with mock.patch.object(
+                recovery,
+                'get',
+                side_effect=[
+                    dict(items=[
+                        dict(
+                            status=dict(phase='Running'),
+                            spec=dict(secret='secret-value'))
+                    ]), obj, obj
+                ]):
+            report = recovery.timeout_diagnostics()
+        self.assertNotIn('secret-value', str(report))
+        self.assertEqual(report['workflows'], {'Running': 1})
+        self.assertEqual(report['controllers']['ml-pipeline-scheduledworkflow'],
+                         ['other'])
+
+    def test_timeout_emits_phase_and_preserves_failure_if_diagnostics_fail(
+            self):
+        output = io.StringIO()
+        with mock.patch.object(recovery.time, 'monotonic', side_effect=[0, 2]), \
+             mock.patch.object(recovery, 'timeout_diagnostics', side_effect=RuntimeError('secret')), \
+             mock.patch.object(recovery.sys, 'stderr', output):
+            with self.assertRaisesRegex(ValueError,
+                                        'source_recurring_run_deadline'):
+                recovery.wait_for(
+                    lambda: False, 1, phase='source_recurring_run')
+        self.assertIn('source_recurring_run', output.getvalue())
+        self.assertNotIn('secret', output.getvalue())
+
     def test_fault_preserves_other_permissions(self):
         rules = [
             dict(

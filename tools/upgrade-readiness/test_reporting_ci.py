@@ -18,6 +18,17 @@ WORKFLOW = ROOT / '.github/workflows/upgrade-test.yml'
 
 class ReportingCITest(unittest.TestCase):
 
+    def test_source_restores_watchers_then_prepares_and_resets_for_apply(self):
+        source = SCRIPT.read_text().split(
+            'if [[ "$reporting_phase" == source ]]; then',
+            1)[1].split('\nfi', 1)[0]
+        self.assertLess(
+            source.index('configure_controllers'),
+            source.index('check prepare'))
+        self.assertLess(
+            source.index('check prepare'),
+            source.index('restore_controller_namespaces'))
+
     def test_restore_attempts_both_faults_and_propagates_each_failure(self):
         source = SCRIPT.read_text()
         function = re.search(r'(restore_faults\(\) \{[\s\S]*?^\})', source,
