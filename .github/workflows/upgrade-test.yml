@@ -17,6 +17,11 @@ on:
 
   workflow_dispatch:
     inputs:
+      run_readiness_reporting:
+        description: 'Run isolated populated workflow-report recovery acceptance'
+        type: boolean
+        required: false
+        default: false
       run_readiness_schedules:
         description: 'Run isolated scheduling acceptance after candidate policy review'
         type: boolean
@@ -200,6 +205,70 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Remove isolated readiness cluster
+        if: ${{ always() }}
+        run: kind delete cluster --name kfp-readiness
+
+  readiness-reporting:
+    # Mutating fault injection is limited to an explicitly selected disposable lane.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_readiness_reporting }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CLUSTER_NAME: kfp-readiness
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: '3.11'
+          cache-scope: readiness-reporting
+          cache-dependency-hash: ${{ hashFiles('tools/upgrade-readiness/requirements.txt') }}
+      - name: Install fixture manifest reader
+        run: python3 -m pip install -r tools/upgrade-readiness/requirements.txt
+      - name: Require integrated scheduling policy
+        run: bash .github/resources/scripts/readiness-schedules.sh preflight
+      - name: Create isolated readiness cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: 'v1.36.1'
+          cluster_name: kfp-readiness
+      - name: Populate 2.17.2
+        run: bash .github/resources/scripts/readiness-schedules.sh source
+      - name: Preserve active source runs and ownership evidence
+        run: bash .github/resources/scripts/readiness-reporting.sh source
+      - name: Deploy same-run candidate images
+        uses: ./.github/actions/deploy
+        with:
+          cluster_name: kfp-readiness
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: 'false'
+      - name: Set up Go for the isolated report interceptor
+        uses: ./.github/actions/setup-go
+      - name: Verify reporting recovery through the persistence worker
+        run: bash .github/resources/scripts/readiness-reporting.sh target
+      - name: Restore fault injection settings
+        if: ${{ always() }}
+        run: bash .github/resources/scripts/readiness-reporting.sh cleanup
+      - name: Upload sanitized reporting evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: readiness-reporting-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/readiness-schedules/reporting/reporting-source.json
+            ${{ runner.temp }}/readiness-schedules/reporting/reporting-blocked.json
+            ${{ runner.temp }}/readiness-schedules/reporting/reporting-recovered.json
+            ${{ runner.temp }}/readiness-schedules/reporting/reporting-deleted.json
+            ${{ runner.temp }}/readiness-schedules/reporting/reporting-ownership.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Remove isolated readiness cluster
         if: ${{ always() }}
         run: kind delete cluster --name kfp-readiness
