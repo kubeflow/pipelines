@@ -14,7 +14,7 @@
 
 import re
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Literal, Optional
 import unittest
 
 from kfp import dsl
@@ -357,6 +357,56 @@ class TestBuiltinGenericParameterAnnotations(unittest.TestCase):
             type_utils.get_canonical_name_for_outer_generic(
                 spec.outputs['Output'].type), 'Dict')
         self.assertFalse(spec.outputs['Output'].is_artifact_list)
+
+
+class TestLiteralParameterAnnotations(unittest.TestCase):
+
+    def test_string_literal(self):
+
+        @dsl.component
+        def comp(choice: Literal['a', 'b', 'c'] = 'a') -> str:
+            return choice
+
+        spec = comp.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['a', 'b', 'c'], spec.inputs['choice'].literals)
+
+    def test_int_literal(self):
+
+        @dsl.component
+        def comp(n: Literal[1, 2, 3] = 1) -> int:
+            return n
+
+        spec = comp.component_spec
+        self.assertEqual('Integer', spec.inputs['n'].type)
+        self.assertEqual([1, 2, 3], spec.inputs['n'].literals)
+
+    def test_optional_literal(self):
+
+        @dsl.component
+        def comp(choice: Optional[Literal['a', 'b']] = None) -> str:
+            return choice
+
+        spec = comp.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['a', 'b'], spec.inputs['choice'].literals)
+
+    def test_non_literal_parameter_has_no_literals(self):
+
+        @dsl.component
+        def comp(name: str) -> str:
+            return name
+
+        spec = comp.component_spec
+        self.assertIsNone(spec.inputs['name'].literals)
+
+    def test_mixed_type_literal_raises(self):
+        with self.assertRaisesRegex(
+                TypeError, 'KFP supports Literals of a single type only.'):
+
+            @dsl.component
+            def comp(choice: Literal['a', 1]) -> str:
+                return choice
 
 
 class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
