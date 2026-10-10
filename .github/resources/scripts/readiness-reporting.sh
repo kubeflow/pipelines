@@ -62,6 +62,8 @@ proxy_build=$reporting_state/proxy-build
 mkdir -p "$proxy_build"
 go test ./tools/upgrade-readiness/reporting-proxy
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "$proxy_build/reporting-proxy" ./tools/upgrade-readiness/reporting-proxy
+# The fixture umask keeps evidence private; only the image executable is public.
+chmod 0555 "$proxy_build/reporting-proxy"
 printf 'FROM scratch\nCOPY reporting-proxy /reporting-proxy\nUSER 65532:65532\nENTRYPOINT ["/reporting-proxy"]\n' >"$proxy_build/Dockerfile"
 docker build -t kfp-reporting-proxy:fixture "$proxy_build"
 kind load docker-image --name kfp-readiness kfp-reporting-proxy:fixture

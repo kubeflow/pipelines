@@ -94,6 +94,39 @@ echo "$2" >>"$TEST_STATE/calls"
             source.index('check prepare'),
             source.index('restore_controller_namespaces'))
 
+    def test_proxy_image_stages_executable_for_nonroot_user_under_private_umask(
+            self):
+        staging = SCRIPT.read_text().split(
+            'proxy_build=$reporting_state/proxy-build',
+            1)[1].split('docker build ', 1)[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            # Model go build's output under umask 077, then execute the actual
+            # staging commands. Evidence must retain its separate private mode.
+            shell = r"""set -euo pipefail
+umask 077
+reporting_state=$1
+proxy_build=$reporting_state/proxy-build
+go() {
+  if [[ "$1" == build ]]; then
+    printf '#!/bin/sh\nexit 0\n' >"$proxy_build/reporting-proxy"
+    chmod 0700 "$proxy_build/reporting-proxy"
+  fi
+}
+printf private >"$reporting_state/evidence"
+""" + staging
+            subprocess.run(['bash', '-c', shell, 'stage',
+                            str(directory)],
+                           check=True,
+                           capture_output=True)
+            binary = directory / 'proxy-build/reporting-proxy'
+            self.assertEqual(binary.stat().st_mode & 0o777, 0o555)
+            self.assertEqual((directory / 'evidence').stat().st_mode & 0o777,
+                             0o600)
+            dockerfile = (directory / 'proxy-build/Dockerfile').read_text()
+            self.assertIn('USER 65532:65532', dockerfile)
+            self.assertIn('ENTRYPOINT ["/reporting-proxy"]', dockerfile)
+
     def test_proxy_rollout_failure_collects_safe_diagnostics_and_stays_failure(
             self):
         source = SCRIPT.read_text()
