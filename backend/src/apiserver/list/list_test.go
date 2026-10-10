@@ -15,6 +15,7 @@
 package list
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -1361,5 +1362,43 @@ func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
 					modelName, modelField, apiField)
 			})
 		}
+	}
+}
+
+type nullableListable struct {
+	*fakeListable
+	value interface{}
+}
+
+func (n *nullableListable) GetFieldValue(name string) interface{} {
+	if name == "FakeName" {
+		return n.value
+	}
+	return n.fakeListable.GetFieldValue(name)
+}
+
+func TestNextPageToken_PreservesSQLNullAndZeroValues(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		value, want interface{}
+		isNull      bool
+	}{
+		{"null string", sql.NullString{}, nil, true},
+		{"empty string", sql.NullString{Valid: true}, "", false},
+		{"null integer", sql.NullInt64{}, nil, true},
+		{"zero integer", sql.NullInt64{Valid: true}, int64(0), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			original := &fakeListable{PrimaryKey: "key"}
+			opts, err := NewOptions(original, 2, "name", nil)
+			assert.NoError(t, err)
+			got, err := opts.nextPageToken(&nullableListable{fakeListable: original, value: tc.value})
+			assert.NoError(t, err)
+			if assert.NotNil(t, got) {
+				assert.Equal(t, tc.want, got.SortByFieldValue)
+				assert.Equal(t, tc.isNull, got.SortByFieldIsNull)
+				assert.Equal(t, "key", got.KeyFieldValue)
+			}
+		})
 	}
 }

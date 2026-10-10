@@ -55,10 +55,9 @@ type token struct {
 	SortByFieldPrefix string
 
 	// SortByFieldIsNull is true when the sort field value of the next row is a
-	// genuine SQL NULL rather than an absent/invalid field. This only happens
-	// for metric sorts, where a run without the selected metric produces a NULL
-	// sort_metric_value. It exists to disambiguate a legitimate NULL sort value
-	// from the "field does not exist" error case: SortByFieldValue is interface{}
+	// genuine SQL NULL rather than an absent/invalid field. This covers missing
+	// metrics and nullable SQL values preserved by a store. It disambiguates a
+	// legitimate NULL sort value from the "field does not exist" error case: SortByFieldValue is interface{}
 	// and its nil is otherwise ambiguous. When true, SortByFieldValue is nil and
 	// the row belongs to the NULL block, which always sorts last.
 	// The omitempty tag keeps tokens byte-identical to the previous layout when
@@ -433,15 +432,10 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.
 			}
 		}
 	} else if o.SortByFieldIsNull && o.KeyFieldValue != nil {
-		// Cursor value is a genuine NULL (metric sort only). All non-NULL rows have
+		// Cursor value is a genuine SQL NULL. All non-NULL rows have
 		// already been paged through, so advance within the trailing NULL block
 		// using the primary key alone. Direction of the key tie-break follows the
 		// sort direction, matching the non-NULL branches above.
-		//
-		// This branch remains metric-only because Go model structs use value types
-		// (string, int64) and GORM maps SQL NULL to the zero value, so
-		// GetFieldValue cannot distinguish NULL from zero for non-metric fields.
-		// Extending this to all fields would require pointer types in the models.
 		keyCursor := sq.Sqlizer(sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue})
 		if o.IsDesc {
 			keyCursor = sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue}
@@ -607,14 +601,20 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	// SortByFieldName is the user-facing name (for metric sorts, the raw metric
 	// name), which GetFieldValue resolves directly.
 	//
-	// A nil field value is ambiguous: it can mean the field does not exist (a
-	// real error), or, for metric sorts, that this row simply has no value for
-	// the selected metric (a legitimate SQL NULL in sort_metric_value). Only the
-	// metric case is allowed to carry a NULL cursor forward; for regular fields a
-	// nil value still indicates an invalid sort field.
+	// A bare nil still means an invalid regular field. Stores can preserve genuine
+	// database NULLs using sql.NullString/NullInt64 without changing API models.
 	sortByField := listable.GetFieldValue(o.SortByFieldName)
 	sortByFieldIsNull := false
-	if sortByField == nil {
+	switch value := sortByField.(type) {
+	case sql.NullString:
+		sortByField, sortByFieldIsNull = value.String, !value.Valid
+	case sql.NullInt64:
+		sortByField, sortByFieldIsNull = value.Int64, !value.Valid
+	}
+	if sortByFieldIsNull {
+		sortByField = nil
+	}
+	if sortByField == nil && !sortByFieldIsNull {
 		if o.IsMetricSort() {
 			sortByFieldIsNull = true
 		} else {

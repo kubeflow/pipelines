@@ -171,8 +171,28 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	return &newTask, nil
 }
 
+// taskListRow preserves SQL NULL separately from the public Task's scalar fields.
+// Only pagination uses these raw values; API responses keep their existing shape.
+type taskListRow struct {
+	*model.Task
+	sortFields map[string]interface{}
+}
+
+func (t *taskListRow) GetFieldValue(name string) interface{} {
+	if value, ok := t.sortFields[name]; ok {
+		return value
+	}
+	return t.Task.GetFieldValue(name)
+}
+
 func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
+	tasks, _, err := s.scanRowsWithSortFields(rows)
+	return tasks, err
+}
+
+func (s *TaskStore) scanRowsWithSortFields(rows *sql.Rows) ([]*model.Task, []map[string]interface{}, error) {
 	var tasks []*model.Task
+	var sortFields []map[string]interface{}
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, podName, mlmdExecutionID, fingerprint string
 		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
@@ -198,7 +218,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 		)
 		if err != nil {
 			fmt.Printf("scan error is %v", err)
-			return tasks, err
+			return tasks, sortFields, err
 		}
 		var stateHistoryNew []*model.RuntimeStatus
 		if stateHistory.Valid {
@@ -227,8 +247,13 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			ChildrenPods:      childrenPods,
 		}
 		tasks = append(tasks, task)
+		sortFields = append(sortFields, map[string]interface{}{
+			"CreatedTimestamp": createdTimestamp, "StartedTimestamp": startedTimestamp,
+			"FinishedTimestamp": finishedTimestamp, "Name": name, "ParentTaskUUID": parentTaskId,
+			"State": state, "StateHistory": stateHistory,
+		})
 	}
-	return tasks, nil
+	return tasks, sortFields, rows.Err()
 }
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
@@ -288,7 +313,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		tx.Rollback()
 		return errorF(err)
 	}
-	exps, err := s.scanRows(rows)
+	exps, sortFields, err := s.scanRowsWithSortFields(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -320,7 +345,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return exps, total_size, "", nil
 	}
 
-	npt, err := opts.NextPageToken(exps[opts.PageSize])
+	npt, err := opts.NextPageToken(&taskListRow{Task: exps[opts.PageSize], sortFields: sortFields[opts.PageSize]})
 	return exps[:opts.PageSize], total_size, npt, err
 }
 
