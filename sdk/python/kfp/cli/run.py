@@ -245,9 +245,8 @@ def display_run(client: client.Client, run_id: str, watch: bool,
     while True:
         time.sleep(1)
         run_detail = client.get_run(run_id)
-        run = run_detail
-        if run_detail.state in [
-                'SUCCEEDED', 'SKIPPED', 'FAILED', 'CANCELED', 'PAUSED'
-        ]:
+        # PAUSED is omitted deliberately: a paused run can be resumed, so it is
+        # not a state the run has finished in.
+        if run_detail.state in ['SUCCEEDED', 'SKIPPED', 'FAILED', 'CANCELED']:
             click.echo(f'Run is finished with state {run_detail.state}.')
             return
