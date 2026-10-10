@@ -24,8 +24,8 @@ import uuid
 
 class ApiError(RuntimeError):
 
-    def __init__(self, status):
-        super().__init__('experiment API HTTP ' + str(status))
+    def __init__(self, status, endpoint=""):
+        super().__init__(endpoint + " HTTP " + str(status))
         self.status = status
 
 
@@ -49,13 +49,13 @@ def request(port,
         if len(raw) > 1024 * 1024:
             raise ValueError('response limit exceeded')
         if response.status != 200:
-            raise ApiError(response.status)
+            raise ApiError(response.status, endpoint)
         return json.loads(raw)
     finally:
         connection.close()
 
 
-def criteria(marker, operation='EQUALS'):
+def criteria(marker, operation='EQUALS', version='v2beta1'):
     value = {
         'string_values': {
             'values': [marker]
@@ -66,7 +66,7 @@ def criteria(marker, operation='EQUALS'):
     return json.dumps({
         'predicates': [{
             'key': 'description',
-            'operation': operation,
+            ('op' if version == 'v1beta1' else 'operation'): operation,
             **value
         }]
     })
@@ -142,7 +142,7 @@ def source(state_path, source_image):
         # 2.17.2 cannot compare a repeated IN criterion after token JSON decode.
         baseline = walk([8888], spec, expected, first, repeat=operation != 'IN')
         cases.append({
-            'operation': operation,
+            ('op' if version == 'v1beta1' else 'operation'): operation,
             'filter': spec,
             'first': first,
             'source_baseline': baseline
@@ -282,7 +282,11 @@ def full_inventory(port, case):
 
 
 def capture_source_case(case):
-    expected = full_inventory(8888, case)
+    try:
+        expected = full_inventory(8888, case)
+    except (ApiError, ValueError) as error:
+        raise ValueError('source inventory failed: ' + case['endpoint'] +
+                         ' sort=' + case['sort'] + ': ' + str(error)) from error
     first = None
     try:
         first = case_page(8888, case)
@@ -383,7 +387,7 @@ def prepare_extended(marker):
                 } if v1 else {
                        'namespace': 'kubeflow'
                    }), 'filter':
-                    criteria(marker + '-mixed')
+                    criteria(marker + '-mixed', version=version)
             }, ['name' if v1 else 'display_name', 'description',
                 'created_at']), ('runs', run_ids, {
                     'resource_reference_key.type': 'EXPERIMENT',

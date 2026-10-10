@@ -5,6 +5,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+import json
 import unittest
 from unittest import mock
 
@@ -58,6 +59,13 @@ class PaginationTest(unittest.TestCase):
     def test_saved_source_trace_is_explicit(self):
         result = fixture.walk([8888], 'criteria', ['a'], response(['a']))
         self.assertEqual(result['ports'], ['saved_source_page'])
+
+    def test_filter_operation_matches_api_version(self):
+        for version, key in (('v1beta1', 'op'), ('v2beta1', 'operation')):
+            predicate = json.loads(
+                fixture.criteria('fixture', version=version))['predicates'][0]
+            self.assertEqual(predicate[key], 'EQUALS')
+            self.assertNotIn('operation' if key == 'op' else 'op', predicate)
 
     def test_source_image_pin_is_required(self):
         with self.assertRaisesRegex(ValueError, 'pinned'):
