@@ -32,6 +32,7 @@ from live_adoption_check import sql
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
 from live_adoption_check import validate_idempotent
+from live_adoption_check import validate_restart
 from live_adoption_check import wait_active
 from live_adoption_check import wait_adoption_job
 
@@ -775,6 +776,71 @@ class AdoptionTests(unittest.TestCase):
             & {'readinessProbe', 'livenessProbe', 'startupProbe'})
         self.assertEqual(job['spec']['backoffLimit'], 0)
         self.assertEqual(spec['restartPolicy'], 'Never')
+
+
+class RestartEvidenceTest(unittest.TestCase):
+
+    def baseline(self):
+        return {
+            name:
+                dict(
+                    generation=4,
+                    observed_generation=4,
+                    desired=1,
+                    replicas=1,
+                    updated=1,
+                    ready=1,
+                    available=1,
+                    pods=[
+                        dict(
+                            uid=name + '-old',
+                            terminating=False,
+                            phase='Running',
+                            ready=True)
+                    ])
+            for name in ('ml-pipeline', 'ml-pipeline-scheduledworkflow')
+        }
+
+    def replaced(self):
+        current = self.baseline()
+        for writer in current.values():
+            writer['generation'] = writer['observed_generation'] = 5
+            writer['pods'][0]['uid'] += '-new'
+        return current
+
+    def test_both_replacements_ready(self):
+        validate_restart(self.baseline())
+        validate_restart(self.replaced(), self.baseline())
+
+    def test_rollout_annotation_without_new_pod_is_rejected(self):
+        current = self.replaced()
+        current['ml-pipeline']['pods'] = self.baseline()['ml-pipeline']['pods']
+        with self.assertRaisesRegex(AdoptionError, 'old_writer_still_present'):
+            validate_restart(current, self.baseline())
+
+    def test_old_running_or_terminating_pods_are_rejected(self):
+        for terminating in (False, True):
+            with self.subTest(terminating=terminating):
+                current = self.replaced()
+                old = self.baseline()['ml-pipeline']['pods'][0]
+                old['terminating'] = terminating
+                current['ml-pipeline']['pods'].append(old)
+                with self.assertRaisesRegex(AdoptionError, 'writers_not_ready'):
+                    validate_restart(current, self.baseline())
+
+    def test_unready_or_unobserved_replacement_is_rejected(self):
+        for change in ('pod', 'generation', 'available'):
+            with self.subTest(change=change):
+                current = self.replaced()
+                writer = current['ml-pipeline-scheduledworkflow']
+                if change == 'pod':
+                    writer['pods'][0]['ready'] = False
+                elif change == 'generation':
+                    writer['observed_generation'] = 4
+                else:
+                    writer['available'] = 0
+                with self.assertRaisesRegex(AdoptionError, 'writers_not_ready'):
+                    validate_restart(current, self.baseline())
 
 
 if __name__ == '__main__':

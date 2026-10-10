@@ -572,7 +572,10 @@ original template is restored before baseline capture. The fixture probes the AP
 Service across manifest application and checks automatic adoption, preserved
 SQL definitions/progress, enabled/disabled state, active-run concurrency,
 completion of the suspended run after resumption, and the next tick without
-duplicate workflow indices. The probes cover their selected API endpoint, not
+duplicate workflow indices. Before resuming the active run, the fixture restarts
+both upgraded writer Deployments, requires replacement ready Pods with fresh
+identities, and rechecks preserved state, disabled schedules and the occupied
+concurrency slot. The probes cover their selected API endpoint, not
 every API operation or transparent retry inside task containers.
 
 The separate `run_readiness_schedules=true` lane now waits for automatic adoption

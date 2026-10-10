@@ -74,11 +74,16 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - The manual `run_readiness_adoption=true` input adds a separate populated
   2.17.2-to-candidate adoption job. It retains real completed source history,
   one enabled schedule with a persisted suspended Workflow, and two disabled
-  schedules. It deploys candidate images with API and controllers stopped, runs
-  the offline adoption Job twice, compares SQL receipt/progress and stored
-  definitions, then checks active-run concurrency and successful continuation.
-  This supplements the unchanged legacy rejection/recreation lane. A suspended
-  Workflow tests nonterminal run accounting; it does not establish retry behavior
-  for running task containers making API calls during the maintenance window.
-  Only sanitized phase summaries under `reports/` are uploaded; SQL snapshots,
-  manifests, credentials and adoption logs remain in the disposable runner.
+  schedules. It applies candidate images through the managed rolling deployment
+  while writers remain running, then compares automatic adoption receipts,
+  progress and stored definitions. The fixture restarts the upgraded API and
+  scheduled controller while the active run holds its concurrency slot, requires
+  fresh ready Pod identities with no old or terminating Pods, reopens its local
+  forwarding connection, and verifies preserved state and successful continuation.
+  The separate scheduling-policy lane also adopts original source schedule IDs.
+  A suspended Workflow tests nonterminal run accounting; it does not establish
+  transparent retries in arbitrary task containers or zero downtime for every
+  API operation. Rejected handoff mutations and successful retries are covered
+  by deterministic resource tests. Only sanitized phase summaries under
+  `reports/` are uploaded; SQL snapshots, manifests, credentials and raw adoption
+  logs remain in the disposable runner.

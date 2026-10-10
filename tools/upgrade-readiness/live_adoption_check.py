@@ -807,13 +807,71 @@ def exception_evidence(error):
     return dict(type=kind, locations=locations)
 
 
+def restart_inventory():
+    """Collect only controller identities and readiness, never Pod payloads."""
+    result = {}
+    for name in ('ml-pipeline', 'ml-pipeline-scheduledworkflow'):
+        deployment = get('kubeflow', 'deployment/' + name)
+        labels = deployment['spec']['selector']['matchLabels']
+        selector = ','.join(k + '=' + v for k, v in sorted(labels.items()))
+        pods = json.loads(
+            kube('-n', 'kubeflow', 'get', 'pods', '-l', selector, '-o',
+                 'json'))['items']
+        status = deployment.get('status', {})
+        result[name] = dict(
+            generation=deployment['metadata']['generation'],
+            observed_generation=status.get('observedGeneration', 0),
+            desired=deployment['spec'].get('replicas', 1),
+            replicas=status.get('replicas', 0),
+            updated=status.get('updatedReplicas', 0),
+            ready=status.get('readyReplicas', 0),
+            available=status.get('availableReplicas', 0),
+            pods=[
+                dict(
+                    uid=p['metadata']['uid'],
+                    terminating=bool(p['metadata'].get('deletionTimestamp')),
+                    phase=p.get('status', {}).get('phase'),
+                    ready=any(
+                        c.get('type') == 'Ready' and c.get('status') == 'True'
+                        for c in p.get('status', {}).get('conditions', [])))
+                for p in pods
+            ])
+    return result
+
+
+def validate_restart(current, before=None):
+    require(
+        set(current) == {'ml-pipeline', 'ml-pipeline-scheduledworkflow'},
+        'restart_controller_inventory_incomplete')
+    for name, writer in current.items():
+        desired = writer['desired']
+        require(
+            desired > 0 and
+            writer['observed_generation'] >= writer['generation'] and
+            all(writer[field] == desired
+                for field in ('replicas', 'updated', 'ready', 'available')) and
+            len(writer['pods']) == desired and
+            all(p['uid'] and not p['terminating'] and p['ready'] and
+                p['phase'] == 'Running'
+                for p in writer['pods']), 'restart_writers_not_ready')
+        if before is not None:
+            old = before[name]
+            require(
+                writer['desired'] == old['desired'] and
+                writer['generation'] > old['generation'] and
+                not ({p['uid'] for p in writer['pods']}
+                     & {p['uid'] for p in old['pods']}),
+                'restart_old_writer_still_present')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         'phase',
         choices=('active', 'snapshot', 'stopped', 'job', 'wait-job', 'adopted',
                  'idempotent', 'held', 'completed', 'drained', 'handoff',
-                 'source-disabled', 'adopted-disabled'))
+                 'source-disabled', 'adopted-disabled', 'before-restart',
+                 'after-restart'))
     parser.add_argument('--state', required=True)
     parser.add_argument('--job-name')
     parser.add_argument('--online', action='store_true')
@@ -826,7 +884,16 @@ def main():
         phase=args.phase,
         outcome='inconclusive')
     try:
-        if args.phase == 'handoff':
+        if args.phase in ('before-restart', 'after-restart'):
+            report['writers'] = restart_inventory()
+            baseline = state / 'before-restart.json'
+            validate_restart(
+                report['writers'],
+                read_object(baseline)
+                if args.phase == 'after-restart' else None)
+            if args.phase == 'before-restart':
+                write_object(baseline, report['writers'])
+        elif args.phase == 'handoff':
             report['writers'] = []
             for name in ('ml-pipeline', 'ml-pipeline-scheduledworkflow'):
                 deployment = get('kubeflow', 'deployment/' + name)

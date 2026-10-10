@@ -73,6 +73,28 @@ else
     check idempotent --online
     sleep 5
   done
+  # Restart real writers while the adopted active run still holds its slot.
+  # Rollout status alone can succeed before old terminating Pods disappear.
+  check before-restart
+  stop_forward
+  kube -n kubeflow rollout restart deployment/ml-pipeline deployment/ml-pipeline-scheduledworkflow
+  for controller in ml-pipeline ml-pipeline-scheduledworkflow; do
+    kube -n kubeflow rollout status "deployment/$controller" --timeout=300s
+  done
+  restarted=false
+  for observation in {1..24}; do
+    if check after-restart; then restarted=true; break; fi
+    sleep 5
+  done
+  [[ "$restarted" == true ]]
+  start_forward
+  mint_token
+  # Observe more than two scheduling intervals after both replacements are ready.
+  for observation in {1..15}; do
+    check held
+    check idempotent --online
+    sleep 5
+  done
   active_name=$(jq -r .name "$state/active.json")
   kube -n "$namespace" patch "workflow/$active_name" --type=merge -p '{"spec":{"suspend":false}}'
   complete=false
@@ -100,6 +122,7 @@ write_object(state / 'reports/adoption-complete.json', dict(
     scope='populated_legacy_adoption', outcome='passed',
     active_case='persisted_suspended_workflow', source_version='2.17.2',
     upgrade_mode='ordinary_rolling_apply',
+    restart_recovery='api_and_scheduled_controller_with_active_run',
     schedule_uids=[case['schedule_uid'] for case in fixture['schedules']]))
 PY
 fi
