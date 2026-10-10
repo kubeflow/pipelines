@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ml-pipeline-persistenceagent-image-pull-failure-role
+rules:
+# Terminate a workflow whose pod cannot pull its image.
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - patch
+# Watch workflow pods for ImagePullBackOff / ErrImagePull.
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch

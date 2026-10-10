@@ -1,0 +1,28 @@
+# PIPELINE DEFINITION
+# Name: image-pull-failure
+components:
+  comp-unpullable:
+    executorLabel: exec-unpullable
+deploymentSpec:
+  executors:
+    exec-unpullable:
+      container:
+        args:
+        - echo this container never starts
+        command:
+        - sh
+        - -c
+        image: registry.invalid/kubeflow/pipelines-unpullable:does-not-exist
+pipelineInfo:
+  name: image-pull-failure
+root:
+  dag:
+    tasks:
+      unpullable:
+        cachingOptions: {}
+        componentRef:
+          name: comp-unpullable
+        taskInfo:
+          name: unpullable
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

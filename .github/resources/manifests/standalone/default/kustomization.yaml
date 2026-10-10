@@ -5,6 +5,12 @@ resources:
   - ../../../../../manifests/kustomize/env/platform-agnostic
   - ../../base
 
+# Exercise the opt-in image pull failure handling in the canonical standalone
+# job so backend/test/v2/api/image_pull_failure_api_test.go runs against a real
+# persistence agent. The grace period is shortened to keep that test fast.
+components:
+  - ../../../../../manifests/kustomize/components/image-pull-failure-handling
+
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newName: kind-registry:5000/apiserver
@@ -26,6 +32,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../../base/persistenceagent-image-pull-grace-period.yaml
   - path: ../../base/ci-stability-tuning.yaml
   - path: ../../base/viewer-crd-pull-policy.yaml
     target:
