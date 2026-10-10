@@ -22,7 +22,6 @@ export PATH="${PATH}:$(go env GOPATH)/bin"
 
 # 1. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
-go mod download
 go mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 

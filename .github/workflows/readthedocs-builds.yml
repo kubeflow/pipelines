@@ -51,13 +51,13 @@ jobs:
         run: |
           uv run sphinx-build -b html . _build/html
 
-      - name: Test K8s platform docs release step
+      - name: Test unified SDK release step
         run: |
-          KFP_KUBERNETES_VERSION="$(uv run python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')"
+          KFP_VERSION="$(uv run python -c 'import kfp; print(kfp.__version__)')"
           RELEASE_TYPE="patch"
-          case "$KFP_KUBERNETES_VERSION" in *.0) RELEASE_TYPE="minor" ;; esac
-          uv run --with-editable ./release kfpr run create-kfp-kubernetes-docs-branch \
+          case "$KFP_VERSION" in *.0) RELEASE_TYPE="minor" ;; esac
+          uv run --with-editable ./release kfpr run create-sdk-tag \
             --release-type "$RELEASE_TYPE" \
-            --version "$KFP_KUBERNETES_VERSION" \
+            --version "$KFP_VERSION" \
             --fork-remote upstream \
             --dry-run

@@ -1,6 +1,11 @@
 name: Build Images
 on:
   workflow_call:
+    inputs:
+      architecture:
+        description: 'Native build architecture (amd64 or arm64)'
+        type: string
+        default: amd64
     outputs:
       IMAGE_PATH:
         description: 'A description of my output'
@@ -20,6 +25,8 @@ env:
 
 jobs:
   runtime-base-images:
+    # The ARM smoke pulls its small set of runtime dependencies natively.
+    if: ${{ inputs.architecture == 'amd64' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -28,6 +35,9 @@ jobs:
     env:
       ARTIFACT_NAME: "runtime-base-images"
       ARTIFACTS_PATH: "runtime-base-images-cache"
+      RUNTIME_IMAGE_FILES: |
+        runtime-base-images.tar
+        modelcar.tar
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -41,6 +51,7 @@ jobs:
             .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
             .github/resources/runtime-base-images.txt \
             .github/resources/scripts/helper-functions.sh \
+            .github/resources/scripts/build-runtime-base-images.sh \
             .github/workflows/runtime-base-images.yml \
             test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
           echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
@@ -55,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for attempt in $(seq 1 80); do
+          for attempt in $(seq 1 3); do
             producer_run_id=""
             if artifacts=$(gh api --method GET \
                 "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
@@ -73,33 +84,64 @@ jobs:
               exit 0
             fi
 
-            if [[ "${attempt}" -lt 80 ]]; then
-              echo "Runtime base image artifact not ready; retrying in 15 seconds..."
-              sleep 15
+            if [[ "${attempt}" -lt 3 ]]; then
+              echo "Runtime base image artifact not ready; retrying in 10 seconds..."
+              sleep 10
             fi
           done
 
-          echo "::error::No runtime base image producer artifact found for ${ARTIFACT_NAME}"
-          exit 1
+          echo "::warning::No eligible shared runtime image archive found; building from this checkout."
 
       - name: Download runtime base images from producer
+        id: download-runtime-base-images
+        if: steps.runtime-base-images-producer.outputs.run-id != ''
+        continue-on-error: true
         uses: ./.github/actions/download-artifact-with-retry
         with:
           name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           path: ${{ env.ARTIFACTS_PATH }}
           github-token: ${{ github.token }}
           run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
+          required-files: ${{ env.RUNTIME_IMAGE_FILES }}
+
+      - name: Configure Docker Hub mirror
+        if: steps.download-runtime-base-images.outcome != 'success'
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
+      - name: Build runtime base image archives
+        id: build-runtime-base-images
+        if: steps.download-runtime-base-images.outcome != 'success'
+        shell: bash
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download-runtime-base-images.outcome }}
+          REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}
+        run: |
+          echo "Runtime image cache download: $DOWNLOAD_OUTCOME; rebuilding locally"
+          echo "Runtime image cache download: $DOWNLOAD_OUTCOME. Rebuilding and verifying archives locally." >> "$GITHUB_STEP_SUMMARY"
+          # This job owns one fixed cache directory. Clear failed multi-gigabyte
+          # downloads before allocating the fresh rebuild, without accepting an
+          # arbitrary cleanup path from the download action or its outputs.
+          if [[ "$ARTIFACTS_PATH" != 'runtime-base-images-cache' ]]; then
+            echo "::error::Unexpected runtime image cache path: $ARTIFACTS_PATH"
+            exit 1
+          fi
+          rm -rf -- "${GITHUB_WORKSPACE:?}/runtime-base-images-cache"
+          rebuilt_path=$(mktemp -d "$RUNNER_TEMP/runtime-base-images.XXXXXX")
+          bash .github/resources/scripts/build-runtime-base-images.sh "$rebuilt_path"
+          DOWNLOAD_PATH="$rebuilt_path" bash .github/resources/scripts/artifact-files.sh verify
+          echo "path=$rebuilt_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}
+          path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 1
 
   image-build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
@@ -136,7 +178,8 @@ jobs:
             context: .
 
     env:
-      ARTIFACT_NAME: "${{ matrix.image }}"
+      ARTIFACT_NAME: "${{ matrix.image }}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}"
+      TARGET_ARCH: ${{ inputs.architecture }}
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
@@ -145,6 +188,14 @@ jobs:
       - name: Read frontend Node version
         id: frontend_node
         run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify native build architecture
+        shell: bash
+        run: |
+          case "${TARGET_ARCH}:$(uname -m)" in
+            amd64:x86_64|arm64:aarch64) ;;
+            *) echo "::error::Unsupported architecture or non-native build runner"; exit 1 ;;
+          esac
 
       - name: Create Artifacts Path Directory
         id: configure
@@ -161,6 +212,7 @@ jobs:
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Set up Docker Buildx
+        id: buildx
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
@@ -168,43 +220,85 @@ jobs:
         uses: docker/build-push-action@v7
         id: save-image
         continue-on-error: true
+        # A step timeout remains retryable; the job timeout cancels recovery.
+        timeout-minutes: ${{ matrix.image == 'frontend' && 9 || 30 }}
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
         with:
+          builder: ${{ steps.buildx.outputs.builder_name }}
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          platforms: linux/${{ inputs.architecture }}
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
-          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:ci
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
       - name: Wait before rebuilding
         if: ${{ steps.save-image.outcome == 'failure' }}
         run: sleep 10
 
+      - name: Reset frontend builder before retry
+        if: ${{ matrix.image == 'frontend' && steps.save-image.outcome == 'failure' }}
+        # GitHub implicitly adds success() to the rebuild's condition, so a
+        # failed reset would skip the rebuild entirely.
+        continue-on-error: true
+        # Allow 120s of helper backoff, 45s of cleanup, and time for Docker work.
+        timeout-minutes: 5
+        shell: bash
+        env:
+          BUILDER_NAME: ${{ steps.buildx.outputs.builder_name }}
+        run: |
+          # Preserve daemon diagnostics before discarding a potentially stuck builder.
+          timeout 15s docker logs --tail 200 "buildx_buildkit_${BUILDER_NAME}0" || true
+          # setup_builder removes the builder again under its own retry.
+          if ! timeout 30s docker buildx rm --force "$BUILDER_NAME"; then
+            echo "::warning::Could not remove builder $BUILDER_NAME"
+          fi
+          bash ./.github/resources/scripts/setup-buildx-with-retry.sh "$BUILDER_NAME"
+
       - name: Rebuild Images in case of failure
         uses: docker/build-push-action@v7
         if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
+        timeout-minutes: ${{ matrix.image == 'frontend' && 9 || 30 }}
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
         with:
+          builder: ${{ steps.buildx.outputs.builder_name }}
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          platforms: linux/${{ inputs.architecture }}
           no-cache: true
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
-          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:ci
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+
+      - name: Record ARM image identity
+        if: ${{ inputs.architecture == 'arm64' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        env:
+          CI_IMAGE: ${{ matrix.image }}
+        run: >-
+          python3 .github/resources/scripts/arm64_presubmit_image.py
+          "$CI_IMAGE" "$GITHUB_SHA" "$REGISTRY"
+          "$ARTIFACTS_PATH/$ARTIFACT_NAME.json"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+            ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json
+          if-no-files-found: error
           retention-days: 1

@@ -261,11 +261,12 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       append(append(proxy.GetConfig().GetEnvVars(), commonEnvs...), mlPipelineAPIClientEnvVars()...),
+			TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			Image:                    c.driverImage,
+			Command:                  c.driverCommand,
+			Args:                     args,
+			Resources:                driverResources,
+			Env:                      append(append(proxy.GetConfig().GetEnvVars(), commonEnvs...), mlPipelineAPIClientEnvVars()...),
 			VolumeMounts: []k8score.VolumeMount{
 				{
 					Name:      kfpTokenVolumeName,
@@ -553,10 +554,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		},
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
-				Name:    "kfp-launcher",
-				Image:   c.launcherImage,
-				Command: c.launcherCommand,
-				Args:    args,
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+				Name:                     "kfp-launcher",
+				Image:                    c.launcherImage,
+				Command:                  c.launcherCommand,
+				Args:                     args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
 						Name:      volumeNameKFPLauncher,
@@ -567,6 +569,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			},
 		}},
 		Container: &k8score.Container{
+			TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
 			// The placeholder image and command should always be
 			// overridden in podSpecPatch.
 			// In case we have a bug, the placeholder image is kept
@@ -610,8 +613,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 					MountPath: dotConfigScratchLocation,
 				},
 			},
-			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+			Env: append(commonEnvs, mlPipelineAPIClientEnvVars()...),
 		},
 	}
 	setRuntimeRole(executor, util.ExecutionRuntimeRoleLauncher)

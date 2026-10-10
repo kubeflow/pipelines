@@ -21,7 +21,8 @@ RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 # Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
 # race condition where parallel download workers collide on the same cache entry.
 # npm ci runs the root postinstall script, which installs server and mock-backend deps.
-RUN npm ci || (npm cache clean --force && npm ci)
+RUN (npm ci || (npm cache clean --force && npm ci)) && \
+    echo "Frontend build dependencies installed"
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
@@ -43,7 +44,8 @@ WORKDIR /server
 EXPOSE 3000
 # Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
 # race condition where parallel download workers collide on the same cache entry.
-RUN npm ci || (npm cache clean --force && npm ci)
+RUN (npm ci || (npm cache clean --force && npm ci)) && \
+    echo "Frontend server dependencies installed"
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

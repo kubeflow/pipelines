@@ -62,6 +62,8 @@ var runColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"ImportedFrom",
+	"ImportDigest",
 }
 
 // runListColumns is a lightweight version of runColumns for List endpoints.
@@ -101,6 +103,8 @@ var runListColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"ImportedFrom",
+	"ImportDigest",
 }
 
 // terminalRunStateStrings lists every raw value that a terminal run can carry
@@ -642,7 +646,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
-		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
+		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
 
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
@@ -678,6 +682,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryGeneration,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
+			&importedFrom,
+			&importDigest,
 			&resourceReferencesInString,
 		}
 
@@ -728,6 +734,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ServiceAccount: serviceAccount,
 			Description:    description,
 			RecurringRunId: jID,
+			ImportedFrom:   importedFrom.String,
+			ImportDigest:   importDigest.String,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
 				ScheduledAtInSec:        scheduledAtInSec.Int64,
@@ -763,6 +771,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		}
 		run = run.ToV2()
 		runs = append(runs, run)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return runs, nil
 }
@@ -841,6 +852,8 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			q("PipelineRoot"):            r.PipelineSpec.RuntimeConfig.PipelineRoot,
 			q("PipelineVersionId"):       r.PipelineSpec.PipelineVersionId,
 			q("JobUUID"):                 r.RecurringRunId,
+			q("ImportedFrom"):            r.ImportedFrom,
+			q("ImportDigest"):            r.ImportDigest,
 			q("State"):                   r.RunDetails.State.ToString(),
 			q("StateHistory"):            stateHistoryString,
 			q("PluginsInput"):            largeTextToNullableSQL(r.RunDetails.PluginsInputString),
@@ -851,14 +864,20 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			r.Namespace, r.DisplayName)
 	}
 
-	// New runs persist ownership in native columns, not legacy resource references.
-	_, err = s.db.Exec(runSQL, runArgs...)
+	// Persist the native record and its scheduling state atomically.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to store run: could not create a transaction")
+	}
+	defer tx.Rollback()
+	_, err = tx.Exec(runSQL, runArgs...)
 	if err != nil {
 		// A concurrent recurring-run trigger may have already created this run. Such runs
-		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
+		// use a deterministic UUID derived from their trusted tick or request key, so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
 		// returning the already-persisted run instead of surfacing an error.
 		if r.RecurringRunId != "" && s.dbDialect.IsDuplicateKeyError(err) {
+			tx.Rollback()
 			existingRun, getErr := s.GetRun(r.UUID, true)
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
@@ -868,6 +887,14 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 
+	if err := s.completeRecurringRunWithInsert(tx, r); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to complete the scheduling claim for run %s", r.UUID)
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return nil, util.NewInternalServerError(err, "Failed to store run %v and its scheduling state to table", r.DisplayName)
+	}
 	return r, nil
 }
 

@@ -32,7 +32,7 @@ deploymentSpec:
 
           '
         - '{{$.inputs.parameters[''text'']}}'
-        image: alpine
+        image: docker.io/alpine:3.23
     exec-print-text-2:
       container:
         command:
@@ -44,7 +44,7 @@ deploymentSpec:
 
           '
         - '{{$.inputs.parameters[''text'']}}'
-        image: alpine
+        image: docker.io/alpine:3.23
     exec-print-text-3:
       container:
         command:
@@ -56,7 +56,7 @@ deploymentSpec:
 
           '
         - '{{$.inputs.parameters[''text'']}}'
-        image: alpine
+        image: docker.io/alpine:3.23
 pipelineInfo:
   name: pipeline-with-after
 root:

@@ -33,7 +33,31 @@ on:
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
 jobs:
+  resolve-source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.src_branch }}
+          path: release-source
+      - name: Validate release line, source version, and image inventory
+        env:
+          TARGET_TAG: ${{ inputs.target_tag }}
+        run: |
+          python3 .github/resources/scripts/release_image_validation.py source \
+            --target-tag "$TARGET_TAG" --version-file release-source/VERSION
+      - id: commit
+        run: echo "sha=$(git -C release-source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   build-images-for-release:
+    needs: resolve-source
     strategy:
       fail-fast: true
       matrix:
@@ -59,9 +83,6 @@ jobs:
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
-          - name: kfp-inverse-proxy-agent
-            dockerfile: proxy/Dockerfile
-            context: ./proxy
 
         arch:
           - arch_name: amd64
@@ -71,14 +92,10 @@ jobs:
             runs_on: ubuntu-24.04-arm
             platform: linux/arm64
 
-        exclude:
-          - image: { name: kfp-inverse-proxy-agent }
-            arch: { arch_name: arm64 }
-
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
     with:
-      src_branch: ${{ inputs.src_branch }}
+      src_branch: ${{ needs.resolve-source.outputs.sha }}
       target_tag: ${{ inputs.target_tag }}
       arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: ${{ inputs.overwrite_imgs }}
@@ -92,7 +109,7 @@ jobs:
       push: ${{ !inputs.dry_run }}
 
   create-manifests:
-    needs: build-images-for-release
+    needs: [resolve-source, build-images-for-release]
     if: ${{ !inputs.dry_run }}
     strategy:
       fail-fast: true
@@ -105,10 +122,83 @@ jobs:
           - image: kfp-viewer-crd-controller
           - image: kfp-launcher
           - image: kfp-driver
-          - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
+      source_sha: ${{ needs.resolve-source.outputs.sha }}
+      expected_platforms: linux/amd64,linux/arm64
       set_latest: ${{ inputs.set_latest }}
+
+  validate-release-images:
+    needs: [resolve-source, create-manifests]
+    if: ${{ !inputs.dry_run }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: amd64
+            runner: ubuntu-latest
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - name: Checkout publication workflow policy
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+      - name: List required published image records
+        id: image-records
+        shell: bash
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output published-image-files
+      - name: Download this release attempt's verified index references
+        id: published-images
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: published-index-*-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/published-indexes
+          merge-multiple: 'true'
+          required-files: ${{ steps.image-records.outputs.required-files }}
+      # Keep the workflow's download policy until all records are present.
+      # They live outside the workspace so checkout cleanup preserves them.
+      - name: Checkout product source for native validation
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-source.outputs.sha }}
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: Verify native shared-tag selection
+        env:
+          SOURCE_SHA: ${{ needs.resolve-source.outputs.sha }}
+          TARGET_TAG: ${{ inputs.target_tag }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+          IMAGE_RECORDS: ${{ steps.published-images.outputs.download-path }}
+        run: |
+          python3 .github/resources/scripts/release_image_validation.py native \
+            --records "$IMAGE_RECORDS" --source-sha "$SOURCE_SHA" \
+            --target-tag "$TARGET_TAG" --architecture "$ARCHITECTURE" \
+            --output "$RUNNER_TEMP/release-image-validation/images.json"
+      - name: Validate published release on native ARM64
+        if: matrix.architecture == 'arm64'
+        uses: ./.github/actions/arm64-smoke
+        with:
+          image_records: ${{ steps.published-images.outputs.download-path }}
+          source_sha: ${{ needs.resolve-source.outputs.sha }}
+      - name: Upload native release image evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-image-validation-${{ matrix.architecture }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-image-validation

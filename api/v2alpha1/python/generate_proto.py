@@ -14,7 +14,6 @@
 
 import os
 import subprocess
-import sys
 
 try:
     from distutils.spawn import find_executable
@@ -24,7 +23,8 @@ except ImportError:
 PROTO_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 PKG_DIR = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), "kfp", "pipeline_spec"))
+    os.path.join(
+        os.path.dirname(__file__), "../../../sdk/python/kfp/pipeline_spec"))
 
 # Find the Protocol Compiler. (Taken from protobuf/python/setup.py)
 if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
@@ -33,40 +33,25 @@ else:
     PROTOC = find_executable("protoc")
 
 
-def generate_proto(source):
+def generate_proto(source: str) -> None:
     """Generate a _pb2.py from a .proto file.
 
     Invokes the Protocol Compiler to generate a _pb2.py from the given
-    .proto file.  Does nothing if the output already exists and is newer than
-    the input.
+    .proto file. Always regenerate so imported schemas cannot leave stale code.
 
     Args:
       source: The source proto file that needs to be compiled.
     """
 
-    output = source.replace(".proto", "_pb2.py")
-
-    if not os.path.exists(output) or (
-            os.path.exists(source) and
-            os.path.getmtime(source) > os.path.getmtime(output)):
-        print("Generating %s..." % output)
-
-        if not os.path.exists(source):
-            sys.stderr.write("Can't find required file: %s\n" % source)
-            sys.exit(-1)
-
-        if PROTOC is None:
-            sys.stderr.write("protoc is not found.  Please compile it "
-                             "or install the binary package.\n")
-            sys.exit(-1)
-
-        protoc_command = [
-            PROTOC,
-            "-I%s" % PROTO_DIR,
-            "--python_out=%s" % PKG_DIR, source
-        ]
-        if subprocess.call(protoc_command) != 0:
-            sys.exit(-1)
+    if not os.path.isfile(source):
+        raise FileNotFoundError(f"Can't find required file: {source}")
+    if PROTOC is None:
+        raise RuntimeError(
+            'protoc is not found. Install the protobuf compiler.')
+    os.makedirs(PKG_DIR, exist_ok=True)
+    subprocess.run(
+        [PROTOC, f'-I{PROTO_DIR}', f'--python_out={PKG_DIR}', source],
+        check=True)
 
 
 if __name__ == '__main__':

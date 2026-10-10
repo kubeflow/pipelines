@@ -29,9 +29,11 @@ User profiles have no additional isolation beyond what is provided by Kubernetes
 When you visit the Kubeflow Pipelines UI from the Kubeflow Dashboard, it only shows "experiments", "runs", and "recurring runs" in your chosen namespace.
 Similarly, when you create resources from the UI, they also belong to the namespace you have chosen.
 
-:::{warning}
-Pipeline definitions are not isolated right now, and are shared across all namespaces, see [Current Limitations](#current-limitations) for more details.
-:::
+Pipeline definitions can be private to a namespace or shared across namespaces.
+Private uploads use the selected namespace; shared uploads require publishing
+permission in the KFP installation namespace. See the
+[2.18 RBAC migration guide](rbac-migration-2.18.md) for SDK arguments, custom
+roles, and private pipeline references.
 
 ## When using the SDK
 
@@ -55,7 +57,7 @@ user_namespace = "jane-doe"
 
 # the KF_PIPELINES_SA_TOKEN_PATH environment variable is used when no `path` is set
 # the default KF_PIPELINES_SA_TOKEN_PATH is /var/run/secrets/kubeflow/pipelines/token
-credentials = kfp.auth.ServiceAccountTokenVolumeCredentials(path=None)
+credentials = kfp.client.ServiceAccountTokenVolumeCredentials(path=None)
 
 # create a client
 client = kfp.Client(host=f"http://ml-pipeline-ui.{kubeflow_namespace}", credentials=credentials)
@@ -77,6 +79,7 @@ print(client.list_runs(namespace=user_namespace))
 :::{tip}
 * To set a default namespace for Pipelines SDK commands, use the {py:meth}`kfp.Client().set_user_namespace() <kfp.client.Client.set_user_namespace>` method,
   this method stores your user namespace in a configuration file at `$HOME/.config/kfp/context.json`.
+  Pipeline uploads still require an explicit `namespace=` argument for private pipelines.
 * Detailed documentation for `kfp.Client()` can be found in the [Kubeflow Pipelines SDK Reference](../sdk/source/client.rst).
 :::
 
@@ -84,24 +87,24 @@ print(client.list_runs(namespace=user_namespace))
 
 When calling the [Kubeflow Pipelines REST API](../reference/api/kubeflow-pipeline-api-spec.md), a namespace argument is required for experiment APIs.
 <br>
-Set `namespace` on experiments and runs. Runs also refer to their experiment by
-`experiment_id` and their uploaded pipeline version by `pipeline_version_reference`.
+Set `namespace` when creating experiments and listing runs. Runs refer to their
+parent experiment by `experiment_id` and their uploaded pipeline version by
+`pipeline_version_reference`.
 
 ```python
 import kfp
-from kfp_server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
+from kfp.server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
 
 user_namespace = "jane-doe"
-credentials = kfp.auth.ServiceAccountTokenVolumeCredentials(path=None)
+credentials = kfp.client.ServiceAccountTokenVolumeCredentials(path=None)
 client = kfp.Client(host="http://ml-pipeline-ui.kubeflow", credentials=credentials)
 
 experiment = client._experiment_api.experiment_service_create_experiment(
-    body=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
+    experiment=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
 )
 run = client._run_api.run_service_create_run(
-    body=V2beta1Run(
+    run=V2beta1Run(
         display_name="My run",
-        namespace=user_namespace,
         experiment_id=experiment.experiment_id,
         pipeline_version_reference=V2beta1PipelineVersionReference(
             pipeline_id="<YOUR_PIPELINE_ID>",

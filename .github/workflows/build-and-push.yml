@@ -218,6 +218,7 @@ jobs:
           build_command=(
             bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh
             --platform "${INPUT_PLATFORMS}"
+            --provenance=mode=min
             --file "${INPUT_DOCKER_FILE}"
             --output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=${INPUT_PUSH}"
             --metadata-file "${METADATA_FILE}"
@@ -248,17 +249,24 @@ jobs:
       # Export the digest
       - name: Export digest
         if: steps.check_tag.outcome == 'success' && inputs.push
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
+          PLATFORM: ${{ inputs.platforms }}
+          ARCH: ${{ inputs.arch_tag }}
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.push.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          jq -n --arg digest "$DIGEST" --arg source_sha "$SOURCE_SHA" \
+            --arg platform "$PLATFORM" \
+            '{digest: $digest, source_sha: $source_sha, platform: $platform}' \
+            > "/tmp/digests/${ARCH}.json"
 
       # Upload the digest
       - name: Upload digest
         if: steps.check_tag.outcome == 'success' && inputs.push
         uses: actions/upload-artifact@v7
         with:
-          name: digests-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}
+          name: digests-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1

@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
       - '.github/workflows/image-builds.yml'
@@ -59,6 +60,7 @@ jobs:
         id: tests
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
+          export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
           make -C backend/test/v2/integration test-webhook
         continue-on-error: true
 

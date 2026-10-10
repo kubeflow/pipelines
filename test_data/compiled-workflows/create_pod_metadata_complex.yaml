@@ -101,6 +101,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /var/run/secrets/kfp
         name: kfp-launcher-token
@@ -189,10 +190,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
@@ -203,6 +200,7 @@ spec:
           - ALL
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -246,6 +244,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -343,10 +342,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
@@ -357,6 +352,7 @@ spec:
           - ALL
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -400,6 +396,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -500,10 +497,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
@@ -514,6 +507,7 @@ spec:
           - ALL
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -557,6 +551,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -771,6 +766,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /var/run/secrets/kfp
         name: kfp-launcher-token

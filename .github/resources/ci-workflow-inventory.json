@@ -10,7 +10,7 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "840698608f47a4e250d7502b48a933a60cf5d0b07d6ceb883d99f4278b06f4eb",
+      "header_sha256": "40834cbe09a084f847a1df5c8a0c44f53b4e8719aa92b1e0b77af19f948e54d5",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -19,6 +19,7 @@
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/actions/test-and-report/**",
           ".github/actions/junit-summary/**",
           ".github/resources/**",
@@ -27,6 +28,39 @@
           "backend/test/v2/api/**",
           "manifests/kustomize/**",
           "test_data/sdk_compiled_pipelines/**",
+          "!**/*.md",
+          "!**/OWNERS"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/arm64-presubmit.yml",
+      "name": "KFP ARM64 Presubmit",
+      "header_sha256": "256572f8706fa5a16f4ea802e0bc5823826a43103b50888ff2ab86bb76966dbc",
+      "pull_request": {
+        "paths": [
+          ".github/workflows/arm64-presubmit.yml",
+          ".github/workflows/image-builds.yml",
+          ".github/actions/arm64-smoke/**",
+          ".github/actions/create-cluster/**",
+          ".github/actions/github-disk-cleanup/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/**",
+          ".github/resources/buildkitd.toml",
+          ".github/resources/curl-retry/**",
+          ".dockerignore",
+          "api/**",
+          "backend/**",
+          "frontend/**",
+          "go.mod",
+          "go.sum",
+          "kubernetes_platform/**",
+          "manifests/kustomize/**",
+          "pyproject.toml",
+          "samples/**",
+          "sdk/python/**",
+          "third_party/**",
+          "uv.lock",
           "!**/*.md",
           "!**/OWNERS"
         ]
@@ -80,7 +114,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "c5704a333b7a9b1e4963ec5bfe4e6d902b8a3ded2c0054837ad742c208d2e1f8",
+      "header_sha256": "55518d8ecf1b26ffc5858b7442a5a7000f6b4f3ed0da9686a7cddd062d2d1f56",
       "pull_request": null
     },
     {
@@ -92,7 +126,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "a87cf7c4f4235bbe1152a68c38fef041ee47319da2e86238b8ae3bcef1a81a1b",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -114,6 +148,7 @@
           ".github/resources/scripts/*.py",
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
+          "test/presubmit-backend-test.sh",
           ".github/workflows/**",
           ".github/scripts/*.py",
           ".github/resources/scripts/*.sh",
@@ -148,22 +183,32 @@
           "frontend/src/apisv2beta1/visualization/**",
           "docs/_static/kfp_api_single_file.swagger.json",
           "Makefile",
+          "api/Makefile",
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
           "test_data/sdk_compiled_pipelines/valid/**",
+          "backend/test/end2end/pipeline_e2e_test.go",
+          "backend/test/v2/resources/env-var.yaml",
+          "backend/test/v2/resources/hello-world-with-returning-component.yaml",
+          "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
+          "api/v2alpha1/python/generate_proto.py",
+          "kubernetes_platform/python/generate_proto.py",
+          "sdk/python/hatch_build.py",
+          "test/presubmit-tests-sdk.sh",
           "hack/update-requirements.sh",
           ".readthedocs.yml",
           "kubernetes_platform/python/docs/.readthedocs.yml",
           "sdk/python/kfp/version.py",
-          "kubernetes_platform/python/kfp/kubernetes/__init__.py",
+          "sdk/python/kfp/kubernetes/__init__.py",
           "kubernetes_platform/python/release.sh",
           "backend/src/common/types.go",
           "go.mod",
           "go.sum",
           "test/install-argo-cli.sh",
+          "test/kfp-kubernetes-native-migration-tests/**",
           "third_party/argo/COMPATIBILITY_VERSION",
           "third_party/argo/Makefile",
           "third_party/argo/UPGRADE.md",
@@ -181,13 +226,15 @@
     {
       "path": ".github/workflows/compiler-tests.yml",
       "name": "Workflow Compiler Tests",
-      "header_sha256": "2c822d62bca4caf454449991a451a07b7f6c329dcdd2169ae5822edb69ab6d19",
+      "header_sha256": "4bc98b63cea6c9a5189a38cf540570447244f955764535c21147149e3cbf6a9e",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/compiler-tests.yml",
           ".github/actions/test-and-report/**",
+          ".github/resources/scripts/download-go-modules.sh",
+          ".github/resources/scripts/helper-functions.sh",
           "backend/src/v2/compiler/**",
           "test_data/**",
           "!**/*.md",
@@ -204,7 +251,7 @@
     {
       "path": ".github/workflows/create-manifest.yml",
       "name": "Create Multi-Arch Manifest",
-      "header_sha256": "4e83724272fa5ee6663130a0f403b2ddc028a1f4133f881f1a85b18b807a36af",
+      "header_sha256": "f1ddea9fd34af652d5e55e8df405c60c404ec261329c70c73e427d4bb9d2ac28",
       "pull_request": null
     },
     {
@@ -240,7 +287,7 @@
     {
       "path": ".github/workflows/e2e-test-frontend.yml",
       "name": "KFP e2e frontend tests",
-      "header_sha256": "c3cf0c398e4f008b7ac361cccf4c02a529b2263e881d132cbf3ca35d4a678bad",
+      "header_sha256": "05bcd7ee821f1ba93548e56c98f1409bdc672ecf157bdb623487eb7c6497f3a5",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -248,6 +295,7 @@
           ".github/workflows/e2e-test-frontend.yml",
           ".github/workflows/image-builds.yml",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/resources/**",
           "frontend/**",
           "manifests/kustomize/**",
@@ -261,7 +309,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "6313327c20427f108279b8f2a1f5f57bcdaf003dbe5e603ab5d3cee0c142f3d6",
+      "header_sha256": "593f38af09ca8065fdd48c3eba6004cd4724b5d672d36a5fcd856b70e90661fd",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -272,6 +320,7 @@
           ".github/actions/setup-python/**",
           ".github/actions/protobuf/**",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/actions/install-fgo-fake/**",
           ".github/actions/install-dra-driver/**",
           ".github/actions/test-and-report/**",
@@ -316,7 +365,7 @@
     {
       "path": ".github/workflows/gh-workflow-approve.yml",
       "name": "Approve Workflow Runs",
-      "header_sha256": "faa44e7c1eb63cb382c7b666747887ae31f48dd68b8e91b79b41b63f89482eb6",
+      "header_sha256": "a33f86d80ac847b03bcbd24568aa42b65103d5dd193d8c5660dc524240f7704e",
       "pull_request": null
     },
     {
@@ -348,19 +397,20 @@
     {
       "path": ".github/workflows/image-builds.yml",
       "name": "Build Images",
-      "header_sha256": "0e5028512df5a52ad088460db650775f180c0c81a6174cd0eff7cd2b5b8ef759",
+      "header_sha256": "b17f9692bc07773917c49b6df66109a047d7222dcaeab8f08d1efcd75587c3f2",
       "pull_request": null
     },
     {
       "path": ".github/workflows/kfp-kubernetes-library-test.yml",
       "name": "kfp-kubernetes library tests",
-      "header_sha256": "711362741347b9d71eda5800f52aad34248f06d4caf13a08058a470ba37e9064",
+      "header_sha256": "8e2396bf7e4da40d14f2abb430f45108206da64e24e35734197563cdd7834156",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/kfp-kubernetes-library-test.yml",
           ".github/actions/setup-python/**",
+          ".github/actions/protobuf/**",
           "sdk/python/**",
           "api/v2alpha1/**",
           "kubernetes_platform/**",
@@ -372,7 +422,7 @@
     {
       "path": ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
       "name": "KFP Kubernetes Native Migration Tests",
-      "header_sha256": "ba267d16d49be3cd6d43e0ccafe2c2e0f802a4ce5db7606c69d396aaa2b6cfb4",
+      "header_sha256": "5f00a8715ab9596b8e87858226ca3b63cec918c68870626b0dc223c50d09144d",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -381,6 +431,7 @@
           ".github/actions/setup-python/**",
           ".github/workflows/image-builds.yml",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/resources/**",
           "tools/k8s-native/**",
           "test/kfp-kubernetes-native-migration-tests/**",
@@ -396,7 +447,7 @@
     {
       "path": ".github/workflows/kfp-sdk-client-tests.yml",
       "name": "KFP Python Client Tests",
-      "header_sha256": "6cc5612d5c3d2c3d99b977a8036007cf75fab7c5b5d8e4cd82fbe43736c5fc42",
+      "header_sha256": "09dc15a0094a03eb80a8b555992a565b20eb5f1f69e637324c9802c48224da7c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -406,6 +457,7 @@
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/resources/**",
           "sdk/python/**",
           "api/v2alpha1/**",
@@ -438,13 +490,17 @@
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
       "name": "KFP SDK Unit Tests",
-      "header_sha256": "79f6d98236de3477785b82361da29501ee7a66770e04c9f0f416307996fbb914",
+      "header_sha256": "831442d8a0b8cdf53fd4da52dc6d754874cfd840256036ddcd8c78055afb65b4",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           "api/**",
           "sdk/**",
+          "kubernetes_platform/**",
+          "backend/api/**",
+          ".github/actions/protobuf/**",
+          ".github/resources/scripts/check_python_distribution.py",
           "test/presubmit-tests-sdk-unit.sh",
           ".github/workflows/kfp-sdk-unit-tests.yml",
           ".github/actions/setup-python/**",
@@ -456,11 +512,12 @@
     {
       "path": ".github/workflows/kfp-webhooks.yml",
       "name": "KFP Webhook Integration",
-      "header_sha256": "2d7e54635e08eed2f9905ad078e85316fa71f37fc20ff4fa7876d0840ab8f3f1",
+      "header_sha256": "86522bbc691144a165bb02332a067b6f3cde4453bc40df5c039c5de26c6d90b3",
       "pull_request": {
         "paths": [
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/resources/**",
           ".github/workflows/kfp-webhooks.yml",
           ".github/workflows/image-builds.yml",
@@ -473,20 +530,21 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "67309d3b37fb06ed73f641dc3de3505143d0a7a6c278f363707a4be69b01b5dc",
+      "header_sha256": "11c6ddce6b7ab467eb789df790d1b9a1134e9d3514ad417e2a9466c019ddf83a",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
           "!**/*.md",
-          "!**/OWNERS"
+          "!**/OWNERS",
+          "docs/operator-guides/server-config.md"
         ]
       }
     },
     {
       "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
       "name": "KFP API Integration V2 (Legacy)",
-      "header_sha256": "e45a4789ab0e8fefdf5805022ef9ae2c9c711e3f4e5de8bcbc6959a20b38a0d3",
+      "header_sha256": "df0d9f1098b9e404e8e66229d84acafc1605f27757adc35176b63998d9ea99fc",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -495,6 +553,7 @@
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/resources/**",
           "api/**",
           "go.mod",
@@ -532,11 +591,13 @@
     {
       "path": ".github/workflows/presubmit-backend.yml",
       "name": "KFP Backend Tests",
-      "header_sha256": "80eebdb054c5dbf5430feb4870891cc361c99677c26db49334c95b08a2753ed4",
+      "header_sha256": "388a9398f2d9580d3641b5a989edff8af18c0beb9b1b517ccf27e58d36d4e023",
       "pull_request": {
         "paths": [
           ".github/workflows/presubmit-backend.yml",
           ".github/actions/setup-go/**",
+          ".github/resources/scripts/download-go-modules.sh",
+          ".github/resources/scripts/helper-functions.sh",
           "go.mod",
           "go.sum",
           "backend/**",
@@ -547,7 +608,7 @@
     {
       "path": ".github/workflows/publish-packages.yml",
       "name": "Publish Python Packages",
-      "header_sha256": "a88257f1a5fb99eb258ddd181b078935a6f2b9de047928273f9118597001db03",
+      "header_sha256": "5355713ae4439bbbedf068e2e248da978fcb388bf3ef4f9eec47d446bf69dfdb",
       "pull_request": null
     },
     {
@@ -582,13 +643,14 @@
     {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "ca0534edd4c0b236646a5cf5e6690c3eb3b36278aebdb049d887379df0cac193",
+      "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/image-builds.yml",
           ".github/resources/runtime-base-images.txt",
           ".github/resources/scripts/helper-functions.sh",
+          ".github/resources/scripts/build-runtime-base-images.sh",
           ".github/resources/scripts/configure-docker-hub-mirror.sh",
           ".github/resources/scripts/configure_docker_registry_mirror.py",
           ".github/resources/scripts/prune_runtime_base_image_caches.py",
@@ -676,7 +738,7 @@
     {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "d4181ca07f2ebe92228ae568938392576bd99da397bbbc7f15c2ddb30ec77354",
+      "header_sha256": "a19f625c6a450b77414f63b229175d154157fcc414f1e34ae2c5ad5dc3aad503",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -685,6 +747,7 @@
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
           ".github/actions/test-and-report/**",
           ".github/resources/**",
           "backend/api/v2beta1/**",
@@ -701,7 +764,7 @@
     {
       "path": ".github/workflows/validate-generated-files.yml",
       "name": "Validate Generated Files",
-      "header_sha256": "b65ed6bb523012eb7ca9c6aa74b86abf87b6d025314c9ef25c6a7d0987158702",
+      "header_sha256": "cd931fc1ab9eb5e276af0d1258f93fd80bb5641d66fc836eb8348ec498876b7c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -725,9 +788,14 @@
           "api/Makefile",
           "api/**/*.proto",
           "api/**/*.go",
+          "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/Makefile",
           "kubernetes_platform/**/*.proto",
           "kubernetes_platform/**/*.go",
+          "kubernetes_platform/python/generate_proto.py",
+          ".github/actions/protobuf/**",
+          ".github/actions/kfp-k8s/**",
+          "backend/api/**/python_http_client_template/**",
           "sdk/Makefile",
           "backend/src/crd/kubernetes/**/*.go",
           "manifests/kustomize/base/crds/*.yaml",

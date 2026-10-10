@@ -1252,6 +1252,36 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
+func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
+	msg := "ImagePullBackOff"
+	apiTask := &apiv2beta1.PipelineTask{
+		TaskId:           "task-1",
+		RunId:            "run-1",
+		Name:             "train",
+		LifecycleMessage: &msg,
+	}
+	modelTask, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	require.NotNil(t, modelTask.LifecycleMessage)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), *modelTask.LifecycleMessage)
+
+	exported, err := toAPITask(modelTask, nil)
+	require.NoError(t, err)
+	require.NotNil(t, exported.LifecycleMessage)
+	assert.Equal(t, "ImagePullBackOff", exported.GetLifecycleMessage())
+
+	clear := ""
+	apiTask.LifecycleMessage = &clear
+	cleared, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	require.NotNil(t, cleared.LifecycleMessage)
+	assert.Equal(t, model.LargeText(""), *cleared.LifecycleMessage)
+
+	unset, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "task-2", RunId: "run-1"})
+	require.NoError(t, err)
+	assert.Nil(t, unset.LifecycleMessage)
+}
+
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1520,6 +1550,7 @@ func Test_toApiRun(t *testing.T) {
 			},
 			&apiv2beta1.Run{
 				ExperimentId:   "exp123",
+				Namespace:      "ns123",
 				RunId:          "run123",
 				DisplayName:    "displayName123",
 				StorageState:   apiv2beta1.Run_ARCHIVED,
@@ -2015,7 +2046,7 @@ func TestJSONToPluginsInput(t *testing.T) {
 	}
 }
 
-func TestToApiExperimentStorageState(t *testing.T) {
+func TestToApiExperiment_StorageState(t *testing.T) {
 	tests := []struct {
 		name     string
 		state    model.StorageState
@@ -2023,18 +2054,17 @@ func TestToApiExperimentStorageState(t *testing.T) {
 	}{
 		{"empty string defaults to unspecified", model.StorageState(""), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
 		{"archived v2", model.StorageStateArchived, apiv2beta1.Experiment_ARCHIVED},
-		{"archived v1", model.StorageStateArchived.ToV2(), apiv2beta1.Experiment_ARCHIVED},
+		{"archived v1", model.StorageStateArchivedV1, apiv2beta1.Experiment_ARCHIVED},
 		{"available v2", model.StorageStateAvailable, apiv2beta1.Experiment_AVAILABLE},
-		{"available v1", model.StorageStateAvailable.ToV2(), apiv2beta1.Experiment_AVAILABLE},
+		{"available v1", model.StorageStateAvailableV1, apiv2beta1.Experiment_AVAILABLE},
 		{"unspecified v2", model.StorageStateUnspecified, apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
-		{"unspecified v1", model.StorageStateUnspecified.ToV2(), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
+		{"unspecified v1", model.StorageStateUnspecifiedV1, apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
 		{"unknown defaults to unspecified", model.StorageState("UNKNOWN"), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			state := testCase.state
-			result := toApiExperimentStorageState(&state)
-			assert.Equal(t, testCase.expected, result)
+			result := toApiExperiment(&model.Experiment{StorageState: testCase.state})
+			assert.Equal(t, testCase.expected, result.StorageState)
 		})
 	}
 }
@@ -2143,7 +2173,7 @@ func TestJSONToPluginsOutput(t *testing.T) {
 	}
 }
 
-func TestValidatePluginsOutput(t *testing.T) {
+func TestValidatePluginsOutputWithLimits(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   map[string]*apiv2beta1.PluginOutput
@@ -2350,7 +2380,9 @@ func TestValidatePluginsOutput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validatePluginsOutput(tt.input)
+			limits, err := common.GetPluginLimitsConfig()
+			require.NoError(t, err)
+			err = validatePluginsOutputWithLimits(tt.input, limits)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -2479,37 +2511,6 @@ func TestToApiPipelineVersions_MultipleVersions(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 	assert.Equal(t, "version-1", result[0].PipelineVersionId)
 	assert.Equal(t, "version-2", result[1].PipelineVersionId)
-}
-
-func TestToPipelineSpecRuntimeConfig_Nil(t *testing.T) {
-	result := toPipelineSpecRuntimeConfig(nil)
-	assert.NotNil(t, result)
-	assert.Empty(t, result.ParameterValues)
-	assert.Empty(t, result.GcsOutputDirectory)
-}
-
-func TestToPipelineSpecRuntimeConfig_WithParams(t *testing.T) {
-	serializedParameters := `{"param1":"value1","param2":"value2"}`
-	runtimeConfig := &model.RuntimeConfig{
-		Parameters:   model.LargeText(serializedParameters),
-		PipelineRoot: "gs://my-bucket/pipeline-root",
-	}
-	result := toPipelineSpecRuntimeConfig(runtimeConfig)
-	assert.NotNil(t, result)
-	assert.Equal(t, "gs://my-bucket/pipeline-root", result.GcsOutputDirectory)
-	assert.NotNil(t, result.ParameterValues)
-	assert.Equal(t, 2, len(result.ParameterValues))
-}
-
-func TestToPipelineSpecRuntimeConfig_InvalidJSON(t *testing.T) {
-	runtimeConfig := &model.RuntimeConfig{
-		Parameters:   model.LargeText("not valid json"),
-		PipelineRoot: "gs://my-bucket/pipeline-root",
-	}
-	result := toPipelineSpecRuntimeConfig(runtimeConfig)
-	// toMapProtoStructParameters returns nil on invalid JSON that also fails
-	// v1 parameter parsing, causing toPipelineSpecRuntimeConfig to return nil.
-	assert.Nil(t, result)
 }
 
 func TestValidatePluginsInputLimits(t *testing.T) {

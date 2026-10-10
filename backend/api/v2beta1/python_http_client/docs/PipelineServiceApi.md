@@ -1,4 +1,4 @@
-# kfp_server_api.PipelineServiceApi
+# kfp.server_api.PipelineServiceApi
 
 All URIs are relative to *http://localhost*
 
@@ -29,12 +29,12 @@ Creates a pipeline.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -44,7 +44,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -54,10 +54,10 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    pipeline = kfp_server_api.V2beta1Pipeline() # V2beta1Pipeline | Required input. Pipeline that needs to be created.
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
+    pipeline = kfp.server_api.V2beta1Pipeline() # V2beta1Pipeline | Required input. Pipeline that needs to be created.
 
     try:
         # Creates a pipeline.
@@ -105,12 +105,12 @@ Creates a new pipeline and a new pipeline version in a single transaction.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -120,7 +120,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -130,10 +130,10 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.V2beta1CreatePipelineAndVersionRequest() # V2beta1CreatePipelineAndVersionRequest | 
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
+    body = kfp.server_api.V2beta1CreatePipelineAndVersionRequest() # V2beta1CreatePipelineAndVersionRequest | 
 
     try:
         # Creates a new pipeline and a new pipeline version in a single transaction.
@@ -181,12 +181,12 @@ Adds a pipeline version to the specified pipeline ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -196,7 +196,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -206,11 +206,11 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
-pipeline_version = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Required input. Pipeline version ID to be created.
+pipeline_version = kfp.server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Required input. Pipeline version ID to be created.
 
     try:
         # Adds a pipeline version to the specified pipeline ID.
@@ -259,12 +259,12 @@ Deletes a pipeline by ID. If cascade is false (default), it returns an error if 
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -274,7 +274,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -284,9 +284,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the pipeline to be deleted.
 cascade = True # bool | Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions. (optional)
 
@@ -337,12 +337,12 @@ Deletes a specific pipeline version by pipeline version ID and pipeline ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -352,7 +352,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -362,9 +362,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
 pipeline_version_id = 'pipeline_version_id_example' # str | Required input. The ID of the pipeline version to be deleted.
 
@@ -415,12 +415,12 @@ Finds a specific pipeline by ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -430,7 +430,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -440,9 +440,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. The ID of the pipeline to be retrieved.
 
     try:
@@ -491,12 +491,12 @@ Finds a specific pipeline by name and namespace.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -506,7 +506,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -516,9 +516,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     name = 'name_example' # str | Required input. Name of the pipeline to be retrieved.
 namespace = 'namespace_example' # str | Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off. (optional)
 
@@ -569,12 +569,12 @@ Gets a pipeline version by pipeline version ID and pipeline ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -584,7 +584,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -594,9 +594,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
 pipeline_version_id = 'pipeline_version_id_example' # str | Required input. ID of the pipeline version to be retrieved.
 
@@ -647,12 +647,12 @@ Lists all pipeline versions of a given pipeline ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -662,7 +662,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -672,9 +672,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
 page_token = 'page_token_example' # str | A page token to request the results page. (optional)
 page_size = 56 # int | The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. (optional)
@@ -731,12 +731,12 @@ Finds all pipelines within a namespace.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -746,7 +746,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -756,9 +756,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     namespace = 'namespace_example' # str | Optional input. Namespace for the pipelines. (optional)
 page_token = 'page_token_example' # str | A page token to request the results page. (optional)
 page_size = 56 # int | The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. (optional)
@@ -815,12 +815,12 @@ Updates a pipeline's mutable fields (display_name, tags).
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -830,7 +830,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -840,11 +840,11 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_pipeline_id = 'pipeline_pipeline_id_example' # str | Output. Unique pipeline ID. Generated by API server.
-pipeline = kfp_server_api.InlineObject() # InlineObject | 
+pipeline = kfp.server_api.InlineObject() # InlineObject | 
 
     try:
         # Updates a pipeline's mutable fields (display_name, tags).
@@ -893,12 +893,12 @@ Updates a pipeline version's mutable fields (display_name, tags).
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -908,7 +908,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -918,12 +918,12 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_version_pipeline_id = 'pipeline_version_pipeline_id_example' # str | Required input field. Unique ID of the parent pipeline. This is ignored in CreatePipelineAndVersion API.
 pipeline_version_pipeline_version_id = 'pipeline_version_pipeline_version_id_example' # str | Output. Unique pipeline version ID. Generated by API server.
-pipeline_version = kfp_server_api.InlineObject1() # InlineObject1 | 
+pipeline_version = kfp.server_api.InlineObject1() # InlineObject1 | 
 
     try:
         # Updates a pipeline version's mutable fields (display_name, tags).

@@ -59,16 +59,21 @@ runs:
   using: "composite"
   steps:
     - name: Wait for branch image artifacts
+      id: image-artifacts
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-      run: ./.github/resources/scripts/wait-for-image-artifacts.sh
+        LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
+      run: |
+        ./.github/resources/scripts/wait-for-image-artifacts.sh
+        bash .github/resources/scripts/ci-image-artifacts.sh --github-output deploy-image-files "$LOAD_MODELCAR_FIXTURE"
 
     - name: Download Docker Images
       uses: ./.github/actions/download-artifact-with-retry
       with:
         path: "images_${{ github.run_id }}"
         pattern: "!*.dockerbuild"
+        required-files: ${{ steps.image-artifacts.outputs.required-files }}
 
     - name: Load Control Plane Images Into Kind
       shell: bash
@@ -108,18 +113,14 @@ runs:
 
         RUNTIME_BASE_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images/runtime-base-images.tar"
 
-        if [[ -f "${RUNTIME_BASE_IMAGE_ARCHIVE}" ]]; then
-          if kind --name "${{ inputs.cluster_name }}" load image-archive "${RUNTIME_BASE_IMAGE_ARCHIVE}"; then
-            rm "${RUNTIME_BASE_IMAGE_ARCHIVE}"
-            exit 0
-          fi
-
-          echo "::warning::Failed to load runtime base image archive at ${RUNTIME_BASE_IMAGE_ARCHIVE}; pulling images directly."
-        else
-          echo "::warning::Runtime base image archive not found at ${RUNTIME_BASE_IMAGE_ARCHIVE}; pulling images directly."
+        if [[ ! -f "${RUNTIME_BASE_IMAGE_ARCHIVE}" ]]; then
+          echo "::error::Runtime base image archive not found at ${RUNTIME_BASE_IMAGE_ARCHIVE}; check the runtime image producer."
+          exit 1
         fi
         source .github/resources/scripts/helper-functions.sh
-        load_runtime_base_images_into_kind .github/resources/runtime-base-images.txt "${{ inputs.cluster_name }}"
+        retry 3 10 kind --name "${{ inputs.cluster_name }}" load image-archive "${RUNTIME_BASE_IMAGE_ARCHIVE}"
+        verify_runtime_base_images_in_kind .github/resources/runtime-base-images.txt "${{ inputs.cluster_name }}"
+        rm "${RUNTIME_BASE_IMAGE_ARCHIVE}"
 
     - name: Load Modelcar Fixture Into Kind
       if: ${{ inputs.load_modelcar_fixture == 'true' }}

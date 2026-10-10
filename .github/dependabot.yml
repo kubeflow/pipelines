@@ -9,10 +9,13 @@
 # not by this file. This file does not turn them on or off, though they still
 # honor configuration here such as `ignore` rules and directory/ecosystem scope.
 #
-# Every Dependabot PR starts held to prevent unattended merging. Remove the hold
-# only immediately before merge after verifying CI for the current head, and
-# restore it if the head changes. Custom labels replace Dependabot's defaults, so
-# each ecosystem explicitly retains the dependencies and ecosystem labels.
+# Every Dependabot PR is no longer held by default. Merging is gated by the
+# required `ci-passed` commit status on the verified head SHA (published by the
+# CI Check workflow) and the deployed Tide policy, so a PR auto-merges once
+# `ci-passed` is green. Maintainers can still apply `do-not-merge/hold` to a
+# specific PR to hold it back; that PR-specific hold is never removed by the
+# publisher. Custom labels replace Dependabot's defaults, so each ecosystem
+# explicitly retains the dependencies and ecosystem labels.
 #
 # Tracks: https://github.com/kubeflow/pipelines/issues/13490
 version: 2
@@ -26,7 +29,6 @@ updates:
     labels:
       - "dependencies"
       - "go"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -40,6 +42,10 @@ updates:
       go-minor-and-patch:
         patterns:
           - "*"
+        # Argo also needs runtime, manifest, and CI synchronization. Complete
+        # its separate PR using third_party/argo/UPGRADE.md.
+        exclude-patterns:
+          - "github.com/argoproj/argo-workflows/*"
         update-types:
           - "minor"
           - "patch"
@@ -55,7 +61,6 @@ updates:
     labels:
       - "dependencies"
       - "docker"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -78,7 +83,6 @@ updates:
     labels:
       - "dependencies"
       - "javascript"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -99,11 +103,9 @@ updates:
     directories:
       - "/"
       - "/.github/scripts"
-      - "/api/v2alpha1/python"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
-      - "/kubernetes_platform/python"
       - "/release"
       - "/sdk/python"
     schedule:
@@ -112,7 +114,6 @@ updates:
     labels:
       - "dependencies"
       - "python"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -128,7 +129,6 @@ updates:
     labels:
       - "dependencies"
       - "python:uv"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
@@ -142,7 +142,6 @@ updates:
     labels:
       - "dependencies"
       - "github_actions"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -156,9 +155,12 @@ updates:
     labels:
       - "dependencies"
       - "pre_commit"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # v1.7.8 removes blank lines that YAPF restores on every formatter pass.
+      - dependency-name: "https://github.com/pycqa/docformatter"
+        versions: ["1.7.8"]
     groups:
       pre-commit-hooks:
         patterns:
