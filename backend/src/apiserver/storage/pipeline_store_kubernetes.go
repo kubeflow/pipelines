@@ -244,6 +244,33 @@ func (k *PipelineStoreKubernetes) DeletePipeline(pipelineId string) error {
 	return k.deleteWithTimeout(pipelineCopy.Namespace, pipelineCopy.Name, &v2beta1.Pipeline{})
 }
 
+// DeletePipelineAndVersions deletes a pipeline and all its owned versions.
+// Versions are deleted explicitly rather than relying on owner-reference GC,
+// because a PipelineVersion may have additional owners (e.g. a GitOps resource)
+// that would prevent garbage collection.
+func (k *PipelineStoreKubernetes) DeletePipelineAndVersions(pipelineID string) error {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		if strings.Contains(err.Error(), "ResourceNotFoundError:") {
+			return nil
+		}
+		return err
+	}
+
+	// Explicitly delete all owned versions first.
+	owned, err := k.ownedPipelineVersions(context.TODO(), k8sPipeline)
+	if err != nil {
+		return util.Wrapf(err, "Failed to list owned versions for pipeline %v during cascade delete", pipelineID)
+	}
+	for _, pv := range owned {
+		if err := k.DeletePipelineVersion(string(pv.UID)); err != nil {
+			return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pv.UID, pipelineID)
+		}
+	}
+
+	return k.DeletePipeline(pipelineID)
+}
+
 func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
 	pipeline.UUID = ""
 	pipelineVersion.UUID = ""
