@@ -13,6 +13,7 @@ endpoints so every page's serving version is known. No rows mutate
 during traversal.
 """
 import argparse
+import base64
 import http.client
 import itertools
 import json
@@ -24,9 +25,15 @@ import uuid
 
 class ApiError(RuntimeError):
 
-    def __init__(self, status, endpoint=""):
+    def __init__(self,
+                 status,
+                 endpoint="",
+                 restart_required=False,
+                 grpc_code=None):
         super().__init__(endpoint + " HTTP " + str(status))
         self.status = status
+        self.restart_required = restart_required
+        self.grpc_code = grpc_code
 
 
 def request(port,
@@ -49,7 +56,23 @@ def request(port,
         if len(raw) > 1024 * 1024:
             raise ValueError('response limit exceeded')
         if response.status != 200:
-            raise ApiError(response.status, endpoint)
+            try:
+                error = json.loads(raw)
+            except (ValueError, UnicodeError):
+                error = {}
+            if not isinstance(error, dict):
+                error = {}
+            details = error.get('details', [])
+            restart = (
+                response.status == 400 and error.get('code') == 9 and
+                isinstance(details, list) and any(
+                    isinstance(detail, dict) and detail.get('@type') ==
+                    'type.googleapis.com/google.rpc.ErrorInfo' and
+                    detail.get('reason') == 'PAGINATION_RESTART_REQUIRED' and
+                    detail.get('domain') == 'kubeflow.org'
+                    for detail in details))
+            raise ApiError(response.status, endpoint, restart,
+                           error.get('code'))
         return json.loads(raw)
     finally:
         connection.close()
@@ -268,6 +291,11 @@ def observe_walk(ports, case, expected, first=None):
     try:
         return case_walk(ports, case, expected, first)
     except (ApiError, ValueError) as error:
+        if isinstance(error, ApiError) and error.restart_required:
+            return {
+                'outcome': 'restart_required',
+                'reason': 'PAGINATION_RESTART_REQUIRED'
+            }
         return {'outcome': 'failed', 'reason': str(error)}
 
 
@@ -434,6 +462,66 @@ def prepare_extended(marker):
     return cases
 
 
+def changed_nullable_order(case):
+    field, direction = case['sort'].split()
+    return (case['collection'] == 'runs' and direction == 'asc' and
+            (field.startswith('metric:') or
+             field in ('recurring_run_id', 'scheduled_at', 'finished_at')))
+
+
+def require_restart(port, case, token):
+    try:
+        case_page(port, case, token)
+    except ApiError as error:
+        if error.restart_required:
+            return {
+                'outcome': 'restart_required',
+                'reason': 'PAGINATION_RESTART_REQUIRED'
+            }
+        raise
+    raise ValueError('legacy ordering token accepted without explicit restart')
+
+
+def reader_version_boundary(case):
+    """New affected cursors must fail visibly on an actual historical
+    reader."""
+    fresh = case_page(8888, case)
+    token = fresh.get('next_page_token', '')
+    if not token.startswith('kfp1:') or json.loads(base64.b64decode(
+            token[5:])).get('OrderingVersion') != 1:
+        raise ValueError('candidate did not issue versioned ordering envelope')
+    try:
+        case_page(8889, case, token)
+    except ApiError as error:
+        if error.status == 400 and error.grpc_code == 3:
+            return {
+                'outcome': 'old_reader_rejected',
+                'http_status': 400,
+                'grpc_code': 3,
+                'continuity_validated': False
+            }
+        raise
+    raise ValueError('old reader accepted incompatible ordering envelope')
+
+
+def old_reader_boundary(case):
+    try:
+        first = case_page(8889, case)
+    except ApiError as error:
+        if case['source_baseline']['outcome'] == 'failed' and error.status in (
+                400, 500):
+            return {
+                'outcome': 'not_available',
+                'reason': 'preexisting_source_pagination_failure'
+            }
+        raise
+    token = first.get('next_page_token')
+    if not token:
+        raise ValueError(
+            'old reader emitted no continuation for fixture dataset')
+    return require_restart(8888, case, token)
+
+
 def validate_extended(cases):
     results = []
     for case in cases:
@@ -451,32 +539,35 @@ def validate_extended(cases):
         changed_order = (
             case['source_order'] is not None and
             case['source_order'] != expected)
-        mixed = [
-            observe_walk(ports, case, expected)
-            for ports in ([8889, 8888], [8888, 8889])
-        ]
-        if source_good and not changed_order:
-            if continuation['outcome'] != 'passed' or any(
-                    outcome['outcome'] != 'passed' for outcome in mixed):
-                raise ValueError('new pagination regression: ' +
-                                 case['endpoint'] + ' ' + case['sort'])
+        if changed_nullable_order(case):
+            if case['first'] is not None and continuation[
+                    'outcome'] != 'restart_required':
+                raise ValueError(
+                    'saved affected ordering token did not require restart')
+            mixed = [old_reader_boundary(case), reader_version_boundary(case)]
+            disposition = 'explicit_restart_for_legacy_nullable_order'
+        else:
+            mixed = [
+                observe_walk(ports, case, expected)
+                for ports in ([8889, 8888], [8888, 8889])
+            ]
+            if source_good and not changed_order:
+                if continuation['outcome'] != 'passed' or any(
+                        outcome['outcome'] != 'passed' for outcome in mixed):
+                    raise ValueError('new pagination regression: ' +
+                                     case['endpoint'] + ' ' + case['sort'])
+            disposition = ('restart_after_comparison_order_change'
+                           if changed_order else
+                           'preexisting_source_pagination_failure'
+                           if not source_good else 'compatible')
         results.append({
-            'endpoint':
-                case['endpoint'],
-            'sort':
-                case['sort'],
-            'source_baseline':
-                case['source_baseline'],
-            'fresh_candidate':
-                fresh,
-            'saved_source_continuation':
-                continuation,
-            'mixed_readers':
-                mixed,
-            'disposition':
-                ('restart_after_comparison_order_change'
-                 if changed_order else 'preexisting_source_pagination_failure'
-                 if not source_good else 'compatible')
+            'endpoint': case['endpoint'],
+            'sort': case['sort'],
+            'source_baseline': case['source_baseline'],
+            'fresh_candidate': fresh,
+            'saved_source_continuation': continuation,
+            'mixed_readers': mixed,
+            'disposition': disposition
         })
     return results
 

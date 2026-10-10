@@ -5,6 +5,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+import base64
 import json
 from pathlib import Path
 import tempfile
@@ -24,6 +25,32 @@ def response(values, token=''):
 
 
 class PaginationTest(unittest.TestCase):
+
+    def test_transport_requires_exact_structured_restart_detail(self):
+        detail = {
+            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+            'reason': 'PAGINATION_RESTART_REQUIRED',
+            'domain': 'kubeflow.org'
+        }
+        valid = {'code': 9, 'details': [detail], 'message': 'private-message'}
+        cases = [(400, valid, True), (503, valid, False),
+                 (400, dict(valid, code=3), False),
+                 (400, dict(valid, details=[]), False),
+                 (400, dict(valid, details=[dict(detail,
+                                                 domain='other')]), False),
+                 (400, dict(valid, details=[dict(detail,
+                                                 reason='OTHER')]), False),
+                 (400, [], False)]
+        for status, body, expected in cases:
+            with self.subTest(status=status, body=body), \
+                 mock.patch.object(fixture.http.client, 'HTTPConnection') as connection:
+                response = connection.return_value.getresponse.return_value
+                response.status = status
+                response.read.return_value = json.dumps(body).encode()
+                with self.assertRaises(fixture.ApiError) as caught:
+                    fixture.request(8888, 'GET')
+                self.assertEqual(caught.exception.restart_required, expected)
+                self.assertNotIn('private-message', str(caught.exception))
 
     def test_alternating_readers_and_exact_sequence(self):
         with mock.patch.object(
@@ -190,7 +217,7 @@ class ExtendedPaginationTest(unittest.TestCase):
             'params': {
                 'experiment_id': 'experiment'
             },
-            'sort': 'metric:pagination_score asc',
+            'sort': 'display_name asc',
             'created_ids': ['a', 'b', 'c'],
             'source_order': ['a', 'b', 'c'],
             'first': {
@@ -203,6 +230,82 @@ class ExtendedPaginationTest(unittest.TestCase):
                 'outcome': 'passed'
             }
         }
+
+    def test_affected_legacy_sort_requires_structured_restart(self):
+        self.case['sort'] = 'scheduled_at asc'
+        restart = {
+            'outcome': 'restart_required',
+            'reason': 'PAGINATION_RESTART_REQUIRED'
+        }
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value=restart), \
+             mock.patch.object(fixture, 'old_reader_boundary', return_value=restart), \
+             mock.patch.object(fixture, 'reader_version_boundary', return_value={'outcome': 'old_reader_rejected'}):
+            result = fixture.validate_extended([self.case])[0]
+        self.assertEqual(result['disposition'],
+                         'explicit_restart_for_legacy_nullable_order')
+        for invalid in ({'outcome': 'passed'}, {'outcome': 'failed'}):
+            with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+                 mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+                 mock.patch.object(fixture, 'observe_walk', return_value=invalid):
+                with self.assertRaisesRegex(ValueError,
+                                            'did not require restart'):
+                    fixture.validate_extended([self.case])
+
+    def test_restart_check_rejects_generic_errors_and_silent_success(self):
+        for error in (fixture.ApiError(400), fixture.ApiError(503)):
+            with mock.patch.object(fixture, 'case_page', side_effect=error):
+                with self.assertRaises(fixture.ApiError):
+                    fixture.require_restart(8888, self.case, 'old')
+        with mock.patch.object(fixture, 'case_page', return_value={}):
+            with self.assertRaisesRegex(ValueError,
+                                        'accepted without explicit restart'):
+                fixture.require_restart(8888, self.case, 'old')
+        with mock.patch.object(
+                fixture,
+                'case_page',
+                side_effect=fixture.ApiError(400, restart_required=True)):
+            self.assertEqual(
+                fixture.require_restart(8888, self.case, 'old')['outcome'],
+                'restart_required')
+
+    def test_new_envelope_must_be_rejected_by_old_reader(self):
+        token = 'kfp1:' + base64.b64encode(
+            json.dumps({
+                'OrderingVersion': 1
+            }).encode()).decode()
+        first = {'next_page_token': token}
+        with mock.patch.object(
+                fixture,
+                'case_page',
+                side_effect=[first, fixture.ApiError(400,
+                                                     grpc_code=3)]) as page:
+            result = fixture.reader_version_boundary(self.case)
+        self.assertEqual(result['outcome'], 'old_reader_rejected')
+        page.assert_called_with(8889, self.case, token)
+        for response in ({}, {'next_page_token': 'stripped'}):
+            with mock.patch.object(
+                    fixture, 'case_page', side_effect=[first, response]):
+                with self.assertRaisesRegex(ValueError,
+                                            'accepted incompatible'):
+                    fixture.reader_version_boundary(self.case)
+        with mock.patch.object(
+                fixture, 'case_page',
+                side_effect=[first, fixture.ApiError(500)]):
+            with self.assertRaises(fixture.ApiError):
+                fixture.reader_version_boundary(self.case)
+
+    def test_only_selected_ascending_nullable_cases_require_restart(self):
+        for sort, affected in (('metric:x asc', True), ('metric:x desc', False),
+                               ('scheduled_at asc',
+                                True), ('finished_at asc',
+                                        True), ('recurring_run_id asc', True),
+                               ('display_name asc', False), ('finished_at desc',
+                                                             False)):
+            self.assertEqual(
+                fixture.changed_nullable_order(dict(self.case, sort=sort)),
+                affected)
 
     def test_source_matrix_has_nullable_metrics_and_both_api_versions(self):
         created = []
@@ -325,6 +428,7 @@ class ExtendedPaginationTest(unittest.TestCase):
         self.assertEqual(observe.call_count, 2)
 
     def test_run_endpoint_and_sort_are_preserved(self):
+        self.case['sort'] = 'metric:pagination_score asc'
         with mock.patch.object(fixture, 'request') as request:
             fixture.case_page(8888, self.case, 'old')
         request.assert_called_once_with(

@@ -24,12 +24,39 @@ The `pagination-acceptance-<run-id>` artifact records the successful traversals
 and limitations. The saved tokens remain local to the disposable runner. The
 workflow run identifies the exact candidate revision and same-run image build.
 
-This evidence covers a fixed, lowercase V2 experiment dataset with `display_name`
-sorting on MySQL. It does not establish continuity for changing data, numeric
-repeated filters, different case/collation semantics, nullable sort cursors,
-PostgreSQL, or other resource endpoints. Restart paging after rollout when string
-comparison or ordering semantics change; acceptance of a token alone is not a
-promise of unchanged membership.
+The extended matrix adds 32 V1/V2 experiment and run cases: ascending and
+descending name, description, creation time, metric, recurring-run ID, scheduled
+time, and finished time sorts. The source creates mixed-case names, NULL metrics,
+and unset run fields. Each case uses a separate complete inventory to establish
+membership; every fresh candidate traversal must return each expected ID exactly
+once in the candidate's order. An old server failure never excuses a fresh
+candidate failure.
+
+The changed ascending nullable run sorts have explicit rollout boundaries:
+
+- A real saved source token or newly issued old-reader token must receive HTTP
+  400 with gRPC code 9 and `google.rpc.ErrorInfo` reason
+  `PAGINATION_RESTART_REQUIRED`, domain `kubeflow.org`, from the candidate. A
+  generic error or silently accepted cursor fails acceptance.
+- A new affected candidate token has the `kfp1:` envelope and ordering version 1.
+  The actual 2.17.2 reader must reject it with HTTP 400 / gRPC InvalidArgument;
+  accepting any page fails acceptance. Historical readers otherwise discard
+  unknown JSON metadata when reissuing tokens, so a JSON version field alone
+  cannot make mixed-reader traversal safe.
+- Descending and nonnullable cases with working source pagination and unchanged
+  ordering must retain saved-token and mixed-reader continuity. Their new tokens
+  remain readable by the historical server.
+
+Restart affected paging from page one against the candidate after rollout. The
+historical server's generic rejection cannot provide the new structured recovery
+signal. Do not describe affected mixed-reader traversal as compatible, even if a
+particular dataset happens to look correct. Where the old server cannot emit a
+cursor at all, the artifact records unavailable source evidence explicitly.
+
+This is fixed-dataset MySQL coverage, not proof for concurrent mutations,
+PostgreSQL, numeric repeated filters, every nullable field, or other resource
+endpoints. Case/collation order changes remain a distinct restart consideration;
+acceptance of a token alone is not a promise of unchanged membership.
 
 Run the traversal regression tests without a cluster:
 
