@@ -43,6 +43,12 @@ type V2beta1Run struct {
 	// Format: date-time
 	FinishedAt strfmt.DateTime `json:"finished_at,omitempty"`
 
+	// Optional input field. Namespace this run belongs to. Derived from the
+	// parent experiment when experiment_id is set. In multi-user mode with
+	// experiment_id omitted, this selects the namespace whose default
+	// experiment the run is placed in.
+	Namespace string `json:"namespace,omitempty"`
+
 	// Output only. Reference to the pipeline used for this run.
 	// Field numbers 21–23 chosen to avoid collision with plugins_input/output (19/20).
 	// Read Only: true

@@ -20,7 +20,7 @@ def component_with_optional_inputs(required_input: str,
                                    optional_input_1: str = None,
                                    optional_input_2: str = None):
     return dsl.ContainerSpec(
-        image='ghcr.io/containerd/busybox',
+        image='ghcr.io/containerd/busybox:1.36',
         command=['echo'],
         args=[
             '--arg0', required_input,

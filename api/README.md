@@ -10,15 +10,16 @@ make clean-go golang
 
 ## Generate Python proto package
 
-Generate kfp-pipeline-spec:
-
-Update `version` in [v2alpha1/python/pyproject.toml](v2alpha1/python/pyproject.toml)
-alongside the other SDK packages when preparing a release, then run `uv lock`
-from the repository root.
+Generate the SDK-owned `kfp.pipeline_spec` bindings:
 
 ```bash
 make clean-python python
 ```
+
+The output is `sdk/python/kfp/pipeline_spec/pipeline_spec_pb2.py` and must be
+committed after schema changes. There is no separate pipeline-spec distribution
+or version. From the repository root, `make -C sdk python` runs all Python
+generators before building the unified SDK.
 
 ## Generate both Python and golang proto code
 

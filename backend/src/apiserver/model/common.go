@@ -83,6 +83,7 @@ func AllModels() []any {
 		&PipelineTag{},
 		&PipelineVersionTag{},
 		&Job{},
+		&RecurringRunState{},
 		&Run{},
 		&RunMetricV1{},
 		&Task{},
@@ -90,5 +91,7 @@ func AllModels() []any {
 		&ArtifactTask{},
 		&ResourceReference{},
 		&MigrationStatus{},
+		&TransferIdentity{},
+		&TransferReceipt{},
 	}
 }

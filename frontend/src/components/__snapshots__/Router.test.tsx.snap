@@ -7,6 +7,7 @@ exports[`Router > initial render 1`] = `
   >
     <div
       class="flexGrow_fr87ocy"
+      style="min-height: 0;"
     >
       <div
         class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
@@ -14,7 +15,7 @@ exports[`Router > initial render 1`] = `
         id="sideNav"
       >
         <div
-          style="flex-grow: 1;"
+          style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
         >
           <div
             class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -411,6 +412,7 @@ exports[`Router > initial render 1`] = `
             class="separator_furuwhr"
           />
           <button
+            aria-label="Collapse navigation"
             class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
             data-testid="chevron-toggle"
             tabindex="0"
@@ -433,7 +435,7 @@ exports[`Router > initial render 1`] = `
           </button>
         </div>
         <div
-          class="infoVisible_f9kvncf"
+          class="infoVisible_f4qpich"
         >
           <div
             aria-label="Build date: unknown, Commit hash: unknown"

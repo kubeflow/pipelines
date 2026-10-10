@@ -15,15 +15,11 @@
 package server
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -31,94 +27,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const (
-	defaultPageSize = 20
-	maxPageSize     = 200
-)
-
-func validatePagination(pageToken string, pageSize int, keyFieldName string, queryString string,
-	modelFieldByApiFieldMapping map[string]string,
-) (*common.PaginationContext, error) {
-	sortByFieldName, isDesc, err := parseSortByQueryString(queryString, modelFieldByApiFieldMapping)
-	if err != nil {
-		return nil, util.Wrap(err, "Invalid query string")
-	}
-	if pageSize < 0 {
-		return nil, util.NewInvalidInputError("The page size should be greater than 0. Got %v", strconv.Itoa(pageSize))
-	}
-	if pageSize == 0 {
-		// Use default page size if not provided.
-		pageSize = defaultPageSize
-	}
-	if pageSize > maxPageSize {
-		pageSize = maxPageSize
-	}
-	if sortByFieldName == "" {
-		// By default, sort by key field.
-		sortByFieldName = keyFieldName
-	}
-	token, err := deserializePageToken(pageToken)
-	if err != nil {
-		return nil, util.Wrap(err, "Invalid page token")
-	}
-	return &common.PaginationContext{
-		PageSize:        pageSize,
-		SortByFieldName: sortByFieldName,
-		KeyFieldName:    keyFieldName,
-		IsDesc:          isDesc,
-		Token:           token,
-	}, nil
-}
-
-func parseSortByQueryString(queryString string, modelFieldByApiFieldMapping map[string]string) (string, bool, error) {
-	// ignore the case of the letter. Split query string by space
-	queryList := strings.Fields(strings.ToLower(queryString))
-	// Check the query string format.
-	if len(queryList) > 2 || (len(queryList) == 2 && queryList[1] != "desc" && queryList[1] != "asc") {
-		return "", false, util.NewInvalidInputError(
-			"Received invalid sort by format '%v'. Supported format: \"field_name\", \"field_name desc\", or \"field_name asc\"", queryString)
-	}
-	isDesc := len(queryList) == 2 && queryList[1] == "desc"
-
-	sortByApiField := ""
-	if len(queryList) > 0 {
-		sortByApiField = queryList[0]
-	}
-	// Check if the field can be sorted.
-	sortByFieldName, ok := modelFieldByApiFieldMapping[sortByApiField]
-	if !ok {
-		return "", false, util.NewInvalidInputError("Cannot sort on field %v. Supported fields %v",
-			sortByApiField, keysString(modelFieldByApiFieldMapping))
-	}
-	return sortByFieldName, isDesc, nil
-}
-
-func keysString(modelFieldByApiFieldMapping map[string]string) string {
-	keys := make([]string, 0, len(modelFieldByApiFieldMapping))
-	for k := range modelFieldByApiFieldMapping {
-		if k != "" {
-			keys = append(keys, k)
-		}
-	}
-	return "[" + strings.Join(keys, ", ") + "]"
-}
-
-// Decode page token. If page token is empty, we assume listing the first page and return a nil Token.
-func deserializePageToken(pageToken string) (*common.Token, error) {
-	if pageToken == "" {
-		return nil, nil
-	}
-	tokenBytes, err := base64.StdEncoding.DecodeString(pageToken)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
-	}
-	var token common.Token
-	err = json.Unmarshal(tokenBytes, &token)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
-	}
-	return &token, nil
-}
+const defaultPageSize = 20
 
 // parseAPIFilter attempts to decode a url-encoded JSON-stringified api
 // filter object. An empty string is considered valid input, and equivalent to
@@ -171,6 +80,15 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 	opts, err := list.NewOptionsFromToken(pageToken, pageSize)
 	if err != nil {
 		return nil, err
+	}
+
+	if listable == nil {
+		return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
+	}
+	if opts.Filter != nil {
+		// Comparison metadata is derived from the current model, not part of
+		// the user's criteria. Restore it even when only a token is supplied.
+		opts.Filter.SetCaseInsensitiveFields(listable.APIToModelFieldMap(), listable.GetModelName(), listable.CaseInsensitiveFields())
 	}
 
 	if sortBy != "" || filterSpec != "" {

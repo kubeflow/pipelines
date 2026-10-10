@@ -30,17 +30,6 @@ const (
 	DefaultMLPipelineTLSEnabled = false
 )
 
-// env vars in metadata-grpc-configmap is defined in component package
-var metadataConfigIsOptional bool = true
-var metadataEnvFrom = k8score.EnvFromSource{
-	ConfigMapRef: &k8score.ConfigMapEnvSource{
-		LocalObjectReference: k8score.LocalObjectReference{
-			Name: "metadata-grpc-configmap",
-		},
-		Optional: &metadataConfigIsOptional,
-	},
-}
-
 // KFP service account token configuration for authentication with API server
 const (
 	// kfpTokenExpirationSeconds is the expiration time for the projected service account token.

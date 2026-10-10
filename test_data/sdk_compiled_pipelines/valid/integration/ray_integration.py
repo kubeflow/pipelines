@@ -1,12 +1,15 @@
-from kfp import compiler, dsl
+from kfp import dsl
 
 
 # image and the sdk has a fixed value because the version matters
-@dsl.component(packages_to_install=["codeflare-sdk==0.32.2"], base_image='registry.access.redhat.com/ubi9/python-311:latest')
+@dsl.component(
+    packages_to_install=["codeflare-sdk==0.32.2"],
+    base_image='registry.access.redhat.com/ubi9/python-311:1-1779945715')
 def ray_fn() -> int:
-    import ray  # noqa: PLC0415
     from codeflare_sdk import generate_cert  # noqa: PLC0415
-    from codeflare_sdk.ray.cluster import Cluster, ClusterConfiguration  # noqa: PLC0415
+    from codeflare_sdk.ray.cluster import Cluster  # noqa: PLC0415
+    from codeflare_sdk.ray.cluster import ClusterConfiguration
+    import ray  # noqa: PLC0415
 
     cluster = Cluster(
         ClusterConfiguration(
@@ -21,9 +24,7 @@ def ray_fn() -> int:
             worker_memory_requests=1,
             worker_memory_limits=2,
             image="quay.io/modh/ray@sha256:6d076aeb38ab3c34a6a2ef0f58dc667089aa15826fa08a73273c629333e12f1e",
-            verify_tls=False
-        )
-    )
+            verify_tls=False))
 
     # Clean up any existing cluster with the same name first
     print("Cleaning up any existing cluster resources...")
@@ -41,7 +42,7 @@ def ray_fn() -> int:
     print("Waiting for Ray cluster to be ready...")
     import time
     max_wait_time = 300  # 5 minutes timeout
-    wait_interval = 10   # Check every 10 seconds
+    wait_interval = 10  # Check every 10 seconds
     elapsed_time = 0
 
     cluster_ready = False
@@ -61,7 +62,8 @@ def ray_fn() -> int:
             else:
                 print("Cluster URIs not ready yet, waiting...")
 
-        except (ConnectionError, TimeoutError, RuntimeError, AttributeError) as e:
+        except (ConnectionError, TimeoutError, RuntimeError,
+                AttributeError) as e:
             print(f"Cluster not ready yet: {e}")
         except Exception as e:
             print(f"Unexpected error checking cluster readiness: {e}")
@@ -72,7 +74,9 @@ def ray_fn() -> int:
     if not cluster_ready:
         print("Cluster details for debugging:")
         print(cluster.details())
-        raise RuntimeError(f"Ray cluster failed to become ready within {max_wait_time} seconds")
+        raise RuntimeError(
+            f"Ray cluster failed to become ready within {max_wait_time} seconds"
+        )
 
     print("Cluster is fully ready!")
 
@@ -92,16 +96,21 @@ def ray_fn() -> int:
     tls_setup_successful = False
     try:
         print("Setting up TLS certificates...")
-        generate_cert.generate_tls_cert(cluster.config.name, cluster.config.namespace)
+        generate_cert.generate_tls_cert(cluster.config.name,
+                                        cluster.config.namespace)
         generate_cert.export_env(cluster.config.name, cluster.config.namespace)
         print("TLS certificates configured successfully")
         tls_setup_successful = True
     except (OSError, PermissionError, ValueError, RuntimeError) as e:
         print(f"TLS setup failed (will try direct connection): {e}")
-        print("Since cluster was configured with verify_tls=False, attempting direct connection...")
+        print(
+            "Since cluster was configured with verify_tls=False, attempting direct connection..."
+        )
     except Exception as e:
         print(f"Unexpected TLS setup error (will try direct connection): {e}")
-        print("Since cluster was configured with verify_tls=False, attempting direct connection...")
+        print(
+            "Since cluster was configured with verify_tls=False, attempting direct connection..."
+        )
 
     # Connect to the Ray cluster
     try:
@@ -126,10 +135,12 @@ def ray_fn() -> int:
                 print(f"Ray auto-discovery connection: {ray.is_initialized()}")
             except (ConnectionError, TimeoutError, RuntimeError, OSError) as e2:
                 print(f"Auto-discovery also failed: {e2}")
-                raise RuntimeError(f"All Ray connection attempts failed. Original error: {e}")
+                raise RuntimeError(
+                    f"All Ray connection attempts failed. Original error: {e}")
             except Exception as e2:
                 print(f"Unexpected auto-discovery error: {e2}")
-                raise RuntimeError(f"All Ray connection attempts failed. Original error: {e}")
+                raise RuntimeError(
+                    f"All Ray connection attempts failed. Original error: {e}")
     except Exception as e:
         print(f"Unexpected Ray connection error: {e}")
         raise RuntimeError(f"Ray connection failed with unexpected error: {e}")

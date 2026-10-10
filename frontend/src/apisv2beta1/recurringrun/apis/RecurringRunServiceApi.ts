@@ -28,7 +28,8 @@ import {
 } from '../models/index';
 
 export interface CreateRecurringRunRequest {
-  recurring_run: Omit<V2beta1RecurringRun, 'namespace'>;
+  recurring_run: V2beta1RecurringRun;
+  namespace?: string;
 }
 
 export interface DeleteRecurringRunRequest {
@@ -77,6 +78,10 @@ export class RecurringRunServiceApi extends runtime.BaseAPI {
 
     const queryParameters: any = {};
 
+    if (requestParameters['namespace'] != null) {
+      queryParameters['namespace'] = requestParameters['namespace'];
+    }
+
     const headerParameters: runtime.HTTPHeaders = {};
 
     headerParameters['Content-Type'] = 'application/json';
@@ -104,10 +109,11 @@ export class RecurringRunServiceApi extends runtime.BaseAPI {
    */
   async createRecurringRun(
     recurring_run: V2beta1RecurringRun,
+    namespace?: string,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1RecurringRun> {
     const response = await this.createRecurringRunRaw(
-      { recurring_run: recurring_run },
+      { recurring_run: recurring_run, namespace: namespace },
       initOverrides,
     );
     return await response.value();

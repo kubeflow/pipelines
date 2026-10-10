@@ -68,6 +68,11 @@ type RunServiceCreateRunParams struct {
 	// The ID of the parent experiment.
 	ExperimentID *string
 
+	// Namespace.
+	//
+	// Optional input field. Namespace for the run. Ignored when run.namespace is set.
+	Namespace *string
+
 	// Run.
 	//
 	// Run to be created.
@@ -141,6 +146,17 @@ func (o *RunServiceCreateRunParams) SetExperimentID(experimentID *string) {
 	o.ExperimentID = experimentID
 }
 
+// WithNamespace adds the namespace to the run service create run params.
+func (o *RunServiceCreateRunParams) WithNamespace(namespace *string) *RunServiceCreateRunParams {
+	o.SetNamespace(namespace)
+	return o
+}
+
+// SetNamespace adds the namespace to the run service create run params.
+func (o *RunServiceCreateRunParams) SetNamespace(namespace *string) {
+	o.Namespace = namespace
+}
+
 // WithRun adds the run to the run service create run params.
 func (o *RunServiceCreateRunParams) WithRun(run *run_model.V2beta1Run) *RunServiceCreateRunParams {
 	o.SetRun(run)
@@ -171,6 +187,23 @@ func (o *RunServiceCreateRunParams) WriteToRequest(r runtime.ClientRequest, reg 
 		if qExperimentID != "" {
 
 			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Namespace != nil {
+
+		// query param namespace
+		var qrNamespace string
+
+		if o.Namespace != nil {
+			qrNamespace = *o.Namespace
+		}
+		qNamespace := qrNamespace
+		if qNamespace != "" {
+
+			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}

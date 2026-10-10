@@ -7,7 +7,6 @@ resources:
 - ../../base/application
 - ../../base/installs/generic
 - ../../third-party/argo/installs/namespace
-- inverse-proxy
 - cloudsql-proxy
 
 

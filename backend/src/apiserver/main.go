@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/webhook"
+	_ "github.com/kubeflow/pipelines/backend/src/common/dbcreds/all"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -95,6 +96,8 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
+	ExportTransfer        http.HandlerFunc
+	ImportTransfer        http.HandlerFunc
 	UploadPipeline        http.HandlerFunc
 	UploadPipelineVersion http.HandlerFunc
 	ReadRunLog            http.HandlerFunc
@@ -198,6 +201,9 @@ func main() {
 
 	if err := initConfig(); err != nil {
 		glog.Fatalf("Failed to initialize config: %v", err)
+	}
+	if _, err := common.GetPipelineSizeLimits(); err != nil {
+		glog.Fatalf("Failed to initialize pipeline size limits: %v", err)
 	}
 	// check ExecutionType Settings if presents
 	if viper.IsSet(executionTypeEnv) {
@@ -367,28 +373,39 @@ func grpcCustomMatcher(key string) (string, bool) {
 //
 // Scoped to pipeline and pipeline version update paths to avoid interfering
 // with other endpoints that may have a top-level "tags" field.
-// MaxUpdateRequestBodySize is the maximum size (32 MiB) of the request body
-// for pipeline and version update endpoints. This ceiling prevents unbounded memory
-// buffering on mutable fields, though it allows updating full pipeline objects.
+// MaxUpdateRequestBodySize is the default request-body ceiling (32 MiB) for
+// pipeline and version updates. Operators can override it with
+// MAX_PIPELINE_UPDATE_BODY_BYTES within the validated finite range.
 const MaxUpdateRequestBodySize = 32 << 20
 
 func clearTagsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if (r.Method == http.MethodPut || r.Method == http.MethodPatch) && r.Body != nil &&
 			isPipelineUpdatePath(r.URL.Path) {
-			// Enforce an explicit request ceiling to bound request-body buffering
-			// and reject oversized updates.
-			r.Body = http.MaxBytesReader(w, r.Body, int64(MaxUpdateRequestBodySize))
+			limits, err := common.GetPipelineSizeLimits()
+			if err != nil {
+				glog.Errorf("Invalid pipeline size-limit configuration: %v", err)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"code":    13, // Internal
+					"message": "Invalid server size-limit configuration; contact your administrator",
+				})
+				return
+			}
+			// Enforce the ceiling while reading, including unknown-length bodies.
+			r.Body = http.MaxBytesReader(w, r.Body, int64(limits.UpdateBodyBytes))
 			body, err := io.ReadAll(r.Body)
 			r.Body.Close()
 			if err != nil {
 				w.Header().Set("Content-Type", "application/json")
 				var maxBytesErr *http.MaxBytesError
 				if errors.As(err, &maxBytesErr) {
+					_ = common.NewSizeLimitError("pipeline_update_body", int64(limits.UpdateBodyBytes), common.MaxPipelineUpdateBodyBytesEnv)
 					w.WriteHeader(http.StatusRequestEntityTooLarge)
 					json.NewEncoder(w).Encode(map[string]interface{}{
 						"code":    3, // InvalidArgument
-						"message": "Request body too large",
+						"message": common.SizeLimitErrorMessage("pipeline_update_body", int64(limits.UpdateBodyBytes), common.MaxPipelineUpdateBodyBytesEnv),
 					})
 				} else {
 					w.WriteHeader(http.StatusBadRequest)
@@ -491,7 +508,10 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
 
+	transferServer := server.NewTransferServer(resourceManager)
 	handlerDeps := HTTPRouterDeps{
+		ExportTransfer:        transferServer.Export,
+		ImportTransfer:        transferServer.Import,
 		UploadPipeline:        sharedPipelineUploadServer.UploadPipeline,
 		UploadPipelineVersion: sharedPipelineUploadServer.UploadPipelineVersion,
 		ReadRunLog:            runLogServer.ReadRunLog,
@@ -552,6 +572,12 @@ func newHealthzResponse(pipelineStore string) healthzResponse {
 // registered. It does not start a listener, making it testable in isolation.
 func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string) *mux.Router {
 	topMux := mux.NewRouter()
+	if handlerDeps.ExportTransfer != nil {
+		topMux.HandleFunc("/apis/v2beta1/transfer/export", handlerDeps.ExportTransfer)
+	}
+	if handlerDeps.ImportTransfer != nil {
+		topMux.HandleFunc("/apis/v2beta1/transfer/import", handlerDeps.ImportTransfer)
+	}
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
@@ -696,6 +722,9 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
+	if err := validateServiceAccountAuthorizationMode(); err != nil {
+		return err
+	}
 	if err := common.InitializeWorkflowIdentityMode(); err != nil {
 		return err
 	}
@@ -711,6 +740,9 @@ func initConfig() error {
 		}
 		if _, err := common.GetPluginLimitsConfig(); err != nil {
 			glog.Fatalf("Invalid plugin limits configuration: %v", err)
+		}
+		if err := validateServiceAccountAuthorizationMode(); err != nil {
+			glog.Fatalf("Invalid service-account authorization configuration: %v", err)
 		}
 	})
 
@@ -812,4 +844,15 @@ func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, stri
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
 	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
+}
+
+func validateServiceAccountAuthorizationMode() error {
+	mode, err := common.GetServiceAccountAuthorizationMode()
+	if err != nil {
+		return err
+	}
+	if mode == "audit" {
+		glog.Warning("KFP_SECURITY_SERVICE_ACCOUNT_MODE=audit: service-account policy denials are allowed; this restores the security exposure addressed by service-account authorization. Migrate to enforce before 3.0.0, when audit mode is planned for removal (https://github.com/kubeflow/pipelines/issues/14367).")
+	}
+	return nil
 }

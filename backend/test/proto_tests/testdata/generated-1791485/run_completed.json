@@ -28,5 +28,6 @@
   "plugins_output": {},
   "pipeline_reference": null,
   "task_count": 0,
-  "tasks": []
+  "tasks": [],
+  "namespace": ""
 }

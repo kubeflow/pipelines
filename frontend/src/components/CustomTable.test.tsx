@@ -502,6 +502,18 @@ describe('CustomTable', () => {
     wrapper.unmount();
   });
 
+  it('gives the icon-only page buttons accessible names', async () => {
+    const wrapper = renderTable({ rows, columns });
+    await flushPromisesInAct();
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBe(
+      screen.getByTestId('prev-page-btn'),
+    );
+    expect(screen.getByRole('button', { name: 'Next page' })).toBe(
+      screen.getByTestId('next-page-btn'),
+    );
+    wrapper.unmount();
+  });
+
   it('enables next page button if next page token is given', async () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);

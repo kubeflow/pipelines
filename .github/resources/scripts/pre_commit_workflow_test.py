@@ -20,6 +20,9 @@ import subprocess
 import tempfile
 import unittest
 
+import tomllib
+import yaml
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PRE_COMMIT_WORKFLOW = (
     REPOSITORY_ROOT / '.github' / 'workflows' / 'pre-commit.yml')
@@ -68,10 +71,39 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertIn('Unable to resolve the event base commit', self.workflow)
         self.assertNotIn('git rev-parse HEAD^', self.workflow)
 
+    def test_isort_hook_matches_sdk_lint_dependency(self) -> None:
+        """Keep local and CI import formatting on the same pinned version."""
+        project = tomllib.loads(
+            (REPOSITORY_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+        isort_dependencies = [
+            dependency for dependency in project['project']
+            ['optional-dependencies']['lint']
+            if dependency.startswith('isort==')
+        ]
+        self.assertEqual(len(isort_dependencies), 1)
+        hooks = [(repository, hook)
+                 for repository in yaml.safe_load(self.config)['repos']
+                 for hook in repository['hooks']
+                 if hook['id'] == 'isort']
+        self.assertEqual(len(hooks), 1)
+        repository, hook = hooks[0]
+        self.assertEqual(repository['repo'], 'local')
+        self.assertEqual(hook['language'], 'python')
+        self.assertEqual(hook['additional_dependencies'], isort_dependencies)
+        self.assertEqual(
+            shlex.split(hook['entry']), ['isort', '--profile', 'google'])
+
     def test_config_changes_execute_each_applicable_hook_family(self):
-        self.assertIn(
-            "if: steps.pre-commit-range.outputs.config-changed == 'true'",
-            self.workflow)
+        steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
+        smoke_steps = [
+            step for step in steps if step.get('if') ==
+            "steps.pre-commit-range.outputs.config-changed == 'true'"
+        ]
+        self.assertEqual(len(smoke_steps), 1)
+        command = shlex.split(smoke_steps[0]['run'])
+        self.assertEqual(command[:2], ['pre-commit', 'run'])
+        self.assertIn('--files', command)
+        files = command[command.index('--files') + 1:]
         self.assertIn(
             'git diff --quiet "${base_sha}" HEAD -- '
             '.pre-commit-config.yaml .golangci.yaml',
@@ -82,11 +114,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 '.github/workflows/pre-commit.yml',
                 '.golangci.yaml',
                 'frontend/package.json',
+                '.github/resources/scripts/update_go_version.py',
                 'sdk/python/kfp/cli/__init__.py',
+                'sdk/python/kfp/dsl/structures.py',
                 'backend/src/common/types.go',
         ):
             with self.subTest(representative_file=representative_file):
-                self.assertIn(representative_file, self.workflow)
+                self.assertIn(representative_file, files)
 
         self.assertIn('id: golangci-lint-fmt', self.config)
         self.assertIn('id: golangci-lint-config-verify', self.config)

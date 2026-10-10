@@ -426,7 +426,7 @@ class SlicedClassificationMetrics(Artifact):
 
         Args:
           slice: String representing slice label.
-          threshold: Thresold value for the data point.
+          threshold: Threshold value for the data point.
           tpr: True positive rate value of the data point.
           fpr: False positive rate value of the data point.
         """
