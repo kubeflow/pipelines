@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package main
+package executorplugin
 
 import (
 	"context"
@@ -23,6 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 )
 
 // parseOptionalBoolFlag parses an optional boolean request argument.
@@ -58,7 +59,7 @@ func buildScopePath(
 		return nil, err
 	}
 	var scopePath util.ScopePath
-	if driverType == RootDag {
+	if driverType == rootDAG {
 		scopePath, err = util.NewScopePathFromStruct(pipelineSpecStruct)
 		if err != nil {
 			return nil, err
@@ -81,13 +82,6 @@ func buildScopePath(
 		}
 	}
 	return &scopePath, nil
-}
-
-func resolveDriverSpecs(
-	scopePath *util.ScopePath,
-	driverType string,
-) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
-	return resolveDriverSpecsFromScopePath(scopePath, driverType)
 }
 
 type specSourceUnavailableError struct {
@@ -116,7 +110,7 @@ func resolveDriverSpecsFromScopePath(
 	}
 
 	var taskSpec *pipelinespec.PipelineTaskSpec
-	if driverType != RootDag {
+	if driverType != rootDAG {
 		taskSpec = scopePath.GetLast().GetTaskSpec()
 		if taskSpec == nil {
 			return nil, nil, nil, unavailableSpec("task spec not found")
@@ -128,7 +122,7 @@ func resolveDriverSpecsFromScopePath(
 	}
 
 	var containerSpec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-	if driverType == CONTAINER {
+	if driverType == containerDriver {
 		var err error
 		containerSpec, err = loadContainerSpec(componentSpec, scopePath.GetPipelineSpec())
 		if err != nil {
@@ -141,15 +135,15 @@ func resolveDriverSpecsFromScopePath(
 
 func validateDriverComponentKinds(driverType string, componentSpec *pipelinespec.ComponentSpec) error {
 	switch driverType {
-	case RootDag:
+	case rootDAG:
 		if componentSpec.GetDag() == nil {
 			return fmt.Errorf("root driver requires a DAG root component")
 		}
-	case DAG:
+	case dagDriver:
 		if componentSpec.GetDag() == nil {
 			return fmt.Errorf("dag driver requires a DAG component")
 		}
-	case CONTAINER:
+	case containerDriver:
 		if componentSpec.GetExecutorLabel() == "" {
 			return fmt.Errorf("container driver requires an executor-label component")
 		}
@@ -194,3 +188,21 @@ func loadContainerSpec(
 	}
 	return containerSpec, nil
 }
+
+func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
+	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+	if *k8sExecConfigJSON != "" {
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := util.UnmarshalString(*k8sExecConfigJSON, k8sExecCfg); err != nil {
+			return nil, kubernetesConfigParseError{cause: err}
+		}
+	}
+	return k8sExecCfg, nil
+}
+
+// Keep configuration contents out of HTTP errors and logs while retaining the
+// decoding cause for callers that inspect the error chain.
+type kubernetesConfigParseError struct{ cause error }
+
+func (e kubernetesConfigParseError) Error() string { return "failed to unmarshal Kubernetes config" }
+func (e kubernetesConfigParseError) Unwrap() error { return e.cause }

@@ -9,6 +9,10 @@ resources:
 namespace: kubeflow
 
 patches:
+  - path: patches/driver-agent-trust.yaml
+    target:
+      kind: ConfigMap
+      name: workflow-controller-configmap
   - path: patches/ml-pipeline-apiserver-deployment.yaml
     target:
       kind: Deployment

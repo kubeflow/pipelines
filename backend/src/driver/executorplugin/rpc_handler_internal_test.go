@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package executorplugin
 
 import (
 	"encoding/json"
@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -65,7 +66,7 @@ func TestParseDriverRequestArgsAllowsEmptyRequiredValues(t *testing.T) {
 	args, err := parseDriverRequestArgs(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, CONTAINER, args.Type)
+	assert.Equal(t, containerDriver, args.Type)
 	assert.Empty(t, args.HTTPProxy)
 	assert.False(t, args.CacheDisabledFlag)
 }
@@ -90,7 +91,7 @@ func TestParseDriverRequestArgsRequiredFields(t *testing.T) {
 		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
 		"http_proxy", "https_proxy", "no_proxy",
 	}
-	for _, driverType := range []string{RootDag, DAG, CONTAINER} {
+	for _, driverType := range []string{rootDAG, dagDriver, containerDriver} {
 		t.Run(driverType, func(t *testing.T) {
 			args := validDriverArgs(driverType)
 			req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, args)))
@@ -99,9 +100,9 @@ func TestParseDriverRequestArgsRequiredFields(t *testing.T) {
 
 			required := append([]string{}, commonFields...)
 			switch driverType {
-			case CONTAINER:
+			case containerDriver:
 				required = append(required, "kubernetes_config")
-			case RootDag:
+			case rootDAG:
 				required = append(required, "runtime_config")
 			}
 			for _, field := range required {
@@ -194,7 +195,7 @@ func TestParseDriverRequestArgsGRPCBackoff(t *testing.T) {
 }
 
 func validContainerDriverArgs() map[string]interface{} {
-	return validDriverArgs(CONTAINER)
+	return validDriverArgs(containerDriver)
 }
 
 func validDriverArgs(driverType string) map[string]interface{} {
@@ -218,14 +219,14 @@ func validDriverArgs(driverType string) map[string]interface{} {
 		"cache_disabled":             false,
 		"ml_pipeline_tls_enabled":    false,
 	}
-	if driverType == RootDag {
+	if driverType == rootDAG {
 		args["parent_task_id"] = ""
 		args["task_name"] = ""
 	}
 	switch driverType {
-	case CONTAINER:
+	case containerDriver:
 		args["kubernetes_config"] = ""
-	case RootDag:
+	case rootDAG:
 		args["runtime_config"] = ""
 	}
 	return args
@@ -292,4 +293,62 @@ func TestAPIClientConfigRequestOverridesDoNotLeak(t *testing.T) {
 		assert.Equal(t, value, os.Getenv(key), "request changed process setting %s", key)
 	}
 	assert.Equal(t, "0", requestConfig.BackoffJitter)
+}
+
+func TestExtractOutputParametersDefaults(t *testing.T) {
+	for _, driverType := range []string{rootDAG, dagDriver, containerDriver} {
+		t.Run(driverType, func(t *testing.T) {
+			execution := &driver.Execution{TaskID: "5aa1b7bb-a143-43df-860c-52660b0260e0"}
+
+			outputs := extractOutputParameters(execution, driverType)
+
+			verifyOutputParameter(t, outputs, "task-id", execution.TaskID)
+			verifyOutputParameter(t, outputs, "condition", "nil")
+			verifyOutputParameter(t, outputs, "pod-spec-patch", "")
+			if driverType == rootDAG || driverType == dagDriver {
+				verifyOutputParameter(t, outputs, "iteration-count", "0")
+			}
+			for _, output := range outputs {
+				assert.NotEqual(t, "execution-id", output.Name)
+				if driverType == containerDriver {
+					assert.NotEqual(t, "iteration-count", output.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestExtractOutputParametersPreservesExecutionValues(t *testing.T) {
+	iterationCount, cached, condition := 3, false, false
+	execution := &driver.Execution{
+		TaskID:         "task-id",
+		IterationCount: &iterationCount,
+		Cached:         &cached,
+		Condition:      &condition,
+		PodSpecPatch:   `{"containers":[{"name":"main","image":"python:3.11"}]}`,
+	}
+
+	outputs := extractOutputParameters(execution, containerDriver)
+
+	verifyOutputParameter(t, outputs, "task-id", execution.TaskID)
+	verifyOutputParameter(t, outputs, "iteration-count", "3")
+	verifyOutputParameter(t, outputs, "cached-decision", "false")
+	verifyOutputParameter(t, outputs, "condition", "false")
+	verifyOutputParameter(t, outputs, "pod-spec-patch", execution.PodSpecPatch)
+}
+
+func TestExtractOutputParametersNilExecution(t *testing.T) {
+	assert.Empty(t, extractOutputParameters(nil, rootDAG))
+}
+
+func verifyOutputParameter(t *testing.T, parameters []driverapi.Parameter, key, expectedValue string) {
+	t.Helper()
+	filtered := make([]driverapi.Parameter, 0, 1)
+	for _, p := range parameters {
+		if p.Name == key {
+			filtered = append(filtered, p)
+		}
+	}
+	require.Len(t, filtered, 1)
+	require.Equal(t, expectedValue, filtered[0].Value)
 }

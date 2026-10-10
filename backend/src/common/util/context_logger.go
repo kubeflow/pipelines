@@ -1,3 +1,17 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package util
 
 import (
@@ -9,10 +23,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type CtxKey string
+type contextKey string
 
 const (
-	contextLoggerKey CtxKey = "driver_log_key"
+	contextLoggerKey contextKey = "driver_log_key"
 )
 
 func newFileLogger(logFile string) (*logrus.Logger, io.Closer, error) {
@@ -27,27 +41,24 @@ func newFileLogger(logFile string) (*logrus.Logger, io.Closer, error) {
 	return logger, f, nil
 }
 
-// WithExistingLogger For testing only
-func WithExistingLogger(ctx context.Context, logger *logrus.Logger) context.Context {
-	return context.WithValue(ctx, contextLoggerKey, logger)
-}
-
+// WithLogger adds a logger that writes to stdout and logFile. The caller must close
+// the returned file. It rejects nil contexts and contexts that already contain a logger.
 func WithLogger(ctx context.Context, logFile string) (context.Context, io.Closer, error) {
 	if ctx == nil {
 		return nil, nil, fmt.Errorf(
-			"error during creation of the logger for logId: %v. ctx can not be nil",
+			"cannot create logger for %q: context is nil; provide a non-nil context",
 			logFile,
 		)
 	}
 
 	if GetLoggerFrom(ctx) != nil {
-		return nil, nil, fmt.Errorf("logger already exists in context")
+		return nil, nil, fmt.Errorf("logger already exists in context; reuse it with GetLoggerFrom or provide a context without a logger")
 	}
 
 	logger, f, err := newFileLogger(logFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf(
-			"error during creation of the logger for logId: %v details: %w",
+			"cannot create log file %q; choose a writable file path with an existing parent directory: %w",
 			logFile,
 			err,
 		)
@@ -58,6 +69,7 @@ func WithLogger(ctx context.Context, logFile string) (context.Context, io.Closer
 	return ctx, f, nil
 }
 
+// GetLoggerFrom returns the logger in ctx, or nil if none is present. ctx must be non-nil.
 func GetLoggerFrom(ctx context.Context) *logrus.Logger {
 	v := ctx.Value(contextLoggerKey)
 	if v == nil {

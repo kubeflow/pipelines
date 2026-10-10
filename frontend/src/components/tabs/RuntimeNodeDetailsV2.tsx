@@ -207,13 +207,15 @@ function TaskNodeDetail({
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
-  const driverLogUri = task?.status_metadata?.custom_properties?.driver_logs_uri;
-  const { data: driverLogsInfo } = useQuery({
+  const driverLogUriProperty = task?.status_metadata?.custom_properties?.driver_logs_uri;
+  const driverLogUri = typeof driverLogUriProperty === 'string' ? driverLogUriProperty : undefined;
+  const { data: driverLogsInfo, refetch: refetchDriverLogs } = useQuery({
     queryKey: queryKeys.driverLogs(
       task?.task_id,
       task?.state,
       namespace,
-      typeof driverLogUri === 'string' ? driverLogUri : undefined,
+      driverLogUri,
+      sourceFinished,
     ),
     queryFn: async (): Promise<Map<string, string>> => {
       if (!task) {
@@ -221,7 +223,8 @@ function TaskNodeDetail({
       }
       return getDriverLogsInfo(task, namespace);
     },
-    enabled: !!task,
+    enabled: !!task && !!driverLogUri && selectedTab === 3,
+    refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
@@ -231,7 +234,9 @@ function TaskNodeDetail({
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
   const sysLogDetails = driverLogsInfo?.get(SYS_LOGS_DETAILS);
-  const sysLogsBannerMessage = driverLogsInfo?.get(SYS_LOGS_BANNER_MESSAGE);
+  const sysLogsBannerMessage = driverLogUri
+    ? driverLogsInfo?.get(SYS_LOGS_BANNER_MESSAGE)
+    : 'System logs are not available yet.';
   const sysLogsBannerAdditionalInfo = driverLogsInfo?.get(SYS_LOGS_BANNER_ADDITIONAL_INFO);
 
   return (
@@ -279,11 +284,16 @@ function TaskNodeDetail({
         {selectedTab === 3 && (
           <div className={commonCss.page}>
             {sysLogsBannerMessage && (
-              <Banner message={sysLogsBannerMessage} additionalInfo={sysLogsBannerAdditionalInfo} />
+              <Banner
+                message={sysLogsBannerMessage}
+                additionalInfo={sysLogsBannerAdditionalInfo}
+                mode={driverLogUri ? 'error' : 'info'}
+                refresh={driverLogUri ? () => void refetchDriverLogs() : undefined}
+              />
             )}
-            {!sysLogsBannerMessage && (
+            {!sysLogsBannerMessage && sysLogDetails !== undefined && (
               <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
-                <LogViewer logLines={(sysLogDetails || '').split(/[\r\n]+/)} />
+                <LogViewer logLines={sysLogDetails.split(/[\r\n]+/)} />
               </div>
             )}
           </div>
@@ -481,8 +491,6 @@ async function getDriverLogsInfo(
     const errMsg = await errorToMessage(artifactErr);
     logsInfo.set(SYS_LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.');
     logsInfo.set(SYS_LOGS_BANNER_ADDITIONAL_INFO, 'Error response: ' + errMsg);
-
-    console.error('Failed to retrieve driver-logs artifact:', artifactErr);
   }
 
   return logsInfo;

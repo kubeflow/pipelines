@@ -452,6 +452,7 @@ func readRequiredSecretKey(secret *corev1.Secret, namespace, key, credentialRole
 // a ready-to-use RequestContext. The workspace and workspacesEnabled values
 // are caller-specific and passed in directly.
 func BuildMLflowRequestContext(
+	ctx context.Context,
 	pluginCfg MLflowPluginConfig,
 	authMaterial MLflowCredentials,
 	workspace string,
@@ -474,6 +475,9 @@ func BuildMLflowRequestContext(
 	httpClient, err := BuildHTTPClient(timeout, pluginCfg.TLS)
 	if err != nil {
 		return nil, err
+	}
+	if resolver, ok := util.HTTPProxyFrom(ctx); ok {
+		httpClient.Transport.(*http.Transport).Proxy = resolver
 	}
 	retrySettings := RetryPolicy{
 		InitialInterval: DefaultRetryInitial,

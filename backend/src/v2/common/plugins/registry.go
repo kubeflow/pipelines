@@ -19,6 +19,7 @@ type HandlerFactory interface {
 	Create() (TaskPluginHandler, error)
 }
 
+// RuntimeArgsHandlerFactory optionally configures a handler from explicit driver runtime arguments.
 type RuntimeArgsHandlerFactory interface {
 	IsEnabledWithRuntimeArgs(runtimeArgs map[string]string) bool
 	CreateWithRuntimeArgs(runtimeArgs map[string]string) (TaskPluginHandler, error)

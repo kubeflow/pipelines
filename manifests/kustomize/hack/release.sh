@@ -45,11 +45,11 @@ yq w -i ${API_SERVER_MANIFEST} \
 
 # Argo parses data["sidecar.container"] as YAML, but Kustomize treats it as a
 # string: images.newTag cannot update the driver image embedded inside it.
-# Update that image separately in both base and TLS ConfigMaps so the driver
-# uses the same release tag as the other KFP images.
+# Update base, TLS and OpenShift plugin images together with other KFP images.
 DRIVER_PLUGIN_MANIFESTS=(
   "base/pipeline/ml-pipeline-driver-plugin-cm.yaml"
   "env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml"
+  "env/openshift/base/patches/driver-agent-plugin.yaml"
 )
 for path in "${DRIVER_PLUGIN_MANIFESTS[@]}"
 do

@@ -55,7 +55,8 @@ ${DIR}/release.sh v1.2.3-dummy
 # Embedded plugin images must be updated as well as ordinary container images.
 for manifest in \
   "base/pipeline/ml-pipeline-driver-plugin-cm.yaml" \
-  "env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml"
+  "env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml" \
+  "env/openshift/base/patches/driver-agent-plugin.yaml"
 do
   plugin_image="$(yq r "${DIR}/../${manifest}" 'data."sidecar.container"' | yq r - image)"
   test "${plugin_image}" = "ghcr.io/kubeflow/kfp-driver:v1.2.3-dummy"

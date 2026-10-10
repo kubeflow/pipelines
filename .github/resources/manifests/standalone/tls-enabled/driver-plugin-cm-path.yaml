@@ -15,16 +15,6 @@ data:
         valueFrom:
           fieldRef:
             fieldPath: metadata.name
-      - name: LOG_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-      - name: LOG_SECRET_KEY
-        valueFrom:
-          secretKeyRef:
-            name: mlpipeline-minio-artifact
-            key: secretkey
       - name: CA_CERT_PATH
         value: /kfp/certs/ca.crt
     resources:
@@ -50,4 +40,5 @@ data:
       readOnly: true
     - name: var-run-argo
       mountPath: /kfp/log
+      subPath: driver-plugin
       readOnly: false

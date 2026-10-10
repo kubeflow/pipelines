@@ -23,13 +23,14 @@ import (
 // RuntimeArgs contains runtime-only settings passed to driver plugin handlers.
 type RuntimeArgs map[string]string
 
+// UnmarshalJSON decodes runtime settings from the plugin argument's JSON string.
 func (r *RuntimeArgs) UnmarshalJSON(value []byte) error {
 	if string(value) == "null" {
 		return nil
 	}
 	var runtimeArgsJSON string
 	if err := json.Unmarshal(value, &runtimeArgsJSON); err != nil {
-		return fmt.Errorf("runtime_args must be a JSON object string")
+		return fmt.Errorf("runtime_args must be a JSON object string: %w", err)
 	}
 	if runtimeArgsJSON == "" {
 		*r = nil
@@ -43,6 +44,7 @@ func (r *RuntimeArgs) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// DriverPluginArgs contains the arguments for one driver invocation.
 type DriverPluginArgs struct {
 	ParentTaskID                    string      `json:"parent_task_id"`
 	Namespace                       string      `json:"namespace"`
@@ -75,20 +77,4 @@ type DriverPluginArgs struct {
 	DefaultRunAsNonRoot             string      `json:"default_run_as_non_root,omitempty"`
 	DefaultHostUsers                string      `json:"default_host_users,omitempty"`
 	RuntimeArgs                     RuntimeArgs `json:"runtime_args,omitempty"`
-}
-
-type DriverPlugin struct {
-	DriverPlugin *DriverPluginContainer `json:"driver-plugin"`
-}
-
-type DriverPluginContainer struct {
-	Args *DriverPluginArgs `json:"args"`
-}
-
-type DriverTemplate struct {
-	Plugin *DriverPlugin `json:"plugin"`
-}
-
-type DriverRequest struct {
-	Template *DriverTemplate `json:"template"`
 }

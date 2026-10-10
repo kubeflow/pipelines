@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package executorplugin
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -38,7 +39,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	k8stesting "k8s.io/client-go/testing"
 )
 
@@ -196,11 +199,16 @@ func TestDriverAuthenticatesFirstKFPRPCWithRunServiceAccount(t *testing.T) {
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cfg, _, err := driverAPIClientConfig(ctx, k8sClient, pod.Namespace, pod.Name, driverArgsForAuth())
+	args := driverArgsForAuth()
+	args.MlPipelineServerAddress, args.MlPipelineServerPort, err = net.SplitHostPort(listener.Addr().String())
 	require.NoError(t, err)
-	cfg.Endpoint = listener.Addr().String()
-	manager, err := client_manager.NewClientManager(&client_manager.Options{APIClientConfig: cfg, K8sClient: k8sClient})
+	factory := inClusterClientFactory()
+	factory.identity = func() (string, string, error) { return pod.Namespace, pod.Name, nil }
+	factory.kubernetesConfig = func() (*rest.Config, error) { return &rest.Config{}, nil }
+	factory.kubernetesClient = func(*rest.Config) (kubernetes.Interface, error) { return k8sClient, nil }
+	clients, err := factory.newDriverClientManager(ctx, args, "")
 	require.NoError(t, err)
+	manager := clients.manager
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 	assert.Same(t, k8sClient, manager.K8sClient())
 	for range 2 {
@@ -211,37 +219,152 @@ func TestDriverAuthenticatesFirstKFPRPCWithRunServiceAccount(t *testing.T) {
 	assert.Equal(t, 1, issued, "successive RPCs should reuse the token until refresh")
 }
 
-func TestAuthenticatedPluginHandler(t *testing.T) {
-	tokenPath := filepath.Join(t.TempDir(), "token")
-	require.NoError(t, os.WriteFile(tokenPath, []byte("test-agent-token\n"), 0600))
-	for _, header := range []string{"", "Bearer wrong-token", "test-agent-token", "Bearer test-agent-token"} {
-		t.Run(header, func(t *testing.T) {
-			called := false
-			handler, err := authenticatedPluginHandler(tokenPath, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				called = true
-				w.WriteHeader(http.StatusNoContent)
-			}))
-			require.NoError(t, err)
-			request := httptest.NewRequest(http.MethodPost, "/api/v1/template.execute", nil)
-			request.Header.Set("Authorization", header)
-			response := httptest.NewRecorder()
-			handler.ServeHTTP(response, request)
-			if header == "Bearer test-agent-token" {
-				assert.True(t, called)
-				assert.Equal(t, http.StatusNoContent, response.Code)
-			} else {
-				assert.False(t, called)
-				assert.Equal(t, http.StatusForbidden, response.Code)
+func TestExecutorPluginIdentity(t *testing.T) {
+	namespacePath := filepath.Join(t.TempDir(), "namespace")
+	_, _, err := executorPluginIdentity(namespacePath)
+	require.ErrorIs(t, err, os.ErrNotExist)
+	require.ErrorContains(t, err, "check the service account mount")
+	require.NoError(t, os.WriteFile(namespacePath, []byte(" \n"), 0600))
+	_, _, err = executorPluginIdentity(namespacePath)
+	require.ErrorContains(t, err, "namespace is empty")
+	require.NoError(t, os.WriteFile(namespacePath, []byte("run-namespace\n"), 0600))
+	t.Setenv("KFP_POD_NAME", "workflow-agent")
+	namespace, podName, err := executorPluginIdentity(namespacePath)
+	require.NoError(t, err)
+	assert.Equal(t, "run-namespace", namespace)
+	assert.Equal(t, "workflow-agent", podName)
+}
+
+func TestNewDriverClientManagerConfiguration(t *testing.T) {
+	pod := agentPodForAuth()
+	k8sClient := fake.NewSimpleClientset(pod)
+	args := driverArgsForAuth()
+	args.MlPipelineTLSEnabled = true
+	args.MlPipelineGRPCBackoffJitter = "0"
+	manager := &invocationManager{k8s: k8sClient}
+	metadataCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		metadataCalls++
+		assert.Equal(t, "/apis/argoproj.io/v1alpha1/namespaces/run-namespace/workflows/workflow", request.URL.Path)
+		assert.Equal(t, "Bearer bootstrap-token", request.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"Workflow","metadata":{"name":"workflow","namespace":"run-namespace"}}`))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+	restConfig := &rest.Config{Host: server.URL, BearerToken: "bootstrap-token"}
+	factory := inClusterClientFactory()
+	factory.identity = func() (string, string, error) { return pod.Namespace, pod.Name, nil }
+	configCalls := 0
+	factory.kubernetesConfig = func() (*rest.Config, error) { configCalls++; return restConfig, nil }
+	factory.kubernetesClient = func(config *rest.Config) (kubernetes.Interface, error) {
+		assert.Same(t, restConfig, config)
+		return k8sClient, nil
+	}
+	factory.manager = func(options *client_manager.Options) (driverClientManager, error) {
+		assert.True(t, options.MLPipelineTLSEnabled)
+		assert.Equal(t, "/ca/cert", options.CaCertPath)
+		assert.Same(t, k8sClient, options.K8sClient)
+		require.NotNil(t, options.APIClientConfig.TokenSource)
+		assert.Equal(t, "ml-pipeline:8887", options.APIClientConfig.Endpoint)
+		assert.Equal(t, "0", options.APIClientConfig.BackoffJitter)
+		return manager, nil
+	}
+	clients, err := factory.newDriverClientManager(context.Background(), args, "/ca/cert")
+	require.NoError(t, err)
+	assert.Same(t, manager, clients.manager)
+	assert.Equal(t, pod, clients.pod)
+	assert.Zero(t, metadataCalls, "workflow client is only needed for placeholder fallback")
+	metadata, err := clients.workflowMetadata(context.Background(), pod.Namespace, "workflow")
+	require.NoError(t, err)
+	assert.Equal(t, "workflow", metadata.Name)
+	assert.Equal(t, 1, metadataCalls)
+	assert.Equal(t, 1, configCalls, "reuse invocation REST configuration for workflow metadata")
+}
+
+func TestNewDriverClientManagerFailures(t *testing.T) {
+	for _, tc := range []struct {
+		name, message string
+		mutate        func(*clientFactory, *driverapi.DriverPluginArgs)
+		cause         error
+	}{
+		{"identity", "identity failure", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
+			f.identity = func() (string, string, error) { return "", "", fmt.Errorf("identity failure: %w", assert.AnError) }
+		}, assert.AnError},
+		{"config", "load executor plugin Kubernetes config", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
+			f.kubernetesConfig = func() (*rest.Config, error) { return nil, assert.AnError }
+		}, assert.AnError},
+		{"client", "initialize executor plugin Kubernetes client", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
+			f.kubernetesClient = func(*rest.Config) (kubernetes.Interface, error) { return nil, assert.AnError }
+		}, assert.AnError},
+		{"namespace", "namespace does not match", func(_ *clientFactory, args *driverapi.DriverPluginArgs) { args.Namespace = "other" }, nil},
+		{"pod", "failed to get executor plugin Pod", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
+			f.kubernetesClient = func(*rest.Config) (kubernetes.Interface, error) { return fake.NewSimpleClientset(), nil }
+		}, nil},
+		{"run binding", "run ID does not match", func(_ *clientFactory, args *driverapi.DriverPluginArgs) { args.RunID = "other" }, nil},
+		{"manager", "check the KFP endpoint and TLS settings", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
+			f.manager = func(*client_manager.Options) (driverClientManager, error) { return nil, assert.AnError }
+		}, assert.AnError},
+		{"TLS CA file", "initialize driver API client", func(f *clientFactory, args *driverapi.DriverPluginArgs) {
+			args.MlPipelineTLSEnabled = true
+			f.manager = inClusterClientFactory().manager
+		}, os.ErrNotExist},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pod := agentPodForAuth()
+			args := driverArgsForAuth()
+			factory := clientFactory{
+				identity:         func() (string, string, error) { return pod.Namespace, pod.Name, nil },
+				kubernetesConfig: func() (*rest.Config, error) { return &rest.Config{}, nil },
+				kubernetesClient: func(*rest.Config) (kubernetes.Interface, error) { return fake.NewSimpleClientset(pod), nil },
+				manager: func(*client_manager.Options) (driverClientManager, error) {
+					t.Fatal("failed identity must not construct an API client")
+					return nil, nil
+				},
 			}
+			tc.mutate(&factory, &args)
+			clients, err := factory.newDriverClientManager(context.Background(), args, filepath.Join(t.TempDir(), "missing-ca"))
+			require.ErrorContains(t, err, tc.message)
+			if tc.cause != nil {
+				assert.ErrorIs(t, err, tc.cause)
+			}
+			assert.Nil(t, clients)
 		})
 	}
 }
 
-func TestAuthenticatedPluginHandlerRequiresToken(t *testing.T) {
-	tokenPath := filepath.Join(t.TempDir(), "token")
-	_, err := authenticatedPluginHandler(tokenPath, nil)
+func TestExecutorPluginKubernetesConfig(t *testing.T) {
+	// Avoid both the developer's kubeconfig and in-cluster discovery.
+	t.Setenv("KUBERNETES_SERVICE_HOST", "")
+	t.Setenv("KUBERNETES_SERVICE_PORT", "")
+	kubeconfigPath := filepath.Join(t.TempDir(), "config")
+	t.Setenv("KUBECONFIG", kubeconfigPath)
+	require.NoError(t, os.WriteFile(kubeconfigPath, []byte("invalid: ["), 0600))
+	_, err := executorPluginKubernetesConfig()
 	require.Error(t, err)
-	require.NoError(t, os.WriteFile(tokenPath, []byte(" \n"), 0600))
-	_, err = authenticatedPluginHandler(tokenPath, nil)
-	require.ErrorContains(t, err, "token is empty")
+	require.NoError(t, os.WriteFile(kubeconfigPath, []byte(`apiVersion: v1
+kind: Config
+current-context: plugin
+contexts:
+- name: plugin
+  context:
+    cluster: cluster
+    user: plugin
+clusters:
+- name: cluster
+  cluster:
+    server: https://kubernetes.example
+users:
+- name: plugin
+  user:
+    token: bootstrap-token
+`), 0600))
+	cfg, err := executorPluginKubernetesConfig()
+	require.NoError(t, err)
+	assert.Equal(t, "https://kubernetes.example", cfg.Host)
+	assert.Equal(t, "bootstrap-token", cfg.BearerToken)
+	assert.IsType(t, executorPluginWarningHandler{}, cfg.WarningHandlerWithContext)
+	client, err := inClusterClientFactory().kubernetesClient(cfg)
+	require.NoError(t, err)
+	require.NotNil(t, client)
 }

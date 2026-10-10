@@ -32,7 +32,7 @@ policies, and verify ordinary profile provisioning/reconciliation.
 ## Driver plugin ServiceAccounts
 
 The driver executor plugin uses its own ServiceAccount for Kubernetes calls,
-including reading its agent Pod and Workflow. It requests a token for the
+including reading its agent Pod, Workflow, and WorkflowTaskSet. It requests a token for the
 Workflow's runtime ServiceAccount through `serviceaccounts/token` and uses that
 token only for KFP API calls. The runtime ServiceAccount keeps the KFP permissions
 for runs and artifacts.
@@ -47,6 +47,32 @@ Keep the grant restricted to named accounts. The multi-user ClusterRole is bound
 inside each profile namespace; the profile controller has permission to bind
 that role without directly receiving its token-issuing permissions.
 
+Argo 4.1.2 also needs a runtime token Secret for each custom ServiceAccount.
+The agent disables ordinary token automounting and falls back to the exact name
+`<service-account>.service-account-token`. The stock manifests provide this for
+`pipeline-runner` and profile-created `default-editor` accounts only. In the
+workflow's namespace, create a Secret annotated for the custom account, for
+example:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: custom-runner.service-account-token
+  namespace: your-pipeline-namespace
+  annotations:
+    kubernetes.io/service-account.name: custom-runner
+type: kubernetes.io/service-account-token
+```
+
+Create `ServiceAccount/custom-runner` first, retain its normal workflow/agent
+RBAC bindings, and wait for Kubernetes to populate the Secret's token before
+starting runs. The token-creation allowlist alone is not sufficient. This Secret
+is a long-lived Kubernetes credential, not the short-lived run-scoped KFP token;
+restrict access and remove it when retiring the account. Do not put a token value
+in source control. Do not confuse it with the plugin's separate ServiceAccount
+and token Secret.
+
 The compiler passes the run-specific KFP audience in `kfp_token_audience`; no
 token is included in workflow arguments. The driver validates the request against
 its agent Pod and keeps the issued token in memory, refreshing it before expiry.
@@ -54,6 +80,173 @@ RBAC restricts which ServiceAccounts the plugin can request tokens for, but not
 the requested audience. Enforcing an audience restriction at the Kubernetes API
 requires a separate admission policy or webhook; these manifests do not install
 one.
+
+## Driver execution and transport retries
+
+The driver returns Argo `Running`/`requeue` while execution continues, rather than
+holding an RPC open beyond Argo's 30-second timeout. Every poll authenticates the
+agent Pod and resolves exactly one active task in its WorkflowTaskSet, verifying
+the Workflow owner UID. Missing, ambiguous, or temporarily inconsistent taskset
+state returns HTTP 503 for retry, never starts guessed work. Plugin RBAC therefore
+requires namespace-scoped `workflowtasksets/get` in addition to `workflows/get`.
+The default standalone and profile-bound plugin roles include these permissions.
+
+Concurrent polls and lost HTTP responses share one execution and replay its
+terminal outputs for that taskset node. A deliberate Argo retry has a new node ID
+and executes separately; inherited workflow retry policies are unchanged. Results
+remain in memory for the agent process lifetime (memory grows with executed
+driver tasks). This is **not durable exactly-once execution**: restarting the
+agent/plugin loses the cache and can repeat task or external-plugin side effects.
+Driver work is canceled when the service shuts down and has a 30-minute context
+deadline; individual request cancellation does not cancel it. Calls must honor
+context cancellation. Workflow termination relies on Argo terminating the agent,
+not on an additional Workflow watcher in the plugin.
+
+## TLS agent trust projection
+
+The cert-manager TLS overlay uses an explicit controller `podSpecPatch` to
+project **only `ca.crt`** from the reserved Secret into workflow agents. The
+serving Secret also contains `tls.key`; neither the driver nor Argo agent
+containers receive that key through the filtered volume. The API server keeps
+its separate serving-key mount. Keep the trust patch when customizing the TLS
+overlay or its workflow defaults.
+
+This key projection avoids a second Secret-copy controller and follows ordinary
+Kubernetes Secret-volume updates on certificate rotation. CA mounts are directory
+mounts, not `subPath` mounts; new driver invocations build their TLS client from
+the current CA file. Verify the rendered agent volume's `items` allowlist before
+rollout and after custom patches. This is mount minimization, not protection
+against an identity separately authorized to read the whole Secret.
+
+## Driver custom CA migration
+
+`CABUNDLE_SECRET_NAME` and `CABUNDLE_CONFIGMAP_NAME` still configure launcher
+trust, but no longer mount certificates into the driver. Before upgrading an
+existing custom-CA TLS installation, configure agent trust separately: Argo only
+mounts `Secret/argo-workflows-agent-ca-certificates` from the **workflow's
+namespace**. Copy the approved CA bundle into its `ca.crt` key in every workflow
+namespace, including profile namespaces, and keep it synchronized on rotation.
+Do not copy the API server's private key. The existing TLS driver sidecar patch
+mounts that Secret at `/kfp/certs` and sets `CA_CERT_PATH=/kfp/certs/ca.crt`.
+
+For example, create `env/custom-ca/company-ca.crt` containing your public CA
+bundle and `env/custom-ca/kustomization.yaml` under this directory:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+resources:
+  - ../platform-agnostic
+patches:
+  - path: ../cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml
+  - patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ml-pipeline
+      spec:
+        template:
+          spec:
+            containers:
+              - name: ml-pipeline-api-server
+                env:
+                  - name: CABUNDLE_CONFIGMAP_NAME
+                    value: company-ca
+configMapGenerator:
+  - name: company-ca
+    files:
+      - ca.crt=company-ca.crt
+secretGenerator:
+  - name: argo-workflows-agent-ca-certificates
+    files:
+      - ca.crt=company-ca.crt
+generatorOptions:
+  disableNameSuffixHash: true
+```
+
+Render with `kustomize build --load-restrictor=LoadRestrictionsNone env/custom-ca`.
+This example configures **client trust only**, not an API server TLS listener or
+serving certificate. Replace `../platform-agnostic` with your existing TLS-enabled
+installation resources and preserve the serving-certificate and other client TLS
+configuration. If you already generate `company-ca`, reuse that resource rather
+than defining it twice. No cert-manager installation is needed to reuse the driver
+patch; do not include the entire cert-manager overlay. The embedded
+`sidecar.container` is a string: Kustomize cannot deep-patch its env or mounts.
+Use the complete TLS sidecar patch and preserve your image override if applicable.
+Create the reserved Secret separately in every other workflow namespace before
+starting runs. Verify a driver KFP API call and a launcher task after migration;
+manifest rendering alone does not verify TLS trust or live Argo mounts.
+
+## Driver log artifact credentials
+
+Driver log upload reads credentials from the configured object-store provider,
+not `LOG_ACCESS_KEY`/`LOG_SECRET_KEY` environment variables. External S3/GCS
+installations do not need the stock MinIO Secret merely to start the plugin.
+The default driver roles allow only the stock artifact and MLflow Secret names.
+When a provider specifies a custom credential Secret, grant the **plugin** account
+`get` for that exact Secret in the workflow namespace; permissions on the runtime
+ServiceAccount alone do not cover driver log upload. For example, apply this
+alongside `Secret/artifact-store-credentials` in the workflow namespace (replace
+`your-pipeline-namespace` and the credential name with your configured values):
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: driver-custom-artifact-credentials
+  namespace: your-pipeline-namespace
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["artifact-store-credentials"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: driver-custom-artifact-credentials
+  namespace: your-pipeline-namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: driver-custom-artifact-credentials
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-driver-agent-executor-plugin
+    namespace: your-pipeline-namespace
+```
+
+Repeat the namespace-local grant for each enabled profile that uses custom
+credentials. Do not grant wildcard Secret access or bind this Role cluster-wide.
+After applying, verify the plugin identity can get the configured Secret and
+cannot get an unrelated Secret, then run a pipeline and check its System Logs
+artifact. The manifest tests check the exact-name authorization contract, not
+live Kubernetes authorization or object-store access.
+
+## Driver Pod metadata migration
+
+The executor-plugin driver no longer creates per-task driver Pods.
+`DRIVER_POD_LABELS` and `DRIVER_POD_ANNOTATIONS` are therefore deprecated and
+nonempty values cause API server startup or configuration reload to fail. Remove
+these keys from `config.json`, the API server environment, and the ConfigMaps
+that feed it before upgrading. Blank, `null`, and empty-object values are
+accepted as unconfigured; invalid or nonempty values are rejected with migration
+guidance.
+
+To retain driver-only metadata, use an administrator-managed mutating admission
+policy or webhook that matches Pods labeled
+`workflows.argoproj.io/component: agent` in the intended pipeline namespaces.
+Apply required mesh annotations and monitoring labels at creation time; changing
+an already running Pod does not retroactively inject a sidecar. Keep Argo's
+ownership, workflow, and run-identity labels intact, and verify both agent
+startup and component execution after the change.
+
+If the metadata is deliberately intended for **all** workflow Pods, configure
+Argo controller `workflowDefaults.spec.podMetadata` instead. This includes
+component Pods and is not an automatic translation of the old driver-only
+settings. Check template-level metadata overrides and mesh behavior before
+rollout. KFP does not install a metadata-mutating admission policy for you.
 
 ## Artifact download responses
 

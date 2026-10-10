@@ -6,23 +6,13 @@ data:
   sidecar.automountServiceAccountToken: "true"
   sidecar.container: |
     name: driver-plugin
-    image: ghcr.io/kubeflow/kfp-driver:dummy
+    image: ghcr.io/kubeflow/kfp-driver:2.17.1
     terminationMessagePolicy: FallbackToLogsOnError
     env:
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
             fieldPath: metadata.name
-      - name: LOG_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-      - name: LOG_SECRET_KEY
-        valueFrom:
-          secretKeyRef:
-            name: mlpipeline-minio-artifact
-            key: secretkey
       - name: CA_CERT_PATH
         value: /kfp/certs/ca.crt
     ports:
@@ -50,4 +40,5 @@ data:
       readOnly: true
     - name: var-run-argo
       mountPath: /kfp/log
+      subPath: driver-plugin
       readOnly: false

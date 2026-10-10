@@ -137,11 +137,11 @@ func (s *serviceAccountTokenSource) requestToken(ctx context.Context) (string, t
 		return "", time.Time{}, fmt.Errorf("request service account token: %w", err)
 	}
 	if response == nil || response.Status.Token == "" {
-		return "", time.Time{}, fmt.Errorf("kubernetes returned an empty service account token")
+		return "", time.Time{}, fmt.Errorf("kubernetes returned an empty service account token; check the API server TokenRequest configuration and retry")
 	}
 	expiration := response.Status.ExpirationTimestamp.Time
 	if !expiration.After(s.now()) {
-		return "", time.Time{}, fmt.Errorf("kubernetes returned an expired service account token")
+		return "", time.Time{}, fmt.Errorf("kubernetes returned an expired service account token; check clock synchronization and the API server token expiration settings, then retry")
 	}
 	return response.Status.Token, expiration, nil
 }

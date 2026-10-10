@@ -25,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -1675,7 +1674,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
-		util.WithExistingLogger(context.Background(), logrus.New()),
+		newTestLoggerContext(t),
 		podSpec,
 		opts,
 		mapToIOParameters(map[string]*structpb.Value{}),
@@ -1754,7 +1753,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
-		util.WithExistingLogger(context.Background(), logrus.New()),
+		newTestLoggerContext(t),
 		podSpec,
 		opts,
 		mapToIOParameters(map[string]*structpb.Value{}),

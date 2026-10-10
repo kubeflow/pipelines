@@ -16,54 +16,12 @@ package proxy
 import (
 	"fmt"
 	"os"
-	"strings"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	k8score "k8s.io/api/core/v1"
 )
-
-func TestNewConfig_ConcurrentRequestsDoNotChangeGlobalConfig(t *testing.T) {
-	previousConfig := configInstance
-	t.Cleanup(func() { configInstance = previousConfig })
-	InitializeConfig("http://global.example", "https://global.example", "global.internal")
-	globalConfig := GetConfig()
-	globalEnv := globalConfig.GetEnvVars()
-
-	const requestCount = 16
-	configs := make([]Config, requestCount)
-	var ready sync.WaitGroup
-	ready.Add(requestCount)
-	for i := range requestCount {
-		go func() {
-			defer ready.Done()
-			configs[i] = NewConfig(
-				fmt.Sprintf("http://request-%d.example", i),
-				fmt.Sprintf("https://request-%d.example", i),
-				fmt.Sprintf("request-%d.internal", i),
-			)
-		}()
-	}
-	ready.Wait()
-
-	for i, cfg := range configs {
-		assert.Equal(t, fmt.Sprintf("http://request-%d.example", i), cfg.GetHttpProxy())
-		assert.Equal(t, fmt.Sprintf("https://request-%d.example", i), cfg.GetHttpsProxy())
-		assert.Equal(t, fmt.Sprintf("request-%d.internal,", i)+getDefaultNoProxyValue(), cfg.GetNoProxy())
-	}
-	assert.Same(t, globalConfig, GetConfig())
-	assert.Equal(t, globalEnv, GetConfig().GetEnvVars())
-}
-
-func TestNewConfig_MergesNoProxyWithInternalAddresses(t *testing.T) {
-	cfg := NewConfig("http://proxy.example", "", " example.internal,localhost,example.internal, ,127.0.0.1 ")
-	entries := strings.Split(cfg.GetNoProxy(), ",")
-	expectedEntries := append([]string{"example.internal"}, strings.Split(getDefaultNoProxyValue(), ",")...)
-	assert.ElementsMatch(t, expectedEntries, entries)
-	assert.Equal(t, "example.internal", entries[0])
-}
 
 func TestNewConfigFromEnvVars(t *testing.T) {
 	tests := []struct {

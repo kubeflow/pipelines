@@ -75,8 +75,13 @@ export const queryKeys = {
     sourceFinished?: boolean,
   ) => ['task_logs', { taskId, taskState, namespace, sourceIdentity, sourceFinished }] as const,
 
-  driverLogs: (taskId?: string, taskState?: string, namespace?: string, logUri?: string) =>
-    ['driver_logs', { taskId, taskState, namespace, logUri }] as const,
+  driverLogs: (
+    taskId?: string,
+    taskState?: string,
+    namespace?: string,
+    logUri?: string,
+    sourceFinished?: boolean,
+  ) => ['driver_logs', { taskId, taskState, namespace, logUri, sourceFinished }] as const,
 
   // --- Pipeline & version ---
 

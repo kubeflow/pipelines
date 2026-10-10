@@ -15,63 +15,30 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"flag"
-	"net/http"
-
-	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"os/signal"
+	"syscall"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
-)
-
-const (
-	unsetProxyArgValue = "unset"
-	RootDag            = "ROOT_DAG"
-	DAG                = "DAG"
-	CONTAINER          = "CONTAINER"
-)
-
-var (
-	logLevel   = flag.String("log_level", "1", "The verbosity level to log.")
-	serverPort = flag.String("server_port", ":8080", "Server port")
+	"github.com/kubeflow/pipelines/backend/src/driver/executorplugin"
 )
 
 func main() {
+	logLevel := flag.String("log_level", "1", "The verbosity level to log.")
+	serverPort := flag.String("server_port", ":8080", "Server port")
+	// Use WARNING default logging level to facilitate troubleshooting.
+	flag.Set("logtostderr", "true")
+	flag.Set("stderrthreshold", "WARNING")
 	flag.Parse()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
-	err := flag.Set("v", *logLevel)
-	if err != nil {
-		glog.Warningf("Failed to set log level: %s", err.Error())
+	if err := flag.Set("v", *logLevel); err != nil {
+		glog.Warningf("Failed to set log level: %s", err)
 	}
-
-	handler, err := authenticatedPluginHandler(pluginAuthTokenPath, http.HandlerFunc(ExecutePlugin))
-	if err != nil {
-		glog.Exitf("Failed to initialize executor plugin authentication: %v", err)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	if err := executorplugin.Serve(ctx, *serverPort, executorplugin.DefaultTokenPath); err != nil {
+		glog.Exitf("Driver service failed: %v", err)
 	}
-	http.Handle("/api/v1/template.execute", handler)
-	glog.Infof("Server started at http://localhost%v", *serverPort)
-	err = http.ListenAndServe(*serverPort, nil)
-	if err != nil {
-		glog.Warningf("Failed to start http server: %s", err.Error())
-	}
-}
-
-// Use WARNING default logging level to facilitate troubleshooting.
-func init() {
-	flag.Set("logtostderr", "true")
-	// Change the WARNING to INFO level for debugging.
-	flag.Set("stderrthreshold", "WARNING")
-}
-
-func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
-	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
-	if *k8sExecConfigJSON != "" {
-		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := util.UnmarshalString(*k8sExecConfigJSON, k8sExecCfg); err != nil {
-			return nil, errors.New("failed to unmarshal Kubernetes config")
-		}
-	}
-	return k8sExecCfg, nil
 }

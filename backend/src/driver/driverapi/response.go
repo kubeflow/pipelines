@@ -14,20 +14,25 @@
 
 package driverapi
 
+// DriverResponse is the Argo executor-plugin response envelope.
 type DriverResponse struct {
-	Node Node `json:"node"`
+	Node    Node   `json:"node"`
+	Requeue string `json:"requeue,omitempty"`
 }
 
+// Node reports the driver phase, outputs, and failure message.
 type Node struct {
 	Phase   string  `json:"phase"`
 	Outputs Outputs `json:"outputs"`
 	Message string  `json:"message"`
 }
 
+// Outputs contains the parameters returned to the workflow.
 type Outputs struct {
 	Parameters []Parameter `json:"parameters"`
 }
 
+// Parameter is a named string output consumed by Argo.
 type Parameter struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`

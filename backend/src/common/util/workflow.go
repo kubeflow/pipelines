@@ -841,8 +841,6 @@ func (w *Workflow) UpsertRuntimeConfig(runtimeConfig map[string]string, roles ..
 			}
 			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envList)
 		}
-		// Driver runtime config is passed through executor plugin args because
-		// Argo executor plugins do not expose a pod container env block here.
 		if tmpl.Plugin != nil && roleSet[ExecutionRuntimeRoleDriver] {
 			if err := upsertRuntimeArgs(tmpl, runtimeConfig); err != nil {
 				return err
@@ -883,7 +881,11 @@ func upsertRuntimeArgs(tmpl *workflowapi.Template, runtimeArgs map[string]string
 	if err := stdjson.Unmarshal(tmpl.Plugin.Value, &pluginConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal plugin config for template %q: %w", tmpl.Name, err)
 	}
-	driverPlugin, ok := pluginConfig["driver-plugin"].(map[string]interface{})
+	ownedConfig, owned := pluginConfig["driver-plugin"]
+	if !owned {
+		return nil
+	}
+	driverPlugin, ok := ownedConfig.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("failed to unmarshal executor plugin config for template %q: no driver plugin config", tmpl.Name)
 	}
@@ -896,6 +898,9 @@ func upsertRuntimeArgs(tmpl *workflowapi.Template, runtimeArgs map[string]string
 		if err := stdjson.Unmarshal([]byte(existing), &existingRuntimeArgs); err != nil {
 			return fmt.Errorf("failed to unmarshal runtime args for template %q: %w", tmpl.Name, err)
 		}
+	}
+	if existingRuntimeArgs == nil {
+		existingRuntimeArgs = make(map[string]string)
 	}
 	for key, value := range runtimeArgs {
 		existingRuntimeArgs[key] = value

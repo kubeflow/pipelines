@@ -292,7 +292,7 @@ func BuildMLflowRunRequestContext(namespace string, requestCfg *ResolvedMLflowCo
 		return nil, err
 	}
 	workspacesEnabled := settings.WorkspacesEnabled != nil && *settings.WorkspacesEnabled
-	return commonmlflow.BuildMLflowRequestContext(*requestCfg.Config, requestCfg.Credentials, namespace, workspacesEnabled)
+	return commonmlflow.BuildMLflowRequestContext(context.Background(), *requestCfg.Config, requestCfg.Credentials, namespace, workspacesEnabled)
 }
 
 // validateBaseURLs validates the kfpBaseURL and mlflowBaseURL fields in settings

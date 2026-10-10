@@ -152,7 +152,7 @@ rules:
     verbs: ["create"]
     # Read workflow identity and schedule metadata with the plugin's own token.
   - apiGroups: ["argoproj.io"]
-    resources: ["workflows"]
+    resources: ["workflows", "workflowtasksets"]
     verbs: ["get"]
     # the driver may need permissions to create and delete PVCs
     # see test_data/sdk_compiled_pipelines/valid/pipeline_with_volume.py for example

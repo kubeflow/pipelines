@@ -63,6 +63,10 @@ func (cm *ClientManager) init(opts *Options) error {
 		if err != nil {
 			return err
 		}
+		if tlsCfg == nil {
+			// An empty custom CA path means system trust, never plaintext.
+			tlsCfg = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
 	}
 	k8sClient := opts.K8sClient
 	if k8sClient == nil {

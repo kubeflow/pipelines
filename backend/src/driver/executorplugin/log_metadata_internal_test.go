@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package executorplugin
 
 import (
 	"context"
@@ -32,6 +32,13 @@ type logMetadataAPI struct {
 	update    *gc.UpdateTaskRequest
 	getErr    error
 	updateErr error
+	create    *gc.CreateArtifactRequest
+	createErr error
+}
+
+func (a *logMetadataAPI) CreateArtifact(_ context.Context, req *gc.CreateArtifactRequest) (*gc.Artifact, error) {
+	a.create = req
+	return req.Artifact, a.createErr
 }
 
 func (a *logMetadataAPI) GetTask(_ context.Context, _ *gc.GetTaskRequest) (*gc.PipelineTask, error) {
@@ -50,13 +57,24 @@ func TestRegisterDriverLogPreservesTaskMetadata(t *testing.T) {
 			"mlflow_run_id": structpb.NewStringValue("mlflow-task-run"),
 		}},
 	} {
+		iteration := int64(3)
 		api := &logMetadataAPI{task: &gc.PipelineTask{
 			TaskId: "task-id", RunId: "run-id", State: gc.PipelineTask_FAILED, StatusMetadata: metadata,
+			TypeAttributes: &gc.PipelineTask_TypeAttributes{IterationIndex: &iteration},
 		}}
 		original := proto.Clone(api.task)
-		err := registerDriverLog(context.Background(), api, "run-id", "task-id", "s3://bucket/task/driver-logs", "{}")
+		err := registerDriverLog(context.Background(), api, "run-id", "task-id", "team-a", "s3://bucket/task/driver-logs", "{}")
 		require.NoError(t, err)
 		require.NotNil(t, api.update)
+		require.NotNil(t, api.create)
+		assert.Equal(t, "team-a", api.create.Artifact.Namespace)
+		assert.Equal(t, "s3://bucket/task/driver-logs", api.create.Artifact.GetUri())
+		assert.Equal(t, "driver-logs", api.create.ProducerKey)
+		assert.Equal(t, "task-id", api.create.TaskId)
+		assert.Equal(t, "run-id", api.create.RunId)
+		assert.True(t, api.create.ReuseIfExists)
+		require.NotNil(t, api.create.IterationIndex)
+		assert.Equal(t, iteration, *api.create.IterationIndex)
 		assert.True(t, proto.Equal(original, api.task), "read task must not be mutated")
 		assert.Equal(t, "task-id", api.update.TaskId)
 		assert.Equal(t, "run-id", api.update.RunId)
@@ -75,8 +93,12 @@ func TestRegisterDriverLogPreservesTaskMetadata(t *testing.T) {
 
 func TestRegisterDriverLogReportsAPIErrors(t *testing.T) {
 	api := &logMetadataAPI{getErr: assert.AnError}
-	assert.ErrorIs(t, registerDriverLog(context.Background(), api, "run", "task", "uri", "{}"), assert.AnError)
+	assert.ErrorIs(t, registerDriverLog(context.Background(), api, "run", "task", "team-a", "uri", "{}"), assert.AnError)
 	assert.Nil(t, api.update)
+	assert.Nil(t, api.create)
+	api = &logMetadataAPI{task: &gc.PipelineTask{}, createErr: assert.AnError}
+	assert.ErrorIs(t, registerDriverLog(context.Background(), api, "run", "task", "team-a", "uri", "{}"), assert.AnError)
+	assert.Nil(t, api.update, "do not publish a URI without ownership")
 	api = &logMetadataAPI{task: &gc.PipelineTask{}, updateErr: assert.AnError}
-	assert.ErrorIs(t, registerDriverLog(context.Background(), api, "run", "task", "uri", "{}"), assert.AnError)
+	assert.ErrorIs(t, registerDriverLog(context.Background(), api, "run", "task", "team-a", "uri", "{}"), assert.AnError)
 }

@@ -16,24 +16,34 @@ package objectstore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -102,8 +112,136 @@ func OpenBucket(
 		return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 	}
 
-	// Use gocloud's URL opener for the remaining cases, including query-string based S3 URLs.
-	return blob.OpenBucket(ctx, bucketURL)
+	// Keep Go CDK's query parsing, encryption and prefix handling on URL paths.
+	if _, overridden := util.HTTPProxyFrom(ctx); overridden && config.Scheme == "gs://" {
+		return openGCSURL(ctx, bucketURL)
+	}
+	bucket, err = blob.OpenBucket(ctx, bucketURL)
+	if err == nil {
+		if resolver, overridden := util.HTTPProxyFrom(ctx); overridden {
+			var s3Client *s3.Client
+			if bucket.As(&s3Client) {
+				// This URL opener owns a fresh client. Retain its resolved CA trust.
+				options := s3Client.Options()
+				client, ok := options.HTTPClient.(*awshttp.BuildableClient)
+				if !ok {
+					_ = bucket.Close()
+					return nil, fmt.Errorf("S3 URL client cannot preserve custom CA trust; configure a structured bucket provider")
+				}
+				options.HTTPClient = client.WithTransportOptions(func(transport *http.Transport) { transport.Proxy = resolver })
+				credentialConfig, credentialErr := s3URLCredentialConfig(ctx, bucketURL, options)
+				if credentialErr != nil {
+					_ = bucket.Close()
+					return nil, credentialErr
+				}
+				options.Credentials = credentialConfig.Credentials
+				options.HTTPClient = credentialConfig.HTTPClient
+				*s3Client = *s3.New(options)
+			}
+		}
+	}
+	return bucket, err
+}
+
+// s3URLCredentialConfig rebuilds the credential chain and CA-aware HTTP client
+// together; replacing only S3's transport leaves STS/metadata clients behind.
+func s3URLCredentialConfig(ctx context.Context, bucketURL string, options s3.Options) (aws.Config, error) {
+	parsed, err := url.Parse(bucketURL)
+	if err != nil {
+		return aws.Config{}, err
+	}
+	query := parsed.Query()
+	loadOptions := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithHTTPClient(options.HTTPClient),
+		awsconfig.WithRegion(options.Region),
+	}
+	if profile := query.Get("profile"); profile != "" {
+		loadOptions = append(loadOptions, awsconfig.WithSharedConfigProfile(profile))
+	}
+	if anonymous, _ := strconv.ParseBool(query.Get("anonymous")); anonymous {
+		loadOptions = append(loadOptions, awsconfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
+	}
+	if dualstack, _ := strconv.ParseBool(query.Get("dualstack")); dualstack {
+		loadOptions = append(loadOptions, awsconfig.WithUseDualStackEndpoint(aws.DualStackEndpointStateEnabled))
+	}
+	if fips, _ := strconv.ParseBool(query.Get("fips")); fips {
+		loadOptions = append(loadOptions, awsconfig.WithUseFIPSEndpoint(aws.FIPSEndpointStateEnabled))
+	}
+	if options.Retryer != nil {
+		loadOptions = append(loadOptions, awsconfig.WithRetryer(func() aws.Retryer { return options.Retryer }))
+	}
+	config, err := awsconfig.LoadDefaultConfig(ctx, loadOptions...)
+	if err != nil {
+		return aws.Config{}, fmt.Errorf("configure S3 URL credentials with invocation proxy: %w", err)
+	}
+	if role := query.Get("role"); role != "" {
+		config.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(sts.NewFromConfig(config), role))
+	}
+	return config, nil
+}
+
+// invocationTransport clones rather than changes the process-wide HTTP transport.
+func invocationTransport(ctx context.Context) *http.Transport {
+	resolver, overridden := util.HTTPProxyFrom(ctx)
+	if !overridden {
+		return nil
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = resolver
+	return transport
+}
+
+func openGCSURL(ctx context.Context, bucketURL string) (*blob.Bucket, error) {
+	parsed, err := url.Parse(bucketURL)
+	if err != nil {
+		return nil, err
+	}
+	transport := invocationTransport(ctx)
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Transport: transport})
+	query := parsed.Query()
+	anonymous := query.Get("access_id") == "-" || os.Getenv("STORAGE_EMULATOR_HOST") != ""
+	if value := query.Get("anonymous"); value != "" {
+		flag, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, err
+		}
+		anonymous = anonymous || flag
+	}
+	var client *gcp.HTTPClient
+	var options gcsblob.Options
+	universeDomain := query.Get("universe_domain")
+	if anonymous {
+		client = gcp.NewAnonymousHTTPClient(transport)
+	} else {
+		creds, err := gcp.DefaultCredentialsWithParams(ctx, google.CredentialsParams{UniverseDomain: query.Get("universe_domain")})
+		if err != nil {
+			return nil, err
+		}
+		client, err = gcp.NewHTTPClient(transport, gcp.CredentialsTokenSource(creds))
+		if err != nil {
+			return nil, err
+		}
+		universeDomain, err = creds.GetUniverseDomain()
+		if err != nil {
+			return nil, fmt.Errorf("resolve GCS credential universe domain: %w", err)
+		}
+		var signing struct {
+			Email string `json:"client_email"`
+			Key   string `json:"private_key"`
+		}
+		if err := json.Unmarshal(creds.JSON, &signing); err == nil {
+			options.GoogleAccessID, options.PrivateKey = signing.Email, []byte(signing.Key)
+		}
+	}
+	if universeDomain != "" {
+		options.ClientOptions = append(options.ClientOptions, option.WithUniverseDomain(universeDomain))
+	}
+	// The opener may replace Client for anonymous=true. Its final client option
+	// preserves our invocation transport in that case as well.
+	options.ClientOptions = append(options.ClientOptions, option.WithHTTPClient(&client.Client))
+	mux := new(blob.URLMux)
+	mux.RegisterBucket("gs", &gcsblob.URLOpener{Client: client, Options: options})
+	return mux.OpenBucket(ctx, bucketURL)
 }
 
 func normalizeBucketURLForBlobOpen(bucketURL string) string {
@@ -281,7 +419,12 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if err != nil {
 		return nil, err
 	}
+	transport := invocationTransport(ctx)
+	if transport != nil {
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Transport: transport})
+	}
 	if params.FromEnv {
+		// Use the URL opener so default credentials and query options stay aligned.
 		return nil, nil
 	}
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, params.SecretName, metav1.GetOptions{})
@@ -296,7 +439,11 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if err != nil {
 		return nil, err
 	}
-	client, err = gcp.NewHTTPClient(gcp.DefaultTransport(), gcp.CredentialsTokenSource(creds))
+	var base http.RoundTripper = gcp.DefaultTransport()
+	if transport != nil {
+		base = transport
+	}
+	client, err = gcp.NewHTTPClient(base, gcp.CredentialsTokenSource(creds))
 	if err != nil {
 		return nil, err
 	}
@@ -328,6 +475,10 @@ func newS3Client(ctx context.Context, params *S3Params, creds *credentials.Stati
 	loadOptions := []func(*awsconfig.LoadOptions) error{
 		awsconfig.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
 		awsconfig.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
+	}
+	if resolver, overridden := util.HTTPProxyFrom(ctx); overridden {
+		client := awshttp.NewBuildableClient().WithTransportOptions(func(transport *http.Transport) { transport.Proxy = resolver })
+		loadOptions = append(loadOptions, awsconfig.WithHTTPClient(client))
 	}
 	if params != nil {
 		if params.MaxRetries > 0 {

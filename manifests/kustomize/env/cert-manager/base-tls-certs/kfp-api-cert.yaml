@@ -20,6 +20,5 @@ spec:
   issuerRef:
     kind: Issuer
     name: kfp-api-tls-selfsigned-issuer
-    # Unfortunately, Argo Workflows (for security reasons) can mount certificates
-    # into the agent only from a Secret with a predefined name `argo-workflows-agent-ca-certificates`
+  # The TLS controller patch projects only ca.crt into agents; never tls.key.
   secretName: argo-workflows-agent-ca-certificates

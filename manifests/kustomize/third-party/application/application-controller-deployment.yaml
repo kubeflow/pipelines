@@ -34,5 +34,5 @@ spec:
               memory: 30Mi
             requests:
               cpu: 100m
-              memory: 64Mi
+              memory: 30Mi
       serviceAccountName: application
