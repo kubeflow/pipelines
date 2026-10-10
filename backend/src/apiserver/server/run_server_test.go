@@ -912,6 +912,7 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 			&apiv2beta1.Run{
 				RunId:          "123e4567-e89b-12d3-a456-426655440000",
 				ExperimentId:   DefaultFakeUUID,
+				Namespace:      "ns1",
 				DisplayName:    "run1",
 				ServiceAccount: "pipeline-runner",
 				StorageState:   apiv2beta1.Run_AVAILABLE,
@@ -953,6 +954,7 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 			&apiv2beta1.Run{
 				RunId:          "123e4567-e89b-12d3-a456-426655440000",
 				ExperimentId:   DefaultFakeUUID,
+				Namespace:      "ns1",
 				DisplayName:    "run1",
 				ServiceAccount: "pipeline-runner",
 				StorageState:   apiv2beta1.Run_AVAILABLE,
@@ -1113,6 +1115,7 @@ func TestGetRun(t *testing.T) {
 	expectedRun := &apiv2beta1.Run{
 		RunId:          "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   experiment.UUID,
+		Namespace:      "ns1",
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
@@ -1454,6 +1457,7 @@ func TestListRuns(t *testing.T) {
 	expectedRun := &apiv2beta1.Run{
 		RunId:          "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   experiment.UUID,
+		Namespace:      "ns1",
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   apiv2beta1.Run_AVAILABLE,
@@ -1921,4 +1925,90 @@ func TestRetryRunV1(t *testing.T) {
 	_, err := server.RetryRunV1(context.Background(), &apiv1beta1.RetryRunRequest{RunId: run.UUID})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Workflow must be Failed/Error to retry")
+}
+
+// The namespace may arrive on the run itself or as a request-level field bound
+// from ?namespace=. Without one of them the default experiment cannot be
+// resolved in multi-user mode, so these paths are what make the fallback usable.
+func TestRunServer_CreateRun_NamespaceResolution(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct))
+
+	newRun := func(namespace string) *apiv2beta1.Run {
+		return &apiv2beta1.Run{
+			DisplayName:    "run1",
+			Namespace:      namespace,
+			PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+			RuntimeConfig: &apiv2beta1.RuntimeConfig{
+				Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("world")},
+			},
+		}
+	}
+
+	tests := []struct {
+		name          string
+		request       *apiv2beta1.CreateRunRequest
+		wantNamespace string
+		wantErrMsg    string
+	}{
+		{
+			name:          "namespace on the run body",
+			request:       &apiv2beta1.CreateRunRequest{Run: newRun("ns1")},
+			wantNamespace: "ns1",
+		},
+		{
+			name:          "namespace from the request (?namespace=)",
+			request:       &apiv2beta1.CreateRunRequest{Run: newRun(""), Namespace: "ns1"},
+			wantNamespace: "ns1",
+		},
+		{
+			name:          "run body wins over the request",
+			request:       &apiv2beta1.CreateRunRequest{Run: newRun("ns1"), Namespace: "ns2"},
+			wantNamespace: "ns1",
+		},
+		{
+			name:       "neither is set",
+			request:    &apiv2beta1.CreateRunRequest{Run: newRun("")},
+			wantErrMsg: "A run cannot have an empty namespace in multi-user mode",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// A real UUID generator: the constant-UUID fake collides on the
+			// primary key when a second experiment is created, which surfaces
+			// misleadingly as a duplicate-name error.
+			initEnvVars()
+			clients, err := resource.NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+			require.NoError(t, err)
+			defer clients.Close()
+			manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+			server := createRunServer(manager)
+			md := metadata.New(map[string]string{
+				common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com",
+			})
+			ctx := metadata.NewIncomingContext(context.Background(), md)
+
+			got, err := server.CreateRun(ctx, tt.request)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrMsg)
+				return
+			}
+			require.NoError(t, err)
+
+			// The resolved namespace is echoed back, not only applied internally.
+			assert.Equal(t, tt.wantNamespace, got.GetNamespace())
+
+			// The run has no experiment of its own, so it must land in the
+			// default experiment of the resolved namespace.
+			experiment, err := manager.GetExperiment(got.GetExperimentId())
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantNamespace, experiment.Namespace)
+			assert.Equal(t, "Default", experiment.Name)
+		})
+	}
 }

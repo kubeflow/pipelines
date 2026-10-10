@@ -19,7 +19,7 @@ Name | Type | Description | Notes
 **status** | [**V2beta1RecurringRunStatus**](V2beta1RecurringRunStatus.md) |  | [optional] 
 **error** | [**GoogleRpcStatus**](GoogleRpcStatus.md) |  | [optional] 
 **no_catchup** | **bool** | Optional input field. Whether the recurring run should catch up if behind schedule. If true, the recurring run will only schedule the latest interval if behind schedule. If false, the recurring run will catch up on each past interval. | [optional] 
-**namespace** | **str** | TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment. | [optional] [readonly] 
+**namespace** | **str** | TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Optional input field. Namespace this recurring run belongs to. Derived from the parent experiment when experiment_id is set. | [optional] 
 **experiment_id** | **str** | ID of the parent experiment this recurring run belongs to. | [optional] 
 **plugins_input** | **dict(str, object)** | Optional input. Plugin inputs to propagate to each triggered run. Each triggered run will inherit these values in its plugins_input field. | [optional] 
 

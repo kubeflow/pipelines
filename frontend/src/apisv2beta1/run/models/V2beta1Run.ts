@@ -203,6 +203,15 @@ export interface V2beta1Run {
    * @memberof V2beta1Run
    */
   plugins_output?: { [key: string]: V2beta1PluginOutput };
+  /**
+   * Optional input field. Namespace this run belongs to. Derived from the
+   * parent experiment when experiment_id is set. In multi-user mode with
+   * experiment_id omitted, this selects the namespace whose default
+   * experiment the run is placed in.
+   * @type {string}
+   * @memberof V2beta1Run
+   */
+  namespace?: string;
 }
 
 /**
@@ -258,6 +267,7 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
       json['plugins_output'] == null
         ? undefined
         : mapValues(json['plugins_output'], V2beta1PluginOutputFromJSON),
+    namespace: json['namespace'] == null ? undefined : json['namespace'],
   };
 }
 
@@ -305,5 +315,6 @@ export function V2beta1RunToJSONTyped(
       value['plugins_output'] == null
         ? undefined
         : mapValues(value['plugins_output'], V2beta1PluginOutputToJSON),
+    namespace: value['namespace'],
   };
 }

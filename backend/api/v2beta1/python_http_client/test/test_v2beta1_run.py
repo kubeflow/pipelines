@@ -141,7 +141,8 @@ class TestV2beta1Run(unittest.TestCase):
                             }, 
                         state = 'PLUGIN_STATE_UNSPECIFIED', 
                         state_message = '0', )
-                    }
+                    }, 
+                namespace = '0'
             )
         else :
             return V2beta1Run(
