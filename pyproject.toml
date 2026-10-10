@@ -110,7 +110,7 @@ backend-v2-test = [
 
 # Legacy SageMaker development tools
 sagemaker-dev-tools = [
-  "black==19.10b0",
+  "black==26.10.0",
   "coverage>=5.2.1",
 ]
 
