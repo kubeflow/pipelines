@@ -840,6 +840,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			q("CreatedAtInSec"):          r.RunDetails.CreatedAtInSec,
 			q("ScheduledAtInSec"):        r.RunDetails.ScheduledAtInSec,
 			q("FinishedAtInSec"):         r.RunDetails.FinishedAtInSec,
+			q("RetryGeneration"):         r.RunDetails.RetryGeneration,
 			q("Conditions"):              r.RunDetails.Conditions,
 			q("WorkflowRuntimeManifest"): r.RunDetails.WorkflowRuntimeManifest,
 			q("PipelineRuntimeManifest"): r.RunDetails.PipelineRuntimeManifest,

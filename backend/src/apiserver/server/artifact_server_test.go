@@ -227,6 +227,89 @@ func TestArtifactServer_CreateArtifact_WithIterationIndex(t *testing.T) {
 	assert.Equal(t, int64(5), *at.GetProducer().Iteration)
 }
 
+func TestArtifactServer_CreateArtifact_UsesRunRetryGeneration(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+	})
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(
+		clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: false},
+	)
+	s := createArtifactServer(resourceManager)
+
+	runID := "retry-generation-run"
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runID,
+		K8SName:      "retry-generation-run",
+		DisplayName:  "retry-generation-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+			RetryGeneration:  7,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "retry-generation-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	request := &apiv2beta1.CreateArtifactRequest{
+		RunId:       runID,
+		TaskId:      task.UUID,
+		ProducerKey: "output",
+		Artifact: &apiv2beta1.Artifact{
+			Namespace: "ns1",
+			Type:      apiv2beta1.Artifact_Artifact,
+			Uri:       strPTR("gs://bucket/output"),
+			Name:      "output",
+		},
+	}
+
+	// First write uses RetryGeneration = 7.
+	first, err := s.CreateArtifact(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, first)
+
+	require.NotEmpty(t, first.GetArtifactId())
+
+	// Change the persisted retry generation to simulate a new attempt.
+	run, err := clientManager.RunStore().GetRun(runID, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(7), run.RetryGeneration)
+
+	// Move the run to a terminal state while preserving generation 7.
+	run.State = model.RuntimeStateSucceeded
+	require.NoError(t, clientManager.RunStore().UpdateRun(run))
+
+	// Use the real retry-claim path. This advances the authoritative
+	// attempt identity from generation 7 to generation 8.
+	_, _, _, newGeneration, err :=
+		clientManager.RunStore().ClaimRunForRetry(runID, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(8), newGeneration)
+
+	// Same artifact request, but now the authoritative attempt identity
+	// is RetryGeneration = 8, so this must create a different artifact.
+	second, err := s.CreateArtifact(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, second)
+
+	require.NotEmpty(t, second.GetArtifactId())
+	require.NotEqual(t, first.GetArtifactId(), second.GetArtifactId())
+}
+
 func TestArtifactServer_CreateArtifact_RejectsNamespaceMismatch(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -1281,6 +1364,362 @@ func TestArtifactServer_CreateArtifactsBulk_Success(t *testing.T) {
 	assert.GreaterOrEqual(t, int(listResp.GetTotalSize()), 3)
 }
 
+func TestArtifactServer_CreateArtifactsBulk_ReplayedWriteDoesNotDuplicate(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+	})
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(
+		clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: false},
+	)
+	s := createArtifactServer(resourceManager)
+
+	runID := "bulk-replay-run"
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runID,
+		K8SName:      "bulk-replay-run",
+		DisplayName:  "bulk-replay-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+			RetryGeneration:  7,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "bulk-replay-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	request := &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       runID,
+				TaskId:      task.UUID,
+				ProducerKey: "output",
+				OperationId: "bulk-replay-1",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace:   "ns1",
+					Type:        apiv2beta1.Artifact_Model,
+					Uri:         strPTR("gs://bucket/bulk-output"),
+					Name:        "bulk-output",
+					Description: "Bulk output",
+				},
+			},
+		},
+	}
+
+	// First bulk write creates the artifact.
+	first, err := s.CreateArtifactsBulk(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, first)
+	require.Len(t, first.GetArtifacts(), 1)
+
+	firstArtifactID := first.GetArtifacts()[0].GetArtifactId()
+	require.NotEmpty(t, firstArtifactID)
+
+	// Replay the exact same bulk request.
+	second, err := s.CreateArtifactsBulk(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, second)
+	require.Len(t, second.GetArtifacts(), 1)
+
+	// The replay must return the original artifact rather than create a duplicate.
+	require.Equal(t, firstArtifactID, second.GetArtifacts()[0].GetArtifactId())
+
+	// Verify exactly one artifact exists.
+	listResp, err := s.ListArtifacts(context.Background(), &apiv2beta1.ListArtifactRequest{
+		Namespace: "ns1",
+		PageSize:  100,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), listResp.GetTotalSize())
+
+	// Verify exactly one artifact-task relationship exists.
+	artifactTasks, err := s.ListArtifactTasks(
+		context.Background(),
+		&apiv2beta1.ListArtifactTasksRequest{
+			ArtifactIds: []string{firstArtifactID},
+			PageSize:    10,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), artifactTasks.GetTotalSize())
+}
+
+func TestArtifactServer_CreateArtifactsBulk_ReplayPayloadConflict(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+	})
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(
+		clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: false},
+	)
+	s := createArtifactServer(resourceManager)
+
+	runID := "bulk-conflict-run"
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runID,
+		K8SName:      "bulk-conflict-run",
+		DisplayName:  "bulk-conflict-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+			RetryGeneration:  7,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "bulk-conflict-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	request := &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       runID,
+				TaskId:      task.UUID,
+				ProducerKey: "output",
+				OperationId: "bulk-conflict-1",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace:   "ns1",
+					Type:        apiv2beta1.Artifact_Model,
+					Uri:         strPTR("gs://bucket/original"),
+					Name:        "original",
+					Description: "Original payload",
+				},
+			},
+		},
+	}
+
+	first, err := s.CreateArtifactsBulk(context.Background(), request)
+	require.NoError(t, err)
+	require.Len(t, first.GetArtifacts(), 1)
+
+	firstArtifactID := first.GetArtifacts()[0].GetArtifactId()
+	require.NotEmpty(t, firstArtifactID)
+
+	// Change the payload while keeping the replay identity unchanged.
+	request.Artifacts[0].Artifact.Name = "changed"
+
+	_, err = s.CreateArtifactsBulk(context.Background(), request)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "different payload")
+
+	// Verify that no second artifact was created.
+	listResp, err := s.ListArtifacts(context.Background(), &apiv2beta1.ListArtifactRequest{
+		Namespace: "ns1",
+		PageSize:  100,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), listResp.GetTotalSize())
+
+	// Verify the original artifact is still the only artifact.
+	original, err := s.GetArtifact(context.Background(), &apiv2beta1.GetArtifactRequest{
+		ArtifactId: firstArtifactID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "original", original.GetName())
+}
+
+func TestArtifactServer_CreateArtifactsBulk_ConflictRollsBackWholeBatch(t *testing.T) {
+	stringPtr := func(value string) *string {
+		return &value
+	}
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+	})
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(
+		clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: false},
+	)
+	s := createArtifactServer(resourceManager)
+
+	runID := "bulk-atomicity-run"
+	task1, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "task1",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	task2, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "task2",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	task3, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "task3",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	run := &model.Run{
+		UUID:      runID,
+		Namespace: "ns1",
+		RunDetails: model.RunDetails{
+			RetryGeneration: 7,
+		},
+	}
+
+	_, err = clientManager.RunStore().CreateRun(run)
+	require.NoError(t, err)
+
+	// Seed the identity that item 2 will conflict with.
+	seedRequest := &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       runID,
+				TaskId:      task2.UUID,
+				ProducerKey: "output-2",
+				OperationId: "bulk-atomicity-2",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace:   "ns1",
+					Type:        apiv2beta1.Artifact_Model,
+					Uri:         stringPtr("gs://bucket/original"),
+					Name:        "original",
+					Description: "original payload",
+				},
+			},
+		},
+	}
+
+	seedResponse, err := s.CreateArtifactsBulk(context.Background(), seedRequest)
+	require.NoError(t, err)
+	require.Len(t, seedResponse.GetArtifacts(), 1)
+
+	originalArtifactID := seedResponse.GetArtifacts()[0].GetArtifactId()
+	require.NotEmpty(t, originalArtifactID)
+
+	// The second request contains:
+	//   item 1 -> new
+	//   item 2 -> conflicting replay
+	//   item 3 -> new
+	request := &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       runID,
+				TaskId:      task1.UUID,
+				ProducerKey: "output-1",
+				OperationId: "bulk-atomicity-1",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns1",
+					Type:      apiv2beta1.Artifact_Model,
+					Uri:       stringPtr("gs://bucket/new-1"),
+					Name:      "new-1",
+				},
+			},
+			{
+				RunId:       runID,
+				TaskId:      task2.UUID,
+				ProducerKey: "output-2",
+				OperationId: "bulk-atomicity-2",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace:   "ns1",
+					Type:        apiv2beta1.Artifact_Model,
+					Uri:         stringPtr("gs://bucket/changed"),
+					Name:        "changed",
+					Description: "conflicting payload",
+				},
+			},
+			{
+				RunId:       runID,
+				TaskId:      task3.UUID,
+				ProducerKey: "output-3",
+				OperationId: "bulk-atomicity-3",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns1",
+					Type:      apiv2beta1.Artifact_Model,
+					Uri:       stringPtr("gs://bucket/new-3"),
+					Name:      "new-3",
+				},
+			},
+		},
+	}
+
+	_, err = s.CreateArtifactsBulk(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "different payload")
+
+	// The entire bulk transaction must have rolled back.
+	listResp, err := s.ListArtifacts(
+		context.Background(),
+		&apiv2beta1.ListArtifactRequest{
+			Namespace: "ns1",
+			PageSize:  100,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), listResp.GetTotalSize())
+	require.Equal(t, originalArtifactID, listResp.GetArtifacts()[0].GetArtifactId())
+
+	// Only the pre-existing artifact-task relationship must remain.
+	for _, taskID := range []string{task1.UUID, task2.UUID, task3.UUID} {
+		artifactTasks, err := s.ListArtifactTasks(
+			context.Background(),
+			&apiv2beta1.ListArtifactTasksRequest{
+				TaskIds:  []string{taskID},
+				PageSize: 10,
+			},
+		)
+		require.NoError(t, err)
+
+		if taskID == task2.UUID {
+			require.Equal(t, int32(1), artifactTasks.GetTotalSize())
+			assert.Equal(
+				t,
+				originalArtifactID,
+				artifactTasks.GetArtifactTasks()[0].GetArtifactId(),
+			)
+		} else {
+			assert.Equal(t, int32(0), artifactTasks.GetTotalSize())
+		}
+	}
+
+	// The original artifact must remain unchanged.
+	original, err := s.GetArtifact(
+		context.Background(),
+		&apiv2beta1.GetArtifactRequest{
+			ArtifactId: originalArtifactID,
+		},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "original", original.GetName())
+	assert.Equal(t, "gs://bucket/original", original.GetUri())
+	assert.Equal(t, "original payload", original.GetDescription())
+}
+
 func TestArtifactServer_CreateArtifactsBulk_DeduplicatesRunAuthorization(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -1311,6 +1750,7 @@ func TestArtifactServer_CreateArtifactsBulk_DeduplicatesRunAuthorization(t *test
 		State:     1,
 	})
 	assert.NoError(t, err)
+
 	task2, err := clientManager.TaskStore().CreateTask(&model.Task{
 		Namespace: "ns1",
 		RunUUID:   runid1,

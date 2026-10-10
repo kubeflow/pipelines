@@ -4110,11 +4110,20 @@ func (r *ResourceManager) CreateArtifact(artifact *model.Artifact) (*model.Artif
 // The artifact APIs surface a single logical create operation, so this method keeps
 // the artifact and artifact_task tables in sync and prevents orphaned artifacts if
 // the second insert fails after the artifact row has been written.
-func (r *ResourceManager) CreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+func (r *ResourceManager) CreateArtifactWithTask(
+	artifact *model.Artifact,
+	artifactTask *model.ArtifactTask,
+	operationID string,
+) (*model.Artifact, *model.ArtifactTask, error) {
 	if err := r.checkArtifactTasksAllowRuntimeWrites([]*model.ArtifactTask{artifactTask}); err != nil {
 		return nil, nil, err
 	}
-	newArtifact, newArtifactTask, err := r.artifactStore.CreateArtifactWithTask(artifact, artifactTask)
+
+	newArtifact, newArtifactTask, err := r.artifactStore.CreateArtifactWithTask(
+		artifact,
+		artifactTask,
+		operationID,
+	)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifact and artifact-task")
 	}
@@ -4137,11 +4146,20 @@ func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact,
 // CreateArtifactsWithTasks atomically creates a bulk set of artifacts and output links.
 // The slices are index-aligned, and the method is intentionally all-or-nothing so a
 // later artifact_task failure cannot leave earlier artifacts committed without links.
-func (r *ResourceManager) CreateArtifactsWithTasks(artifacts []*model.Artifact, artifactTasks []*model.ArtifactTask) ([]*model.Artifact, []*model.ArtifactTask, error) {
+func (r *ResourceManager) CreateArtifactsWithTasks(
+	artifacts []*model.Artifact,
+	artifactTasks []*model.ArtifactTask,
+	operationIDs []string,
+) ([]*model.Artifact, []*model.ArtifactTask, error) {
 	if err := r.checkArtifactTasksAllowRuntimeWrites(artifactTasks); err != nil {
 		return nil, nil, err
 	}
-	createdArtifacts, createdArtifactTasks, err := r.artifactStore.CreateArtifactsWithTasks(artifacts, artifactTasks)
+
+	createdArtifacts, createdArtifactTasks, err := r.artifactStore.CreateArtifactsWithTasks(
+		artifacts,
+		artifactTasks,
+		operationIDs,
+	)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
 	}
