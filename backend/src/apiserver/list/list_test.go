@@ -1333,9 +1333,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 // A sort field that GetFieldValue cannot resolve still returns a first page,
 // then fails the whole call once NextPageToken has to build a token.
 func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
-	// Both stores parse the StateHistory column into a slice and drop the raw
-	// value, so a page token has nothing to carry. Filters still read the column.
-	unresolvable := map[string]bool{"StateHistory": true}
+	// Run history remains a parsed slice without a cursor value. Task listing
+	// preserves its raw SQL value separately from the public response model.
+	unresolvable := map[string]bool{"Run.StateHistory": true}
 
 	listables := []Listable{
 		&model.Run{},
@@ -1351,7 +1351,7 @@ func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
 		for apiField, modelField := range listable.APIToModelFieldMap() {
 			t.Run(modelName+"/"+apiField, func(t *testing.T) {
 				value := listable.GetFieldValue(modelField)
-				if unresolvable[modelField] {
+				if unresolvable[modelName+"."+modelField] {
 					assert.Nil(t, value,
 						"%s.GetFieldValue(%q) now returns a value, so remove %q from unresolvable",
 						modelName, modelField, modelField)
