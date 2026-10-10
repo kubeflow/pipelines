@@ -154,6 +154,12 @@ func NewUnavailableServerError(err error, messageFormat string, a ...interface{}
 		codes.Unavailable)
 }
 
+// NewUnavailableError returns a caller-safe, actionable retry message.
+func NewUnavailableError(messageFormat string, a ...interface{}) *UserError {
+	message := fmt.Sprintf(messageFormat, a...)
+	return newUserError(errors.New(message), message, codes.Unavailable)
+}
+
 func NewNotFoundError(err error, externalMessageFormat string,
 	a ...interface{},
 ) *UserError {

@@ -1838,7 +1838,8 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
 	if common.IsMultiUserMode() && r.options != nil && r.options.ScheduleWritersReady != nil {
 		if err := r.options.ScheduleWritersReady(ctx); err != nil {
-			return nil, util.NewUnavailableServerError(err, "Schedule creation is waiting for writer handoff; retry shortly")
+			glog.Warningf("Recurring run creation is waiting for schedule writer handoff: %v", err)
+			return nil, util.NewUnavailableError("Recurring run creation was not applied because schedule writer handoff is in progress; retry after handoff completes")
 		}
 	}
 	scheduledWorkflow, err := r.prepareJobWorkflow(ctx, job)
@@ -1990,7 +1991,8 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 	if common.IsMultiUserMode() {
 		if r.options != nil && r.options.ScheduleWritersReady != nil {
 			if err := r.options.ScheduleWritersReady(ctx); err != nil {
-				return util.NewUnavailableServerError(err, "Schedule mode change is waiting for writer handoff; retry shortly")
+				glog.Warningf("Recurring run mode change is waiting for schedule writer handoff: %v", err)
+				return util.NewUnavailableError("Recurring run mode change was not applied because schedule writer handoff is in progress; its enabled state is unchanged. Retry after handoff completes")
 			}
 		}
 		return r.changeAdoptableJobMode(ctx, job, enable)
