@@ -60,7 +60,11 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	task, run, err := s.validateArtifactOwnershipNoAuth(request.GetRunId(), request.GetTaskId(), namespace)
+	task, err := s.validateArtifactOwnershipNoAuth(
+		request.GetRunId(),
+		request.GetTaskId(),
+		namespace,
+	)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to validate artifact ownership")
 	}
@@ -184,7 +188,11 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		// Extract namespace for authorization
 		namespace := s.resourceManager.ReplaceNamespace(artifactReq.GetArtifact().GetNamespace())
 
-		task, run, err := s.validateArtifactOwnershipNoAuth(artifactReq.GetRunId(), artifactReq.GetTaskId(), namespace)
+		task, err := s.validateArtifactOwnershipNoAuth(
+			artifactReq.GetRunId(),
+			artifactReq.GetTaskId(),
+			namespace,
+		)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
 		}
@@ -227,6 +235,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		}
 		modelArtifacts = append(modelArtifacts, modelArtifact)
 		modelArtifactTasks = append(modelArtifactTasks, modelAT)
+		operationIDs = append(operationIDs, artifactReq.GetOperationId())
 	}
 
 	createdArtifacts, _, err := s.resourceManager.CreateArtifactsWithTasks(
@@ -257,27 +266,29 @@ func (s *ArtifactServer) validateArtifactOwnershipNoAuth(
 ) (*model.Task, error) {
 	task, err := s.resourceManager.GetTask(taskID)
 	if err != nil {
-		return nil, nil, util.Wrap(err, "Failed to get task")
+		return nil, util.Wrap(err, "Failed to get task")
 	}
+
 	if task.RunUUID != runID {
-		return nil, nil, util.NewInvalidInputError("Task ID does not belong to this Run ID")
+		return nil, util.NewInvalidInputError("Task ID does not belong to this Run ID")
+	}
+
+	if !common.IsMultiUserMode() {
+		return task, nil
 	}
 
 	run, err := s.resourceManager.GetRunWithHydration(task.RunUUID, false)
 	if err != nil {
-		return nil, nil, util.Wrap(err, "Failed to get run")
-	}
-
-	if !common.IsMultiUserMode() {
-		return task, run, nil
+		return nil, util.Wrap(err, "Failed to get run")
 	}
 
 	taskNamespace := task.Namespace
 	if taskNamespace == "" {
 		taskNamespace = run.Namespace
 	}
+
 	if taskNamespace != artifactNamespace || run.Namespace != artifactNamespace {
-		return nil, nil, util.NewInvalidInputError(
+		return nil, util.NewInvalidInputError(
 			"artifact, task, and run must be in the same namespace: artifact=%s task=%s run=%s",
 			artifactNamespace,
 			taskNamespace,
@@ -285,7 +296,7 @@ func (s *ArtifactServer) validateArtifactOwnershipNoAuth(
 		)
 	}
 
-	return task, run, nil
+	return task, nil
 }
 
 // validateArtifactTaskNamespaceOwnership enforces same-namespace linkage for

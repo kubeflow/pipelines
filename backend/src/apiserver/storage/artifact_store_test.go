@@ -328,7 +328,7 @@ func TestCreateArtifactWithTask_RollsBackArtifactOnLinkFailure(t *testing.T) {
 				"taskName": "task-name",
 			},
 		},
-		0,
+		"",
 	)
 	require.Error(t, err)
 
@@ -377,7 +377,7 @@ func TestCreateArtifactWithTask_RollsBackOnIdentityFailure(t *testing.T) {
 				"taskName": "task-name",
 			},
 		},
-		0,
+		"operation-identity-failure",
 	)
 	require.Error(t, err)
 
@@ -449,7 +449,7 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 				},
 			},
 		},
-		make([]int64, 2),
+		[]string{"", ""},
 	)
 	require.Error(t, err)
 
@@ -548,7 +548,7 @@ func TestFindOrCreateArtifactWithTask_UnconditionalCreateAllowsDuplicates(t *tes
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-1"},
 		},
-		0,
+		"",
 	)
 	require.NoError(t, err)
 
@@ -567,7 +567,7 @@ func TestFindOrCreateArtifactWithTask_UnconditionalCreateAllowsDuplicates(t *tes
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-2"},
 		},
-		0,
+		"",
 	)
 	require.NoError(t, err)
 	assert.NotEqual(t, first.UUID, second.UUID)
@@ -637,7 +637,7 @@ func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testin
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-1"},
 		},
-		0,
+		"",
 	)
 	require.NoError(t, err)
 
@@ -677,7 +677,14 @@ func TestComputeArtifactWritePayloadHash(t *testing.T) {
 		},
 	}
 
-	first, err := computeArtifactWritePayloadHash(artifact)
+	artifactTask := &model.ArtifactTask{
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Iteration:   model.ArtifactTaskNoIteration,
+		ArtifactKey: "output",
+		Producer:    model.JSONData{"taskName": "train"},
+	}
+
+	first, err := computeArtifactWritePayloadHash(artifact, artifactTask)
 	require.NoError(t, err)
 
 	reordered := &model.Artifact{
@@ -691,7 +698,7 @@ func TestComputeArtifactWritePayloadHash(t *testing.T) {
 		},
 	}
 
-	second, err := computeArtifactWritePayloadHash(reordered)
+	second, err := computeArtifactWritePayloadHash(reordered, artifactTask)
 	require.NoError(t, err)
 
 	assert.Equal(t, first, second)
@@ -706,15 +713,50 @@ func TestComputeArtifactWritePayloadHash_ChangesWithPayload(t *testing.T) {
 		Name: "model",
 	}
 
-	first, err := computeArtifactWritePayloadHash(artifact)
+	artifactTask := &model.ArtifactTask{
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Iteration:   model.ArtifactTaskNoIteration,
+		ArtifactKey: "output",
+		Producer:    model.JSONData{"taskName": "train"},
+	}
+
+	first, err := computeArtifactWritePayloadHash(artifact, artifactTask)
 	require.NoError(t, err)
 
 	artifact.Name = "different-model"
 
-	second, err := computeArtifactWritePayloadHash(artifact)
+	second, err := computeArtifactWritePayloadHash(artifact, artifactTask)
 	require.NoError(t, err)
 
 	assert.NotEqual(t, first, second)
+
+	firstLink := *artifactTask
+	firstLink.ArtifactKey = "output-a"
+
+	secondLink := *artifactTask
+	secondLink.ArtifactKey = "output-b"
+
+	firstLinkHash, err := computeArtifactWritePayloadHash(artifact, &firstLink)
+	require.NoError(t, err)
+
+	secondLinkHash, err := computeArtifactWritePayloadHash(artifact, &secondLink)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, firstLinkHash, secondLinkHash)
+
+	firstLink = *artifactTask
+	firstLink.Iteration = 0
+
+	secondLink = *artifactTask
+	secondLink.Iteration = 1
+
+	firstIterationHash, err := computeArtifactWritePayloadHash(artifact, &firstLink)
+	require.NoError(t, err)
+
+	secondIterationHash, err := computeArtifactWritePayloadHash(artifact, &secondLink)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, firstIterationHash, secondIterationHash)
 }
 
 func TestComputeArtifactWritePayloadHash_NumberValuePresenceMatters(t *testing.T) {
@@ -728,10 +770,17 @@ func TestComputeArtifactWritePayloadHash_NumberValuePresenceMatters(t *testing.T
 		NumberValue: &zero,
 	}
 
-	first, err := computeArtifactWritePayloadHash(withoutValue)
+	artifactTask := &model.ArtifactTask{
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Iteration:   model.ArtifactTaskNoIteration,
+		ArtifactKey: "output",
+		Producer:    model.JSONData{"taskName": "train"},
+	}
+
+	first, err := computeArtifactWritePayloadHash(withoutValue, artifactTask)
 	require.NoError(t, err)
 
-	second, err := computeArtifactWritePayloadHash(withZero)
+	second, err := computeArtifactWritePayloadHash(withZero, artifactTask)
 	require.NoError(t, err)
 
 	assert.NotEqual(t, first, second)
@@ -759,12 +808,21 @@ func TestCreateArtifactWithTask_ReplayOfCommittedWriteDoesNotDuplicate(t *testin
 		}
 	}
 
-	first, firstLink, err := store.CreateArtifactWithTask(newArtifact(), newLink(), 0)
+	first, firstLink, err := store.CreateArtifactWithTask(
+		newArtifact(),
+		newLink(),
+		"operation-replay-1",
+	)
 	require.NoError(t, err)
+
 	// Simulate a lost response: the caller retries the same request.
-	// In production every call draws a fresh random UUID, so use a different one here.
 	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
-	second, secondLink, err := store.CreateArtifactWithTask(newArtifact(), newLink(), 0)
+
+	second, secondLink, err := store.CreateArtifactWithTask(
+		newArtifact(),
+		newLink(),
+		"operation-replay-1",
+	)
 	require.NoError(t, err)
 
 	assert.Equal(t, first.UUID, second.UUID, "replay should return the original artifact")
@@ -780,7 +838,10 @@ func TestCreateArtifactWithTask_ReplayOfCommittedWriteDoesNotDuplicate(t *testin
 func TestCreateArtifactWithTask_ConcurrentSameIdentityConverges(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "artifact-store.db")
 
-	gormDB, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	gormDB, err := gorm.Open(
+		sqlite.Open("file:"+dbPath+"?_busy_timeout=5000&_journal_mode=WAL"),
+		&gorm.Config{},
+	)
 	require.NoError(t, err)
 
 	require.NoError(t, gormDB.AutoMigrate(model.AllModels()...))
@@ -840,7 +901,11 @@ func TestCreateArtifactWithTask_ConcurrentSameIdentityConverges(t *testing.T) {
 			<-start
 
 			createdArtifact, createdArtifactTask, err :=
-				store.CreateArtifactWithTask(artifact, artifactTask, 0)
+				store.CreateArtifactWithTask(
+					artifact,
+					artifactTask,
+					"operation-concurrent-1",
+				)
 
 			results <- result{
 				artifact:     createdArtifact,
@@ -882,7 +947,156 @@ func TestCreateArtifactWithTask_ConcurrentSameIdentityConverges(t *testing.T) {
 	)
 	require.NoError(
 		t,
-		db.QueryRow("SELECT count(*) FROM artifact_write_identities").Scan(&identityCount),
+		db.QueryRow(
+			"SELECT count(*) FROM artifact_write_identities",
+		).Scan(&identityCount),
+	)
+
+	assert.Equal(t, 1, artifactCount)
+	assert.Equal(t, 1, linkCount)
+	assert.Equal(t, 1, identityCount)
+}
+
+func TestCreateArtifactWithTask_ConcurrentSameIdentityDifferentPayloadConflicts(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "artifact-store.db")
+
+	gormDB, err := gorm.Open(
+		sqlite.Open("file:"+dbPath+"?_busy_timeout=5000&_journal_mode=WAL"),
+		&gorm.Config{},
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, gormDB.AutoMigrate(model.AllModels()...))
+
+	db, err := gormDB.DB()
+	require.NoError(t, err)
+	defer db.Close()
+
+	db.SetMaxOpenConns(4)
+
+	testDialect := dialect.NewDBDialect("sqlite")
+	firstStore := NewArtifactStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil),
+		testDialect,
+	)
+	secondStore := NewArtifactStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil),
+		testDialect,
+	)
+
+	artifactA := &model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "model-a",
+		Metadata:  model.JSONData{"key": "value-a"},
+	}
+
+	artifactB := &model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "model-b",
+		Metadata:  model.JSONData{"key": "value-b"},
+	}
+
+	taskA := &model.ArtifactTask{
+		TaskID:      "task-1",
+		RunUUID:     "run-1",
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		ArtifactKey: "output",
+		Producer:    model.JSONData{"taskName": "train"},
+	}
+
+	taskB := *taskA
+
+	const operationID = "operation-concurrent-conflict-1"
+
+	start := make(chan struct{})
+	results := make(chan error, 2)
+
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(2)
+
+	go func() {
+		defer waitGroup.Done()
+
+		<-start
+
+		_, _, err := firstStore.CreateArtifactWithTask(
+			artifactA,
+			taskA,
+			operationID,
+		)
+
+		results <- err
+	}()
+
+	go func() {
+		defer waitGroup.Done()
+
+		<-start
+
+		_, _, err := secondStore.CreateArtifactWithTask(
+			artifactB,
+			&taskB,
+			operationID,
+		)
+
+		results <- err
+	}()
+
+	close(start)
+	waitGroup.Wait()
+	close(results)
+
+	var resultErrors []error
+	for err := range results {
+		resultErrors = append(resultErrors, err)
+	}
+
+	require.Len(t, resultErrors, 2)
+
+	require.True(
+		t,
+		(resultErrors[0] == nil && resultErrors[1] != nil) ||
+			(resultErrors[0] != nil && resultErrors[1] == nil),
+		"expected exactly one success and one conflict: %v",
+		resultErrors,
+	)
+
+	var conflictErr error
+	for _, err := range resultErrors {
+		if err != nil {
+			conflictErr = err
+			break
+		}
+	}
+
+	require.Error(t, conflictErr)
+	assert.Contains(
+		t,
+		conflictErr.Error(),
+		"already exists with a different payload",
+	)
+
+	var artifactCount, linkCount, identityCount int
+
+	require.NoError(
+		t,
+		db.QueryRow("SELECT count(*) FROM artifacts").Scan(&artifactCount),
+	)
+	require.NoError(
+		t,
+		db.QueryRow("SELECT count(*) FROM artifact_tasks").Scan(&linkCount),
+	)
+	require.NoError(
+		t,
+		db.QueryRow(
+			"SELECT count(*) FROM artifact_write_identities",
+		).Scan(&identityCount),
 	)
 
 	assert.Equal(t, 1, artifactCount)
@@ -909,7 +1123,11 @@ func TestCreateArtifactWithTask_ReplayWithDifferentPayloadReturnsConflict(t *tes
 		Producer:    model.JSONData{"taskName": "train"},
 	}
 
-	first, _, err := store.CreateArtifactWithTask(firstArtifact, firstLink, 0)
+	first, _, err := store.CreateArtifactWithTask(
+		firstArtifact,
+		firstLink,
+		"operation-conflict-1",
+	)
 	require.NoError(t, err)
 
 	secondArtifact := &model.Artifact{
@@ -927,7 +1145,11 @@ func TestCreateArtifactWithTask_ReplayWithDifferentPayloadReturnsConflict(t *tes
 		Producer:    model.JSONData{"taskName": "train"},
 	}
 
-	_, _, err = store.CreateArtifactWithTask(secondArtifact, secondLink, 0)
+	_, _, err = store.CreateArtifactWithTask(
+		secondArtifact,
+		secondLink,
+		"operation-conflict-1",
+	)
 	require.Error(t, err)
 
 	assert.Contains(t, err.Error(), "already exists with a different payload")
@@ -943,7 +1165,7 @@ func TestCreateArtifactWithTask_ReplayWithDifferentPayloadReturnsConflict(t *tes
 	assert.NotEmpty(t, first.UUID)
 }
 
-func TestCreateArtifactWithTask_DifferentRetryGenerationCreatesDistinctWrite(t *testing.T) {
+func TestCreateArtifactWithTask_DifferentOperationIDsCreateDistinctWrite(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()
 
@@ -969,18 +1191,18 @@ func TestCreateArtifactWithTask_DifferentRetryGenerationCreatesDistinctWrite(t *
 	first, firstLink, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		newLink(),
-		0,
+		"operation-1",
 	)
 	require.NoError(t, err)
 
 	// Use a different generated UUID for the second physical artifact.
-	// RetryGeneration is what makes the two writes logically distinct.
+	// Different operation IDs represent distinct logical writes.
 	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
 
 	second, secondLink, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		newLink(),
-		1,
+		"operation-2",
 	)
 	require.NoError(t, err)
 
@@ -1041,7 +1263,7 @@ func TestCreateArtifactWithTask_DifferentTaskIDCreatesDistinctWrite(t *testing.T
 	first, firstArtifactTask, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		firstLink,
-		0,
+		"operation-task-scope-1",
 	)
 	require.NoError(t, err)
 
@@ -1051,7 +1273,7 @@ func TestCreateArtifactWithTask_DifferentTaskIDCreatesDistinctWrite(t *testing.T
 	second, secondArtifactTask, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		secondLink,
-		0,
+		"operation-task-scope-1",
 	)
 	require.NoError(t, err)
 
@@ -1112,7 +1334,7 @@ func TestCreateArtifactWithTask_DifferentRunUUIDCreatesDistinctWrite(t *testing.
 	first, firstArtifactTask, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		firstLink,
-		0,
+		"operation-task-scope-1",
 	)
 	require.NoError(t, err)
 
@@ -1122,7 +1344,7 @@ func TestCreateArtifactWithTask_DifferentRunUUIDCreatesDistinctWrite(t *testing.
 	second, secondArtifactTask, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		secondLink,
-		0,
+		"operation-run-scope-1",
 	)
 	require.NoError(t, err)
 
@@ -1182,7 +1404,7 @@ func TestCreateArtifactWithTask_DifferentNamespaceCreatesDistinctWrite(t *testin
 	first, firstArtifactTask, err := store.CreateArtifactWithTask(
 		firstArtifact,
 		newLink(),
-		0,
+		"operation-namespace-scope-1",
 	)
 	require.NoError(t, err)
 
@@ -1192,7 +1414,7 @@ func TestCreateArtifactWithTask_DifferentNamespaceCreatesDistinctWrite(t *testin
 	second, secondArtifactTask, err := store.CreateArtifactWithTask(
 		secondArtifact,
 		newLink(),
-		0,
+		"operation-namespace-scope-1",
 	)
 	require.NoError(t, err)
 
@@ -1221,7 +1443,7 @@ func TestCreateArtifactWithTask_DifferentNamespaceCreatesDistinctWrite(t *testin
 	assert.Equal(t, 2, identityCount)
 }
 
-func TestCreateArtifactWithTask_DifferentArtifactKeyCreatesDistinctWrite(t *testing.T) {
+func TestCreateArtifactWithTask_DifferentArtifactKeyReturnsConflict(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()
 
@@ -1250,25 +1472,23 @@ func TestCreateArtifactWithTask_DifferentArtifactKeyCreatesDistinctWrite(t *test
 		Producer:    model.JSONData{"taskName": "train"},
 	}
 
-	first, firstArtifactTask, err := store.CreateArtifactWithTask(
+	_, _, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		firstLink,
-		0,
+		"operation-artifact-key-1",
 	)
 	require.NoError(t, err)
 
 	// Use a different generated UUID for the second physical artifact.
 	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
 
-	second, secondArtifactTask, err := store.CreateArtifactWithTask(
+	_, _, err = store.CreateArtifactWithTask(
 		newArtifact(),
 		secondLink,
-		0,
+		"operation-artifact-key-1",
 	)
-	require.NoError(t, err)
-
-	assert.NotEqual(t, first.UUID, second.UUID)
-	assert.NotEqual(t, firstArtifactTask.UUID, secondArtifactTask.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already exists with a different payload")
 
 	var artifactCount, linkCount, identityCount int
 
@@ -1287,12 +1507,12 @@ func TestCreateArtifactWithTask_DifferentArtifactKeyCreatesDistinctWrite(t *test
 		db.QueryRow("SELECT count(*) FROM artifact_write_identities").Scan(&identityCount),
 	)
 
-	assert.Equal(t, 2, artifactCount)
-	assert.Equal(t, 2, linkCount)
-	assert.Equal(t, 2, identityCount)
+	assert.Equal(t, 1, artifactCount)
+	assert.Equal(t, 1, linkCount)
+	assert.Equal(t, 1, identityCount)
 }
 
-func TestCreateArtifactWithTask_DifferentIterationCreatesDistinctWrite(t *testing.T) {
+func TestCreateArtifactWithTask_DifferentIterationReturnsConflict(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()
 
@@ -1327,26 +1547,23 @@ func TestCreateArtifactWithTask_DifferentIterationCreatesDistinctWrite(t *testin
 		},
 	}
 
-	first, firstArtifactTask, err := store.CreateArtifactWithTask(
+	_, _, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		firstLink,
-		0,
+		"operation-iteration-1",
 	)
 	require.NoError(t, err)
 
 	// Use a different generated UUID for the second physical artifact.
 	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
 
-	second, secondArtifactTask, err := store.CreateArtifactWithTask(
+	_, _, err = store.CreateArtifactWithTask(
 		newArtifact(),
 		secondLink,
-		0,
+		"operation-iteration-1",
 	)
-	require.NoError(t, err)
-
-	assert.NotEqual(t, first.UUID, second.UUID)
-	assert.NotEqual(t, firstArtifactTask.UUID, secondArtifactTask.UUID)
-	assert.NotEqual(t, firstArtifactTask.Iteration, secondArtifactTask.Iteration)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already exists with a different payload")
 
 	var artifactCount, linkCount, identityCount int
 
@@ -1365,7 +1582,8 @@ func TestCreateArtifactWithTask_DifferentIterationCreatesDistinctWrite(t *testin
 		db.QueryRow("SELECT count(*) FROM artifact_write_identities").Scan(&identityCount),
 	)
 
-	assert.Equal(t, 2, artifactCount)
-	assert.Equal(t, 2, linkCount)
-	assert.Equal(t, 2, identityCount)
+	assert.Equal(t, 1, artifactCount)
+	assert.Equal(t, 1, linkCount)
+	assert.Equal(t, 1, identityCount)
+
 }
