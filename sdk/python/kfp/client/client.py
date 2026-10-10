@@ -528,7 +528,8 @@ class Client:
         Args:
             name: Pipeline name.
             namespace: Kubernetes namespace of a private (namespaced) pipeline.
-                If not set, only shared pipelines are searched.
+                If not set, only shared pipelines are searched. This does not
+                inherit the client default namespace.
 
         Returns:
             The pipeline ID if a pipeline with the name exists.
@@ -1542,6 +1543,7 @@ class Client:
         pipeline_id: Optional[str] = None,
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
+        namespace: Optional[str] = None,
     ) -> kfp.server_api.V2beta1PipelineVersion:
         """Uploads a new version of the pipeline.
 
@@ -1556,6 +1558,10 @@ class Client:
             pipeline_id: ID of the pipeline.
             pipeline_name: Name of the pipeline.
             description: Description of the pipeline version to show in the UI.
+            namespace: Namespace to search when using pipeline_name. If omitted,
+                search only shared pipelines, not the client default namespace.
+                Cannot be combined with pipeline_id; an ID identifies its parent
+                directly and the version inherits that parent's namespace.
 
         Returns:
             ``V2beta1PipelineVersion`` object.
@@ -1566,7 +1572,18 @@ class Client:
             raise ValueError('Either pipeline_id or pipeline_name is required.')
 
         if pipeline_name:
-            pipeline_id = self.get_pipeline_id(pipeline_name)
+            pipeline_id = self.get_pipeline_id(
+                pipeline_name, namespace=namespace)
+            if pipeline_id is None:
+                scope = f'namespace {namespace!r}' if namespace else 'shared pipelines'
+                raise ValueError(
+                    f'Pipeline {pipeline_name!r} was not found in {scope}. '
+                    'For a private pipeline, pass namespace explicitly or use '
+                    'pipeline_id. The client default namespace is not used.')
+        elif namespace is not None:
+            raise ValueError(
+                'namespace is only used with pipeline_name; pipeline_id already '
+                'identifies the parent pipeline and its namespace.')
         kwargs = dict(
             name=pipeline_version_name,
             pipelineid=pipeline_id,
@@ -1595,6 +1612,7 @@ class Client:
         pipeline_id: Optional[str] = None,
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
+        namespace: Optional[str] = None,
     ) -> kfp.server_api.V2beta1PipelineVersion:
         """Uploads a new version of the pipeline.
 
@@ -1605,6 +1623,9 @@ class Client:
             pipeline_id: ID of the pipeline.
             pipeline_name: Name of the pipeline.
             description: Description of the pipeline version to show in the UI.
+            namespace: Namespace to search when using pipeline_name. If omitted,
+                search only shared pipelines, not the client default namespace.
+                Cannot be combined with pipeline_id.
 
         Returns:
             ``V2beta1PipelineVersion`` object.
@@ -1623,6 +1644,7 @@ class Client:
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline_name,
                 description=description,
+                namespace=namespace,
             )
 
     def get_pipeline(self, pipeline_id: str) -> kfp.server_api.V2beta1Pipeline:
