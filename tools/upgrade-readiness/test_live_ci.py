@@ -172,10 +172,19 @@ class LiveCITests(unittest.TestCase):
             'Capture 2.17.2 filtered pages and retain old API replica',
             'Verify upgraded and mixed-version filtered pagination',
             'Upload pagination acceptance evidence',
-            'Remove retained pagination source API', 'Verify Upgrade'
+            'Remove retained pagination source API',
+            'Remove suspended pagination workflows', 'Verify Upgrade'
         ]
         self.assertEqual([names.index(name) for name in ordered],
                          sorted(names.index(name) for name in ordered))
+        suspended = steps['Remove suspended pagination workflows']
+        self.assertIn("always() && steps.create-cluster.outcome == 'success'",
+                      suspended)
+        self.assertIn('pipelines.kubeflow.org/pagination-fixture=true',
+                      suspended)
+        self.assertIn('--cascade=foreground --wait=true --timeout=120s',
+                      suspended)
+        self.assertNotIn('continue-on-error', suspended)
         self.assertNotIn('continue-on-error', cleanup)
         self.assertNotIn('continue-on-error', verification)
 

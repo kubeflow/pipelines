@@ -406,3 +406,40 @@ with `python3 -m pip install -r tools/upgrade-readiness/requirements.txt`.
 CI uploads fixture JSON reports without an additional redaction pass. Reports
 omit raw payloads and credentials but retain resource and run identifiers; they
 are not anonymized and must come only from the isolated synthetic fixture.
+
+
+### Pagination upgrade acceptance
+
+`live_pagination.py` runs only in the disposable 2.17.2-to-candidate upgrade
+cluster. It saves real source pages and opaque continuation tokens before the
+upgrade, then routes requests explicitly to old and new API replicas sharing
+MySQL. Its additional V1/V2 experiment and run cases exercise mixed-case names,
+case-folding ties in run names, ascending/descending sorts, equal sort values,
+and run metric cursors with both present and absent (SQL NULL) values. Suspended
+synthetic V1 runs keep sort fields stable without downloading task images.
+
+Each case compares pagination with a separate single-page inventory and verifies
+that the inventory contains every created ID exactly once. Fresh candidate
+pagination must return that entire ordered inventory. The report distinguishes:
+
+- `compatible`: the source baseline succeeds and source/candidate order agrees;
+  saved source cursors and both alternating-reader sequences must succeed.
+- `restart_after_comparison_order_change`: full source and candidate ordering
+  differs. The report retains the continuation and mixed-reader outcomes; a fresh
+  candidate traversal must still succeed.
+- `preexisting_source_pagination_failure`: the source traversal already fails;
+  this is not evidence of a newly introduced upgrade regression. Candidate fresh
+  pagination must still succeed.
+
+For a confirmed ordering change, finish the API rollout, discard the affected
+continuation token, and restart that list request from page one with the same
+filters and sort. Do not append that fresh traversal to partial old results
+without deduplicating by resource ID. No server restart or database migration is
+required. During mixed-version service, pin the complete traversal to one API
+version or wait until rollout finishes. A token rejected after changing a request's
+filter is a separate client error; keep filters consistent across pages.
+
+These are acceptance assertions, not a claim that the expanded live run has
+passed. JSON evidence must identify the exact tested candidate. Pipeline,
+pipeline-version, task and recurring-run list endpoints, concurrent mutations,
+and non-MySQL deployments remain outside this fixture's coverage.

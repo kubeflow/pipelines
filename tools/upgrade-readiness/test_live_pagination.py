@@ -78,5 +78,118 @@ class PaginationTest(unittest.TestCase):
                 fixture.walk([8888], 'criteria', [])
 
 
+class ExtendedPaginationTest(unittest.TestCase):
+
+    def setUp(self):
+        self.case = {
+            'endpoint': '/apis/v2beta1/runs',
+            'collection': 'runs',
+            'identity': 'run_id',
+            'params': {
+                'experiment_id': 'experiment'
+            },
+            'sort': 'metric:pagination_score asc',
+            'created_ids': ['a', 'b', 'c'],
+            'source_order': ['a', 'b', 'c'],
+            'first': {
+                'runs': [{
+                    'run_id': 'a'
+                }],
+                'next_page_token': 'old'
+            },
+            'source_baseline': {
+                'outcome': 'passed'
+            }
+        }
+
+    def test_source_matrix_has_nullable_metrics_and_both_api_versions(self):
+        created = []
+
+        def create(port, method, body, endpoint='/apis/v2beta1/experiments'):
+            created.append((endpoint, body))
+            if endpoint.endswith(':reportMetrics'):
+                return {'results': [{'status': 'OK'}]}
+            value = str(len(created))
+            if endpoint.endswith('/runs'):
+                return {'run': {'id': value}}
+            return {'experiment_id': value}
+
+        with mock.patch.object(fixture, 'request', side_effect=create), \
+             mock.patch.object(fixture, 'full_inventory', side_effect=lambda port, case: case['created_ids']), \
+             mock.patch.object(fixture, 'case_page', return_value={'next_page_token': 'actual-source'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'passed'}):
+            cases = fixture.prepare_extended('marker')
+        self.assertEqual(len(cases), 32)
+        self.assertEqual({case['endpoint'] for case in cases}, {
+            '/apis/v1beta1/experiments', '/apis/v2beta1/experiments',
+            '/apis/v1beta1/runs', '/apis/v2beta1/runs'
+        })
+        self.assertEqual(sum('metric:' in case['sort'] for case in cases), 4)
+        self.assertEqual(
+            sum(path.endswith(':reportMetrics') for path, _ in created), 3)
+        runs = [body for path, body in created if path.endswith('/runs')]
+        self.assertEqual(len(runs), 7)
+        self.assertEqual(runs[0]['name'].lower(), runs[1]['name'].lower())
+        self.assertNotEqual(runs[0]['name'], runs[1]['name'])
+
+    def test_run_endpoint_and_sort_are_preserved(self):
+        with mock.patch.object(fixture, 'request') as request:
+            fixture.case_page(8888, self.case, 'old')
+        request.assert_called_once_with(
+            8888,
+            'GET',
+            endpoint='/apis/v2beta1/runs',
+            experiment_id='experiment',
+            page_size=2,
+            sort_by='metric:pagination_score asc',
+            page_token='old')
+
+    def test_full_inventory_checks_membership_not_just_count(self):
+        value = {'runs': [{'run_id': value} for value in ('a', 'b', 'foreign')]}
+        with mock.patch.object(fixture, 'case_page', return_value=value):
+            with self.assertRaisesRegex(ValueError, 'lost or added'):
+                fixture.full_inventory(8888, self.case)
+
+    def test_walk_retains_null_metric_rows_by_identity(self):
+        last = {'runs': [{'run_id': 'b'}, {'run_id': 'c'}]}
+        with mock.patch.object(fixture, 'case_page', return_value=last) as page:
+            fixture.case_walk([8888], self.case, ['a', 'b', 'c'],
+                              self.case['first'])
+        page.assert_called_once_with(8888, self.case, 'old')
+
+    def test_compatible_source_failure_is_new_regression(self):
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'failed'}):
+            with self.assertRaisesRegex(ValueError,
+                                        'new pagination regression'):
+                fixture.validate_extended([self.case])
+
+    def test_changed_order_requires_explicit_restart(self):
+        with mock.patch.object(fixture, 'full_inventory', return_value=['c', 'b', 'a']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'failed'}):
+            result = fixture.validate_extended([self.case])[0]
+        self.assertEqual(result['disposition'],
+                         'restart_after_comparison_order_change')
+        self.assertEqual(result['saved_source_continuation']['outcome'],
+                         'failed')
+
+    def test_historical_failure_is_identified(self):
+        self.case['source_baseline'] = {'outcome': 'failed'}
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'failed'}):
+            result = fixture.validate_extended([self.case])[0]
+        self.assertEqual(result['disposition'],
+                         'preexisting_source_pagination_failure')
+
+    def test_fresh_candidate_failure_cannot_be_excused_by_changed_order(self):
+        with mock.patch.object(fixture, 'full_inventory', return_value=['c', 'b', 'a']), \
+             mock.patch.object(fixture, 'case_walk', side_effect=ValueError('missing')):
+            with self.assertRaisesRegex(ValueError, 'missing'):
+                fixture.validate_extended([self.case])
+
+
 if __name__ == '__main__':
     unittest.main()

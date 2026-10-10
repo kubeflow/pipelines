@@ -184,6 +184,12 @@ jobs:
         run: |
           kubectl -n kubeflow delete deployment/pagination-source --ignore-not-found=true --cascade=foreground --wait=true --timeout=120s
 
+      - name: Remove suspended pagination workflows
+        if: ${{ always() && steps.create-cluster.outcome == 'success' }}
+        shell: bash
+        run: |
+          kubectl -n kubeflow delete workflows -l pipelines.kubeflow.org/pagination-fixture=true --ignore-not-found=true --cascade=foreground --wait=true --timeout=120s
+
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
         if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}

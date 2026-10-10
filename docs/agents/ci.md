@@ -76,3 +76,10 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   upgrade verification uses an explicit non-cancellation condition so pagination,
   evidence-upload, or cleanup failure cannot silently skip it; those failures
   still fail the job.
+
+- Pagination acceptance additionally creates suspended synthetic V1 runs to test
+  mixed-case V1/V2 run lists and nullable metric cursors. A separate always-run
+  cleanup deletes only Workflows labeled
+  `pipelines.kubeflow.org/pagination-fixture=true`, including after failure or
+  cancellation. Source baselines and independent complete inventories distinguish
+  old defects from changed comparison order; fresh candidate omissions always fail.
