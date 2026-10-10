@@ -347,6 +347,28 @@ func TestWorkflow_SetSpecParameters(t *testing.T) {
 	assert.Equal(t, execSpec.SpecParameters(), newParams)
 }
 
+func TestWorkflow_SetSpecParameterPreservesOtherArguments(t *testing.T) {
+	original := workflowapi.Parameter{
+		Name: "existing", Default: workflowapi.AnyStringPtr("default"),
+		ValueFrom: &workflowapi.ValueFrom{Expression: "workflow.name"},
+		Enum:      []workflowapi.AnyString{"default"}, Description: workflowapi.AnyStringPtr("preserved"),
+	}
+	workflow := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{
+		Arguments: workflowapi.Arguments{Parameters: []workflowapi.Parameter{original}},
+	}})
+	workflow.SetSpecParameter("snapshot", "first")
+	require.Equal(t, []workflowapi.Parameter{
+		original, {Name: "snapshot", Value: workflowapi.AnyStringPtr("first")},
+	}, workflow.Spec.Arguments.Parameters)
+
+	workflow.Spec.Arguments.Parameters[1].ValueFrom = &workflowapi.ValueFrom{Expression: "workflow.name"}
+	workflow.Spec.Arguments.Parameters[1].Enum = []workflowapi.AnyString{"first"}
+	workflow.SetSpecParameter("snapshot", "second")
+	require.Equal(t, []workflowapi.Parameter{
+		original, {Name: "snapshot", Value: workflowapi.AnyStringPtr("second")},
+	}, workflow.Spec.Arguments.Parameters)
+}
+
 func TestWorkflow_OverrideParameters(t *testing.T) {
 	tests := []struct {
 		name      string

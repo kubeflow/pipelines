@@ -281,14 +281,14 @@ func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T)
 						require.NoError(t, err)
 						workflow, err := clients.ExecClientFake.Execution(job.Namespace).Get(ctx, stored.K8SName, metav1.GetOptions{})
 						require.NoError(t, err)
-						// Recover the missing row from a real Workflow report. The
-						// reporter does not populate the row's ServiceAccount field.
+						// Recover the missing row from a real Workflow report while
+						// preserving the Workflow's execution identity.
 						require.NoError(t, clients.RunStore().DeleteRun(run.RunId))
 						_, err = manager.ReportWorkflowResource(ctx, workflow)
 						require.NoError(t, err)
 						recovered, err := manager.GetRun(run.RunId)
 						require.NoError(t, err)
-						require.Empty(t, recovered.ServiceAccount)
+						require.Equal(t, workflow.ServiceAccount(), recovered.ServiceAccount)
 						require.Equal(t, job.UUID, recovered.RecurringRunId)
 						request.Run.DisplayName = recovered.DisplayName
 					}
