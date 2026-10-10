@@ -8,6 +8,7 @@ import copy
 import io
 import json
 from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -286,6 +287,45 @@ class ReportingRecoveryTest(unittest.TestCase):
         immediate = client.post.call_args_list[1].args[1]
         self.assertIn('"suspend": true',
                       immediate['pipeline_spec']['workflow_manifest'])
+
+    def test_deletion_progress_survives_proxy_timeout_without_raw_workflow(
+            self):
+        obj, wf = run(), workflow()
+        record = recovery.project(wf, obj)
+        wf['metadata']['deletionTimestamp'] = '2026-01-01T00:00:00Z'
+        wf['metadata']['finalizers'] = ['private-finalizer-name']
+        wf['spec']['secret'] = 'private-workflow-value'
+        proxy = mock.Mock()
+        proxy.get.side_effect = TimeoutError('private-transport-error')
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(recovery, 'get', return_value=dict(items=[wf])):
+            directory = Path(tmp)
+            with self.assertRaises(TimeoutError):
+                recovery.deleted_evidence(mock.Mock(), proxy, [record],
+                                          directory)
+            result = json.loads(
+                (directory / 'reporting-deleted.json').read_text())
+        self.assertEqual(result['outcome'], 'pending')
+        self.assertFalse(result['proxy_evidence_observed'])
+        self.assertEqual(result['runs'][0]['finalizer_count'], 1)
+        self.assertTrue(result['runs'][0]['deletion_requested'])
+        self.assertNotIn('private-', json.dumps(result))
+
+    def test_deletion_progress_only_keeps_fixed_failure_reason(self):
+        record = recovery.project(workflow(), run())
+        for reason, expected in (('deadline_with_finalizers',
+                                  'deadline_with_finalizers'),
+                                 ('private-error-message', 'other')):
+            response = dict(runs=[
+                dict(
+                    record,
+                    deletion_failed=True,
+                    deletion_failure_reason=reason)
+            ])
+            result = recovery.deletion_progress([record], [], response)
+            self.assertEqual(result['runs'][0]['deletion_failure_reason'],
+                             expected)
+            self.assertNotIn('private-', json.dumps(result))
 
     def test_proxy_evidence_uses_allowed_readiness_transport_path(self):
         proxy = recovery.Client('http://127.0.0.1:18888')

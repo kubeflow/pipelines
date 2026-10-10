@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -167,7 +168,7 @@ func TestDeleteFailureDoesNotForwardOrClaimSuccess(t *testing.T) {
 	if status.Code(err) != codes.Unavailable || strings.Contains(err.Error(), "sensitive") {
 		t.Fatal("unsafe fixture error")
 	}
-	if p.targets["run-id"].Deleted || !p.targets["run-id"].DeletionFailed {
+	if p.targets["run-id"].Deleted || !p.targets["run-id"].DeletionFailed || p.targets["run-id"].DeletionFailureReason != "other" {
 		t.Fatal("incorrect deletion evidence")
 	}
 }
@@ -302,6 +303,112 @@ func TestHealthRoutesForwardVersionedAPIHealth(t *testing.T) {
 			if recorder.Code != code || recorder.Body.String() != body || calls != 1 {
 				t.Fatalf("route %s lost upstream status/body: %d %s calls=%d", path, recorder.Code, recorder.Body.String(), calls)
 			}
+		}
+	}
+}
+
+func TestEvidenceRemainsResponsiveDuringReportIO(t *testing.T) {
+	for _, stage := range []string{"deletion", "upstream"} {
+		t.Run(stage, func(t *testing.T) {
+			p, err := newProxy(fixtureNamespace, config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			entered, release, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+			wait := func() { close(entered); <-release }
+			defer func() {
+				close(release)
+				select {
+				case err := <-done:
+					if err != nil {
+						t.Errorf("report failed after release: %v", err)
+					}
+				case <-time.After(time.Second):
+					t.Error("report did not finish after release")
+				}
+			}()
+			p.deleteWorkflow = func(context.Context, target) error {
+				if stage == "deletion" {
+					wait()
+				}
+				return nil
+			}
+			p.reports = reportClient{report: func(context.Context, *api.ReportWorkflowRequest) (*emptypb.Empty, error) {
+				if stage == "upstream" {
+					wait()
+				}
+				return &emptypb.Empty{}, nil
+			}}
+			req := selectedReport(t, nil)
+			go func() { _, err := p.ReportWorkflowV1(context.Background(), req); done <- err }()
+			select {
+			case <-entered:
+			case <-time.After(time.Second):
+				t.Fatal("report did not reach blocking operation")
+			}
+			response := make(chan *httptest.ResponseRecorder, 1)
+			go func() {
+				recorder := httptest.NewRecorder()
+				p.serveEvidence(recorder, httptest.NewRequest(http.MethodGet, "/apis/v2beta1/reporting-fixture-evidence", nil))
+				response <- recorder
+			}()
+			select {
+			case recorder := <-response:
+				var snapshot struct {
+					Runs []evidence `json:"runs"`
+				}
+				if err := json.Unmarshal(recorder.Body.Bytes(), &snapshot); err != nil {
+					t.Fatal(err)
+				}
+				if len(snapshot.Runs) != 1 || snapshot.Runs[0].Attempts != 1 || snapshot.Runs[0].Deleted != (stage == "upstream") || snapshot.Runs[0].UpstreamCode != "" {
+					t.Fatalf("incorrect in-flight snapshot: %+v", snapshot)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("evidence blocked behind report I/O")
+			}
+		})
+	}
+}
+
+func TestDeletionFailureReasonsAreSanitized(t *testing.T) {
+	for _, tc := range []struct {
+		err    error
+		reason string
+	}{
+		{context.DeadlineExceeded, "deadline"}, {context.Canceled, "canceled"},
+		{errDeletionDeadlineWithFinalizers, "deadline_with_finalizers"},
+		{apierrors.NewForbidden(workflows.GroupResource(), "sensitive-name", errors.New("sensitive-detail")), "forbidden"},
+		{apierrors.NewNotFound(workflows.GroupResource(), "sensitive-name"), "not_found"},
+		{apierrors.NewConflict(workflows.GroupResource(), "sensitive-name", errors.New("sensitive-detail")), "conflict"},
+		{apierrors.NewTimeoutError("sensitive-detail", 1), "kubernetes_timeout"},
+		{errors.New("sensitive-detail"), "other"},
+	} {
+		if got := deletionFailureReason(tc.err); got != tc.reason {
+			t.Fatalf("unexpected reason %s", got)
+		}
+	}
+}
+
+func TestDeletionDeadlineDistinguishesObservedFinalizers(t *testing.T) {
+	for _, hasFinalizers := range []bool{false, true} {
+		workflow := &unstructured.Unstructured{Object: map[string]interface{}{
+			"apiVersion": "argoproj.io/v1alpha1", "kind": "Workflow",
+			"metadata": map[string]interface{}{"namespace": fixtureNamespace, "name": "selected-wf", "uid": "workflow-uid"},
+		}}
+		if hasFinalizers {
+			workflow.SetFinalizers([]string{"synthetic.example/finalizer"})
+		}
+		client := fake.NewSimpleDynamicClient(runtime.NewScheme(), workflow)
+		client.PrependReactor("delete", "workflows", func(ktesting.Action) (bool, runtime.Object, error) { return true, nil, nil })
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		err := deleteSelected(ctx, client, target{WorkflowName: "selected-wf", WorkflowUID: "workflow-uid"})
+		cancel()
+		expected := "deadline"
+		if hasFinalizers {
+			expected = "deadline_with_finalizers"
+		}
+		if got := deletionFailureReason(err); got != expected {
+			t.Fatalf("expected %s, got %s", expected, got)
 		}
 	}
 }

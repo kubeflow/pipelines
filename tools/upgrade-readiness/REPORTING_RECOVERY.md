@@ -51,7 +51,7 @@ The proxy forwards authentication unchanged. Run the `delete` phase with the
 same arguments plus `--proxy-endpoint http://127.0.0.1:PROXY_PORT`. This resumes
 the second source pair. The proxy captures each actual worker terminal report,
 deletes only its configured immutable Workflow UID, waits for NotFound, then
-forwards the unmodified report. Acceptance requires both proxy deletion evidence
+forwards the unmodified report. The deletion report remains `outcome: pending` while work is in progress or after a failure; only `outcome: passed` establishes acceptance. Pending reports include selected Workflow presence, UID match, deletion request/finalizer counts, and fixed proxy failure categories, without manifests or raw errors. Acceptance requires both proxy deletion evidence
 and successful API terminal state with original ownership, with no worker
 restart during this phase. A NotFound response after final-state persistence is
 allowed only when the API confirms `SUCCEEDED`.

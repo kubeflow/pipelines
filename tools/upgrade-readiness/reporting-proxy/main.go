@@ -39,6 +39,8 @@ import (
 const fixtureNamespace = "kfp-readiness-test"
 const operationTimeout = 30 * time.Second
 
+var errDeletionDeadlineWithFinalizers = errors.New("deletion deadline with finalizers observed")
+
 var workflows = schema.GroupVersionResource{Group: "argoproj.io", Version: "v1alpha1", Resource: "workflows"}
 
 type target struct {
@@ -49,10 +51,11 @@ type target struct {
 
 type evidence struct {
 	target
-	Deleted        bool   `json:"deleted"`
-	UpstreamCode   string `json:"upstream_code"`
-	Attempts       int    `json:"attempts"`
-	DeletionFailed bool   `json:"deletion_failed"`
+	Deleted               bool   `json:"deleted"`
+	UpstreamCode          string `json:"upstream_code"`
+	Attempts              int    `json:"attempts"`
+	DeletionFailed        bool   `json:"deletion_failed"`
+	DeletionFailureReason string `json:"deletion_failure_reason,omitempty"`
 }
 
 type workflowReport struct {
@@ -70,6 +73,7 @@ type proxy struct {
 	reports        api.ReportServiceClient
 	runs           api.RunServiceClient
 	deleteWorkflow func(context.Context, target) error
+	reportMu       sync.Mutex
 	mu             sync.Mutex
 	targets        map[string]*evidence
 	order          []string
@@ -122,18 +126,30 @@ func (p *proxy) ReportWorkflowV1(ctx context.Context, request *api.ReportWorkflo
 		p.mu.Unlock()
 		return p.reports.ReportWorkflowV1(ctx, request)
 	}
-	// Keep deletion and forwarding ordered across duplicate worker reports.
-	defer p.mu.Unlock()
+	p.mu.Unlock()
+	// Keep report operations ordered without blocking evidence snapshots on I/O.
+	p.reportMu.Lock()
+	defer p.reportMu.Unlock()
+	p.mu.Lock()
 	entry.Attempts++
-	if !entry.Deleted {
+	deleted := entry.Deleted
+	p.mu.Unlock()
+	if !deleted {
 		if err := p.deleteWorkflow(ctx, entry.target); err != nil {
+			p.mu.Lock()
 			entry.DeletionFailed = true
+			entry.DeletionFailureReason = deletionFailureReason(err)
+			p.mu.Unlock()
 			return nil, status.Error(codes.Unavailable, "fixture could not delete the selected Workflow")
 		}
+		p.mu.Lock()
 		entry.Deleted = true
+		p.mu.Unlock()
 	}
 	response, err := p.reports.ReportWorkflowV1(ctx, request)
+	p.mu.Lock()
 	entry.UpstreamCode = status.Code(err).String()
+	p.mu.Unlock()
 	return response, err
 }
 
@@ -147,6 +163,28 @@ func (p *proxy) ReportRunMetricsV1(ctx context.Context, request *api.ReportRunMe
 	ctx, cancel := outgoing(ctx)
 	defer cancel()
 	return p.runs.ReportRunMetricsV1(ctx, request)
+}
+
+// Only fixed categories reach evidence; Kubernetes error strings may contain data.
+func deletionFailureReason(err error) string {
+	switch {
+	case errors.Is(err, errDeletionDeadlineWithFinalizers):
+		return "deadline_with_finalizers"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "deadline"
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	case apierrors.IsForbidden(err):
+		return "forbidden"
+	case apierrors.IsNotFound(err):
+		return "not_found"
+	case apierrors.IsConflict(err):
+		return "conflict"
+	case apierrors.IsTimeout(err), apierrors.IsServerTimeout(err):
+		return "kubernetes_timeout"
+	default:
+		return "other"
+	}
 }
 
 func deleteSelected(ctx context.Context, client dynamic.Interface, selected target) error {
@@ -164,19 +202,27 @@ func deleteSelected(ctx context.Context, client dynamic.Interface, selected targ
 	}
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
+	finalizersObserved := false
 	for {
 		current, err := resource.Get(ctx, selected.WorkflowName, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		if err != nil {
+			if finalizersObserved && errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return errDeletionDeadlineWithFinalizers
+			}
 			return err
 		}
 		if current.GetUID() != uid {
 			return errors.New("selected Workflow was replaced")
 		}
+		finalizersObserved = len(current.GetFinalizers()) > 0
 		select {
 		case <-ctx.Done():
+			if finalizersObserved && errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return errDeletionDeadlineWithFinalizers
+			}
 			return ctx.Err()
 		case <-ticker.C:
 		}

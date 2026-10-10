@@ -305,14 +305,80 @@ def restore(state_dir):
                 ]))
 
 
-def deleted_evidence(client, proxy, records):
+def deletion_progress(records, live, response=None):
+    """Project bounded fixture state without Workflow specs or error
+    messages."""
+    rows = []
+    for record in records:
+        matches = [
+            w for w in live
+            if w.get('metadata', {}).get('name') == record['workflow_name']
+        ]
+        row = dict(record, workflow_present=bool(matches))
+        if len(matches) == 1:
+            workflow = matches[0]
+            metadata = workflow.get('metadata', {})
+            phase = workflow.get('status', {}).get('phase')
+            row.update(
+                workflow_uid_matches=metadata.get('uid') ==
+                record['workflow_uid'],
+                deletion_requested=bool(metadata.get('deletionTimestamp')),
+                finalizer_count=len(metadata.get('finalizers', [])),
+                workflow_phase=phase if phase in ('Pending', 'Running',
+                                                  'Succeeded', 'Failed',
+                                                  'Error') else 'unknown')
+        if isinstance(response, dict) and isinstance(
+                response.get('runs'), list):
+            evidence = [
+                item for item in response['runs']
+                if item.get('run_id') == record['run_id']
+            ]
+            if len(evidence) == 1:
+                item = evidence[0]
+                row.update(
+                    deleted=item.get('deleted') is True,
+                    deletion_failed=item.get('deletion_failed') is True,
+                    deletion_failure_reason=item.get('deletion_failure_reason')
+                    if item.get('deletion_failure_reason')
+                    in ('', 'forbidden', 'not_found', 'conflict', 'deadline',
+                        'deadline_with_finalizers', 'canceled',
+                        'kubernetes_timeout', 'other') else 'other',
+                    upstream_code=item.get('upstream_code')
+                    if item.get('upstream_code')
+                    in ('', 'OK', 'NotFound', 'Unavailable', 'DeadlineExceeded',
+                        'PermissionDenied') else 'other')
+        rows.append(row)
+    return dict(
+        scope='worker_captured_terminal_deletion_race',
+        outcome='pending',
+        proxy_evidence_observed=response is not None,
+        runs=rows)
+
+
+def deleted_evidence(client, proxy, records, state_dir=None):
+    live = get('workflows.argoproj.io')['items']
+    require(
+        isinstance(live, list) and len(live) <= 1000,
+        'reporting_deletion_diagnostic_limit')
+    # Retain Kubernetes progress even if the observer transport itself fails.
+    if state_dir is not None:
+        write_object(state_dir / 'reporting-deleted.json',
+                     deletion_progress(records, live))
     response = proxy.get('/apis/v2beta1/reporting-fixture-evidence')
+    # Observe Kubernetes after the proxy snapshot so an in-flight deletion
+    # cannot make a stale pre-request list look like a failed deletion.
+    live = get('workflows.argoproj.io')['items']
+    require(
+        isinstance(live, list) and len(live) <= 1000,
+        'reporting_deletion_diagnostic_limit')
+    if state_dir is not None:
+        write_object(state_dir / 'reporting-deleted.json',
+                     deletion_progress(records, live, response))
     require(
         response.get('namespace') == NAMESPACE,
         'reporting_proxy_namespace_mismatch')
     evidence = response.get('runs', [])
     require(isinstance(evidence, list), 'reporting_proxy_evidence_invalid')
-    live = get('workflows.argoproj.io')['items']
     names = {w['metadata']['name'] for w in live}
     result = []
     for record in records:
@@ -356,7 +422,7 @@ def deleted_evidence(client, proxy, records):
     return result
 
 
-def delete_captured(client, proxy, state):
+def delete_captured(client, proxy, state, state_dir=None):
     records = state['deletion_runs']
     original_worker = worker_pods()
     for record in records:
@@ -376,7 +442,7 @@ def delete_captured(client, proxy, state):
                 dict(op='replace', path='/spec/suspend', value=False)
             ]))
     result = wait_for(
-        lambda: deleted_evidence(client, proxy, records),
+        lambda: deleted_evidence(client, proxy, records, state_dir),
         600,
         phase='captured_deletion')
     require(worker_pods() == original_worker,
@@ -770,7 +836,7 @@ def main():
     elif args.phase == 'delete':
         require(args.proxy_endpoint, 'reporting_proxy_endpoint_required')
         result = delete_captured(client, Client(args.proxy_endpoint),
-                                 read_object(source_path))
+                                 read_object(source_path), args.state_dir)
         write_object(args.state_dir / 'reporting-deleted.json', result)
     else:
         result = recover(client, read_object(source_path), args.state_dir)
