@@ -116,6 +116,24 @@ jobs:
         run: |
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
 
+      - name: Capture 2.17.2 filtered pages and retain old API replica
+        shell: bash
+        run: |
+          python3 tools/upgrade-readiness/live_pagination.py source --state "$RUNNER_TEMP/pagination-source.json" --source-image "$(kubectl -n kubeflow get deployment ml-pipeline -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          # Keep the old API on the same database, isolated from the normal
+          # service selector, to route each mixed-version page deliberately.
+          kubectl -n kubeflow get deployment ml-pipeline -o json | python3 -c '
+          import json, sys
+          deployment = json.load(sys.stdin)
+          deployment["metadata"] = {"name": "pagination-source", "namespace": "kubeflow"}
+          deployment.pop("status", None)
+          deployment["spec"]["replicas"] = 1
+          deployment["spec"]["selector"] = {"matchLabels": {"app": "pagination-source"}}
+          deployment["spec"]["template"]["metadata"]["labels"]["app"] = "pagination-source"
+          json.dump(deployment, sys.stdout)
+          ' | kubectl apply -f -
+          kubectl -n kubeflow rollout status deployment/pagination-source --timeout=180s
+
       - name: Stop port forwarding
         run: |
           pkill -f "port-forward"
@@ -131,9 +149,50 @@ jobs:
           image_registry: kind-registry:5000
           forward_port: 'true'
 
+      - name: Verify upgraded and mixed-version filtered pagination
+        shell: bash
+        run: |
+          kubectl -n kubeflow port-forward --address=127.0.0.1 deployment/pagination-source 8889:8888 > "$RUNNER_TEMP/pagination-forward.log" 2>&1 &
+          OLD_API_FORWARD_PID=$!
+          trap 'kill "$OLD_API_FORWARD_PID" 2>/dev/null || true; wait "$OLD_API_FORWARD_PID" 2>/dev/null || true' EXIT
+          for ((attempt=0; attempt<30; attempt++)); do
+            kill -0 "$OLD_API_FORWARD_PID"
+            if grep -Fq 'Forwarding from 127.0.0.1:8889' "$RUNNER_TEMP/pagination-forward.log" &&
+              curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null &&
+              kill -0 "$OLD_API_FORWARD_PID"; then
+              break
+            fi
+            sleep 1
+          done
+          grep -Fq 'Forwarding from 127.0.0.1:8889' "$RUNNER_TEMP/pagination-forward.log"
+          curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null
+          kill -0 "$OLD_API_FORWARD_PID"
+          python3 tools/upgrade-readiness/live_pagination.py target --state "$RUNNER_TEMP/pagination-source.json" --report "$RUNNER_TEMP/pagination-report.json"
+
+      - name: Upload pagination acceptance evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pagination-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/pagination-report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove retained pagination source API
+        if: ${{ always() && steps.create-cluster.outcome == 'success' }}
+        shell: bash
+        run: |
+          kubectl -n kubeflow delete deployment/pagination-source --ignore-not-found=true --cascade=foreground --wait=true --timeout=120s
+
+      - name: Remove suspended pagination workflows
+        if: ${{ always() && steps.create-cluster.outcome == 'success' }}
+        shell: bash
+        run: |
+          kubectl -n kubeflow delete workflows -l pipelines.kubeflow.org/pagination-fixture=true --ignore-not-found=true --cascade=foreground --wait=true --timeout=120s
+
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}
         with:
           test_directory: ${{ env.TESTS_DIR }}
           test_label: "UpgradeVerification"
