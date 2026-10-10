@@ -254,12 +254,15 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 
 	// Probe the sort field type using the listable instance. SortByFieldName is
 	// the user-facing name, which GetFieldValue resolves to the model field
-	// value. String fields return "" (string type); numeric fields
-	// return int64(0) or similar. Nullable string fields return a nil *string.
-	probeVal := listable.GetFieldValue(token.SortByFieldName)
-	_, isString := probeVal.(string)
-	_, isNullableString := probeVal.(*string)
-	token.SortByFieldIsString = isString || isNullableString
+	// value. Include named string types and nullable pointers to them, whose
+	// continuation-token values decode as plain strings.
+	probeType := reflect.TypeOf(listable.GetFieldValue(token.SortByFieldName))
+	if probeType != nil {
+		if probeType.Kind() == reflect.Pointer {
+			probeType = probeType.Elem()
+		}
+		token.SortByFieldIsString = probeType.Kind() == reflect.String
+	}
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
