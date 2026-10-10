@@ -93,3 +93,5 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+
+- The offline frontend qualification reliability reporter preserves first-attempt job outcomes across reruns and cancelled workflows; it does not retry jobs or promote qualification gates. See [collection and interpretation](../contributing/frontend-qualification-reliability.md). Missing attempt evidence remains unknown.
