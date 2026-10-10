@@ -16,6 +16,7 @@
 
 import { produce as immerProduce } from 'immer';
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
@@ -211,12 +212,20 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       );
       displayPipelines = response.pipelines || [];
       displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
+      if (request.isCurrent?.() === false) return '';
       this.clearBanner();
     } catch (err) {
+      if (request.isCurrent?.() === false) return '';
+      await throwIfPaginationRestartRequired(err);
+      request.onFailure?.();
+      if (request.isCurrent?.() === false) return '';
+      this.setStateSafe({ displayPipelines: [] });
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      if (request.isCurrent?.() === false) return '';
       await this.showPageError('Error: failed to retrieve list of pipelines.', error);
     }
 
+    if (request.isCurrent?.() === false) return '';
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
 
     return response ? response.next_page_token || '' : '';

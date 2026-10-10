@@ -251,7 +251,7 @@ describe('ExperimentList', () => {
   });
 
   it('shows error banner when listing experiments fails', async () => {
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderExperimentList();
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -266,8 +266,8 @@ describe('ExperimentList', () => {
   });
 
   it('shows error next to experiment when listing its last 5 runs fails', async () => {
-    listExperimentsSpy.mockImplementationOnce(() => ({ experiments: [{ display_name: 'exp1' }] }));
-    TestUtils.makeErrorResponseOnce(listRunsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockImplementation(() => ({ experiments: [{ display_name: 'exp1' }] }));
+    listRunsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     await renderExperimentList();
     await waitFor(() =>
@@ -288,7 +288,7 @@ describe('ExperimentList', () => {
     listExperimentsSpy.mockClear();
     const refreshBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     await act(async () => {
       await refreshBtn!.action();
     });
@@ -305,7 +305,7 @@ describe('ExperimentList', () => {
   });
 
   it('hides error banner when listing experiments fails then succeeds', async () => {
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderExperimentList();
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(

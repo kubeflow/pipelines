@@ -220,7 +220,7 @@ describe('ExperimentList', () => {
   });
 
   it('calls error callback when loading experiment fails', async () => {
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     renderExperimentList(generateProps());
     await waitFor(() =>
       expect(onErrorSpy).toHaveBeenLastCalledWith(

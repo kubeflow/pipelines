@@ -16,6 +16,7 @@
 
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import {
   V2beta1PipelineVersion,
@@ -158,12 +159,19 @@ class PipelineVersionList extends React.PureComponent<
           request.filter,
         );
       } catch (err) {
+        if (request.isCurrent?.() === false) return '';
+        await throwIfPaginationRestartRequired(err);
+        request.onFailure?.();
+        if (request.isCurrent?.() === false) return '';
+        this.setState({ pipelineVersions: [] });
         const error = new Error(await errorToMessage(err));
+        if (request.isCurrent?.() === false) return '';
         this.props.onError('Error: failed to fetch runs.', error);
         // No point in continuing if we couldn't retrieve any runs.
         return '';
       }
 
+      if (request.isCurrent?.() === false) return '';
       this.setState({
         pipelineVersions: response.pipeline_versions || [],
       });

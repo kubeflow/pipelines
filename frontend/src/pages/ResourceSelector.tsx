@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { ListRequest } from '../lib/Apis';
@@ -43,7 +44,8 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   emptyMessage: string;
   filterLabel: string;
   initialSortColumn: any;
-  selectionChanged: (selectedId: string) => void;
+  selectionChanged: (selectedId: string, isCurrent?: () => boolean) => void;
+  selectionCleared?: () => void;
   title?: string;
   toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
@@ -58,6 +60,7 @@ interface ResourceSelectorState {
 
 class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSelectorState> {
   protected _isMounted = true;
+  private _selectionGeneration = 0;
 
   constructor(props: any) {
     super(props);
@@ -109,11 +112,20 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected _selectionChanged(selectedIds: string[]): void {
+    const generation = ++this._selectionGeneration;
+    if (Array.isArray(selectedIds) && selectedIds.length === 0) {
+      this.setStateSafe({ selectedIds: [] });
+      this.props.selectionCleared?.();
+      return;
+    }
     if (!Array.isArray(selectedIds) || selectedIds.length !== 1) {
       logger.error(`${selectedIds.length} resources were selected somehow`, selectedIds);
       return;
     }
-    this.props.selectionChanged(selectedIds[0]);
+    this.props.selectionChanged(
+      selectedIds[0],
+      () => this._isMounted && generation === this._selectionGeneration,
+    );
     this.setStateSafe({ selectedIds });
   }
 
@@ -127,6 +139,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
         request.filter,
       );
 
+      if (request.isCurrent?.() === false) return '';
       this.setStateSafe({
         resources: response.resources,
         rows: this._resourcesToRow(response.resources),
@@ -134,7 +147,13 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
       nextPageToken = response.nextPageToken;
     } catch (err) {
+      if (request.isCurrent?.() === false) return '';
+      await throwIfPaginationRestartRequired(err);
+      request.onFailure?.();
+      if (request.isCurrent?.() === false) return '';
+      this.setStateSafe({ resources: [], rows: [] });
       const errorMessage = await errorToMessage(err);
+      if (request.isCurrent?.() === false) return '';
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: 'List request failed with:\n' + errorMessage,

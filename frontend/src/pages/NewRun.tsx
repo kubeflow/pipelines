@@ -353,9 +353,13 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 columns={this.pipelineVersionSelectorColumns}
                 emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
                 initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
-                selectionChanged={async (selectedId: string) => {
+                selectionCleared={() =>
+                  this.setStateSafe({ unconfirmedSelectedPipelineVersion: undefined })
+                }
+                selectionChanged={async (selectedId: string, isCurrent?: () => boolean) => {
                   const selectedPipelineVersion =
                     await Apis.pipelineServiceApi.getPipelineVersion(selectedId);
+                  if (isCurrent?.() === false) return;
                   this.setStateSafe({
                     unconfirmedSelectedPipelineVersion: selectedPipelineVersion,
                   });
@@ -441,9 +445,13 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 columns={this.experimentSelectorColumns}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
-                selectionChanged={async (selectedId: string) => {
+                selectionCleared={() =>
+                  this.setStateSafe({ unconfirmedSelectedExperiment: undefined })
+                }
+                selectionChanged={async (selectedId: string, isCurrent?: () => boolean) => {
                   const selectedExperiment =
                     await Apis.experimentServiceApi.getExperiment(selectedId);
+                  if (isCurrent?.() === false) return;
                   this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment });
                 }}
               />
