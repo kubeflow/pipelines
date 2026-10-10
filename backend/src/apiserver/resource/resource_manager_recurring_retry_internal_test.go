@@ -101,3 +101,55 @@ func TestRetryRun_ReportedRecurringRunPodSpecPatch(t *testing.T) {
 		})
 	}
 }
+
+func TestRetryRun_LegacyMissingStoredUIDPreservesRecurringScheduledWorkflowOwner(t *testing.T) {
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	schedule, err := store.SwfClient().ScheduledWorkflow(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	executionSpec, err := swfutil.NewScheduledWorkflow(schedule).NewWorkflow(11, 11)
+	require.NoError(t, err)
+	workflow := executionSpec.(*util.Workflow)
+	workflow.Namespace = job.Namespace
+	workflow.Status.Phase = v1alpha1.WorkflowFailed
+	workflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	require.NotEmpty(t, workflow.OwnerReferences)
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	runID := workflow.Labels[util.LabelKeyWorkflowRunId]
+	run, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	require.Equal(t, job.UUID, run.RecurringRunId)
+	require.Equal(t, model.RuntimeStateFailed, run.State)
+	originalUID := storedWorkflowUID(t, run)
+	require.NotEmpty(t, originalUID)
+
+	persistLegacyRuntimeManifestWithoutUID(t, store, run, false)
+	legacyRun, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	require.Empty(t, storedWorkflowUID(t, legacyRun))
+
+	workflowClient := store.ExecClient().Execution(job.Namespace)
+	manager.execClient = &retryWorkflowExecClient{
+		workflowClient: &createNameCollisionWorkflowClient{ExecutionInterface: workflowClient},
+	}
+
+	require.NoError(t, manager.RetryRun(ctx, runID))
+
+	retried, err := workflowClient.Get(ctx, workflow.Name, metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, originalUID, retried.ExecutionObjectMeta().UID)
+	assert.Equal(t, job.UUID, retried.ScheduledWorkflowUUIDAsStringOrEmpty())
+
+	updatedRun, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, updatedRun.State)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, updatedRun))
+	assert.Equal(t, job.UUID, updatedRun.RecurringRunId)
+}

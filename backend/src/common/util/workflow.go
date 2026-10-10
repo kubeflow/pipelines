@@ -19,6 +19,7 @@ import (
 	"context"
 	stdjson "encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -159,6 +160,50 @@ func (w *Workflow) ExecutionType() ExecutionType {
 // ExecutionStatus access status related information
 func (w *Workflow) ExecutionStatus() ExecutionStatus {
 	return w
+}
+
+// RetryPlaceholderClaimValue formats the AnnotationKeyRetryPlaceholderClaim value
+// that authenticates a retry placeholder for a run and ClaimRunForRetry generation.
+func RetryPlaceholderClaimValue(runID string, generation int64) string {
+	return fmt.Sprintf("%s/%d", runID, generation)
+}
+
+// RetryPlaceholderClaimMatches reports whether objMeta carries a placeholder claim
+// for the given run ID and claim generation.
+func RetryPlaceholderClaimMatches(objMeta *metav1.ObjectMeta, runID string, claimGeneration int64) bool {
+	if objMeta == nil || runID == "" || claimGeneration <= 0 {
+		return false
+	}
+	return objMeta.Annotations[AnnotationKeyRetryPlaceholderClaim] == RetryPlaceholderClaimValue(runID, claimGeneration)
+}
+
+// NewRetryPlaceholder creates a suspended Workflow for the first phase of retry recreation.
+// The retry-generation claim stays off this object so a create-only partial failure is not
+// mistaken for a completed activation when RetryRun re-reads the live Workflow. A dedicated
+// placeholder-claim annotation still ties the object to this run and generation so RetryRun
+// can adopt its UID without trusting a foreign suspended same-name Workflow.
+func (w *Workflow) NewRetryPlaceholder() ExecutionSpec {
+	placeholder := NewWorkflow(w.DeepCopy())
+	placeholder.ClearPersistedNodeStatus()
+	placeholder.SetVersion("")
+	placeholder.UID = ""
+	runID := ""
+	if placeholder.Labels != nil {
+		runID = placeholder.Labels[LabelKeyWorkflowRunId]
+	}
+	generationRaw := ""
+	if placeholder.Annotations != nil {
+		generationRaw = placeholder.Annotations[AnnotationKeyRetryGeneration]
+	}
+	delete(placeholder.Annotations, AnnotationKeyRetryGeneration)
+	if runID != "" && generationRaw != "" {
+		if generation, err := strconv.ParseInt(generationRaw, 10, 64); err == nil && generation > 0 {
+			placeholder.SetAnnotations(AnnotationKeyRetryPlaceholderClaim, RetryPlaceholderClaimValue(runID, generation))
+		}
+	}
+	suspend := true
+	placeholder.Spec.Suspend = &suspend
+	return placeholder
 }
 
 // SetServiceAccount Set the service account to run the workflow.
@@ -1016,7 +1061,10 @@ func (w *Workflow) CanRetry() error {
 		return NewInvalidInputError("Cannot retry an empty workflow; create a new run from pipeline IR")
 	}
 	if w.Workflow.Status.OffloadNodeStatusVersion != "" {
-		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+		return NewBadRequestError(
+			errors.New("workflow cannot be retried"),
+			"Cannot retry workflow with offloaded node status. Hydrate node statuses from Argo offload storage, or clone the run instead of retrying",
+		)
 	}
 	// The IR compiler emits this format marker. It is not an authorization boundary.
 	metadata := w.Spec.PodMetadata

@@ -1,0 +1,81 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package clientmanager wires API server storage, Kubernetes, and execution-engine clients.
+package clientmanager
+
+import (
+	"context"
+	"strings"
+
+	argoconfig "github.com/argoproj/argo-workflows/v4/config"
+	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+)
+
+func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
+	kube := c.k8sCoreClient.GetClientSet()
+	if kube == nil {
+		glog.Warning("Skipping Argo offload hydrator: Kubernetes client is unavailable")
+		return
+	}
+	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (*argoconfig.PersistConfig, string, error) {
+		return loadArgoPersistConfig(ctx, kube)
+	})
+	util.SetWorkflowHydrator(lazy)
+	offloadEnabled, err := util.TryInitLazyOffloadHydrator(lazy, ctx)
+	if err != nil {
+		glog.Warningf(
+			"Failed to initialize Argo offload hydrator: %v. ConfigMap and Secret access will be retried on demand.",
+			err,
+		)
+		return
+	}
+	if offloadEnabled {
+		glog.Info("Argo offload hydrator initialized")
+		return
+	}
+	glog.Info("Argo node status offload is disabled; inline and compressed node status hydration only")
+}
+
+func loadArgoPersistConfig(ctx context.Context, kube kubernetes.Interface) (*argoconfig.PersistConfig, string, error) {
+	namespace := common.GetArgoWorkflowControllerNamespace()
+	configMapName := common.GetArgoWorkflowControllerConfigMap()
+	configMap, err := kube.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
+	if err != nil {
+		return nil, "", err
+	}
+	if _, ok := configMap.Data["config"]; ok {
+		cfg, err := argoconfig.NewController(namespace, configMapName, kube).Parse(configMap)
+		if err != nil {
+			return nil, "", err
+		}
+		if cfg.Persistence == nil {
+			return nil, namespace, nil
+		}
+		return cfg.Persistence, namespace, nil
+	}
+	raw, ok := configMap.Data["persistence"]
+	if !ok || strings.TrimSpace(raw) == "" {
+		return nil, namespace, nil
+	}
+	persist, err := util.ParseArgoPersistConfig([]byte(raw))
+	if err != nil {
+		return nil, "", err
+	}
+	return persist, namespace, nil
+}
