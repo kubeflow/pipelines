@@ -463,8 +463,8 @@ def prepare_extended(marker):
 
 
 def changed_nullable_order(case):
-    field, direction = case['sort'].split()
-    return (case['collection'] == 'runs' and direction == 'asc' and
+    field, _ = case['sort'].split()
+    return (case['collection'] == 'runs' and
             (field.startswith('metric:') or
              field in ('recurring_run_id', 'scheduled_at', 'finished_at')))
 

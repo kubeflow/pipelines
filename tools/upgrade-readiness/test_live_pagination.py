@@ -296,13 +296,53 @@ class ExtendedPaginationTest(unittest.TestCase):
             with self.assertRaises(fixture.ApiError):
                 fixture.reader_version_boundary(self.case)
 
-    def test_only_selected_ascending_nullable_cases_require_restart(self):
-        for sort, affected in (('metric:x asc', True), ('metric:x desc', False),
+    def test_null_metric_desc_envelope_cannot_return_old_reader_page(self):
+        self.case['sort'] = 'metric:pagination_score desc'
+        token = 'kfp1:' + base64.b64encode(
+            json.dumps({
+                'OrderingVersion': 1,
+                'SortByFieldIsNull': True,
+                'SortByFieldValue': None,
+                'IsDesc': True
+            }).encode()).decode()
+        first = {'runs': [{'run_id': 'a'}], 'next_page_token': token}
+        with mock.patch.object(
+                fixture,
+                'case_page',
+                side_effect=[first, fixture.ApiError(400, grpc_code=3)]):
+            self.assertEqual(
+                fixture.reader_version_boundary(self.case)['outcome'],
+                'old_reader_rejected')
+        # The old reader ignoring the NULL marker and silently returning page
+        # one must fail, even if it presents an otherwise plausible response.
+        with mock.patch.object(
+                fixture, 'case_page', side_effect=[first, first]):
+            with self.assertRaisesRegex(ValueError, 'accepted incompatible'):
+                fixture.reader_version_boundary(self.case)
+
+    def test_source_null_metric_failure_does_not_invent_desc_cursor(self):
+        self.case.update(
+            sort='metric:pagination_score desc',
+            first=None,
+            source_order=None,
+            source_baseline={'outcome': 'failed'})
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'old_reader_boundary', return_value={'outcome': 'not_available'}), \
+             mock.patch.object(fixture, 'reader_version_boundary', return_value={'outcome': 'old_reader_rejected'}):
+            result = fixture.validate_extended([self.case])[0]
+        self.assertEqual(result['saved_source_continuation']['outcome'],
+                         'not_available')
+        self.assertEqual(result['disposition'],
+                         'explicit_restart_for_legacy_nullable_order')
+
+    def test_selected_nullable_cases_require_restart_in_both_directions(self):
+        for sort, affected in (('metric:x asc', True), ('metric:x desc', True),
                                ('scheduled_at asc',
                                 True), ('finished_at asc',
                                         True), ('recurring_run_id asc', True),
                                ('display_name asc', False), ('finished_at desc',
-                                                             False)):
+                                                             True)):
             self.assertEqual(
                 fixture.changed_nullable_order(dict(self.case, sort=sort)),
                 affected)

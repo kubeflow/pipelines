@@ -26,13 +26,14 @@ workflow run identifies the exact candidate revision and same-run image build.
 
 The extended matrix adds 32 V1/V2 experiment and run cases: ascending and
 descending name, description, creation time, metric, recurring-run ID, scheduled
-time, and finished time sorts. The source creates mixed-case names, NULL metrics,
-and unset run fields. Each case uses a separate complete inventory to establish
+time, and finished time sorts. The source creates mixed-case names, real NULL metrics, and unset run fields.
+Unset timestamps are stored as zero by the source API; this live fixture does not
+claim actual SQL NULL timestamp coverage. Each case uses a separate complete inventory to establish
 membership; every fresh candidate traversal must return each expected ID exactly
 once in the candidate's order. An old server failure never excuses a fresh
 candidate failure.
 
-The changed ascending nullable run sorts have explicit rollout boundaries:
+Nullable run sorts in both directions have explicit rollout boundaries:
 
 - A real saved source token or newly issued old-reader token must receive HTTP
   400 with gRPC code 9 and `google.rpc.ErrorInfo` reason
@@ -42,9 +43,11 @@ The changed ascending nullable run sorts have explicit rollout boundaries:
   The actual 2.17.2 reader must reject it with HTTP 400 / gRPC InvalidArgument;
   accepting any page fails acceptance. Historical readers otherwise discard
   unknown JSON metadata when reissuing tokens, so a JSON version field alone
-  cannot make mixed-reader traversal safe.
-- Descending and nonnullable cases with working source pagination and unchanged
-  ordering must retain saved-token and mixed-reader continuity. Their new tokens
+  cannot make mixed-reader traversal safe. Descending cursors also need this
+  boundary: old readers can ignore the NULL marker and restart at page one, or
+  omit the NULL suffix after a non-NULL cursor.
+- Nonnullable cases with working source pagination and unchanged ordering must
+  retain saved-token and mixed-reader continuity. Their new tokens
   remain readable by the historical server.
 
 Restart affected paging from page one against the candidate after rollout. The
