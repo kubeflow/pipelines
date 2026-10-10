@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
@@ -2012,9 +2013,10 @@ func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.
 	assert.NotEmpty(t, nextPageToken)
 
 	// Decode token to modify SortByFieldValue to string
-	// list.Token is exported now
+	// Nullable ascending cursors use a versioned envelope.
 	var tokenMap map[string]interface{}
-	tokenBytes, err := base64.StdEncoding.DecodeString(nextPageToken)
+	require.True(t, strings.HasPrefix(nextPageToken, "kfp1:"))
+	tokenBytes, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(nextPageToken, "kfp1:"))
 	assert.Nil(t, err)
 	err = json.Unmarshal(tokenBytes, &tokenMap)
 	assert.Nil(t, err)
@@ -2025,7 +2027,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.
 	// Encode back
 	newTokenBytes, err := json.Marshal(tokenMap)
 	assert.Nil(t, err)
-	newToken := base64.StdEncoding.EncodeToString(newTokenBytes)
+	newToken := "kfp1:" + base64.StdEncoding.EncodeToString(newTokenBytes)
 
 	// Use the manipulated token
 	opts, err = list.NewOptionsFromToken(newToken, 1)

@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -830,5 +831,93 @@ func TestListTasks_SortByStartTimeRunIdAndParentTaskIdPaginates(t *testing.T) {
 			}
 			assert.Equal(t, []string{"task-a", "task-b", "task-c"}, got)
 		})
+	}
+}
+
+func TestListTasks_NullNameCursorDoesNotRepeatRows(t *testing.T) {
+	db, taskStore := initializeTaskStore()
+	defer db.Close()
+	_, err := db.Exec(`UPDATE tasks SET Name = UUID`)
+	require.NoError(t, err)
+	_, err = db.Exec(`UPDATE tasks SET Name = NULL WHERE UUID = ?`, defaultFakeTaskId)
+	require.NoError(t, err)
+	opts, err := list.NewOptions(&model.Task{}, 2, "display_name", nil)
+	require.NoError(t, err)
+	seen := map[string]bool{}
+	for page := 0; page < 10; page++ {
+		rows, total, token, err := taskStore.ListTasks(&model.FilterContext{}, opts)
+		require.NoError(t, err)
+		for _, row := range rows {
+			require.False(t, seen[row.UUID], "duplicate task %s on page %d", row.UUID, page)
+			seen[row.UUID] = true
+		}
+		if token == "" {
+			require.Len(t, seen, total)
+			return
+		}
+		opts, err = list.NewOptionsFromToken(token, 2)
+		require.NoError(t, err)
+	}
+	t.Fatal("pagination did not finish")
+}
+
+func TestListTasks_NullableSortFields(t *testing.T) {
+	fields := []struct {
+		api, column string
+		numeric     bool
+	}{
+		{"display_name", "Name", false}, {"parent_task_id", "ParentTaskUUID", false},
+		{"state", "State", false}, {"state_history", "StateHistory", false},
+		{"start_time", "StartedTimestamp", true}, {"end_time", "FinishedTimestamp", true},
+	}
+	ids := []string{defaultFakeTaskId, defaultFakeTaskIdTwo, defaultFakeTaskIdThree, defaultFakeTaskIdFour, defaultFakeTaskIdFive}
+	for _, field := range fields {
+		for _, direction := range []string{"asc", "desc"} {
+			for _, pageSize := range []int{1, 2, 3} {
+				t.Run(fmt.Sprintf("%s/%s/page%d", field.api, direction, pageSize), func(t *testing.T) {
+					db, store := initializeTaskStore()
+					defer db.Close()
+					values := []interface{}{nil, "", "[]", "[]", nil}
+					if field.numeric {
+						values = []interface{}{nil, 0, 1, 1, nil}
+					}
+					for i, id := range ids {
+						_, err := db.Exec("UPDATE tasks SET "+store.dbDialect.QuoteIdentifier(field.column)+" = ? WHERE UUID = ?", values[i], id)
+						require.NoError(t, err)
+					}
+					opts, err := list.NewOptions(&model.Task{}, 100, field.api+" "+direction, nil)
+					require.NoError(t, err)
+					all, total, _, err := store.ListTasks(&model.FilterContext{}, opts)
+					require.NoError(t, err)
+					require.Equal(t, 5, total)
+					var expected []string
+					for _, row := range all {
+						expected = append(expected, row.UUID)
+					}
+					require.ElementsMatch(t, []string{ids[0], ids[4]}, expected[len(expected)-2:], "NULL rows must form the final block")
+					opts, err = list.NewOptions(&model.Task{}, pageSize, field.api+" "+direction, nil)
+					require.NoError(t, err)
+					var actual []string
+					seen := map[string]bool{}
+					for page := 0; page < 10; page++ {
+						rows, count, token, err := store.ListTasks(&model.FilterContext{}, opts)
+						require.NoError(t, err)
+						require.Equal(t, total, count)
+						for _, row := range rows {
+							require.False(t, seen[row.UUID], "duplicate task on page %d", page)
+							seen[row.UUID] = true
+							actual = append(actual, row.UUID)
+						}
+						if token == "" {
+							require.Equal(t, expected, actual)
+							return
+						}
+						opts, err = list.NewOptionsFromToken(token, pageSize)
+						require.NoError(t, err)
+					}
+					t.Fatal("pagination failed to terminate")
+				})
+			}
+		}
 	}
 }

@@ -336,7 +336,7 @@ describe('PipelineList', () => {
   });
 
   it('shows error banner when listing pipelines fails', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
+    listPipelinesSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderPipelineList();
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -374,7 +374,7 @@ describe('PipelineList', () => {
   });
 
   it('hides error banner when listing pipelines fails then succeeds', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
+    listPipelinesSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderPipelineList();
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(

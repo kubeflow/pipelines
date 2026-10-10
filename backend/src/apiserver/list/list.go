@@ -34,6 +34,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+const currentOrderingVersion uint = 1
+const orderingTokenPrefix = "kfp1:"
+
+var orderingTokenEnvelopePattern = regexp.MustCompile(`^kfp[0-9]+:`)
+
 // token represents a WHERE clause when making a ListXXX query. It can either
 // represent a query for an initial set of results, in which page
 // SortByFieldValue and KeyFieldValue are nil. If the latter fields are not nil,
@@ -41,6 +46,8 @@ import (
 // page of results), with the two values pointing to the first record in the
 // next set of results.
 type token struct {
+	// OrderingVersion identifies NULL-last cursor semantics; it is not an authorization claim.
+	OrderingVersion uint `json:",omitempty"`
 	// SortByFieldName is the user-facing field name used for pagination state
 	// and GetFieldValue lookups. For metric sorts this is the raw metric name
 	// (e.g. "accuracy"). Never use this field directly in SQL identifiers.
@@ -55,10 +62,9 @@ type token struct {
 	SortByFieldPrefix string
 
 	// SortByFieldIsNull is true when the sort field value of the next row is a
-	// genuine SQL NULL rather than an absent/invalid field. This only happens
-	// for metric sorts, where a run without the selected metric produces a NULL
-	// sort_metric_value. It exists to disambiguate a legitimate NULL sort value
-	// from the "field does not exist" error case: SortByFieldValue is interface{}
+	// genuine SQL NULL rather than an absent/invalid field. This covers missing
+	// metrics and nullable SQL values preserved by a store. It disambiguates a
+	// legitimate NULL sort value from the "field does not exist" error case: SortByFieldValue is interface{}
 	// and its nil is otherwise ambiguous. When true, SortByFieldValue is nil and
 	// the row belongs to the NULL block, which always sorts last.
 	// The omitempty tag keeps tokens byte-identical to the previous layout when
@@ -132,6 +138,12 @@ func (t *token) unmarshal(pageToken string) error {
 	errorF := func(err error) error {
 		return util.NewInvalidInputErrorWithDetails(err, "Invalid page token")
 	}
+	hasEnvelope := strings.HasPrefix(pageToken, orderingTokenPrefix)
+	if hasEnvelope {
+		pageToken = strings.TrimPrefix(pageToken, orderingTokenPrefix)
+	} else if orderingTokenEnvelopePattern.MatchString(pageToken) {
+		return util.NewPaginationRestartRequiredError()
+	}
 	b, err := base64.StdEncoding.DecodeString(pageToken)
 	if err != nil {
 		return errorF(err)
@@ -187,6 +199,9 @@ func (t *token) unmarshal(pageToken string) error {
 		}
 	}
 
+	if hasEnvelope && t.OrderingVersion != currentOrderingVersion {
+		return util.NewPaginationRestartRequiredError()
+	}
 	return nil
 }
 
@@ -204,7 +219,9 @@ func (t *token) marshal() (string, error) {
 // encapsulates all the logic required for making the query for an initial set
 // of results as well as subsequent pages of results.
 type Options struct {
-	PageSize int
+	// Derived from the trusted endpoint model, never serialized as authority.
+	orderingVersionRequired bool
+	PageSize                int
 	// SkipCount, if true, tells the store to skip computing the total
 	// count of matching rows and avoid the extra query it requires.
 	// Defaults to false, preserving the existing behavior of always
@@ -253,7 +270,43 @@ func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
 	if err := t.unmarshal(nextPageToken); err != nil {
 		return nil, err
 	}
-	return &Options{PageSize: pageSize, token: t}, nil
+	return &Options{PageSize: pageSize, token: t, orderingVersionRequired: strings.HasPrefix(nextPageToken, orderingTokenPrefix)}, nil
+}
+
+// ValidateOrdering checks compatibility using the endpoint's model, not token model claims.
+// An ordinary cursor value cannot prove that the remaining result set contains no NULLs.
+func (o *Options) ValidateOrdering(listable Listable) error {
+	required := o.requiresOrderingVersion(listable)
+	if o.OrderingVersion > currentOrderingVersion || (o.OrderingVersion == 0 && required) {
+		return util.NewPaginationRestartRequiredError()
+	}
+	o.orderingVersionRequired = required
+	return nil
+}
+
+func (o *Options) requiresOrderingVersion(listable Listable) bool {
+	var fields []string
+	switch listable := listable.(type) {
+	case *model.Pipeline:
+		fields = []string{"Namespace"}
+	case *model.PipelineVersion:
+		fields = []string{"Description"}
+	case *model.Job:
+		fields = []string{"UpdatedAtInSec"}
+	case *model.Run:
+		if o.IsMetricSort() || !listable.IsRegularField(o.SortByFieldName) {
+			return true
+		}
+		fields = []string{"State", "StateHistory", "JobUUID", "ScheduledAtInSec", "FinishedAtInSec"}
+	case *model.Task, model.Task:
+		fields = []string{"Name", "ParentTaskUUID", "StartedTimestamp", "FinishedTimestamp", "State", "StateHistory"}
+	}
+	for _, field := range fields {
+		if strings.EqualFold(field, o.SortByFieldName) || strings.EqualFold(field, o.SortBySQLColumn) {
+			return true
+		}
+	}
+	return false
 }
 
 // NewOptions creates a new Options struct for the given listable. It uses
@@ -266,8 +319,9 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	}
 
 	token := &token{
-		KeyFieldName: listable.PrimaryKeyColumnName(),
-		ModelName:    listable.GetModelName(),
+		OrderingVersion: currentOrderingVersion,
+		KeyFieldName:    listable.PrimaryKeyColumnName(),
+		ModelName:       listable.GetModelName(),
 	}
 
 	// Ignore the case of the letter. Split query string by space.
@@ -294,10 +348,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 
 	// Probe the sort field type using the listable instance. SortByFieldName is
 	// the user-facing name, which GetFieldValue resolves for both regular fields
-	// and metric names. String fields return "" (string type); numeric fields
-	// return int64(0) or similar.
+	// and metric names. Include named string types such as LargeText and
+	// RuntimeState, which decode as plain strings in continuation tokens.
 	probeVal := listable.GetFieldValue(token.SortByFieldName)
-	_, token.SortByFieldIsString = probeVal.(string)
+	token.SortByFieldIsString = reflect.ValueOf(probeVal).Kind() == reflect.String
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
@@ -310,7 +364,9 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 		}
 		token.Filter = filter
 	}
-	return &Options{PageSize: pageSize, token: token}, nil
+	opts := &Options{PageSize: pageSize, token: token}
+	opts.orderingVersionRequired = opts.requiresOrderingVersion(listable)
+	return opts, nil
 }
 
 // AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
@@ -433,15 +489,10 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.
 			}
 		}
 	} else if o.SortByFieldIsNull && o.KeyFieldValue != nil {
-		// Cursor value is a genuine NULL (metric sort only). All non-NULL rows have
+		// Cursor value is a genuine SQL NULL. All non-NULL rows have
 		// already been paged through, so advance within the trailing NULL block
 		// using the primary key alone. Direction of the key tie-break follows the
 		// sort direction, matching the non-NULL branches above.
-		//
-		// This branch remains metric-only because Go model structs use value types
-		// (string, int64) and GORM maps SQL NULL to the zero value, so
-		// GetFieldValue cannot distinguish NULL from zero for non-metric fields.
-		// Extending this to all fields would require pointer types in the models.
 		keyCursor := sq.Sqlizer(sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue})
 		if o.IsDesc {
 			keyCursor = sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue}
@@ -578,7 +629,11 @@ func (o *Options) NextPageToken(listable Listable) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return t.marshal()
+	encoded, err := t.marshal()
+	if err == nil && o.orderingVersionRequired {
+		encoded = orderingTokenPrefix + encoded
+	}
+	return encoded, err
 }
 
 func (o *Options) GetSortByFieldValue() interface{} {
@@ -607,14 +662,20 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	// SortByFieldName is the user-facing name (for metric sorts, the raw metric
 	// name), which GetFieldValue resolves directly.
 	//
-	// A nil field value is ambiguous: it can mean the field does not exist (a
-	// real error), or, for metric sorts, that this row simply has no value for
-	// the selected metric (a legitimate SQL NULL in sort_metric_value). Only the
-	// metric case is allowed to carry a NULL cursor forward; for regular fields a
-	// nil value still indicates an invalid sort field.
+	// A bare nil still means an invalid regular field. Stores can preserve genuine
+	// database NULLs using sql.NullString/NullInt64 without changing API models.
 	sortByField := listable.GetFieldValue(o.SortByFieldName)
 	sortByFieldIsNull := false
-	if sortByField == nil {
+	switch value := sortByField.(type) {
+	case sql.NullString:
+		sortByField, sortByFieldIsNull = value.String, !value.Valid
+	case sql.NullInt64:
+		sortByField, sortByFieldIsNull = value.Int64, !value.Valid
+	}
+	if sortByFieldIsNull {
+		sortByField = nil
+	}
+	if sortByField == nil && !sortByFieldIsNull {
 		if o.IsMetricSort() {
 			sortByFieldIsNull = true
 		} else {
@@ -628,6 +689,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	}
 
 	return &token{
+		OrderingVersion:     currentOrderingVersion,
 		SortByFieldName:     o.SortByFieldName,
 		SortBySQLColumn:     o.SortBySQLColumn,
 		SortByFieldValue:    sortByField,

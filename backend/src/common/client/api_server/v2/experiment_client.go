@@ -132,6 +132,12 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	// Make service call
 	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsContext(ctx, parameters)
 	if err != nil {
+		if defaultError, ok := err.(*params.ExperimentServiceListExperimentsDefault); ok {
+			statusError := api_server.CreateErrorFromAPIStatusWithDetails(defaultError.Payload.Message, defaultError.Payload.Code, defaultError.Payload.Details)
+			if api_server.IsPaginationRestartRequired(statusError) {
+				err = statusError
+			}
+		}
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list experiments. Params: '%+v'", parameters),
 			"Failed to list experiments")

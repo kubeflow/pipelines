@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import Metric from 'src/components/Metric';
 import { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
@@ -405,7 +406,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         displayRuns = (response.runs || []).map((r) => ({ run: r }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
+        if (request.isCurrent?.() === false) return '';
+        await throwIfPaginationRestartRequired(err);
+        request.onFailure?.();
+        if (request.isCurrent?.() === false) return '';
+        this.setStateSafe({ runs: [] });
         const error = new Error(await errorToMessage(err));
+        if (request.isCurrent?.() === false) return '';
         this.props.onError('Error: failed to fetch runs.', error);
         // No point in continuing if we couldn't retrieve any runs.
         return '';
@@ -414,6 +421,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     await this._setColumns(displayRuns);
 
+    if (request.isCurrent?.() === false) return '';
     this.setStateSafe({
       // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,

@@ -20,6 +20,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	status1 "google.golang.org/grpc/status"
@@ -86,6 +87,7 @@ type UserError struct {
 	externalMessage string
 	// Status code for the external client.
 	externalStatusCode codes.Code
+	errorInfo          *errdetails.ErrorInfo
 }
 
 func newUserError(internalError error, externalMessage string,
@@ -180,6 +182,14 @@ func NewResourcesNotFoundError(resourceTypesFormat string, resourceNames ...inte
 		codes.NotFound)
 }
 
+// NewPaginationRestartRequiredError identifies a cursor whose ordering cannot be continued safely.
+func NewPaginationRestartRequiredError() *UserError {
+	const message = "Pagination order has changed. Clear page_token and restart this listing from the first page."
+	err := newUserError(errors.New(message), message, codes.FailedPrecondition)
+	err.errorInfo = &errdetails.ErrorInfo{Reason: "PAGINATION_RESTART_REQUIRED", Domain: "kubeflow.org"}
+	return err
+}
+
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
 	message := fmt.Sprintf(messageFormat, a...)
 	return newUserError(errors.Errorf("Invalid input error: %v", message), message, codes.InvalidArgument)
@@ -272,13 +282,15 @@ func (e *UserError) Unwrap() error {
 }
 
 func (e *UserError) wrapf(format string, args ...interface{}) *UserError {
-	return newUserError(errors.Wrapf(e.internalError, format, args...),
-		e.externalMessage, e.externalStatusCode)
+	wrapped := *e
+	wrapped.internalError = errors.Wrapf(e.internalError, format, args...)
+	return &wrapped
 }
 
 func (e *UserError) wrap(message string) *UserError {
-	return newUserError(errors.Wrap(e.internalError, message),
-		e.externalMessage, e.externalStatusCode)
+	wrapped := *e
+	wrapped.internalError = errors.Wrap(e.internalError, message)
+	return &wrapped
 }
 
 func (e *UserError) Log() {
@@ -293,7 +305,12 @@ func (e *UserError) Log() {
 // Convert UserError to GRPCStatus.
 // Required by https://pkg.go.dev/google.golang.org/grpc/status#FromError
 func (e *UserError) GRPCStatus() *status1.Status {
-	stat := status1.New(e.externalStatusCode, e.internalError.Error())
+	message := e.internalError.Error()
+	if e.errorInfo != nil {
+		// Wrappers may include request data; structured client errors use safe public text.
+		message = e.externalMessage
+	}
+	stat := status1.New(e.externalStatusCode, message)
 	statWithDetail, statErr := stat.
 		WithDetails(&status.Status{
 			Code:    int32(e.externalStatusCode),
@@ -304,6 +321,13 @@ func (e *UserError) GRPCStatus() *status1.Status {
 		glog.Errorf("Failed to convert UserError to GRPCStatus. Error to be streamed: %v. Error thrown: %v",
 			e.externalMessage, statErr)
 		return stat
+	}
+	if e.errorInfo != nil {
+		withInfo, err := statWithDetail.WithDetails(e.errorInfo)
+		if err == nil {
+			return withInfo
+		}
+		glog.Errorf("Failed to attach structured error information: %v", err)
 	}
 	return statWithDetail
 }

@@ -15,9 +15,15 @@
 
 __all__ = [
     'Client',
+    'is_pagination_restart_required',
 ]
 
+# The credential classes below are re-exported for backwards compatibility,
+# so they are unused within this module.
+# nopycln: file
+
 from kfp.client.client import Client
+from kfp.client.pagination import is_pagination_restart_required
 from kfp.client.set_volume_credentials import \
     ServiceAccountTokenVolumeCredentials
 from kfp.client.token_credentials_base import TokenCredentialsBase
