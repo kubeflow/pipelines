@@ -10,6 +10,7 @@ server-config
 scheduled-service-accounts
 multi-user
 rbac-migration-2.18
+workflow-report-recovery
 configure-object-store
 mlflow-plugin
 ```

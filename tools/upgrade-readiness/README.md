@@ -57,6 +57,13 @@ Use `--format json` for automation. Exit codes:
 There is deliberately no successful readiness exit code in this preview. Scripts
 must not treat generating a report as passing an upgrade gate.
 
+## Workflow ownership diagnostics (optional)
+
+Use `--include-ownership --kfp-endpoint ...` to inspect API-visible active runs and
+schedules before upgrading. No target policy file is needed for this check. See
+[ownership diagnostics and recovery](../../docs/operator-guides/workflow-report-recovery.md) for permissions,
+coverage limits, and safe handling of missing ownership or deleted Workflows.
+
 ## Schedule inventory (optional)
 
 Add `--include-schedules` to collect ScheduledWorkflow CRs in the same explicitly

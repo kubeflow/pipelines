@@ -166,8 +166,9 @@ class Client:
     def get(self, path, params=None):
         """Read one API object, returning only sanitized errors on failure."""
         if (not isinstance(path, str) or
-                not path.startswith('/apis/v2beta1/') or not _safe_path(path) or
-                '?' in path or '#' in path):
+                not (path.startswith('/apis/v2beta1/') or re.fullmatch(
+                    r'/apis/v1beta1/runs/[A-Za-z0-9._~-]+', path)) or
+                not _safe_path(path) or '?' in path or '#' in path):
             raise CollectionError('invalid_api_path')
         if self._requests >= MAX_REQUESTS:
             raise CollectionError('request_budget_exceeded')
