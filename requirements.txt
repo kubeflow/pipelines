@@ -51,7 +51,7 @@ idna==3.11
     # via requests
 kubernetes==30.1.0
     # via kfp
-oauthlib==3.3.1
+oauthlib==4.0.0
     # via
     #   kubernetes
     #   requests-oauthlib
