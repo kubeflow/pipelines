@@ -232,7 +232,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
 	}
-	pipelines, err := s.scanPipelinesRows(rows)
+	pipelines, namespaces, err := s.scanPipelinesRowsWithNamespaces(rows)
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipelines")
@@ -286,13 +286,32 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 	if len(pipelines) <= opts.PageSize {
 		return pipelines, totalSize, "", nil
 	}
-	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
+	npt, err := opts.NextPageToken(&pipelineListRow{Pipeline: pipelines[opts.PageSize], namespace: namespaces[opts.PageSize]})
 	return pipelines[:opts.PageSize], totalSize, npt, err
+}
+
+// pipelineListRow preserves the stored namespace rather than its zero value.
+type pipelineListRow struct {
+	*model.Pipeline
+	namespace *string
+}
+
+func (p *pipelineListRow) GetFieldValue(name string) interface{} {
+	if name == "Namespace" {
+		return p.namespace
+	}
+	return p.Pipeline.GetFieldValue(name)
 }
 
 // Converts SQL response into []Pipeline (default version is set to nil).
 func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, error) {
+	pipelines, _, err := s.scanPipelinesRowsWithNamespaces(rows)
+	return pipelines, err
+}
+
+func (s *PipelineStore) scanPipelinesRowsWithNamespaces(rows *sql.Rows) ([]*model.Pipeline, []*string, error) {
 	var pipelines []*model.Pipeline
+	var namespaces []*string
 	for rows.Next() {
 		var uuid, name, displayName, status, description, namespace sql.NullString
 		var createdAtInSec sql.NullInt64
@@ -305,9 +324,10 @@ func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, er
 			&status,
 			&namespace,
 		); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if uuid.Valid {
+			namespaces = append(namespaces, NullStringToPointer(namespace))
 			pipelines = append(
 				pipelines,
 				&model.Pipeline{
@@ -322,7 +342,7 @@ func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, er
 			)
 		}
 	}
-	return pipelines, nil
+	return pipelines, namespaces, rows.Err()
 }
 
 // GetPipeline returns a pipeline with status = PipelineReady, including its tags.
