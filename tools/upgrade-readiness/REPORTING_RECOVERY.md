@@ -22,7 +22,8 @@ No database write or synthetic report seeds the source state. Keep the Workflows
 suspended through deployment. Reopen forwarding and refresh the token after the
 upgrade, then run the same command with `recover` instead of `prepare`.
 
-The probe removes only Workflow `get` from the API server's ClusterRole and
+The probe removes only Workflow `get` from the API server's copied fixture Role
+(`fixture-ml-pipeline-infrastructure` in `kfp-readiness-test`) and
 verifies effective denial while the persistence agent retains get/list/watch.
 After resuming the original Workflows, it requires successful Kubernetes
 execution, nonterminal API state, and a transient persistence-worker failure for

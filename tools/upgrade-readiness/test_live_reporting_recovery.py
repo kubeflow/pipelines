@@ -109,6 +109,35 @@ class ReportingRecoveryTest(unittest.TestCase):
         self.assertEqual(write.call_count, 1)
         self.assertEqual(write.call_args.args[1]['findings'], [failure])
 
+    def test_restore_changes_only_owned_namespace_infrastructure_role(self):
+        rules = [
+            dict(
+                apiGroups=['argoproj.io'],
+                resources=['workflows'],
+                verbs=['get', 'list'])
+        ]
+        saved = dict(
+            kind='Role',
+            metadata=dict(name=recovery.API_ROLE, namespace=recovery.NAMESPACE),
+            rules=rules)
+        current = dict(rules=recovery.without_workflow_get(rules))
+        with mock.patch.object(Path, 'exists', return_value=True), \
+             mock.patch.object(recovery, 'read_object', return_value=saved), \
+             mock.patch.object(recovery, 'get', return_value=current) as get, \
+             mock.patch.object(recovery, 'kube') as kube:
+            recovery.restore(Path('/fixture'))
+        get.assert_called_once_with('role/' + recovery.API_ROLE)
+        self.assertEqual(
+            kube.call_args.args[:4],
+            ('-n', recovery.NAMESPACE, 'patch', 'role/' + recovery.API_ROLE))
+        saved['metadata']['namespace'] = 'kubeflow'
+        with mock.patch.object(Path, 'exists', return_value=True), \
+             mock.patch.object(recovery, 'read_object', return_value=saved), \
+             mock.patch.object(recovery, 'kube') as kube:
+            with self.assertRaisesRegex(ValueError, 'invalid_restore'):
+                recovery.restore(Path('/fixture'))
+            kube.assert_not_called()
+
     def test_fault_preserves_other_permissions(self):
         rules = [
             dict(

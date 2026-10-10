@@ -30,6 +30,8 @@ from provision_live_schedules import read_object
 from provision_live_schedules import verify_state
 from provision_live_schedules import write_object
 
+API_ROLE = 'fixture-ml-pipeline-infrastructure'
+
 TERMINAL = {'SUCCEEDED', 'FAILED', 'ERROR', 'CANCELED', 'SKIPPED'}
 
 
@@ -286,14 +288,16 @@ def restore(state_dir):
     if path.exists():
         saved = read_object(path)
         require(
-            saved.get('kind') == 'ClusterRole' and
-            saved.get('metadata', {}).get('name') == 'ml-pipeline',
+            saved.get('kind') == 'Role' and
+            saved.get('metadata', {}).get('name') == API_ROLE and
+            saved.get('metadata', {}).get('namespace') == NAMESPACE,
             'reporting_invalid_restore_state')
-        current = get('clusterrole/ml-pipeline', 'kubeflow')
+        current = get('role/' + API_ROLE)
         if current['rules'] != saved['rules']:
             fault = without_workflow_get(saved['rules'])
             kube(
-                'patch', 'clusterrole/ml-pipeline', '--type=json', '-p',
+                '-n', NAMESPACE, 'patch', 'role/' + API_ROLE, '--type=json',
+                '-p',
                 json.dumps([
                     dict(op='test', path='/rules', value=fault),
                     dict(op='replace', path='/rules', value=saved['rules'])
@@ -529,7 +533,7 @@ def wait_for(check, seconds, phase='lookup_permission'):
 
 def recover(client, state, state_dir):
     records = state['runs']
-    role = get('clusterrole/ml-pipeline', 'kubeflow')
+    role = get('role/' + API_ROLE)
     rules = role['rules']
     fault = without_workflow_get(rules)
     original_worker = worker_pods()
@@ -543,7 +547,7 @@ def recover(client, state, state_dir):
     write_object(state_dir / 'reporting-rbac-restore.json', role)
     try:
         kube(
-            'patch', 'clusterrole/ml-pipeline', '--type=json', '-p',
+            '-n', NAMESPACE, 'patch', 'role/' + API_ROLE, '--type=json', '-p',
             json.dumps([
                 dict(op='test', path='/rules', value=rules),
                 dict(op='replace', path='/rules', value=fault)
@@ -592,7 +596,7 @@ def recover(client, state, state_dir):
                      dict(runs=blocked, worker_retry_observed=True))
     finally:
         kube(
-            'patch', 'clusterrole/ml-pipeline', '--type=json', '-p',
+            '-n', NAMESPACE, 'patch', 'role/' + API_ROLE, '--type=json', '-p',
             json.dumps([
                 dict(op='test', path='/rules', value=fault),
                 dict(op='replace', path='/rules', value=rules)
