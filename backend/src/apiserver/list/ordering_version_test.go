@@ -45,14 +45,10 @@ func TestOrderingVersionAffectedLegacySorts(t *testing.T) {
 					require.NoError(t, err)
 					encoded, err := opts.NextPageToken(tc.model)
 					require.NoError(t, err)
-					require.Equal(t, direction == "asc", strings.HasPrefix(encoded, orderingTokenPrefix))
+					require.True(t, strings.HasPrefix(encoded, orderingTokenPrefix))
 					// This is the base64 decoder used by the actual 2.17.2 token implementation.
 					_, oldDecodeError := base64.StdEncoding.DecodeString(encoded)
-					if direction == "asc" {
-						require.Error(t, oldDecodeError)
-					} else {
-						require.NoError(t, oldDecodeError)
-					}
+					require.Error(t, oldDecodeError)
 					restored, err := NewOptionsFromToken(encoded, 2)
 					require.NoError(t, err)
 					require.NoError(t, restored.ValidateOrdering(tc.model))
@@ -64,11 +60,7 @@ func TestOrderingVersionAffectedLegacySorts(t *testing.T) {
 					old, err := NewOptionsFromToken(legacy, 2)
 					require.NoError(t, err)
 					err = old.ValidateOrdering(tc.model)
-					if direction == "asc" {
-						require.Equal(t, codes.FailedPrecondition, status.Code(err))
-					} else {
-						require.NoError(t, err)
-					}
+					require.Equal(t, codes.FailedPrecondition, status.Code(err))
 				})
 			}
 		}
@@ -129,10 +121,6 @@ func TestOrderingVersionCompatibleTokensAndUntrustedMetadata(t *testing.T) {
 func TestOrderingVersionRunStateHistory(t *testing.T) {
 	for _, desc := range []bool{false, true} {
 		opts := &Options{token: &token{KeyFieldName: "UUID", SortByFieldName: "StateHistory", SortBySQLColumn: "StateHistory", IsDesc: desc}}
-		if desc {
-			require.NoError(t, opts.ValidateOrdering(&model.Run{}))
-		} else {
-			require.Equal(t, codes.FailedPrecondition, status.Code(opts.ValidateOrdering(&model.Run{})))
-		}
+		require.Equal(t, codes.FailedPrecondition, status.Code(opts.ValidateOrdering(&model.Run{})))
 	}
 }
