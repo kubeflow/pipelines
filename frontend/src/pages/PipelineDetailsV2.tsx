@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import { getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { convertSubDagToFlowElements, getNodeName } from 'src/lib/v2/StaticFlow';
+import { tryConvertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import type {
+  LayerElementsResolver,
+  LayerFlowElement,
+  PipelineFlowElement,
+} from 'src/lib/v2/FlowTypes';
 
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
@@ -48,10 +54,19 @@ function PipelineDetailsV2({
 }: PipelineDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
+  const [selection, setSelection] = useState<LayerFlowElement | null>(null);
+  const pipelineSpec = useMemo(
+    () => (templateString ? tryConvertYamlToV2PipelineSpec(templateString) : undefined),
+    [templateString],
+  );
+  const getSubDagElements = useCallback<LayerElementsResolver>(
+    (layers, maxNodes) =>
+      pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, layers, maxNodes) : [],
+    [pipelineSpec],
+  );
 
   const layerChange = (l: string[]) => {
-    setSelectedNode(null);
+    setSelection(null);
     setLayers(l);
     setSubDagLayers(l);
   };
@@ -65,9 +80,10 @@ function PipelineDetailsV2({
             layers={layers}
             onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
-            onElementClick={(_event, element) => setSelectedNode(element)}
+            getSubDagElements={pipelineSpec ? getSubDagElements : undefined}
+            selectedElement={selection}
+            onElementClick={(_event, selection) => setSelection(selection)}
             setFlowElements={() => {}}
-            nodesDraggable={false}
           ></DagCanvas>
           <PipelineVersionCard
             pipeline={pipeline}
@@ -78,18 +94,18 @@ function PipelineDetailsV2({
           {templateString && (
             <div className='z-20'>
               <SidePanel
-                isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
+                isOpen={!!selection}
+                title={getNodeName(selection?.element ?? null)}
+                onClose={() => setSelection(null)}
                 defaultWidth={'50%'}
               >
                 <div className={commonCss.page}>
                   <div className={padding(20, 'lr')}>
                     <StaticNodeDetailsV2
                       templateString={templateString}
-                      layers={layers}
+                      layers={selection?.layers ?? layers}
                       onLayerChange={layerChange}
-                      element={selectedNode}
+                      element={selection?.element ?? null}
                     />
                   </div>
                 </div>

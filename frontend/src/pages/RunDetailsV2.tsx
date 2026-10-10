@@ -56,18 +56,19 @@ import { URLParser } from 'src/lib/URLParser';
 import {
   buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
+  createRuntimeLayerResolver,
   getNodeRuntimeInfo,
   getTaskRuntimeLayers,
   reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
 import { isTaskFinished } from 'src/lib/v2/RuntimeArtifactUtils';
+import type { LayerFlowElement, PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import {
   convertFlowElements,
   getNodeName,
   getTaskNodeKey,
   NodeTypeNames,
-  PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
@@ -96,8 +97,7 @@ export interface RunTaskRetryState {
   version: number;
 }
 
-interface SelectedNodeState {
-  element: PipelineFlowElement;
+interface SelectedNodeState extends LayerFlowElement {
   linkedTaskId?: string;
   navigationError?: string;
 }
@@ -423,6 +423,17 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return reconcileRuntimeFlowElements(layers, flowElements, tasks, runtimeFlowContext);
   }, [flowElements, layers, runtimeFlowContext, tasks]);
 
+  const getSubDagElements = useMemo(
+    () =>
+      createRuntimeLayerResolver(
+        pipelineSpec,
+        tasks || [],
+        runtimeTaskSnapshotIsTerminal,
+        runtimeTaskSnapshotCompletedSuccessfully,
+      ),
+    [pipelineSpec, tasks, runtimeTaskSnapshotIsTerminal, runtimeTaskSnapshotCompletedSuccessfully],
+  );
+
   const linkedTask = tasks?.find((task) => task.task_id === linkedTaskId);
   useEffect(() => {
     if (!linkedTaskId) {
@@ -477,7 +488,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     appliedLinkedTaskId.current = linkedTaskId;
     setLayers(targetLayers);
     setFlowElements(targetElements);
-    setSelectedNodeState({ element: targetElement, linkedTaskId, navigationError });
+    setSelectedNodeState({
+      element: targetElement,
+      layers: targetLayers,
+      linkedTaskId,
+      navigationError,
+    });
   }, [
     linkedTask,
     linkedTaskId,
@@ -495,25 +511,30 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       ? selectedNodeState.navigationError
       : undefined) || layerNavigationError;
   const linkedTargetIsResolved = !linkedTaskId || !tasks || !!linkedTask;
-  const activeSelectedNode =
-    linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState?.element || null : null;
-  const activeLayers = layers;
+  const activeSelection =
+    linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState : null;
+  const activeSelectedNode = activeSelection?.element ?? null;
+  const activeLayers = activeSelection?.layers ?? layers;
   const selectedNodeRuntimeInfo = useMemo(() => {
     const linkedTaskNodeId = linkedTask
       ? getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task')
       : undefined;
-    if (linkedTask && activeSelectedNode?.id === linkedTaskNodeId) {
+    if (
+      linkedTask &&
+      selectedNodeState?.linkedTaskId &&
+      activeSelectedNode?.id === linkedTaskNodeId
+    ) {
       return { task: linkedTask };
     }
-    return getNodeRuntimeInfo(activeSelectedNode, tasks || [], layers, runtimeFlowContext);
-  }, [activeSelectedNode, layers, linkedTask, runtimeFlowContext, tasks]);
+    return getNodeRuntimeInfo(activeSelectedNode, tasks || [], activeLayers);
+  }, [activeSelectedNode, activeLayers, linkedTask, selectedNodeState?.linkedTaskId, tasks]);
 
-  const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
+  const onElementSelection = (_event: ReactMouseEvent, selection: LayerFlowElement) => {
     const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
     if (!restoredFallbackGraph) {
       setLayerNavigationError(null);
-      setSelectedNodeState({ element });
+      setSelectedNodeState(selection);
     }
   };
 
@@ -576,7 +597,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               layers={layers}
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
-              selectedNodeId={activeSelectedNode?.id}
+              getSubDagElements={selectedNodeState?.navigationError ? undefined : getSubDagElements}
+              selectedElement={activeSelection}
               focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
               onElementClick={onElementSelection}
               setFlowElements={(elems) => setFlowElements(elems)}

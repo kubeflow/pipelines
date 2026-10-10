@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { Node } from '@xyflow/react';
+import type { LayerElementsResolver, PipelineFlowElement } from './FlowTypes';
 import {
   InputOutputsIOArtifact,
   PipelineTaskTaskState,
@@ -25,18 +26,19 @@ import {
   ExecutionFlowElementData,
   FlowElementDataBase,
   SubDagFlowElementData,
+  SubDagTaskData,
 } from 'src/components/graph/Constants';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import {
   buildDag,
   buildGraphLayout,
+  GraphExpansionLimitError,
   getKeysFromArtifactNodeKey,
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
   getTaskNodeKey,
   isNode,
   NodeTypeNames,
-  PipelineFlowElement,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
@@ -68,6 +70,7 @@ interface RuntimeFlowContext {
   runtimeLayerContext: RuntimeLayerContext;
   runCompletedSuccessfully: boolean;
   runIsTerminal: boolean;
+  maxNodes?: number;
 }
 
 const NAVIGABLE_RUNTIME_CONTEXT_TYPES = new Set<PipelineTaskTaskType>([
@@ -91,13 +94,24 @@ export function convertSubDagToRuntimeFlowElements(
   runIsTerminal = false,
   runCompletedSuccessfully = false,
 ): PipelineFlowElement[] {
+  return buildRuntimeLayer(
+    spec,
+    layers,
+    buildRuntimeFlowContext(layers, tasks, runIsTerminal, runCompletedSuccessfully),
+  );
+}
+
+function buildRuntimeLayer(
+  spec: PipelineSpec,
+  layers: string[],
+  context: RuntimeFlowContext,
+): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
   }
 
-  const taskIndex = buildTaskIndex(tasks);
-  const runtimeContext = getRuntimeLayerContext(layers, taskIndex);
+  const { runtimeLayerContext: runtimeContext, maxNodes } = context;
   const componentsMap = spec.components;
 
   for (let index = 1; index < layers.length; index++) {
@@ -126,16 +140,32 @@ export function convertSubDagToRuntimeFlowElements(
   ) {
     const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
     return (
-      buildParallelForDag(
-        runtimeContext.task,
-        taskIndex,
-        expectedTaskCount,
-        runIsTerminal,
-        runCompletedSuccessfully,
-      ) || annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
+      buildParallelForDag(context, expectedTaskCount) ||
+      annotateExpectedTaskCount(buildDag(spec, componentSpec, maxNodes), expectedTaskCount)
     );
   }
-  return buildDag(spec, componentSpec);
+  return buildDag(spec, componentSpec, maxNodes);
+}
+
+/** Resolve many visible scopes from one task index, rather than re-indexing each iteration. */
+export function createRuntimeLayerResolver(
+  spec: PipelineSpec,
+  tasks: V2beta1PipelineTask[],
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
+): LayerElementsResolver {
+  const taskIndex = buildTaskIndex(tasks);
+  return (layers, maxNodes = Infinity) => {
+    const context = buildIndexedRuntimeFlowContext(
+      layers,
+      taskIndex,
+      runIsTerminal,
+      runCompletedSuccessfully,
+      maxNodes,
+    );
+    const elements = buildRuntimeLayer(spec, layers, context);
+    return reconcileRuntimeFlowElements(layers, elements, tasks, context);
+  };
 }
 
 export function updateFlowElementsState(
@@ -234,13 +264,7 @@ export function reconcileRuntimeFlowElements(
     // failure and non-triggered paths). Keep the declarative body visible until runtime iteration
     // structure is authoritative instead of replacing it with an empty graph.
     runtimeStructure =
-      buildParallelForDag(
-        runtimeContext.task,
-        flowContext.taskIndex,
-        getExpectedTaskCount(elements),
-        flowContext.runIsTerminal,
-        flowContext.runCompletedSuccessfully,
-      ) || runtimeStructure;
+      buildParallelForDag(flowContext, getExpectedTaskCount(elements)) || runtimeStructure;
   }
 
   return updateFlowElementsState(layers, runtimeStructure, tasks, flowContext);
@@ -301,12 +325,27 @@ export function buildRuntimeFlowContext(
   runIsTerminal = false,
   runCompletedSuccessfully = false,
 ): RuntimeFlowContext {
-  const taskIndex = buildTaskIndex(tasks);
+  return buildIndexedRuntimeFlowContext(
+    layers,
+    buildTaskIndex(tasks),
+    runIsTerminal,
+    runCompletedSuccessfully,
+  );
+}
+
+function buildIndexedRuntimeFlowContext(
+  layers: string[],
+  taskIndex: TaskIndex,
+  runIsTerminal: boolean,
+  runCompletedSuccessfully: boolean,
+  maxNodes?: number,
+): RuntimeFlowContext {
   return {
     taskIndex,
     runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
     runCompletedSuccessfully,
     runIsTerminal,
+    maxNodes,
   };
 }
 
@@ -570,23 +609,25 @@ function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | u
 }
 
 function buildParallelForDag(
-  loopTask: V2beta1PipelineTask,
-  taskIndex: TaskIndex,
+  context: RuntimeFlowContext,
   expectedTaskCount?: number,
-  runIsTerminal = false,
-  runCompletedSuccessfully = false,
 ): PipelineFlowElement[] | undefined {
+  const { taskIndex, runIsTerminal, runCompletedSuccessfully, maxNodes = Infinity } = context;
+  const loopTask = context.runtimeLayerContext.task;
+  if (!loopTask) return undefined;
   const flowGraph: PipelineFlowElement[] = [];
   const iterationCount = getParallelForIterationCount(loopTask);
   if (iterationCount === undefined) {
     return undefined;
   }
+  if (iterationCount > maxNodes) throw new GraphExpansionLimitError(iterationCount);
   for (let index = 0; index < iterationCount; index++) {
     const iterationNodeName = formatRuntimeIterationLayer(loopTask.name || '', index);
-    const node: Node<FlowElementDataBase> = {
+    const node: Node<SubDagTaskData> = {
       id: getTaskNodeKey(iterationNodeName),
       data: {
         label: iterationNodeName,
+        groupKind: 'Iteration',
         expectedTaskCount,
         state: getIterationState(
           getIterationTasks(taskIndex, loopTask.task_id, index),
