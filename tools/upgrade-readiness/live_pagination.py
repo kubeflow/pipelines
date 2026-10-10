@@ -281,6 +281,27 @@ def full_inventory(port, case):
     return values
 
 
+def capture_source_case(case):
+    expected = full_inventory(8888, case)
+    first = None
+    try:
+        first = case_page(8888, case)
+        if not first.get('next_page_token'):
+            raise ValueError('source did not generate a continuation token')
+        baseline = observe_walk([8888], case, expected)
+    except (ApiError, ValueError) as error:
+        # 2.17.2 cannot emit a cursor when its lookahead metric value is NULL.
+        # Keep the independently verified inventory and do not invent a token.
+        first = None
+        baseline = {
+            'outcome': 'failed',
+            'reason': str(error),
+            'phase': 'first_page'
+        }
+    case.update(source_order=expected, first=first, source_baseline=baseline)
+    return case
+
+
 def prepare_extended(marker):
     """Capture actual old cursors, with one-page inventory as an independent
     oracle."""
@@ -384,16 +405,7 @@ def prepare_extended(marker):
                         'sort': sort + ' ' + direction,
                         'created_ids': created_ids
                     }
-                    expected = full_inventory(8888, case)
-                    first = case_page(8888, case)
-                    if not first.get('next_page_token'):
-                        raise ValueError(
-                            'source did not generate an extended cursor')
-                    case.update(
-                        source_order=expected,
-                        first=first,
-                        source_baseline=observe_walk([8888], case, expected))
-                    cases.append(case)
+                    cases.append(capture_source_case(case))
     return cases
 
 
@@ -404,7 +416,12 @@ def validate_extended(cases):
         # A changed old cursor can require restarting; a broken fresh candidate
         # traversal is never accepted as a historical compatibility exception.
         fresh = case_walk([8888], case, expected)
-        continuation = observe_walk([8888], case, expected, case['first'])
+        continuation = (
+            observe_walk([8888], case, expected, case['first'])
+            if case['first'] is not None else {
+                'outcome': 'not_available',
+                'reason': 'source_could_not_emit_cursor'
+            })
         source_good = case['source_baseline']['outcome'] == 'passed'
         changed_order = case['source_order'] != expected
         mixed = [

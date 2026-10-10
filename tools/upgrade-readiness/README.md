@@ -429,7 +429,9 @@ pagination must return that entire ordered inventory. The report distinguishes:
   candidate traversal must still succeed.
 - `preexisting_source_pagination_failure`: the source traversal already fails;
   this is not evidence of a newly introduced upgrade regression. Candidate fresh
-  pagination must still succeed.
+  pagination must still succeed. A source first-page error is recorded separately;
+  if 2.17.2 cannot emit a cursor (for example, a NULL metric lookahead), saved-token
+  continuation is `not_available`, never represented by a fresh candidate request.
 
 For a confirmed ordering change, finish the API rollout, discard the affected
 continuation token, and restart that list request from page one with the same

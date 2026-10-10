@@ -132,6 +132,29 @@ class ExtendedPaginationTest(unittest.TestCase):
         self.assertEqual(runs[0]['name'].lower(), runs[1]['name'].lower())
         self.assertNotEqual(runs[0]['name'], runs[1]['name'])
 
+    def test_source_first_page_failure_does_not_invent_a_saved_cursor(self):
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_page', side_effect=fixture.ApiError(400)):
+            result = fixture.capture_source_case(self.case)
+        self.assertIsNone(result['first'])
+        self.assertEqual(result['source_baseline']['phase'], 'first_page')
+        self.assertEqual(result['source_order'], ['a', 'b', 'c'])
+
+    def test_unavailable_source_cursor_is_not_reported_as_fresh_continuation(
+            self):
+        self.case['first'] = None
+        self.case['source_baseline'] = {
+            'outcome': 'failed',
+            'phase': 'first_page'
+        }
+        with mock.patch.object(fixture, 'full_inventory', return_value=['a', 'b', 'c']), \
+             mock.patch.object(fixture, 'case_walk', return_value={'outcome': 'passed'}), \
+             mock.patch.object(fixture, 'observe_walk', return_value={'outcome': 'failed'}) as observe:
+            result = fixture.validate_extended([self.case])[0]
+        self.assertEqual(result['saved_source_continuation']['outcome'],
+                         'not_available')
+        self.assertEqual(observe.call_count, 2)
+
     def test_run_endpoint_and_sort_are_preserved(self):
         with mock.patch.object(fixture, 'request') as request:
             fixture.case_page(8888, self.case, 'old')
