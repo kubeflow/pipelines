@@ -86,6 +86,20 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      react-version:
+        applies-to: version-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      react-security:
+        applies-to: security-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
       # @mui/icons-material declares a peer dependency on the matching
       # @mui/material version, so bumping either one alone leaves the other
       # outside its peer range and `npm install` fails to resolve. They have to
@@ -100,14 +114,13 @@ updates:
   - package-ecosystem: pip
     # Generated API clients are excluded: their requirements express generated
     # compatibility minimums and must be changed through API regeneration.
+    # The root and SDK form the uv workspace; uv owns those manifests and lock.
     directories:
-      - "/"
       - "/.github/scripts"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
       - "/release"
-      - "/sdk/python"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
@@ -121,8 +134,12 @@ updates:
       python-dependencies:
         group-by: dependency-name
   - package-ecosystem: uv
-    # uv.lock updates use a separate ecosystem from pip, including security PRs.
+    # Update source manifests and uv.lock, including transitive security fixes.
+    # Maintainers refresh the frozen requirements exports after source updates.
     directory: "/"
+    exclude-paths:
+      - "requirements.txt"
+      - "sdk/python/requirements.txt"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

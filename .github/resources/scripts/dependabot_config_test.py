@@ -228,7 +228,44 @@ class DependabotConfigTest(unittest.TestCase):
             if repository_directory(path) not in GENERATED_PYTHON_CLIENTS
         }
 
-        self.assertEqual(self.configured_directories('pip'), python_directories)
+        # Workspace manifests have one owner. Exported requirements are outputs,
+        # not an independent pip dependency graph.
+        workspace_directories = {'/', '/sdk/python'}
+        self.assertEqual(
+            self.configured_directories('pip'),
+            python_directories - workspace_directories)
+        self.assertEqual(self.configured_directories('uv'), {'/'})
+
+    def test_uv_excludes_only_generated_exports(self):
+        config = yaml.safe_load(self.config)
+        uv = next(update for update in config['updates']
+                  if update['package-ecosystem'] == 'uv')
+        self.assertCountEqual(
+            uv['exclude-paths'],
+            ['requirements.txt', 'sdk/python/requirements.txt'])
+        self.assertNotIn('allow', uv)
+        self.assertNotIn('ignore', uv)
+
+    def test_react_runtime_and_types_share_version_and_security_groups(self):
+        config = yaml.safe_load(self.config)
+        npm = next(update for update in config['updates']
+                   if update['package-ecosystem'] == 'npm')
+        dependencies = ('react', 'react-dom', '@types/react',
+                        '@types/react-dom')
+        for applies_to in ('version-updates', 'security-updates'):
+            groups = {
+                name: group
+                for name, group in npm['groups'].items()
+                if group.get('applies-to', 'version-updates') == applies_to
+            }
+            matches = []
+            for dependency in dependencies:
+                matches.append(
+                    next((name for name, group in groups.items() if any(
+                        fnmatchcase(dependency, pattern)
+                        for pattern in group.get('patterns', []))), None))
+            self.assertIsNotNone(matches[0])
+            self.assertEqual(len(set(matches)), 1)
 
     def test_all_uv_lockfiles_are_covered(self):
         tracked_locks = subprocess.check_output(

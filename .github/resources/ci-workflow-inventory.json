@@ -86,7 +86,7 @@
     {
       "path": ".github/workflows/check-requirements-txt.yml",
       "name": "Check uv.lock and requirements.txt sync",
-      "header_sha256": "22469e681d0ea84338eb6a7f8ab4a2ad40abd68a77e1c98fe64f9d6727c2367d",
+      "header_sha256": "1f191ce25d83b87facfa96940b39b1a183c9b6eb3404394209478174c2f9ffca",
       "pull_request": {
         "paths": [
           "pyproject.toml",
@@ -95,7 +95,8 @@
           "**/pyproject.toml",
           "**/requirements.txt",
           ".github/workflows/check-requirements-txt.yml",
-          "release/kfpr/steps.py"
+          "release/kfpr/steps.py",
+          ".github/resources/scripts/export_python_requirements.sh"
         ]
       }
     },

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2026 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Run with uv 0.10.3, matching the requirements consistency check.
 set -euo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-REPO_ROOT="${DIR}/.."
-
-cd "${REPO_ROOT}/test/sample-test/hack" && bash update_requirements.sh
-cd "${REPO_ROOT}"
-uv lock
-bash .github/resources/scripts/export_python_requirements.sh
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.."
+uv export --frozen --no-dev --no-hashes --format requirements-txt -o requirements.txt
+uv export --frozen --no-dev --no-hashes --package kfp --format requirements-txt -o sdk/python/requirements.txt
