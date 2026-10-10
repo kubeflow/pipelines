@@ -118,11 +118,22 @@ indices = [i for i, c in enumerate(containers) if c['name'] == 'ml-pipeline-pers
 assert len(indices) == 1
 index = indices[0]
 c = containers[index]
-path = '/spec/template/spec/containers/' + str(index) + '/args'
-args = c.get('args', [])
-assert not any('mlPipelineAPIServerName' in a for a in args)
-(state / 'agent-restore.json').write_text(json.dumps([dict(op='add', path=path, value=args)]))
-(state / 'agent-proxy.json').write_text(json.dumps([dict(op='add', path=path, value=args + ['-mlPipelineAPIServerName=kfp-reporting-proxy'])]))
+path = '/spec/template/spec/containers/' + str(index)
+# The image has CMD but no ENTRYPOINT: replacing only args executes the flag.
+# Read the same-run image contract so every stock environment-derived flag stays.
+assert not c.get('command') and not c.get('args'), 'fixture requires stock agent command'
+lines = Path('backend/Dockerfile.persistenceagent').read_text().splitlines()
+assert not any(line.startswith('ENTRYPOINT ') for line in lines)
+commands = [json.loads(line[4:]) for line in lines if line.startswith('CMD ')]
+assert len(commands) == 1 and len(commands[0]) == 3
+command = commands[0]
+assert command[:2] == ['/bin/sh', '-c']
+assert command[2].startswith('persistence_agent ') and 'mlPipelineAPIServerName' not in command[2]
+restore = [dict(op='add', path=path + '/' + key, value=c.get(key, [])) for key in ('command', 'args')]
+proxy = [dict(op='add', path=path + '/command', value=command[:2]),
+         dict(op='add', path=path + '/args', value=[command[2] + ' --mlPipelineAPIServerName=kfp-reporting-proxy'])]
+(state / 'agent-restore.json').write_text(json.dumps(restore))
+(state / 'agent-proxy.json').write_text(json.dumps(proxy))
 PY
 kube -n kubeflow patch deployment/ml-pipeline-persistenceagent --type=json --patch-file "$reporting_state/agent-proxy.json" >/dev/null
 kube -n kubeflow rollout status deployment/ml-pipeline-persistenceagent --timeout=180s

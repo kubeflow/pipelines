@@ -177,7 +177,7 @@ kube() {
         blocks = re.findall(r"<<'PY'\n([\s\S]*?)\nPY", source)
         program = next(
             block for block in blocks if 'agent-restore.json' in block)
-        for original in (None, [], ['-logtostderr=true']):
+        for original in (None, []):
             with self.subTest(
                     original=original), tempfile.TemporaryDirectory() as tmp:
                 directory = Path(tmp)
@@ -190,26 +190,69 @@ kube() {
                     json.dumps(deployment))
                 result = subprocess.run(['python3', '-c', program, tmp],
                                         capture_output=True,
-                                        text=True)
+                                        text=True,
+                                        cwd=ROOT)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 patch = json.loads(
                     (directory / 'agent-restore.json').read_text())
-                current = dict(
-                    args=['-mlPipelineAPIServerName=kfp-reporting-proxy'])
+                current = dict(command=['/bin/sh', '-c'], args=['proxy'])
                 for _ in range(2):
                     for operation in patch:
-                        self.assertEqual(
-                            operation['path'],
-                            '/spec/template/spec/containers/0/args')
-                        if operation['op'] == 'add':
-                            current['args'] = operation['value']
-                        elif operation['op'] == 'remove':
-                            self.assertIn('args', current,
-                                          'second cleanup must remain safe')
-                            del current['args']
-                        else:
-                            self.fail('unexpected restoration operation')
-                self.assertEqual(current.get('args', []), original or [])
+                        self.assertEqual(operation['op'], 'add')
+                        prefix = '/spec/template/spec/containers/0/'
+                        self.assertTrue(operation['path'].startswith(prefix))
+                        key = operation['path'][len(prefix):]
+                        self.assertIn(key, ('command', 'args'))
+                        current[key] = operation['value']
+                self.assertEqual(current, dict(command=[], args=original or []))
+                proxy = json.loads((directory / 'agent-proxy.json').read_text())
+                invocation = {
+                    p['path'].rsplit('/', 1)[1]: p['value'] for p in proxy
+                }
+                binary = directory / 'persistence_agent'
+                binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
+                binary.chmod(0o755)
+                env = dict(
+                    os.environ,
+                    PATH=str(directory) + os.pathsep + os.environ['PATH'],
+                    NAMESPACE='kfp-readiness-test',
+                    TTL_SECONDS_AFTER_WORKFLOW_FINISH='86400',
+                    NUM_WORKERS='2',
+                    EXECUTIONTYPE='Workflow',
+                    LOG_LEVEL='info')
+                actual = subprocess.run(
+                    invocation['command'] + invocation['args'],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=True).stdout.splitlines()
+                self.assertEqual(actual, [
+                    '--logtostderr=true', '--namespace=kfp-readiness-test',
+                    '--ttlSecondsAfterWorkflowFinish=86400', '--numWorker', '2',
+                    '--executionType', 'Workflow', '--logLevel=info',
+                    '--mlPipelineAPIServerName=kfp-reporting-proxy'
+                ])
+
+    def test_agent_reroute_refuses_unknown_command_overrides(self):
+        blocks = re.findall(r"<<'PY'\n([\s\S]*?)\nPY", SCRIPT.read_text())
+        program = next(
+            block for block in blocks if 'agent-restore.json' in block)
+        for key in ('command', 'args'):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as tmp:
+                directory = Path(tmp)
+                container = dict(name='ml-pipeline-persistenceagent')
+                container[key] = ['custom']
+                deployment = dict(
+                    spec=dict(template=dict(spec=dict(containers=[container]))))
+                (directory / 'agent-before.json').write_text(
+                    json.dumps(deployment))
+                result = subprocess.run(['python3', '-c', program, tmp],
+                                        cwd=ROOT,
+                                        capture_output=True,
+                                        text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((directory / 'agent-proxy.json').exists())
+                self.assertFalse((directory / 'agent-restore.json').exists())
 
     def test_reporting_lane_uploads_only_sanitized_allowlist(self):
         text = WORKFLOW.read_text().split('  readiness-reporting:', 1)[1]
