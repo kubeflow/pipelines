@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"flag"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -29,6 +30,7 @@ import (
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	log "github.com/sirupsen/logrus"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -208,13 +210,19 @@ func newHealthMux(readinessCheck func() bool) *http.ServeMux {
 }
 
 func startHealthProbeServer(shutdownContext context.Context, controller *PersistenceAgent) {
+	listener, err := net.Listen("tcp", healthProbePort)
+	if err != nil {
+		log.Fatalf("Health probe server failed to listen: %v", err)
+	}
+	log.Infof("Starting health probe server at %s...", healthProbePort)
+	serveHealthProbe(shutdownContext, listener, controller.HasSynced)
+}
+
+func serveHealthProbe(shutdownContext context.Context, listener net.Listener, readinessCheck func() bool) {
 	srv := &http.Server{
-		Addr:              healthProbePort,
-		Handler:           newHealthMux(controller.HasSynced),
+		Handler:           newHealthMux(readinessCheck),
 		ReadHeaderTimeout: 3 * time.Second,
 	}
-
-	log.Infof("Starting health probe server at %s...", healthProbePort)
 
 	shutdownDone := make(chan struct{})
 	go func() {
@@ -228,7 +236,7 @@ func startHealthProbeServer(shutdownContext context.Context, controller *Persist
 		}
 	}()
 
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Health probe server failed: %v", err)
 	}
 	<-shutdownDone

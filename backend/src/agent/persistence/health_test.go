@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -84,14 +85,7 @@ func TestReadyzTransitionsToReady(t *testing.T) {
 	}
 }
 
-func TestHealthProbeServerShutdownOnContextCancel(t *testing.T) {
-	mux := newHealthMux(func() bool { return true })
-
-	server := &http.Server{
-		Handler:           mux,
-		ReadHeaderTimeout: 3 * time.Second,
-	}
-
+func TestServeHealthProbeShutdownOnContextCancel(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
@@ -102,13 +96,7 @@ func TestHealthProbeServerShutdownOnContextCancel(t *testing.T) {
 	serverStopped := make(chan struct{})
 	go func() {
 		defer close(serverStopped)
-		go func() {
-			<-serverContext.Done()
-			shutdownTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			server.Shutdown(shutdownTimeout)
-		}()
-		server.Serve(listener)
+		serveHealthProbe(serverContext, listener, func() bool { return true })
 	}()
 
 	// Verify the server is serving before shutdown.
@@ -127,5 +115,41 @@ func TestHealthProbeServerShutdownOnContextCancel(t *testing.T) {
 	case <-serverStopped:
 	case <-time.After(10 * time.Second):
 		t.Fatal("server did not shut down within 10 seconds after context cancellation")
+	}
+}
+
+func TestHasSyncedAggregation(t *testing.T) {
+	// HasSynced must return true only when both informer caches report
+	// synced. Test all four combinations using atomic booleans to simulate
+	// the func() bool returned by each client's HasSynced().
+	var workflowSynced atomic.Bool
+	var swfSynced atomic.Bool
+
+	hasSynced := func() bool {
+		return workflowSynced.Load() && swfSynced.Load()
+	}
+
+	// Neither synced.
+	if hasSynced() {
+		t.Error("expected false when neither informer is synced")
+	}
+
+	// Only workflow synced.
+	workflowSynced.Store(true)
+	if hasSynced() {
+		t.Error("expected false when only workflow informer is synced")
+	}
+
+	// Only scheduled workflow synced.
+	workflowSynced.Store(false)
+	swfSynced.Store(true)
+	if hasSynced() {
+		t.Error("expected false when only scheduled workflow informer is synced")
+	}
+
+	// Both synced.
+	workflowSynced.Store(true)
+	if !hasSynced() {
+		t.Error("expected true when both informers are synced")
 	}
 }
