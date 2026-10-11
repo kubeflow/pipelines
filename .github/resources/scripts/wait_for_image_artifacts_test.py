@@ -44,6 +44,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
+        artifacts_api_fails_on: tuple[int, ...] = (),
+        use_callback: bool = False,
+        callback_exit: int = 0,
         missing_artifact: str = 'frontend',
         publication_grace_attempts: Optional[int] = None,
         producer_state_unavailable_extensions: Optional[int] = None,
@@ -68,6 +71,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                     count=$(cat "$GH_COUNTER")
                     count=$((count + 1))
                     echo "$count" > "$GH_COUNTER"
+                    if [[ " $ARTIFACTS_API_FAILS_ON " == *" $count "* ]]; then
+                      exit 1
+                    fi
                     if (( count >= READY_AFTER )); then
                       printf '%s\n' $ARTIFACT_NAMES
                     else
@@ -85,6 +91,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             environment = os.environ.copy()
             environment.pop('WAIT_ATTEMPTS', None)
             environment.update({
+                'ARTIFACTS_API_FAILS_ON':
+                    ' '.join(
+                        str(attempt) for attempt in artifacts_api_fails_on),
                 'ARTIFACT_NAMES':
                     ' '.join(ARTIFACTS),
                 'GH_COUNTER':
@@ -115,14 +124,79 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             if producer_state_unavailable_extensions is not None:
                 environment['PRODUCER_STATE_UNAVAILABLE_EXTENSIONS'] = str(
                     producer_state_unavailable_extensions)
+            command = ['bash', str(SCRIPT)]
+            if use_callback:
+                callback = root / 'callback'
+                callback.write_text('#!/usr/bin/env bash\n'
+                                    'echo "CALLBACK $(cat "$GH_COUNTER") $*"\n'
+                                    f'exit {callback_exit}\n')
+                callback.chmod(0o755)
+                command.append(str(callback))
             result = subprocess.run(
-                ['bash', str(SCRIPT)],
+                command,
                 capture_output=True,
                 text=True,
                 check=False,
                 env=environment,
             )
             return result, int(counter.read_text(encoding='utf-8'))
+
+    def test_prepares_visible_artifacts_before_last_producer_finishes(self):
+        result, attempts = self._run(
+            ready_after=3, use_callback=True, attempts=4)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = [
+            line.split()
+            for line in result.stdout.splitlines()
+            if line.startswith('CALLBACK ')
+        ]
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][1], '1')
+        self.assertCountEqual(
+            calls[0][2:], [name for name in ARTIFACTS if name != 'frontend'])
+        self.assertEqual(calls[1], ['CALLBACK', '3', 'frontend'])
+        self.assertEqual(attempts, 3)
+
+    def test_callback_failure_stops_before_readiness_success(self):
+        for ready_after in (1, 3):
+            with self.subTest(ready_after=ready_after):
+                result, attempts = self._run(
+                    ready_after=ready_after, use_callback=True, callback_exit=7)
+                self.assertEqual(result.returncode, 7)
+                self.assertEqual(attempts, 1)
+                self.assertNotIn('All 8 branch image artifacts are available',
+                                 result.stdout)
+
+    def test_listing_failure_does_not_repeat_already_prepared_artifacts(self):
+        result, attempts = self._run(
+            ready_after=3,
+            attempts=4,
+            use_callback=True,
+            artifacts_api_fails_on=(2,))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Could not list image artifacts on attempt 2/4',
+                      result.stdout)
+        calls = [
+            line.split()
+            for line in result.stdout.splitlines()
+            if line.startswith('CALLBACK ')
+        ]
+        self.assertEqual(len(calls), 2)
+        self.assertCountEqual(
+            calls[0][2:], [name for name in ARTIFACTS if name != 'frontend'])
+        self.assertEqual(calls[1], ['CALLBACK', '3', 'frontend'])
+        self.assertEqual(attempts, 3)
+
+    def test_partial_import_does_not_hide_missing_producer_failure(self):
+        result, attempts = self._run(
+            ready_after=99,
+            use_callback=True,
+            producer_jobs=(('build / image-build (frontend, frontend)',
+                            'completed', 'failure'),))
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(attempts, 2)
+        self.assertEqual(result.stdout.count('CALLBACK '), 1)
+        self.assertIn('frontend:failure', result.stderr)
 
     def test_succeeds_when_all_artifacts_are_available(self):
         result, attempts = self._run(ready_after=1)

@@ -34,26 +34,38 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
 
     def test_changes_trigger_all_pr_consumers(self):
         consumers = set()
+        deploy_consumers = set()
         for path in (ROOT / '.github/workflows').iterdir():
             if path.suffix not in ('.yml', '.yaml'):
                 continue
             workflow = yaml.load(path.read_text(), Loader=UniqueKeyLoader)
             if 'pull_request' not in workflow.get('on', {}):
                 continue
-            if any(
-                    step.get('uses') in ACTIONS
-                    for job in workflow['jobs'].values()
-                    for step in job.get('steps', [])):
+            actions = {
+                step.get('uses')
+                for job in workflow['jobs'].values()
+                for step in job.get('steps', [])
+            }
+            if actions & ACTIONS:
                 consumers.add(path.relative_to(ROOT).as_posix())
+            if './.github/actions/deploy' in actions:
+                deploy_consumers.add(path.relative_to(ROOT).as_posix())
         self.assertIn('.github/workflows/e2e-test-frontend.yml', consumers)
         self.assertIn('.github/workflows/arm64-presubmit.yml', consumers)
         self.assertIn('.github/workflows/build-tools-images.yml', consumers)
+        self.assertIn('.github/workflows/api-server-tests.yml',
+                      deploy_consumers)
 
         for branch in ('master', 'release-2.17'):
-            for changed_path in (
-                    '.github/actions/download-artifact-with-retry/action.yml',
-                    '.github/resources/scripts/artifact-files.sh',
-                    '.github/resources/scripts/ci-image-artifacts.sh'):
+            for changed_path, expected in (
+                ('.github/actions/download-artifact-with-retry/action.yml',
+                 consumers), ('.github/resources/scripts/artifact-files.sh',
+                              consumers),
+                ('.github/resources/scripts/ci-image-artifacts.sh', consumers),
+                ('.github/resources/scripts/wait-for-image-artifacts.sh',
+                 deploy_consumers),
+                ('.github/resources/scripts/load-ready-image-artifacts.sh',
+                 deploy_consumers)):
                 with self.subTest(branch=branch, changed_path=changed_path):
                     script = f'''
 const gate = require({json.dumps(str(MODULE))});
@@ -71,7 +83,7 @@ console.log(JSON.stringify(inventory.workflows.filter(workflow =>
                                             cwd=ROOT)
                     triggered = set(json.loads(result.stdout))
                     self.assertTrue(
-                        consumers.issubset(triggered), consumers - triggered)
+                        expected.issubset(triggered), expected - triggered)
 
 
 if __name__ == '__main__':
