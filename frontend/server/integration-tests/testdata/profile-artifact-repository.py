@@ -61,7 +61,7 @@ def artifact_repository(producer, object_store_host, cluster_domain, namespace):
     with patch.dict(
             producer.os.environ, controller_env, clear=True), patch.object(
                 producer,
-                "HTTPServer",
+                "ThreadingHTTPServer",
                 side_effect=lambda address, handler: SimpleNamespace(
                     RequestHandlerClass=handler),
             ):

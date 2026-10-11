@@ -16,19 +16,28 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 
+	"github.com/google/uuid"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getSimplePipelineVersion() (*unstructured.Unstructured, *unstructured.Unstructured) {
@@ -188,4 +197,99 @@ func TestPipelineVersionWebhookIntegration(t *testing.T) {
 
 	_, err = pvClient.Update(context.TODO(), pv, metav1.UpdateOptions{})
 	require.ErrorContains(t, err, "Pipeline spec is immutable")
+}
+
+func TestPipelineVersionSizeErrorsIntegration(t *testing.T) {
+	if os.Getenv("WEBHOOK_INTEGRATION") != "true" {
+		t.Skip("The WEBHOOK_INTEGRATION environment variable is not set to true")
+	}
+	config, err := util.GetKubernetesConfig()
+	require.NoError(t, err)
+	config.Timeout = 30 * time.Second
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+	k8sClient, err := ctrlclient.New(config, ctrlclient.Options{Scheme: scheme})
+	require.NoError(t, err)
+	store := storage.NewPipelineStoreKubernetes(k8sClient, k8sClient)
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "kubeflow")
+	t.Cleanup(func() { viper.Set("POD_NAMESPACE", podNamespace) })
+
+	// These inputs exercise distinct rejections in the default kind cluster; they are not KFP size limits.
+	for _, testCase := range []struct {
+		name    string
+		padding int
+		cause   string
+	}{
+		{"etcd request limit", 1800000, "etcdserver: request is too large"},
+		{"etcd client send limit", 2200000, "trying to send message larger than max"},
+		{"API server body limit", 3400000, "Request entity too large"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			name := "size-errors-" + uuid.NewString()
+			key := ctrlclient.ObjectKey{Namespace: "kubeflow", Name: name + "-v1"}
+			t.Cleanup(func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				for _, obj := range []ctrlclient.Object{
+					&v2beta1.PipelineVersion{ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name}},
+					&v2beta1.Pipeline{ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: name}},
+				} {
+					if err := k8sClient.Delete(ctx, obj); err != nil && !k8serrors.IsNotFound(err) {
+						t.Errorf("Failed to clean up %T %s: %v", obj, obj.GetName(), err)
+					}
+				}
+			})
+			_, fixture := getSimplePipelineVersion()
+			spec, found, err := unstructured.NestedMap(fixture.Object, "spec", "pipelineSpec")
+			require.NoError(t, err)
+			require.True(t, found)
+			require.NoError(t, unstructured.SetNestedField(spec, strings.Repeat("x", testCase.padding), "pipelineInfo", "description"))
+			largeSpec, err := json.Marshal(spec)
+			require.NoError(t, err)
+			_, _, err = store.CreatePipelineAndPipelineVersion(
+				&model.Pipeline{Name: name, Namespace: key.Namespace},
+				&model.PipelineVersion{Name: "v1", PipelineSpec: model.LargeText(largeSpec)})
+			var userError *util.UserError
+			require.ErrorAs(t, err, &userError)
+			assert.Equal(t, codes.InvalidArgument, userError.ExternalStatusCode())
+			assert.Contains(t, userError.GRPCStatus().Message(), testCase.cause)
+			assert.Equal(t, 1, strings.Count(userError.GRPCStatus().Message(), "Kubernetes rejected"))
+
+			parent := &v2beta1.Pipeline{}
+			require.NoError(t, k8sClient.Get(context.Background(), ctrlclient.ObjectKey{Namespace: key.Namespace, Name: name}, parent))
+			require.NotEmpty(t, parent.UID)
+			assert.Contains(t, userError.ExternalMessage(), name)
+			assert.Contains(t, userError.ExternalMessage(), string(parent.UID))
+			assert.Contains(t, userError.ExternalMessage(), "Upload the corrected version")
+			err = k8sClient.Get(context.Background(), key, &v2beta1.PipelineVersion{})
+			require.True(t, k8serrors.IsNotFound(err), "a rejected version must not have been persisted: %v", err)
+
+			require.NoError(t, unstructured.SetNestedField(spec, "Corrected pipeline", "pipelineInfo", "description"))
+			smallSpec, err := json.Marshal(spec)
+			require.NoError(t, err)
+			version, err := store.CreatePipelineVersion(&model.PipelineVersion{
+				Name: "v1", DisplayName: "small-version", PipelineId: string(parent.UID), PipelineSpec: model.LargeText(smallSpec),
+			})
+			require.NoError(t, err)
+			stored, err := store.GetPipelineVersionByName(string(parent.UID), "v1")
+			require.NoError(t, err)
+			assert.Equal(t, version.UUID, stored.UUID)
+			assert.Equal(t, string(parent.UID), stored.PipelineId)
+
+			err = store.UpdatePipelineVersionFields(version.UUID, strings.Repeat("n", testCase.padding), nil)
+			require.ErrorAs(t, err, &userError)
+			assert.Equal(t, codes.InvalidArgument, userError.ExternalStatusCode())
+			assert.Contains(t, userError.GRPCStatus().Message(), testCase.cause)
+			assert.Contains(t, userError.ExternalMessage(), "display name")
+			stored, err = store.GetPipelineVersion(version.UUID)
+			require.NoError(t, err)
+			assert.Equal(t, "small-version", stored.DisplayName, "a rejected update must preserve the stored version")
+			require.NoError(t, store.UpdatePipelineVersionFields(version.UUID, "corrected", map[string]string{"stage": "test"}))
+			stored, err = store.GetPipelineVersion(version.UUID)
+			require.NoError(t, err)
+			assert.Equal(t, "corrected", stored.DisplayName)
+			assert.Equal(t, map[string]string{"stage": "test"}, stored.Tags)
+		})
+	}
 }
