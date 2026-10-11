@@ -186,6 +186,12 @@ func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecu
 	// Make service call
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceListRecurringRunsContext(ctx, parameters)
 	if err != nil {
+		if defaultError, ok := err.(*params.RecurringRunServiceListRecurringRunsDefault); ok {
+			statusError := api_server.CreateErrorFromAPIStatusWithDetails(defaultError.Payload.Message, defaultError.Payload.Code, defaultError.Payload.Details)
+			if api_server.IsPaginationRestartRequired(statusError) {
+				err = statusError
+			}
+		}
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
 			"Failed to list jobs")

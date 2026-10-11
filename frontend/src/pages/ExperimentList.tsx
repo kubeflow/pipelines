@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import CustomTable, {
   Column,
@@ -208,7 +209,13 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
+      if (request.isCurrent?.() === false) return '';
+      await throwIfPaginationRestartRequired(err);
+      request.onFailure?.();
+      if (request.isCurrent?.() === false) return '';
+      this.setStateSafe({ displayExperiments: [] });
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      if (request.isCurrent?.() === false) return '';
       await this.showPageError('Error: failed to retrieve list of experiments.', error);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
@@ -249,6 +256,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       }),
     );
 
+    if (request.isCurrent?.() === false) return '';
     this.setStateSafe({ displayExperiments });
     return response.next_page_token || '';
   }

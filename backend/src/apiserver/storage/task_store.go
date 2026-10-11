@@ -142,6 +142,27 @@ func nilOrString(value *string) interface{} {
 
 // scanTaskRow scans a single row into a model.Task. It expects the column order to match taskColumns.
 func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, error) {
+	row, err := scanTaskRowWithSortFields(rowscanner)
+	if err != nil {
+		return nil, err
+	}
+	return row.Task, nil
+}
+
+// taskListRow preserves nullable scalar sort values without changing API models.
+type taskListRow struct {
+	*model.Task
+	sortFields map[string]interface{}
+}
+
+func (t *taskListRow) GetFieldValue(name string) interface{} {
+	if value, ok := t.sortFields[name]; ok {
+		return value
+	}
+	return t.Task.GetFieldValue(name)
+}
+
+func scanTaskRowWithSortFields(rowscanner interface{ Scan(dest ...any) error }) (*taskListRow, error) {
 	var uuid, namespace, runUUID, fingerprint string
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
@@ -231,7 +252,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	if logicalKey.Valid {
 		logicalKeyNew = &logicalKey.String
 	}
-	return &model.Task{
+	task := &model.Task{
 		UUID:              uuid,
 		Namespace:         namespace,
 		RunUUID:           runUUID,
@@ -254,7 +275,12 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		LogicalKey:        logicalKeyNew,
 		LifecycleMessage:  lifecycleMessagePtr,
 		LifecycleCategory: lifecycleCategoryPtr,
-	}, nil
+	}
+	return &taskListRow{Task: task, sortFields: map[string]interface{}{
+		"Name": NullStringToPointer(name), "DisplayName": NullStringToPointer(displayName),
+		"StartedInSec": NullInt64ToPointer(startedInSec), "FinishedInSec": NullInt64ToPointer(finishedInSec),
+		"ScopePath": NullStringToPointer(scopePath), "LifecycleMessage": lifecycleMessagePtr, "LifecycleCategory": lifecycleCategoryPtr,
+	}}, nil
 }
 
 // hydrateArtifactsForTasks fills InputArtifactsHydrated and OutputArtifactsHydrated for provided tasks by
@@ -448,15 +474,22 @@ func iOTypeIsOutput(ioType apiv2.IOType) (bool, error) {
 }
 
 func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
+	tasks, _, err := s.scanRowsWithSortFields(rows)
+	return tasks, err
+}
+
+func (s *TaskStore) scanRowsWithSortFields(rows *sql.Rows) ([]*model.Task, []*taskListRow, error) {
 	var tasks []*model.Task
+	var cursors []*taskListRow
 	for rows.Next() {
-		t, err := scanTaskRow(rows)
+		row, err := scanTaskRowWithSortFields(rows)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		tasks = append(tasks, t)
+		tasks = append(tasks, row.Task)
+		cursors = append(cursors, row)
 	}
-	return tasks, nil
+	return tasks, cursors, rows.Err()
 }
 
 func taskIterationIndex(typeAttrs model.JSONData) (*int64, error) {
@@ -785,7 +818,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		tx.Rollback()
 		return errorF(err)
 	}
-	exps, err := s.scanRows(rows)
+	exps, cursors, err := s.scanRowsWithSortFields(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -820,7 +853,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return exps, total_size, "", nil
 	}
 
-	npt, err := opts.NextPageToken(exps[opts.PageSize])
+	npt, err := opts.NextPageToken(cursors[opts.PageSize])
 	page := exps[:opts.PageSize]
 	if err := hydrateArtifactsForTasks(s.db, page, s.dbDialect); err != nil {
 		return errorF(err)
@@ -870,7 +903,7 @@ func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opt
 		tx.Rollback()
 		return errorF(err)
 	}
-	tasks, err := s.scanRows(rows)
+	tasks, cursors, err := s.scanRowsWithSortFields(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -905,7 +938,7 @@ func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opt
 		return tasks, totalSize, "", nil
 	}
 
-	npt, err := opts.NextPageToken(tasks[opts.PageSize])
+	npt, err := opts.NextPageToken(cursors[opts.PageSize])
 	page := tasks[:opts.PageSize]
 	if err := hydrateArtifactsForTasks(s.db, page, s.dbDialect); err != nil {
 		return errorF(err)
