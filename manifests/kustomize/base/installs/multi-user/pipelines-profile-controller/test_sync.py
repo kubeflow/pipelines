@@ -249,3 +249,62 @@ def test_create_iam_client_uses_endpoint(monkeypatch):
     sync.create_iam_client()
     assert called["service_name"] == "iam"
     assert called["endpoint_url"] == "http://seaweedfs.kubeflow:8111"
+
+
+def start_minimal_server(start_sync_server):
+    return start_sync_server(
+        frontend_image="image",
+        frontend_tag="tag",
+        disable_istio_sidecar=False,
+        artifacts_proxy_enabled="false",
+        artifact_retention_days=-1,
+        controller_port=0,
+    )
+
+
+def get_path(server, path, timeout=5):
+    host, port = server.server_address
+    return requests.get(f"http://{host}:{port}{path}", timeout=timeout)
+
+
+def test_healthz_returns_ok(start_sync_server):
+    response = get_path(start_minimal_server(start_sync_server), "/healthz")
+    assert response.status_code == 200
+    assert response.text == "ok"
+
+
+def test_get_unknown_path_returns_not_found(start_sync_server):
+    response = get_path(start_minimal_server(start_sync_server), "/unknown")
+    assert response.status_code == 404
+
+
+def test_healthz_is_not_logged(start_sync_server, capsys):
+    server = start_minimal_server(start_sync_server)
+    assert get_path(server, "/healthz").status_code == 200
+    assert get_path(server, "/unknown").status_code == 404
+    logs = capsys.readouterr().err
+    assert "/healthz" not in logs
+    assert "/unknown" in logs
+
+
+def test_healthz_responds_during_slow_sync(start_sync_server):
+    server = start_minimal_server(start_sync_server)
+    sync_started = threading.Event()
+    release_sync = threading.Event()
+
+    def slow_sync(handler, parent, attachments):
+        sync_started.set()
+        release_sync.wait(timeout=10)
+        return {"status": {}, "attachments": []}
+
+    with mock.patch.object(server.RequestHandlerClass, "sync", slow_sync):
+        post = threading.Thread(
+            target=post_sync, args=(server, PARENT, observed_attachments()))
+        post.start()
+        try:
+            assert sync_started.wait(timeout=5)
+            # A single-threaded server could not answer until the sync ends.
+            assert get_path(server, "/healthz", timeout=2).status_code == 200
+        finally:
+            release_sync.set()
+            post.join(timeout=10)
