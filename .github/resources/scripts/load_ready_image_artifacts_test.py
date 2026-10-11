@@ -29,17 +29,21 @@ SCRIPTS = Path(__file__).resolve().parent
 ARTIFACTS = ('apiserver', 'scheduledworkflow', 'persistenceagent', 'frontend',
              'viewer-crd-controller', 'driver', 'launcher',
              'runtime-base-images')
+ARTIFACT_IDS = {name: 100 + index for index, name in enumerate(ARTIFACTS)}
 
 # Commands share a locked event log so concurrency and cancellation are tested
 # across the actual shell/Python worker processes, rather than simulated calls.
 FAKE_COMMAND = r'''#!/usr/bin/env python3
 import fcntl
+import io
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 import time
+import zipfile
 
 command = Path(sys.argv[0]).name
 args = sys.argv[1:]
@@ -69,10 +73,12 @@ if command == 'timeout':
 if command == 'sleep':
     sys.exit(0)
 if command == 'gh':
-    assert args[:3] == ['run', 'download', '12345'], args
-    assert args[3:5] == ['--repo', 'kubeflow/pipelines'], args
-    assert args[5] == '--name' and args[7] == '--dir', args
-    artifact, destination = args[6], Path(args[8])
+    assert len(args) == 2 and args[0] == 'api', args
+    prefix = 'repos/kubeflow/pipelines/actions/artifacts/'
+    assert args[1].startswith(prefix) and args[1].endswith('/zip'), args
+    artifact_id = args[1][len(prefix):-len('/zip')]
+    artifact = config['artifact_ids'][artifact_id]
+    destination = Path(os.environ['IMAGE_PATH']) / artifact
 
     def start(state):
         attempt = state['attempts'].get(artifact, 0) + 1
@@ -91,13 +97,28 @@ if command == 'gh':
         update(lambda state: state['blocked'].append([os.getpid(), child.pid]))
         time.sleep(60)
     time.sleep(0.08)
-    archive = destination / (artifact + '.tar')
-    if mode == 'unsafe':
-        archive.symlink_to(config['outside'])
-    elif mode not in ('missing', 'modelcar-only'):
-        archive.write_text('' if mode == 'empty' else 'image archive')
-    if artifact == 'runtime-base-images' and mode in ('good', 'modelcar-only'):
-        (destination / 'modelcar.tar').write_text('modelcar archive')
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w') as archive:
+        if mode == 'unsafe':
+            entry = zipfile.ZipInfo(artifact + '.tar')
+            entry.create_system = 3
+            entry.external_attr = (stat.S_IFLNK | 0o777) << 16
+            archive.writestr(entry, config['outside'])
+        elif mode not in ('missing', 'modelcar-only'):
+            archive.writestr(artifact + '.tar',
+                             '' if mode == 'empty' else 'artifact ID ' + artifact_id)
+        if mode == 'traversal':
+            archive.writestr('../outside', 'overwritten')
+        if mode == 'absolute':
+            archive.writestr(config['outside'], 'overwritten')
+        if mode == 'duplicate':
+            archive.writestr(artifact + '.tar', 'ambiguous duplicate')
+        if mode == 'extra':
+            archive.writestr('unrelated', 'overwritten')
+        if artifact == 'runtime-base-images' and mode in ('good', 'modelcar-only'):
+            archive.writestr('modelcar.tar', 'modelcar archive')
+    content = buffer.getvalue()
+    sys.stdout.buffer.write(content[:20] if mode in ('transport', 'corrupt') else content)
     update(lambda state: state.update(active=state['active'] - 1))
     sys.exit(1 if mode == 'transport' else 0)
 if command == 'kind':
@@ -109,6 +130,7 @@ if command == 'kind':
         def count(state):
             count = state['imports'].get(archive.name, 0) + 1
             state['imports'][archive.name] = count
+            state['loaded_content'].append(archive.read_text())
             return count
         attempt = update(count)
         if attempt <= config.get('import_failures', {}).get(archive.name, 0):
@@ -157,6 +179,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
                 'max_active': 0,
                 'blocked': [],
                 'imports': {},
+                'loaded_content': [],
             }),
             encoding='utf-8')
         self.config_file = self.root / 'config.json'
@@ -190,6 +213,10 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.script = self.scripts / 'load-ready-image-artifacts.sh'
 
     def configure(self, **settings):
+        settings.setdefault('artifact_ids', {
+            str(artifact_id): name
+            for name, artifact_id in ARTIFACT_IDS.items()
+        })
         self.config_file.write_text(json.dumps(settings), encoding='utf-8')
 
     def state(self):
@@ -199,12 +226,21 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
             fcntl.flock(stream, fcntl.LOCK_SH)
             return json.load(stream)
 
+    def command(self, *artifacts):
+        return [
+            str(self.script), *[
+                f'{name}:{ARTIFACT_IDS[name]}' if name in ARTIFACT_IDS else name
+                for name in artifacts
+            ]
+        ]
+
     def run_loader(self, *artifacts):
-        return subprocess.run([str(self.script), *artifacts],
-                              env=self.env,
-                              text=True,
-                              capture_output=True,
-                              timeout=15)
+        return subprocess.run(
+            self.command(*artifacts),
+            env=self.env,
+            text=True,
+            capture_output=True,
+            timeout=15)
 
     def commands(self, name):
         return [
@@ -216,6 +252,53 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
 
     def assert_success(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_selected_id_downloads_correct_duplicate_named_artifact(self):
+        self.configure(artifact_ids={'100': 'apiserver', '999': 'apiserver'})
+        result = self.run_loader('apiserver:999')
+        self.assert_success(result)
+        self.assertEqual(
+            self.commands('gh'),
+            [['api', 'repos/kubeflow/pipelines/actions/artifacts/999/zip']])
+        self.assertEqual(self.state()['loaded_content'], ['artifact ID 999'])
+
+    def test_duplicate_names_with_distinct_ids_fail_before_download(self):
+        result = self.run_loader('apiserver:100', 'apiserver:999')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.commands('gh'), [])
+
+    def test_corrupt_zip_retries_without_importing_partial_files(self):
+        self.configure(downloads={'apiserver': ['corrupt', 'good']})
+        self.assert_success(self.run_loader('apiserver'))
+        self.assertEqual(self.state()['attempts'], {'apiserver': 2})
+        self.assertEqual(self.state()['imports'], {'apiserver.tar': 1})
+
+    def test_unsafe_zip_paths_and_duplicate_members_are_fatal(self):
+        outside = self.images / 'outside'
+        self.images.mkdir()
+        outside.write_text('preserve me', encoding='utf-8')
+        for mode, artifact in zip(('traversal', 'absolute', 'duplicate'),
+                                  ARTIFACTS):
+            with self.subTest(mode=mode):
+                self.configure(
+                    downloads={artifact: [mode]}, outside=str(outside))
+                result = self.run_loader(artifact)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.state()['attempts'][artifact], 1)
+                self.assertFalse(self.archive(artifact).exists())
+                self.assertEqual(
+                    outside.read_text(encoding='utf-8'), 'preserve me')
+        self.assertEqual(self.commands('kind'), [])
+        self.assertEqual(self.commands('sleep'), [])
+
+    def test_extracts_only_required_files(self):
+        destination = self.images / 'apiserver'
+        destination.mkdir(parents=True)
+        unrelated = destination / 'unrelated'
+        unrelated.write_text('preserve me', encoding='utf-8')
+        self.configure(downloads={'apiserver': ['extra']})
+        self.assert_success(self.run_loader('apiserver'))
+        self.assertEqual(unrelated.read_text(encoding='utf-8'), 'preserve me')
 
     def test_every_artifact_imports_with_existing_tags_and_runtime_checks(self):
         self.assertTrue(os.access(SCRIPTS / self.script.name, os.X_OK))
@@ -372,7 +455,9 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.assertFalse(any('pull' in args for args in calls))
 
     def test_invalid_arguments_fail_before_starting_workers(self):
-        for arguments in ((), ('unknown',), ('apiserver', 'apiserver')):
+        for arguments in ((), ('unknown:100',), ('apiserver', 'apiserver'),
+                          ('apiserver:',), ('apiserver:no',), ('apiserver:0',),
+                          ('apiserver:01',), ('apiserver:100:200',)):
             with self.subTest(arguments=arguments):
                 self.assertNotEqual(self.run_loader(*arguments).returncode, 0)
         self.assertEqual(self.commands('gh'), [])
@@ -394,11 +479,12 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
             'apiserver': ['block'],
             'frontend': ['block']
         })
-        process = subprocess.Popen([str(self.script), 'apiserver', 'frontend'],
-                                   env=self.env,
-                                   text=True,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            self.command('apiserver', 'frontend'),
+            env=self.env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         try:
             deadline = time.monotonic() + 5
             while len(self.state()

@@ -35,11 +35,17 @@ if [[ "${1:-}" == --worker ]]; then
   shift
 fi
 if (( $# == 0 )) || { [[ "$worker" == true ]] && (( $# != 1 )); }; then
-  echo "Usage: $0 ARTIFACT [ARTIFACT ...]" >&2
+  echo "Usage: $0 NAME:ARTIFACT_ID [NAME:ARTIFACT_ID ...]" >&2
   exit 2
 fi
 seen=()
-for artifact in "$@"; do
+for selection in "$@"; do
+  artifact=${selection%%:*}
+  artifact_id=${selection#*:}
+  if [[ "$selection" != *:* || ! "$artifact_id" =~ ^[1-9][0-9]*$ ]]; then
+    echo "::error::Expected an artifact name and positive ID: $selection" >&2
+    exit 2
+  fi
   known=false
   for expected in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
     if [[ "$artifact" == "$expected" ]]; then known=true; break; fi
@@ -62,24 +68,80 @@ done
 kind() { timeout --foreground --kill-after=30s 10m kind "$@"; }
 docker() { timeout --foreground --kill-after=30s 10m docker "$@"; }
 
+# Extract only declared files; validate every ZIP entry before writing any file.
+# The shared artifact-files helper validates destination paths before this runs.
+extract_artifact() {
+  timeout --foreground --kill-after=30s 10m python3 - "$artifact_zip" "$1" "$2" <<'PYZIP'
+from pathlib import Path
+import shutil
+import stat
+import sys
+import zipfile
+import zlib
+
+archive_path, destination, manifest = sys.argv[1:]
+required = set(manifest.splitlines())
+root = Path(destination)
+try:
+    with zipfile.ZipFile(archive_path) as archive:
+        selected = {}
+        for entry in archive.infolist():
+            name = entry.filename
+            parts = name.rstrip('/').split('/')
+            mode = stat.S_IFMT(entry.external_attr >> 16)
+            if ('\\' in name or '\x00' in entry.orig_filename or
+                    any(part in ('', '.', '..') for part in parts) or
+                    mode not in (0, stat.S_IFREG, stat.S_IFDIR)):
+                raise ValueError(f'Unsafe ZIP member: {name!r}')
+            if name not in required:
+                continue
+            if entry.is_dir() or mode == stat.S_IFDIR or name in selected:
+                raise ValueError(f'Invalid or duplicate required ZIP member: {name!r}')
+            selected[name] = entry
+        for name, entry in selected.items():
+            target = root / name
+            # Required paths were checked before download. Recheck existing
+            # parents, and create the file exclusively, never following links.
+            parent = root
+            for component in Path(name).parts[:-1]:
+                parent /= component
+                if parent.is_symlink():
+                    raise ValueError(f'Symlink in extraction path: {name!r}')
+                parent.mkdir(exist_ok=True)
+            with archive.open(entry) as source, target.open('xb') as output:
+                shutil.copyfileobj(source, output)
+except (zipfile.BadZipFile, EOFError, zlib.error) as error:
+    print(f'::warning::Incomplete or corrupt artifact ZIP: {error}', file=sys.stderr)
+    sys.exit(10)
+except (OSError, RuntimeError, ValueError) as error:
+    print(f'::error::Cannot safely extract artifact ZIP: {error}', file=sys.stderr)
+    sys.exit(2)
+PYZIP
+}
+
 download_artifact() {
-  local artifact=$1 destination=$2 required_files=$3 attempt result
+  local artifact=$1 artifact_id=$2 destination=$3 required_files=$4 attempt result
   for attempt in 1 2; do
     DOWNLOAD_PATH="$destination" REQUIRED_FILES="$required_files" \
       bash "$script_directory/artifact-files.sh" prepare
-    echo "[$artifact] download started (attempt $attempt/2)"
-    if timeout --foreground --kill-after=30s 10m gh run download "$GITHUB_RUN_ID" \
-        --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$destination"; then
-      if DOWNLOAD_PATH="$destination" REQUIRED_FILES="$required_files" \
-          bash "$script_directory/artifact-files.sh" verify; then
-        echo "[$artifact] download completed"
-        return 0
+    echo "[$artifact] download started (artifact ID $artifact_id, attempt $attempt/2)"
+    if timeout --foreground --kill-after=30s 10m gh api \
+        "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$artifact_zip"; then
+      if extract_artifact "$destination" "$required_files"; then
+        if DOWNLOAD_PATH="$destination" REQUIRED_FILES="$required_files" \
+            bash "$script_directory/artifact-files.sh" verify; then
+          rm -- "$artifact_zip"
+          echo "[$artifact] download completed"
+          return 0
+        else
+          result=$?
+        fi
       else
         result=$?
-        # Only absent/empty files are retryable. Unsafe paths and other
-        # validation failures must stop before any subsequent download.
-        if [[ "$result" != 10 ]]; then return "$result"; fi
       fi
+      # Only incomplete downloads are retryable. Unsafe paths and other
+      # validation failures must stop before any subsequent download.
+      if [[ "$result" != 10 ]]; then return "$result"; fi
     fi
     if [[ "$attempt" == 1 ]]; then
       echo "[$artifact] download failed or incomplete; retrying in 20 seconds"
@@ -91,13 +153,14 @@ download_artifact() {
 }
 
 load_artifact() {
-  local artifact=$1 destination="$IMAGE_PATH/$1" required_files="" file archive
+  local artifact=${1%%:*} artifact_id=${1#*:} required_files="" file archive
+  local destination="$IMAGE_PATH/$artifact"
   while IFS= read -r file; do
     if [[ "$file" == "$artifact/"* ]]; then
       required_files+="${file#"$artifact/"}"$'\n'
     fi
   done <<< "$deploy_files"
-  download_artifact "$artifact" "$destination" "$required_files"
+  download_artifact "$artifact" "$artifact_id" "$destination" "$required_files"
   archive="$destination/$artifact.tar"
   echo "[$artifact] import started"
   case "$artifact" in
@@ -127,6 +190,10 @@ load_artifact() {
 }
 
 if [[ "$worker" == true ]]; then
+  artifact_zip=$(mktemp)
+  trap 'rm -f -- "$artifact_zip"' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
   load_artifact "$1"
   exit 0
 fi
