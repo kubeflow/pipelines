@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
@@ -121,6 +122,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "CreatedTimestamp", IsDesc: true},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "CreatedTimestamp",
 				SortByFieldValue:  int64(1234),
 				SortByFieldPrefix: "",
@@ -135,6 +137,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "PrimaryKey", IsDesc: true},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "PrimaryKey",
 				SortByFieldValue:  "uuid123",
 				SortByFieldPrefix: "",
@@ -149,6 +152,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "FakeName", IsDesc: false},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
@@ -167,6 +171,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
@@ -433,6 +438,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "CreatedTimestamp",
@@ -448,6 +454,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "CreatedTimestamp",
@@ -463,6 +470,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -478,6 +486,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -493,6 +502,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -508,6 +518,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "PrimaryKey",
@@ -1247,4 +1258,35 @@ func TestNewOptionsFromToken_RejectsRetiredMetricSort(t *testing.T) {
 	_, err = NewOptionsFromToken(encoded, 10)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Metric sorting is no longer supported")
+}
+
+func TestNewOptions_NamedStringAndPointerOrder(t *testing.T) {
+	text := model.LargeText("Bravo")
+	for _, tc := range []struct {
+		name, sort  string
+		row         Listable
+		stringField bool
+	}{
+		{"pipeline description", "description", &model.Pipeline{UUID: "id", Description: text}, true},
+		{"version description", "description", &model.PipelineVersion{UUID: "id", Description: text}, true},
+		{"nil named-string pointer", "lifecycle_message", &model.Task{UUID: "id"}, true},
+		{"named-string pointer", "lifecycle_message", &model.Task{UUID: "id", LifecycleMessage: &text}, true},
+		{"nil string pointer", "parent_task_id", &model.Task{UUID: "id"}, true},
+		{"timestamp", "start_time", &model.Task{UUID: "id"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, err := NewOptions(tc.row, 2, tc.sort, nil)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.stringField, opts.SortByFieldIsString)
+			first, _, err := opts.AddSortingToSelect(sq.Select("*"), testQuote, "").ToSql()
+			assert.NoError(t, err)
+			token, err := opts.NextPageToken(tc.row)
+			assert.NoError(t, err)
+			next, err := NewOptionsFromToken(token, 2)
+			assert.NoError(t, err)
+			resumed, _, err := next.AddSortingToSelect(sq.Select("*"), testQuote, "").ToSql()
+			assert.NoError(t, err)
+			assert.Equal(t, strings.Split(first, " ORDER BY ")[1], strings.Split(resumed, " ORDER BY ")[1])
+		})
+	}
 }
