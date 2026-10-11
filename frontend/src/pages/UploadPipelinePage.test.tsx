@@ -15,7 +15,13 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render as renderWithoutTheme, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render as renderWithoutTheme,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { ThemeProvider } from 'src/components/shell/ThemeProvider';
@@ -150,6 +156,148 @@ describe('NewPipelineVersion', () => {
     renderResult = null;
     componentRef = null;
     vi.restoreAllMocks();
+  });
+
+  describe('uploaded pipeline version discovery', () => {
+    async function prepareUpload() {
+      await renderNewPipelineVersion(
+        '',
+        { buildInfo: { apiServerMultiUser: false } },
+        { withRef: true },
+      );
+      await userEvent.click(screen.getByLabelText(/Upload a file/i));
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), {
+        target: { value: 'retained-upload' },
+      });
+      await simulateFileDrop([new File(['contents'], 'pipeline.yaml', { type: 'text/plain' })]);
+    }
+
+    afterEach(() => vi.useRealTimers());
+
+    it('waits through missing and empty lists after one upload', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ pipeline_versions: [] });
+      vi.useFakeTimers();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(3);
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps the upload and form inputs after timeout; explicit retry only reads', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy.mockResolvedValue({ pipeline_versions: [] });
+      vi.useFakeTimers();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(updateDialogSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Pipeline uploaded; version discovery failed',
+          content: expect.stringContaining('Your pipeline was uploaded successfully.'),
+        }),
+      );
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(screen.getByLabelText(/Pipeline Name/)).toHaveValue('retained-upload');
+      expect(screen.getByDisplayValue('pipeline.yaml')).toBeInTheDocument();
+      listPipelineVersionsSpy.mockResolvedValue({ pipeline_versions: [MOCK_PIPELINE_VERSION] });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Retry version discovery' }));
+      });
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('surfaces API errors immediately and retains the upload for an explicit retry', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy.mockRejectedValueOnce(new Error('Forbidden'));
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() =>
+        expect(updateDialogSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            content: expect.stringContaining('Forbidden'),
+          }),
+        ),
+      );
+      expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(1);
+      await userEvent.click(screen.getByRole('button', { name: 'Retry version discovery' }));
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalledTimes(1));
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('treats edited upload metadata as a new intent', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy.mockRejectedValueOnce(new Error('Forbidden'));
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await screen.findByRole('button', { name: 'Retry version discovery' });
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), {
+        target: { value: 'different-upload' },
+      });
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalledTimes(1));
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(2);
+      expect(uploadPipelineSpy.mock.calls[1][0]).toBe('different-upload');
+    });
+
+    it('invalidates retained upload identity when the selected file changes', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy.mockRejectedValueOnce(new Error('Forbidden'));
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await screen.findByRole('button', { name: 'Retry version discovery' });
+      await simulateFileDrop([new File(['different'], 'pipeline.yaml', { type: 'text/plain' })]);
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalledTimes(1));
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(2);
+      expect(uploadPipelineSpy.mock.calls[1][3]).not.toBe(uploadPipelineSpy.mock.calls[0][3]);
+    });
+
+    it('ignores an API error decoded after the upload intent changes', async () => {
+      await prepareUpload();
+      let resolveBody!: (text: string) => void;
+      const text = vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveBody = resolve;
+          }),
+      );
+      listPipelineVersionsSpy.mockRejectedValueOnce({ text });
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(text).toHaveBeenCalled());
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), { target: { value: 'new-intent' } });
+      await act(async () => {
+        resolveBody('Forbidden');
+      });
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
+    });
+
+    it('aborts pending discovery on unmount and ignores a late read response', async () => {
+      await prepareUpload();
+      let resolveRead!: (value: { pipeline_versions: (typeof MOCK_PIPELINE_VERSION)[] }) => void;
+      listPipelineVersionsSpy.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveRead = resolve;
+        }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(1));
+      const signal = listPipelineVersionsSpy.mock.calls[0][5].signal as AbortSignal;
+      renderResult!.unmount();
+      expect(signal.aborted).toBe(true);
+      await act(async () => {
+        resolveRead({ pipeline_versions: [MOCK_PIPELINE_VERSION] });
+      });
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+    });
   });
 
   // New pipeline version page has two functionalities: creating a pipeline and creating a version under an existing pipeline.
