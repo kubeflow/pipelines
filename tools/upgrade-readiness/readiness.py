@@ -26,6 +26,7 @@ import sys
 from kfp_http import Client
 import kfp_inventory
 from kubectl_inventory import kubectl_get
+import ownership_diagnostics
 import schedule_policy
 
 MAX_BYTES = 16 * 1024 * 1024
@@ -493,6 +494,15 @@ def markdown(report):
             ' recurring-run records; ' + str(coverage['failed_checks']) +
             ' failed checks. Snapshot is not atomic.', ''
         ]
+    ownership = report['source'].get('ownership_collection')
+    if ownership is not None:
+        lines += [
+            'Ownership collection: ' + str(len(ownership['completed_scopes'])) +
+            ' namespace/resource lists completed; ' +
+            str(ownership['records_examined']) +
+            ' records examined. Snapshot is not atomic. ' +
+            ownership['coverage'], ''
+        ]
     for f in report['findings']:
         # Escape control characters and markup in inventory-controlled names.
         safe = lambda value: json.dumps(
@@ -554,6 +564,11 @@ def main(argv=None):
         '--kfp-ca-file',
         type=Path,
         help='CA bundle for source KFP HTTPS verification.')
+    parser.add_argument(
+        '--include-ownership',
+        action='store_true',
+        help='Read active-run and schedule ownership evidence from the source KFP API.'
+    )
     parser.add_argument('--ui-deployment', default='ml-pipeline-ui')
     parser.add_argument('--cache-deployment', default='cache-server')
     parser.add_argument(
@@ -561,9 +576,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.schedule_policy and not args.include_schedules:
         parser.error('--schedule-policy requires --include-schedules.')
-    if args.kfp_endpoint and not args.schedule_policy:
+    if args.include_ownership and not args.kfp_endpoint:
+        parser.error('--include-ownership requires --kfp-endpoint.')
+    if args.kfp_endpoint and not (args.schedule_policy or
+                                  args.include_ownership):
         parser.error(
-            '--kfp-endpoint requires --schedule-policy and --include-schedules.'
+            '--kfp-endpoint requires --include-ownership or --schedule-policy and --include-schedules.'
         )
     if (args.kfp_token_file or args.kfp_ca_file) and not args.kfp_endpoint:
         parser.error('KFP credential options require --kfp-endpoint.')
@@ -581,11 +599,12 @@ def main(argv=None):
             args.schedule_policy) if args.schedule_policy else None
         kfp_coverage = None
         if args.kfp_endpoint:
+            client = Client(args.kfp_endpoint, args.kfp_token_file,
+                            args.kfp_ca_file)
+        if args.kfp_endpoint and args.schedule_policy:
             # Never retain stale manual records alongside a fresh partial scan.
             policy['recurring_runs'], policy['experiments'] = [], []
             schedule_policy.validate(policy)
-            client = Client(args.kfp_endpoint, args.kfp_token_file,
-                            args.kfp_ca_file)
             records, kfp_failures, kfp_coverage = kfp_inventory.collect(
                 client, namespaces, record_budget=10000 - len(policy['rbac']))
             policy.update(records)
@@ -606,6 +625,13 @@ def main(argv=None):
             mode='live' if args.context else 'offline',
             include_schedules=args.include_schedules,
             policy=policy)
+        if args.include_ownership:
+            ownership, coverage = ownership_diagnostics.collect(
+                client, namespaces)
+            report['findings'].extend(ownership)
+            report['counts'] = dict(
+                Counter(f['status'] for f in report['findings']))
+            report['source']['ownership_collection'] = coverage
         if kfp_coverage is not None:
             report['source']['kfp_collection'] = kfp_coverage
     except (OSError, ValueError, TypeError, AttributeError, KeyError):
