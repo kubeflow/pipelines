@@ -141,3 +141,6 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+- The offline frontend qualification reliability reporter preserves first-attempt job outcomes across reruns and cancelled workflows; it does not retry jobs or promote qualification gates. See [collection and interpretation](../contributing/frontend-qualification-reliability.md). Missing attempt evidence remains unknown.
+
+The frontend qualification reliability reporter supports `--collect --repository OWNER/REPO --since YYYY-MM-DD --until YYYY-MM-DD` with repeated `--workflow` selections. Collect into an empty directory; preserve raw attempt responses and `collection.json`. Bounds, pagination and unchanged-run identities are verified before the collection is marked complete. Collection failure remains explicit and does not publish a success report; rerun into a new directory. Scheduling, deduplicated alerts and maintainer ownership remain separate prerequisites for monitoring. See [the contributor guide](../contributing/frontend-qualification-reliability.md).
