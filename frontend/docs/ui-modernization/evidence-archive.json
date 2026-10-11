@@ -1,0 +1,11 @@
+{
+  "kind": "archival-reference-not-a-capture-manifest",
+  "sourceCommit": "63b638917a77d9fbe2804e04bfe21037e92480ba",
+  "release": "https://github.com/jeffspahr/jeffspahr-pipelines/releases/tag/ui-baseline-evidence-20261007",
+  "download": "https://github.com/jeffspahr/jeffspahr-pipelines/releases/download/ui-baseline-evidence-20261007/kfp-ui-baseline-evidence-63b638917.tar.gz",
+  "sha256": "113a56a3823469496b5db561eb3a82855771cfd3079c862754b663329bd83b28",
+  "files": 109,
+  "screenshots": 50,
+  "indexWithinArchive": "kfp-ui-baseline-63b638917/ARCHIVE-INDEX.json",
+  "issueComment": "https://github.com/kubeflow/pipelines/issues/14572#issuecomment-6042440286"
+}

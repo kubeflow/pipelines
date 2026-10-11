@@ -1,46 +1,172 @@
 [
   {
     "name": "pipelines",
-    "path": "/pipelines"
-  },
-  {
-    "name": "pipelines-shared",
-    "path": "/shared/pipelines"
+    "path": "/pipelines",
+    "waitForSelector": "a[href=\"#/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1460\"]"
   },
   {
     "name": "experiments",
-    "path": "/experiments"
+    "path": "/experiments",
+    "waitForSelector": "[data-experiment-id=\"275ea11d-ac63-4ce3-bc33-ec81981ed56b\"]"
   },
   {
     "name": "runs",
-    "path": "/runs"
+    "path": "/runs",
+    "waitForSelector": "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"]"
   },
   {
     "name": "recurring-runs",
-    "path": "/recurringruns"
+    "path": "/recurringruns",
+    "waitForSelector": "a[href=\"#/recurringrun/details/mock-recurring-0\"]"
   },
   {
     "name": "artifacts",
-    "path": "/artifacts"
+    "path": "/artifacts",
+    "waitForSelector": "a[aria-label=\"Artifact ID mock-artifact-1\"]"
   },
   {
-    "name": "compare",
-    "path": "/compare"
-  },
-  {
-    "name": "archived-runs",
-    "path": "/archive/runs"
+    "name": "archived-runs-empty",
+    "path": "/archive/runs",
+    "waitForSelector": "text=No archived runs found."
   },
   {
     "name": "archived-experiments",
-    "path": "/archive/experiments"
+    "path": "/archive/experiments",
+    "waitForSelector": "a[href=\"#/experiments/details/archived-experiment\"]"
   },
   {
     "name": "frontend-features",
-    "path": "/frontend_features"
+    "path": "/frontend_features",
+    "waitForSelector": "text=Feature Flag Name"
   },
   {
     "name": "getting-started",
-    "path": "/start"
+    "path": "/start",
+    "waitForSelector": ".kfp-start-page h2"
+  },
+  {
+    "name": "pipeline-details",
+    "path": "/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1460/version/8fbe3bd6-a01f-11e8-98d0-529269fb1460",
+    "waitForSelector": "[data-testid=\"pipeline-detail-v2\"] .react-flow__node",
+    "fitGraph": true
+  },
+  {
+    "name": "pipeline-loops",
+    "path": "/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1461",
+    "waitForSelector": "[data-testid=\"pipeline-detail-v2\"] .react-flow__node",
+    "fitGraph": true
+  },
+  {
+    "name": "experiment-details",
+    "path": "/experiments/details/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+    "waitForSelector": "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"]"
+  },
+  {
+    "name": "experiment-empty",
+    "path": "/experiments/details/empty-experiment",
+    "waitForSelector": "text=No available runs found for this experiment."
+  },
+  {
+    "name": "run-details",
+    "path": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+    "waitForSelector": "[data-testid=\"DagCanvas\"] .react-flow__node[data-id=\"task.chicago-taxi-trips-dataset\"]",
+    "fitGraph": true
+  },
+  {
+    "name": "run-timeline",
+    "path": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?tab=timeline",
+    "waitForSelector": "[aria-label=\"Component timeline timings\"] [aria-label=\"Retried task\"]",
+    "waitForSelectors": [
+      "[aria-label=\"Component timeline timings\"] .rt-cached"
+    ],
+    "failOnRequestErrors": [
+      "/apis/v2beta1/runs/"
+    ],
+    "failOnPageErrors": true
+  },
+  {
+    "name": "run-task",
+    "path": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?task=mock-task-consumer",
+    "waitForSelector": "text=Task Details"
+  },
+  {
+    "name": "recurring-run-details",
+    "path": "/recurringrun/details/mock-recurring-0",
+    "waitForSelector": "text=Recurring run details"
+  },
+  {
+    "name": "artifact-details",
+    "path": "/artifacts/mock-artifact-1",
+    "waitForSelector": "text=Artifact details"
+  },
+  {
+    "name": "artifact-related-tasks",
+    "path": "/artifacts/mock-artifact-1/lineage",
+    "waitForSelector": "a[href=\"#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?task=mock-task-producer\"]"
+  },
+  {
+    "name": "artifact-lineage",
+    "path": "/artifacts/mock-artifact-1/explorer",
+    "waitForSelector": "section[aria-label=\"Producer Chicago taxi trips dataset\"]"
+  },
+  {
+    "name": "compare",
+    "path": "/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+    "waitForSelector": "text=There are no parameters available on the selected runs.",
+    "waitForSelectors": [
+      "[data-run-id=\"mock-run-0\"][data-run-name=\"Python two steps\"]",
+      "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"][data-run-name=\"v2-xgboost-ilbo\"]"
+    ],
+    "failOnRequestErrors": [
+      "/apis/v2beta1/runs/",
+      "/apis/v2beta1/experiments/"
+    ],
+    "failOnPageErrors": true
+  },
+  {
+    "name": "new-experiment",
+    "path": "/experiments/new",
+    "waitForSelector": "#experimentName"
+  },
+  {
+    "name": "upload-pipeline",
+    "path": "/pipeline_versions/new",
+    "waitForSelector": "[data-testid=\"uploadFileInput\"]"
+  },
+  {
+    "name": "new-run",
+    "path": "/runs/new",
+    "waitForSelector": "#startNewRunBtn"
+  },
+  {
+    "name": "new-run-configured",
+    "path": "/runs/new?pipelineId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&pipelineVersionId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+    "waitForSelector": "text=Specify parameters required by the pipeline",
+    "fillFields": [
+      {
+        "label": "Run name",
+        "value": "Run of default version (baseline)"
+      }
+    ]
+  },
+  {
+    "name": "new-recurring-run",
+    "path": "/runs/new?pipelineId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&pipelineVersionId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b&recurring=1",
+    "waitForSelector": "text=Run trigger",
+    "fillFields": [
+      {
+        "label": "Recurring run config name",
+        "value": "Recurring run of default version (baseline)"
+      }
+    ]
+  },
+  {
+    "name": "export-import",
+    "path": "/export-import",
+    "waitForSelector": "button:has-text(\"Download archive\")",
+    "waitForSelectors": [
+      "#metadata-archive"
+    ],
+    "failOnPageErrors": true
   }
 ]
