@@ -100,7 +100,7 @@ class V2DevWorkflowTest(unittest.TestCase):
         for target, go_args in (
             ('test', ['test', './...']),
             ('test-update',
-             ['test', './compiler/argocompiler', '--args', '--update']),
+             ['test', '../../test/compiler', '--args', '-updateCompiledFiles']),
             ('test-watch', ['test', './...']),
         ):
             with self.subTest(
