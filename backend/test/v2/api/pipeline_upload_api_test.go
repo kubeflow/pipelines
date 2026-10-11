@@ -66,8 +66,8 @@ var _ = Describe("Verify Pipeline Upload >", Label(constants.POSITIVE, constants
 	Context("Upload a valid pipeline and verify pipeline metadata after upload >", func() {
 		var pipelineDir = "valid"
 		validPipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDir))
-		for _, pipelineFilePath := range validPipelineFilePaths {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFilePath), func() {
+		for pipelineIndex, pipelineFilePath := range validPipelineFilePaths {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFilePath), Label(constants.APIPipelineShardForIndex(pipelineIndex)), func() {
 				uploadPipelineAndVerify(pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 			})
 		}

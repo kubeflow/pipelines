@@ -46,6 +46,10 @@ const (
 
 	APIServerTests string = "ApiServerTests"
 
+	// APIPipelineShardA and APIPipelineShardB partition generated API cases.
+	APIPipelineShardA string = "ApiPipelineShardA"
+	APIPipelineShardB string = "ApiPipelineShardB"
+
 	Experiment            string = "Experiment"
 	Pipeline              string = "Pipeline"
 	PipelineCacheDisabled string = "PipelineCacheDisabled"

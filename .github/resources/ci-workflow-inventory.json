@@ -10,7 +10,7 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "40834cbe09a084f847a1df5c8a0c44f53b4e8719aa92b1e0b77af19f948e54d5",
+      "header_sha256": "02ccfb2e47097d93da50f13781f4df88e8d09588a5549bbef537f537072ed609",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -26,6 +26,7 @@
           "backend/api/v2beta1/**",
           "backend/src/**",
           "backend/test/v2/api/**",
+          "backend/test/constants/**",
           "manifests/kustomize/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
