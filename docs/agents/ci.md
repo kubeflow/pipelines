@@ -5,6 +5,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - The Kubernetes-native migration experiment-creation test uses a 60-second polling budget for a reported run state. Initial Workflow persistence may temporarily omit the state before Argo reports a phase. API errors and observed failed/canceled runs fail immediately; an unreported state times out with the run ID and log guidance. CI Scripts Tests covers delayed state, timeout, and error behavior without a cluster.
 
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
+- `upgrade-readiness.yml` compares main-account predictions with the immutable backend revision in `schedule_policy.POLICY_SOURCE`. Conformance asserts exact SubjectAccessReview counts and blocking behavior for transport/evaluation failures, including in audit mode. It does not establish final-release compatibility or live upgrade success; keep the workflow reference and policy pin synchronized.
 - The backend test workflow, legacy V2 API integration workflow, and shared `test-and-report` action prefetch root Go modules through `download-go-modules.sh`. It preserves an explicit `GOPROXY`, otherwise defaults to `https://proxy.golang.org|direct`, and leaves checksum verification unchanged. Downloads get up to three attempts with ten-second delays inside one five-minute deadline plus a ten-second termination grace. The backend workflow downloads before its single-run module-tidy check and test suite; the legacy workflow downloads before cluster creation; the shared action downloads after cache restore and before API setup. Exhaustion or timeout stops the job before tests; test execution itself is never retried.
 - Namespace transfer regression tests run with backend CI, including MySQL/PostgreSQL history checks through `KFP_HISTORY_MYSQL_TEST_DSN` and `KFP_HISTORY_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and require create/drop permissions. Self-service HTTP and authorization tests cover bounded archives, preview/apply and namespace isolation; frontend CI covers the export/import page. Local engine integration subtests skip without their DSNs.
 - `presubmit-backend.yml` runs recurring-run transaction concurrency tests against disposable MySQL 8.0 and PostgreSQL 16 services using `KFP_RECURRING_MYSQL_TEST_DSN` and `KFP_RECURRING_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and independent connections; the configured test roles need permission to create and drop their test database/schema and observe session lock metadata. These checks cover storage transaction behavior, not a live KFP upgrade.
@@ -79,6 +80,7 @@ projects. CI uses a temporary directory and separately validates the built SDK w
 `hack/update-all-requirements.sh` updates the lock without generating tracked files.
 Modern release preparation builds from metadata; older source checkouts retain their
 legacy exports. See [Dependency updates](dependabot.md) for usage.
+- `upgrade-readiness.yml` runs dependency-free unittest coverage for `tools/upgrade-readiness` on changes to the tool or its workflow. It tests Python 3.11 and 3.13 with synthetic inventories, subprocesses and loopback HTTP servers, never cluster credentials. Slow-header/chunk-framing probes enforce the response deadline, and fake-clock observations cover the final collection interval.
 
 ## Common CI failures
 
@@ -101,9 +103,9 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 - `sdk-upgrade.yml` uses a fresh environment with all four split distributions at 2.17.0, uninstalls the three retired distributions, then force-reinstalls the single source-built `kfp` wheel. The order prevents old installation records from deleting newly installed shared modules. Check imports, absence of retired distribution metadata, and `pip check`; never use the already-installed uv workspace as an upgrade fixture.
 
-- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
+- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove all checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
 
-- SDK and pre-commit import formatting must use the same isort pin and Google profile. When hook configuration changes, run both the base-to-head check and the representative-file smoke command from `pre-commit.yml`; the smoke command includes files outside the PR diff. Run the hook chain twice to confirm the formatters agree.
+- SDK and pre-commit import formatting must use the same isort pin and Google profile, checked by `pre_commit_workflow_test.py`. Run the applicable hook chain against the integrated target branch or actual `refs/pull/<number>/merge` tree, using the target-base-to-integration diff for hook selection. Branch-head-only tests do not detect APIs removed on the target branch. When hook configuration changes, also run the representative-file smoke command from `pre-commit.yml`, which includes files outside the PR diff. Run the hook chain twice to confirm the formatters agree.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.
 - Registry pull failures for Kind, BuildKit, Python, or Alpine images are usually transient; retry before changing code.
 - Presubmit frontend image builds use `build_frontend_image.py` for two eight-minute attempts, each including builder setup. Every attempt gets an isolated builder; failed attempts collect bounded BuildKit diagnostics, stop the client process group, and remove the daemon before an uncached retry. Cleanup failure stops recovery instead of competing with an abandoned build. Cancellation cleans up without retrying. The worst-case attempt and cleanup budgets leave over nine minutes of the thirty-minute job for runner setup and artifact upload. Only a successful nonempty export with completed cleanup becomes the published archive. The helper preserves native AMD64/ARM64 selection, both image tags, and architecture-specific artifacts and identity records. Dockerfile dependency-install completion markers distinguish npm returning from a later builder stall; installation summaries alone do not establish that the RUN layer completed.
@@ -137,3 +139,22 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+- The readiness workflow also runs `tools/upgrade-readiness/conformance.py` against the exact backend revision in `schedule_policy.POLICY_SOURCE`. A Go overlay adds the fixture test without editing that checkout. This compares Python predictions with real backend main-account policy code under controlled SAR responses; it is not live RBAC, schedule firing, or upgrade validation. The pinned revision and policy contract must be reviewed together when the modeled policy changes.
+
+- `upgrade-test.yml` includes paused `readiness-schedules` scaffolding for a
+  future release-2.18 acceptance lane. All upgrade jobs retain checked-in false
+  conditions; neither dispatch inputs nor repository variables enable them.
+  Activation requires a reviewed branch-specific change after the scheduling
+  prerequisites are integrated, with the workflow inventory and pause tests updated
+  together. The lane uses a disposable `kfp-readiness` cluster, source 2.17.2 and
+  same-run candidate images. The separate fixture script mutates only this test
+  installation; the operator readiness scanner remains read-only. Preserve source
+  success checks, disabled-schedule draining, pre-upgrade predictions and both
+  enforce/audit phases. Upload only sanitized `reports/*.json`, never fixture tokens
+  or raw collection files. A skipped lane or passing mocked helper tests do not
+  satisfy live upgrade acceptance.
+
+- Readiness policy conformance uses the managed Go setup action and a separately
+  pinned backend checkout. Upgrade gate regression tests require every upgrade job
+  to retain its checked-in pause; run the CI scripts suite and `make check-go-version`
+  when changing these workflows.
