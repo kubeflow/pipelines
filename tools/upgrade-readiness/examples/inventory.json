@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "kind": "Deployment",
+      "metadata": {"name": "ml-pipeline-ui", "namespace": "kubeflow"},
+      "spec": {
+        "strategy": {"type": "RollingUpdate"},
+        "template": {"spec": {"containers": [{"name": "ml-pipeline-ui", "env": []}]}}
+      }
+    },
+    {
+      "kind": "Deployment",
+      "metadata": {"name": "cache-server", "namespace": "kubeflow"}
+    },
+    {
+      "kind": "Role",
+      "metadata": {"name": "custom-reader", "namespace": "team-a"},
+      "rules": [
+        {"apiGroups": ["pipelines.kubeflow.org"], "resources": ["runs"], "verbs": ["get", "list"]},
+        {"apiGroups": ["kubeflow.org"], "resources": ["viewers"], "verbs": ["get"]}
+      ]
+    },
+    {
+      "kind": "RoleBinding",
+      "metadata": {"name": "custom-readers", "namespace": "team-a"},
+      "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "custom-reader"}
+    }
+  ]
+}
