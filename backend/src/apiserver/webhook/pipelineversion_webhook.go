@@ -51,9 +51,13 @@ var _ ctrladmission.CustomValidator = &PipelineVersionsWebhook{}
 func newBadRequestError(msg string) *apierrors.StatusError {
 	return &apierrors.StatusError{
 		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
 			Code:    http.StatusBadRequest,
 			Reason:  metav1.StatusReasonBadRequest,
 			Message: msg,
+			Details: &metav1.StatusDetails{
+				Causes: []metav1.StatusCause{{Type: k8sapi.PipelineVersionRejectedCause, Message: msg}},
+			},
 		},
 	}
 }
@@ -67,7 +71,7 @@ func (p *PipelineVersionsWebhook) getPipeline(ctx context.Context, namespace str
 	}
 
 	if !apierrors.IsNotFound(err) {
-		return nil, newBadRequestError(fmt.Sprintf("Failed to get the Pipeline %s/%s: %v", namespace, name, err))
+		return nil, apierrors.NewInternalError(fmt.Errorf("failed to get the Pipeline %s/%s: %w", namespace, name, err))
 	}
 
 	// Fallback to not using the cache
@@ -77,7 +81,7 @@ func (p *PipelineVersionsWebhook) getPipeline(ctx context.Context, namespace str
 			return nil, newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
 		}
 
-		return nil, newBadRequestError(fmt.Sprintf("Failed to get the Pipeline %s/%s: %v", namespace, name, err))
+		return nil, apierrors.NewInternalError(fmt.Errorf("failed to get the Pipeline %s/%s: %w", namespace, name, err))
 	}
 
 	return pipeline, nil
@@ -147,13 +151,7 @@ func (p *PipelineVersionsWebhook) ValidateDelete(_ context.Context, _ runtime.Ob
 func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	pipelineVersion, ok := obj.(*k8sapi.PipelineVersion)
 	if !ok {
-		return &apierrors.StatusError{
-			ErrStatus: metav1.Status{
-				Code:    http.StatusBadRequest,
-				Reason:  metav1.StatusReasonBadRequest,
-				Message: fmt.Sprintf("expected a PipelineVersion object but got %T", pipelineVersion),
-			},
-		}
+		return newBadRequestError(fmt.Sprintf("expected a PipelineVersion object but got %T", obj))
 	}
 
 	pipeline, err := p.getPipeline(ctx, pipelineVersion.Namespace, pipelineVersion.Spec.PipelineName)

@@ -857,6 +857,8 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 		)
 	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
 		return nil, util.NewBadKubernetesNameError("pipeline version")
+	} else if rejection := pipelineVersionAdmissionError(err); rejection != nil {
+		return nil, rejection
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline version")
 	}
@@ -897,6 +899,9 @@ func (k *PipelineStoreKubernetes) UpdatePipelineVersionFields(pipelineVersionID 
 		versionCopy.Spec.Tags = tags
 	}
 	if err := k.client.Update(context.TODO(), versionCopy); err != nil {
+		if rejection := pipelineVersionAdmissionError(err); rejection != nil {
+			return rejection
+		}
 		return util.NewInternalServerError(err, "Failed to update pipeline version %v", pipelineVersionID)
 	}
 	return k.updateWithTimeout(versionCopy)
