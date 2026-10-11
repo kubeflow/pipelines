@@ -42,9 +42,17 @@ class ConditionOperation:
 _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
     '{{channel:task=%s;name=%s;type=%s;}}')
 # The regex for parsing PipelineChannel placeholders from a string.
+# `type=` uses a non-greedy match up to the closing `;}}` rather than a
+# character whitelist, since stringified type annotations (especially
+# Literal[...] string values, e.g. Literal['text/plain']) can contain
+# virtually any character. Known limitation: if a Literal value itself
+# contains the literal substring ';}}', parsing will terminate early.
+# Placeholders are constructed via plain string interpolation with no
+# escaping (see _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE above), so this
+# is a real but currently unreachable edge case -- no type repr the SDK
+# emits produces that substring.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
-    r"{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s{}\":.,@|'\[\]_-]*);}}"
-)
+    r"{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=(.*?);}}")
 
 
 class PipelineChannel(abc.ABC):

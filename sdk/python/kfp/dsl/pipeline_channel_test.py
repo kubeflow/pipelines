@@ -174,10 +174,18 @@ class PipelineChannelTest(parameterized.TestCase):
             channel_type='system.Dataset@0.0.1',
             task_name='task2',
         )
+        # regression test: channel types containing '/' (e.g. MIME-type
+        # Literal values such as Literal['text/plain']) were previously
+        # dropped by the character-whitelist regex.
+        p3 = pipeline_channel.create_pipeline_channel(
+            name='channel3',
+            channel_type="typing.List[typing.Literal['text/plain', 'application/json']]",
+            task_name='task3',
+        )
         stuff_chars = ' between '
-        payload = str(p1) + stuff_chars + str(p2)
+        payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
         params = pipeline_channel.extract_pipeline_channels_from_string(payload)
-        self.assertListEqual([p1, p2], params)
+        self.assertListEqual([p1, p2, p3], params)
 
 
 @dsl.component

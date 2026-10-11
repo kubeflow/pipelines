@@ -6400,6 +6400,38 @@ class TestComplexChannelTypesInFString(unittest.TestCase):
             "Items: {{$.inputs.parameters['pipelinechannel--produce-literal-Output']}}"
         )
 
+    def test_mime_type_literal_with_slash_in_fstring(self):
+
+        @dsl.component
+        def produce_mime_types(
+        ) -> List[Literal['text/plain', 'application/json']]:
+            return ['text/plain', 'application/json']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-mime-type-literal-in-fstring')
+        def my_pipeline():
+            mime_task = produce_mime_types()
+            consume_string(s=f'Items: {mime_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-mime-types', list(task.dependent_tasks))
+        compiled_value = (
+            task.inputs.parameters['s'].runtime_value.constant.string_value)
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-mime-types-Output']}}"
+        )
+
 
 class TestPythonicArtifactAuthoring(unittest.TestCase):
     # python component
