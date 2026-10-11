@@ -161,3 +161,11 @@ func TestIsV1PipelinesBlocked(t *testing.T) {
 		})
 	}
 }
+
+func TestIsV1PipelinesBlocked_EmptyString(t *testing.T) {
+	viper.Set(BlockV1Pipelines, "")
+	defer viper.Set(BlockV1Pipelines, nil)
+
+	result := IsV1PipelinesBlocked("ns1")
+	assert.False(t, result)
+}

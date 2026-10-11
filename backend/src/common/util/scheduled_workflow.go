@@ -131,7 +131,13 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 			var protoValue structpb.Value
 			err := json.Unmarshal([]byte(param.Value), &protoValue)
 			if err != nil {
-				return "", err
+				// v1 plain-string values (e.g. "enabled") are not valid JSON.
+				// swf_saver.go:57 overrides the version to v2beta1, routing
+				// these values through the v2 path. Wrap as StringValue
+				// instead of failing.
+				protoValue = structpb.Value{
+					Kind: &structpb.Value_StringValue{StringValue: param.Value},
+				}
 			}
 			paramsMap[param.Name] = &protoValue
 		}

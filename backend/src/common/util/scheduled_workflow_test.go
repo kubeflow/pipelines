@@ -369,3 +369,27 @@ func TestScheduledWorkflow_GetVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestScheduledWorkflow_ParametersAsString_V1ValuesInV2Path(t *testing.T) {
+	// Simulates swf_saver.go:57 overriding version to v2beta1 on a SWF
+	// that still carries v1 plain-string parameter values.
+	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "mode", Value: "enabled"},
+					{Name: "config", Value: "config-path"},
+				},
+			},
+		},
+	})
+	result, err := workflow.ParametersAsString()
+	assert.Nil(t, err)
+	assert.Contains(t, result, `"mode":"enabled"`)
+	assert.Contains(t, result, `"config":"config-path"`)
+	assert.Empty(t, result == "")
+}
