@@ -16,6 +16,7 @@
 
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import {
   V2beta1ListExperimentsResponse,
@@ -163,9 +164,16 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       nextPageToken = response.next_page_token || '';
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
+      if (request.isCurrent?.() === false) return '';
       this.setState({ displayExperiments });
     } catch (err) {
+      if (request.isCurrent?.() === false) return '';
+      await throwIfPaginationRestartRequired(err);
+      request.onFailure?.();
+      if (request.isCurrent?.() === false) return '';
+      this.setState({ displayExperiments: [] });
       const error = new Error(await errorToMessage(err));
+      if (request.isCurrent?.() === false) return '';
       this.props.onError('Error: failed to list experiments: ', error);
       return '';
     }

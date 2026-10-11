@@ -303,7 +303,7 @@ func (s *RunStore) ListRuns(
 	if err := rows.Err(); err != nil {
 		return errorF(err)
 	}
-	runs, err := s.scanRowsToRuns(rows)
+	runs, sortFields, err := s.scanRowsToRunsWithSortFields(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -346,7 +346,7 @@ func (s *RunStore) ListRuns(
 		return runs, totalSize, "", nil
 	}
 
-	npt, err := opts.NextPageToken(runs[opts.PageSize])
+	npt, err := opts.NextPageToken(&runListRow{Run: runs[opts.PageSize], sortFields: sortFields[opts.PageSize]})
 	return runs[:opts.PageSize], totalSize, npt, err
 }
 
@@ -606,8 +606,27 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		FromSelect(joinedSubQ, "final")
 }
 
+// runListRow keeps database cursor values separate from API normalization.
+type runListRow struct {
+	*model.Run
+	sortFields map[string]interface{}
+}
+
+func (r *runListRow) GetFieldValue(name string) interface{} {
+	if value, ok := r.sortFields[name]; ok {
+		return value
+	}
+	return r.Run.GetFieldValue(name)
+}
+
 func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
+	runs, _, err := s.scanRowsToRunsWithSortFields(rows)
+	return runs, err
+}
+
+func (s *RunStore) scanRowsToRunsWithSortFields(rows *sql.Rows) ([]*model.Run, []map[string]interface{}, error) {
 	var runs []*model.Run
+	var sortFields []map[string]interface{}
 	for rows.Next() {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
@@ -619,7 +638,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		// Check how many columns are in the result set
 		columns, err := rows.Columns()
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "failed to get columns from rows")
+			return nil, nil, util.NewInternalServerError(err, "failed to get columns from rows")
 		}
 
 		// Prepare base columns, 3 aggregated columns, and an optional metric sort.
@@ -674,7 +693,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		err = rows.Scan(scanDest...)
 		if err != nil {
 			glog.Errorf("Failed to scan row into a run: %v", err)
-			return nil, err
+			return nil, nil, err
 		}
 		metrics, err := parseMetrics(metricsInString)
 		if err != nil {
@@ -689,11 +708,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		if err != nil {
 			// throw internal exception if failed to parse the resource reference.
-			return nil, util.NewInternalServerError(err, "Failed to parse resource reference")
+			return nil, nil, util.NewInternalServerError(err, "Failed to parse resource reference")
 		}
 		tasks, err := parseTaskDetails(tasksInString)
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to parse task details")
+			return nil, nil, util.NewInternalServerError(err, "Failed to parse task details")
 		}
 		if len(tasks) == 0 {
 			tasks = nil
@@ -772,8 +791,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		}
 		run = run.ToV2()
 		runs = append(runs, run)
+		sortFields = append(sortFields, map[string]interface{}{"State": state, "JobUUID": jobID, "ScheduledAtInSec": scheduledAtInSec, "FinishedAtInSec": finishedAtInSec})
 	}
-	return runs, nil
+	return runs, sortFields, nil
 }
 
 func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {

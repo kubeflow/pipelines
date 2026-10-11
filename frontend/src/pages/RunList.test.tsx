@@ -15,8 +15,9 @@
  */
 
 import * as React from 'react';
+import { ResponseError } from 'src/generated/openapi/runtime';
 import * as Utils from 'src/lib/Utils';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { produce } from 'immer';
@@ -339,6 +340,49 @@ describe('RunList', () => {
     expect(props.onError).not.toHaveBeenCalled();
   });
 
+  it('recovers a structured cursor rejection through the real list loader without changing its filter', async () => {
+    listRunsSpy.mockResolvedValue({
+      runs: [{ run_id: 'old', display_name: 'old page' }],
+      next_page_token: 'old-token',
+    });
+    const props = generateProps();
+    props.storageState = V2beta1RunStorageState.ARCHIVED;
+    await renderRunList(props);
+    await waitForRunListLoad();
+    const initialQuery = listRunsSpy.mock.calls.at(-1)!;
+    listRunsSpy.mockClear().mockImplementation(async (_namespace, _experiment, token) => {
+      if (token)
+        throw new ResponseError(
+          new Response(
+            JSON.stringify({
+              code: 9,
+              details: [
+                {
+                  '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                  domain: 'kubeflow.org',
+                  reason: 'PAGINATION_RESTART_REQUIRED',
+                },
+              ],
+            }),
+            { status: 400 },
+          ),
+        );
+      return {
+        runs: [{ run_id: 'fresh', display_name: 'fresh page' }],
+        next_page_token: 'fresh-token',
+      };
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('next-page-btn'));
+    });
+    await waitFor(() => expect(screen.getByText('fresh page')).toBeInTheDocument());
+    expect(listRunsSpy).toHaveBeenCalledTimes(2);
+    expect(listRunsSpy.mock.calls[1]).toEqual(initialQuery);
+    expect(screen.queryByText('old page')).not.toBeInTheDocument();
+    expect(props.onError).not.toHaveBeenCalled();
+    expect(screen.getByTestId('prev-page-btn')).toBeDisabled();
+  });
+
   it('loads multiple runs', async () => {
     mockNRuns(5, {});
     const props = generateProps();
@@ -353,7 +397,7 @@ describe('RunList', () => {
   });
 
   it('calls error callback when loading runs fails', async () => {
-    TestUtils.makeErrorResponseOnce(listRunsSpy as any, 'bad stuff happened');
+    listRunsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
     await renderRunList(props);
     await waitFor(() => {
@@ -368,7 +412,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
 
     await renderRunList(props);

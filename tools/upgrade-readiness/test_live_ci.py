@@ -158,6 +158,110 @@ class LiveCITests(unittest.TestCase):
         self.assertIn("steps.prepare-upgrade.outcome == 'success'", text)
         self.assertNotIn('KFP_ENABLE_MLMD_UPGRADE_TESTS', text)
 
+    def test_pagination_failure_does_not_suppress_upgrade_verification(self):
+        workflow = (SCRIPT.parents[2] /
+                    'workflows/upgrade-test.yml').read_text()
+        steps = dict(
+            re.findall(
+                r'^      - name: ([^\n]+)\n(.*?)(?=^      - name:|^  [^ ]|\Z)',
+                workflow, re.MULTILINE | re.DOTALL))
+        cleanup = steps['Remove retained pagination source API']
+        verification = steps['Verify Upgrade']
+        names = list(steps)
+        ordered = [
+            'Capture 2.17.2 filtered pages and retain old API replica',
+            'Verify upgraded and mixed-version filtered pagination',
+            'Upload pagination acceptance evidence',
+            'Remove retained pagination source API',
+            'Remove suspended pagination workflows', 'Verify Upgrade'
+        ]
+        self.assertEqual([names.index(name) for name in ordered],
+                         sorted(names.index(name) for name in ordered))
+        suspended = steps['Remove suspended pagination workflows']
+        self.assertIn("always() && steps.create-cluster.outcome == 'success'",
+                      suspended)
+        self.assertIn('pipelines.kubeflow.org/pagination-fixture=true',
+                      suspended)
+        self.assertIn('--cascade=foreground --wait=true --timeout=120s',
+                      suspended)
+        self.assertNotIn('continue-on-error', suspended)
+        self.assertNotIn('continue-on-error', cleanup)
+        self.assertNotIn('continue-on-error', verification)
+
+        # Evaluate this workflow's conjunction-only condition subset, including
+        # Actions' implicit success() when no status function is specified.
+        def runs(step, failed, cancelled, deployed, cluster=True):
+            condition = re.search(r'^        if: \$\{\{ (.+) \}\}$', step,
+                                  re.MULTILINE).group(1)
+            clauses = condition.split(' && ')
+            values = {
+                'always()': True,
+                '!cancelled()': not cancelled,
+                "steps.deploy.outcome == 'success'": deployed,
+                "steps.create-cluster.outcome == 'success'": cluster,
+            }
+            self.assertTrue(set(clauses) <= set(values), condition)
+            explicit_status = re.search(
+                r'(?:always|success|failure|cancelled)\(\)', condition)
+            return ((bool(explicit_status) or not failed) and
+                    all(values[clause] for clause in clauses))
+
+        for pagination_failed in (False, True):
+            for upload_failed in (False, True):
+                for cleanup_failed in (False, True):
+                    with self.subTest(
+                            pagination=pagination_failed,
+                            upload=upload_failed,
+                            cleanup=cleanup_failed):
+                        failed = pagination_failed or upload_failed
+                        self.assertTrue(runs(cleanup, failed, False, True))
+                        failed = failed or cleanup_failed
+                        self.assertTrue(runs(verification, failed, False, True))
+        self.assertTrue(runs(cleanup, True, True, False))
+        self.assertFalse(runs(verification, True, True, True))
+        self.assertFalse(runs(verification, True, False, False))
+        self.assertFalse(runs(cleanup, True, False, False, cluster=False))
+
+    def test_pagination_cleanup_tolerates_absence_but_preserves_real_failure(
+            self):
+        workflow = (SCRIPT.parents[2] /
+                    'workflows/upgrade-test.yml').read_text()
+        step = workflow.split(
+            '      - name: Remove retained pagination source API\n', 1)[1]
+        step = step.split('      - name:', 1)[0]
+        command = step.split('        run: |\n', 1)[1]
+        command = '\n'.join(line[10:] for line in command.splitlines())
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            kubectl = root / 'kubectl'
+            kubectl.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$ARGUMENTS"\n'
+                               'case " $* " in\n'
+                               '  *" --ignore-not-found=true "*) ;;\n'
+                               '  *) exit 42 ;;\n'
+                               'esac\nexit "$CLEANUP_STATUS"\n')
+            kubectl.chmod(0o755)
+            for exit_code in (0, 1):
+                with self.subTest(exit_code=exit_code):
+                    result = subprocess.run(
+                        ['bash', '-euo', 'pipefail', '-c', command],
+                        env=dict(
+                            os.environ,
+                            PATH=directory + os.pathsep + os.environ['PATH'],
+                            ARGUMENTS=str(root / 'arguments'),
+                            CLEANUP_STATUS=str(exit_code)),
+                        capture_output=True,
+                        text=True,
+                        timeout=5)
+                    self.assertEqual(result.returncode, exit_code,
+                                     result.stderr)
+                    self.assertEqual(
+                        (root / 'arguments').read_text().splitlines(), [
+                            '-n', 'kubeflow', 'delete',
+                            'deployment/pagination-source',
+                            '--ignore-not-found=true', '--cascade=foreground',
+                            '--wait=true', '--timeout=120s'
+                        ])
+
     def test_legacy_rejection_precedes_recreated_functional_observation(self):
         script = SCRIPT.read_text()
         target = script.split('else\n  configure_api enforce', 1)[1]

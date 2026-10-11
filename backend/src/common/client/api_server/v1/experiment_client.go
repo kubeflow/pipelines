@@ -130,7 +130,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceListExperimentsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatusWithDetails(defaultError.Payload.Message, defaultError.Payload.Code, defaultError.Payload.Details)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
