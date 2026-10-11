@@ -40,6 +40,7 @@ on:
       - 'KFP SDK Upgrade Test'
       - 'KFP SDK YAPF Tests'
       - 'KFP upgrade tests'
+      - 'KFP legacy namespace transfer qualification'
       - 'Validate Generated Files'
     types: [requested, in_progress, completed]
 

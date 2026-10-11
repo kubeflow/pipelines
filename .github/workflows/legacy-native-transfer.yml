@@ -1,0 +1,127 @@
+name: KFP legacy namespace transfer qualification
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/legacy-native-transfer.yml'
+      - 'test/legacy-native-transfer/**'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
+      - '.github/actions/setup-go/**'
+      - '.github/resources/**'
+      - '.github/workflows/image-builds.yml'
+      - 'backend/src/apiserver/**'
+      - 'backend/api/v2beta1/**'
+      - 'third_party/ml-metadata/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'manifests/kustomize/**'
+      - 'test_data/sdk_compiled_pipelines/valid/critical/two_step_pipeline_containerized.yaml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: legacy-transfer-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds.yml
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: jeffspahr/jeffspahr-pipelines
+          ref: bccc58c38cd2ad1283b965b594bbe4cd1da37af4
+          path: source-218
+          persist-credentials: false
+      - uses: ./.github/actions/setup-go
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.36.1
+      - name: Build pinned 2.18 source API server
+        working-directory: source-218
+        run: |
+          CGO_ENABLED=1 go build -o apiserver ./backend/src/apiserver
+          cat > transfer.Dockerfile <<'EOF'
+          FROM ghcr.io/kubeflow/kfp-api-server:2.17.2
+          COPY apiserver /bin/apiserver
+          COPY backend/src/apiserver/config/ /config
+          EOF
+          docker build -f transfer.Dockerfile -t kfp-transfer-source:ci .
+          kind load docker-image --name kfp kfp-transfer-source:ci
+      - name: Deploy isolated MLMD runtime with pinned exporter
+        run: |
+          kubectl apply -k 'https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=2.17.2'
+          kubectl wait --for=condition=established --timeout=120s crd/workflows.argoproj.io crd/scheduledworkflows.kubeflow.org
+          kubectl apply -k 'https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=2.17.2'
+          kubectl set image -n kubeflow deployment/ml-pipeline ml-pipeline-api-server=kfp-transfer-source:ci
+          source .github/resources/scripts/helper-functions.sh
+          wait_for_pods
+          kubectl rollout status -n kubeflow deployment/ml-pipeline --timeout=300s
+          .github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888
+      - name: Check fixture runner
+        run: python -m unittest discover -s test/legacy-native-transfer -p "*_test.py" -v
+      - name: Execute source runs and export archive
+        run: |
+          mkdir -p transfer-evidence
+          git -C source-218 rev-parse HEAD > transfer-evidence/source-sha.txt
+          python test/legacy-native-transfer/smoke.py source
+      - name: Collect diagnostics
+        if: failure()
+        run: .github/resources/scripts/collect-logs.sh --ns kubeflow --output transfer-evidence/source-pods.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: legacy-transfer-source
+          path: transfer-evidence
+          if-no-files-found: error
+          overwrite: true
+  destination:
+    permissions:
+      actions: read
+      contents: read
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.36.1
+      - uses: ./.github/actions/deploy
+        with:
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: legacy-transfer-source
+          path: transfer-evidence
+          required-files: |
+            archive.json
+            source-evidence.json
+            source-sha.txt
+      - name: Verify preview, apply and repeat on populated independent destination
+        run: |
+          git rev-parse HEAD > transfer-evidence/destination-sha.txt
+          python test/legacy-native-transfer/smoke.py destination
+      - name: Collect diagnostics
+        if: failure()
+        run: .github/resources/scripts/collect-logs.sh --ns kubeflow --output transfer-evidence/destination-pods.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: legacy-transfer-destination
+          path: transfer-evidence
+          if-no-files-found: error
+          overwrite: true

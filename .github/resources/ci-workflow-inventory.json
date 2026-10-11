@@ -117,7 +117,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "154fb1fa1f854e7be7ba13c783e53deb887e22df9415e9744a1fb018e4a48e4d",
+      "header_sha256": "4901a3420428bb5a6fe023681cf2173c7c56e250d672eef71a01d32e264f5a3a",
       "pull_request": null
     },
     {
@@ -135,7 +135,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
+      "header_sha256": "d5ddb61ecaa1bf77537486eb4017509b8c065a08c123144d988dcaaf28a13661",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -223,6 +223,9 @@
           "third_party/argo/Makefile",
           "third_party/argo/UPGRADE.md",
           "third_party/argo/VERSION",
+          "third_party/ml-metadata/update_version.sh",
+          "third_party/ml-metadata/VERSION",
+          "third_party/ml-metadata/Makefile",
           "test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile"
         ]
       }
@@ -548,6 +551,30 @@
           "!**/*.md",
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/legacy-native-transfer.yml",
+      "name": "KFP legacy namespace transfer qualification",
+      "header_sha256": "67c62c9040436c231759c66ceb56d6c8e66d744648318455fd6ceb7a8576b716",
+      "pull_request": {
+        "paths": [
+          ".github/workflows/legacy-native-transfer.yml",
+          "test/legacy-native-transfer/**",
+          ".github/actions/create-cluster/**",
+          ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/actions/setup-go/**",
+          ".github/resources/**",
+          ".github/workflows/image-builds.yml",
+          "backend/src/apiserver/**",
+          "backend/api/v2beta1/**",
+          "third_party/ml-metadata/**",
+          "go.mod",
+          "go.sum",
+          "manifests/kustomize/**",
+          "test_data/sdk_compiled_pipelines/valid/critical/two_step_pipeline_containerized.yaml"
         ]
       }
     },

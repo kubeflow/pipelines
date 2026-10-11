@@ -47,3 +47,10 @@ type Summary struct {
 	DryRun   bool     `json:"dry_run"`
 	Warnings []string `json:"warnings"`
 }
+
+// RuntimeParameters avoids the legacy embedded PipelineSpec.Parameters JSON
+// collision. Every archived run and schedule has an entry, including empty values.
+type RuntimeParameters struct {
+	Runs      map[string]string `json:"runs"`
+	Schedules map[string]string `json:"schedules"`
+}
