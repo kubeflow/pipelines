@@ -21,6 +21,7 @@ on:
       - 'KFP E2E Pipeline tests'
       - 'KFP ARM64 Presubmit'
       - 'Frontend Tests'
+      - 'UI smoke full-stack qualification'
       - 'Go Builder Image Digests'
       - 'kfp-kubernetes library tests'
       - 'KFP Python Client Tests'

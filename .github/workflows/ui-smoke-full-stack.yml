@@ -1,0 +1,72 @@
+name: UI smoke full-stack qualification
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "frontend/scripts/ui-smoke-test/**"
+      - ".github/workflows/ui-smoke-full-stack.yml"
+      - "!**/*.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-smoke-full-stack-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  full-stack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/github-disk-cleanup
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Install pinned npm and browser dependencies
+        working-directory: frontend/scripts/ui-smoke-test
+        run: |
+          npm install --global "$(node -p 'require("./package.json").packageManager')"
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Install disposable cluster tools
+        uses: helm/kind-action@v1.15.0
+        with:
+          version: v0.32.0
+          kubectl_version: v1.35.0
+          install_only: true
+      - name: Compare independent base and candidate stacks
+        env:
+          BASE_REF: "2.17.1"
+          CANDIDATE_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          BASE_SHA="$(git rev-parse "$BASE_REF^{commit}")"
+          printf 'Base: %s\nCandidate merge: %s\n' "$BASE_SHA" "$CANDIDATE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          node frontend/scripts/ui-smoke-test/smoke-test-runner.js \
+            --compare "$BASE_REF" --full-stack --fail-threshold none \
+            --head-checkout "$GITHUB_WORKSPACE" \
+            --trust-local-head --pr-number "$PR_NUMBER"
+      - name: Retain comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-smoke-full-stack-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            .ui-smoke-test/runs/*/screenshots/**
+            .ui-smoke-test/runs/*/full-stack-diagnostics.json
+            .ui-smoke-test/runs/*/full-stack-diagnostics.html
+            .ui-smoke-test/runs/*/semantic-fixtures.json
+            .ui-smoke-test/runs/*/semantic/**
+            .ui-smoke-test/runs/*/seed/**
+            .ui-smoke-test/runs/*/source-provenance.json
+            .ui-smoke-test/runs/*/diagnostics/**
