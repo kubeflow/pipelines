@@ -70,7 +70,7 @@
     {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
-      "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
+      "header_sha256": "6f344b3ec095d3d4b596e4416886774e2713cfa2433b78d8387367323ea73108",
       "pull_request": null
     },
     {
@@ -135,7 +135,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
+      "header_sha256": "c882cab28c2a7feb3022eee5ffc43103f90428da586c74bbcabf9469a479b7c5",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -151,6 +151,7 @@
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
           ".github/actions/download-artifact-with-retry/**",
+          ".github/actions/setup-osv-scanner/**",
           ".github/resources/curl-retry/**",
           ".github/resources/buildkitd.toml",
           ".github/resources/runtime-base-images.txt",
@@ -401,7 +402,7 @@
     {
       "path": ".github/workflows/image-builds-release.yml",
       "name": "Build and Push for Release",
-      "header_sha256": "f30533b8b5b7ba1f3bdbb0a86dd071384b1d7c84753fe71fba80d1dcd20253d7",
+      "header_sha256": "fd1db06738b037f5e80b1840f58a47173faba6d9369fa37b4c818f1455092e90",
       "pull_request": null
     },
     {
@@ -649,6 +650,12 @@
           ".readthedocs.yml"
         ]
       }
+    },
+    {
+      "path": ".github/workflows/release-cve-remediation.yml",
+      "name": "Prepare release CVE fixes",
+      "header_sha256": "5e33a0a6bf5aa4041dbdac25117ac5021398c7d1244f8cc42fa2442862fa6afa",
+      "pull_request": null
     },
     {
       "path": ".github/workflows/runtime-base-images.yml",

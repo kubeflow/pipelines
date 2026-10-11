@@ -22,6 +22,7 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
+      - '.github/actions/setup-osv-scanner/**'
       - '.github/resources/curl-retry/**'
       - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'

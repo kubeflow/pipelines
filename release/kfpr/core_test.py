@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -205,6 +206,41 @@ class GithubCommandTest(unittest.TestCase):
                         '-f',
                         'dry_run=false',
                     ])
+
+    def test_image_workflow_command_allows_explicit_cve_override(self):
+        metadata = core.ReleaseMetadata.from_version('major', '3.0.0')
+        self.assertEqual(
+            core.image_workflow_command(metadata, allow_fixable_cves=True),
+            core.image_workflow_command(metadata) +
+            ['-f', 'allow_fixable_cves=true'])
+        self.assertEqual(
+            core.image_workflow_command(metadata, allow_fixable_cves=False),
+            core.image_workflow_command(metadata))
+
+    def test_image_workflow_command_scopes_override_to_named_images(self):
+        metadata = core.ReleaseMetadata.from_version('minor', '2.18.0')
+        images = ('kfp-inverse-proxy-agent', 'kfp-cache-server')
+        command = core.image_workflow_command(
+            metadata, allow_fixable_cves_images=images)
+        override = next(
+            arg for arg in command
+            if arg.startswith('allow_fixable_cves_images='))
+        self.assertEqual(json.loads(override.split('=', 1)[1]), list(images))
+        self.assertNotIn('allow_fixable_cves=true', command)
+        self.assertEqual(command[:-2], core.image_workflow_command(metadata))
+
+    def test_image_override_names_are_validated_and_deduplicated(self):
+        self.assertEqual(
+            core.normalize_cve_override_images(
+                ['kfp-inverse-proxy-agent', 'kfp-inverse-proxy-agent']),
+            ('kfp-inverse-proxy-agent',))
+        for image in ('', ' ', 'kfp-driver:3.0.0', 'kubeflow/kfp-driver',
+                      'kfp-driver@sha256:abc', 'kfp-driver kfp-api-server'):
+            with self.subTest(image=image), self.assertRaisesRegex(
+                    ValueError, 'without a registry, tag, or digest'):
+                core.image_workflow_command(
+                    core.ReleaseMetadata.from_version('major', '3.0.0'),
+                    allow_fixable_cves_images=(image,))
 
     def test_sdk_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')
@@ -478,7 +514,8 @@ class GithubCommandTest(unittest.TestCase):
 
         self.assertEqual(runner.commands[-1],
                          ['gh', 'run', 'watch', '222', '--exit-status'])
-        self.assertNotIn(['gh', 'run', 'watch', '111'], runner.commands)
+        self.assertNotIn(['gh', 'run', 'watch', '111', '--exit-status'],
+                         runner.commands)
 
     def test_watch_latest_workflow_run_can_resume_existing_run(self):
 
@@ -533,6 +570,23 @@ class GithubCommandTest(unittest.TestCase):
             output)
         self.assertEqual(runner.commands[-1],
                          ['gh', 'run', 'watch', '12345', '--exit-status'])
+
+    def test_watch_latest_workflow_run_propagates_failed_run(self):
+
+        class FailedRunRunner:
+
+            dry_run = False
+
+            def capture(self, command, cwd=None):
+                return '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345\t2026-07-08T19:05:01Z'
+
+            def run(self, command, cwd=None, check=True):
+                raise RuntimeError('workflow failed')
+
+        with mock.patch('time.time', return_value=1783537500):
+            with self.assertRaisesRegex(RuntimeError, 'workflow failed'):
+                core.watch_latest_workflow_run(FailedRunRunner(),
+                                               'test-workflow.yml', 'main')
 
     def test_watch_latest_workflow_run_supports_python_without_datetime_utc(
             self):
@@ -717,6 +771,34 @@ class PromptValidationTest(unittest.TestCase):
 
         self.assertEqual(answer, 'patch')
         self.assertIn('Choose a number from 1 to 3.', output.getvalue())
+
+    def test_collect_context_does_not_persist_cve_override(self):
+        with TemporaryDirectory() as tmpdir:
+            state = ReleaseState(Path(tmpdir) / 'state.json')
+            state.answers.update({
+                'release_type': 'major',
+                'version': '3.0.0',
+                'fork_remote': 'upstream',
+                'previous_release': '2.18.0',
+            })
+            args = type(
+                'Args', (), {
+                    'dry_run': True,
+                    'allow_fixable_cves': True,
+                    'allow_fixable_cves_images': ['kfp-inverse-proxy-agent'],
+                })()
+            context = core.collect_context(args, state)
+            self.assertTrue(context.allow_fixable_cves)
+            self.assertEqual(context.allow_fixable_cves_images,
+                             ('kfp-inverse-proxy-agent',))
+            saved = ReleaseState.load(state.path)
+            self.assertNotIn('allow_fixable_cves', saved.answers)
+            self.assertNotIn('allow_fixable_cves_images', saved.answers)
+            args.allow_fixable_cves = False
+            args.allow_fixable_cves_images = []
+            resumed = core.collect_context(args, saved)
+            self.assertFalse(resumed.allow_fixable_cves)
+            self.assertEqual(resumed.allow_fixable_cves_images, ())
 
     def test_collect_context_reasks_for_invalid_version_and_fork_remote(self):
         with TemporaryDirectory() as tmpdir:

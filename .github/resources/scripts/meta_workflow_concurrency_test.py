@@ -105,14 +105,27 @@ def _evaluate_condition_node(node, values):
             return all(operands)
         if isinstance(node.op, ast.Or):
             return any(operands)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return not _evaluate_condition_node(node.operand, values)
+    if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and
+            node.func.id == 'startsWith' and len(node.args) == 2 and
+            not node.keywords):
+        text, prefix = [
+            _evaluate_condition_node(argument, values) for argument in node.args
+        ]
+        if not isinstance(text, str) or not isinstance(prefix, str):
+            raise AssertionError('startsWith tests require string operands')
+        return text.casefold().startswith(prefix.casefold())
     if isinstance(node, ast.Compare):
         left = _evaluate_condition_node(node.left, values)
         for operator, comparator_node in zip(node.ops, node.comparators):
             right = _evaluate_condition_node(comparator_node, values)
+            operands = (left.casefold(), right.casefold()) if isinstance(
+                left, str) and isinstance(right, str) else (left, right)
             if isinstance(operator, ast.Eq):
-                matches = left == right
+                matches = operands[0] == operands[1]
             elif isinstance(operator, ast.NotEq):
-                matches = left != right
+                matches = operands[0] != operands[1]
             else:
                 raise AssertionError(
                     f'Unsupported comparison: {ast.dump(operator)}')
@@ -319,16 +332,20 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         jobs = _mapping_block(workflow, 'jobs', 0)
         job = _mapping_block(jobs, 'check-pr-author', 2)
         condition = _folded_scalar(_before_mapping(job, 'steps', 4), 'if', 4)
-        self.assertEqual(
-            condition,
-            "github.event.pull_request.user.login != 'dependabot[bot]' && "
-            "github.event.pull_request.user.login != 'copybara-service[bot]'",
-        )
-
-        expression = condition.replace('github.event.pull_request.user.login',
-                                       'author').replace(
-                                           'github.actor', 'actor')
-        parsed = ast.parse(expression.replace('&&', ' and '), mode='eval')
+        expression = condition
+        for context, name in {
+                'github.event.pull_request.user.login': 'author',
+                'github.event.pull_request.head.repo.full_name':
+                    'head_repository',
+                'github.event.pull_request.head.ref': 'head_branch',
+                'github.repository': 'repository',
+                'github.actor': 'actor',
+        }.items():
+            expression = expression.replace(context, name)
+        expression = expression.replace('&&',
+                                        ' and ').replace('||', ' or ').replace(
+                                            '!(', 'not (')
+        parsed = ast.parse(expression, mode='eval')
         cases = [
             ('dependabot[bot]', 'dependabot[bot]', False),
             ('dependabot[bot]', 'maintainer', False),
@@ -341,13 +358,44 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             ('dependabot-helper', 'dependabot-helper', True),
             ('copybara-service', 'copybara-service', True),
         ]
-        for author, actor, should_run in cases:
-            with self.subTest(author=author, actor=actor):
+        remediation_cases = [
+            ('github-actions[bot]', 'kubeflow/pipelines',
+             'codex/cve-fix-0123456789abcdef', False),
+            ('github-actions[bot]', 'Kubeflow/Pipelines',
+             'codex/cve-fix-0123456789abcdef', False),
+            ('github-actions[bot]', 'contributor/pipelines',
+             'codex/cve-fix-0123456789abcdef', True),
+            ('github-actions[bot]', 'kubeflow/pipelines', 'codex/unrelated-fix',
+             True),
+            ('github-actions[bot]', 'kubeflow/pipelines',
+             'other/codex/cve-fix-0123456789abcdef', True),
+            ('contributor', 'kubeflow/pipelines',
+             'codex/cve-fix-0123456789abcdef', True),
+        ]
+        cases = [(author, actor, 'kubeflow/pipelines', 'ordinary-branch',
+                  expected) for author, actor, expected in cases]
+        cases += [(author, actor, head_repository, head_branch, expected)
+                  for author, head_repository, head_branch, expected in
+                  remediation_cases
+                  for actor in ('github-actions[bot]', 'maintainer')]
+        for author, actor, head_repository, head_branch, should_run in cases:
+            with self.subTest(
+                    author=author,
+                    actor=actor,
+                    repository=head_repository,
+                    branch=head_branch):
                 self.assertEqual(
-                    _evaluate_condition_node(parsed, {
-                        'author': author,
-                        'actor': actor,
-                    }), should_run)
+                    _evaluate_condition_node(
+                        parsed, {
+                            'author': author,
+                            'actor': actor,
+                            'head_repository': head_repository,
+                            'head_branch': head_branch,
+                            'repository': 'kubeflow/pipelines',
+                        }), should_run)
+        # The exemption skips the entire admission job, including its approval step.
+        self.assertIn(
+            '      - name: Approve pending workflow runs after admission', job)
 
     def test_gatekeeper_uses_trusted_shared_membership_module(self):
         workflow = self._read_workflow('pr-gate.yml')

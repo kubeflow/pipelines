@@ -56,6 +56,21 @@ on:
         default: false
         description: 'Whether to push image to CR or not'
         required: false
+      scan_fixable_cves:
+        type: boolean
+        default: false
+        description: 'Fail before publishing tags when the image contains fixable CVEs'
+        required: false
+      release_policy_sha:
+        type: string
+        default: ''
+        description: 'Trusted workflow commit for the release policy; required when scanning'
+        required: false
+      allow_fixable_cves:
+        type: boolean
+        default: false
+        description: 'Allow fixable CVE findings while requiring a successful scan and report'
+        required: false
   workflow_dispatch:
     inputs:
       src_branch:
@@ -245,6 +260,109 @@ jobs:
           if [ -n "$digest" ]; then
             echo "digest=$digest" >> "$GITHUB_OUTPUT"
           fi
+
+      # Fetch policy after the build so it is excluded from the image context.
+      - name: Prepare release policy checkout
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        shell: bash
+        env:
+          RELEASE_POLICY_SHA: ${{ inputs.release_policy_sha }}
+        run: |
+          if [[ ! "$RELEASE_POLICY_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Release scanning requires the caller's immutable workflow commit in release_policy_sha"
+            exit 1
+          fi
+          if [[ -L .release-policy ]]; then
+            echo "::error::The source checkout must not provide a .release-policy symlink"
+            exit 1
+          fi
+
+      - name: Checkout release policy
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_policy_sha }}
+          path: .release-policy
+          clean: true
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            .github/actions/setup-osv-scanner
+            .github/actions/upload-artifact-with-retry
+            .github/resources/scripts/helper-functions.sh
+            .github/resources/scripts/check_fixable_cves.py
+
+      - name: Install OSV-Scanner
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        uses: ./.release-policy/.github/actions/setup-osv-scanner
+
+      - name: Scan image for fixable CVEs
+        id: osv_scan
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        shell: bash
+        env:
+          IMAGE_REF: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
+          PLATFORM: ${{ inputs.platforms }}
+        run: |
+          source .release-policy/.github/resources/scripts/helper-functions.sh
+          archive=$(mktemp "${RUNNER_TEMP}/release-image-XXXXXX.tar")
+          trap 'rm -f "$archive"' EXIT
+
+          # Select the built platform explicitly, including when the digest is an OCI index.
+          retry 3 20 docker pull --platform "$PLATFORM" "$IMAGE_REF"
+          docker image save --platform "$PLATFORM" --output "$archive" "$IMAGE_REF"
+
+          scan_exit_code=0
+          osv-scanner scan image --archive "$archive" \
+            --all-vulns --format json --output-file osv-results.json \
+            || scan_exit_code=$?
+          # Findings are classified by the policy step; scanner errors stay fatal.
+          if [[ "$scan_exit_code" -ne 0 && "$scan_exit_code" -ne 1 ]]; then
+            echo "::error::OSV-Scanner failed with exit code $scan_exit_code"
+            exit "$scan_exit_code"
+          fi
+
+      - name: Enforce fixable CVE policy
+        if: ${{ steps.osv_scan.outcome == 'success' }}
+        env:
+          ALLOW_FIXABLE_CVES: ${{ inputs.allow_fixable_cves }}
+          IMAGE_NAME: ${{ inputs.app_to_build }}
+          PLATFORM: ${{ inputs.platforms }}
+          IMAGE_REF: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
+        run: |
+          policy_args=()
+          if [ "$ALLOW_FIXABLE_CVES" = "true" ]; then
+            policy_args+=(--allow-fixable-cves)
+          fi
+          python3 .release-policy/.github/resources/scripts/check_fixable_cves.py \
+            osv-results.json "${policy_args[@]}" \
+            --result-output "cve-result-${IMAGE_NAME}-${PLATFORM#linux/}.json" \
+            --image "$IMAGE_NAME" --platform "$PLATFORM" --image-ref "$IMAGE_REF" \
+            --source-sha "$SOURCE_SHA" --summary-output "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload CVE scan report
+        if: ${{ always() && steps.osv_scan.outcome != 'skipped' }}
+        uses: ./.release-policy/.github/actions/upload-artifact-with-retry
+        with:
+          name: fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}
+          path: |
+            osv-results.json
+            cve-result-*.json
+          if-no-files-found: error
+          retention-days: 30
 
       # Export the digest
       - name: Export digest
