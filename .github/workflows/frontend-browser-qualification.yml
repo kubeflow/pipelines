@@ -1,0 +1,359 @@
+name: Frontend Browser Qualification
+
+on:
+  # Not a required gate until reliability follow-up #14754 and a separate promotion decision.
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      vendors: ${{ steps.matrix.outputs.vendors }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Set up pinned npm
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci
+      - name: Check qualification helpers without launching browsers
+        run: |
+          node --import tsx --test scripts/ui-modernization-native-transactions.check.mjs scripts/production-bundle-diagnostics.check.mjs scripts/install-qualified-firefox-linux.check.mjs scripts/install-qualified-browser.check.mjs scripts/run-apple-qualification.check.mjs scripts/run-native-qualification.check.mjs
+          node --check scripts/run-native-qualification.mjs
+          node --check scripts/ui-modernization-browser-floor.mjs
+      - name: Resolve dated vendor matrix
+        id: matrix
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const manifest = JSON.parse(readFileSync('scripts/qualified-browsers.json', 'utf8'));
+          const include = [...manifest.browsers.map(({ id, browser }) => ({ id, browser, runner: 'macos-26', platform: 'darwin' })), ...manifest.linuxBrowsers.map(({ id, browser, runner, platform }) => ({ id, browser, runner, platform }))];
+          if (!include.length) throw new Error('The qualification matrix must not be empty');
+          appendFileSync(process.env.GITHUB_OUTPUT, `vendors=${JSON.stringify({ include })}\n`);
+          NODE
+      - name: Build shared production bundle
+        run: |
+          npm run build
+          tar -czf qualification-bundle.tar.gz -C build .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: qualification-production-bundle
+          path: frontend/qualification-bundle.tar.gz
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: qualification-version-manifest
+          path: frontend/scripts/qualified-browsers.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  vendor-browser:
+    name: Vendor / ${{ matrix.id }}
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.build.outputs.vendors) }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: frontend
+    env:
+      CI: 'true'
+      KFP_BROWSER_REPORT_DIR: browser-results/vendor-${{ matrix.id }}
+      KFP_BROWSER_FLOOR_OUTPUT: browser-results/vendor-${{ matrix.id }}/native
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Set up pinned npm
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci --ignore-scripts
+      - name: Install native fixture dependencies
+        if: matrix.browser == 'firefox'
+        run: |
+          npm ci --prefix mock-backend --ignore-scripts
+          npm ci --prefix server --ignore-scripts
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: qualification-production-bundle
+          path: ${{ runner.temp }}/qualification-bundle
+          required-files: qualification-bundle.tar.gz
+      - name: Extract complete production bundle
+        run: |
+          mkdir -p build
+          tar -xzf "$RUNNER_TEMP/qualification-bundle/qualification-bundle.tar.gz" -C build
+      - name: Install exact vendor browser in disposable runner storage
+        id: browser
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: |
+          if [ "${{ matrix.platform }}" = linux ]; then
+            node scripts/install-qualified-firefox-linux.mjs "$BROWSER_ID"
+          else
+            node scripts/install-qualified-browser.mjs "$BROWSER_ID"
+          fi
+      - name: Run full Chromium-family production workflows
+        if: matrix.browser == 'chromium'
+        env:
+          KFP_BROWSER: chromium
+          KFP_BROWSER_EXECUTABLE_PATH: ${{ steps.browser.outputs.binary }}
+          KFP_EXPECTED_BROWSER_VERSION: ${{ steps.browser.outputs.version }}
+        run: npm run test:bundle:built
+      - name: Run native Firefox workflows
+        if: matrix.browser == 'firefox'
+        env:
+          KFP_FIREFOX_BINARY: ${{ steps.browser.outputs.binary }}
+          KFP_GECKODRIVER_BINARY: ${{ steps.browser.outputs.driver }}
+          KFP_BROWSER_FLOOR_VERSION: ${{ steps.browser.outputs.version }}
+        run: node scripts/run-native-qualification.mjs
+      - name: Verify Linux Firefox and driver identity after suite
+        if: always() && matrix.platform == 'linux'
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: node scripts/install-qualified-firefox-linux.mjs --finalize "$BROWSER_ID"
+      - name: Verify final vendor identity and detach owned read-only volume
+        if: always() && (matrix.id == 'chrome-stable' || startsWith(matrix.id, 'edge-'))
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: node scripts/install-qualified-browser.mjs --finalize "$BROWSER_ID"
+      - name: Retain installation provenance
+        if: always()
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: |
+          mkdir -p "$KFP_BROWSER_REPORT_DIR"
+          provenance="$RUNNER_TEMP/kfp-qualified-browsers/$BROWSER_ID/provenance.json"
+          if test -f "$provenance"; then
+            cp "$provenance" "$KFP_BROWSER_REPORT_DIR/distribution.json"
+          fi
+      - name: Record lane outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          BROWSER_ID: ${{ matrix.id }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { platform, release, arch } from 'node:os';
+          const directory = process.env.KFP_BROWSER_REPORT_DIR;
+          mkdirSync(directory, { recursive: true });
+          writeFileSync(`${directory}/workflow.json`, JSON.stringify({
+            sourceSha: process.env.GITHUB_SHA, runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT, status: process.env.JOB_STATUS,
+            browserId: process.env.BROWSER_ID, platform: platform(), release: release(),
+            arch: arch(), image: process.env.ImageOS, imageVersion: process.env.ImageVersion,
+          }, null, 2) + '\n');
+          NODE
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: qualification-${{ matrix.id }}
+          path: frontend/browser-results/vendor-${{ matrix.id }}
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  apple-browser:
+    name: Apple / ${{ matrix.mode }} / ${{ matrix.annual }}
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.mode == 'desktop' && 35 || 90 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: desktop
+            annual: "26"
+            runner: macos-26
+            developer-directory: /Applications/Xcode_26.6.app/Contents/Developer
+          - mode: iphone
+            annual: "26"
+            runner: macos-26
+            developer-directory: /Applications/Xcode_26.6.app/Contents/Developer
+          - mode: ipad
+            annual: "26"
+            runner: macos-26
+            developer-directory: /Applications/Xcode_26.6.app/Contents/Developer
+          - mode: desktop
+            annual: "27"
+            runner: xcode-27
+            developer-directory: /Applications/Xcode_27.app/Contents/Developer
+          - mode: iphone
+            annual: "27"
+            runner: xcode-27
+            developer-directory: /Applications/Xcode_27.app/Contents/Developer
+          - mode: ipad
+            annual: "27"
+            runner: xcode-27
+            developer-directory: /Applications/Xcode_27.app/Contents/Developer
+    defaults:
+      run:
+        shell: bash
+        working-directory: frontend
+    env:
+      CI: 'true'
+      DEVELOPER_DIR: ${{ matrix.developer-directory }}
+      APPLE_ANNUAL: ${{ matrix.annual }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Set up pinned npm
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix mock-backend --ignore-scripts
+      - run: npm ci --prefix server --ignore-scripts
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: qualification-production-bundle
+          path: ${{ runner.temp }}/qualification-bundle
+          required-files: qualification-bundle.tar.gz
+      - name: Extract complete production bundle
+        run: |
+          mkdir -p build
+          tar -xzf "$RUNNER_TEMP/qualification-bundle/qualification-bundle.tar.gz" -C build
+      - name: Run native Apple qualification
+        env:
+          APPLE_MODE: ${{ matrix.mode }}
+        run: node scripts/run-apple-qualification.mjs "$APPLE_MODE" "$APPLE_ANNUAL"
+      - name: Record lane outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          APPLE_MODE: ${{ matrix.mode }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          const directory = `browser-results/apple-${process.env.APPLE_MODE}-${process.env.APPLE_ANNUAL}`;
+          mkdirSync(directory, { recursive: true });
+          writeFileSync(`${directory}/workflow.json`, JSON.stringify({
+            sourceSha: process.env.GITHUB_SHA, runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT, status: process.env.JOB_STATUS,
+            mode: process.env.APPLE_MODE, annual: process.env.APPLE_ANNUAL, image: process.env.ImageOS,
+            imageVersion: process.env.ImageVersion,
+          }, null, 2) + '\n');
+          NODE
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: qualification-apple-${{ matrix.mode }}-${{ matrix.annual }}
+          path: frontend/browser-results/apple-${{ matrix.mode }}-${{ matrix.annual }}
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  browser-tests:
+    name: Browser / ${{ matrix.os }} / ${{ matrix.browser }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        browser: [chromium, firefox, webkit]
+    defaults:
+      run:
+        shell: bash
+        working-directory: frontend
+    env:
+      KFP_BROWSER: ${{ matrix.browser }}
+      KFP_BROWSER_REPORT_DIR: browser-results
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: frontend/.nvmrc
+
+    - name: Set up npm
+      run: |
+        npm install --global "$(node -p 'require("./package.json").packageManager')"
+        npm --version
+
+    - name: Install browser test dependencies
+      # The shared bundle needs neither native build scripts nor nested server installs.
+      run: npm ci --ignore-scripts
+
+    - name: Download shared production bundle
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        name: qualification-production-bundle
+        path: frontend/.ci-bundle
+        required-files: qualification-bundle.tar.gz
+
+    - name: Extract complete production bundle
+      run: |
+        mkdir -p build
+        tar -xzf ".ci-bundle/qualification-bundle.tar.gz" -C build
+
+    - name: Configure bounded Ubuntu browser dependencies
+      if: runner.os == 'Linux'
+      run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT python3 ../.github/resources/scripts/configure_frontend_apt.py
+
+    - name: Install browser
+      timeout-minutes: 15
+      run: npx playwright install --with-deps "${KFP_BROWSER}"
+
+    - name: Run full production browser suite
+      id: suite
+      run: npm run test:bundle:built
+
+    - name: Record workflow outcome
+      if: always()
+      env:
+        JOB_STATUS: ${{ job.status }}
+        SUITE_OUTCOME: ${{ steps.suite.outcome }}
+      run: |
+        node --input-type=module <<'NODE'
+        import { mkdirSync, writeFileSync } from 'node:fs';
+        import { arch, platform, release } from 'node:os';
+        const directory = process.env.KFP_BROWSER_REPORT_DIR;
+        mkdirSync(directory, { recursive: true });
+        writeFileSync(`${directory}/workflow.json`, JSON.stringify({
+          sourceSha: process.env.GITHUB_SHA,
+          runId: process.env.GITHUB_RUN_ID,
+          runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+          runnerOS: process.env.RUNNER_OS,
+          runnerImage: process.env.ImageOS,
+          runnerImageVersion: process.env.ImageVersion,
+          platform: platform(), release: release(), arch: arch(),
+          requestedEngine: process.env.KFP_BROWSER,
+          jobStatus: process.env.JOB_STATUS,
+          suiteOutcome: process.env.SUITE_OUTCOME,
+        }, null, 2) + '\n');
+        NODE
+
+    - name: Upload browser evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: frontend-browser-${{ matrix.os }}-${{ matrix.browser }}
+        path: frontend/browser-results
+        if-no-files-found: error
+        overwrite: true
+        retention-days: 14

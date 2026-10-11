@@ -5,6 +5,12 @@ paths:
       # Keep exceptions file-scoped and remove once actionlint supports them.
       - '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$'
       - '^unknown permission scope "copilot-requests"\. all available permission scopes are .+$'
+  .github/workflows/frontend-browser-qualification.yml:
+    ignore:
+      # GitHub-hosted preview label absent from the pinned actionlint inventory.
+      # https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md
+      # Keep the runtime github-hosted guard; remove this when actionlint knows the label.
+      - '^label "xcode-27" is unknown\.'
   .github/workflows/upgrade-test.yml:
     ignore:
       # This deliberate checked-in pause is required until #14029 is delivered.

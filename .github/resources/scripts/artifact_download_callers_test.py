@@ -41,6 +41,11 @@ CALLERS = {
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
     ('.github/workflows/release-qualification.yml', 'aggregate'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'browser-tests'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'vendor-browser'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'apple-browser'),
+    ('.github/workflows/frontend-deployment-qualification.yml', 'rehearsal'),
 }
 
 
