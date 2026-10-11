@@ -101,14 +101,14 @@ func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.J
 			return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
 		}
 	}
-	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(job.ExperimentId, job.Namespace)
+	experimentID, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(ctx, job.ExperimentId, job.Namespace)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a recurring run due to invalid experimentId and namespace combination")
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to invalid experimentID and namespace combination")
 	}
 	if common.IsMultiUserMode() && namespace == "" {
 		return nil, util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode")
 	}
-	job.ExperimentId = experimentId
+	job.ExperimentId = experimentID
 	job.Namespace = namespace
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{

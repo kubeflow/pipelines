@@ -20,7 +20,7 @@
     "dagre": "^0.8.5",
     "http-proxy-middleware": "^4.2.0",
     "immer": "^11.1.21",
-    "js-yaml": "^5.4.2",
+    "js-yaml": "^5.4.3",
     "lodash": "^4.18.1",
     "lodash.debounce": "^4.0.8",
     "lodash.flatten": "^4.4.0",
@@ -39,7 +39,7 @@
     "react-virtualized": "^9.22.6",
     "recharts": "^3.7.0",
     "runtypes": "^7.0.5",
-    "ts-proto": "^2.12.4",
+    "ts-proto": "^2.13.0",
     "typestyle": "^2.4.0",
     "url": "^0.11.4"
   },
@@ -102,8 +102,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@storybook/addon-links": "^10.6.0",
-    "@storybook/react-vite": "^10.6.0",
+    "@storybook/addon-links": "^10.6.1",
+    "@storybook/react-vite": "^10.6.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

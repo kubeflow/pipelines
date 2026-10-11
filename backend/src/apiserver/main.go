@@ -312,7 +312,7 @@ func main() {
 	}
 
 	if !common.IsMultiUserMode() {
-		_, err = resourceManager.CreateDefaultExperiment("")
+		_, err = resourceManager.CreateDefaultExperiment(context.Background(), "")
 		if err != nil {
 			glog.Fatalf("Failed to create default experiment. Err: %v", err)
 		}
