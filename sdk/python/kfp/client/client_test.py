@@ -330,6 +330,117 @@ class TestClient(parameterized.TestCase):
                 self.client.get_pipeline_id(
                     'test-pipeline', namespace='test-ns')
 
+    def test_run_pipeline_sends_namespace_without_experiment(self):
+        # The server resolves the namespace's default experiment when
+        # experiment_id is omitted, so both fields must reach the request.
+        # The model is mocked because published kfp-server-api releases
+        # before 2.18 have no Run.namespace.
+        with patch.object(kfp_server_api, 'V2beta1Run') as mock_run:
+            with patch.object(self.client._run_api, 'run_service_create_run'):
+                self.client.run_pipeline(
+                    job_name='run1',
+                    namespace='ns1',
+                    pipeline_id='p1',
+                )
+
+            run_kwargs = mock_run.call_args.kwargs
+            self.assertEqual(run_kwargs['namespace'], 'ns1')
+            self.assertIsNone(run_kwargs['experiment_id'])
+
+    def test_run_pipeline_omits_unset_namespace(self):
+        # Those older models reject a namespace argument, so it must not be
+        # passed when unset.
+        with patch.object(kfp_server_api, 'V2beta1Run') as mock_run:
+            with patch.object(self.client._run_api, 'run_service_create_run'):
+                self.client.run_pipeline('exp1', 'run1', pipeline_id='p1')
+
+            self.assertNotIn('namespace', mock_run.call_args.kwargs)
+
+    def test_run_pipeline_keeps_positional_experiment_id(self):
+        # experiment_id stays the first parameter, so existing positional
+        # callers are unaffected.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            self.client.run_pipeline('exp1', 'run1', pipeline_id='p1')
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.experiment_id, 'exp1')
+            self.assertIsNone(getattr(run, 'namespace', None))
+
+    def test_run_pipeline_keeps_later_positional_arguments(self):
+        # namespace is appended rather than inserted, so a caller passing
+        # pipeline_root positionally still sets the pipeline root.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            self.client.run_pipeline('exp1', 'run1', None, {}, 'p1', 'v1',
+                                     'gs://bucket/root')
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.runtime_config.pipeline_root,
+                             'gs://bucket/root')
+            self.assertIsNone(getattr(run, 'namespace', None))
+
+    def test_create_recurring_run_keeps_later_positional_arguments(self):
+        # The same for recurring runs: interval_second must not shift onto
+        # another parameter.
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client.create_recurring_run(
+                'exp1', 'recurring1', None, None, None, 3600, pipeline_id='p1')
+
+            recurring_run = mock_create.call_args.kwargs['recurring_run']
+            self.assertEqual(
+                recurring_run.trigger.periodic_schedule.interval_second, 3600)
+            self.assertIsNone(recurring_run.namespace)
+
+    def test_create_recurring_run_sends_namespace_without_experiment(self):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client.create_recurring_run(
+                job_name='recurring1',
+                namespace='ns1',
+                pipeline_id='p1',
+                interval_second=3600,
+            )
+
+            recurring_run = mock_create.call_args.kwargs['recurring_run']
+            self.assertEqual(recurring_run.namespace, 'ns1')
+            self.assertIsNone(recurring_run.experiment_id)
+
+    def test_run_pipeline_requires_job_name(self):
+        # job_name only defaults to None because experiment_id precedes it;
+        # an empty name reaches the server as a 500, so reject it locally.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            for job_name in (None, ''):
+                with self.assertRaisesRegex(ValueError,
+                                            'job_name is required.'):
+                    self.client.run_pipeline(
+                        job_name=job_name,
+                        namespace='ns1',
+                        pipeline_id='p1',
+                    )
+
+            mock_create.assert_not_called()
+
+    def test_create_recurring_run_requires_job_name(self):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            for job_name in (None, ''):
+                with self.assertRaisesRegex(ValueError,
+                                            'job_name is required.'):
+                    self.client.create_recurring_run(
+                        job_name=job_name,
+                        namespace='ns1',
+                        pipeline_id='p1',
+                        interval_second=3600,
+                    )
+
+            mock_create.assert_not_called()
+
     @patch('kfp.Client.get_experiment', side_effect=ValueError)
     def test_create_experiment_no_experiment_should_raise_error(
             self, mock_get_experiment):
