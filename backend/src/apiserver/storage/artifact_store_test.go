@@ -839,7 +839,7 @@ func TestCreateArtifactWithTask_ConcurrentSameIdentityConverges(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "artifact-store.db")
 
 	gormDB, err := gorm.Open(
-		sqlite.Open("file:"+dbPath+"?_busy_timeout=5000&_journal_mode=WAL"),
+		sqlite.Open("file:"+dbPath+"?_busy_timeout=5000&_journal_mode=WAL&_txlock=immediate"),
 		&gorm.Config{},
 	)
 	require.NoError(t, err)
@@ -961,7 +961,7 @@ func TestCreateArtifactWithTask_ConcurrentSameIdentityDifferentPayloadConflicts(
 	dbPath := filepath.Join(t.TempDir(), "artifact-store.db")
 
 	gormDB, err := gorm.Open(
-		sqlite.Open("file:"+dbPath+"?_busy_timeout=5000&_journal_mode=WAL"),
+		sqlite.Open("file:"+dbPath+"?_busy_timeout=5000&_journal_mode=WAL&_txlock=immediate"),
 		&gorm.Config{},
 	)
 	require.NoError(t, err)

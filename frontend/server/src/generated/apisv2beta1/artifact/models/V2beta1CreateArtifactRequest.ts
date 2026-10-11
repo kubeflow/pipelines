@@ -47,6 +47,14 @@ export interface V2beta1CreateArtifactRequest {
    */
   task_id?: string;
   /**
+   * Optional. A caller-generated operation ID used to make artifact creation
+   * idempotent across RPC retries. The same operation ID is scoped to the
+   * namespace, run, and task.
+   * @type {string}
+   * @memberof V2beta1CreateArtifactRequest
+   */
+  operation_id?: string;
+  /**
    * The outgoing parameter name of this Artifact within this task's component spec.
    * For example:
    * def preprocess(my_output: dsl.Outputs[dsl.Artifact]):
@@ -100,6 +108,7 @@ export function V2beta1CreateArtifactRequestFromJSONTyped(
     artifact: json['artifact'] == null ? undefined : V2beta1ArtifactFromJSON(json['artifact']),
     run_id: json['run_id'] == null ? undefined : json['run_id'],
     task_id: json['task_id'] == null ? undefined : json['task_id'],
+    operation_id: json['operation_id'] == null ? undefined : json['operation_id'],
     producer_key: json['producer_key'] == null ? undefined : json['producer_key'],
     iteration_index: json['iteration_index'] == null ? undefined : json['iteration_index'],
     reuse_if_exists: json['reuse_if_exists'] == null ? undefined : json['reuse_if_exists'],
@@ -122,6 +131,7 @@ export function V2beta1CreateArtifactRequestToJSONTyped(
     artifact: V2beta1ArtifactToJSON(value['artifact']),
     run_id: value['run_id'],
     task_id: value['task_id'],
+    operation_id: value['operation_id'],
     producer_key: value['producer_key'],
     iteration_index: value['iteration_index'],
     reuse_if_exists: value['reuse_if_exists'],
