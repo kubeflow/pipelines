@@ -48,8 +48,8 @@ github.com/andybalholm/brotli v1.2.2/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUS
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
-github.com/argoproj/argo-workflows/v4 v4.1.2 h1:57Mb6ZkLWPKwjeyLCQZMfV2HwiW0qntiKg+r3WICoL0=
-github.com/argoproj/argo-workflows/v4 v4.1.2/go.mod h1:XNcvLG4KiwO6jMjepgtkEFk8Gmo3fahoqyTmZWBKlnE=
+github.com/argoproj/argo-workflows/v4 v4.1.4 h1:/+7ZnKumIwBmS6z+3zeWvTnhW8c6nun0dLrtcBBRz0A=
+github.com/argoproj/argo-workflows/v4 v4.1.4/go.mod h1:LXtHKLuBZvhVgzHdcmdOxwoK9s3UnfXoBsktj9A4il0=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/aws/aws-sdk-go-v2 v1.47.1 h1:uOIZnp4PK3ZhKI0dNrJrhTEsLxbpXHTAJlwoS1pvAtw=
