@@ -1,5 +1,12 @@
 # Installation
 
+:::{warning}
+Upgrading an existing installation to 2.18? Read the
+[2.18 upgrade checklist](upgrade-2.18.md) before applying manifests. It covers
+automatic schedule adoption, coordinated API/controller/RBAC rollout, explicit pipeline
+lookup namespaces, and the UI signing-key startup requirement.
+:::
+
 As an alternative to deploying Kubeflow Pipelines (KFP) as part of the [Community distribution](https://www.kubeflow.org/docs/started/installing-kubeflow),
 you can also choose to deploy only Kubeflow Pipelines standalone.
 
