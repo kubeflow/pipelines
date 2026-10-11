@@ -49,8 +49,11 @@ _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
 # contains the literal substring ';}}', parsing will terminate early.
 # Placeholders are constructed via plain string interpolation with no
 # escaping (see _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE above), so this
-# is a real but currently unreachable edge case -- no type repr the SDK
-# emits produces that substring.
+# is a real and reachable edge case -- e.g. an output annotated
+# List[Literal[';}}']] will leave the raw placeholder and its producer
+# dependency unresolved. Addressing it properly (escaping or encoding
+# the type value at construction time) is left as a follow-up; this
+# fix does not attempt to close that gap.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
     r"{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=(.*?);}}")
 
