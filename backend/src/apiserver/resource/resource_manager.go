@@ -2490,6 +2490,15 @@ func (r *ResourceManager) reportWorkflowResource(
 	}
 
 	if updateError == nil && !createdFromRecurringReport {
+		// Argo can report a newly created Workflow before assigning its phase.
+		// Preserve known active state while recording its runtime manifest. Do
+		// not relax the storage fences for canceling or terminal runs.
+		if state == model.RuntimeStateUnspecified {
+			switch expectedState.ToV2() {
+			case model.RuntimeStatePending, model.RuntimeStateRunning, model.RuntimeStatePaused:
+				state = expectedState.ToV2()
+			}
+		}
 		run.K8SName = execSpec.ExecutionName()
 		run.State = state
 		run.Conditions = string(state.ToExecutionPhase())
