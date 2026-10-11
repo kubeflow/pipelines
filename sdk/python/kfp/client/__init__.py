@@ -15,12 +15,14 @@
 
 __all__ = [
     'Client',
+    'is_pagination_restart_required',
 ]
 
 # The credential classes below are re-exported for backwards compatibility,
 # so they are unused within this module.
 
 from kfp.client.client import Client
+from kfp.client.pagination import is_pagination_restart_required
 from kfp.client.set_volume_credentials import (
     ServiceAccountTokenVolumeCredentials,
 )

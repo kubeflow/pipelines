@@ -13,6 +13,7 @@ scheduled-service-accounts
 multi-user
 high-availability
 rbac-migration-2.18
+pagination-recovery
 configure-object-store
 mlflow-plugin
 ```
