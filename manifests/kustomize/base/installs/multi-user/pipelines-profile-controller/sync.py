@@ -15,7 +15,7 @@
 import base64
 import hashlib
 from http.server import BaseHTTPRequestHandler
-from http.server import HTTPServer
+from http.server import ThreadingHTTPServer
 import json
 import os
 
@@ -23,6 +23,7 @@ import os
 import botocore.session
 
 S3_BUCKET_NAME = 'mlpipeline'
+HEALTHZ_PATH = '/healthz'
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -195,7 +196,7 @@ def server_factory(frontend_image,
                    url="",
                    controller_port=8080,
                    http_base_url=""):
-    """Returns an HTTPServer populated with Handler with customized
+    """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
     class Controller(BaseHTTPRequestHandler):
@@ -609,6 +610,25 @@ def server_factory(frontend_image,
 
             return {"status": desired_status, "attachments": desired_resources}
 
+        def do_GET(self):
+            # Liveness/readiness endpoint; must not call external services.
+            if self.path.split("?", 1)[0] == HEALTHZ_PATH:
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"ok")
+            else:
+                self.send_error(404)
+
+        def log_request(self, code="-", size="-"):
+            # Skip probe requests so they don't flood the controller logs.
+            # Malformed requests are logged before `command`/`path` are set.
+            is_probe = (
+                getattr(self, "command", None) == "GET" and
+                getattr(self, "path", "").split("?", 1)[0] == HEALTHZ_PATH)
+            if not is_probe:
+                super().log_request(code, size)
+
         def do_POST(self):
             # Serve the sync() function as a JSON webhook.
             observed = json.loads(
@@ -620,7 +640,7 @@ def server_factory(frontend_image,
             self.end_headers()
             self.wfile.write(bytes(json.dumps(desired), 'utf-8'))
 
-    return HTTPServer((url, int(controller_port)), Controller)
+    return ThreadingHTTPServer((url, int(controller_port)), Controller)
 
 
 if __name__ == "__main__":
