@@ -69,6 +69,16 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
+## Python requirements exports
+
+`.github/resources/scripts/export_python_requirements.sh` is the shared frozen-lock
+exporter for the requirements consistency workflow, maintenance script, and release
+tooling. After a uv update, run it with the CI-pinned uv version, review both root
+and SDK exports, and commit their changes. `hack/update-all-requirements.sh` first
+updates the lockfile and then uses the same exporter. Release tooling retains its
+legacy export commands for older checkouts. See [Dependency updates](dependabot.md)
+for ownership and maintenance instructions.
+
 ## Common CI failures
 
 - Prebuilt pipeline-spec generation (`make -C api python` / `golang`) reuses a locally available generator image. On a cold Docker cache it explicitly pulls through `docker-pull-with-retry.sh` (three attempts, 20-second delays), then runs with `--pull=never`. Pull exhaustion stops generation; generator failures are not retried. Source-built generation remains unchanged.

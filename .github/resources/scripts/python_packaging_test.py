@@ -261,6 +261,10 @@ class PythonPackagingTest(unittest.TestCase):
             with self.subTest(stale_path=stale_path
                              ), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
+                exporter = Path(
+                    '.github/resources/scripts/export_python_requirements.sh')
+                (root / exporter).parent.mkdir(parents=True)
+                shutil.copy2(ROOT / exporter, root / exporter)
                 for relative_path in EXPORTS:
                     path = root / relative_path
                     path.parent.mkdir(parents=True, exist_ok=True)
@@ -275,6 +279,8 @@ class PythonPackagingTest(unittest.TestCase):
                     from pathlib import Path
                     import sys
                     assert '--no-hashes' in sys.argv
+                    assert '--frozen' in sys.argv
+                    assert '--no-dev' in sys.argv
                     output = Path(sys.argv[sys.argv.index('-o') + 1])
                     output.write_text('current\\n')
                 '''))
