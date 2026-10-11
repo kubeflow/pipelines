@@ -115,6 +115,7 @@ func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
 			assert.Equal(t, testCase.code == 200, review.Response.Allowed)
 			require.NotNil(t, review.Response.Result)
 			assert.Equal(t, testCase.code, review.Response.Result.Code)
+			// Use the literal cause type to pin the wire contract independently of the production constant.
 			cause, ok := apierrors.StatusCause(&apierrors.StatusError{ErrStatus: *review.Response.Result}, "pipelines.kubeflow.org/PipelineVersionRejected")
 			if testCase.code == 400 {
 				require.True(t, ok)

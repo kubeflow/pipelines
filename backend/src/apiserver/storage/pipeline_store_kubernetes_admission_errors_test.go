@@ -40,6 +40,7 @@ func TestPipelineVersionWrites_AdmissionRejections(t *testing.T) {
 	viper.Set("POD_NAMESPACE", "Test")
 	t.Cleanup(func() { viper.Set("POD_NAMESPACE", podNamespace) })
 	const message = "The spec.pipelineName doesn't map to an existing Pipeline object"
+	// Use the literal cause type to pin the wire contract independently of the production constant.
 	denial := &k8serrors.StatusError{ErrStatus: metav1.Status{
 		Code: 400, Reason: metav1.StatusReasonBadRequest,
 		Message: fmt.Sprintf("admission webhook %q denied the request: %s", "pipelineversions.pipelines.kubeflow.org", message),
