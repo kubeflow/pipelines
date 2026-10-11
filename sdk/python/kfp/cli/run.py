@@ -106,6 +106,11 @@ def list(
 )
 @click.option('-n', '--pipeline-name', help='Name of the pipeline template.')
 @click.option(
+    '--pipeline-namespace',
+    help='Namespace to search with --pipeline-name. Omit for shared pipelines; '
+    'the global --namespace still selects the experiment namespace, not this lookup.'
+)
+@click.option(
     '-w',
     '--watch',
     is_flag=True,
@@ -126,26 +131,30 @@ def list(
 )
 @click.argument('args', nargs=-1)
 @click.pass_context
-def create(
-    ctx: click.Context,
-    experiment_name: str,
-    run_name: str,
-    package_file: str,
-    pipeline_id: str,
-    pipeline_name: str,
-    watch: bool,
-    timeout: int,
-    version: str,
-    args: List[str],
-):
+def create(ctx: click.Context, experiment_name: str, run_name: str,
+           package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
+           timeout: int, version: str, args: List[str],
+           pipeline_namespace: str):
     """Submit a pipeline run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
     if not run_name:
         run_name = experiment_name
 
+    if pipeline_namespace is not None and (not pipeline_name or pipeline_id):
+        raise click.UsageError(
+            '--pipeline-namespace requires --pipeline-name without --pipeline-id.'
+        )
     if not pipeline_id and pipeline_name:
-        pipeline_id = client_obj.get_pipeline_id(name=pipeline_name)
+        pipeline_id = client_obj.get_pipeline_id(
+            name=pipeline_name, namespace=pipeline_namespace)
+        if pipeline_id is None:
+            scope = f'namespace {pipeline_namespace!r}' if pipeline_namespace else 'shared pipelines'
+            raise click.ClickException(
+                f'Pipeline {pipeline_name!r} was not found in {scope}. '
+                'For a private pipeline, pass --pipeline-namespace explicitly '
+                'or use --pipeline-id. The global --namespace is not used for '
+                'this lookup.')
 
     if not package_file and not pipeline_id and not version:
         click.echo(
