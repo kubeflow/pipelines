@@ -17,6 +17,7 @@ from itertools import product
 import json
 from pathlib import Path
 import re
+import shlex
 import unittest
 
 import yaml
@@ -80,7 +81,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     self.assertIn('image_tag: latest', job)
                     self.assertIn('image_registry: kind-registry:5000', job)
 
-    def test_deploy_waits_before_downloading_images(self):
+    def test_deploy_imports_available_images_before_deployment(self):
         deploy_action = yaml.safe_load(
             (ROOT /
              '.github/actions/deploy/action.yml').read_text(encoding='utf-8'))
@@ -88,18 +89,37 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         wait_steps = [
             step for step in steps
             if './.github/resources/scripts/wait-for-image-artifacts.sh' in
-            [line.strip() for line in step.get('run', '').splitlines()]
+            step.get('run', '')
         ]
         download_steps = [
             step for step in steps if step.get('uses') ==
             './.github/actions/download-artifact-with-retry'
         ]
         self.assertEqual(len(wait_steps), 1)
-        self.assertEqual(len(download_steps), 1)
+        self.assertEqual(download_steps, [])
         wait = wait_steps[0]
-        self.assertLess(steps.index(wait), steps.index(download_steps[0]))
         self.assertEqual(
-            wait.get('env', {}).get('GH_TOKEN'), '${{ github.token }}')
+            shlex.split(wait['run'].replace('\\\n', ' ')), [
+                './.github/resources/scripts/wait-for-image-artifacts.sh',
+                './.github/resources/scripts/load-ready-image-artifacts.sh',
+            ])
+        loader = ROOT / '.github/resources/scripts/load-ready-image-artifacts.sh'
+        self.assertTrue(loader.stat().st_mode & 0o111,
+                        'The wait callback must be executable')
+        self.assertFalse(wait.get('continue-on-error', False))
+        self.assertEqual(
+            wait['env'], {
+                'GH_TOKEN': '${{ github.token }}',
+                'IMAGE_PATH': '${{ inputs.image_path }}',
+                'CLUSTER_NAME': '${{ inputs.cluster_name }}',
+                'IMAGE_REGISTRY': '${{ inputs.image_registry }}',
+                'IMAGE_TAG': '${{ inputs.image_tag }}',
+                'LOAD_MODELCAR_FIXTURE': '${{ inputs.load_modelcar_fixture }}',
+            })
+        for step_id in ('deploy-tinyproxy', 'configure', 'deploy-kfp'):
+            downstream = next(
+                step for step in steps if step.get('id') == step_id)
+            self.assertLess(steps.index(wait), steps.index(downstream))
 
     def test_multi_user_artifact_proxy_lane_uses_critical_shards(self):
         workflow = (ROOT / '.github/workflows/e2e-test.yml').read_text(

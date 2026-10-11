@@ -83,6 +83,7 @@ projects. CI uses a temporary directory and separately validates the built SDK w
 `hack/update-all-requirements.sh` updates the lock without generating tracked files.
 Modern release preparation builds from metadata; older source checkouts retain their
 legacy exports. See [Dependency updates](dependabot.md) for usage.
+- The deploy action downloads and imports each newly available batch of same-run image artifacts while remaining producers build. The shared waiter retains its producer-aware timeout and publication grace; the loader permits at most two artifact workers, retries incomplete or failed downloads once after clearing their required files, and fails before deployment if any download, import, or runtime-image verification fails. Each artifact owns its download directory, and optional Modelcar validation remains part of the runtime artifact. Deployment starts only after every required artifact has been processed successfully.
 
 ## Common CI failures
 

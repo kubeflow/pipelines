@@ -30,7 +30,6 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 CALLERS = {
-    ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
@@ -143,35 +142,23 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             item['image'] for item in workflow('image-builds.yml')['jobs']
             ['image-build']['strategy']['matrix']['include']
         }
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            scripts = root / '.github/resources/scripts'
-            scripts.mkdir(parents=True)
-            inventory = ROOT / '.github/resources/scripts/ci-image-artifacts.sh'
-            (scripts / inventory.name).write_text(inventory.read_text())
-            waiter = scripts / 'wait-for-image-artifacts.sh'
-            waiter.write_text('#!/usr/bin/env bash\nexit 0\n')
-            waiter.chmod(0o755)
-            for modelcar in ('false', 'true'):
-                with self.subTest(modelcar=modelcar):
-                    actual = self.required_files(
-                        '.github/actions/deploy/action.yml',
-                        'composite', {
-                            'inputs': {
-                                'load_modelcar_fixture': modelcar
-                            },
-                            'github': {
-                                'token': 'unused'
-                            }
-                        },
-                        cwd=root)
-                    expected = {
-                        f'{name}/{name}.tar' for name in built_images
-                        | {'runtime-base-images'}
-                    }
-                    if modelcar == 'true':
-                        expected.add('runtime-base-images/modelcar.tar')
-                    self.assertEqual(actual, expected)
+        inventory = ROOT / '.github/resources/scripts/ci-image-artifacts.sh'
+        for modelcar in ('false', 'true'):
+            with self.subTest(modelcar=modelcar):
+                result = subprocess.run(
+                    ['bash',
+                     str(inventory), 'deploy-image-files', modelcar],
+                    check=True,
+                    capture_output=True,
+                    text=True)
+                actual = result.stdout.splitlines()
+                expected = {
+                    f'{name}/{name}.tar' for name in built_images
+                    | {'runtime-base-images'}
+                }
+                if modelcar == 'true':
+                    expected.add('runtime-base-images/modelcar.tar')
+                self.assertCountEqual(actual, expected)
 
     def test_arm_presubmit_requires_each_produced_archive_and_record(self):
         producer = workflow('image-builds.yml')['jobs']['image-build']

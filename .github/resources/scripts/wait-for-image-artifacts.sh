@@ -97,6 +97,9 @@ classify_missing_producers() {
   done
 }
 
+# Optional executable receives each newly visible batch. Its success means the
+# entire batch is ready for deployment; failure must stop this barrier.
+processed_artifacts=()
 missing_artifacts=()
 attempt=0
 publication_grace_remaining=0
@@ -117,6 +120,21 @@ while true; do
       missing_artifacts+=("$artifact")
     fi
   done
+
+  if (( $# > 0 )); then
+    ready_artifacts=()
+    for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+      if grep -Fqx -- "$artifact" <<< "$artifact_names" &&
+         ! printf '%s\n' "${processed_artifacts[@]:-}" | grep -Fqx -- "$artifact"; then
+        ready_artifacts+=("$artifact")
+      fi
+    done
+    if (( ${#ready_artifacts[@]} > 0 )); then
+      echo "Preparing available branch image artifacts: ${ready_artifacts[*]}"
+      "$@" "${ready_artifacts[@]}"
+      processed_artifacts+=("${ready_artifacts[@]}")
+    fi
+  fi
 
   if (( ${#missing_artifacts[@]} == 0 )); then
     echo "All ${#ALL_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
@@ -158,6 +176,13 @@ while true; do
       echo "Extending image artifact wait because producer state is unavailable" \
         "(${producer_state_unavailable_extensions}/${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS})."
     fi
+  fi
+
+  # Importing a batch can take longer than the polling interval. Check again
+  # immediately afterward so artifacts published during that work are not held
+  # for another interval. Empty polls retain the shared-token rate limit.
+  if (( $# > 0 )) && (( ${#ready_artifacts[@]} > 0 )); then
+    continue
   fi
 
   echo "Waiting for branch image artifacts (${window_attempt}/${WAIT_ATTEMPTS}); missing: ${missing_artifacts[*]}"
