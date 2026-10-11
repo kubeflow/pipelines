@@ -47,6 +47,13 @@ func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
 	invalid.Spec.PipelineSpec.Value = nil
 	missingParent := version.DeepCopy()
 	missingParent.Spec.PipelineName = "missing"
+	immutableUpdate := version.DeepCopy()
+	immutableUpdate.Generation = version.Generation + 1
+	immutableUpdate.Spec.Description = "changed immutable description"
+	mutableUpdate := version.DeepCopy()
+	mutableUpdate.Generation = version.Generation + 1
+	mutableUpdate.Spec.DisplayName = "renamed"
+	mutableUpdate.Spec.Tags = map[string]string{"stage": "test"}
 	brokenClient := func(err error) client.Client {
 		return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
 			Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
@@ -58,15 +65,18 @@ func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
 	testCases := []struct {
 		name     string
 		version  *k8sapi.PipelineVersion
+		previous *k8sapi.PipelineVersion
 		mutating bool
 		cached   client.Client
 		direct   client.Client
 		code     int32
 	}{
-		{"invalid spec", invalid, false, pipelineWebhook.Client, pipelineWebhook.Client, 400},
-		{"missing Pipeline", missingParent, true, pipelineWebhook.Client, pipelineWebhook.Client, 400},
-		{"cached lookup failure", version, true, brokenClient(dependencyFailure), pipelineWebhook.Client, 500},
-		{"direct lookup failure", version, true, brokenClient(apierrors.NewNotFound(k8sapi.GroupVersion.WithResource("pipelines").GroupResource(), "test-pipeline")), brokenClient(dependencyFailure), 500},
+		{"invalid spec", invalid, nil, false, pipelineWebhook.Client, pipelineWebhook.Client, 400},
+		{"missing Pipeline", missingParent, nil, true, pipelineWebhook.Client, pipelineWebhook.Client, 400},
+		{"immutable update", immutableUpdate, version, false, pipelineWebhook.Client, pipelineWebhook.Client, 400},
+		{"mutable update", mutableUpdate, version, false, pipelineWebhook.Client, pipelineWebhook.Client, 200},
+		{"cached lookup failure", version, nil, true, brokenClient(dependencyFailure), pipelineWebhook.Client, 500},
+		{"direct lookup failure", version, nil, true, brokenClient(apierrors.NewNotFound(k8sapi.GroupVersion.WithResource("pipelines").GroupResource(), "test-pipeline")), brokenClient(dependencyFailure), 500},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -77,13 +87,21 @@ func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
 			}
 			raw, err := json.Marshal(testCase.version)
 			require.NoError(t, err)
+			operation := admissionv1.Create
+			var previous []byte
+			if testCase.previous != nil {
+				operation = admissionv1.Update
+				previous, err = json.Marshal(testCase.previous)
+				require.NoError(t, err)
+			}
 			body, err := json.Marshal(admissionv1.AdmissionReview{
 				TypeMeta: metav1.TypeMeta{APIVersion: "admission.k8s.io/v1", Kind: "AdmissionReview"},
 				Request: &admissionv1.AdmissionRequest{
-					UID: "request-id", Operation: admissionv1.Create, Namespace: "default",
-					Kind:     metav1.GroupVersionKind{Group: k8sapi.GroupVersion.Group, Version: k8sapi.GroupVersion.Version, Kind: "PipelineVersion"},
-					Resource: metav1.GroupVersionResource{Group: k8sapi.GroupVersion.Group, Version: k8sapi.GroupVersion.Version, Resource: "pipelineversions"},
-					Object:   runtime.RawExtension{Raw: raw},
+					UID: "request-id", Operation: operation, Namespace: "default",
+					Kind:      metav1.GroupVersionKind{Group: k8sapi.GroupVersion.Group, Version: k8sapi.GroupVersion.Version, Kind: "PipelineVersion"},
+					Resource:  metav1.GroupVersionResource{Group: k8sapi.GroupVersion.Group, Version: k8sapi.GroupVersion.Version, Resource: "pipelineversions"},
+					Object:    runtime.RawExtension{Raw: raw},
+					OldObject: runtime.RawExtension{Raw: previous},
 				},
 			})
 			require.NoError(t, err)
@@ -94,7 +112,7 @@ func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
 			var review admissionv1.AdmissionReview
 			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &review))
 			require.NotNil(t, review.Response)
-			assert.False(t, review.Response.Allowed)
+			assert.Equal(t, testCase.code == 200, review.Response.Allowed)
 			require.NotNil(t, review.Response.Result)
 			assert.Equal(t, testCase.code, review.Response.Result.Code)
 			cause, ok := apierrors.StatusCause(&apierrors.StatusError{ErrStatus: *review.Response.Result}, "pipelines.kubeflow.org/PipelineVersionRejected")
