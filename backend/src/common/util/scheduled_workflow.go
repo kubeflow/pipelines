@@ -127,19 +127,33 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 		params = s.ScheduledWorkflow.Spec.Workflow.Parameters
 	case SWFv2:
 		paramsMap := make(map[string]*structpb.Value, 0)
+
+		// Detect v1-origin parameters: swf_saver.go:57 forces the version
+		// to v2beta1 on all SWFs, but v1 parameter values are plain strings
+		// that fail json.Unmarshal. If any value fails, the entire set is
+		// v1-origin and all values must be preserved as strings to prevent
+		// type coercion (e.g., "9007199254740993" losing precision as float64).
+		legacyParameterSet := false
 		for _, param := range s.ScheduledWorkflow.Spec.Workflow.Parameters {
-			var protoValue structpb.Value
-			err := json.Unmarshal([]byte(param.Value), &protoValue)
-			if err != nil {
-				// v1 plain-string values (e.g. "enabled") are not valid JSON.
-				// swf_saver.go:57 overrides the version to v2beta1, routing
-				// these values through the v2 path. Wrap as StringValue
-				// instead of failing.
-				protoValue = structpb.Value{
+			var probe structpb.Value
+			if err := json.Unmarshal([]byte(param.Value), &probe); err != nil {
+				legacyParameterSet = true
+				break
+			}
+		}
+
+		for _, param := range s.ScheduledWorkflow.Spec.Workflow.Parameters {
+			if legacyParameterSet {
+				paramsMap[param.Name] = &structpb.Value{
 					Kind: &structpb.Value_StringValue{StringValue: param.Value},
 				}
+			} else {
+				var protoValue structpb.Value
+				if err := json.Unmarshal([]byte(param.Value), &protoValue); err != nil {
+					return "", err
+				}
+				paramsMap[param.Name] = &protoValue
 			}
-			paramsMap[param.Name] = &protoValue
 		}
 		params = paramsMap
 	case SWFlegacy:
