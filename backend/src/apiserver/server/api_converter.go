@@ -697,6 +697,7 @@ func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipelineId,
 			PipelineVersionId:    pipelineVersionId,
+			NameRef:              toModelPipelineNameRef(apiRunV2.GetPipelineVersionReference()),
 			PipelineName:         pipelineName,
 			PipelineSpecManifest: model.LargeText(pipelineSpec),
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
@@ -1026,6 +1027,7 @@ func toModelJob(apiJob *apiv2.RecurringRun) (*model.Job, error) {
 			PipelineId:           pipelineId,
 			PipelineName:         pipelineName,
 			PipelineVersionId:    pipelineVersionId,
+			NameRef:              toModelPipelineNameRef(apiJob.GetPipelineVersionReference()),
 			PipelineSpecManifest: model.LargeText(pipelineSpec),
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
 			Parameters:           model.LargeText(specParams),
@@ -2101,4 +2103,16 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 	}
 
 	return apiTask, nil
+}
+
+// toModelPipelineNameRef returns the name-based part of a pipeline version
+// reference, or nil when the reference names nothing.
+func toModelPipelineNameRef(ref *apiv2.PipelineVersionReference) *model.PipelineNameRef {
+	if ref.GetPipelineName() == "" && ref.GetPipelineVersionName() == "" {
+		return nil
+	}
+	return &model.PipelineNameRef{
+		PipelineName:        ref.GetPipelineName(),
+		PipelineVersionName: ref.GetPipelineVersionName(),
+	}
 }
