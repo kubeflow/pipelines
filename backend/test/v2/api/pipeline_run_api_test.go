@@ -80,8 +80,8 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 
 	Context("Create a valid pipeline and verify the created run >", func() {
 		for _, param := range testParams {
-			for _, pipelineFilePath := range pipelineFilePaths {
-				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, !param.pipelineCacheDisabled), Label(param.cacheLabel), func() {
+			for pipelineIndex, pipelineFilePath := range pipelineFilePaths {
+				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, !param.pipelineCacheDisabled), Label(param.cacheLabel, constants.APIPipelineShardForIndex(pipelineIndex)), func() {
 					createdExperiment := createExperiment(experimentName)
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
