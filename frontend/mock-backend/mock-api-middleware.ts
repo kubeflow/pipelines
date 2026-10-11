@@ -90,6 +90,7 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
     child_tasks: [
       { name: 'chicago-taxi-trips-dataset', task_id: 'mock-task-producer' },
       { name: 'convert-csv-to-apache-parquet', task_id: 'mock-task-consumer' },
+      { name: 'xgboost-train', task_id: 'mock-task-cached' },
     ],
     create_time: new Date('2026-01-01T00:00:00.000Z'),
     display_name: 'xgboost-sample-pipeline',
@@ -126,6 +127,10 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
     run_id: mockNativeRunId,
     scope_path: 'root.chicago-taxi-trips-dataset',
     state: PipelineTaskTaskState.SUCCEEDED,
+    state_history: [
+      { state: PipelineTaskTaskState.RUNNING, update_time: new Date('2026-01-01T00:00:10.000Z') },
+      { state: PipelineTaskTaskState.SUCCEEDED, update_time: new Date('2026-01-01T00:01:00.000Z') },
+    ],
     task_id: 'mock-task-producer',
     type: PipelineTaskTaskType.RUNTIME,
   },
@@ -160,7 +165,29 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
     run_id: mockNativeRunId,
     scope_path: 'root.convert-csv-to-apache-parquet',
     state: PipelineTaskTaskState.SUCCEEDED,
+    state_history: [
+      { state: PipelineTaskTaskState.RUNNING, update_time: new Date('2026-01-01T00:01:05.000Z') },
+      { state: PipelineTaskTaskState.FAILED, update_time: new Date('2026-01-01T00:01:20.000Z') },
+      { state: PipelineTaskTaskState.RUNNING, update_time: new Date('2026-01-01T00:01:30.000Z') },
+      { state: PipelineTaskTaskState.SUCCEEDED, update_time: new Date('2026-01-01T00:02:00.000Z') },
+    ],
     task_id: 'mock-task-consumer',
+    type: PipelineTaskTaskType.RUNTIME,
+  },
+  {
+    create_time: new Date('2026-01-01T00:02:05.000Z'),
+    display_name: 'XGBoost train (cached)',
+    end_time: new Date('2026-01-01T00:02:07.000Z'),
+    name: 'xgboost-train',
+    parent_task_id: 'mock-task-root',
+    run_id: mockNativeRunId,
+    scope_path: 'root.xgboost-train',
+    state: PipelineTaskTaskState.CACHED,
+    state_history: [
+      { state: PipelineTaskTaskState.RUNNING, update_time: new Date('2026-01-01T00:02:05.000Z') },
+      { state: PipelineTaskTaskState.CACHED, update_time: new Date('2026-01-01T00:02:07.000Z') },
+    ],
+    task_id: 'mock-task-cached',
     type: PipelineTaskTaskType.RUNTIME,
   },
 ];
@@ -540,6 +567,19 @@ export default (app: express.Application) => {
 
   app.get(v2beta1Prefix + '/runs/:rid/tasks', (req, res) => {
     res.json({ tasks: req.params.rid === mockNativeRunId ? mockV2Tasks : [] });
+  });
+
+  app.get(v2beta1Prefix + '/runs/:rid/tasks/:taskId', (req, res) => {
+    const task = mockV2Tasks.find(
+      (candidate) => candidate.run_id === req.params.rid && candidate.task_id === req.params.taskId,
+    );
+    if (!task) {
+      res
+        .status(404)
+        .send(`No task was found with ID: ${req.params.taskId} in run: ${req.params.rid}`);
+      return;
+    }
+    res.json(task);
   });
 
   app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
