@@ -405,12 +405,6 @@ def component(ctx: click.Context):
     help='Filepattern to use when searching for KFP components. The'
     ' default searches all Python files in the specified directory.')
 @click.option(
-    '--engine',
-    type=str,
-    default='docker',
-    help="[Deprecated] Engine to use to build the component's container.",
-    hidden=True)
-@click.option(
     '--kfp-package-path',
     type=click.Path(exists=True),
     default=None,
@@ -445,18 +439,12 @@ def component(ctx: click.Context):
     is_flag=True,
     default=True,
     help='Push the built image to its remote repository.')
-def build(components_directory: str, component_filepattern: str, engine: str,
+def build(components_directory: str, component_filepattern: str,
           kfp_package_path: Optional[str],
           additional_package_paths: Sequence[str], overwrite_dockerfile: bool,
           build_image: bool, platform: str, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
 
-    if build_image and engine != 'docker':
-        warnings.warn(
-            'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',
-            DeprecationWarning,
-            stacklevel=2)
-        sys.exit(1)
 
     components_directory = pathlib.Path(components_directory)
     components_directory = components_directory.resolve()

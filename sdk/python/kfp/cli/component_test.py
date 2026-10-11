@@ -356,50 +356,6 @@ class Test(unittest.TestCase):
         self.assert_file_exists_and_contains('.dockerignore',
                                              'Some pre-existing content')
 
-    def test_docker_engine_is_supported(self):
-        component = _make_component(
-            func_name='train', target_image='custom-image')
-        _write_components('components.py', component)
-        result = self.runner.invoke(
-            self.cli,
-            ['build', str(self._working_dir), '--engine=docker'],
-        )
-        self.assertEqual(result.exit_code, 0)
-        self._docker_client.api.build.assert_called_once()
-        self._docker_client.images.push.assert_called_once_with(
-            'custom-image', stream=True, decode=True)
-
-    def test_kaniko_engine_is_not_supported(self):
-        component = _make_component(
-            func_name='train', target_image='custom-image')
-        _write_components('components.py', component)
-        with self.assertWarnsRegex(DeprecationWarning,
-                                   r'The --engine option is deprecated'):
-            result = self.runner.invoke(
-                self.cli,
-                ['build', str(self._working_dir), '--engine=kaniko'],
-            )
-        self.assertEqual(result.exit_code, 1)
-        self._docker_client.api.build.assert_not_called()
-        self._docker_client.images.push.assert_not_called()
-
-    def test_cloud_build_engine_is_not_supported(self):
-        component = _make_component(
-            func_name='train', target_image='custom-image')
-        _write_components('components.py', component)
-
-        with self.assertWarnsRegex(DeprecationWarning,
-                                   r'The --engine option is deprecated'):
-            result = self.runner.invoke(
-                self.cli,
-                ['build',
-                 str(self._working_dir), '--engine=cloudbuild'],
-            )
-
-        self.assertEqual(result.exit_code, 1)
-        self._docker_client.api.build.assert_not_called()
-        self._docker_client.images.push.assert_not_called()
-
     def test_docker_client_is_called_to_build_and_push_by_default(self):
         component = _make_component(
             func_name='train', target_image='custom-image')
