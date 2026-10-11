@@ -48,6 +48,7 @@ on:
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
+      - 'backend/test/constants/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'

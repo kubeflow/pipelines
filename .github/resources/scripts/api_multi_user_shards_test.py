@@ -59,6 +59,12 @@ class ApiMultiUserShardsTest(unittest.TestCase):
         self.workflow = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))
         self.job = self.workflow['jobs']['api-test-multi-user']
 
+    def test_constants_changes_trigger_api_workflow(self):
+        workflow = yaml.load(
+            WORKFLOW.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)
+        self.assertIn('backend/test/constants/**',
+                      workflow['on']['pull_request']['paths'])
+
     def matrix_rows(self, event):
         matrix = self.job['strategy']['matrix']
         self.assertIn('test_shard', matrix)
