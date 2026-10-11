@@ -230,6 +230,11 @@ func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *mod
 
 	pipelineVersion, err = k.createPipelineVersionWithPipeline(context.TODO(), pipeline, pipelineVersion)
 	if err != nil {
+		message := fmt.Sprintf("%s The pipeline %q (ID %s) was created. Upload the corrected version to this pipeline.",
+			pipelineVersionCreateSizeMessage, pipeline.Name, pipeline.UUID)
+		if sizeError := pipelineVersionSizeError(err, message); sizeError != nil {
+			return nil, nil, sizeError
+		}
 		return nil, nil, err
 	}
 
@@ -871,6 +876,8 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 		)
 	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
 		return nil, util.NewBadKubernetesNameError("pipeline version")
+	} else if sizeError := pipelineVersionSizeError(err, pipelineVersionCreateSizeMessage); sizeError != nil {
+		return nil, sizeError
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline version")
 	}
@@ -911,6 +918,9 @@ func (k *PipelineStoreKubernetes) UpdatePipelineVersionFields(pipelineVersionID 
 		versionCopy.Spec.Tags = tags
 	}
 	if err := k.client.Update(context.TODO(), versionCopy); err != nil {
+		if sizeError := pipelineVersionSizeError(err, pipelineVersionUpdateSizeMessage); sizeError != nil {
+			return sizeError
+		}
 		return util.NewInternalServerError(err, "Failed to update pipeline version %v", pipelineVersionID)
 	}
 	return k.updateWithTimeout(versionCopy)
