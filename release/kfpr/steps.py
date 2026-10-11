@@ -631,18 +631,15 @@ def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
 
 
 def _refresh_uv_release_packages(context: ReleaseContext) -> None:
-    """Regenerate the workspace lock, requirements exports, and local release
-    dists."""
+    """Regenerate the workspace lock and release dists, preserving legacy
+    exports."""
     if (context.root / 'sdk/python/kfp/server_api/__init__.py').is_file():
         context.runner.run(['make', '-C', 'sdk', 'generate-python'],
                            cwd=context.root)
         context.runner.run(['uv', 'lock'], cwd=context.root)
-        exporter = '.github/resources/scripts/export_python_requirements.sh'
-        if (context.root / exporter).is_file():
-            context.runner.run(['bash', exporter], cwd=context.root)
-        else:
-            # The CLI can release older consolidated checkouts that predate the
-            # shared exporter, using their original two-export contract.
+        if (context.root / 'requirements.txt').is_file():
+            # Older consolidated checkouts still commit both requirements exports.
+            # Current checkouts build from metadata and the lock without exports.
             export_command = [
                 'uv', 'export', '--frozen', '--no-dev', '--no-hashes'
             ]

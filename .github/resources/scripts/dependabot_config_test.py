@@ -236,13 +236,11 @@ class DependabotConfigTest(unittest.TestCase):
             python_directories - workspace_directories)
         self.assertEqual(self.configured_directories('uv'), {'/'})
 
-    def test_uv_excludes_only_generated_exports(self):
+    def test_uv_has_no_obsolete_export_exclusions(self):
         config = yaml.safe_load(self.config)
         uv = next(update for update in config['updates']
                   if update['package-ecosystem'] == 'uv')
-        self.assertCountEqual(
-            uv['exclude-paths'],
-            ['requirements.txt', 'sdk/python/requirements.txt'])
+        self.assertNotIn('exclude-paths', uv)
         self.assertNotIn('allow', uv)
         self.assertNotIn('ignore', uv)
 

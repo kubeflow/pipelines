@@ -134,14 +134,8 @@ updates:
       python-dependencies:
         group-by: dependency-name
   - package-ecosystem: uv
-    # Schedule workspace updates through uv; exclude generated exports from
-    # version updates. Security updates may ignore exclude-paths (upstream
-    # dependabot-core#14408). The required frozen-export check rejects export-only
-    # edits; maintainers update uv.lock first, then regenerate both exports.
+    # Workspace manifests and uv.lock are the only tracked dependency sources.
     directory: "/"
-    exclude-paths:
-      - "requirements.txt"
-      - "sdk/python/requirements.txt"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

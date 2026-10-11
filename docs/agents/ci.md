@@ -35,7 +35,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Argo version updates require `make -C third_party/argo update ARGO_VERSION=vX.Y.Z`: it aligns the Go module and sums, controller/executor images, upstream manifest and CRD references, CI matrices, preload images, and upgrade documentation. Dependabot keeps Argo outside the generic Go minor/patch group so a partial Argo proposal does not block unrelated module updates. Complete either a module or image proposal with the coordinated command before approval; keep both supported CI lanes. See [the Argo upgrade guide](../../third_party/argo/UPGRADE.md).
 - `python-syntax.yml` parses every tracked Python file with Python 3.11 grammar without importing it, so syntax errors fail presubmit without creating `__pycache__` directories.
 - `docs.yml` builds the Sphinx documentation site with warnings treated as errors and runs a non-blocking external link check; Read the Docs (`.readthedocs.yml`) handles publishing, not this workflow. Both jobs use the uv CI extra and generate the Python API bindings through `.github/actions/protobuf`. Read the Docs generates Python bindings directly with its system protoc, without Docker.
-- Requirements export checks run from the repository root and compare `requirements.txt` and `sdk/python/requirements.txt`; only `kfp` is a distributable workspace member. CI and release tooling use `uv export --no-hashes`: pip cannot combine hash-checking mode with editable packages. The compatibility job dry-runs pip resolution of both exports in a clean Python 3.11 environment. Run `pip install -r <export>` from the repository root. Release-tool checks use `uv run --with-editable ./release` to exercise current sources with the release tool's declared dependencies.
+- `check-requirements-txt.yml` checks lock consistency, installs the frozen Python 3.11 workspace, builds SDK distributions, validates temporary dependency-only pip exports, and installs/imports the wheel in a clean pip environment. Workspace exports are not tracked. Release-tool checks use `uv run --with-editable ./release` to exercise current sources with declared dependencies.
 - `check-uv-lock.yml` validates every push to `master` and `release-*`; PR checks remain filtered to dependency metadata and the workflow itself.
 - `publish-packages.yml` uses checkout-independent tool setup so its tag input can target pre-uv releases. The selected tag's Makefiles build SDK/spec/Kubernetes distributions with their original backend and protobuf generation; the server API uses a source-path `uv build`, which supports both Hatch metadata and legacy setuptools. Twine 7 runs outside the workspace through `uvx` on Python 3.12 to validate current Hatch metadata; the runner's build interpreter is Python 3.11. Do not require a local action or workspace sync from the selected tag.
 - Unified tags publish only `kfp`; the publishing workflow detects legacy source tags and retains their four-distribution builds. Explicitly requesting a retired distribution from a unified tag fails. The retired Kubernetes publisher exits with guidance to the SDK flow; old release branches retain their original publisher.
@@ -69,15 +69,14 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
-## Python requirements exports
+## Python dependency artifacts
 
-`.github/resources/scripts/export_python_requirements.sh` is the shared frozen-lock
-exporter for the requirements consistency workflow, maintenance script, and release
-tooling. After a uv update, run it with the CI-pinned uv version, review both root
-and SDK exports, and commit their changes. `hack/update-all-requirements.sh` first
-updates the lockfile and then uses the same exporter. Release tooling retains its
-legacy export commands for older checkouts. See [Dependency updates](dependabot.md)
-for ownership and maintenance instructions.
+`.github/resources/scripts/export_python_requirements.sh OUTPUT_DIRECTORY` produces
+portable dependency-only exports from the frozen lock, excluding local workspace
+projects. CI uses a temporary directory and separately validates the built SDK wheel.
+`hack/update-all-requirements.sh` updates the lock without generating tracked files.
+Modern release preparation builds from metadata; older source checkouts retain their
+legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
 

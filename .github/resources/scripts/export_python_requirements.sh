@@ -13,9 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run with uv 0.10.3, matching the requirements consistency check.
+# Run with uv 0.10.3, matching the Python dependency check.
 set -euo pipefail
 
+if [[ $# -ne 1 || -z "$1" ]]; then
+  echo "Usage: $0 OUTPUT_DIRECTORY (temporary or release artifact directory)" >&2
+  exit 2
+fi
+mkdir -p -- "$1"
+OUTPUT_DIRECTORY="$(cd -- "$1" && pwd)"
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.."
-uv export --frozen --no-dev --no-hashes --format requirements-txt -o requirements.txt
-uv export --frozen --no-dev --no-hashes --package kfp --format requirements-txt -o sdk/python/requirements.txt
+# Exclude local workspace projects so these dependency-only artifacts are portable.
+uv export --frozen --no-dev --no-hashes --no-emit-workspace --format requirements-txt -o "$OUTPUT_DIRECTORY/workspace-requirements.txt"
+uv export --frozen --no-dev --no-hashes --no-emit-workspace --package kfp --format requirements-txt -o "$OUTPUT_DIRECTORY/kfp-requirements.txt"

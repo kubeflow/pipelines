@@ -249,68 +249,63 @@ class PythonPackagingTest(unittest.TestCase):
         self.assertNotIn('extend_path',
                          (ROOT / 'sdk/python/kfp/__init__.py').read_text())
 
-    def test_export_workflow_rejects_each_stale_tracked_file(self) -> None:
-        """Run the workflow check against clean and stale export fixtures."""
-        workflow = (ROOT /
-                    '.github/workflows/check-requirements-txt.yml').read_text()
-        self.assertNotIn('working-directory:', workflow)
-        command = textwrap.dedent(
-            workflow.split('        run: |\n', 1)[1].split('      - name:',
-                                                           1)[0])
-        for stale_path in (None, *EXPORTS):
-            with self.subTest(stale_path=stale_path
-                             ), tempfile.TemporaryDirectory() as directory:
+    def test_exports_require_explicit_destination_and_omit_workspace(
+            self) -> None:
+        """Execute portable exports without recreating checkout manifests."""
+        for provided in (False, True):
+            with self.subTest(provided=provided), tempfile.TemporaryDirectory(
+            ) as directory:
                 root = Path(directory)
                 exporter = Path(
                     '.github/resources/scripts/export_python_requirements.sh')
                 (root / exporter).parent.mkdir(parents=True)
                 shutil.copy2(ROOT / exporter, root / exporter)
-                for relative_path in EXPORTS:
-                    path = root / relative_path
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text('stale\n' if relative_path ==
-                                    stale_path else 'current\n')
-                subprocess.run(['git', 'init', '--quiet'], cwd=root, check=True)
-                subprocess.run(['git', 'add', *EXPORTS], cwd=root, check=True)
                 fake_bin = root / 'bin'
                 fake_bin.mkdir()
                 uv = fake_bin / 'uv'
                 uv.write_text(f'#!{sys.executable}\n' + textwrap.dedent('''\
                     from pathlib import Path
                     import sys
-                    assert '--no-hashes' in sys.argv
-                    assert '--frozen' in sys.argv
-                    assert '--no-dev' in sys.argv
+                    for flag in ('--frozen', '--no-dev', '--no-hashes', '--no-emit-workspace'):
+                        assert flag in sys.argv
                     output = Path(sys.argv[sys.argv.index('-o') + 1])
-                    output.write_text('current\\n')
+                    output.write_text('dependency==1.0\\n')
                 '''))
                 uv.chmod(0o755)
+                caller = root / 'caller'
+                caller.mkdir()
+                command = ['bash', str(root / exporter)]
+                if provided:
+                    command.append('artifacts')
                 result = subprocess.run(
-                    ['bash', '-e', '-c', command],
-                    cwd=root,
+                    command,
+                    cwd=caller,
                     env={
                         **os.environ, 'PATH':
                             f'{fake_bin}{os.pathsep}{os.environ["PATH"]}'
                     },
                     capture_output=True,
                     text=True,
-                    check=False,
-                )
-                self.assertEqual(result.returncode, int(stale_path is not None),
+                    check=False)
+                self.assertEqual(result.returncode, 0 if provided else 2,
                                  result.stderr)
-                if stale_path is not None:
-                    self.assertIn(f'diff --git a/{stale_path}', result.stdout)
+                if provided:
+                    self.assertEqual(
+                        sorted(
+                            path.name
+                            for path in (caller / 'artifacts').iterdir()),
+                        ['kfp-requirements.txt', 'workspace-requirements.txt'])
+                else:
+                    self.assertIn('OUTPUT_DIRECTORY', result.stderr)
+                for relative in EXPORTS:
+                    self.assertFalse((root / relative).exists())
 
-    def test_requirements_exports_do_not_hash_editable_packages(self) -> None:
-        """Keep pip's incompatible hash-checking mode out of editable
-        exports."""
-        for relative_path in EXPORTS:
-            with self.subTest(path=relative_path):
-                requirements = (ROOT / relative_path).read_text()
-                self.assertRegex(requirements, r'(?m)^-e \./')
-                self.assertNotIn('--hash=', requirements)
-                self.assertNotIn('--require-hashes', requirements)
-                self.assertIn('--no-hashes', requirements.splitlines()[1])
+    def test_workspace_exports_are_not_source_manifests(self) -> None:
+        for relative in EXPORTS:
+            self.assertFalse((ROOT / relative).exists(), relative)
+        maintenance = (ROOT / 'hack/update-all-requirements.sh').read_text()
+        self.assertIn('uv lock', maintenance)
+        self.assertNotIn('export_python_requirements', maintenance)
 
     def test_retired_publisher_fails_in_executed_and_sourced_modes(
             self) -> None:

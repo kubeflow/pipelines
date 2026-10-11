@@ -86,14 +86,15 @@
     },
     {
       "path": ".github/workflows/check-requirements-txt.yml",
-      "name": "Check uv.lock and requirements.txt sync",
-      "header_sha256": "1f191ce25d83b87facfa96940b39b1a183c9b6eb3404394209478174c2f9ffca",
+      "name": "Check Python dependency artifacts",
+      "header_sha256": "31db3938578e41cb044bf3aa75c96f9ffcf3d7389e38912ea17e6aa129c12da2",
       "pull_request": {
         "paths": [
           "pyproject.toml",
           "uv.lock",
           "requirements.txt",
           "**/pyproject.toml",
+          "sdk/python/**",
           "**/requirements.txt",
           ".github/workflows/check-requirements-txt.yml",
           "release/kfpr/steps.py",
@@ -116,7 +117,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "55518d8ecf1b26ffc5858b7442a5a7000f6b4f3ed0da9686a7cddd062d2d1f56",
+      "header_sha256": "154fb1fa1f854e7be7ba13c783e53deb887e22df9415e9744a1fb018e4a48e4d",
       "pull_request": null
     },
     {
