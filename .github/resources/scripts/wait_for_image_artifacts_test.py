@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import textwrap
 from typing import Optional
@@ -35,6 +37,49 @@ ARTIFACTS = (
 )
 
 
+def artifact_record(name,
+                    *,
+                    artifact_id=None,
+                    created_at='2026-10-11T12:01:00Z',
+                    expired=False):
+    return {
+        'name':
+            name,
+        'id':
+            artifact_id if artifact_id is not None else ARTIFACTS.index(name) +
+            1,
+        'created_at':
+            created_at,
+        'expired':
+            expired,
+    }
+
+
+def producer_record(name,
+                    *,
+                    attempt=1,
+                    status='completed',
+                    conclusion='success',
+                    started_at='2026-10-11T12:00:00Z'):
+    return {
+        'name': ('build / runtime-base-images' if name == 'runtime-base-images'
+                 else f'build / image-build ({name}, Dockerfile, .)'),
+        'id': 100 * attempt + ARTIFACTS.index(name),
+        'run_attempt': attempt,
+        'status': status,
+        'conclusion': conclusion,
+        'started_at': started_at,
+    }
+
+
+def callback_calls(result):
+    return [
+        line.split()
+        for line in result.stdout.splitlines()
+        if line.startswith('CALLBACK ')
+    ]
+
+
 class WaitForImageArtifactsTest(unittest.TestCase):
 
     def _run(
@@ -44,7 +89,11 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
+        jobs_api_fails_on: tuple[int, ...] = (),
         artifacts_api_fails_on: tuple[int, ...] = (),
+        artifact_snapshots=None,
+        job_snapshots=None,
+        run_attempt: str = '1',
         use_callback: bool = False,
         callback_exit: int = 0,
         missing_artifact: str = 'frontend',
@@ -57,32 +106,67 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             fake_bin.mkdir()
             counter = root / 'counter'
             counter.write_text('0', encoding='utf-8')
+            jobs = [
+                producer_record(name, attempt=int(run_attempt))
+                for name in ARTIFACTS
+            ]
+            for name, status, conclusion in producer_jobs:
+                matches = [
+                    job for job in jobs
+                    if job['name'].split(',')[0] == name.split(',')[0]
+                ]
+                job = matches[0] if matches else {
+                    'id': 999,
+                    'run_attempt': int(run_attempt),
+                    'started_at': '2026-10-11T12:00:00Z'
+                }
+                job.update(
+                    name=name, status=status, conclusion=conclusion or None)
+                if not matches:
+                    jobs.append(job)
+            fixtures = root / 'fixtures.json'
+            fixtures.write_text(
+                json.dumps({
+                    'artifacts': [artifact_record(name) for name in ARTIFACTS],
+                    'jobs': jobs,
+                    'artifact_snapshots': artifact_snapshots,
+                    'job_snapshots': job_snapshots,
+                }))
             fake_gh = fake_bin / 'gh'
             fake_gh.write_text(
-                textwrap.dedent('''\
-                    #!/usr/bin/env bash
-                    if [[ "$*" == *"/jobs?"* ]]; then
-                      if [[ "$JOBS_API_FAILS" == "true" ]]; then
-                        exit 1
-                      fi
-                      printf '%s\n' "$PRODUCER_JOBS"
-                      exit 0
-                    fi
-                    count=$(cat "$GH_COUNTER")
-                    count=$((count + 1))
-                    echo "$count" > "$GH_COUNTER"
-                    if [[ " $ARTIFACTS_API_FAILS_ON " == *" $count "* ]]; then
-                      exit 1
-                    fi
-                    if (( count >= READY_AFTER )); then
-                      printf '%s\n' $ARTIFACT_NAMES
-                    else
-                      for artifact in $ARTIFACT_NAMES; do
-                        if [[ "$artifact" != "$MISSING_ARTIFACT" ]]; then
-                          echo "$artifact"
-                        fi
-                      done
-                    fi
+                f'#!{sys.executable}\n' + textwrap.dedent('''\
+                    import json
+                    import os
+                    from pathlib import Path
+                    import sys
+
+                    data = json.loads(Path(os.environ['FIXTURES']).read_text())
+                    counter = Path(os.environ['GH_COUNTER'])
+                    count = int(counter.read_text())
+                    ready = int(os.environ['READY_AFTER'])
+                    if '/jobs?' in ' '.join(sys.argv):
+                        expected = f"/attempts/{os.environ['GITHUB_RUN_ATTEMPT']}/jobs?"
+                        if expected not in ' '.join(sys.argv):
+                            sys.exit('Expected attempt-specific producer jobs')
+                        if os.environ['JOBS_API_FAILS'] == 'true' or str(count) in os.environ['JOBS_API_FAILS_ON'].split():
+                            sys.exit(1)
+                        snapshots = data['job_snapshots']
+                        records = snapshots[min(count - 1, len(snapshots) - 1)] if snapshots else data['jobs']
+                        if snapshots is None and count >= ready:
+                            for record in records:
+                                if record['status'] in ('queued', 'in_progress'):
+                                    record.update(status='completed', conclusion='success')
+                    else:
+                        count += 1
+                        counter.write_text(str(count))
+                        if str(count) in os.environ['ARTIFACTS_API_FAILS_ON'].split():
+                            sys.exit(1)
+                        snapshots = data['artifact_snapshots']
+                        records = snapshots[min(count - 1, len(snapshots) - 1)] if snapshots else data['artifacts']
+                        if snapshots is None and count < ready:
+                            records = [record for record in records if record['name'] != os.environ['MISSING_ARTIFACT']]
+                    for record in records:
+                        print(json.dumps(record))
                 '''),
                 encoding='utf-8',
             )
@@ -94,23 +178,24 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 'ARTIFACTS_API_FAILS_ON':
                     ' '.join(
                         str(attempt) for attempt in artifacts_api_fails_on),
-                'ARTIFACT_NAMES':
-                    ' '.join(ARTIFACTS),
+                'FIXTURES':
+                    str(fixtures),
                 'GH_COUNTER':
                     str(counter),
                 'GITHUB_REPOSITORY':
                     'kubeflow/pipelines',
                 'GITHUB_RUN_ID':
                     '123',
+                'GITHUB_RUN_ATTEMPT':
+                    run_attempt,
                 'JOBS_API_FAILS':
                     str(jobs_api_fails).lower(),
+                'JOBS_API_FAILS_ON':
+                    ' '.join(str(attempt) for attempt in jobs_api_fails_on),
                 'MISSING_ARTIFACT':
                     missing_artifact,
                 'PATH':
                     f'{fake_bin}{os.pathsep}{environment["PATH"]}',
-                'PRODUCER_JOBS':
-                    '\n'.join('\t'.join(producer_job)
-                              for producer_job in producer_jobs),
                 'READY_AFTER':
                     str(ready_after),
                 'WAIT_INTERVAL_SECONDS':
@@ -141,6 +226,173 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             )
             return result, int(counter.read_text(encoding='utf-8'))
 
+    def test_duplicate_names_select_newest_nonexpired_artifact_id(self):
+        artifacts = [artifact_record(name) for name in ARTIFACTS]
+        artifacts.extend([
+            artifact_record(
+                'frontend',
+                artifact_id=40,
+                created_at='2026-10-11T12:02:00.500Z'),
+            artifact_record(
+                'frontend',
+                artifact_id=41,
+                created_at='2026-10-11T14:02:00.500+02:00'),
+            artifact_record(
+                'frontend', artifact_id=900, created_at='2026-10-11T12:02:00Z'),
+            artifact_record(
+                'frontend',
+                artifact_id=901,
+                created_at='2026-10-11T13:00:00Z',
+                expired=True),
+        ])
+        result, attempts = self._run(
+            ready_after=1, use_callback=True, artifact_snapshots=[artifacts])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = callback_calls(result)
+        self.assertEqual(attempts, 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            [token for token in calls[0][2:] if token.startswith('frontend:')],
+            ['frontend:41'])
+
+    def test_rerun_waits_for_active_producer_and_fresh_publication(self):
+        old_artifacts = [artifact_record(name) for name in ARTIFACTS]
+        new_artifacts = old_artifacts + [
+            artifact_record(
+                'frontend', artifact_id=404, created_at='2026-10-11T13:01:00Z')
+        ]
+        snapshots = []
+        for status, conclusion, started in (('queued', None,
+                                             None), ('in_progress', None,
+                                                     '2026-10-11T13:00:00Z'),
+                                            ('completed', 'success',
+                                             '2026-10-11T13:00:00Z')):
+            jobs = [producer_record(name, attempt=2) for name in ARTIFACTS]
+            jobs[3] = producer_record(
+                'frontend',
+                attempt=2,
+                status=status,
+                conclusion=conclusion,
+                started_at=started)
+            snapshots.append(jobs)
+        result, attempts = self._run(
+            ready_after=1,
+            use_callback=True,
+            run_attempt='2',
+            artifact_snapshots=[
+                old_artifacts, old_artifacts, old_artifacts, new_artifacts
+            ],
+            job_snapshots=snapshots)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = callback_calls(result)
+        self.assertEqual(attempts, 4)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][1], '1')
+        self.assertFalse(
+            any(token.startswith('frontend:') for token in calls[0][2:]))
+        self.assertEqual(calls[1], ['CALLBACK', '4', 'frontend:404'])
+        self.assertIn(
+            'Extending image artifact wait; active producers: frontend',
+            result.stdout)
+
+    def test_failed_job_only_rerun_reuses_retained_successful_producers(self):
+        # GitHub copies successful jobs into attempt 2 with new IDs but keeps
+        # their original started_at. Their attempt-1 artifacts remain valid.
+        jobs = [producer_record(name, attempt=2) for name in ARTIFACTS]
+        result, attempts = self._run(
+            ready_after=1,
+            use_callback=True,
+            run_attempt='2',
+            job_snapshots=[jobs])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(attempts, 1)
+        self.assertCountEqual(
+            callback_calls(result)[0][2:],
+            [f'{name}:{index + 1}' for index, name in enumerate(ARTIFACTS)])
+
+    def test_old_attempt_job_snapshot_cannot_admit_existing_artifacts(self):
+        jobs = [[producer_record(name, attempt=attempt)
+                 for name in ARTIFACTS]
+                for attempt in (1, 2)]
+        result, attempts = self._run(
+            ready_after=1,
+            use_callback=True,
+            run_attempt='2',
+            job_snapshots=jobs)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(attempts, 2)
+        calls = callback_calls(result)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1], '2')
+
+    def test_failed_producer_cannot_admit_an_existing_artifact(self):
+        result, attempts = self._run(
+            ready_after=1,
+            use_callback=True,
+            producer_jobs=(('build / image-build (frontend, Dockerfile, .)',
+                            'completed', 'failure'),))
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(attempts, 2)
+        self.assertIn('frontend:failure', result.stderr)
+        self.assertFalse(
+            any(
+                token.startswith('frontend:')
+                for call in callback_calls(result)
+                for token in call[2:]))
+
+    def test_existing_artifacts_do_not_bypass_jobs_api_failure(self):
+        result, attempts = self._run(
+            ready_after=1, attempts=1, use_callback=True, jobs_api_fails=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(attempts, 2)
+        self.assertEqual(callback_calls(result), [])
+
+    def test_malformed_metadata_never_emits_a_partial_ready_batch(self):
+        for kind, field, value in (('artifact', 'id', '8'),
+                                   ('artifact', 'created_at',
+                                    'not-a-date'), ('artifact', 'created_at',
+                                                    '2026-10-11T12:01:00'),
+                                   ('artifact', 'expired',
+                                    None), ('job', 'started_at', None),
+                                   ('job', 'run_attempt', None)):
+            with self.subTest(kind=kind, field=field, value=value):
+                artifacts = [artifact_record(name) for name in ARTIFACTS]
+                jobs = [producer_record(name) for name in ARTIFACTS]
+                records = artifacts if kind == 'artifact' else jobs
+                records[-1][field] = value
+                result, _ = self._run(
+                    ready_after=1,
+                    attempts=1,
+                    use_callback=True,
+                    artifact_snapshots=[artifacts],
+                    job_snapshots=[jobs],
+                    producer_state_unavailable_extensions=0)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(callback_calls(result), [])
+                self.assertIn('Cannot safely select image artifacts',
+                              result.stderr)
+
+    def test_changed_artifact_id_is_reimported_while_waiting(self):
+        initial = [
+            artifact_record(name) for name in ARTIFACTS if name != 'frontend'
+        ]
+        replaced = [record for record in initial if record['name'] != 'driver']
+        replaced.append(
+            artifact_record(
+                'driver', artifact_id=66, created_at='2026-10-11T12:02:00Z'))
+        complete = replaced + [artifact_record('frontend')]
+        result, attempts = self._run(
+            ready_after=1,
+            attempts=4,
+            use_callback=True,
+            artifact_snapshots=[initial, replaced, complete])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = callback_calls(result)
+        self.assertEqual(attempts, 3)
+        self.assertIn('driver:6', calls[0])
+        self.assertEqual(calls[1], ['CALLBACK', '2', 'driver:66'])
+        self.assertEqual(calls[2], ['CALLBACK', '3', 'frontend:4'])
+
     def test_prepares_visible_artifacts_before_last_producer_finishes(self):
         result, attempts = self._run(
             ready_after=3, use_callback=True, attempts=4)
@@ -152,9 +404,11 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         ]
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0][1], '1')
-        self.assertCountEqual(
-            calls[0][2:], [name for name in ARTIFACTS if name != 'frontend'])
-        self.assertEqual(calls[1], ['CALLBACK', '3', 'frontend'])
+        self.assertCountEqual(calls[0][2:], [
+            f'{name}:{ARTIFACTS.index(name) + 1}' for name in ARTIFACTS
+            if name != 'frontend'
+        ])
+        self.assertEqual(calls[1], ['CALLBACK', '3', 'frontend:4'])
         self.assertEqual(attempts, 3)
 
     def test_callback_failure_stops_before_readiness_success(self):
@@ -182,9 +436,11 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             if line.startswith('CALLBACK ')
         ]
         self.assertEqual(len(calls), 2)
-        self.assertCountEqual(
-            calls[0][2:], [name for name in ARTIFACTS if name != 'frontend'])
-        self.assertEqual(calls[1], ['CALLBACK', '3', 'frontend'])
+        self.assertCountEqual(calls[0][2:], [
+            f'{name}:{ARTIFACTS.index(name) + 1}' for name in ARTIFACTS
+            if name != 'frontend'
+        ])
+        self.assertEqual(calls[1], ['CALLBACK', '3', 'frontend:4'])
         self.assertEqual(attempts, 3)
 
     def test_partial_import_does_not_hide_missing_producer_failure(self):
@@ -265,7 +521,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             ready_after=99,
             attempts=2,
             producer_jobs=((
-                'build / image-build (apiserver, backend/Dockerfile, .)',
+                'unrelated workflow job',
                 'in_progress',
                 '',
             ),),
@@ -325,7 +581,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(
             ready_after=2,
             attempts=1,
-            jobs_api_fails=True,
+            jobs_api_fails_on=(1,),
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
