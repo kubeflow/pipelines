@@ -82,7 +82,7 @@ func transferTestArchive(t *testing.T) []byte {
 		&model.Pipeline{UUID: "source-pipeline", Name: "training", Namespace: "team", Status: model.PipelineReady},
 		&model.PipelineVersion{UUID: "source-version", Name: "v1", PipelineId: "source-pipeline", PipelineSpec: model.LargeText(v2SpecHelloWorld), Status: model.PipelineVersionReady, CreatedAtInSec: 20},
 		&model.PipelineVersion{UUID: "unused-version", Name: "unused", PipelineId: "source-pipeline", PipelineSpec: model.LargeText(v2SpecHelloWorld), Status: model.PipelineVersionReady, CreatedAtInSec: 10},
-		&model.Job{UUID: "source-job", DisplayName: "nightly", Namespace: "team", ExperimentId: "source-exp", Enabled: true, MaxConcurrency: 1, Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{IntervalSecond: &interval}}, PipelineSpec: model.PipelineSpec{PipelineId: "source-pipeline", PipelineVersionId: "source-version", RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "s3://existing/root"}}},
+		&model.Job{UUID: "source-job", DisplayName: "nightly", Namespace: "team", ExperimentId: "source-exp", Enabled: true, MaxConcurrency: 1, Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{IntervalSecond: &interval}}, PipelineSpec: model.PipelineSpec{PipelineId: "source-pipeline", PipelineVersionId: "source-version", PipelineName: "training", RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "s3://existing/root"}}},
 	}
 	for _, v := range values {
 		require.NoError(t, db.Omit(clause.Associations).Create(v).Error)
@@ -134,6 +134,8 @@ func TestTransferScheduleLifecycleAndCatalog(t *testing.T) {
 			require.NoError(t, db.Find(&jobs).Error)
 			require.Len(t, jobs, 1)
 			job := jobs[0]
+			require.Equal(t, "training", job.PipelineName)
+			require.JSONEq(t, `{"text":"world"}`, string(job.RuntimeConfig.Parameters))
 			swf, err := cs.ScheduledworkflowV1beta1().ScheduledWorkflows("team").Get(ctx, job.K8SName, metav1.GetOptions{})
 			require.NoError(t, err)
 			require.Equal(t, job.UUID, string(swf.UID))
@@ -215,6 +217,7 @@ func TestTransferInlineOnlyScheduleRetainsExecutableWorkflow(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &b))
 	b.Schedules[0].PipelineId = ""
 	b.Schedules[0].PipelineVersionId = ""
+	b.Schedules[0].PipelineName = ""
 	b.Schedules[0].PipelineSpecManifest = model.LargeText(v2SpecHelloWorld)
 	data, err := json.Marshal(b)
 	require.NoError(t, err)
