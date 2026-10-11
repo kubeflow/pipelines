@@ -33,6 +33,90 @@ from kfp.dsl import pipeline_context
 import yaml
 
 
+class TestPipelineLookupScope(parameterized.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.runner = testing.CliRunner()
+        self.client = self.enterContext(
+            mock.patch('kfp.cli.cli.client.Client')).return_value
+        self.enterContext(mock.patch('kfp.cli.output.print_output'))
+        self.package = self.enterContext(
+            tempfile.NamedTemporaryFile(suffix='.yaml')).name
+
+    def invoke(self, command, options):
+        args = ['--namespace', 'run-ns']
+        if command == 'version':
+            args += [
+                'pipeline', 'create-version', self.package,
+                '--pipeline-version', 'v2'
+            ]
+        else:
+            args += [
+                'run', 'create', '--experiment-name', 'experiment', '--version',
+                'version-id'
+            ]
+        return self.runner.invoke(cli.cli, args + options, obj={})
+
+    @parameterized.product(
+        command=['version', 'run'], namespace=[None, 'team-a', ''])
+    def test_explicit_scope_and_shared_default(self, command, namespace):
+        self.client.get_pipeline_id.return_value = 'pipeline-id'
+        options = ['--pipeline-name', 'training']
+        if namespace is not None:
+            options += ['--pipeline-namespace', namespace]
+        result = self.invoke(command, options)
+        self.assertEqual(result.exit_code, 0, result.exception)
+        self.client.get_pipeline_id.assert_called_once_with(
+            name='training', namespace=namespace)
+        operation = self.client.upload_pipeline_version if command == 'version' else self.client.run_pipeline
+        operation.assert_called_once()
+        self.assertEqual(operation.call_args.kwargs['pipeline_id'],
+                         'pipeline-id')
+        if command == 'run':
+            self.assertEqual(operation.call_args.kwargs['version_id'],
+                             'version-id')
+
+    @parameterized.product(
+        command=['version', 'run'], namespace=[None, 'team-a'])
+    def test_missing_name_has_actionable_error_without_mutation(
+            self, command, namespace):
+        self.client.get_pipeline_id.return_value = None
+        options = ['--pipeline-name', 'training']
+        if namespace is not None:
+            options += ['--pipeline-namespace', namespace]
+        result = self.invoke(command, options)
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn('was not found', result.output)
+        self.assertIn('team-a' if namespace else 'shared pipelines',
+                      result.output)
+        self.assertIn('--pipeline-namespace', result.output)
+        self.assertIn('--pipeline-id', result.output)
+        self.client.get_pipeline_id.assert_called_once_with(
+            name='training', namespace=namespace)
+        self.client.create_experiment.assert_not_called()
+        self.client.run_pipeline.assert_not_called()
+        self.client.upload_pipeline_version.assert_not_called()
+
+    @parameterized.parameters('version', 'run')
+    def test_id_bypasses_name_lookup(self, command):
+        result = self.invoke(command, ['--pipeline-id', 'pipeline-id'])
+        self.assertEqual(result.exit_code, 0, result.exception)
+        self.client.get_pipeline_id.assert_not_called()
+
+    @parameterized.parameters('version', 'run')
+    def test_scope_with_id_is_rejected(self, command):
+        result = self.invoke(
+            command,
+            ['--pipeline-id', 'pipeline-id', '--pipeline-namespace', 'team-a'])
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('--pipeline-name', result.output)
+        self.client.get_pipeline_id.assert_not_called()
+        self.client.create_experiment.assert_not_called()
+        self.client.run_pipeline.assert_not_called()
+        self.client.upload_pipeline_version.assert_not_called()
+
+
 class TestCliNounAliases(unittest.TestCase):
 
     def setUp(self):
