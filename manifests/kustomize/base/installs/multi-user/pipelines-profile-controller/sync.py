@@ -622,8 +622,11 @@ def server_factory(frontend_image,
 
         def log_request(self, code="-", size="-"):
             # Skip probe requests so they don't flood the controller logs.
-            # Malformed requests are logged before `path` is set.
-            if getattr(self, "path", "").split("?", 1)[0] != HEALTHZ_PATH:
+            # Malformed requests are logged before `command`/`path` are set.
+            is_probe = (
+                getattr(self, "command", None) == "GET" and
+                getattr(self, "path", "").split("?", 1)[0] == HEALTHZ_PATH)
+            if not is_probe:
                 super().log_request(code, size)
 
         def do_POST(self):

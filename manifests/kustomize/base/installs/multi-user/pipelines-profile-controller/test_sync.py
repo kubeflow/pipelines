@@ -287,6 +287,25 @@ def test_healthz_is_not_logged(start_sync_server, capsys):
     assert "/unknown" in logs
 
 
+def test_post_to_healthz_path_is_logged(start_sync_server, capsys):
+    server = start_minimal_server(start_sync_server)
+    host, port = server.server_address
+    with mock.patch.object(
+            server.RequestHandlerClass, "sync",
+            lambda handler, parent, attachments: {
+                "status": {},
+                "attachments": []
+            }):
+        requests.post(
+            f"http://{host}:{port}/healthz",
+            json={
+                "object": PARENT,
+                "attachments": {}
+            },
+            timeout=5).raise_for_status()
+    assert '"POST /healthz' in capsys.readouterr().err
+
+
 def test_healthz_responds_during_slow_sync(start_sync_server):
     server = start_minimal_server(start_sync_server)
     sync_started = threading.Event()
