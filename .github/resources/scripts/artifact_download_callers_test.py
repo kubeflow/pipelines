@@ -34,6 +34,7 @@ WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
     ('.github/actions/deploy/action.yml', 'composite'),  # Runtime images
     ('.github/actions/deploy/action.yml', 'composite'),  # Branch images
+    ('.github/workflows/legacy-native-transfer.yml', 'destination'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
@@ -54,6 +55,28 @@ def workflow(name):
 
 
 class ArtifactDownloadCallersTest(unittest.TestCase):
+    def test_legacy_transfer_reruns_replace_evidence_and_reuse_source(self):
+        jobs = workflow('legacy-native-transfer.yml')['jobs']
+        uploads = []
+        for name in ('source', 'destination'):
+            upload = next(
+                step
+                for step in jobs[name]['steps']
+                if step.get('uses', '').startswith('actions/upload-artifact@')
+            )
+            self.assertTrue(upload['with']['overwrite'])
+            uploads.append(upload['with']['name'])
+        self.assertNotEqual(uploads[0], uploads[1])
+        download = next(
+            step
+            for step in jobs['destination']['steps']
+            if step.get('uses') == WRAPPER
+        )
+        self.assertEqual(uploads[0], download['with']['name'])
+        # Failed-only destination reruns must still find the successful source
+        # artifact from the previous run attempt.
+        self.assertNotIn('github.run_attempt', download['with']['name'])
+
     def required_files(
         self, filename, job, context=None, cwd=ROOT, caller_index=0
     ):

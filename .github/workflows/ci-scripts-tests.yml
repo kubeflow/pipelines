@@ -105,6 +105,9 @@ on:
       - 'third_party/argo/Makefile'
       - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
+      - 'third_party/ml-metadata/update_version.sh'
+      - 'third_party/ml-metadata/VERSION'
+      - 'third_party/ml-metadata/Makefile'
       - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
 
 permissions:
