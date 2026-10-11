@@ -1252,6 +1252,19 @@ func (wfi *WorkflowInterface) List(ctx context.Context, opts metav1.ListOptions)
 	return &rev, nil
 }
 
+// ListPage preserves the API continuation needed by bounded execution inventories.
+func (wfi *WorkflowInterface) ListPage(ctx context.Context, opts metav1.ListOptions) (ExecutionSpecList, string, error) {
+	wlist, err := wfi.workflowInterface.List(ctx, opts)
+	if err != nil {
+		return nil, "", err
+	}
+	result := make(ExecutionSpecList, 0, len(wlist.Items))
+	for _, workflow := range wlist.Items {
+		result = append(result, &Workflow{Workflow: &workflow})
+	}
+	return result, wlist.Continue, nil
+}
+
 func (wfi *WorkflowInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (ExecutionSpec, error) {
 	revWorkflow, err := wfi.workflowInterface.Patch(ctx, name, pt, data, opts, subresources...)
 	if err != nil {

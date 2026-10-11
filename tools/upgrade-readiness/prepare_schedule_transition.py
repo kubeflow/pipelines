@@ -38,7 +38,8 @@ PREVIOUS = {
 
 def cases_for_transition(fixture, previous, phase):
     if (phase not in PREVIOUS or fixture.get('enabled') is not False or
-            not fixture.get('recreated') or not fixture.get('prepared') or
+            not (fixture.get('recreated') or fixture.get('adopted')) or
+            not fixture.get('prepared') or
             previous.get('mode') != PREVIOUS[phase] or
             previous.get('scope') != 'fixture_run_completion' or
             previous.get('outcome') != 'passed' or

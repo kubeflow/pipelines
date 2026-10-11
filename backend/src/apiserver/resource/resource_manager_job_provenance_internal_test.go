@@ -143,9 +143,9 @@ func TestChangeJobMode_UsesSelectedPipelineProvenance(t *testing.T) {
 			if test.wantAllowed {
 				assert.True(t, after.Enabled)
 				assert.True(t, afterSchedule.Spec.Enabled)
-				assert.Equal(t, 1, patchCounter.patchCalls)
+				assert.Equal(t, 1, patchCounter.patchCalls+patchCounter.updateCalls)
 			} else {
-				assert.Zero(t, patchCounter.patchCalls, "authorization must precede ScheduledWorkflow changes")
+				assert.Zero(t, patchCounter.patchCalls+patchCounter.updateCalls, "authorization must precede ScheduledWorkflow changes")
 				assert.Equal(t, before, after, "authorization must precede persisted job changes")
 				assert.Equal(t, beforeSchedule, afterSchedule)
 			}
@@ -157,6 +157,12 @@ func TestChangeJobMode_UsesSelectedPipelineProvenance(t *testing.T) {
 // schedules are generic. Seed that representation explicitly for migration checks.
 func seedHistoricalEmbeddedSchedule(t *testing.T, manager *ResourceManager, job *model.Job) {
 	t.Helper()
+	// Simulate pre-upgrade SQL provenance as well as the embedded CR. A newly
+	// created native scheduling state/receipt would already be authoritative.
+	db, err := manager.recurringRunAdoptionDB(context.Background())
+	require.NoError(t, err)
+	require.NoError(t, db.Delete(&model.RecurringRunState{}, &model.RecurringRunState{JobUUID: job.UUID}).Error)
+	require.NoError(t, db.Delete(&model.RecurringRunAdoption{}, &model.RecurringRunAdoption{ID: "legacy-2.18:" + job.UUID}).Error)
 	tmpl, _, err := manager.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
 	require.NoError(t, err)
 	rendered, err := tmpl.ScheduledWorkflow(job)

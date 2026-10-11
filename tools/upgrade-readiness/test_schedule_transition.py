@@ -66,6 +66,15 @@ class TransitionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 cases_for_transition(fixture, previous, phase)
 
+    def test_adopted_original_ids_support_all_policy_transitions(self):
+        for phase in PREVIOUS:
+            fixture, previous = self.fixture(phase)
+            fixture.pop('recreated')
+            fixture['adopted'] = True
+            cases = cases_for_transition(fixture, previous, phase)['cases']
+            self.assertEqual({c['schedule_uid'] for c in cases},
+                             {c['schedule_uid'] for c in fixture['schedules']})
+
     def test_inflight_failed_wrong_identity_and_stale_phase_fail_closed(self):
         for change in ('running', 'failed', 'identity', 'phase', 'enabled',
                        'extra_run'):

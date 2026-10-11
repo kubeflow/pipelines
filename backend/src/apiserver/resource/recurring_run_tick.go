@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduleutil "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -112,17 +113,38 @@ func (r *ResourceManager) getRetainedRecurringRunTick(run *model.Run, job *model
 		}, nil
 	}
 	if state.LastRunIndex > 0 && state.RequestKey == run.DisplayName {
+		// Legacy reporter recovery can retain the compiled workflow name instead
+		// of the controller request key. Adoption preserves its actual run ID.
+		if state.LastRunUUID != "" && !state.Pending {
+			existing, err := r.runStore.GetRun(state.LastRunUUID)
+			if err == nil {
+				if existing.RecurringRunId != job.UUID || existing.Namespace != run.Namespace {
+					return nil, util.NewFailedPreconditionError(fmt.Errorf("adopted execution identity differs"),
+						"Restore the adopted recurring run's execution metadata before retrying")
+				}
+				run.PipelineVersionId = existing.PipelineVersionId
+				return &recurringRunTick{index: state.LastRunIndex, scheduledAt: existing.ScheduledAtInSec,
+					createdAt: existing.CreatedAtInSec, replay: existing}, nil
+			}
+			if !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+				return nil, err
+			}
+		}
 		run.PipelineVersionId = state.PipelineVersionID
 		tick := &recurringRunTick{
 			previousIndex: state.LastRunIndex - 1, index: state.LastRunIndex,
 			scheduledAt: state.LastScheduledAtInSec, createdAt: state.LastCreatedAtInSec,
 		}
 		if !state.Pending {
+			runID := state.LastRunUUID
+			if runID == "" {
+				runID = util.NewDeterministicUUID(job.UUID + "/tick/" + strconv.FormatInt(state.LastRunIndex, 10))
+			}
 			// The controller may not have acknowledged the tick before its run was
 			// deleted. Return retained metadata without recreating either resource.
 			// CreateRun still authorizes the caller before returning this replay.
 			tick.replay = &model.Run{
-				UUID:           util.NewDeterministicUUID(job.UUID + "/tick/" + strconv.FormatInt(state.LastRunIndex, 10)),
+				UUID:           runID,
 				DisplayName:    state.RequestKey,
 				RecurringRunId: job.UUID,
 				Namespace:      run.Namespace,

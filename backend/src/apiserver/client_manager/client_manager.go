@@ -309,7 +309,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.jobStore = jobStore
 	if common.IsMultiUserMode() {
 		if err := reportRecurringRunMigration(jobStore, glog.Warningf); err != nil {
-			glog.Errorf("recurring_run_migration inventory_failed: %v; run the operator-guide inventory before enabling recurring runs", err)
+			glog.Errorf("recurring_run_migration inventory_failed: %v; automatic adoption will retry inventory after API startup", err)
 		}
 	}
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid, c.dbDialect)

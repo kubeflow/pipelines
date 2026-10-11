@@ -16,8 +16,11 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +58,30 @@ func (c *FakeScheduledWorkflowClient) Delete(ctx context.Context, name string, o
 }
 
 func (c *FakeScheduledWorkflowClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
-	return nil, nil
+	current, err := c.Get(ctx, name, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	if pt != types.MergePatchType || len(subresources) != 0 {
+		return nil, fmt.Errorf("fake ScheduledWorkflow client only supports merge patches without subresources")
+	}
+	original, err := json.Marshal(current)
+	if err != nil {
+		return nil, err
+	}
+	patched, err := jsonpatch.MergePatch(original, data)
+	if err != nil {
+		return nil, err
+	}
+	var updated v1beta1.ScheduledWorkflow
+	if err := json.Unmarshal(patched, &updated); err != nil {
+		return nil, err
+	}
+	if updated.Name != current.Name || updated.Namespace != current.Namespace || updated.UID != current.UID {
+		return nil, fmt.Errorf("ScheduledWorkflow identity cannot be changed by a patch")
+	}
+	c.scheduledWorkflows[name] = &updated
+	return updated.DeepCopy(), nil
 }
 
 func (c *FakeScheduledWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (*v1beta1.ScheduledWorkflow, error) {

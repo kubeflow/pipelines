@@ -52,6 +52,38 @@ func TestFakeWorkflowClient_Create(t *testing.T) {
 	}
 }
 
+func TestFakeWorkflowClient_ListSnapshot(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+	for _, name := range []string{"b", "a", "other"} {
+		label := "schedule"
+		if name == "other" {
+			label = "another-schedule"
+		}
+		_, err := client.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{Name: name, Labels: map[string]string{"schedule": label}},
+		}), v1.CreateOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	listed, err := client.List(ctx, v1.ListOptions{LabelSelector: "schedule=schedule"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(*listed) != 2 || (*listed)[0].ExecutionName() != "a" || (*listed)[1].ExecutionName() != "b" {
+		t.Fatalf("unexpected filtered inventory: %v", listed)
+	}
+	(*listed)[0].ExecutionObjectMeta().Labels["schedule"] = "modified-copy"
+	stored, err := client.Get(ctx, "a", v1.GetOptions{})
+	if err != nil || stored.ExecutionObjectMeta().Labels["schedule"] != "schedule" {
+		t.Fatalf("List must return independent snapshots: %v", err)
+	}
+	if _, err := client.List(ctx, v1.ListOptions{LabelSelector: "invalid in ("}); err == nil {
+		t.Fatal("invalid selectors must fail")
+	}
+}
+
 func TestFakeWorkflowClient_CreateWithGenerateName(t *testing.T) {
 	client := NewWorkflowClientFake()
 	ctx := context.Background()
@@ -324,8 +356,8 @@ func TestFakeWorkflowClient_Stubs(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if list != nil {
-			t.Error("expected nil from unimplemented stub")
+		if list == nil || len(*list) != 0 {
+			t.Error("expected an empty workflow inventory")
 		}
 	})
 	t.Run("Watch", func(t *testing.T) {

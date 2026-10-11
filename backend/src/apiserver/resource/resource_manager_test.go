@@ -336,24 +336,32 @@ func (d *serviceAccountMutatingDispatcher) OnRunEnd(_ context.Context, run *apis
 
 type patchCountingSwfClient struct {
 	client.SwfClientInterface
-	patchCalls int
+	patchCalls  int
+	updateCalls int
 }
 
 func (c *patchCountingSwfClient) ScheduledWorkflow(namespace string) swfclientv1beta1.ScheduledWorkflowInterface {
 	return &patchCountingScheduledWorkflowClient{
 		ScheduledWorkflowInterface: c.SwfClientInterface.ScheduledWorkflow(namespace),
 		patchCalls:                 &c.patchCalls,
+		updateCalls:                &c.updateCalls,
 	}
 }
 
 type patchCountingScheduledWorkflowClient struct {
 	swfclientv1beta1.ScheduledWorkflowInterface
-	patchCalls *int
+	patchCalls  *int
+	updateCalls *int
 }
 
 func (c *patchCountingScheduledWorkflowClient) Patch(ctx context.Context, name string, patchType types.PatchType, data []byte, subresources ...string) (*swfapi.ScheduledWorkflow, error) {
 	*c.patchCalls++
 	return c.ScheduledWorkflowInterface.Patch(ctx, name, patchType, data, subresources...)
+}
+
+func (c *patchCountingScheduledWorkflowClient) Update(ctx context.Context, workflow *swfapi.ScheduledWorkflow) (*swfapi.ScheduledWorkflow, error) {
+	*c.updateCalls++
+	return c.ScheduledWorkflowInterface.Update(ctx, workflow)
 }
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
@@ -4425,7 +4433,7 @@ func TestEnableJob_ReauthorizesEmbeddedWorkflowServiceAccounts(t *testing.T) {
 	err = manager.ChangeJobMode(multiUserContext(), job.UUID, true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Unauthorized")
-	assert.Zero(t, patchCounter.patchCalls, "the ScheduledWorkflow must not be enabled when authorization fails")
+	assert.Zero(t, patchCounter.patchCalls+patchCounter.updateCalls, "the ScheduledWorkflow must not be enabled when authorization fails")
 	storedJob, getErr := manager.GetJob(job.UUID)
 	require.NoError(t, getErr)
 	assert.False(t, storedJob.Enabled)
