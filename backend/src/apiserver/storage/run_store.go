@@ -1857,15 +1857,7 @@ func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.Lar
 
 func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error) {
 	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-
-	query, args, err := qb.
-		Select(q("UUID")).
-		From(q("run_details")).
-		Where(sq.Eq{q("JobUUID"): recurringRunID, q("DisplayName"): displayName}).
-		OrderBy(q("CreatedAtInSec")+" DESC", q("UUID")+" DESC").
-		Limit(1).
-		ToSql()
+	query, args, err := s.dbDialect.FinalizeSelect(recurringRunReplayQuery(q, recurringRunID, displayName))
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to build query for idempotency check")
 	}

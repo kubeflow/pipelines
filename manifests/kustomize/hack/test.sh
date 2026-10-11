@@ -40,7 +40,8 @@ kustomization_yamls=(
 )
 for path in "${kustomization_yamls[@]}"
 do
-  kubectl kustomize "${MANIFESTS_DIR}/${path}" >/dev/null
+  kubectl kustomize "${MANIFESTS_DIR}/${path}" | yq read --tojson --doc '*' - | \
+    python3 "${DIR}/schedule_writer_rbac_test.py" standalone
 done
 
 # These kustomization.yaml folders expect using kustomize v3+.
@@ -60,6 +61,8 @@ do
         yq read --tojson --doc '*' - || exit 1
     fi
   } | python3 "${DIR}/profile_controller_networkpolicy_test.py"
+  kustomize build "${MANIFESTS_DIR}/${path}" | yq read --tojson --doc '*' - | \
+    python3 "${DIR}/schedule_writer_rbac_test.py" multi-user
 done
 
 python3 "${DIR}/tensorboard_signing_key_test.py"
