@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -33,7 +34,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"path/filepath"
 )
 
 func strPTR(s string) *string { return &s }
