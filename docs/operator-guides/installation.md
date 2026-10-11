@@ -18,6 +18,11 @@ if you use that integration. Existing 2.x releases are unchanged.
 > install. See the [releases page](https://github.com/kubeflow/pipelines/releases)
 > for available versions.
 
+Before upgrading a multi-user installation to 3.0, read the
+[recurring-run upgrade prerequisite](upgrade-3.0-schedules.md). Completing that
+prerequisite does not establish readiness for the separate MLMD migration or
+restore support for V1 pipelines.
+
 ## Deploying Kubeflow Pipelines
 
 ### 1. Deploy the Kubeflow Pipelines development flavor standalone and non-production for first experiments:

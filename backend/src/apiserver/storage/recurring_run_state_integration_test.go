@@ -63,6 +63,59 @@ func TestRecurringRunProductionDatabases(t *testing.T) {
 				return &model.Run{UUID: util.NewDeterministicUUID(id + "/tick/1"), DisplayName: key, RecurringRunId: id,
 					Namespace: "test", RunDetails: model.RunDetails{State: model.RuntimeStateRunning}}
 			}
+			t.Run("pending-receipt", func(t *testing.T) {
+				id := "pending-receipt"
+				createJob(t, id)
+				q := d.QuoteIdentifier
+				query, args, err := d.QueryBuilder().Update(q("recurring_run_adoptions")).Set(q("Ready"), false).Where(sq.Eq{q("ID"): "legacy-2.18:" + id}).ToSql()
+				require.NoError(t, err)
+				_, err = dbs[0].Exec(query, args...)
+				require.NoError(t, err)
+				_, err = jobs[1].ClaimRecurringRun(id, "tick", 0, 100, 110, "")
+				require.ErrorContains(t, err, "synchronization is pending")
+			})
+			t.Run("legacy-reference-capacity", func(t *testing.T) {
+				id := "legacy-reference-capacity"
+				createJob(t, id)
+				status, err := NewDBStatusStore(dbs[0], d)
+				require.NoError(t, err)
+				orm, err := status.TransferDB()
+				require.NoError(t, err)
+				run := &model.Run{UUID: "historical-active", DisplayName: "historical-tick", RunDetails: model.RunDetails{Conditions: "Running"}}
+				require.NoError(t, orm.Create(run).Error)
+				require.NoError(t, orm.Create(&model.ResourceReference{ResourceUUID: run.UUID, ResourceType: model.RunResourceType, ReferenceUUID: id, ReferenceType: model.JobResourceType}).Error)
+				replay, err := runs[1].GetRunByRecurringRunIDAndDisplayName(id, run.DisplayName)
+				require.NoError(t, err)
+				require.Equal(t, run.UUID, replay)
+				_, err = jobs[1].ClaimRecurringRun(id, "tick", 0, 100, 110, "")
+				require.ErrorContains(t, err, "maximum concurrency")
+			})
+
+			t.Run("startup-repair", func(t *testing.T) {
+				id := "startup-repair"
+				createJob(t, id)
+				status, err := NewDBStatusStore(dbs[0], d)
+				require.NoError(t, err)
+				orm, err := status.TransferDB()
+				require.NoError(t, err)
+				state, err := jobs[0].ClaimRecurringRun(id, "pending", 0, 100, 110, "")
+				require.NoError(t, err)
+				page, err := PrepareRecurringRunStartupRepairs(orm, "startup-", 1, 200)
+				require.NoError(t, err)
+				require.Len(t, page, 1)
+				require.Equal(t, id, page[0].ID)
+				receipt, err := GetLegacyRecurringRunAdoptionForJob(orm, id)
+				require.NoError(t, err)
+				require.False(t, receipt.Ready)
+				current, err := jobs[1].GetRecurringRunState(id)
+				require.NoError(t, err)
+				require.Equal(t, state, current)
+				_, err = jobs[1].ClaimRecurringRun(id, "pending", 0, 100, 110, "")
+				require.ErrorContains(t, err, "synchronization is pending")
+				next, err := PrepareRecurringRunStartupRepairs(orm, id, 1, 200)
+				require.NoError(t, err)
+				require.Empty(t, next)
+			})
 			for _, sameKey := range []bool{false, true} {
 				t.Run(fmt.Sprintf("concurrent-claims/same-key-%v", sameKey), func(t *testing.T) {
 					id := fmt.Sprintf("claims-%v", sameKey)
