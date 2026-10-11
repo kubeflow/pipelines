@@ -1,5 +1,6 @@
 import json
 import os
+import runpy
 import threading
 from unittest import mock
 
@@ -34,6 +35,55 @@ ENV_IMAGES = {
     "FRONTEND_TAG": "somehash",
     "ARTIFACTS_PROXY_ENABLED": "true",
 }
+
+
+@pytest.mark.parametrize("bundled", [False, True])
+def test_botocore_import_initializes_clients(bundled):
+    original_import = __import__
+    awscli_imported = False
+    botocore = mock.Mock()
+    session = botocore.session.get_session.return_value
+    session.create_client.side_effect = [mock.sentinel.s3, mock.sentinel.iam]
+
+    def import_package(name, *args, **kwargs):
+        nonlocal awscli_imported
+        if name == "awscli":
+            assert bundled, "Standalone botocore must not require awscli"
+            awscli_imported = True
+            return mock.sentinel.awscli
+        if name == "botocore.session":
+            if bundled and not awscli_imported:
+                raise ModuleNotFoundError(
+                    "No module named 'botocore'", name="botocore")
+            return botocore
+        return original_import(name, *args, **kwargs)
+
+    with mock.patch("builtins.__import__", side_effect=import_package):
+        loaded = runpy.run_path(sync.__file__, run_name="profile_import_test")
+
+    assert awscli_imported is bundled
+    assert loaded["s3"] is mock.sentinel.s3
+    assert loaded["iam"] is mock.sentinel.iam
+    assert [call.args[0] for call in session.create_client.call_args_list
+           ] == ["s3", "iam"]
+
+
+@pytest.mark.parametrize("missing_module", ["urllib3", "botocore.session"])
+def test_botocore_import_preserves_other_missing_modules(missing_module):
+    original_import = __import__
+    error = ModuleNotFoundError(
+        f"No module named '{missing_module}'", name=missing_module)
+
+    def import_package(name, *args, **kwargs):
+        if name == "botocore.session":
+            raise error
+        assert name != "awscli", "An unrelated import error must not fall back"
+        return original_import(name, *args, **kwargs)
+
+    with mock.patch("builtins.__import__", side_effect=import_package):
+        with pytest.raises(ModuleNotFoundError) as raised:
+            runpy.run_path(sync.__file__, run_name="profile_import_test")
+    assert raised.value is error
 
 
 def observed_attachments(proxy_enabled=False, ready=False):
