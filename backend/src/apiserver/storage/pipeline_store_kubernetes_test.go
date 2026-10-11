@@ -1,7 +1,11 @@
 package storage
 
 import (
+	"context"
+	"fmt"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -18,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
@@ -118,7 +123,7 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	require.Nil(t, err1, "Failed to create list options: %v")
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
-	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
+	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
 }
 
 func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
@@ -156,7 +161,7 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	require.NoError(t, err1)
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
-	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
+	require.Equalf(t, pipelines[0].Name, "test-pipeline-2", "Pagination failed")
 }
 
 func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
@@ -194,7 +199,7 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	require.NoError(t, err1)
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
-	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
+	require.Equalf(t, pipelines[0].Name, "test-pipeline-2", "Pagination failed")
 }
 
 func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
@@ -707,7 +712,7 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
-	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
+	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-1", "Pagination did not work as expected")
 }
 
 func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
@@ -1126,10 +1131,21 @@ func getClient() (client.Client, client.Client) {
 		},
 	}
 
+	// The API server assigns a UID on create; the fake client does not.
+	generatedUIDs := 0
 	k8sClient := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithStatusSubresource(pipelineVersion, pipelineVersion1, pipelineVersion2, pipelineVersion3).
 		WithObjects(pipeline3, pipelineVersion3).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				if obj.GetUID() == "" {
+					generatedUIDs++
+					obj.SetUID(types.UID(fmt.Sprintf("generated-uid-%d", generatedUIDs)))
+				}
+				return c.Create(ctx, obj, opts...)
+			},
+		}).
 		Build()
 
 	return k8sClient, k8sClient
@@ -1244,4 +1260,196 @@ func TestGetAnyK8sPipelineVersionId_FindsOwnedVersionWithStaleLabel(t *testing.T
 	pipelineVersionID, err := store.GetAnyPipelineVersionID(pipelineID)
 	require.NoError(t, err)
 	assert.Equal(t, string(stale.UID), pipelineVersionID)
+}
+
+func paginationTestPipelines(n int, sameTimestamp bool) []client.Object {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	objs := make([]client.Object, 0, n)
+	for i := 1; i <= n; i++ {
+		created := base
+		if !sameTimestamp {
+			created = base.Add(time.Duration(i) * time.Minute)
+		}
+		objs = append(objs, &v2beta1.Pipeline{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              fmt.Sprintf("p%d", i),
+				Namespace:         "Test",
+				UID:               types.UID(fmt.Sprintf("uid-%d", i)),
+				CreationTimestamp: metav1.NewTime(created),
+			},
+		})
+	}
+	return objs
+}
+
+func paginationTestScheme(t *testing.T) *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+	return scheme
+}
+
+// listAllPages pages until the token is empty, giving up after maxCalls.
+func listAllPages(t *testing.T, store *PipelineStoreKubernetes, sortBy string, pageSize, maxCalls int) (names []string, calls int) {
+	options, err := list.NewOptions(&model.Pipeline{}, pageSize, sortBy, nil)
+	require.NoError(t, err)
+	for calls < maxCalls {
+		calls++
+		page, _, npt, err := store.ListPipelines(&model.FilterContext{}, options)
+		require.NoError(t, err)
+		for _, p := range page {
+			names = append(names, p.Name)
+		}
+		if npt == "" {
+			return names, calls
+		}
+		options, err = list.NewOptionsFromToken(npt, pageSize)
+		require.NoError(t, err)
+	}
+	return names, calls
+}
+
+// The pipeline a page token points at is deleted before the next page is requested.
+func TestListK8sPipelines_Pagination_AnchorDeleted(t *testing.T) {
+	k8sClient := fake.NewClientBuilder().WithScheme(paginationTestScheme(t)).WithObjects(paginationTestPipelines(5, false)...).Build()
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	options, err := list.NewOptions(&model.Pipeline{}, 2, "name asc", nil)
+	require.NoError(t, err)
+	page1, _, npt, err := store.ListPipelines(&model.FilterContext{}, options)
+	require.NoError(t, err)
+	require.Equal(t, []string{"p1", "p2"}, []string{page1[0].Name, page1[1].Name})
+
+	// p3 is the first row of page 2, so it is what the token points at.
+	require.NoError(t, k8sClient.Delete(context.Background(), &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{Name: "p3", Namespace: "Test"},
+	}))
+
+	options, err = list.NewOptionsFromToken(npt, 2)
+	require.NoError(t, err)
+	page2, _, _, err := store.ListPipelines(&model.FilterContext{}, options)
+	require.NoError(t, err)
+	got := []string{}
+	for _, p := range page2 {
+		got = append(got, p.Name)
+	}
+	require.Equal(t, []string{"p4", "p5"}, got, "page 2 after its anchor was deleted")
+}
+
+// Pipelines share a creation timestamp and the cache returns them in a
+// different order on each List, as a Go map iteration does.
+func TestListK8sPipelines_Pagination_TiedSortValues(t *testing.T) {
+	calls := 0
+	k8sClient := fake.NewClientBuilder().WithScheme(paginationTestScheme(t)).WithObjects(paginationTestPipelines(6, true)...).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, c client.WithWatch, l client.ObjectList, opts ...client.ListOption) error {
+				if err := c.List(ctx, l, opts...); err != nil {
+					return err
+				}
+				calls++
+				if pl, ok := l.(*v2beta1.PipelineList); ok && calls%2 == 0 {
+					slices.Reverse(pl.Items)
+				}
+				return nil
+			},
+		}).Build()
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	names, n := listAllPages(t, store, "", 2, 10)
+	t.Logf("calls=%d names=%v", n, names)
+	sorted := slices.Clone(names)
+	slices.Sort(sorted)
+	require.Equal(t, []string{"p1", "p2", "p3", "p4", "p5", "p6"}, sorted, "every pipeline exactly once")
+}
+
+func paginationTestPipelineVersions(n int, sameTimestamp bool) []client.Object {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	objs := make([]client.Object, 0, n)
+	for i := 1; i <= n; i++ {
+		created := base
+		if !sameTimestamp {
+			created = base.Add(time.Duration(i) * time.Minute)
+		}
+		objs = append(objs, &v2beta1.PipelineVersion{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              fmt.Sprintf("v%d", i),
+				Namespace:         "Test",
+				UID:               types.UID(fmt.Sprintf("vuid-%d", i)),
+				CreationTimestamp: metav1.NewTime(created),
+				Labels:            map[string]string{"pipelines.kubeflow.org/pipeline-id": "uid-1"},
+			},
+			Spec: v2beta1.PipelineVersionSpec{PipelineSpec: getBasicPipelineSpec()},
+		})
+	}
+	return objs
+}
+
+func TestListK8sPipelineVersions_Pagination_AnchorDeleted(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+	k8sClient := fake.NewClientBuilder().WithScheme(paginationTestScheme(t)).WithObjects(paginationTestPipelineVersions(5, false)...).Build()
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	options, err := list.NewOptions(&model.PipelineVersion{}, 2, "name asc", nil)
+	require.NoError(t, err)
+	page1, _, npt, err := store.ListPipelineVersions("uid-1", options)
+	require.NoError(t, err)
+	require.Equal(t, []string{"v1", "v2"}, []string{page1[0].Name, page1[1].Name})
+
+	require.NoError(t, k8sClient.Delete(context.Background(), &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{Name: "v3", Namespace: "Test"},
+	}))
+
+	options, err = list.NewOptionsFromToken(npt, 2)
+	require.NoError(t, err)
+	page2, _, _, err := store.ListPipelineVersions("uid-1", options)
+	require.NoError(t, err)
+	got := []string{}
+	for _, v := range page2 {
+		got = append(got, v.Name)
+	}
+	require.Equal(t, []string{"v4", "v5"}, got, "page 2 after its anchor was deleted")
+}
+
+func TestListK8sPipelineVersions_Pagination_TiedSortValues(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+	calls := 0
+	k8sClient := fake.NewClientBuilder().WithScheme(paginationTestScheme(t)).WithObjects(paginationTestPipelineVersions(6, true)...).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, c client.WithWatch, l client.ObjectList, opts ...client.ListOption) error {
+				if err := c.List(ctx, l, opts...); err != nil {
+					return err
+				}
+				calls++
+				if vl, ok := l.(*v2beta1.PipelineVersionList); ok && calls%2 == 0 {
+					slices.Reverse(vl.Items)
+				}
+				return nil
+			},
+		}).Build()
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	options, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+	require.NoError(t, err)
+	names := []string{}
+	n := 0
+	for n < 10 {
+		n++
+		page, _, npt, err := store.ListPipelineVersions("uid-1", options)
+		require.NoError(t, err)
+		for _, v := range page {
+			names = append(names, v.Name)
+		}
+		if npt == "" {
+			break
+		}
+		options, err = list.NewOptionsFromToken(npt, 2)
+		require.NoError(t, err)
+	}
+	t.Logf("calls=%d names=%v", n, names)
+	sorted := slices.Clone(names)
+	slices.Sort(sorted)
+	require.Equal(t, []string{"v1", "v2", "v3", "v4", "v5", "v6"}, sorted, "every version exactly once")
 }
