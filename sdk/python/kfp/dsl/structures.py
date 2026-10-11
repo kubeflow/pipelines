@@ -363,7 +363,7 @@ _RETRY_POLICY_MAP = {
 
 @dataclasses.dataclass
 class RetryPolicy:
-    """The retry policy of a container execution.
+    """The retry policy for eligible task drivers and container executors.
 
     Attributes:
         num_retries (int): Number of times to retry on failure.
@@ -378,9 +378,9 @@ class RetryPolicy:
             report no exit code, such as deletion or node loss;
             ``'OnTransientError'`` retries either when the failure message
             matches the controller's transient-error pattern; ``'Always'``
-            retries both. Defaults to ``None``, which omits the policy so the
-            deployment's Argo configuration applies; KFP's bundled manifests
-            set ``'OnError'``.
+            retries both. Defaults to ``None``, which selects ``'Always'`` for
+            eligible drivers and leaves the executor policy to the deployment's
+            Argo configuration; KFP's bundled manifests set ``'OnError'``.
     """
     max_retry_count: Optional[int] = None
     backoff_duration: Optional[str] = None

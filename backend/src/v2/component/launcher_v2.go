@@ -103,6 +103,9 @@ type OutputPropagationOptions struct {
 	ParentTask   *apiV2beta1.PipelineTask
 	ScopePath    util.ScopePath
 	PipelineSpec *structpb.Struct
+	// GenerationSource overrides Task when a current driver republishes outputs
+	// from a successful child preserved from an earlier run retry generation.
+	GenerationSource *apiV2beta1.PipelineTask
 }
 
 // NewLauncherV2 is a factory function that returns an instance of LauncherV2.
@@ -1205,6 +1208,10 @@ func propagateOutputsUpDAG(
 	if opts.ParentTask == nil {
 		return nil
 	}
+	generationSource := opts.GenerationSource
+	if generationSource == nil {
+		generationSource = opts.Task
+	}
 
 	currentTask := opts.Task
 	if currentTask.GetTaskId() != "" {
@@ -1477,6 +1484,7 @@ func propagateOutputsUpDAG(
 
 		// Queue parent task update if we modified it with parameters
 		if len(newPropagatedParameters) > 0 {
+			util.CopyDriverRetryGeneration(currentParentTask, generationSource)
 			batchUpdater.QueueTaskUpdate(currentParentTask)
 		}
 

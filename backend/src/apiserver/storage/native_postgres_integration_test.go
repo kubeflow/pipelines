@@ -133,7 +133,7 @@ func TestNativeStoresPostgreSQL(t *testing.T) {
 
 	_, err = tasks.UpdateTask(&model.Task{UUID: task.UUID, DisplayName: "Updated"})
 	require.NoError(t, err)
-	require.NoError(t, tasks.ResetTasksForRetry([]string{task.UUID}))
+	require.NoError(t, tasks.ResetTasksForRetry("pg-run", 0, []string{task.UUID}))
 	loaded, err = tasks.GetTask(task.UUID)
 	require.NoError(t, err)
 	require.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), loaded.State)

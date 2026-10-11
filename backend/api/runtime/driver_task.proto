@@ -1,0 +1,82 @@
+// Copyright 2026 The Kubeflow Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package kubeflow.pipelines.backend.runtime;
+option go_package = "github.com/kubeflow/pipelines/backend/api/runtime/go_client";
+
+import "backend/api/v2beta1/run.proto";
+import "google/protobuf/empty.proto";
+
+// Internal runtime protocol. Deliberately has no HTTP gateway or public SDK.
+// Every operation requires a Kubernetes token with the requested run audience.
+service DriverTaskService {
+  rpc CreateTask(WriteTaskRequest) returns (TaskResponse);
+  rpc UpdateTask(WriteTaskRequest) returns (TaskResponse);
+  rpc UpdateTasksBulk(WriteTasksRequest) returns (TasksResponse);
+  rpc GetTask(GetTaskRequest) returns (TaskResponse);
+  rpc FinalizeStoppedDriver(FinalizeStoppedDriverRequest) returns (google.protobuf.Empty);
+}
+
+// Caller identity is distinct from the owner of the target task. An unclaimed
+// inner task can propagate status without acquiring its parent DAG's claim.
+message TaskAuthority {
+  optional int64 generation = 1;
+  string source_task_id = 2;
+  optional int64 source_attempt = 3;
+}
+
+message DriverRecovery {
+  optional int64 generation = 1;
+  optional int64 attempt = 2;
+  optional string checkpoint_json = 3;
+  optional string cached_outputs_json = 4;
+}
+
+message WriteTaskRequest {
+  string run_id = 1;
+  kubeflow.pipelines.backend.api.v2beta1.PipelineTask task = 2;
+  TaskAuthority authority = 3;
+  DriverRecovery recovery = 4;
+  bool claim = 5;
+  bool update_recovery = 6;
+  bool include_recovery = 7;
+}
+
+message GetTaskRequest {
+  string run_id = 1;
+  string task_id = 2;
+  bool include_recovery = 3;
+}
+
+message TaskResponse {
+  kubeflow.pipelines.backend.api.v2beta1.PipelineTask task = 1;
+  DriverRecovery recovery = 2;
+}
+
+message WriteTasksRequest {
+  string run_id = 1;
+  repeated WriteTaskRequest tasks = 2;
+}
+
+message TasksResponse {
+  repeated TaskResponse tasks = 1;
+}
+
+// Invoked by the exit hook of Argo's terminal driver retry group, including
+// stops caused by retry policy or maxDuration before the numeric retry limit.
+message FinalizeStoppedDriverRequest {
+  string run_id = 1;
+  int64 generation = 2;
+  string task_name = 3;
+  string parent_task_id = 4;
+  optional int64 iteration_index = 5;
+}

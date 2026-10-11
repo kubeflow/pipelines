@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
+    pipelines.kubeflow.org/retry-generation: "0"
     workflows.argoproj.io/pod-name-format: v1
   generateName: pipeline-with-flaky-retry-
 spec:
@@ -92,6 +93,8 @@ spec:
       command:
       - should-be-overridden-during-runtime
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -203,6 +206,139 @@ spec:
         name: kfp-launcher
         optional: true
       name: kfp-launcher-config
+  - inputs:
+      parameters:
+      - name: task-name
+      - name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - default: "true"
+        name: driver-retry-enabled
+      - default: '{{retries}}'
+        name: driver-retry-attempt
+      - default: "0"
+        name: retry-max-count
+      - default: "0"
+        name: retry-backoff-duration
+      - default: "2"
+        name: retry-backoff-factor
+      - default: "3600"
+        name: retry-backoff-max-duration
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
+        pipelines.kubeflow.org/task-driver-retry: "true"
+        pipelines.kubeflow.org/template-name: retry-system-container-driver-always
+    name: retry-system-container-driver-always
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          jsonPath: $.pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          jsonPath: $.cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          jsonPath: $.condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          driver_retry_attempt: '{{inputs.parameters.driver-retry-attempt}}'
+          driver_retry_enabled: '{{inputs.parameters.driver-retry-enabled}}'
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
+          driver_retry_max_count: '{{inputs.parameters.retry-max-count}}'
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kfp_token_audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+          kubernetes_config: '{{inputs.parameters.kubernetes-config}}'
+          log_level: "1"
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          namespace: '{{workflow.namespace}}'
+          no_proxy: ""
+          parent_task_id: '{{inputs.parameters.parent-dag-task-id}}'
+          pipeline_name: pipeline-with-flaky-retry
+          publish_logs: "true"
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: CONTAINER
+    retryStrategy:
+      backoff:
+        duration: '{{inputs.parameters.retry-backoff-duration}}'
+        factor: '{{inputs.parameters.retry-backoff-factor}}'
+        maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
+      limit: '{{inputs.parameters.retry-max-count}}'
+      retryPolicy: Always
+  - inputs:
+      parameters:
+      - name: task-name
+      - name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - default: "true"
+        name: driver-retry-enabled
+      - default: "0"
+        name: driver-retry-attempt
+      - default: "0"
+        name: retry-max-count
+      - default: "0"
+        name: retry-backoff-duration
+      - default: "2"
+        name: retry-backoff-factor
+      - default: "3600"
+        name: retry-backoff-max-duration
+      - name: driver-retry-status
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/driver-retry-finalizer: "true"
+        pipelines.kubeflow.org/runtime-role: driver
+        pipelines.kubeflow.org/task-driver-retry: "true"
+        pipelines.kubeflow.org/template-name: finalize-retry-system-container-driver-always
+    name: finalize-retry-system-container-driver-always
+    outputs: {}
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          driver_retry_attempt: '{{inputs.parameters.driver-retry-attempt}}'
+          driver_retry_enabled: '{{inputs.parameters.driver-retry-enabled}}'
+          driver_retry_finalize: true
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
+          driver_retry_max_count: '{{inputs.parameters.retry-max-count}}'
+          driver_retry_status: '{{inputs.parameters.driver-retry-status}}'
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kfp_token_audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+          kubernetes_config: '{{inputs.parameters.kubernetes-config}}'
+          log_level: "1"
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          namespace: '{{workflow.namespace}}'
+          no_proxy: ""
+          parent_task_id: '{{inputs.parameters.parent-dag-task-id}}'
+          pipeline_name: pipeline-with-flaky-retry
+          publish_logs: "true"
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: CONTAINER
   - dag:
       tasks:
       - arguments:
@@ -244,6 +380,8 @@ spec:
       command:
       - should-be-overridden-during-runtime
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -394,8 +532,36 @@ spec:
             value: flaky-add
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: retry-max-count
+            value: "2"
+          - name: retry-backoff-duration
+            value: "0"
+          - name: retry-backoff-factor
+            value: "2"
+          - name: retry-backoff-max-duration
+            value: "3600"
+        hooks:
+          exit:
+            arguments:
+              parameters:
+              - name: task-name
+                value: flaky-add
+              - name: parent-dag-task-id
+                value: '{{inputs.parameters.parent-dag-task-id}}'
+              - name: retry-max-count
+                value: "2"
+              - name: retry-backoff-duration
+                value: "0"
+              - name: retry-backoff-factor
+                value: "2"
+              - name: retry-backoff-max-duration
+                value: "3600"
+              - name: driver-retry-status
+                value: '{{tasks.flaky-add-driver.status}}'
+            expression: tasks['flaky-add-driver'].status in ['Failed', 'Error']
+            template: finalize-retry-system-container-driver-always
         name: flaky-add-driver
-        template: system-container-driver
+        template: retry-system-container-driver-always
       - arguments:
           parameters:
           - name: pod-spec-patch

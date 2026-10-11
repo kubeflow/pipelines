@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
+    pipelines.kubeflow.org/retry-generation: "0"
     workflows.argoproj.io/pod-name-format: v1
   generateName: pipeline-with-task-final-status-conditional-
 spec:
@@ -90,6 +91,8 @@ spec:
       command:
       - should-be-overridden-during-runtime
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -366,16 +369,78 @@ spec:
     metadata: {}
     name: comp-exit-handler-1
     outputs: {}
+  - inputs:
+      parameters:
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task-name
+      - default: ""
+        name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+      - name: exit-task-name
+      - name: exit-task-status
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: exit-system-dag-driver
+    name: exit-system-dag-driver
+    outputs:
+      parameters:
+      - name: task-id
+        valueFrom:
+          jsonPath: $.task-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          jsonPath: $.iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          jsonPath: $.condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          exit_task_name: '{{inputs.parameters.exit-task-name}}'
+          exit_task_status: '{{inputs.parameters.exit-task-status}}'
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kfp_token_audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+          log_level: "1"
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          namespace: '{{workflow.namespace}}'
+          no_proxy: ""
+          parent_task_id: '{{inputs.parameters.parent-dag-task-id}}'
+          pipeline_name: pipeline-with-task-final-status-conditional
+          publish_logs: "true"
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          runtime_config: '{{inputs.parameters.runtime-config}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: '{{inputs.parameters.driver-type}}'
   - dag:
       tasks:
       - arguments:
           parameters:
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task-name
             value: conditional-notification
+          - name: exit-task-name
+            value: '{{inputs.parameters.exit-task-name}}'
+          - name: exit-task-status
+            value: '{{inputs.parameters.exit-task-status}}'
         name: conditional-notification-driver
-        template: system-dag-driver
+        template: exit-system-dag-driver
       - arguments:
           parameters:
           - name: parent-dag-task-id
@@ -388,6 +453,10 @@ spec:
     inputs:
       parameters:
       - name: parent-dag-task-id
+      - name: exit-task-name
+      - name: exit-task-status
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: exit-hook-root-conditional-notification
     outputs: {}
@@ -414,6 +483,12 @@ spec:
               parameters:
               - name: parent-dag-task-id
                 value: '{{inputs.parameters.parent-dag-task-id}}'
+              - name: exit-task-name
+                value: exit-handler-1
+              - name: exit-task-status
+                value: '{{tasks.exit-handler-1.status}}'
+              - name: iteration-index
+                value: "-1"
             template: exit-hook-root-conditional-notification
         name: exit-handler-1
         template: comp-exit-handler-1

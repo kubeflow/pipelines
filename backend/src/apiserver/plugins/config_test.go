@@ -4,13 +4,79 @@ import (
 	"context"
 	"testing"
 
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	fakeclientset "k8s.io/client-go/kubernetes/fake"
 )
+
+func TestInjectPluginRuntimeEnv_DisablesTaskDriverRetries(t *testing.T) {
+	limit := intstr.FromInt32(3)
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		Spec: workflowapi.WorkflowSpec{Templates: []workflowapi.Template{
+			{
+				Name: "task-driver",
+				Metadata: workflowapi.Metadata{Annotations: map[string]string{
+					util.AnnotationKeyRuntimeRole:     string(util.ExecutionRuntimeRoleDriver),
+					util.AnnotationKeyTaskDriverRetry: "true",
+				}},
+				Inputs: workflowapi.Inputs{Parameters: []workflowapi.Parameter{
+					{Name: util.DriverRetryEnabledParameter, Default: workflowapi.AnyStringPtr("true")},
+					{Name: util.DriverRetryAttemptParameter, Default: workflowapi.AnyStringPtr("{{retries}}")},
+				}},
+				Container:     &corev1.Container{Args: []string{"--driver_retry_enabled={{inputs.parameters.driver-retry-enabled}}", "--driver_retry_attempt={{inputs.parameters.driver-retry-attempt}}"}},
+				RetryStrategy: &workflowapi.RetryStrategy{Limit: &limit},
+			},
+			{
+				Name: "executor",
+				Metadata: workflowapi.Metadata{Annotations: map[string]string{
+					util.AnnotationKeyRuntimeRole: string(util.ExecutionRuntimeRoleLauncher),
+				}},
+				Container:     &corev1.Container{},
+				RetryStrategy: &workflowapi.RetryStrategy{Limit: &limit},
+			},
+		}},
+	})
+	env := []corev1.EnvVar{{Name: "PLUGIN_CONFIG", Value: "enabled"}}
+	originalArgs := append([]string{}, workflow.Spec.Templates[0].Container.Args...)
+
+	require.NoError(t, InjectPluginRuntimeEnv(workflow, env))
+	assert.Nil(t, workflow.Spec.Templates[0].RetryStrategy, "plugin drivers must retain deployment retry defaults")
+	assert.Equal(t, originalArgs, workflow.Spec.Templates[0].Container.Args)
+	assert.Equal(t, "false", workflow.Spec.Templates[0].Inputs.GetParameterByName(util.DriverRetryEnabledParameter).Default.String())
+	assert.Equal(t, "0", workflow.Spec.Templates[0].Inputs.GetParameterByName(util.DriverRetryAttemptParameter).Default.String())
+	assert.Equal(t, "3", workflow.Spec.Templates[1].RetryStrategy.Limit.String())
+	for _, tmpl := range workflow.Spec.Templates {
+		assert.Equal(t, env, tmpl.Container.Env)
+	}
+	after := workflow.DeepCopy()
+	require.NoError(t, InjectPluginRuntimeEnv(workflow, env))
+	assert.Equal(t, after, workflow.Workflow)
+}
+
+func TestInjectPluginRuntimeEnv_NoEnvironmentPreservesRetries(t *testing.T) {
+	limit := intstr.FromInt32(3)
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		Spec: workflowapi.WorkflowSpec{Templates: []workflowapi.Template{{
+			Metadata: workflowapi.Metadata{Annotations: map[string]string{
+				util.AnnotationKeyRuntimeRole:     string(util.ExecutionRuntimeRoleDriver),
+				util.AnnotationKeyTaskDriverRetry: "true",
+			}},
+			Container:     &corev1.Container{},
+			RetryStrategy: &workflowapi.RetryStrategy{Limit: &limit},
+		}}},
+	})
+	before := workflow.DeepCopy()
+
+	require.NoError(t, InjectPluginRuntimeEnv(workflow, nil))
+	assert.Equal(t, before, workflow.Workflow)
+	require.NoError(t, InjectPluginRuntimeEnv(nil, []corev1.EnvVar{{Name: "PLUGIN_CONFIG"}}))
+}
 
 // ---- MergePluginConfig tests ----
 

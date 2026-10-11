@@ -61,3 +61,23 @@ func driverPlugin(params map[string]interface{}) (*wfapi.Plugin, error) {
 	}
 	return &wfapi.Plugin{Object: wfapi.Object{Value: value}}, nil
 }
+
+// updateDriverPluginArgs preserves existing compiler-generated request arguments.
+func updateDriverPluginArgs(tmpl *wfapi.Template, updates map[string]any) error {
+	config, owned, err := driverapi.DecodePluginConfig(tmpl.Plugin.Value)
+	if err != nil {
+		return err
+	}
+	if !owned {
+		return fmt.Errorf("template %q is not a KFP driver plugin", tmpl.Name)
+	}
+	for key, value := range updates {
+		config.Args[key] = value
+	}
+	plugin, err := driverPlugin(config.Args)
+	if err != nil {
+		return err
+	}
+	tmpl.Plugin = plugin
+	return nil
+}
