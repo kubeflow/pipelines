@@ -3120,5 +3120,31 @@ func createPipelineWithDisplayName(name string, displayName string) *pipeline_mo
 	p, err := pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{Pipeline: pipeline})
 	Expect(err).ToNot(HaveOccurred())
 	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, toUploadModel(p))
+	if *config.PipelineStoreKubernetes {
+		// Creation writes directly, but filter checks read the informer cache.
+		Eventually(func() (bool, error) {
+			return pipelineVisibleInList(pipelineClient.List, p.PipelineID)
+		}, informerSyncTimeout, informerSyncInterval).Should(BeTrue(), "Created pipeline should be visible before testing filters")
+	}
 	return p
+}
+
+func pipelineVisibleInList(listPipelines func(*pipeline_params.PipelineServiceListPipelinesParams) ([]*pipeline_model.V2beta1Pipeline, int, string, error), pipelineID string) (bool, error) {
+	params := newListPipelinesParams()
+	for page := 0; page < 100; page++ {
+		pipelines, _, next, err := listPipelines(params)
+		if err != nil {
+			return false, err
+		}
+		for _, pipeline := range pipelines {
+			if pipeline.PipelineID == pipelineID {
+				return true, nil
+			}
+		}
+		if next == "" {
+			return false, nil
+		}
+		params.PageToken = &next
+	}
+	return false, fmt.Errorf("pipeline visibility check exceeded 100 pages")
 }

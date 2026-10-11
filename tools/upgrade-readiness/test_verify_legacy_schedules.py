@@ -55,6 +55,23 @@ class LegacyTests(unittest.TestCase):
             mutate(event)
             self.assertFalse(legacy.rejected([event], self.case, self.start))
 
+    def test_adoption_guidance_preserves_missing_state_rejection(self):
+        self.event['message'] = (
+            'rpc error: code = FailedPrecondition desc = Recurring run uid '
+            'has no trusted scheduling state; complete the one-time legacy '
+            'adoption cutover or recreate it through the KFP API')
+        self.assertTrue(legacy.rejected([self.event], self.case, self.start))
+        result = self.observe(lambda *args: [self.event], lambda *args: [])
+        self.assertEqual(result['outcome'], 'passed')
+        self.assertEqual(result['schedule_uids'], ['uid'])
+        for old, new in (('run uid', 'run other'), ('FailedPrecondition',
+                                                    'PermissionDenied'),
+                         ('no trusted scheduling state',
+                          'adoption is pending')):
+            event = copy.deepcopy(self.event)
+            event['message'] = event['message'].replace(old, new)
+            self.assertFalse(legacy.rejected([event], self.case, self.start))
+
     def observe(self, get, collect):
         now = [0]
 

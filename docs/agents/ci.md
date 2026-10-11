@@ -57,7 +57,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - Release merge-group runtime-image consumers retain exact queue SHA, branch, upstream repository, and successful producer-workflow validation. After three unsuccessful lookups or a failed download, they use the shared archive builder on the queued checkout. Queue and regular producers fingerprint the same generation inputs, including that builder; queue jobs remain read-only and do not publish images or prune caches.
 
-- The release-2.18 upgrade workflow always upgrades from 2.17.2, including merge-group runs, and fails before target deployment if source preparation fails. The independent readiness schedule lane is off by default. After candidate policy review, activate it with repository variable `KFP_218_READINESS_SCHEDULES=enabled` or the manual `run_readiness_schedules=true` dispatch input, then record live acceptance in #14421. Its preflight rejects missing prerequisites. The isolated fixture verifies source reporting permissions, correlates 2.17.2 runs with their Workflows, requires legacy schedule rejection before reviewed recreation, and checks successful enforce/audit runs plus scoped audit emission. It does not introduce master MLMD-to-native migration.
+- The release-2.18 upgrade workflow always upgrades from 2.17.2, including merge-group runs, and fails before target deployment if source preparation fails. The independent readiness schedule lane is off by default. After candidate policy review, activate it with repository variable `KFP_218_READINESS_SCHEDULES=enabled` or the manual `run_readiness_schedules=true` dispatch input, then record live acceptance in #14421. Its preflight rejects missing prerequisites. The isolated fixture verifies source reporting permissions, correlates 2.17.2 runs with their Workflows, requires legacy schedule rejection before reviewed recreation, and checks successful enforce/audit runs plus scoped audit emission. It then verifies return to enforcement, named controller-grant revocation and restoration, and V1 jobs submitted through the retained V1 API. Each phase uses fresh identity-correlated evidence and a working default-account control; prior runs do not satisfy a later phase. The opt-in lane has a 90-minute ceiling to accommodate controller retry backoff and the additional bounded observation windows. It does not introduce master MLMD-to-native migration.
 - `upgrade-readiness.yml` runs standalone preview tests and conformance against the explicitly pinned proposed scheduling policy; neither substitutes for a populated candidate upgrade run. Python 3.11 and 3.13 tests use synthetic inventories, subprocesses and loopback HTTP servers, never cluster credentials. Slow-header/chunk-framing probes enforce the response deadline, and fake-clock observations cover the final collection interval.
 - CI Scripts Tests installs PyYAML 6.0.3 for Dependabot configuration validation. Argo dependency updates use `third_party/argo/Makefile` and the coordinated updater; update both runtime slots only after checking compatibility, module major version, and manifest downloads.
 
@@ -70,3 +70,31 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   payloads, and workflow specifications, but reports retain namespace, resource,
   service-account and run identifiers. Use only the synthetic CI cluster and
   review report contents before sharing; these artifacts are not anonymized.
+
+- `artifact-storage-acceptance.yml` runs on explicit dispatch and non-documentation
+  changes under `frontend/**`, its workflow, the selected SeaweedFS deployment,
+  and the local cluster-creation/artifact-upload actions and their runtime helpers.
+  This includes dependency locks, Node/Vitest configuration, shared application
+  code, and test helpers; filtering only artifact handlers would miss these inputs.
+  Markdown and `OWNERS` changes alone do not trigger this lane. It exercises the real standalone UI handlers, HTTP fetch, Kubernetes
+  Secret/Workflow reads and S3 client against the stock SeaweedFS image. Stored
+  artifact and archived-log bytes are seeded once, then read under default and
+  explicitly migrated origin/base configuration. Rejections assert policy errors
+  and zero outbound requests, not incidental network failures. The retained
+  Vitest JSON and revision identify the exact candidate. This component lane
+  does not run a 2.17-to-2.18 installation upgrade, authenticate tenants, execute
+  the synthetic Workflow records, or reconcile profile-controller proxies; those
+  remain separate live acceptance scopes. Its fixtures use only disposable
+  credentials and a dedicated Kind namespace.
+
+- `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
+  isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
+  namespaced custom-role users: private/shared upload and version inheritance,
+  stored-reference confinement, `runs/readLog`, and TensorBoard viewer/manager
+  permissions. Denials require the exact status and upload authorization
+  diagnostic; the retained JSON report includes positive controls and revision.
+  Trusted identity headers reach localhost-only forwards, and the log source is
+  a controlled real Pod associated with an API-created run. This validates
+  handler authorization and Kubernetes SAR, not ingress authentication, Argo
+  execution, archived logs, browser navigation, or TensorFlow execution. The job
+  deletes its entire disposable cluster even on failure.

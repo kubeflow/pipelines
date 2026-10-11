@@ -108,6 +108,37 @@ class SourceTests(unittest.TestCase):
                                     'source_workflow_account_mismatch'):
             self.collect(self.workflow)
 
+    def test_source_observation_retains_run_ids_across_poll_cycles(self):
+        cases = [
+            dict(self.case, scenario=str(i), schedule_uid=str(i))
+            for i in range(3)
+        ]
+        fixture = dict(
+            context=source.CONTEXT,
+            namespace=source.NAMESPACE,
+            activation_start='2026-10-05T00:00:00Z',
+            schedules=cases)
+        records = [[dict(run_id='early')], [], [], [dict(run_id='late')],
+                   [dict(run_id='second')], [dict(run_id='third')]]
+        args = [
+            'source', '--state-dir', '/fixture', '--endpoint',
+            'http://localhost', '--token-file', '/token', '--output', '/report'
+        ]
+        with mock.patch('sys.argv', args), mock.patch.object(
+                source, 'read_object', return_value=fixture), mock.patch.object(
+                    source, 'write_object') as write, mock.patch.object(
+                        source, 'Client'), mock.patch.object(
+                            source.time, 'sleep'), mock.patch.object(
+                                source.time, 'monotonic',
+                                side_effect=[0, 0, 1]), mock.patch.object(
+                                    source,
+                                    'source_run_evidence',
+                                    side_effect=records):
+            self.assertEqual(source.main(), 0)
+        report = write.call_args.args[1]
+        self.assertEqual({run['run_id'] for run in report['cases'][0]['runs']},
+                         {'early', 'late'})
+
     def test_diagnostics_omit_raw_specs_messages_and_logs(self):
         result = source.diagnostics(get=lambda *args: (dict(items=[
             dict(

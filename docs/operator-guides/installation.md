@@ -10,6 +10,19 @@ You should be familiar with [Kubernetes](https://kubernetes.io/docs/home/),
 > install. See the [releases page](https://github.com/kubeflow/pipelines/releases)
 > for available versions.
 
+## Upgrading to 2.18: HTTP artifact access
+
+In authenticated multi-user deployments, the shared `ml-pipeline-ui` now fetches
+HTTP and HTTPS artifacts even when namespace artifact proxies are enabled. Before
+upgrading, make HTTP artifact credentials and network access available to the
+shared UI; configuration only on tenant proxies is insufficient. Configure
+`HTTP_BASE_URL` and the required HTTP authentication on the shared UI, and ensure
+its network policies permit access to the approved artifact server.
+
+After restarting the shared UI, verify an HTTP artifact preview or download as a
+user in its owning namespace. See [HTTP artifact configuration](server-config.md)
+for the base URL, authentication, namespace boundaries, and redirect restrictions.
+
 ## Deploying Kubeflow Pipelines
 
 ### 1. Deploy the Kubeflow Pipelines development flavor standalone and non-production for first experiments:
@@ -48,9 +61,9 @@ kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-man
 
 ## Deploying Kubeflow Pipelines with Pod-to-Pod TLS Enabled
 
-Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security. 
+Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security.
 
-Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls). 
+Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls).
 
 ## Accessing the Kubeflow Pipelines UI
 
