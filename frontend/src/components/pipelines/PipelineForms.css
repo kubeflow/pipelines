@@ -1,0 +1,110 @@
+.kfp-pipeline-form-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 32px 32px;
+}
+.kfp-pipeline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 920px;
+  margin: 0;
+}
+.kfp-pipeline-form-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.kfp-pipeline-form-card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+.kfp-pipeline-form .kfp-text-field,
+.kfp-pipeline-upload .kfp-text-field {
+  margin-top: 16px;
+}
+.kfp-pipeline-form .kfp-text-field:first-child,
+.kfp-pipeline-upload .kfp-text-field:first-child {
+  margin-top: 0;
+}
+.kfp-pipeline-choice {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  font-size: 13px;
+}
+.kfp-pipeline-choice legend {
+  margin-bottom: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-pipeline-choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.kfp-pipeline-choice input {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+}
+.kfp-pipeline-form-hint {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.5;
+  flex-basis: 100%;
+}
+.kfp-pipeline-form-hint a {
+  color: var(--primary);
+}
+.kfp-pipeline-dropzone {
+  position: relative;
+  padding: 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: var(--background);
+}
+.kfp-pipeline-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--primary);
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  z-index: 1;
+}
+.kfp-pipeline-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.kfp-pipeline-form-error {
+  color: var(--status-failed);
+  font-size: 12px;
+  margin: 0;
+  flex-basis: 100%;
+}
+.kfp-pipeline-upload {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .kfp-pipeline-form-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+  .kfp-pipeline-form-card {
+    padding: 16px;
+  }
+}

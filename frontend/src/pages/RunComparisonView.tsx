@@ -1,0 +1,757 @@
+/*
+ * Copyright 2022 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from 'src/components/ui/button';
+import { InspectionTabs } from 'src/components/inspection/InspectionTabs';
+import './RunComparisonView.css';
+import { useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import { Navigate } from 'react-router';
+import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
+import { QUERY_PARAMS, RoutePage, RoutePageFactory } from 'src/components/Router';
+import {
+  createRuntimeArtifactComparisonSelectionState,
+  RuntimeArtifactComparison,
+  RuntimeArtifactComparisonKind,
+  RuntimeArtifactComparisonSelectionState,
+  RuntimeComparisonArtifact,
+} from 'src/components/viewers/RuntimeArtifactComparison';
+import { queryKeys } from 'src/hooks/queryKeys';
+import { useKeyedState } from 'src/hooks/useKeyedState';
+import { Apis } from 'src/lib/Apis';
+import Buttons from 'src/lib/Buttons';
+import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { URLParser } from 'src/lib/URLParser';
+import { errorToMessage } from 'src/lib/Utils';
+import { hasFinishedV2 } from 'src/lib/StatusUtils';
+import {
+  flattenArtifactGroups,
+  formatParameterValue,
+  getArtifactDisplayName,
+  getArtifactIdentity,
+  getScalarMetricEntries,
+  isScalarMetricArtifact,
+  isTaskFinished,
+  type RuntimeArtifactEntry,
+} from 'src/lib/v2/RuntimeArtifactUtils';
+import { getRunDisplayName, getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
+import {
+  METRICS_SECTION_NAME,
+  OVERVIEW_SECTION_NAME,
+  PARAMS_SECTION_NAME,
+} from './CompareRunsPage';
+import { PageProps } from './Page';
+import RunList from './RunList';
+
+export enum NativeMetricsTab {
+  SCALAR,
+  CLASSIFICATION,
+  HTML,
+  MARKDOWN,
+}
+
+const METRICS_TAB_NAMES = ['Scalar Metrics', 'Classification Metrics', 'HTML', 'Markdown'];
+export const ACTIVE_COMPARISON_REFRESH_INTERVAL = 10_000;
+const ACTIVE_COMPARISON_STALE_TIME = ACTIVE_COMPARISON_REFRESH_INTERVAL;
+const TERMINAL_COMPARISON_STALE_TIME = 60_000;
+
+interface RunComparisonData {
+  run: V2beta1Run;
+  runError?: Error;
+  taskError?: Error;
+  tasks: V2beta1PipelineTask[];
+  terminalTaskReconciliationPending?: boolean;
+}
+
+interface RunComparisonFailure {
+  runId: string;
+  source: 'run' | 'tasks';
+  error: Error;
+}
+
+type RunComparisonQueryResult = Pick<
+  UseQueryResult<RunComparisonData, Error>,
+  'data' | 'error' | 'isPending' | 'refetch'
+>;
+
+interface RunArtifactEntry extends RuntimeArtifactEntry {
+  sourceFinished: boolean;
+  taskKey: string;
+  taskName: string;
+}
+
+interface RunScalarMetricEntry extends RunArtifactEntry {
+  metricName: string;
+  metricValue: string;
+}
+
+export type RunComparisonViewProps = PageProps & { namespace?: string };
+
+async function loadRunComparisonData(
+  runId: string,
+  previousData?: RunComparisonData,
+): Promise<RunComparisonData> {
+  const [runResult, tasksResult] = await Promise.allSettled([
+    Apis.runServiceApiV2.getRun(runId),
+    listAllRunTasks(runId),
+  ]);
+  let run: V2beta1Run;
+  let runError: Error | undefined;
+  if (runResult.status === 'rejected') {
+    const cachedRun = previousData?.run;
+    if (
+      cachedRun?.state === undefined ||
+      !hasFinishedV2(cachedRun.state) ||
+      previousData?.terminalTaskReconciliationPending !== true
+    ) {
+      throw toError(runResult.reason);
+    }
+    // The cached terminal state is sufficient for the single bounded reconciliation. Do not use
+    // this fallback for later manual refreshes, where the run may have been retried and active.
+    run = cachedRun;
+    runError = toError(runResult.reason);
+  } else {
+    run = runResult.value;
+  }
+  const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value : previousData?.tasks || [];
+  const taskError = tasksResult.status === 'rejected' ? toError(tasksResult.reason) : undefined;
+  const runIsTerminal = run.state !== undefined && hasFinishedV2(run.state);
+  const previousState = previousData?.run.state;
+  const previousRunWasTerminal = previousState !== undefined && hasFinishedV2(previousState);
+  const taskSnapshotIsIncomplete =
+    taskError !== undefined || tasks.some((task) => !isTaskFinished(task.state));
+  return {
+    run,
+    runError,
+    tasks,
+    taskError,
+    // Fail-fast runs can retain non-terminal sibling task rows permanently. Reconcile once when
+    // terminal run data first arrives incomplete, then let the run state remain authoritative.
+    terminalTaskReconciliationPending:
+      runIsTerminal && !previousRunWasTerminal && taskSnapshotIsIncomplete,
+  };
+}
+
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
+function ComparisonSectionHeading({
+  sectionName,
+  collapseSection,
+  collapseSectionUpdate,
+}: {
+  sectionName: string;
+  collapseSection: boolean;
+  collapseSectionUpdate: (collapsed: boolean) => void;
+}) {
+  return (
+    <h2 className='kfp-comparison-section-heading'>
+      <Button
+        variant='ghost'
+        aria-expanded={!collapseSection}
+        onClick={() => collapseSectionUpdate(!collapseSection)}
+      >
+        {collapseSection ? (
+          <ChevronRight size={16} aria-hidden='true' />
+        ) : (
+          <ChevronDown size={16} aria-hidden='true' />
+        )}
+        {sectionName}
+      </Button>
+    </h2>
+  );
+}
+
+function CompareTableSection({
+  isLoading,
+  compareTableProps,
+  dataTypeName,
+}: {
+  isLoading?: boolean;
+  compareTableProps?: CompareTableProps;
+  dataTypeName: string;
+}) {
+  if (isLoading) {
+    return (
+      <p className='kfp-comparison-placeholder' role='status'>
+        Loading {dataTypeName}…
+      </p>
+    );
+  }
+  if (!compareTableProps) {
+    return (
+      <p className='kfp-comparison-placeholder'>
+        There are no {dataTypeName} available on the selected runs.
+      </p>
+    );
+  }
+  return <CompareTable {...compareTableProps} label={`${dataTypeName} comparison`} />;
+}
+
+export function RunComparisonView(props: RunComparisonViewProps) {
+  const { updateBanner, updateToolbar, namespace } = props;
+  const runlistRef = useRef<RunList>(null);
+  const queryClient = useQueryClient();
+  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
+  const runIds = useMemo(
+    () => (queryParamRunIds ? queryParamRunIds.split(',').filter(Boolean) : []),
+    [queryParamRunIds],
+  );
+  const runIdsKey = runIds.join(',');
+  const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
+  const [metricsTab, setMetricsTab] = useState(NativeMetricsTab.SCALAR);
+  const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
+  const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
+  const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
+
+  const comparisonQueryOptions = useMemo(
+    () =>
+      runIds.map((runId) => ({
+        queryKey: queryKeys.v2RunComparison(runId),
+        queryFn: () =>
+          loadRunComparisonData(
+            runId,
+            queryClient.getQueryData<RunComparisonData>(queryKeys.v2RunComparison(runId)),
+          ),
+        retry: false,
+        staleTime: (query: { state: { data?: RunComparisonData } }) => {
+          const state = query.state.data?.run.state;
+          return state !== undefined && hasFinishedV2(state)
+            ? TERMINAL_COMPARISON_STALE_TIME
+            : ACTIVE_COMPARISON_STALE_TIME;
+        },
+        refetchInterval: (query: { state: { data?: RunComparisonData } }) => {
+          const data = query.state.data;
+          const state = data?.run.state;
+          const runIsActive = state !== undefined && !hasFinishedV2(state);
+          const reconciliationIsPending = data?.terminalTaskReconciliationPending === true;
+          return runIsActive || reconciliationIsPending
+            ? ACTIVE_COMPARISON_REFRESH_INTERVAL
+            : false;
+        },
+      })),
+    [queryClient, runIds],
+  );
+  const combineComparisonQueries = useCallback(
+    (results: RunComparisonQueryResult[]) => {
+      const comparisonData: RunComparisonData[] = [];
+      const failures: RunComparisonFailure[] = [];
+      results.forEach((result, index) => {
+        if (result.data) {
+          comparisonData.push(result.data);
+          if (result.data.runError) {
+            failures.push({ runId: runIds[index], source: 'run', error: result.data.runError });
+          }
+          if (result.data.taskError) {
+            failures.push({ runId: runIds[index], source: 'tasks', error: result.data.taskError });
+          }
+        }
+        if (result.error) {
+          failures.push({ runId: runIds[index], source: 'run', error: result.error });
+        }
+      });
+      return {
+        comparisonData,
+        failures,
+        isLoading: results.some((result) => result.isPending),
+        refetch: () => Promise.all(results.map((result) => result.refetch())),
+      };
+    },
+    [runIds],
+  );
+  const { comparisonData, failures, isLoading, refetch } = useQueries({
+    queries: comparisonQueryOptions,
+    combine: combineComparisonQueries,
+  });
+
+  const selectedData = useMemo(() => {
+    const selectedIdSet = new Set(selectedIds);
+    return comparisonData.filter(({ run }) => selectedIdSet.has(run.run_id || ''));
+  }, [comparisonData, selectedIds]);
+
+  const paramsTableProps = useMemo(() => {
+    const table = buildParamsTableProps(selectedData);
+    return (
+      table && {
+        ...table,
+        xLinks: selectedData.map(({ run }) => RoutePageFactory.runDetails(run.run_id || '')),
+        missingCells: table.yLabels.map((name) =>
+          selectedData.map(({ run }) => run.runtime_config?.parameters?.[name] === undefined),
+        ),
+      }
+    );
+  }, [selectedData]);
+  const scalarMetricsTableProps = useMemo(() => {
+    const table = buildScalarMetricsTableProps(selectedData);
+    return (
+      table && {
+        ...table,
+        xLinks: selectedData.map(({ run }) => RoutePageFactory.runDetails(run.run_id || '')),
+      }
+    );
+  }, [selectedData]);
+
+  const selectedIdSet = new Set(selectedIds);
+  const selectedFailures = failures.filter(({ runId }) => selectedIdSet.has(runId));
+  const selectedFailureAdditionalInfo = selectedFailures
+    .map(
+      ({ runId, source, error }) =>
+        `${runId}${source === 'tasks' ? ' tasks' : ''}: ${error.message}`,
+    )
+    .join('\n');
+  const selectedFailedRunCount = new Set(selectedFailures.map(({ runId }) => runId)).size;
+
+  const updateComparisonBanner = useEffectEvent(() => {
+    if (selectedFailedRunCount) {
+      const failedRunLabel = selectedFailedRunCount === 1 ? 'run' : 'runs';
+      updateBanner({
+        additionalInfo: selectedFailureAdditionalInfo,
+        message: selectedData.length
+          ? `Cannot get comparison data for ${selectedFailedRunCount} selected ${failedRunLabel}. Available runs are still shown. Refresh the page to try again.`
+          : 'Cannot get comparison data for the selected runs. Refresh the page to try again.',
+        mode: selectedData.length ? 'warning' : 'error',
+      });
+    } else {
+      updateBanner({});
+    }
+  });
+
+  useEffect(() => {
+    if (!isLoading) {
+      updateComparisonBanner();
+    }
+  }, [isLoading, selectedData.length, selectedFailedRunCount, selectedFailureAdditionalInfo]);
+
+  const updateComparisonToolbar = useEffectEvent(() => {
+    const refresh = async () => {
+      await Promise.all([
+        runlistRef.current?.refresh(),
+        refetch(),
+        queryClient.refetchQueries({
+          queryKey: ['runtime_artifact_visualization'],
+          type: 'active',
+        }),
+        queryClient.refetchQueries({ queryKey: ['legacy_runtime_ui_metadata'], type: 'active' }),
+      ]);
+    };
+    const buttons = new Buttons(props, refresh);
+    updateToolbar({
+      actions: buttons
+        .expandSections(() => {
+          setIsOverviewCollapsed(false);
+          setIsParamsCollapsed(false);
+          setIsMetricsCollapsed(false);
+        })
+        .collapseSections(() => {
+          setIsOverviewCollapsed(true);
+          setIsParamsCollapsed(true);
+          setIsMetricsCollapsed(true);
+        })
+        .refresh(refresh)
+        .getToolbarActionMap(),
+      breadcrumbs: [{ displayName: 'Runs', href: RoutePage.RUNS }],
+      pageTitle: `Compare ${runIds.length} runs`,
+    });
+  });
+
+  useEffect(() => {
+    updateComparisonToolbar();
+  }, []);
+
+  const showPageError = async (message: string, requestError: Error | undefined) => {
+    const errorMessage = await errorToMessage(requestError);
+    updateBanner({
+      additionalInfo: errorMessage || undefined,
+      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+    });
+  };
+
+  return (
+    <div className='kfp-comparison-page'>
+      <p className='kfp-comparison-intro'>
+        Parameters and metrics side by side. Differences are highlighted.
+      </p>
+      <ComparisonSectionHeading
+        sectionName={OVERVIEW_SECTION_NAME}
+        collapseSection={isOverviewCollapsed}
+        collapseSectionUpdate={setIsOverviewCollapsed}
+      />
+      {!isOverviewCollapsed && (
+        <div className='kfp-comparison-overview'>
+          <RunList
+            onError={showPageError}
+            {...props}
+            selectedIds={selectedIds}
+            ref={runlistRef}
+            runIdListMask={runIds}
+            disablePaging={true}
+            onSelectionChange={setSelectedIds}
+          />
+        </div>
+      )}
+
+      <ComparisonSectionHeading
+        sectionName={PARAMS_SECTION_NAME}
+        collapseSection={isParamsCollapsed}
+        collapseSectionUpdate={setIsParamsCollapsed}
+      />
+      {!isParamsCollapsed && (
+        <div className='kfp-comparison-card'>
+          <CompareTableSection
+            isLoading={isLoading}
+            compareTableProps={paramsTableProps}
+            dataTypeName='parameters'
+          />
+        </div>
+      )}
+
+      <ComparisonSectionHeading
+        sectionName={METRICS_SECTION_NAME}
+        collapseSection={isMetricsCollapsed}
+        collapseSectionUpdate={setIsMetricsCollapsed}
+      />
+      <NativeMetricsSection
+        comparisonData={selectedData}
+        isCollapsed={isMetricsCollapsed}
+        isLoading={isLoading}
+        metricsTab={metricsTab}
+        namespace={namespace}
+        scalarMetricsTableProps={scalarMetricsTableProps}
+        setMetricsTab={setMetricsTab}
+      />
+    </div>
+  );
+}
+
+function NativeMetricsSection({
+  comparisonData,
+  isCollapsed,
+  isLoading,
+  metricsTab,
+  namespace,
+  scalarMetricsTableProps,
+  setMetricsTab,
+}: {
+  comparisonData: RunComparisonData[];
+  isCollapsed: boolean;
+  isLoading: boolean;
+  metricsTab: NativeMetricsTab;
+  namespace?: string;
+  scalarMetricsTableProps?: CompareTableProps;
+  setMetricsTab: (tab: number) => void;
+}) {
+  const [selectionState, setSelectionState] = useState(
+    createRuntimeArtifactComparisonSelectionState,
+  );
+  if (isCollapsed) {
+    return null;
+  }
+  return (
+    <div className='kfp-comparison-card'>
+      <InspectionTabs
+        tabs={METRICS_TAB_NAMES}
+        selectedTab={metricsTab}
+        onSwitch={setMetricsTab}
+        ariaLabel='Metric types'
+      >
+        <div className='kfp-comparison-metrics'>
+          <NativeMetricsContent
+            comparisonData={comparisonData}
+            isLoading={isLoading}
+            metricsTab={metricsTab}
+            namespace={namespace}
+            selectionState={selectionState}
+            setSelectionState={setSelectionState}
+            scalarMetricsTableProps={scalarMetricsTableProps}
+          />
+        </div>
+      </InspectionTabs>
+    </div>
+  );
+}
+
+function NativeMetricsContent({
+  comparisonData,
+  isLoading,
+  metricsTab,
+  namespace,
+  selectionState,
+  setSelectionState,
+  scalarMetricsTableProps,
+}: {
+  comparisonData: RunComparisonData[];
+  isLoading: boolean;
+  metricsTab: NativeMetricsTab;
+  namespace?: string;
+  selectionState: RuntimeArtifactComparisonSelectionState;
+  setSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
+  scalarMetricsTableProps?: CompareTableProps;
+}) {
+  if (metricsTab === NativeMetricsTab.SCALAR) {
+    return (
+      <CompareTableSection
+        isLoading={isLoading}
+        compareTableProps={scalarMetricsTableProps}
+        dataTypeName='scalar metrics artifacts'
+      />
+    );
+  }
+  if (isLoading) {
+    return <CompareTableSection isLoading={true} dataTypeName='artifacts' />;
+  }
+  return (
+    <NativeArtifactComparison
+      comparisonData={comparisonData}
+      metricsTab={metricsTab}
+      namespace={namespace}
+      selectionState={selectionState}
+      setSelectionState={setSelectionState}
+    />
+  );
+}
+
+function NativeArtifactComparison({
+  comparisonData,
+  metricsTab,
+  namespace,
+  selectionState,
+  setSelectionState,
+}: {
+  comparisonData: RunComparisonData[];
+  metricsTab: NativeMetricsTab;
+  namespace?: string;
+  selectionState: RuntimeArtifactComparisonSelectionState;
+  setSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
+}) {
+  const artifacts = useMemo(
+    () => collectRuntimeComparisonArtifacts(comparisonData, namespace),
+    [comparisonData, namespace],
+  );
+  const kind: RuntimeArtifactComparisonKind =
+    metricsTab === NativeMetricsTab.CLASSIFICATION
+      ? 'classification'
+      : metricsTab === NativeMetricsTab.HTML
+        ? 'html'
+        : 'markdown';
+  return (
+    <RuntimeArtifactComparison
+      artifacts={artifacts}
+      kind={kind}
+      selectionState={selectionState}
+      setSelectionState={setSelectionState}
+    />
+  );
+}
+
+function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {
+  const tasksById = new Map(
+    tasks.filter((task) => task.task_id).map((task) => [task.task_id, task]),
+  );
+  const propagatedArtifacts = new Map<string, Set<string>>();
+  // A DAG exposes its descendants' outputs too. Suppress only proven ancestor aliases of the
+  // same artifact ID; equal names or URIs do not establish that two measurements are identical.
+  for (const task of tasks) {
+    const artifactIds = flattenArtifactGroups(task.outputs?.artifacts)
+      .map(({ artifact }) => artifact.artifact_id)
+      .filter((id): id is string => !!id);
+    const visited = new Set([task.task_id]);
+    let parentId = task.parent_task_id;
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const ids = propagatedArtifacts.get(parentId) || new Set<string>();
+      artifactIds.forEach((id) => ids.add(id));
+      propagatedArtifacts.set(parentId, ids);
+      parentId = tasksById.get(parentId)?.parent_task_id;
+    }
+  }
+  return tasks.flatMap((task, taskIndex) =>
+    flattenArtifactGroups(task.outputs?.artifacts)
+      .filter(
+        ({ artifact }) =>
+          !artifact.artifact_id ||
+          !task.task_id ||
+          !propagatedArtifacts.get(task.task_id)?.has(artifact.artifact_id),
+      )
+      .map((entry) => ({
+        ...entry,
+        sourceFinished: isTaskFinished(task.state),
+        taskKey: task.task_id || task.name || String(taskIndex),
+        taskName: getTaskComparisonLabel(task),
+      })),
+  );
+}
+
+function getTaskComparisonLabel(task: V2beta1PipelineTask): string {
+  const scope = task.scope_path?.replace(/^root\.?/, '');
+  const baseLabel = scope || getTaskDisplayName(task);
+  return task.type_attributes?.iteration_index === undefined
+    ? baseLabel
+    : `${baseLabel} [iteration ${task.type_attributes.iteration_index}]`;
+}
+
+export function collectRuntimeComparisonArtifacts(
+  comparisonData: RunComparisonData[],
+  defaultNamespace?: string,
+): RuntimeComparisonArtifact[] {
+  return comparisonData.flatMap(({ run, tasks, terminalTaskReconciliationPending }) => {
+    const runLabel = getRunDisplayName(run);
+    // After the bounded reconciliation, a terminal run is the authoritative signal that artifact
+    // production has stopped even when fail-fast leaves a sibling task row marked RUNNING.
+    const terminalRunFinishedSources =
+      run.state !== undefined &&
+      hasFinishedV2(run.state) &&
+      terminalTaskReconciliationPending !== true;
+    const keyOccurrences = new Map<string, number>();
+    return collectOutputArtifacts(tasks).map(
+      ({ artifact, artifactKey, group, index, sourceFinished, taskKey, taskName }) => {
+        const baseKey = [
+          run.run_id || runLabel,
+          taskKey,
+          artifactKey,
+          getArtifactIdentity(artifact) || 'artifact',
+        ].join(':');
+        const occurrence = keyOccurrences.get(baseKey) || 0;
+        keyOccurrences.set(baseKey, occurrence + 1);
+        return {
+          artifact,
+          key: occurrence ? `${baseKey}:duplicate-${occurrence}` : baseKey,
+          label: `${runLabel} / ${taskName} / ${getArtifactDisplayName(
+            artifact,
+            artifactKey,
+            index,
+            group.artifacts,
+          )}`,
+          namespace: artifact.namespace || defaultNamespace,
+          sourceFinished: sourceFinished || terminalRunFinishedSources,
+        };
+      },
+    );
+  });
+}
+
+export function buildParamsTableProps(
+  comparisonData: RunComparisonData[],
+): CompareTableProps | undefined {
+  const parameterNames = new Set<string>();
+  comparisonData.forEach(({ run }) =>
+    Object.keys(run.runtime_config?.parameters || {}).forEach((name) => parameterNames.add(name)),
+  );
+  if (!comparisonData.length || !parameterNames.size) {
+    return undefined;
+  }
+  const yLabels = [...parameterNames];
+  return {
+    xLabels: comparisonData.map(({ run }) => getRunDisplayName(run)),
+    yLabels,
+    rows: yLabels.map((parameterName) =>
+      comparisonData.map(({ run }) => {
+        const value = run.runtime_config?.parameters?.[parameterName];
+        return value === undefined ? '' : formatParameterValue(value);
+      }),
+    ),
+  };
+}
+
+export function buildScalarMetricsTableProps(
+  comparisonData: RunComparisonData[],
+): CompareTableProps | undefined {
+  const scalarMetricsByRun = comparisonData.map(({ tasks }) =>
+    collectOutputArtifacts(tasks)
+      .filter(({ artifact }) => isScalarMetricArtifact(artifact))
+      .flatMap((entry) =>
+        getScalarMetricEntries(entry.artifact).map(({ name, value }) => ({
+          ...entry,
+          metricName: name,
+          metricValue: value,
+        })),
+      ),
+  );
+  const labelsNeedingArtifactKey = new Set<string>();
+  const artifactKeysByLabel = new Map<string, Set<string>>();
+  scalarMetricsByRun.forEach((entries) => {
+    entries.forEach((entry) => {
+      const label = getScalarMetricBaseLabel(entry);
+      const artifactKeys = artifactKeysByLabel.get(label) || new Set<string>();
+      artifactKeys.add(entry.artifactKey || '');
+      artifactKeysByLabel.set(label, artifactKeys);
+    });
+  });
+  artifactKeysByLabel.forEach((artifactKeys, label) => {
+    if (artifactKeys.size > 1) {
+      labelsNeedingArtifactKey.add(label);
+    }
+  });
+
+  const metricsByRun = scalarMetricsByRun.map((entries) => {
+    const metrics = new Map<string, string>();
+    const labelOccurrences = new Map<string, number>();
+    entries.forEach((entry) => {
+      const { artifactKey, metricName, metricValue, taskName } = entry;
+      const baseLabel = getScalarMetricBaseLabel(entry);
+      const disambiguatedLabel =
+        labelsNeedingArtifactKey.has(baseLabel) && artifactKey
+          ? `${taskName} / ${artifactKey} / ${metricName}`
+          : baseLabel;
+      // Retry reuses a logical task row and replaces its attempt-local artifact links. Repeated
+      // labels here are distinct artifacts in the current task output, not historical attempts.
+      const occurrence = (labelOccurrences.get(disambiguatedLabel) || 0) + 1;
+      labelOccurrences.set(disambiguatedLabel, occurrence);
+      const label = occurrence === 1 ? disambiguatedLabel : `${disambiguatedLabel} (${occurrence})`;
+      metrics.set(label, metricValue);
+    });
+    return metrics;
+  });
+  const metricNames = new Set(metricsByRun.flatMap((metrics) => [...metrics.keys()]));
+  if (!comparisonData.length || !metricNames.size) {
+    return undefined;
+  }
+  const yLabels = [...metricNames];
+  return {
+    xLabels: comparisonData.map(({ run }) => getRunDisplayName(run)),
+    yLabels,
+    rows: yLabels.map((metricName) => metricsByRun.map((metrics) => metrics.get(metricName) || '')),
+    missingCells: yLabels.map((metricName) =>
+      metricsByRun.map((metrics) => !metrics.has(metricName)),
+    ),
+  };
+}
+
+function getScalarMetricBaseLabel(entry: RunScalarMetricEntry): string {
+  return `${entry.taskName} / ${entry.metricName}`;
+}
+
+function RunComparisonWithContext(props: PageProps) {
+  const namespace = useContext(NamespaceContext);
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    return <Navigate replace to={RoutePage.EXPERIMENTS} />;
+  }
+  return <RunComparisonView namespace={namespace} {...props} />;
+}
+
+export default RunComparisonWithContext;

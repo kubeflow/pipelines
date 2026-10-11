@@ -2,15 +2,15 @@
 
 exports[`LogViewer > does not linkify non http/https urls 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -23,15 +23,15 @@ exports[`LogViewer > does not linkify non http/https urls 1`] = `
 
 exports[`LogViewer > linkifies standalone https urls 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -40,7 +40,7 @@ exports[`LogViewer > linkifies standalone https urls 1`] = `
     </span>
     <span>
       <a
-        class="a_fj90q9w"
+        class="kfp-log-link"
         href="https://path.com"
         rel="noopener noreferrer"
         target="_blank"
@@ -59,15 +59,15 @@ exports[`LogViewer > linkifies standalone https urls 1`] = `
 
 exports[`LogViewer > linkifies standalone urls 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -76,7 +76,7 @@ exports[`LogViewer > linkifies standalone urls 1`] = `
     </span>
     <span>
       <a
-        class="a_fj90q9w"
+        class="kfp-log-link"
         href="http://path.com"
         rel="noopener noreferrer"
         target="_blank"
@@ -95,15 +95,15 @@ exports[`LogViewer > linkifies standalone urls 1`] = `
 
 exports[`LogViewer > linkifies substring urls 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -112,7 +112,7 @@ exports[`LogViewer > linkifies substring urls 1`] = `
     </span>
     <span>
       <a
-        class="a_fj90q9w"
+        class="kfp-log-link"
         href="http://path.com"
         rel="noopener noreferrer"
         target="_blank"
@@ -131,15 +131,15 @@ exports[`LogViewer > linkifies substring urls 1`] = `
 
 exports[`LogViewer > renders a multi-line log 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -152,17 +152,16 @@ exports[`LogViewer > renders a multi-line log 1`] = `
 
 exports[`LogViewer > renders a row with error 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="error"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(112, 0, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(112, 0, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -175,17 +174,16 @@ exports[`LogViewer > renders a row with error 1`] = `
 
 exports[`LogViewer > renders a row with error word as substring 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="error"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(112, 0, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(112, 0, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -198,15 +196,15 @@ exports[`LogViewer > renders a row with error word as substring 1`] = `
 
 exports[`LogViewer > renders a row with given index as line number 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -219,17 +217,16 @@ exports[`LogViewer > renders a row with given index as line number 1`] = `
 
 exports[`LogViewer > renders a row with upper case error 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="error"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(112, 0, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(112, 0, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -242,17 +239,16 @@ exports[`LogViewer > renders a row with upper case error 1`] = `
 
 exports[`LogViewer > renders a row with upper case warning 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="warning"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -265,17 +261,16 @@ exports[`LogViewer > renders a row with upper case warning 1`] = `
 
 exports[`LogViewer > renders a row with warn 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="warning"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -288,17 +283,16 @@ exports[`LogViewer > renders a row with warn 1`] = `
 
 exports[`LogViewer > renders a row with warning 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="warning"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -311,17 +305,16 @@ exports[`LogViewer > renders a row with warning 1`] = `
 
 exports[`LogViewer > renders a row with warning word as substring 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
+  data-level="warning"
 >
   <span
-    class="number_f90q0xh"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
-    style="background-color: rgb(84, 84, 0); color: white;"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -338,9 +331,9 @@ exports[`LogViewer > renders an empty container when no logs passed 1`] = `
     style="overflow: visible; height: 0px; width: 0px;"
   >
     <div
-      aria-label="grid"
+      aria-label="Task logs"
       aria-readonly="true"
-      class="ReactVirtualized__Grid ReactVirtualized__List root_f17jcl2y"
+      class="ReactVirtualized__Grid ReactVirtualized__List kfp-log-viewer"
       id="logViewer"
       role="grid"
       style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; -webkit-overflow-scrolling: touch; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
@@ -366,15 +359,15 @@ exports[`LogViewer > renders an empty container when no logs passed 1`] = `
 
 exports[`LogViewer > renders one log line 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -387,15 +380,15 @@ exports[`LogViewer > renders one log line 1`] = `
 
 exports[`LogViewer > renders one long line without breaking 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>
@@ -408,15 +401,15 @@ exports[`LogViewer > renders one long line without breaking 1`] = `
 
 exports[`LogViewer > renders two log lines 1`] = `
 <div
-  class="line_faojhcs"
+  class="kfp-log-line"
 >
   <span
-    class="number_f90q0xh"
+    class="kfp-log-number"
   >
     1
   </span>
   <span
-    class="line_faojhcs"
+    class="kfp-log-text"
   >
     <span>
       <span>

@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend is React 19, TypeScript, MUI, TanStack Query, Vitest, Prettier, and ESLint. Use the Node version in `frontend/.nvmrc` and the npm version pinned by `frontend/package.json`.
+The frontend is React 19, TypeScript, Tailwind CSS 4, Base UI, TanStack Query, Vitest, Prettier, and ESLint. Use the Node version in `frontend/.nvmrc` and the npm version pinned by `frontend/package.json`.
 
 ```bash
 cd frontend
@@ -25,3 +25,7 @@ Use `npm run mock:api` with `npm start` for mock development, or `npm run start:
 When effect behavior changes, add or run a focused regression test for duplicate mutation success, refresh-preserved selections, retry recovery, or unexpected mount-time callbacks.
 
 Prettier uses single quotes, trailing commas, and a 100-character line width.
+
+## Component and styling ownership
+
+Follow [UI component ownership and styling](../../frontend/docs/ui-modernization/architecture.md). Group application components by role; `ui` holds shared primitives. Tailwind/CVA styles small primitives, while colocated stylesheets handle complex layouts with shared tokens. Retain one owner for request state, page chrome, and navigation; changing class syntax alone is not a migration.

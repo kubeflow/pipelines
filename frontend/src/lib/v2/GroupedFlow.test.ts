@@ -48,7 +48,7 @@ describe('buildGroupedFlow', () => {
     }
   });
 
-  it('matches rem-sized cards and group headers with the application root font', () => {
+  it('keeps fixed pixel cards and group headers aligned at different root font sizes', () => {
     const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
     const graph = buildGroupedFlow(
       resolve(['root']),
@@ -59,9 +59,9 @@ describe('buildGroupedFlow', () => {
     );
     const group = graph.nodes.find((node) => node.id === 'task.workflow')!;
     const leaf = graph.nodes.find((node) => node.id === 'task.deploy')!;
-    expect(group.height).toBe(39);
+    expect(group.height).toBe(56);
     expect(group.data.headerHeight).toBe(leaf.height);
-    expect(leaf.width).toBe(182);
+    expect(leaf.width).toBe(200);
   });
 
   it.each([1, 13 / 16])(
@@ -107,7 +107,7 @@ describe('buildGroupedFlow', () => {
   it('collapses only the requested instance, removes its internal edges, and reflows siblings', () => {
     const expanded = staticGraph(conditionSpec);
     const collapsed = staticGraph(conditionSpec, new Set(['task.accurate']));
-    expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBe(48);
+    expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBe(56);
     expect(collapsed.nodes.filter((node) => node.data.label === 'Train model')).toHaveLength(1);
     expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBeLessThan(
       expanded.nodes.find((node) => node.id === 'task.accurate')!.height!,

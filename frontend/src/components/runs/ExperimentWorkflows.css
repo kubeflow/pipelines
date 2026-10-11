@@ -1,0 +1,158 @@
+.kfp-theme .kfp-workflow-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 20px;
+  padding: 0 32px 32px;
+}
+.kfp-theme .kfp-workflow-page .kfp-workflow-page {
+  padding: 0;
+}
+.kfp-theme .kfp-workflow-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 20px;
+}
+.kfp-theme .kfp-workflow-form,
+.kfp-theme .kfp-workflow-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 760px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.kfp-theme .kfp-workflow-form h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-workflow-description,
+.kfp-theme .kfp-workflow-muted {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.kfp-theme .kfp-workflow-actions,
+.kfp-theme .kfp-workflow-card-heading,
+.kfp-theme .kfp-schedule-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.kfp-theme .kfp-workflow-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.kfp-theme .kfp-workflow-card {
+  flex: 1;
+  min-width: 220px;
+  max-width: 460px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.kfp-theme .kfp-workflow-card-heading {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.kfp-theme .kfp-workflow-card-heading h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-workflow-card-count {
+  font-size: 20px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-workflow-card-count[data-active] {
+  color: var(--status-succeeded);
+}
+.kfp-theme .kfp-workflow-description-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.kfp-theme .kfp-workflow-link {
+  color: var(--primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-workflow-link:hover {
+  text-decoration: underline;
+}
+.kfp-theme .kfp-recent-runs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 220px;
+}
+.kfp-theme .kfp-recent-runs-bar {
+  display: flex;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--status-neutral-soft);
+}
+.kfp-theme .kfp-recent-runs-bar span {
+  flex: 1;
+  background: var(--status-neutral);
+}
+.kfp-theme .kfp-recent-runs-bar [data-tone='succeeded'] {
+  background: var(--status-succeeded);
+}
+.kfp-theme .kfp-recent-runs-bar [data-tone='failed'] {
+  background: var(--status-failed);
+}
+.kfp-theme .kfp-recent-runs-bar [data-tone='running'] {
+  background: var(--status-running);
+}
+.kfp-theme .kfp-recent-runs-bar [data-tone='warning'] {
+  background: var(--status-warning);
+}
+.kfp-theme .kfp-schedule-control {
+  font-size: 12px;
+}
+.kfp-theme .kfp-schedule-control p {
+  margin: 6px 0 0;
+  color: var(--status-failed);
+  max-width: 260px;
+  white-space: normal;
+}
+.kfp-theme .kfp-schedule-status {
+  color: var(--status-neutral);
+}
+.kfp-theme .kfp-schedule-status[data-status='Active'] {
+  color: var(--status-succeeded);
+}
+.kfp-theme .kfp-schedule-status[data-status='Scheduled'] {
+  color: var(--status-running);
+}
+.kfp-theme .kfp-schedule-status[data-status='Expired'] {
+  color: var(--status-warning);
+}
+.kfp-theme .kfp-workflow-loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+@media (max-width: 600px) {
+  .kfp-theme .kfp-workflow-page {
+    padding: 0 16px 16px;
+  }
+  .kfp-theme .kfp-workflow-form,
+  .kfp-theme .kfp-workflow-details {
+    padding: 18px;
+  }
+}

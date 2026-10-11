@@ -14,19 +14,23 @@
 
 import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
-import Banner from 'src/components/Banner';
-import DetailsTable from 'src/components/DetailsTable';
+import { InspectionNotice as Banner } from '../inspection/InspectionNotice';
+import { InspectionFields as DetailsTable } from '../inspection/InspectionFields';
 import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
-import { commonCss, padding } from 'src/Css';
 import { formatParameters } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 
 export interface RuntimeInputOutputTabProps {
   task: V2beta1PipelineTask;
   namespace?: string;
+  namespacePending?: boolean;
 }
 
-export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTabProps) {
+export function RuntimeInputOutputTab({
+  task,
+  namespace,
+  namespacePending = false,
+}: RuntimeInputOutputTabProps) {
   const inputParameters = formatParameters(task.inputs?.parameters);
   const outputParameters = formatParameters(task.outputs?.parameters);
   const inputArtifacts = buildRuntimeArtifactRows(task.inputs?.artifacts);
@@ -39,8 +43,8 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
 
   return (
     <ErrorBoundary>
-      <div className={commonCss.page}>
-        <div className={padding(20)}>
+      <div className='kfp-inspection-column'>
+        <div className='kfp-inspection-scroll'>
           <h3>{getTaskDisplayName(task)}</h3>
           {isEmpty && (
             <Banner message='There is no input/output parameter or artifact.' mode='info' />
@@ -53,7 +57,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
               title='Input Artifacts'
               fields={inputArtifacts}
               valueComponent={RuntimeArtifactValue}
-              valueComponentProps={{ namespace, autoLoad: true }}
+              valueComponentProps={{ namespace, namespacePending, autoLoad: true }}
             />
           )}
           {!!outputParameters.length && (
@@ -64,7 +68,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
               title='Output Artifacts'
               fields={outputArtifacts}
               valueComponent={RuntimeArtifactValue}
-              valueComponentProps={{ namespace, autoLoad: true }}
+              valueComponentProps={{ namespace, namespacePending, autoLoad: true }}
             />
           )}
         </div>

@@ -2,25 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Node } from '@xyflow/react';
-import type { FlowElementDataBase } from 'src/components/graph/Constants';
-import { NodeTypeNames } from './StaticFlow';
+import { FlowElementDataBase, GRAPH_NODE_WIDTH, GRAPH_NODE_HEIGHT } from 'src/components/graph/Constants';
+export const NODE_CARD_HEIGHT = GRAPH_NODE_HEIGHT;
+export const SUB_DAG_STATUS_CARD_WIDTH = GRAPH_NODE_WIDTH;
 
-export const NODE_CARD_HEIGHT = 48;
-export const SUB_DAG_STATUS_CARD_WIDTH = 320;
-
-/** Rendered card size in graph coordinates; rem dimensions scale, borders do not. */
-export function getFlowNodeSize(
-  node: Pick<Node<FlowElementDataBase>, 'type' | 'data'>,
-  nodeScale = 1,
-): { width: number; height: number } {
-  if (node.type === NodeTypeNames.SUB_DAG) {
-    return {
-      width: (node.data.state ? SUB_DAG_STATUS_CARD_WIDTH : 288) * nodeScale,
-      height: NODE_CARD_HEIGHT * nodeScale,
-    };
-  }
-  return {
-    width: (node.type === NodeTypeNames.ARTIFACT ? 240 : node.data.state ? 256 : 224) * nodeScale,
-    height: NODE_CARD_HEIGHT * nodeScale,
-  };
+/** Modernized cards use fixed CSS pixels, independently of the root font size. */
+export function getFlowNodeSize(_node: Pick<Node<FlowElementDataBase>, 'type' | 'data'>, _nodeScale = 1): { width: number; height: number } {
+  return { width: GRAPH_NODE_WIDTH, height: GRAPH_NODE_HEIGHT };
 }

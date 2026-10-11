@@ -3,14 +3,8 @@
 
 import { ButtonHTMLAttributes } from 'react';
 import { ControlButton, Panel, useReactFlow, useStore } from '@xyflow/react';
-import Tooltip from '@mui/material/Tooltip';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import CropFreeIcon from '@mui/icons-material/CropFree';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import { Tooltip } from '@base-ui/react/tooltip';
+import { Plus as AddIcon, Minus as RemoveIcon, Scan as CropFreeIcon, Lock as LockIcon, LockOpen as LockOpenIcon, ChevronsUpDown as UnfoldMoreIcon, ChevronsDownUp as UnfoldLessIcon } from 'lucide-react';
 
 type PaletteButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'> & {
   label: string;
@@ -19,15 +13,8 @@ type PaletteButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>
 
 function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps) {
   return (
-    <Tooltip
-      title={tooltip}
-      enterDelay={500}
-      enterNextDelay={500}
-      placement='right'
-      disableInteractive
-    >
-      {/* Disabled buttons do not emit mouse events; the wrapper still explains the action. */}
-      <span style={{ display: 'flex' }}>
+    <Tooltip.Root disableHoverablePopup>
+      <Tooltip.Trigger render={<span style={{ display: 'flex' }} />} delay={500}>
         <ControlButton
           {...props}
           aria-label={label}
@@ -36,8 +23,13 @@ function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps)
               '1px solid var(--xy-controls-button-border-color, var(--xy-controls-button-border-color-default))',
           }}
         />
-      </span>
-    </Tooltip>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner side='right' sideOffset={6}>
+          <Tooltip.Popup className='kfp-graph-tooltip'>{tooltip}</Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 

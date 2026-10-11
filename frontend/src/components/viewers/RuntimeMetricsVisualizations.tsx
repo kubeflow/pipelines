@@ -12,15 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import HelpIcon from '@mui/icons-material/Help';
-import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
-import IconWithTooltip from 'src/atoms/IconWithTooltip';
-import Banner from 'src/components/Banner';
+import { VisualizationNotice } from './VisualizationNotice';
+import './ComparisonViewers.css';
 import PlotCard from 'src/components/PlotCard';
-import { color, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
@@ -115,28 +112,31 @@ export function RuntimeMetricsVisualizations({
     fileArtifacts.length === 0 &&
     legacyUiMetadataEntries.length === 0
   ) {
-    return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
+    return (
+      <VisualizationNotice
+        message='There is no metrics artifact available in this step.'
+        variant='info'
+      />
+    );
   }
 
   return (
     <>
       {rocCurves.error && (
-        <Banner
+        <VisualizationNotice
           message='Invalid ROC curve artifact.'
-          mode='error'
-          additionalInfo={rocCurves.error}
+          variant='error'
+          details={rocCurves.error}
         />
       )}
       {!!rocCurves.configs.length && (
-        <div className={padding(40, 'lrt')}>
-          <div className={padding(40, 'b')}>
+        <div className='kfp-visualization-section'>
+          <div className='kfp-visualization-heading'>
             <h3>
               ROC Curve{' '}
-              <IconWithTooltip
-                Icon={HelpIcon}
-                iconColor={color.weak}
-                tooltip={ROC_CURVE_DEFINITION}
-              />
+              <abbr title={ROC_CURVE_DEFINITION} aria-label={ROC_CURVE_DEFINITION}>
+                ⓘ
+              </abbr>
             </h3>
           </div>
           <ROCCurve
@@ -147,20 +147,20 @@ export function RuntimeMetricsVisualizations({
         </div>
       )}
       {!!confusionMatrixResult.errors.length && (
-        <Banner
+        <VisualizationNotice
           message='Invalid confusion matrix artifact.'
-          mode='error'
-          additionalInfo={confusionMatrixResult.errors.join('\n')}
+          variant='error'
+          details={confusionMatrixResult.errors.join('\n')}
         />
       )}
       {confusionMatrixResult.matrices.map(({ visualization, configs }) => (
-        <div className={padding(40)} key={visualization.key}>
+        <div className='kfp-visualization-section' key={visualization.key}>
           <h3>Confusion Matrix: {visualization.displayName}</h3>
           <ConfusionMatrix configs={configs} />
         </div>
       ))}
       {!!scalarMetrics.length && (
-        <div className={padding(40, 'lrt')}>
+        <div className='kfp-visualization-section'>
           <h3>Scalar Metrics</h3>
           <PagedTable
             configs={[
@@ -243,7 +243,7 @@ function FileArtifactVisualization({
 
   if (entries.length === 1 && selectedArtifact) {
     return (
-      <div className={padding(20, 'lrt')}>
+      <div className='kfp-visualization-section'>
         <RuntimeArtifactVisualization
           artifact={selectedArtifact}
           namespace={namespace}
@@ -254,25 +254,22 @@ function FileArtifactVisualization({
   }
 
   return (
-    <div className={padding(20, 'lrt')}>
-      <FormControl variant='standard' style={{ minWidth: 240 }}>
-        <InputLabel id={`${kind.toLowerCase()}-visualization-label`}>
-          {kind} visualization
-        </InputLabel>
-        <Select
-          labelId={`${kind.toLowerCase()}-visualization-label`}
+    <div className='kfp-visualization-section'>
+      <label className='kfp-visualization-field'>
+        {kind} visualization
+        <select
+          className='kfp-visualization-select'
           value={activeSelectedKey}
-          onChange={(event) => setSelectedKey(event.target.value as string)}
-          inputProps={{ 'aria-label': `${kind} visualization` }}
+          onChange={(event) => setSelectedKey(event.target.value)}
         >
-          <MenuItem value=''>Choose an artifact</MenuItem>
+          <option value=''>Choose an artifact</option>
           {entries.map(({ artifact, key }) => (
-            <MenuItem key={key} value={key}>
+            <option key={key} value={key}>
               {getArtifactDisplayName(artifact)}
-            </MenuItem>
+            </option>
           ))}
-        </Select>
-      </FormControl>
+        </select>
+      </label>
       {selectedArtifact && (
         <RuntimeArtifactVisualization
           artifact={selectedArtifact}
@@ -311,13 +308,13 @@ export function RuntimeArtifactVisualization({
   return (
     <>
       {error && (
-        <Banner
+        <VisualizationNotice
           message='Unable to retrieve the selected visualization. Verify the artifact URI and refresh the page to retry.'
-          mode='error'
-          additionalInfo={error.message}
+          variant='error'
+          details={error.message}
         />
       )}
-      {isLoading && <Banner message='Visualization is loading.' mode='info' />}
+      {isLoading && <VisualizationNotice message='Visualization is loading.' variant='info' />}
       {data && (
         <PlotCard
           configs={[data]}
@@ -362,32 +359,34 @@ function LegacyUiMetadataVisualization({
   );
   const containsUnsupportedConfig = supportedConfigEntries.length !== (data?.configs.length || 0);
   return (
-    <div className={padding(20, 'lrt')}>
+    <div className='kfp-visualization-section'>
       {error && (
-        <Banner
+        <VisualizationNotice
           message='Unable to retrieve legacy UI visualizations. Verify the metadata artifact and its referenced sources, then refresh the page to retry.'
-          mode='error'
-          additionalInfo={error.message}
+          variant='error'
+          details={error.message}
         />
       )}
-      {isLoading && <Banner message='Legacy UI visualizations are loading.' mode='info' />}
+      {isLoading && (
+        <VisualizationNotice message='Legacy UI visualizations are loading.' variant='info' />
+      )}
       {!!data?.errors.length && (
-        <Banner
+        <VisualizationNotice
           message='Some legacy UI visualizations could not be loaded.'
-          mode='error'
-          additionalInfo={data.errors.join('\n')}
+          variant='error'
+          details={data.errors.join('\n')}
         />
       )}
       {data?.configs.length === 0 && data.errors.length === 0 && (
-        <Banner
+        <VisualizationNotice
           message='The legacy UI metadata artifact contains no supported visualizations.'
-          mode='info'
+          variant='info'
         />
       )}
       {containsUnsupportedConfig && (
-        <Banner
+        <VisualizationNotice
           message='The legacy UI metadata contains an unsupported visualization type. Update the metadata to use a supported viewer and refresh the page.'
-          mode='error'
+          variant='error'
         />
       )}
       {supportedConfigEntries.map(({ config, key }) => (

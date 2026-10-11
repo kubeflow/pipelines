@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import userEvent from '@testing-library/user-event';
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/StoragePath';
@@ -26,6 +27,11 @@ import {
   RuntimeMetricsVisualizations,
   TEST_ONLY,
 } from './RuntimeMetricsVisualizations';
+
+async function chooseArtifact(label: string, optionName: string | RegExp) {
+  const select = screen.getByRole('combobox', { name: label });
+  await userEvent.selectOptions(select, within(select).getByRole('option', { name: optionName }));
+}
 
 describe('RuntimeMetricsVisualizations', () => {
   it('builds ROC curve configurations from native artifact metadata', () => {
@@ -380,8 +386,7 @@ describe('RuntimeMetricsVisualizations', () => {
     );
 
     expect(readFileSpy).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
-    fireEvent.click(screen.getByRole('option', { name: 'report' }));
+    await chooseArtifact('HTML visualization', 'report');
 
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
     expect(readFileSpy).toHaveBeenCalledWith({
@@ -422,22 +427,23 @@ describe('RuntimeMetricsVisualizations', () => {
       </CommonTestWrapper>,
     );
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
-    fireEvent.click(screen.getByRole('option', { name: 'report' }));
+    await chooseArtifact('HTML visualization', 'report');
     await waitFor(() =>
       expect(readFileSpy).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'team-a' })),
     );
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
-    fireEvent.click(screen.getByRole('option', { name: 'dashboard' }));
+    await chooseArtifact('HTML visualization', 'dashboard');
 
     await waitFor(() =>
       expect(readFileSpy).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'team-b' })),
     );
     expect(readFileSpy).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
-      'dashboard',
-    );
+    expect(
+      within(screen.getByRole('combobox', { name: 'HTML visualization' })).getByRole('option', {
+        name: 'dashboard',
+        selected: true,
+      }),
+    ).toBeInTheDocument();
   });
 
   it('preserves file selection when polling inserts or reorders other artifacts', async () => {
@@ -459,11 +465,13 @@ describe('RuntimeMetricsVisualizations', () => {
     );
     const { rerender } = render(wrapper({ artifacts: [report, dashboard] }));
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
-    fireEvent.click(screen.getByRole('option', { name: 'dashboard' }));
-    expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
-      'dashboard',
-    );
+    await chooseArtifact('HTML visualization', 'dashboard');
+    expect(
+      within(screen.getByRole('combobox', { name: 'HTML visualization' })).getByRole('option', {
+        name: 'dashboard',
+        selected: true,
+      }),
+    ).toBeInTheDocument();
 
     rerender(
       wrapper({
@@ -479,9 +487,12 @@ describe('RuntimeMetricsVisualizations', () => {
       }),
     );
 
-    expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
-      'dashboard',
-    );
+    expect(
+      within(screen.getByRole('combobox', { name: 'HTML visualization' })).getByRole('option', {
+        name: 'dashboard',
+        selected: true,
+      }),
+    ).toBeInTheDocument();
   });
 
   it('automatically renders a single file artifact', async () => {

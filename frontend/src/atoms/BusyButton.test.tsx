@@ -15,8 +15,8 @@
  */
 
 import BusyButton from './BusyButton';
-import TestIcon from '@mui/icons-material/Help';
-import { render } from '@testing-library/react';
+import { CircleHelp as TestIcon } from 'lucide-react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 describe('BusyButton', () => {
   it('renders with just a title', () => {
@@ -46,5 +46,20 @@ describe('BusyButton', () => {
   it('renders a primary outlined buton', () => {
     const { asFragment } = render(<BusyButton title='test busy button' outlined={true} />);
     expect(asFragment()).toMatchSnapshot();
+  });
+  it('disables duplicate actions while busy and keeps the accessible title', () => {
+    const onClick = vi.fn();
+    const { rerender } = render(<BusyButton title='Start' onClick={onClick} />);
+    const button = screen.getByRole('button', { name: 'Start' });
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    rerender(<BusyButton title='Start' onClick={onClick} busy />);
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    rerender(<BusyButton title='Start' onClick={onClick} />);
+    expect(button).not.toBeDisabled();
+    expect(button).not.toHaveAttribute('aria-busy');
   });
 });

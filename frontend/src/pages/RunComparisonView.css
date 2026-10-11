@@ -1,0 +1,52 @@
+.kfp-comparison-page {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 32px 32px;
+}
+.kfp-comparison-intro {
+  margin: 0 0 20px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.kfp-comparison-section-heading {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.kfp-comparison-section-heading > button {
+  padding-left: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.kfp-comparison-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.kfp-comparison-metrics {
+  min-width: 0;
+  padding: 16px;
+  overflow-x: auto;
+}
+.kfp-comparison-overview {
+  min-width: 0;
+}
+.kfp-comparison-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 96px;
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+@media (max-width: 600px) {
+  .kfp-comparison-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}

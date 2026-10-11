@@ -75,7 +75,7 @@ it.each([
   render(<GraphControls {...props()} />);
   const button = screen.getByRole('button', { name: label });
   expect(button).not.toHaveAttribute('title');
-  fireEvent.mouseOver(button.parentElement!);
+  fireEvent.pointerEnter(button.parentElement!, { pointerType: 'mouse' });
   act(() => {
     vi.advanceTimersByTime(499);
   });
@@ -89,18 +89,18 @@ it.each([
 it('retains the 500ms delay when moving between icons and explains disabled actions', () => {
   render(<GraphControls {...props()} hasSubDags={false} />);
   const zoom = screen.getByRole('button', { name: 'Zoom in' });
-  fireEvent.mouseOver(zoom.parentElement!);
+  fireEvent.pointerEnter(zoom.parentElement!, { pointerType: 'mouse' });
   act(() => {
     vi.advanceTimersByTime(500);
   });
   expect(screen.getByRole('tooltip')).toHaveTextContent('Zoom in');
-  fireEvent.mouseLeave(zoom.parentElement!);
+  fireEvent.pointerLeave(zoom.parentElement!, { pointerType: 'mouse' });
   act(() => {
     vi.advanceTimersByTime(250);
   });
   const expand = screen.getByRole('button', { name: 'Expand all' });
   expect(expand).toBeDisabled();
-  fireEvent.mouseOver(expand.parentElement!);
+  fireEvent.pointerEnter(expand.parentElement!, { pointerType: 'mouse' });
   act(() => {
     vi.advanceTimersByTime(499);
   });

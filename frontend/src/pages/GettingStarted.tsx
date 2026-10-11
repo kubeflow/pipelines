@@ -16,13 +16,12 @@
 
 import type * as React from 'react';
 import { Markdown } from 'markdown-to-jsx/react';
-import { classes, cssRaw } from 'typestyle';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { AutoLink } from 'src/atoms/ExternalLink';
 import { RoutePageFactory } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import SAMPLE_CONFIG from 'src/config/sample_config_from_backend.json';
-import { commonCss, padding } from 'src/Css';
+import './SecondaryPages.css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { Page } from './Page';
@@ -52,30 +51,6 @@ This section contains demo and tutorial pipelines.
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 `;
-
-cssRaw(`
-.kfp-start-page li {
-  font-size: 14px;
-  margin-block-start: 0.83em;
-  margin-block-end: 0.83em;
-  margin-left: 2em;
-}
-.kfp-start-page p {
-  font-size: 14px;
-  margin-block-start: 0.83em;
-  margin-block-end: 0.83em;
-}
-.kfp-start-page h2 {
-  font-size: 18px;
-  margin-block-start: 1em;
-  margin-block-end: 1em;
-}
-.kfp-start-page h3 {
-  font-size: 16px;
-  margin-block-start: 1em;
-  margin-block-end: 1em;
-}
-`);
 
 const OPTIONS = {
   overrides: { a: { component: AutoLink } },
@@ -123,14 +98,14 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
+      <article className='kfp-secondary-page kfp-start-page'>
         <Markdown options={OPTIONS}>
           {PAGE_CONTENT_MD({
             control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
           })}
         </Markdown>
-      </div>
+      </article>
     );
   }
 }

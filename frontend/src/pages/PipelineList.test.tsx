@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
 import * as React from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,6 +28,16 @@ import PipelineList from './PipelineList';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { ExpandState } from 'src/components/CustomTable';
 import { vi } from 'vitest';
+
+beforeEach(() => {
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    media,
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+});
+afterEach(() => vi.unstubAllGlobals());
 
 describe('PipelineList', () => {
   let renderResult: ReturnType<typeof render> | null = null;
@@ -102,7 +113,10 @@ describe('PipelineList', () => {
   }
 
   function getRowById(id: string): HTMLElement {
-    const rows = screen.getAllByTestId('table-row');
+    const rows = [
+      ...screen.queryAllByTestId('pipeline-card'),
+      ...screen.queryAllByTestId('table-row'),
+    ];
     const row = rows.find((element) => element.getAttribute('data-row-id') === id);
     if (!row) {
       throw new Error(`Row not found: ${id}`);
@@ -128,21 +142,21 @@ describe('PipelineList', () => {
 
   async function selectPipeline(id: string): Promise<void> {
     const row = await waitForRowById(id);
-    await userEvent.click(row);
+    await userEvent.click(within(row).getByRole('checkbox', { name: /^Select pipeline / }));
     await waitForSelectedPipelines([id]);
   }
 
   async function selectPipelines(ids: string[]): Promise<void> {
     for (const id of ids) {
       const row = await waitForRowById(id);
-      await userEvent.click(row);
+      await userEvent.click(within(row).getByRole('checkbox', { name: /^Select pipeline / }));
     }
     await waitForSelectedPipelines(ids);
   }
 
   async function deselectPipeline(id: string): Promise<void> {
     const row = await waitForRowById(id);
-    await userEvent.click(row);
+    await userEvent.click(within(row).getByRole('checkbox', { name: /^Select pipeline / }));
     await waitForSelectedPipelines([]);
   }
 
@@ -177,7 +191,9 @@ describe('PipelineList', () => {
     const props = { ...generateProps(), ...options?.props } as PageProps;
     renderResult = render(
       <CommonTestWrapper>
-        <PipelineList ref={pipelineListRef} {...props} namespace={options?.namespace} />
+        <ThemeProvider>
+          <PipelineList ref={pipelineListRef} {...props} namespace={options?.namespace} />
+        </ThemeProvider>
       </CommonTestWrapper>,
     );
     await flushPromisesInAct();
@@ -219,7 +235,12 @@ describe('PipelineList', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
     await userEvent.click(trigger);
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'More actions' })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      ),
+    );
     const item = screen.getByRole('menuitem', { name: 'Import / export namespace data…' });
     expect(item).toHaveAttribute('href', RoutePage.METADATA_TRANSFER);
     await userEvent.click(item);
@@ -230,6 +251,8 @@ describe('PipelineList', () => {
     await renderPipelineList();
     const trigger = screen.getByRole('button', { name: 'More actions' });
     await userEvent.click(trigger);
+    const menu = await screen.findByRole('menu', { name: 'More actions' });
+    await waitFor(() => expect(menu).toHaveFocus());
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menuitem')).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
@@ -336,7 +359,7 @@ describe('PipelineList', () => {
   });
 
   it('shows error banner when listing pipelines fails', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
+    listPipelinesSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderPipelineList();
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -373,8 +396,70 @@ describe('PipelineList', () => {
     );
   });
 
+  it('retains a list error when an in-flight version load succeeds', async () => {
+    let finishVersions!: (value: { pipeline_versions: [] }) => void;
+    listPipelineVersionsSpy.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishVersions = resolve;
+        }),
+    );
+    await mountWithNPipelines(1);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Expand pipeline test pipeline name0' }),
+    );
+    await waitFor(() => expect(listPipelineVersionsSpy).toHaveBeenCalled());
+    listPipelinesSpy.mockRejectedValueOnce(new Error('list failed'));
+    await act(async () => {
+      await getToolbarActionFromInstance(ButtonKeys.REFRESH).action();
+    });
+    const errorBanner = expect.objectContaining({ additionalInfo: 'list failed', mode: 'error' });
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(errorBanner);
+    await act(async () => {
+      finishVersions({ pipeline_versions: [] });
+    });
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(errorBanner);
+  });
+
+  it('does not clear another pipeline version list error on successful expansion', async () => {
+    await mountWithNPipelines(2);
+    listPipelineVersionsSpy.mockImplementation(async (pipelineId) => {
+      if (pipelineId === 'test-pipeline-id0') throw new Error('versions failed');
+      return { pipeline_versions: [] };
+    });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Expand pipeline test pipeline name0' }),
+    );
+    const errorBanner = expect.objectContaining({
+      additionalInfo: 'versions failed',
+      mode: 'error',
+    });
+    await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith(errorBanner));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Expand pipeline test pipeline name1' }),
+    );
+    await waitFor(() =>
+      expect(listPipelineVersionsSpy).toHaveBeenCalledWith(
+        'test-pipeline-id1',
+        '',
+        10,
+        'created_at desc',
+        '',
+      ),
+    );
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(errorBanner);
+    listPipelineVersionsSpy.mockResolvedValue({ pipeline_versions: [] });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Collapse pipeline test pipeline name0' }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Expand pipeline test pipeline name0' }),
+    );
+    await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
+  });
+
   it('hides error banner when listing pipelines fails then succeeds', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
+    listPipelinesSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderPipelineList();
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -443,6 +528,49 @@ describe('PipelineList', () => {
     await waitFor(() => {
       expect(getToolbarAction(ButtonKeys.DELETE_RUN).disabled).toBe(true);
     });
+  });
+
+  it('keeps Delete enabled while another expanded pipeline has a selected version', async () => {
+    listPipelineVersionsSpy.mockImplementation(async (pipelineId) => ({
+      pipeline_versions: [
+        {
+          pipeline_id: pipelineId,
+          pipeline_version_id: `${pipelineId}-version`,
+          display_name: `${pipelineId} version`,
+        },
+      ],
+    }));
+    await mountWithNPipelines(2);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Expand pipeline test pipeline name0' }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Expand pipeline test pipeline name1' }),
+    );
+    const first = await screen.findByRole('checkbox', {
+      name: 'Select version test-pipeline-id0 version',
+    });
+    const second = await screen.findByRole('checkbox', {
+      name: 'Select version test-pipeline-id1 version',
+    });
+    await userEvent.click(first);
+    await userEvent.click(second);
+    await userEvent.click(second);
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        actions: expect.objectContaining({
+          [ButtonKeys.DELETE_RUN]: expect.objectContaining({ disabled: false }),
+        }),
+      }),
+    );
+    await userEvent.click(first);
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        actions: expect.objectContaining({
+          [ButtonKeys.DELETE_RUN]: expect.objectContaining({ disabled: true }),
+        }),
+      }),
+    );
   });
 
   it('shows delete dialog when delete button is clicked', async () => {

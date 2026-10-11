@@ -72,3 +72,50 @@ describe('LocalStorage', () => {
     expect(LocalStorage.getTablePageSize('pipelines')).toBe(10);
   });
 });
+
+it('keeps navigation usable when storage reads or writes are blocked', () => {
+  const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    throw new Error('blocked');
+  });
+  const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('quota');
+  });
+  try {
+    expect(LocalStorage.isNavbarCollapsed()).toBe(false);
+    expect(() => LocalStorage.saveNavbarCollapsed(true)).not.toThrow();
+  } finally {
+    read.mockRestore();
+    write.mockRestore();
+  }
+});
+
+it.each([undefined, 'runs'])(
+  'keeps page sizing usable when storage is blocked for %s',
+  (pageId) => {
+    const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    try {
+      expect(LocalStorage.getTablePageSize(pageId)).toBe(10);
+      expect(() => LocalStorage.saveTablePageSize(50, pageId)).not.toThrow();
+    } finally {
+      read.mockRestore();
+      write.mockRestore();
+    }
+  },
+);
+
+it('keeps page sizing usable when accessing localStorage itself throws', () => {
+  const storage = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+    throw new Error('SecurityError');
+  });
+  try {
+    expect(LocalStorage.getTablePageSize('runs')).toBe(10);
+    expect(() => LocalStorage.saveTablePageSize(50, 'runs')).not.toThrow();
+  } finally {
+    storage.mockRestore();
+  }
+});

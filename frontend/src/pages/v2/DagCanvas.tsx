@@ -29,18 +29,20 @@ import {
   Background,
   Edge,
   MiniMap,
+  Panel,
   Node,
   OnNodeDrag,
   OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
-import { style } from 'typestyle';
+import 'src/components/graph/Graph.css';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { getTaskStatus } from 'src/lib/StatusUtils';
 import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { NODE_TYPES } from 'src/components/graph/NodeTypes';
 import { SUB_DAG_HEADER_CLASS_NAME } from 'src/components/graph/SubDagGroupNode';
 import { buildGroupedFlow, GROUP_NODE_TYPE, layerNodeId } from 'src/lib/v2/GroupedFlow';
-import { color } from 'src/Css';
 import type {
   LayerElementsResolver,
   LayerFlowElement,
@@ -52,9 +54,6 @@ import { loadGraphExpansion, saveGraphExpansion } from 'src/lib/v2/GraphExpansio
 type PipelineNode = Node<FlowElementDataBase>;
 const emptyLayer: LayerElementsResolver = () => [];
 const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parentId ?? null]);
-const lockedCanvas = style({
-  $nest: { '& .react-flow__edge, & .react-flow__edge *': { pointerEvents: 'none' } },
-});
 // Scrolling the view moves graph content in the opposite direction.
 const panDirections = new Map([
   ['ArrowLeft', { x: 40, y: 0 }],
@@ -91,11 +90,6 @@ function DagCanvasView({
   getSubDagElements,
   graphId,
 }: DagCanvasProps) {
-  // Node cards use rem-based Tailwind dimensions. Match their actual size in
-  // both the application's 13px root font and standalone Storybook's 16px root.
-  const [nodeScale] = useState(
-    () => (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16,
-  );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
   const [locked, setLocked] = useState(true);
@@ -133,9 +127,8 @@ function DagCanvasView({
       buildGroupedFlow(elements, layers, getSubDagElements ?? emptyLayer, expansion.collapsed, {
         expanded: expansion.expanded,
         expansionMode: getSubDagElements ? expansion.mode : 'none',
-        nodeScale,
       }),
-    [elements, layers, getSubDagElements, expansion, nodeScale],
+    [elements, layers, getSubDagElements, expansion],
   );
   const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
     setExpansion((previous) => {
@@ -190,7 +183,14 @@ function DagCanvasView({
       }),
     [grouped, positions, selectedId, toggleGroup, canDrag],
   );
-  const edges = grouped.edges;
+  const edges = useMemo(() => {
+    const states = new Map(nodes.map((node) => [node.id, node.data.state]));
+    return grouped.edges.map((edge) => ({ ...edge,
+      className: `${edge.className || ''} kfp-graph-edge-${getTaskStatus(states.get(edge.target)).tone}`,
+      style: { ...edge.style, strokeWidth: 1.5 },
+    }));
+  }, [grouped.edges, nodes]);
+  const visibleStates = [...new Set(nodes.map(node => node.data.state as PipelineTaskTaskState | undefined).filter((state): state is PipelineTaskTaskState => state !== undefined))];
 
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
@@ -286,7 +286,7 @@ function DagCanvasView({
           : 'Drag nodes or use arrow keys on a selected node to move it. Press F to fit the graph.'
       }
       tabIndex={0}
-      className={locked ? lockedCanvas : undefined}
+      className={`kfp-graph-canvas ${locked ? 'kfp-graph-locked' : ''}`}
       onKeyDownCapture={handleGraphKeyDown}
       onPointerDownCapture={(event) => {
         if (
@@ -299,7 +299,6 @@ function DagCanvasView({
     >
       <ReactFlowProvider>
         <ReactFlow<PipelineNode, Edge>
-          style={{ background: color.lightGrey }}
           nodes={nodes}
           edges={edges}
           snapToGrid={true}
@@ -308,6 +307,7 @@ function DagCanvasView({
           selectionKeyCode={locked ? null : 'Shift'}
           multiSelectionKeyCode={locked ? null : undefined}
           nodesConnectable={false}
+          nodesFocusable={canDrag}
           onInit={(instance) => {
             reactFlowInstance.current = instance;
             lastFocusedNodeId.current = focusedId || null;
@@ -324,7 +324,7 @@ function DagCanvasView({
           onNodeDragStop={canDrag ? onNodeDragStop : undefined}
           deleteKeyCode={null}
         >
-          <MiniMap />
+          <MiniMap position='top-right' />
           <GraphControls
             showSubDagControls={!!getSubDagElements}
             hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
@@ -333,7 +333,13 @@ function DagCanvasView({
             onExpandAll={expandAll}
             onCollapseAll={collapseAll}
           />
-          <Background />
+          <Background gap={22} size={1} />
+          {visibleStates.length > 0 && <Panel position='bottom-right' className='kfp-graph-legend'>
+            <ul aria-label='Task states in this graph'>{visibleStates.map(state => {
+              const status = getTaskStatus(state);
+              return <li key={state} data-tone={status.tone}><span className='kfp-graph-state-dot' aria-hidden='true' />{status.label}</li>;
+            })}</ul>
+          </Panel>}
         </ReactFlow>
       </ReactFlowProvider>
     </div>
