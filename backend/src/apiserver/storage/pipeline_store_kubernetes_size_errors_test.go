@@ -48,6 +48,9 @@ func TestPipelineVersionWrites_KubernetesSizeErrors(t *testing.T) {
 		{"etcd request limit", &k8serrors.StatusError{ErrStatus: metav1.Status{Code: 500, Message: "etcdserver: request is too large"}}, codes.InvalidArgument},
 		{"etcd client send limit", &k8serrors.StatusError{ErrStatus: metav1.Status{Code: 500, Message: "rpc error: code = ResourceExhausted desc = trying to send message larger than max (2097703 vs. 2097152)"}}, codes.InvalidArgument},
 		{"API server body limit", k8serrors.NewRequestEntityTooLargeError("limit is 3145728"), codes.InvalidArgument},
+		{"untyped error with size text", fmt.Errorf("etcdserver: request is too large"), codes.Internal},
+		{"bad request with size text", k8serrors.NewBadRequest("etcdserver: request is too large"), codes.Internal},
+		{"receive limit", k8serrors.NewInternalError(fmt.Errorf("received message larger than max")), codes.Internal},
 		{"unrelated server error", k8serrors.NewInternalError(fmt.Errorf("storage unavailable")), codes.Internal},
 		{"unknown write outcome", fmt.Errorf("http2: client connection lost"), codes.Internal},
 	}
@@ -81,6 +84,12 @@ func TestPipelineVersionWrites_KubernetesSizeErrors(t *testing.T) {
 					assert.Contains(t, userError.ExternalMessage(), "too large")
 					assert.Contains(t, userError.ExternalMessage(), "Kubernetes")
 					assert.Contains(t, userError.ExternalMessage(), "Reduce")
+					if operation == "create" {
+						assert.Contains(t, userError.ExternalMessage(), "compiled pipeline")
+					} else {
+						assert.Contains(t, userError.ExternalMessage(), "display name")
+						assert.Contains(t, userError.ExternalMessage(), "tags")
+					}
 					assert.Equal(t, 1, strings.Count(userError.GRPCStatus().Message(), testCase.err.Error()))
 				} else {
 					assert.Equal(t, "Internal Server Error", userError.ExternalMessage())
@@ -95,8 +104,18 @@ func TestCreatePipelineAndPipelineVersion_SizeRejectionRecovery(t *testing.T) {
 	viper.Set("POD_NAMESPACE", "Test")
 	t.Cleanup(func() { viper.Set("POD_NAMESPACE", podNamespace) })
 
-	for _, persisted := range []bool{false, true} {
-		t.Run(fmt.Sprintf("version persisted=%t", persisted), func(t *testing.T) {
+	testCases := []struct {
+		name      string
+		err       error
+		persisted bool
+	}{
+		{"etcd request limit", &k8serrors.StatusError{ErrStatus: metav1.Status{Code: 500, Message: "etcdserver: request is too large"}}, false},
+		{"etcd client send limit", &k8serrors.StatusError{ErrStatus: metav1.Status{Code: 500, Message: "rpc error: code = ResourceExhausted desc = trying to send message larger than max (2097703 vs. 2097152)"}}, false},
+		{"API server body limit", k8serrors.NewRequestEntityTooLargeError("limit is 3145728"), false},
+		{"persisted before lost response", fmt.Errorf("http2: client connection lost"), true},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			scheme := runtime.NewScheme()
 			require.NoError(t, v2beta1.AddToScheme(scheme))
 			failVersion := true
@@ -108,11 +127,10 @@ func TestCreatePipelineAndPipelineVersion_SizeRejectionRecovery(t *testing.T) {
 						} else {
 							obj.SetUID("version-id")
 							if failVersion {
-								if persisted {
+								if testCase.persisted {
 									require.NoError(t, c.Create(ctx, obj, opts...))
-									return fmt.Errorf("http2: client connection lost")
 								}
-								return k8serrors.NewRequestEntityTooLargeError("limit is 3145728")
+								return testCase.err
 							}
 						}
 						return c.Create(ctx, obj, opts...)
@@ -127,7 +145,7 @@ func TestCreatePipelineAndPipelineVersion_SizeRejectionRecovery(t *testing.T) {
 			pipeline, err := store.GetPipeline("pipeline-id")
 			require.NoError(t, err)
 			assert.Equal(t, "large-pipeline", pipeline.Name)
-			if persisted {
+			if testCase.persisted {
 				assert.Equal(t, codes.Internal, userError.ExternalStatusCode())
 				assert.Equal(t, "Internal Server Error", userError.ExternalMessage())
 			} else {
@@ -135,7 +153,10 @@ func TestCreatePipelineAndPipelineVersion_SizeRejectionRecovery(t *testing.T) {
 				assert.Contains(t, userError.ExternalMessage(), "pipeline-id")
 				assert.Contains(t, userError.ExternalMessage(), "large-pipeline")
 				assert.Contains(t, userError.ExternalMessage(), "Upload the corrected version")
-				assert.Equal(t, 1, strings.Count(userError.GRPCStatus().Message(), "limit is 3145728"))
+				assert.Equal(t, 1, strings.Count(userError.GRPCStatus().Message(), testCase.err.Error()))
+				assert.Equal(t, 1, strings.Count(userError.GRPCStatus().Message(), "Kubernetes rejected"))
+				_, err = store.GetPipelineVersionByName("pipeline-id", "v1")
+				assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected version must not have been persisted")
 				failVersion = false
 				_, err = store.CreatePipelineVersion(&model.PipelineVersion{Name: "v1", PipelineId: "pipeline-id", PipelineSpec: model.LargeText(getBasicPipelineSpecYAML())})
 				require.NoError(t, err)
