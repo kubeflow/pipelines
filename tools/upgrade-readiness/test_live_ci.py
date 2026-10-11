@@ -13,6 +13,7 @@
 # limitations under the License.
 """Check CI prerequisites fail before cluster or credential operations."""
 
+import copy
 import json
 import os
 from pathlib import Path
@@ -28,6 +29,273 @@ SCRIPT = Path(__file__).resolve(
 
 
 class LiveCITests(unittest.TestCase):
+
+    def test_v1_executes_before_policy_transitions_and_restores_v2_fixture(
+            self):
+        script = SCRIPT.read_text()
+        start = script.index('  observe enforce\n')
+        v1 = script.index('  observe v1\n', start)
+        restored = script.index('  fixture_dir=$state/fixture\n', v1)
+        audit = script.index('  observe audit\n', restored)
+        self.assertLess(start, v1)
+        self.assertLess(restored, audit)
+        self.assertIn('fixture_helper=provision_live_schedules.py',
+                      script[restored:audit])
+        observation = script[script.index('observe() {'):script
+                             .index('if [[ "$phase" == source ]]')]
+        self.assertLess(
+            observation.index('--wait-enabled'),
+            observation.index('live_schedule_check.py'))
+        self.assertLess(
+            observation.index('-failed-scheduler.json'),
+            observation.index('fixture --phase disable'))
+
+    def test_drain_failure_remains_failure_after_diagnostics(self):
+        script = SCRIPT.read_text()
+        function = re.search(r'(observe\(\) \{[\s\S]*?^\})', script,
+                             re.MULTILINE).group(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'activation-start.txt').write_text('2026-01-01T00:00:00Z')
+            program = '''set -euo pipefail
+state=$1; reports=$1; fixture_dir=$1; helpers=helpers
+context=context; namespace=fixture; endpoint=http://127.0.0.1:8888
+mint_token() { :; }
+fixture() { :; }
+drain() { return 1; }
+python3() { printf '%s\\n' "$*" >>"$state/calls"; }
+''' + function + '\nobserve restored\n'
+            result = subprocess.run(['bash', '-c', program, 'test', tmp],
+                                    text=True,
+                                    capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            calls = (root / 'calls').read_text()
+            self.assertIn('capture_run_diagnostics.py', calls)
+            self.assertTrue((root / 'restored-failed-runs.json').exists())
+            self.assertTrue((root / 'restored-failed-scheduler.json').exists())
+
+    def test_api_policy_cutover_waits_for_actual_pods_and_fails_closed(self):
+        script = SCRIPT.read_text()
+        function = script[script.index('configure_api() {'):script
+                          .index('configure_controllers() {')]
+        ready = dict(
+            kind='Pod',
+            metadata=dict(namespace='kubeflow', uid='new-enforce'),
+            status=dict(
+                phase='Running', conditions=[dict(type='Ready',
+                                                  status='True')]),
+            spec=dict(containers=[
+                dict(
+                    name='ml-pipeline-api-server',
+                    env=[
+                        dict(name='MULTIUSER', value='true'),
+                        dict(
+                            name='KFP_SECURITY_SERVICE_ACCOUNT_MODE',
+                            value='enforce'),
+                        dict(
+                            name='KFP_SECURITY_WORKFLOW_IDENTITY_MODE',
+                            value='enforce')
+                    ])
+            ]))
+        stale = copy.deepcopy(ready)
+        stale['metadata']['uid'] = 'old-audit'
+        stale['spec']['containers'][0]['env'][1]['value'] = 'audit'
+        terminating = copy.deepcopy(ready)
+        terminating['metadata'].update(
+            uid='terminating', deletionTimestamp='2026-01-01T00:00:00Z')
+        unready = copy.deepcopy(ready)
+        unready['status']['conditions'][0]['status'] = 'False'
+        wrong_container = copy.deepcopy(ready)
+        wrong_container['spec']['containers'][0]['name'] = 'other'
+        malformed_env = copy.deepcopy(ready)
+        malformed_env['spec']['containers'][0]['env'].append(
+            dict(name='KFP_SECURITY_SERVICE_ACCOUNT_MODE', value='enforce'))
+        unauthenticated = copy.deepcopy(ready)
+        unauthenticated['spec']['containers'][0]['env'][0]['value'] = 'false'
+        fixtures = [
+            dict(items=[ready, stale]),
+            dict(items=[ready, terminating]),
+            dict(items=[]),
+            dict(items=[unready]),
+            dict(items=[wrong_container]),
+            dict(items=[malformed_env]),
+            dict(items=[unauthenticated]),
+            dict(items='malformed')
+        ]
+        for snapshot in fixtures:
+            for times_out in (False, True):
+                with self.subTest(
+                        snapshot=snapshot, times_out=times_out
+                ), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    (root / 'first.json').write_text(json.dumps(snapshot))
+                    (root / 'ready.json').write_text(
+                        json.dumps(dict(items=[ready])))
+                    setup = """set -euo pipefail
+phase=target
+reports=$TEST_DIR
+kube() {
+  case "$*" in
+    '-n kubeflow set env deployment/ml-pipeline '*) ;;
+    '-n kubeflow rollout status deployment/ml-pipeline --timeout=300s') ;;
+    '-n kubeflow get pods -l app=ml-pipeline -o json')
+      local count=0
+      [[ ! -e "$TEST_DIR/queries" ]] || count=$(cat "$TEST_DIR/queries")
+      count=$((count + 1))
+      printf '%s' "$count" > "$TEST_DIR/queries"
+      if [[ "$count" == 1 || "$TIMES_OUT" == 1 ]]; then
+        cat "$TEST_DIR/first.json"
+      else
+        cat "$TEST_DIR/ready.json"
+      fi ;;
+    *) return 8 ;;
+  esac
+}
+sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
+"""
+                    result = subprocess.run(
+                        [
+                            'bash', '-c',
+                            setup + function + '\nconfigure_api enforce\n'
+                        ],
+                        env=dict(
+                            os.environ,
+                            TEST_DIR=tmp,
+                            TIMES_OUT='1' if times_out else '0'),
+                        capture_output=True,
+                        text=True,
+                        timeout=5)
+                    reports = list(root.glob('api-policy-cutover-*.json'))
+                    self.assertTrue(
+                        (root / 'queries').exists(),
+                        'rollout status alone cannot prove policy cutover')
+                    if times_out:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertEqual(reports, [])
+                    else:
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertEqual((root / 'queries').read_text(), '2')
+                        self.assertEqual(len(reports), 1)
+                        evidence = json.loads(reports[0].read_text())
+                        self.assertEqual(evidence['pod_uids'], ['new-enforce'])
+                        self.assertEqual(evidence['service_account_mode'],
+                                         'enforce')
+                        self.assertEqual(evidence['workflow_identity_mode'],
+                                         'enforce')
+                        self.assertEqual(evidence['outcome'], 'passed')
+                        self.assertNotIn('env', evidence)
+
+    def test_drain_covers_persistence_backoff_and_retains_failure_evidence(
+            self):
+        import time
+
+        import kfp_http
+        import live_schedule_check
+        import source_schedule_check
+
+        program = SCRIPT.read_text().split("<<'PYDRAIN'\n",
+                                           1)[1].split('\nPYDRAIN', 1)[0]
+        scenarios = [
+            ('late_success', 360, None),
+            ('timeout', 900, 'fixture_runs_not_drained'),
+            ('missing_observed', 0, 'fixture_runs_not_drained'),
+            ('failed', 0, 'fixture_run_did_not_succeed'),
+            ('blocked', 0, 'blocked_schedule_created_run'),
+            ('collection', 0, 'collection_failed'),
+        ]
+        for scenario, ready_at, reason in scenarios:
+            with self.subTest(
+                    scenario=scenario), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / 'fixture').mkdir()
+                (root / 'reports').mkdir()
+                (root / 'fixture/state.json').write_text(
+                    json.dumps(dict(namespace='test')))
+                (root / 'fixture/activation-start.txt'
+                ).write_text('2026-01-01T00:00:00Z')
+                cases = [
+                    dict(
+                        scenario=name,
+                        schedule_uid=name,
+                        service_account=name,
+                        expected_outcome='blocked'
+                        if name == 'denied' else 'run_succeeded')
+                    for name in ('default', 'scoped', 'denied')
+                ]
+                (root / 'reports/restored-baseline.json').write_text(
+                    json.dumps(dict(cases=cases)))
+                (root / 'reports/restored-observed.json').write_text(
+                    json.dumps(
+                        dict(cases=[
+                            dict(
+                                schedule_uid=case['schedule_uid'],
+                                runs=[] if case['scenario'] == 'denied' else [
+                                    dict(
+                                        run_id=(
+                                            'missing-' if scenario ==
+                                            'missing_observed' else 'run-') +
+                                        case['scenario'])
+                                ]) for case in cases
+                        ])))
+                clock = [0]
+
+                def collect(client, namespace, case, start):
+                    if scenario == 'collection':
+                        raise ValueError(
+                            'secret/raw response must not reach the report')
+                    if case['scenario'] == 'denied' and scenario != 'blocked':
+                        return []
+                    state = 'FAILED' if scenario == 'failed' else (
+                        'SUCCEEDED' if clock[0] >= ready_at else 'RUNNING')
+                    return [dict(run_id='run-' + case['scenario'], state=state)]
+
+                def sleep(seconds):
+                    clock[0] += seconds
+
+                with mock.patch.object(sys, 'argv', ['drain', tmp, 'restored', str(root / 'fixture')]), \
+                     mock.patch.object(time, 'monotonic', side_effect=lambda: clock[0]), \
+                     mock.patch.object(time, 'sleep', side_effect=sleep), \
+                     mock.patch.object(kfp_http, 'Client'), \
+                     mock.patch.object(live_schedule_check, 'run_evidence', side_effect=collect), \
+                     mock.patch.object(source_schedule_check, 'diagnostics', return_value={'safe_counts': True}):
+                    if reason is None:
+                        exec(compile(program, str(SCRIPT), 'exec'), {})
+                    else:
+                        with self.assertRaises(SystemExit) as failure:
+                            exec(compile(program, str(SCRIPT), 'exec'), {})
+                        self.assertIn('Fixture completion failed',
+                                      str(failure.exception))
+                report = json.loads(
+                    (root / 'reports/restored-completion.json').read_text())
+                self.assertNotIn('secret', json.dumps(report))
+                if reason is None:
+                    self.assertEqual(report['outcome'], 'passed')
+                    self.assertEqual(clock[0], 360)
+                    self.assertEqual(len(report['cases']), 3)
+                else:
+                    self.assertEqual(report['outcome'], 'inconclusive')
+                    self.assertEqual(report['reason'], reason)
+                    self.assertEqual(report['evidence_scope'],
+                                     'last_successful_collection_per_case')
+                    if scenario == 'timeout':
+                        self.assertEqual(clock[0], 600)
+                        self.assertEqual(report['cases'][0]['runs'][0]['state'],
+                                         'RUNNING')
+                    elif scenario == 'missing_observed':
+                        self.assertEqual(clock[0], 600)
+                        self.assertEqual(report['cases'][0]['runs'][0]['state'],
+                                         'SUCCEEDED')
+                    elif scenario == 'failed':
+                        self.assertEqual(report['cases'][0]['runs'][0]['state'],
+                                         'FAILED')
+                    elif scenario == 'blocked':
+                        self.assertEqual(report['cases'][-1]['scenario'],
+                                         'denied')
+                        self.assertEqual(
+                            report['cases'][-1]['runs'][0]['run_id'],
+                            'run-denied')
+                    else:
+                        self.assertEqual(report['cases'], [])
 
     def test_controller_namespace_replaces_existing_flags(self):
         script = SCRIPT.read_text()
@@ -135,7 +403,8 @@ class LiveCITests(unittest.TestCase):
         observe = SCRIPT.read_text().split('observe() {', 1)[1].split('\n}',
                                                                       1)[0]
         self.assertIn('local mode=$1 timeout=180', observe)
-        self.assertIn('[[ "$mode" != audit ]] || timeout=600', observe)
+        self.assertIn(
+            '[[ "$mode" == enforce || "$mode" == v1 ]] || timeout=600', observe)
         self.assertIn('--timeout-seconds "$timeout"', observe)
         self.assertNotIn('rollout restart', observe)
 
@@ -273,7 +542,97 @@ class LiveCITests(unittest.TestCase):
                         }],
                         passes=run_state == 'SUCCEEDED')
 
-    def run_drain(self, body, phase, records, *, passes, blocked=False):
+    def test_source_drain_requires_every_previously_observed_run(self):
+        body = SCRIPT.read_text().split("<<'PYDRAIN'\n",
+                                        1)[1].split('\nPYDRAIN', 1)[0]
+        self.run_drain(
+            body,
+            'source', [dict(run_id='new', state='SUCCEEDED')],
+            passes=False,
+            observed_records=[dict(run_id='missing')])
+
+    def test_drain_remembers_runs_first_seen_after_observation(self):
+        import time
+
+        import kfp_http
+        import live_schedule_check
+        import source_schedule_check
+
+        body = SCRIPT.read_text().split("<<'PYDRAIN'\n",
+                                        1)[1].split('\nPYDRAIN', 1)[0]
+        for phase in ('source', 'restored'):
+            for reappears in (False, True):
+                with self.subTest(
+                        phase=phase, reappears=reappears
+                ), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    (root / 'fixture').mkdir()
+                    (root / 'reports').mkdir()
+                    case = dict(
+                        scenario='default',
+                        schedule_uid='uid',
+                        service_account='runner',
+                        expected_outcome='run_succeeded')
+                    (root / 'fixture/state.json').write_text(
+                        json.dumps(dict(namespace='fixture', schedules=[case])))
+                    (root / 'fixture/activation-start.txt'
+                    ).write_text('2026-01-01T00:00:00Z')
+                    (root / f'reports/{phase}-baseline.json').write_text(
+                        json.dumps(dict(cases=[case])))
+                    (root / f'reports/{phase}-observed.json').write_text(
+                        json.dumps(
+                            dict(cases=[
+                                dict(
+                                    schedule_uid='uid',
+                                    runs=[dict(run_id='observed')])
+                            ])))
+                    clock = [0]
+
+                    def collect(*args):
+                        records = [dict(run_id='observed', state='SUCCEEDED')]
+                        if clock[0] == 0:
+                            records.append(dict(run_id='late', state='RUNNING'))
+                        elif reappears and clock[0] >= 10:
+                            records.append(
+                                dict(run_id='late', state='SUCCEEDED'))
+                        return records
+
+                    def sleep(seconds):
+                        clock[0] += seconds
+
+                    with mock.patch.object(sys, 'argv', ['drain', tmp, phase]), \
+                         mock.patch.object(time, 'monotonic', side_effect=lambda: clock[0]), \
+                         mock.patch.object(time, 'sleep', side_effect=sleep), \
+                         mock.patch.object(kfp_http, 'Client'), \
+                         mock.patch.object(live_schedule_check, 'run_evidence', side_effect=collect), \
+                         mock.patch.object(source_schedule_check, 'source_run_evidence', side_effect=collect), \
+                         mock.patch.object(source_schedule_check, 'diagnostics', return_value={}):
+                        if reappears:
+                            exec(compile(body, str(SCRIPT), 'exec'), {})
+                        else:
+                            with self.assertRaises(SystemExit):
+                                exec(compile(body, str(SCRIPT), 'exec'), {})
+                    report = json.loads(
+                        (root / f'reports/{phase}-completion.json').read_text())
+                    if reappears:
+                        self.assertEqual(report['outcome'], 'passed')
+                        self.assertEqual(clock[0], 10)
+                    else:
+                        self.assertEqual(report['outcome'], 'inconclusive')
+                        self.assertEqual(report['reason'],
+                                         'fixture_runs_not_drained')
+                        self.assertEqual(report['known_run_ids'],
+                                         {'uid': ['late', 'observed']})
+                        self.assertEqual(clock[0], 600)
+
+    def run_drain(self,
+                  body,
+                  phase,
+                  records,
+                  *,
+                  passes,
+                  blocked=False,
+                  observed_records=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'fixture').mkdir()
@@ -294,6 +653,15 @@ class LiveCITests(unittest.TestCase):
              'fixture/activation-start.txt').write_text('2026-01-01T00:00:00Z')
             (root / f'reports/{phase}-baseline.json').write_text(
                 json.dumps({'cases': [case]}))
+            (root / f'reports/{phase}-observed.json').write_text(
+                json.dumps({
+                    'cases': [
+                        dict(
+                            schedule_uid='uid',
+                            runs=records
+                            if observed_records is None else observed_records)
+                    ]
+                }))
             with mock.patch(
                     'sys.argv',
                 ['drain', directory, phase

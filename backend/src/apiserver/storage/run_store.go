@@ -523,6 +523,9 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 			q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
 		GroupBy("filtered." + q("UUID"))
 
+	// Each preceding layer has one row per UUID. MAX carries its invariant
+	// aggregate through the next join without sorting large JSON grouping keys.
+	// Grouping taskDetails can exhaust MySQL sort memory even for small pages.
 	// Layer 2: LEFT JOIN tasks
 	tasksConcatQuery := s.dbDialect.ConcatExprs(
 		[]string{
@@ -531,7 +534,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	)
 	columnsAfterJoiningTasks := []string{
 		"rdref." + q("UUID"),
-		"rdref." + q("refs"),
+		"MAX(rdref." + q("refs") + ") AS " + q("refs"),
 		tasksConcatQuery + " AS " + q("taskDetails"),
 	}
 	subQ = qb.
@@ -539,7 +542,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		FromSelect(subQ, "rdref").
 		LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
 			q("tasks"), q("UUID"), q("RunUUID"))).
-		GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
+		GroupBy("rdref." + q("UUID"))
 
 	// Layer 3: LEFT JOIN run_metrics
 	// This layer does two things:
@@ -552,8 +555,8 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	)
 	columnsAfterJoiningRunMetrics := []string{
 		"subq." + q("UUID"),
-		"subq." + q("refs"),
-		"subq." + q("taskDetails"),
+		"MAX(subq." + q("refs") + ") AS " + q("refs"),
+		"MAX(subq." + q("taskDetails") + ") AS " + q("taskDetails"),
 		metricConcatQuery + " AS " + q("metrics"),
 	}
 
@@ -565,7 +568,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		FromSelect(subQ, "subq").
 		LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
 			q("run_metrics"), q("UUID"), q("RunUUID"))).
-		GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
+		GroupBy("subq." + q("UUID"))
 	if opts != nil && opts.IsMetricSort() {
 		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
 			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
@@ -772,6 +775,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		}
 		run = run.ToV2()
 		runs = append(runs, run)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return runs, nil
 }

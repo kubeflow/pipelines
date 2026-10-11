@@ -51,12 +51,15 @@ def rejected(events, case, start):
         if timestamp(observed) < start:
             continue
         message = event.get('message', '')
-        signature = (
-            'Recurring run ' + case['schedule_uid'] +
-            ' has no trusted scheduling state; recreate it through the KFP API')
+        signature = ('Recurring run ' + case['schedule_uid'] +
+                     ' has no trusted scheduling state; ')
+        guidance = (
+            'recreate it through the KFP API',
+            'complete the one-time legacy adoption cutover or recreate it through the KFP API',
+        )
         if (isinstance(message, str) and
                 'code = FailedPrecondition' in message and
-                signature in message):
+                any(signature + action in message for action in guidance)):
             return True
     return False
 
