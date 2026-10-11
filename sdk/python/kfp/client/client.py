@@ -715,8 +715,8 @@ class Client:
     # TODO: provide default namespace, similar to kubectl default namespaces.
     def run_pipeline(
         self,
-        experiment_id: str,
-        job_name: str,
+        experiment_id: Optional[str] = None,
+        job_name: Optional[str] = None,
         pipeline_package_path: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
         pipeline_id: Optional[str] = None,
@@ -725,12 +725,14 @@ class Client:
         enable_caching: Optional[bool] = None,
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
+        namespace: Optional[str] = None,
     ) -> kfp.server_api.V2beta1Run:
         """Runs a specified pipeline.
 
         Args:
-            experiment_id: ID of an experiment.
-            job_name: Name of the job.
+            experiment_id: ID of an experiment. If not set, the run is
+                placed in the default experiment of ``namespace``.
+            job_name: Name of the job. Required.
             pipeline_package_path: Local path of the pipeline package (the
                 filename should end with one of the following .tar.gz, .tgz,
                 .zip, .json).
@@ -753,10 +755,15 @@ class Client:
                 task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
+            namespace: Kubernetes namespace to place the run in when
+                ``experiment_id`` is not set. Required in multi-user mode.
 
         Returns:
             ``V2beta1Run`` object.
         """
+        if not job_name:
+            raise ValueError('job_name is required.')
+
         job_config = self._create_job_config(
             params=params,
             pipeline_package_path=pipeline_package_path,
@@ -769,6 +776,7 @@ class Client:
 
         run_body = kfp.server_api.V2beta1Run(
             experiment_id=experiment_id,
+            namespace=namespace,
             display_name=job_name,
             pipeline_spec=job_config.pipeline_spec,
             pipeline_version_reference=job_config.pipeline_version_reference,
@@ -833,8 +841,8 @@ class Client:
 
     def create_recurring_run(
         self,
-        experiment_id: str,
-        job_name: str,
+        experiment_id: Optional[str] = None,
+        job_name: Optional[str] = None,
         description: Optional[str] = None,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
@@ -851,12 +859,14 @@ class Client:
         enable_caching: Optional[bool] = None,
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
+        namespace: Optional[str] = None,
     ) -> kfp.server_api.V2beta1RecurringRun:
         """Creates a recurring run.
 
         Args:
-            experiment_id: ID of the experiment.
-            job_name: Name of the job.
+            experiment_id: ID of the experiment. If not set, the recurring
+                run is placed in the default experiment of ``namespace``.
+            job_name: Name of the job. Required.
             description: Description of the job.
             start_time: RFC3339 time string of the time when to start the
                 job.
@@ -900,9 +910,13 @@ class Client:
                 task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account this recurring run uses.
+            namespace: Kubernetes namespace to place the recurring run in when
+                ``experiment_id`` is not set. Required in multi-user mode.
         Returns:
             ``V2beta1RecurringRun`` object.
         """
+        if not job_name:
+            raise ValueError('job_name is required.')
 
         job_config = self._create_job_config(
             params=params,
@@ -937,6 +951,7 @@ class Client:
 
         job_body = kfp.server_api.V2beta1RecurringRun(
             experiment_id=experiment_id,
+            namespace=namespace,
             mode=mode,
             pipeline_spec=job_config.pipeline_spec,
             pipeline_version_reference=job_config.pipeline_version_reference,
