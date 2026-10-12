@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -19,7 +20,7 @@ func ancestorRootFixture(t *testing.T) (*Engine, *memoryMetadata) {
 	t.Helper()
 	db := testDB(t)
 	engine := fixture(t, db)
-	ancestor := model.Run{UUID: "ancestor", Namespace: "team", ExperimentId: "experiment", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded, FinishedAtInSec: 10, PipelineRunContextId: 8}}
+	ancestor := model.Run{UUID: "ancestor", Namespace: "team", ExperimentId: "experiment", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded, FinishedAtInSec: 10}}
 	require.NoError(t, create(db, &ancestor))
 	graph := lineageGraph("run")
 	graph["contexts"] = append(graph["contexts"], Node{"id": "8", "type_id": "1", "name": "ancestor"})
@@ -32,23 +33,31 @@ func ancestorRootFixture(t *testing.T) (*Engine, *memoryMetadata) {
 }
 
 func TestExportCompletedAncestorRootOutsideWindow(t *testing.T) {
-	engine, store := ancestorRootFixture(t)
-	data, err := engine.Export(context.Background(), "team", ExportOptions{CompletedAfter: 20})
-	require.NoError(t, err)
-	var bundle Bundle
-	require.NoError(t, json.Unmarshal(data, &bundle))
-	require.Len(t, bundle.Runs, 1, "ancestor history must not widen the selected window")
-	require.Equal(t, "run", bundle.Runs[0].Run.UUID)
-	found := false
-	for _, execution := range bundle.Metadata["executions"] {
-		if sid(execution["id"]) == "11" {
-			found = true
-			require.Equal(t, "COMPLETE", execution["last_known_state"])
-		}
+	for _, contextID := range []int64{0, 8} {
+		t.Run(fmt.Sprint(contextID), func(t *testing.T) {
+			engine, store := ancestorRootFixture(t)
+			require.NoError(t, engine.DB.Model(&model.Run{}).Where("UUID = ?", "ancestor").Update("PipelineRunContextId", contextID).Error)
+			data, err := engine.Export(context.Background(), "team", ExportOptions{CompletedAfter: 20})
+			require.NoError(t, err)
+			var bundle Bundle
+			require.NoError(t, json.Unmarshal(data, &bundle))
+			require.Len(t, bundle.Runs, 1, "ancestor history must not widen the selected window")
+			require.Equal(t, "run", bundle.Runs[0].Run.UUID)
+			found := false
+			for _, execution := range bundle.Metadata["executions"] {
+				if sid(execution["id"]) == "11" {
+					found = true
+					require.Equal(t, "COMPLETE", execution["last_known_state"])
+				}
+			}
+			require.True(t, found)
+			require.Equal(t, "RUNNING", store.graph["executions"][1]["last_known_state"])
+			require.Zero(t, store.puts)
+			var sourceRun model.Run
+			require.NoError(t, engine.DB.Where("UUID = ?", "ancestor").First(&sourceRun).Error)
+			require.Equal(t, contextID, sourceRun.PipelineRunContextId)
+		})
 	}
-	require.True(t, found)
-	require.Equal(t, "RUNNING", store.graph["executions"][1]["last_known_state"])
-	require.Zero(t, store.puts)
 }
 
 func TestExportAncestorRootRequiresCompletionEvidence(t *testing.T) {
@@ -62,6 +71,10 @@ func TestExportAncestorRootRequiresCompletionEvidence(t *testing.T) {
 		}, "unfinished execution"},
 		{"mismatched context", func(t *testing.T, e *Engine, _ *memoryMetadata) {
 			require.NoError(t, e.DB.Model(&model.Run{}).Where("UUID = ?", "ancestor").Update("PipelineRunContextId", 99).Error)
+		}, "unfinished execution"},
+		{"ambiguous run contexts", func(t *testing.T, _ *Engine, store *memoryMetadata) {
+			store.graph["contexts"] = append(store.graph["contexts"], Node{"id": "9", "type_id": "1", "name": "ancestor"})
+			store.graph["associations"] = append(store.graph["associations"], Node{"context_id": "9", "execution_id": "11"})
 		}, "unfinished execution"},
 		{"actual task", func(t *testing.T, e *Engine, _ *memoryMetadata) {
 			require.NoError(t, create(e.DB, &model.Task{UUID: "ancestor-task", RunID: "ancestor", Namespace: "team", MLMDExecutionID: "11", State: model.RuntimeStateRunning}))

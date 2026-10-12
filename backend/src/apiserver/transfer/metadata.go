@@ -650,6 +650,10 @@ func (m *Metadata) Export(ctx context.Context, runs []RunHistory, loadAuthorized
 					return nil, err
 				}
 			} else if history.Run.UUID == sid(c["name"]) && !selectedRuns[history.Run.UUID] {
+				// Native SQL runs may omit the MLMD ID; preserve any explicit conflicting ID.
+				if history.Run.PipelineRunContextId == 0 {
+					history.Run.PipelineRunContextId, _ = strconv.ParseInt(sid(c["id"]), 10, 64)
+				}
 				// Provenance-only authorization never supplies completion evidence.
 				normalizationRuns = append(normalizationRuns, history)
 			}
