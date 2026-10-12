@@ -343,6 +343,13 @@ def deletion_progress(records, live, response=None):
                     in ('', 'forbidden', 'not_found', 'conflict', 'deadline',
                         'deadline_with_finalizers', 'canceled',
                         'kubernetes_timeout', 'other') else 'other',
+                    pre_delete_state=item.get('pre_delete_state') if
+                    item.get('pre_delete_state') in ('', 'PENDING', 'RUNNING',
+                                                     'PAUSED') else 'other',
+                    pre_delete_read_code=item.get('pre_delete_read_code')
+                    if item.get('pre_delete_read_code')
+                    in ('', 'OK', 'NotFound', 'Unavailable', 'DeadlineExceeded',
+                        'Unauthenticated', 'PermissionDenied') else 'other',
                     upstream_code=item.get('upstream_code')
                     if item.get('upstream_code')
                     in ('', 'OK', 'NotFound', 'Unavailable', 'DeadlineExceeded',
@@ -420,6 +427,8 @@ def deleted_evidence(client, proxy, records, state_dir=None):
             dict(
                 record,
                 state=obj['state'],
+                pre_delete_state=item['pre_delete_state'],
+                pre_delete_read_code=item.get('pre_delete_read_code', ''),
                 upstream_code=item['upstream_code'],
                 deleted=True))
     return result

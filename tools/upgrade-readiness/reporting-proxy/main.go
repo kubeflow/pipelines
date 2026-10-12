@@ -53,6 +53,7 @@ type target struct {
 type evidence struct {
 	target
 	PreDeleteState        string `json:"pre_delete_state"`
+	PreDeleteReadCode     string `json:"pre_delete_read_code"`
 	Deleted               bool   `json:"deleted"`
 	UpstreamCode          string `json:"upstream_code"`
 	Attempts              int    `json:"attempts"`
@@ -142,6 +143,9 @@ func (p *proxy) ReportWorkflowV1(ctx context.Context, request *api.ReportWorkflo
 	p.mu.Unlock()
 	if !deleted {
 		detail, err := p.runs.GetRunV1(ctx, &api.GetRunRequest{RunId: entry.RunID})
+		p.mu.Lock()
+		entry.PreDeleteReadCode = status.Code(err).String()
+		p.mu.Unlock()
 		if err != nil {
 			return nil, status.Error(codes.Unavailable, "fixture could not observe pre-deletion run")
 		}

@@ -456,3 +456,23 @@ func TestAlreadySuccessfulRowCannotProveDeletedReportRecovery(t *testing.T) {
 		t.Fatalf("false acceptance: %v", err)
 	}
 }
+
+func TestPreDeleteReadDenialIsSanitizedAndCannotDelete(t *testing.T) {
+	p, _ := fixtureProxy(fixtureNamespace, config)
+	p.runs = runClient{get: func(context.Context, *api.GetRunRequest) (*api.RunDetail, error) {
+		return nil, status.Error(codes.PermissionDenied, "private-authorization-detail")
+	}}
+	p.deleteWorkflow = func(context.Context, target) error {
+		t.Fatal("deleted without proving nonterminal run state")
+		return nil
+	}
+	_, err := p.ReportWorkflowV1(context.Background(), selectedReport(t, nil))
+	if status.Code(err) != codes.Unavailable || p.targets["run-id"].PreDeleteReadCode != "PermissionDenied" || p.targets["run-id"].Deleted {
+		t.Fatalf("missing denied-read evidence: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	p.serveEvidence(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+	if strings.Contains(recorder.Body.String(), "private-") || !strings.Contains(recorder.Body.String(), "PermissionDenied") {
+		t.Fatal("evidence lost category or exposed private detail")
+	}
+}

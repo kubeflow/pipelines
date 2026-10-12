@@ -327,6 +327,22 @@ class ReportingRecoveryTest(unittest.TestCase):
                              expected)
             self.assertNotIn('private-', json.dumps(result))
 
+    def test_pre_delete_read_evidence_is_bounded(self):
+        record = recovery.project(workflow(), run())
+        for code, expected in (('PermissionDenied', 'PermissionDenied'),
+                               ('private-error', 'other')):
+            response = dict(runs=[
+                dict(
+                    record,
+                    pre_delete_read_code=code,
+                    pre_delete_state='RUNNING')
+            ])
+            result = recovery.deletion_progress([record], [], response)
+            self.assertEqual(result['runs'][0]['pre_delete_read_code'],
+                             expected)
+            self.assertEqual(result['runs'][0]['pre_delete_state'], 'RUNNING')
+            self.assertNotIn('private-', json.dumps(result))
+
     def test_proxy_evidence_uses_allowed_readiness_transport_path(self):
         proxy = recovery.Client('http://127.0.0.1:18888')
         response = io.BytesIO(b'{"namespace":"kfp-readiness-test","runs":[]}')

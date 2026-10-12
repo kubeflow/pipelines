@@ -30,6 +30,9 @@ restore_faults() {
 reporting_cleanup() {
   local result=$?
   restore_faults || result=1
+  if [[ -f "$reporting_state/proxy-resources.json" ]]; then
+    kube -n kfp-readiness-test delete role,rolebinding kfp-reporting-observer --ignore-not-found >/dev/null || result=1
+  fi
   if [[ -n "${proxy_forward_pid:-}" ]]; then
     kill "$proxy_forward_pid" 2>/dev/null || true
     wait "$proxy_forward_pid" 2>/dev/null || true
@@ -67,6 +70,7 @@ chmod 0555 "$proxy_build/reporting-proxy"
 printf 'FROM scratch\nCOPY reporting-proxy /reporting-proxy\nUSER 65532:65532\nENTRYPOINT ["/reporting-proxy"]\n' >"$proxy_build/Dockerfile"
 docker build -t kfp-reporting-proxy:fixture "$proxy_build"
 kind load docker-image --name kfp-readiness kfp-reporting-proxy:fixture
+kube -n kubeflow get deployment/ml-pipeline-persistenceagent -o json >"$reporting_state/agent-before.json"
 python3 - "$reporting_state" <<'PY'
 import json
 from pathlib import Path
@@ -75,8 +79,19 @@ state = Path(sys.argv[1])
 records = json.loads((state / 'reporting-source.json').read_text())['deletion_runs']
 namespace, name = 'kfp-readiness-test', 'kfp-reporting-proxy'
 labels = dict(app=name)
+worker = json.loads((state / 'agent-before.json').read_text())['spec']['template']['spec']['serviceAccountName']
+assert worker, 'fixture requires an explicit worker service account'
+assert len(records) == 2 and len({r['workflow_name'] for r in records}) == 2
 targets = [{k: r[k] for k in ('run_id', 'workflow_name', 'workflow_uid')} for r in records]
 objects = [
+    # GetRun authorizes against run.K8SName, not the run UUID. This temporary
+    # observer grant never permits reporting or access to other fixture runs.
+    dict(apiVersion='rbac.authorization.k8s.io/v1', kind='Role', metadata=dict(name='kfp-reporting-observer', namespace=namespace),
+         rules=[dict(apiGroups=['pipelines.kubeflow.org'], resources=['runs'],
+                     resourceNames=[r['workflow_name'] for r in records], verbs=['get'])]),
+    dict(apiVersion='rbac.authorization.k8s.io/v1', kind='RoleBinding', metadata=dict(name='kfp-reporting-observer', namespace=namespace),
+         subjects=[dict(kind='ServiceAccount', name=worker, namespace='kubeflow')],
+         roleRef=dict(apiGroup='rbac.authorization.k8s.io', kind='Role', name='kfp-reporting-observer')),
     dict(apiVersion='v1', kind='ServiceAccount', metadata=dict(name=name, namespace='kubeflow')),
     dict(apiVersion='rbac.authorization.k8s.io/v1', kind='Role', metadata=dict(name=name, namespace=namespace),
          rules=[dict(apiGroups=['argoproj.io'], resources=['workflows'],
@@ -102,11 +117,25 @@ objects = [
 (state / 'proxy-resources.json').write_text(json.dumps(dict(apiVersion='v1', kind='List', items=objects)))
 PY
 kube apply -f "$reporting_state/proxy-resources.json" >/dev/null
+python3 - "$reporting_state" "$context" <<'PY_PREFLIGHT'
+import json
+from pathlib import Path
+import subprocess
+import sys
+state = Path(sys.argv[1])
+worker = json.loads((state / 'agent-before.json').read_text())['spec']['template']['spec']['serviceAccountName']
+records = json.loads((state / 'reporting-source.json').read_text())['deletion_runs']
+for record in records:
+    subprocess.run(['kubectl', '--context', sys.argv[2], '--request-timeout=15s',
+                    '-n', 'kfp-readiness-test', 'auth', 'can-i', 'get',
+                    'runs.pipelines.kubeflow.org/' + record['workflow_name'],
+                    '--as=system:serviceaccount:kubeflow:' + worker],
+                   check=True, timeout=20)
+PY_PREFLIGHT
 if ! kube -n kubeflow rollout status deployment/kfp-reporting-proxy --timeout=180s; then
   check proxy-diagnostics
   exit 1
 fi
-kube -n kubeflow get deployment/ml-pipeline-persistenceagent -o json >"$reporting_state/agent-before.json"
 python3 - "$reporting_state" <<'PY'
 import json
 from pathlib import Path

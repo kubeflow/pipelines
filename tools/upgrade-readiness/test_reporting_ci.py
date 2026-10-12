@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / '.github/resources/scripts/readiness-reporting.sh'
@@ -142,6 +143,91 @@ printf private >"$reporting_state/evidence"
             self.assertEqual(result.returncode, code)
             self.assertEqual(result.stdout.strip(),
                              'proxy-diagnostics' if code else '')
+
+    def test_observer_grant_uses_only_selected_workflow_names_and_worker(self):
+        blocks = re.findall(r"<<'PY'\n([\s\S]*?)\nPY", SCRIPT.read_text())
+        program = next(b for b in blocks if 'proxy-resources.json' in b)
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            records = [
+                dict(
+                    run_id='run-' + str(i),
+                    workflow_name='workflow-' + str(i),
+                    workflow_uid='uid-' + str(i)) for i in range(2)
+            ]
+            (directory / 'reporting-source.json').write_text(
+                json.dumps(dict(deletion_runs=records)))
+            (directory / 'agent-before.json').write_text(
+                json.dumps(
+                    dict(
+                        spec=dict(
+                            template=dict(
+                                spec=dict(
+                                    serviceAccountName='actual-worker'))))))
+            subprocess.run(['python3', '-c', program, tmp], check=True)
+            objects = json.loads(
+                (directory / 'proxy-resources.json').read_text())['items']
+            role = next(o for o in objects if o['kind'] == 'Role' and
+                        o['metadata']['name'] == 'kfp-reporting-observer')
+            self.assertEqual(role['metadata']['namespace'],
+                             'kfp-readiness-test')
+            self.assertEqual(role['rules'], [
+                dict(
+                    apiGroups=['pipelines.kubeflow.org'],
+                    resources=['runs'],
+                    resourceNames=['workflow-0', 'workflow-1'],
+                    verbs=['get'])
+            ])
+            binding = next(o for o in objects if o['kind'] == 'RoleBinding' and
+                           o['metadata']['name'] == 'kfp-reporting-observer')
+            self.assertEqual(binding['subjects'], [
+                dict(
+                    kind='ServiceAccount',
+                    name='actual-worker',
+                    namespace='kubeflow')
+            ])
+            preflight = re.search(r"<<'PY_PREFLIGHT'\n([\s\S]*?)\nPY_PREFLIGHT",
+                                  SCRIPT.read_text()).group(1)
+            commands = []
+            with mock.patch('sys.argv', ['test', tmp, 'kind-kfp-readiness']), \
+                 mock.patch('subprocess.run', side_effect=lambda command, **kwargs: commands.append((command, kwargs))):
+                exec(compile(preflight, '<preflight>', 'exec'), {})
+            self.assertEqual(len(commands), 2)
+            for index, (command, kwargs) in enumerate(commands):
+                self.assertIn(
+                    'runs.pipelines.kubeflow.org/workflow-' + str(index),
+                    command)
+                self.assertIn(
+                    '--as=system:serviceaccount:kubeflow:actual-worker',
+                    command)
+                self.assertEqual(kwargs, dict(check=True, timeout=20))
+            cleanup = SCRIPT.read_text().split('reporting_cleanup() {',
+                                               1)[1].split(
+                                                   'trap reporting_cleanup',
+                                                   1)[0]
+            self.assertIn(
+                'delete role,rolebinding kfp-reporting-observer --ignore-not-found',
+                cleanup)
+
+    def test_cleanup_removes_observer_grant_after_restoring_worker(self):
+        function = re.search(r'(reporting_cleanup\(\) \{[\s\S]*?^\})',
+                             SCRIPT.read_text(), re.MULTILINE).group(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / 'proxy-resources.json').write_text('{}')
+            program = """set -euo pipefail
+reporting_state=$1
+restore_faults() { echo restore >>"$reporting_state/calls"; }
+""" + r"""
+kube() { echo "$*" >>"$reporting_state/calls"; }
+cleanup() { echo cleanup >>"$reporting_state/calls"; }
+""" + function + '\nreporting_cleanup\n'
+            subprocess.run(['bash', '-c', program, 'test', tmp], check=True)
+            self.assertEqual((directory / 'calls').read_text().splitlines(), [
+                'restore',
+                '-n kfp-readiness-test delete role,rolebinding kfp-reporting-observer --ignore-not-found',
+                'cleanup'
+            ])
 
     def test_restore_attempts_both_faults_and_propagates_each_failure(self):
         source = SCRIPT.read_text()
@@ -295,13 +381,21 @@ kube() {
             directory = Path(tmp)
             (directory / 'reporting-source.json').write_text(
                 json.dumps(dict(deletion_runs=records)))
+            (directory / 'agent-before.json').write_text(
+                json.dumps(
+                    dict(
+                        spec=dict(
+                            template=dict(
+                                spec=dict(
+                                    serviceAccountName='actual-worker'))))))
             result = subprocess.run(['python3', '-c', program, tmp],
                                     capture_output=True,
                                     text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             objects = json.loads(
                 (directory / 'proxy-resources.json').read_text())['items']
-        role = next(obj for obj in objects if obj['kind'] == 'Role')
+        role = next(obj for obj in objects if obj['kind'] == 'Role' and
+                    obj['metadata']['name'] == 'kfp-reporting-proxy')
         self.assertEqual(role['rules'], [
             dict(
                 apiGroups=['argoproj.io'],

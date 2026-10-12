@@ -32,6 +32,12 @@ no API-server identity is minted. Port 8888 serves `/healthz` from
 per-target outcomes. It does not forward artifact HTTP requests; fixture workloads
 must not depend on artifact metrics. The health endpoint is separate from evidence.
 
+The disposable fixture temporarily grants the worker `get` on only the two
+selected `runs.pipelines.kubeflow.org` resource names (their Workflow names, as
+used by API authorization), so the forwarded worker identity can observe stored
+state before deletion. A preflight checks both names; cleanup removes this
+namespace-scoped grant. Production worker RBAC remains unchanged.
+
 Selected nonterminal reports receive retryable `Unavailable` and never reach the
 API, which could otherwise substitute the latest live terminal phase. Before
 deleting, the proxy requires the stored run to remain Pending, Running, or Paused
