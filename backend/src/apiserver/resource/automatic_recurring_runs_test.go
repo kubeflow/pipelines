@@ -24,6 +24,9 @@ import (
 )
 
 type automaticAdopterFake struct {
+	readyContext func(context.Context)
+	adoptContext func(context.Context)
+	pageContext  func(context.Context)
 	resultError  error
 	hook         func()
 	startupPages int
@@ -34,13 +37,19 @@ type automaticAdopterFake struct {
 	cursors      []string
 }
 
-func (f *automaticAdopterFake) RequireRecurringRunAdoptionReady(_ context.Context, id string) error {
+func (f *automaticAdopterFake) RequireRecurringRunAdoptionReady(ctx context.Context, id string) error {
+	if f.readyContext != nil {
+		f.readyContext(ctx)
+	}
 	if f.ready[id] {
 		return nil
 	}
 	return errors.New("not ready")
 }
-func (f *automaticAdopterFake) AdoptLegacyRecurringRun(_ context.Context, id string) error {
+func (f *automaticAdopterFake) AdoptLegacyRecurringRun(ctx context.Context, id string) error {
+	if f.adoptContext != nil {
+		f.adoptContext(ctx)
+	}
 	f.adopted = append(f.adopted, id)
 	if f.hook != nil {
 		f.hook()
@@ -54,7 +63,10 @@ func (f *automaticAdopterFake) AdoptLegacyRecurringRun(_ context.Context, id str
 	f.ready[id] = true
 	return nil
 }
-func (f *automaticAdopterFake) ListLegacyRecurringRunAdoptionCandidates(_ context.Context, cursor string, _ uint64) ([]storage.RecurringRunMigrationCandidate, error) {
+func (f *automaticAdopterFake) ListLegacyRecurringRunAdoptionCandidates(ctx context.Context, cursor string, _ uint64) ([]storage.RecurringRunMigrationCandidate, error) {
+	if f.pageContext != nil {
+		f.pageContext(ctx)
+	}
 	f.cursors = append(f.cursors, cursor)
 	return f.pages[cursor], nil
 }
@@ -257,4 +269,72 @@ func TestAutomaticModeChangeWaitsForExistingAttempt(t *testing.T) {
 	require.Error(t, <-first)
 	require.ErrorContains(t, <-second, "bad record")
 	require.Len(t, f.adopted, 2)
+}
+
+// Verify context contracts directly rather than waiting for the old 30-second
+// per-record or five-minute scan deadlines to interrupt a large inventory.
+func TestAutomaticAdoptionBackgroundInventoryHasNoTotalDeadline(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := &automaticAdopterFake{
+		ready: map[string]bool{},
+		pages: map[string][]storage.RecurringRunMigrationCandidate{"": {{ID: "large"}}},
+		pageContext: func(pageCtx context.Context) {
+			deadline, ok := pageCtx.Deadline()
+			require.True(t, ok, "candidate enumeration must remain bounded")
+			require.Positive(t, time.Until(deadline))
+			require.LessOrEqual(t, time.Until(deadline), 30*time.Second)
+		},
+		adoptContext: func(inventoryCtx context.Context) {
+			_, hasDeadline := inventoryCtx.Deadline()
+			require.False(t, hasDeadline, "large inventories must not restart at a fixed total deadline")
+			cancel()
+			require.ErrorIs(t, inventoryCtx.Err(), context.Canceled, "shutdown still cancels inventory")
+		},
+	}
+	a := NewAutomaticRecurringRunAdoption(f, func(context.Context) error { return nil })
+	a.Run(ctx)
+	require.Equal(t, []string{"large"}, f.adopted)
+}
+
+func TestAutomaticAdoptionScanPreservesCallerDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	expected, _ := ctx.Deadline()
+	f := &automaticAdopterFake{
+		ready: map[string]bool{},
+		pages: map[string][]storage.RecurringRunMigrationCandidate{"": {{ID: "large"}}},
+		adoptContext: func(inventoryCtx context.Context) {
+			deadline, ok := inventoryCtx.Deadline()
+			require.True(t, ok)
+			require.Equal(t, expected, deadline)
+		},
+	}
+	a := NewAutomaticRecurringRunAdoption(f, func(context.Context) error { return nil })
+	require.NoError(t, a.scan(ctx))
+	require.True(t, f.ready["large"])
+}
+
+func TestAutomaticAdoptionBoundsReadinessWithoutBoundingInventory(t *testing.T) {
+	checks := 0
+	bounded := func(ctx context.Context) {
+		t.Helper()
+		deadline, ok := ctx.Deadline()
+		require.True(t, ok)
+		require.Positive(t, time.Until(deadline))
+		require.LessOrEqual(t, time.Until(deadline), 30*time.Second)
+		checks++
+	}
+	f := &automaticAdopterFake{
+		ready:        map[string]bool{},
+		readyContext: bounded,
+		adoptContext: func(ctx context.Context) {
+			_, hasDeadline := ctx.Deadline()
+			require.False(t, hasDeadline)
+			require.NoError(t, ctx.Err(), "canceling preflight must not cancel inventory")
+		},
+	}
+	a := NewAutomaticRecurringRunAdoption(f, func(ctx context.Context) error { bounded(ctx); return nil })
+	require.NoError(t, a.Ensure(context.Background(), "large"))
+	require.Equal(t, 3, checks, "initial readiness, writer handoff and final readiness")
 }

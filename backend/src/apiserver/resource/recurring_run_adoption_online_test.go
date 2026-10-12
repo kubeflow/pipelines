@@ -333,24 +333,98 @@ func (p *testLegacyWorkflowPager) ListPage(_ context.Context, opts metav1.ListOp
 		return make(util.ExecutionSpecList, 1), "1", nil
 	}
 	next := fmt.Sprint(p.call)
-	if p.mode == "complete" && p.call == 2 {
+	if (p.mode == "complete" && p.call == 2) || (p.mode == "large" && p.call == 12) {
 		next = ""
 	}
 	return make(util.ExecutionSpecList, 100), next, nil
 }
 func TestLegacyWorkflowInventoryIsCompleteAndBounded(t *testing.T) {
-	for _, mode := range []string{"complete", "limit", "empty", "repeat", "error"} {
+	for _, mode := range []string{"complete", "large", "empty", "repeat", "error"} {
 		t.Run(mode, func(t *testing.T) {
 			pager := &testLegacyWorkflowPager{mode: mode, t: t}
-			inventory, err := boundedLegacyWorkflowInventory(context.Background(), pager)
-			if mode == "complete" {
+			count := 0
+			err := visitLegacyWorkflowInventory(context.Background(), pager, func(util.ExecutionSpec) error { count++; return nil })
+			if mode == "complete" || mode == "large" {
 				require.NoError(t, err)
-				require.Len(t, inventory, 200)
+				if mode == "large" {
+					require.Equal(t, 1200, count)
+				} else {
+					require.Equal(t, 200, count)
+				}
 			} else {
 				require.Error(t, err)
-				require.Nil(t, inventory)
 			}
-			require.LessOrEqual(t, pager.call, 10)
+			require.LessOrEqual(t, pager.call, 12)
 		})
 	}
+}
+
+// Page failures must not turn a partial inventory into trusted SQL progress.
+type interruptedInventoryClient struct {
+	util.ExecutionClient
+	pager *interruptedInventoryPager
+}
+
+func (c *interruptedInventoryClient) Execution(string) util.ExecutionInterface { return c.pager }
+
+type interruptedInventoryPager struct {
+	util.ExecutionInterface
+	calls int
+	fail  bool
+}
+
+func (p *interruptedInventoryPager) ListPage(ctx context.Context, opts metav1.ListOptions) (util.ExecutionSpecList, string, error) {
+	p.calls++
+	if opts.Continue == "last" {
+		if p.fail {
+			return nil, "", fmt.Errorf("late inventory interruption")
+		}
+		return make(util.ExecutionSpecList, 100), "", nil
+	}
+	// Irrelevant namespace history still has to be traversed completely.
+	next := fmt.Sprint(p.calls)
+	if p.calls%12 == 11 {
+		next = "last"
+	}
+	return make(util.ExecutionSpecList, 100), next, ctx.Err()
+}
+func TestOnlineAdoptionLargeInventoryRetryCommitsOnlyCompleteEvidence(t *testing.T) {
+	manager, clients := onlineAdoptionManager(t)
+	job := onlineLegacyJob(t, clients, false)
+	ctx := context.Background()
+	swf, err := clients.SwfClient().ScheduledWorkflow(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	swf.Status.Trigger.LastIndex = util.Int64Pointer(1200)
+	db, err := clients.TransferDB()
+	require.NoError(t, err)
+	for index := int64(1); index <= 1200; index++ {
+		run := &model.Run{UUID: fmt.Sprintf("retained-%04d", index), RecurringRunId: job.UUID, Namespace: job.Namespace,
+			DisplayName: legacyRecurringRunRequestKey(swf, index), K8SName: fmt.Sprintf("workflow-%04d", index),
+			RunDetails: model.RunDetails{ScheduledAtInSec: 90, CreatedAtInSec: 90, State: model.RuntimeStateSucceeded}}
+		require.NoError(t, db.Create(run).Error)
+	}
+	pager := &interruptedInventoryPager{ExecutionInterface: clients.ExecClient().Execution(job.Namespace), fail: true}
+	manager.execClient = &interruptedInventoryClient{ExecutionClient: clients.ExecClient(), pager: pager}
+	require.ErrorContains(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID), "late inventory interruption")
+	require.Equal(t, 12, pager.calls)
+	var count int64
+	require.NoError(t, db.Model(&model.RecurringRunState{}).Count(&count).Error)
+	require.Zero(t, count)
+	require.NoError(t, db.Model(&model.RecurringRunAdoption{}).Count(&count).Error)
+	require.Zero(t, count)
+	// A new process discards its partial scan; a complete retry uses all history.
+	manager = NewResourceManager(clients, &ResourceManagerOptions{CollectMetrics: false})
+	pager.calls, pager.fail = 0, false
+	manager.execClient = &interruptedInventoryClient{ExecutionClient: clients.ExecClient(), pager: pager}
+	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
+	require.NoError(t, manager.RequireRecurringRunAdoptionReady(ctx, job.UUID))
+	state, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	require.EqualValues(t, 1200, state.LastRunIndex)
+	require.Equal(t, "retained-1200", state.LastRunUUID)
+	require.Equal(t, 12, pager.calls)
+	// After the atomic commit, retries use durable state without another scan.
+	pager.fail = true
+	require.NoError(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID))
+	require.Equal(t, 12, pager.calls)
 }

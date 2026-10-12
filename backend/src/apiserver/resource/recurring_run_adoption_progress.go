@@ -23,25 +23,65 @@ import (
 // adoptLegacyRecurringRunProgress accepts one offline snapshot. It never imports
 // execution inputs from the CR or manufactures a run for an unpersisted workflow.
 func adoptLegacyRecurringRunProgress(job *model.Job, swf *scheduledworkflow.ScheduledWorkflow, runs []*model.Run, workflows util.ExecutionSpecList, now int64) (*model.RecurringRunState, error) {
+	progress, err := newLegacyRecurringRunProgress(job, swf, now)
+	if err != nil {
+		return nil, err
+	}
+	for _, run := range runs {
+		if err := progress.addRun(run); err != nil {
+			return nil, err
+		}
+	}
+	for _, workflow := range workflows {
+		if err := progress.addWorkflow(workflow); err != nil {
+			return nil, err
+		}
+	}
+	return progress.finish()
+}
+
+// Only identity and progress evidence survives inventory; execution manifests
+// are validated one at a time and are never retained by the accumulator.
+type legacyRecurringRunEvidence struct {
+	UUID, K8SName, PipelineVersionID string
+	ScheduledAtInSec, CreatedAtInSec int64
+	terminal, recoverDue             bool
+}
+
+type legacyRecurringRunProgress struct {
+	job         *model.Job
+	swf         *scheduledworkflow.ScheduledWorkflow
+	now, index  int64
+	state       *model.RecurringRunState
+	byID        map[string]*legacyRecurringRunEvidence
+	byIndex     map[int64]*legacyRecurringRunEvidence
+	seenIndices map[int64]bool
+	err         error
+}
+
+func (p *legacyRecurringRunProgress) fail(format string, args ...any) error {
+	p.err = fmt.Errorf("recurring run %s: %s; reconcile legacy execution records before adoption", p.job.UUID, fmt.Sprintf(format, args...))
+	return p.err
+}
+
+func newLegacyRecurringRunProgress(job *model.Job, swf *scheduledworkflow.ScheduledWorkflow, now int64) (*legacyRecurringRunProgress, error) {
 	if job == nil || swf == nil || job.UUID == "" || job.Namespace == "" || job.K8SName == "" ||
 		string(swf.UID) != job.UUID || swf.Name != job.K8SName || swf.Namespace != job.Namespace {
 		return nil, fmt.Errorf("recurring run and ScheduledWorkflow identities differ; restore the original scheduled workflow before adoption")
 	}
-	fail := func(format string, args ...any) (*model.RecurringRunState, error) {
-		return nil, fmt.Errorf("recurring run %s: %s; reconcile legacy execution records before adoption", job.UUID, fmt.Sprintf(format, args...))
-	}
+	p := &legacyRecurringRunProgress{job: job, swf: swf, now: now, byID: make(map[string]*legacyRecurringRunEvidence), byIndex: make(map[int64]*legacyRecurringRunEvidence), seenIndices: make(map[int64]bool)}
 	index := int64(0)
 	if swf.Status.Trigger.LastIndex != nil {
 		index = *swf.Status.Trigger.LastIndex
 	}
 	last := swf.Status.Trigger.LastTriggeredTime
 	if index < 0 || index == math.MaxInt64 || (index == 0) != (last == nil) {
-		return fail("invalid or incomplete scheduling progress")
+		return nil, p.fail("invalid or incomplete scheduling progress")
 	}
 	state := &model.RecurringRunState{JobUUID: job.UUID}
 	if index > 0 {
 		if last.Unix() <= 0 || last.Unix() > now {
-			return fail("last triggered time is invalid or in the future")
+			return nil, p.fail("last triggered time is invalid or in the future")
 		}
 		state.LastRunIndex = index
 		state.LastScheduledAtInSec = last.Unix()
@@ -51,126 +91,146 @@ func adoptLegacyRecurringRunProgress(job *model.Job, swf *scheduledworkflow.Sche
 		state.RequestKey = legacyRecurringRunRequestKey(swf, index)
 		state.PipelineVersionID = job.PipelineVersionId
 	}
-	byID := make(map[string]*model.Run)
-	byIndex := make(map[int64]*model.Run)
-	recoverDueByIndex := make(map[int64]bool)
-	for _, run := range runs {
-		if run == nil || run.RecurringRunId != job.UUID || run.ImportedFrom != nil {
-			continue
-		}
-		runIndex, recovered, err := legacyRecurringRunPersistedIndex(swf, run)
-		if err != nil && legacyRecurringRunIsTerminal(run) && run.ScheduledAtInSec > 0 && run.ScheduledAtInSec < state.LastScheduledAtInSec {
-			// Retained historical records are not required to reconstruct the
-			// accepted baseline. They cannot introduce an unacknowledged tick.
-			continue
-		}
-		if err != nil {
-			return fail("run %s has no valid controller index: %v", run.UUID, err)
-		}
-		if run.UUID == "" || run.Namespace != job.Namespace || run.K8SName == "" {
-			return fail("run %s has inconsistent execution identity", run.UUID)
-		}
-		if _, exists := byID[run.UUID]; exists {
-			return fail("duplicate run %s", run.UUID)
-		}
-		byID[run.UUID] = run
-		if _, exists := byIndex[runIndex]; exists {
-			return fail("multiple runs claim index %d", runIndex)
-		}
-		byIndex[runIndex] = run
-		// Embedded legacy workflows use the request key as their actual name
-		// and stamp the true due time. API-created workflows use a generated
-		// name and stamp API creation time, which needs due-time recovery.
-		_, requestErr := legacyRecurringRunIndex(swf, run.DisplayName)
-		embedded := recovered && requestErr == nil
-		recoverDueByIndex[runIndex] = !embedded && (recovered || run.ScheduledAtInSec == run.CreatedAtInSec)
-		if runIndex > index+1 {
-			return fail("run %s skips scheduling indices", run.UUID)
-		}
-		if run.ScheduledAtInSec <= 0 || run.ScheduledAtInSec > now || run.CreatedAtInSec <= 0 || run.CreatedAtInSec > now {
-			return fail("run %s has invalid execution timestamps", run.UUID)
-		}
-		// Reporter recovery preserves the epoch label but records Kubernetes
-		// creation time separately. Neither must equal the acknowledged due time.
-		if !recovered && runIndex == index && run.ScheduledAtInSec != state.LastScheduledAtInSec && run.ScheduledAtInSec != run.CreatedAtInSec {
-			return fail("run %s conflicts with the last triggered time", run.UUID)
-		}
-		if !recovered && runIndex < index && run.ScheduledAtInSec > state.LastScheduledAtInSec && run.ScheduledAtInSec != run.CreatedAtInSec {
-			return fail("run %s conflicts with earlier scheduling progress", run.UUID)
-		}
+	p.index, p.state = index, state
+	return p, nil
+}
+
+// Supply the complete run inventory before supplying workflows.
+func (p *legacyRecurringRunProgress) addRun(run *model.Run) error {
+	if p.err != nil {
+		return p.err
 	}
-	seenIndices := make(map[int64]bool)
-	for _, workflow := range workflows {
-		if workflow == nil {
-			continue
-		}
-		meta := workflow.ExecutionObjectMeta()
-		owner := metav1.GetControllerOf(meta)
-		owned := owner != nil && string(owner.UID) == job.UUID
-		labeled := workflow.ExecutionNamespace() == job.Namespace && meta.Labels[util.LabelKeyWorkflowScheduledWorkflowName] == job.K8SName
-		if !owned && !labeled {
-			continue
-		}
-		if !owned || owner.Kind != "ScheduledWorkflow" || owner.Name != job.K8SName || workflow.ExecutionNamespace() != job.Namespace || !labeled {
-			return fail("workflow %s has conflicting schedule identity", workflow.ExecutionName())
-		}
-		workflowIndex, err := util.RetrieveInt64FromLabel(meta.Labels[util.LabelKeyWorkflowIndex])
-		if err != nil || workflowIndex <= 0 || workflowIndex > index+1 {
-			return fail("workflow %s has an invalid or skipped index", workflow.ExecutionName())
-		}
-		if seenIndices[workflowIndex] {
-			return fail("multiple workflows claim index %d", workflowIndex)
-		}
-		seenIndices[workflowIndex] = true
-		epoch, err := util.RetrieveInt64FromLabel(meta.Labels[util.LabelKeyWorkflowEpoch])
-		if err != nil || epoch <= 0 || epoch > now {
-			return fail("workflow %s has an invalid scheduled time", workflow.ExecutionName())
-		}
-		run := byID[meta.Labels[util.LabelKeyWorkflowRunId]]
-		if run == nil {
-			if !workflow.ExecutionStatus().IsInFinalState() || workflowIndex > index {
-				return fail("workflow %s has no persisted run", workflow.ExecutionName())
-			}
-			// Retention may remove completed, acknowledged history. The legacy API
-			// stamped epoch before Kubernetes creation, not at the trigger's due time.
-			// Neither timestamp is needed to advance the accepted baseline here.
-			continue
-		}
-		if run.K8SName != workflow.ExecutionName() || byIndex[workflowIndex] != run || run.ScheduledAtInSec != epoch {
-			return fail("workflow %s conflicts with its persisted run", workflow.ExecutionName())
-		}
-		if !workflow.ExecutionStatus().IsInFinalState() && legacyRecurringRunIsTerminal(run) {
-			return fail("active workflow %s has a terminal persisted run and would escape concurrency accounting", workflow.ExecutionName())
-		}
+	if run == nil || run.RecurringRunId != p.job.UUID || run.ImportedFrom != nil {
+		return nil
 	}
-	if run := byIndex[index]; run != nil {
-		state.LastRunUUID = run.UUID
-		state.LastCreatedAtInSec = run.CreatedAtInSec
-		state.PipelineVersionID = run.PipelineVersionId
+	runIndex, recovered, err := legacyRecurringRunPersistedIndex(p.swf, run)
+	if err != nil && legacyRecurringRunIsTerminal(run) && run.ScheduledAtInSec > 0 && run.ScheduledAtInSec < p.state.LastScheduledAtInSec {
+		// Retained historical records are not required to reconstruct the
+		// accepted baseline. They cannot introduce an unacknowledged tick.
+		return nil
 	}
-	if run := byIndex[index+1]; run != nil {
+	if err != nil {
+		return p.fail("run %s has no valid controller index: %v", run.UUID, err)
+	}
+	if run.UUID == "" || run.Namespace != p.job.Namespace || run.K8SName == "" {
+		return p.fail("run %s has inconsistent execution identity", run.UUID)
+	}
+	if _, exists := p.byID[run.UUID]; exists {
+		return p.fail("duplicate run %s", run.UUID)
+	}
+	if _, exists := p.byIndex[runIndex]; exists {
+		return p.fail("multiple runs claim index %d", runIndex)
+	}
+	// Embedded legacy workflows use the request key as their actual name
+	// and stamp the true due time. API-created workflows use a generated
+	// name and stamp API creation time, which needs due-time recovery.
+	_, requestErr := legacyRecurringRunIndex(p.swf, run.DisplayName)
+	embedded := recovered && requestErr == nil
+	recoverDue := !embedded && (recovered || run.ScheduledAtInSec == run.CreatedAtInSec)
+	if runIndex > p.index+1 {
+		return p.fail("run %s skips scheduling indices", run.UUID)
+	}
+	if run.ScheduledAtInSec <= 0 || run.ScheduledAtInSec > p.now || run.CreatedAtInSec <= 0 || run.CreatedAtInSec > p.now {
+		return p.fail("run %s has invalid execution timestamps", run.UUID)
+	}
+	// Reporter recovery preserves the epoch label but records Kubernetes
+	// creation time separately. Neither must equal the acknowledged due time.
+	if !recovered && runIndex == p.index && run.ScheduledAtInSec != p.state.LastScheduledAtInSec && run.ScheduledAtInSec != run.CreatedAtInSec {
+		return p.fail("run %s conflicts with the last triggered time", run.UUID)
+	}
+	if !recovered && runIndex < p.index && run.ScheduledAtInSec > p.state.LastScheduledAtInSec && run.ScheduledAtInSec != run.CreatedAtInSec {
+		return p.fail("run %s conflicts with earlier scheduling progress", run.UUID)
+	}
+	p.byID[run.UUID] = &legacyRecurringRunEvidence{
+		UUID: run.UUID, K8SName: run.K8SName, ScheduledAtInSec: run.ScheduledAtInSec,
+		CreatedAtInSec: run.CreatedAtInSec, PipelineVersionID: run.PipelineVersionId,
+		terminal: legacyRecurringRunIsTerminal(run), recoverDue: recoverDue,
+	}
+	p.byIndex[runIndex] = p.byID[run.UUID]
+	return nil
+}
+
+func (p *legacyRecurringRunProgress) addWorkflow(workflow util.ExecutionSpec) error {
+	if p.err != nil {
+		return p.err
+	}
+	if workflow == nil {
+		return nil
+	}
+	meta := workflow.ExecutionObjectMeta()
+	owner := metav1.GetControllerOf(meta)
+	owned := owner != nil && string(owner.UID) == p.job.UUID
+	labeled := workflow.ExecutionNamespace() == p.job.Namespace && meta.Labels[util.LabelKeyWorkflowScheduledWorkflowName] == p.job.K8SName
+	if !owned && !labeled {
+		return nil
+	}
+	if !owned || owner.Kind != "ScheduledWorkflow" || owner.Name != p.job.K8SName || workflow.ExecutionNamespace() != p.job.Namespace || !labeled {
+		return p.fail("workflow %s has conflicting schedule identity", workflow.ExecutionName())
+	}
+	workflowIndex, err := util.RetrieveInt64FromLabel(meta.Labels[util.LabelKeyWorkflowIndex])
+	if err != nil || workflowIndex <= 0 || workflowIndex > p.index+1 {
+		return p.fail("workflow %s has an invalid or skipped index", workflow.ExecutionName())
+	}
+	if p.seenIndices[workflowIndex] {
+		return p.fail("multiple workflows claim index %d", workflowIndex)
+	}
+	p.seenIndices[workflowIndex] = true
+	epoch, err := util.RetrieveInt64FromLabel(meta.Labels[util.LabelKeyWorkflowEpoch])
+	if err != nil || epoch <= 0 || epoch > p.now {
+		return p.fail("workflow %s has an invalid scheduled time", workflow.ExecutionName())
+	}
+	run := p.byID[meta.Labels[util.LabelKeyWorkflowRunId]]
+	if run == nil {
+		if !workflow.ExecutionStatus().IsInFinalState() || workflowIndex > p.index {
+			return p.fail("workflow %s has no persisted run", workflow.ExecutionName())
+		}
+		// Retention may remove completed, acknowledged history. The legacy API
+		// stamped epoch before Kubernetes creation, not at the trigger's due time.
+		// Neither timestamp is needed to advance the accepted baseline here.
+		return nil
+	}
+	if run.K8SName != workflow.ExecutionName() || p.byIndex[workflowIndex] != run || run.ScheduledAtInSec != epoch {
+		return p.fail("workflow %s conflicts with its persisted run", workflow.ExecutionName())
+	}
+	if !workflow.ExecutionStatus().IsInFinalState() && run.terminal {
+		return p.fail("active workflow %s has a terminal persisted run and would escape concurrency accounting", workflow.ExecutionName())
+	}
+	return nil
+}
+
+// Call only after both inventory streams have completed successfully.
+func (p *legacyRecurringRunProgress) finish() (*model.RecurringRunState, error) {
+	if p.err != nil {
+		return nil, p.err
+	}
+	if run := p.byIndex[p.index]; run != nil {
+		p.state.LastRunUUID = run.UUID
+		p.state.LastCreatedAtInSec = run.CreatedAtInSec
+		p.state.PipelineVersionID = run.PipelineVersionID
+	}
+	if run := p.byIndex[p.index+1]; run != nil {
 		scheduledAt := run.ScheduledAtInSec
-		if recoverDueByIndex[index+1] {
+		if run.recoverDue {
 			// Older API requests stamped epoch before Kubernetes creation. Recovery
 			// retains that epoch, but uses Kubernetes time as CreatedAt. Reconstruct
 			// the due tick at the epoch so catch-up does not skip the backlog.
 			var err error
-			scheduledAt, err = legacyRecurringRunDueTime(job, swf, state, run.ScheduledAtInSec)
+			scheduledAt, err = legacyRecurringRunDueTime(p.job, p.swf, p.state, run.ScheduledAtInSec)
 			if err != nil {
-				return fail("cannot recover the due time of run %s: %v", run.UUID, err)
+				return nil, p.fail("cannot recover the due time of run %s: %v", run.UUID, err)
 			}
 		}
-		if scheduledAt <= state.LastScheduledAtInSec {
-			return fail("unacknowledged run %s does not advance scheduled time", run.UUID)
+		if scheduledAt <= p.state.LastScheduledAtInSec {
+			return nil, p.fail("unacknowledged run %s does not advance scheduled time", run.UUID)
 		}
-		state.LastRunUUID = run.UUID
-		state.LastRunIndex = index + 1
-		state.LastScheduledAtInSec = scheduledAt
-		state.LastCreatedAtInSec = run.CreatedAtInSec
-		state.RequestKey = legacyRecurringRunRequestKey(swf, index+1)
-		state.PipelineVersionID = run.PipelineVersionId
+		p.state.LastRunUUID = run.UUID
+		p.state.LastRunIndex = p.index + 1
+		p.state.LastScheduledAtInSec = scheduledAt
+		p.state.LastCreatedAtInSec = run.CreatedAtInSec
+		p.state.RequestKey = legacyRecurringRunRequestKey(p.swf, p.index+1)
+		p.state.PipelineVersionID = run.PipelineVersionID
 	}
-	return state, nil
+	return p.state, nil
 }
 
 func legacyRecurringRunDueTime(job *model.Job, swf *scheduledworkflow.ScheduledWorkflow, state *model.RecurringRunState, createdAt int64) (int64, error) {

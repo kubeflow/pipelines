@@ -9,11 +9,13 @@ only."""
 import argparse
 import copy
 from datetime import datetime
+from datetime import timezone
 import json
 from pathlib import Path
 import re
 import subprocess
 import time
+import uuid
 
 from fixture_http import FixtureClient
 from provision_live_schedules import CONTEXT
@@ -91,9 +93,15 @@ def sql(table, columns, where=''):
     # Callers put the primary identity column first. Sort that key, not the
     # generated JSON containing potentially large execution definitions.
     query = f'SELECT JSON_OBJECT({fields}) FROM {table} {where} ORDER BY `{columns[0]}`'
+    raw = execute_sql(query, table)
+    return [json.loads(line) for line in raw.splitlines() if line]
+
+
+def execute_sql(query, table):
+    require(table in SQL_OPERATIONS, 'fixture_sql_table_not_allowed')
     # The source image's default client socket is unavailable in this fixture.
     # Exec into the same Pod but connect explicitly through loopback TCP.
-    raw = kube(
+    return kube(
         '-n',
         'kubeflow',
         'exec',
@@ -110,7 +118,6 @@ def sql(table, columns, where=''):
         '-e',
         query,
         operation=table)
-    return [json.loads(line) for line in raw.splitlines() if line]
 
 
 def snapshot(adopted=False):
@@ -639,6 +646,209 @@ def wait_adoption_job(name):
     return evidence
 
 
+LARGE_HISTORY_COUNT = 1001
+HISTORY_LABEL = 'pipelines.kubeflow.org/readiness-history'
+
+
+def history_request_key(name, index):
+    prefix = f'{name}-{index}'
+    checksum = 2166136261
+    for byte in prefix.encode():
+        checksum = ((checksum ^ byte) * 16777619) & 0xffffffff
+    return f'{prefix}-{checksum}'
+
+
+def retained_history_workflow(source, index, epoch, finished):
+    name = f'readiness-history-{index}'
+    run_id = str(uuid.uuid4())
+    metadata = source['metadata']
+    return dict(
+        apiVersion='argoproj.io/v1alpha1',
+        kind='Workflow',
+        metadata=dict(
+            name=name,
+            namespace=NAMESPACE,
+            labels={
+                HISTORY_LABEL: 'true',
+                'workflow.argoproj.io/completed': 'true',
+                'pipeline/persistedFinalState': 'true',
+                'pipeline/runid': run_id,
+                PREFIX + 'scheduledWorkflowName': metadata['name'],
+                PREFIX + 'workflowIndex': str(index),
+                PREFIX + 'workflowEpoch': str(epoch),
+            },
+            ownerReferences=[
+                dict(
+                    apiVersion=source['apiVersion'],
+                    kind='ScheduledWorkflow',
+                    name=metadata['name'],
+                    uid=metadata['uid'],
+                    controller=True,
+                    blockOwnerDeletion=True)
+            ]),
+        # Completed labels keep Argo from reconciling this retained record.
+        # Even if accidentally reconciled, this template can create no Pods.
+        spec=dict(
+            entrypoint='history', templates=[dict(name='history', suspend={})]),
+        status=dict(phase='Succeeded', startedAt=finished, finishedAt=finished))
+
+
+def sql_text(value):
+    # Hex literals avoid SQL-mode-dependent quote/backslash escaping.
+    return "CONVERT(X'%s' USING utf8mb4)" % str(value).encode().hex()
+
+
+def retained_history_sql(source_run, workflows, schedule_name):
+    require(bool(workflows), 'empty_history_batch')
+    statements = [
+        'CREATE TEMPORARY TABLE readiness_history LIKE run_details',
+        'INSERT INTO readiness_history SELECT * FROM run_details WHERE UUID=' +
+        sql_text(source_run),
+        'START TRANSACTION',
+    ]
+    for workflow in workflows:
+        meta = workflow['metadata']
+        labels = meta['labels']
+        epoch = int(labels[PREFIX + 'workflowEpoch'])
+        values = dict(
+            UUID=labels['pipeline/runid'],
+            Name=meta['name'],
+            DisplayName=history_request_key(
+                schedule_name, int(labels[PREFIX + 'workflowIndex'])),
+            State='SUCCEEDED',
+            Conditions='Succeeded',
+            WorkflowSpecManifest='',
+            WorkflowRuntimeManifest='',
+            PipelineSpecManifest='',
+            PipelineRuntimeManifest='')
+        assignments = [
+            f'`{key}`={sql_text(value)}' for key, value in values.items()
+        ]
+        assignments.extend(f'`{key}`={epoch}' for key in ('ScheduledAtInSec',
+                                                          'CreatedAtInSec',
+                                                          'FinishedAtInSec'))
+        statements.extend([
+            'UPDATE readiness_history SET ' + ','.join(assignments),
+            'INSERT INTO run_details SELECT * FROM readiness_history'
+        ])
+    statements.append('COMMIT')
+    return ';'.join(statements)
+
+
+def validate_large_history(current, schedule_uid):
+    runs = [run for run in current['runs'] if run['JobUUID'] == schedule_uid]
+    workflows = [
+        workflow for workflow in current['workflows']
+        if workflow['name'].startswith('readiness-history-')
+    ]
+    require(
+        len(runs) > 1000 and len(workflows) == LARGE_HISTORY_COUNT,
+        'large_history_inventory_incomplete')
+    require(
+        all(workflow['phase'] == 'Succeeded' and not workflow['suspended']
+            for workflow in workflows), 'synthetic_history_not_completed')
+    return dict(
+        retained_runs=len(runs),
+        namespace_workflows=len(current['workflows']),
+        synthetic_completed_workflows=len(workflows))
+
+
+def seed_large_history(fixture):
+    verify_state(CONTEXT, fixture)
+    baseline = snapshot()
+    validate_inventory(baseline, fixture)
+    history_ids = {
+        case['schedule_uid']
+        for case in fixture['schedules']
+        if case['scenario'] != 'default'
+    }
+    candidate = next(job for job in baseline['jobs']
+                     if job['UUID'] in history_ids and not job['Enabled'])
+    source = next(
+        obj for obj in get(NAMESPACE, 'scheduledworkflows')['items']
+        if obj['metadata']['uid'] == candidate['UUID'])
+    require(not source['spec'].get('enabled'),
+            'history_schedule_must_be_disabled')
+    source_runs = [
+        run for run in baseline['runs'] if run['JobUUID'] == candidate['UUID']
+    ]
+    require(
+        source_runs and all(
+            str(run['State'] or run['Conditions']).upper() == 'SUCCEEDED'
+            for run in source_runs), 'history_source_not_completed')
+    require(
+        not any(workflow['name'].startswith('readiness-history-')
+                for workflow in baseline['workflows']),
+        'history_already_seeded')
+    start = max(workflow['index']
+                for workflow in baseline['workflows']
+                if workflow['owners'] == [candidate['UUID']])
+    epoch = int(time.time())
+    finished = datetime.fromtimestamp(epoch, timezone.utc).isoformat().replace(
+        '+00:00', 'Z')
+    for offset in range(0, LARGE_HISTORY_COUNT, 100):
+        batch = [
+            retained_history_workflow(source, start + index + 1, epoch,
+                                      finished)
+            for index in range(offset, min(offset + 100, LARGE_HISTORY_COUNT))
+        ]
+        execute_sql(
+            retained_history_sql(source_runs[0]['UUID'], batch,
+                                 source['metadata']['name']), 'run_details')
+        kube(
+            'create',
+            '-f',
+            '-',
+            value=dict(apiVersion='v1', kind='List', items=batch))
+    # CRDs with a status subresource may strip status from create requests.
+    # Read back the actual objects and populate only that subresource if needed.
+    created = json.loads(
+        kube('-n', NAMESPACE, 'get', 'workflows', '-l', HISTORY_LABEL + '=true',
+             '-o', 'json'))['items']
+    require(len(created) == LARGE_HISTORY_COUNT, 'history_creation_incomplete')
+    missing = [
+        workflow for workflow in created
+        if workflow.get('status', {}).get('phase') != 'Succeeded'
+    ]
+    for offset in range(0, len(missing), 100):
+        batch = missing[offset:offset + 100]
+        for workflow in batch:
+            workflow['status'] = dict(
+                phase='Succeeded', startedAt=finished, finishedAt=finished)
+        kube(
+            'replace',
+            '--subresource=status',
+            '-f',
+            '-',
+            value=dict(apiVersion='v1', kind='List', items=batch))
+    # Test UID and disabled state atomically; never advance an enabled schedule.
+    kube(
+        '-n', NAMESPACE, 'patch',
+        'scheduledworkflow/' + source['metadata']['name'], '--type=json', '-p',
+        json.dumps([
+            dict(op='test', path='/metadata/uid', value=candidate['UUID']),
+            dict(op='test', path='/spec/enabled', value=False),
+            dict(
+                op='add',
+                path='/status/trigger',
+                value=dict(
+                    lastWorkflowIndex=start + LARGE_HISTORY_COUNT,
+                    lastTriggeredTime=finished))
+        ]))
+    current = snapshot()
+    validate_inventory(current, fixture)
+    result = validate_large_history(current, candidate['UUID'])
+    pods = get(NAMESPACE, 'pods')['items']
+    require(
+        not any(
+            pod.get('metadata', {}).get('labels', {}).get(
+                'workflows.argoproj.io/workflow', '').startswith(
+                    'readiness-history-')
+            for pod in pods), 'synthetic_history_created_pods')
+    result['schedule_uid'] = candidate['UUID']
+    return result
+
+
 def prepare_active(state, fixture):
     # Suspend the embedded source template before enabling, so even an
     # immediately scheduled Argo controller cannot finish the trivial fixture.
@@ -871,7 +1081,7 @@ def main():
         choices=('active', 'snapshot', 'stopped', 'job', 'wait-job', 'adopted',
                  'idempotent', 'held', 'completed', 'drained', 'handoff',
                  'source-disabled', 'adopted-disabled', 'before-restart',
-                 'after-restart'))
+                 'after-restart', 'large-history'))
     parser.add_argument('--state', required=True)
     parser.add_argument('--job-name')
     parser.add_argument('--online', action='store_true')
@@ -951,6 +1161,8 @@ def main():
                 fixture['adopted'] = True
                 write_object(state / 'fixture/state.json', fixture)
             report['schedule_uids'] = sorted(j['UUID'] for j in current['jobs'])
+        elif args.phase == 'large-history':
+            report['history'] = seed_large_history(fixture)
         elif args.phase == 'active':
             report['source_observation'] = prepare_active(state, fixture)
         elif args.phase == 'wait-job':

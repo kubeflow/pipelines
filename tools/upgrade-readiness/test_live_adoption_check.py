@@ -22,16 +22,23 @@ from live_adoption_check import AdoptionError
 from live_adoption_check import command_diagnostics
 from live_adoption_check import command_failure
 from live_adoption_check import exception_evidence
+from live_adoption_check import history_request_key
 from live_adoption_check import kube
+from live_adoption_check import LARGE_HISTORY_COUNT
 from live_adoption_check import offline_job
+from live_adoption_check import PREFIX
 from live_adoption_check import prepare_active
 from live_adoption_check import require_stopped
+from live_adoption_check import retained_history_sql
+from live_adoption_check import retained_history_workflow
+from live_adoption_check import seed_large_history
 from live_adoption_check import snapshot
 from live_adoption_check import source_progress_shapes
 from live_adoption_check import sql
 from live_adoption_check import validate_adoption
 from live_adoption_check import validate_continuation
 from live_adoption_check import validate_idempotent
+from live_adoption_check import validate_large_history
 from live_adoption_check import validate_restart
 from live_adoption_check import wait_active
 from live_adoption_check import wait_adoption_job
@@ -845,3 +852,79 @@ class RestartEvidenceTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LargeHistoryTests(unittest.TestCase):
+
+    def source(self):
+        return dict(
+            apiVersion='kubeflow.org/v1beta1',
+            metadata=dict(name='schedule', uid='schedule-uid'))
+
+    def test_completed_history_has_no_pod_template(self):
+        workflow = retained_history_workflow(self.source(), 1200, 100,
+                                             '1970-01-01T00:01:40Z')
+        metadata = workflow['metadata']
+        self.assertEqual(metadata['ownerReferences'][0]['uid'], 'schedule-uid')
+        self.assertTrue(metadata['ownerReferences'][0]['controller'])
+        self.assertEqual(metadata['labels']['workflow.argoproj.io/completed'],
+                         'true')
+        self.assertEqual(metadata['labels']['pipeline/persistedFinalState'],
+                         'true')
+        self.assertEqual(metadata['labels'][PREFIX + 'scheduledWorkflowName'],
+                         'schedule')
+        self.assertEqual(metadata['labels'][PREFIX + 'workflowIndex'], '1200')
+        self.assertEqual(workflow['status']['phase'], 'Succeeded')
+        self.assertEqual(workflow['spec']['templates'],
+                         [dict(name='history', suspend={})])
+        self.assertNotIn('suspend', workflow['spec'])
+
+    def test_source_schema_is_preserved_and_payloads_are_not_copied(self):
+        workflow = retained_history_workflow(self.source(), 1200, 100,
+                                             '1970-01-01T00:01:40Z')
+        query = retained_history_sql("source'\\id", [workflow], 'schedule')
+        self.assertIn(
+            'CREATE TEMPORARY TABLE readiness_history LIKE run_details', query)
+        self.assertIn('START TRANSACTION;', query)
+        self.assertIn(
+            'INSERT INTO run_details SELECT * FROM readiness_history;COMMIT',
+            query)
+        self.assertNotIn("source'", query)
+        key_hex = history_request_key('schedule', 1200).encode().hex()
+        self.assertIn("`DisplayName`=CONVERT(X'" + key_hex, query)
+        for column in ('WorkflowSpecManifest', 'WorkflowRuntimeManifest',
+                       'PipelineSpecManifest', 'PipelineRuntimeManifest'):
+            self.assertIn(f"`{column}`=CONVERT(X'' USING utf8mb4)", query)
+
+    def test_more_than_one_thousand_are_required_and_must_all_be_completed(
+            self):
+        current = dict(
+            runs=[
+                dict(JobUUID='schedule-uid') for _ in range(LARGE_HISTORY_COUNT)
+            ],
+            workflows=[
+                dict(
+                    name=f'readiness-history-{index}',
+                    phase='Succeeded',
+                    suspended=False) for index in range(LARGE_HISTORY_COUNT)
+            ])
+        result = validate_large_history(current, 'schedule-uid')
+        self.assertGreater(result['retained_runs'], 1000)
+        self.assertGreater(result['namespace_workflows'], 1000)
+        current['workflows'][-1]['phase'] = ''
+        with self.assertRaisesRegex(AdoptionError,
+                                    'synthetic_history_not_completed'):
+            validate_large_history(current, 'schedule-uid')
+        current['workflows'].pop()
+        with self.assertRaisesRegex(AdoptionError,
+                                    'large_history_inventory_incomplete'):
+            validate_large_history(current, 'schedule-uid')
+
+    def test_fixture_ownership_gate_precedes_all_mutations(self):
+        with mock.patch('live_adoption_check.verify_state', side_effect=ValueError('not owned')), \
+             mock.patch('live_adoption_check.execute_sql') as execute, \
+             mock.patch('live_adoption_check.kube') as kubernetes:
+            with self.assertRaisesRegex(ValueError, 'not owned'):
+                seed_large_history({})
+        execute.assert_not_called()
+        kubernetes.assert_not_called()

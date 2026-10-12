@@ -6,6 +6,7 @@
 package resource
 
 import (
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -496,4 +497,69 @@ func TestAdoptLegacyRecurringRunProgressRejectsDuplicates(t *testing.T) {
 	require.ErrorContains(t, err, "multiple runs claim index")
 	_, err = adoptLegacyRecurringRunProgress(job, swf, []*model.Run{run}, util.ExecutionSpecList{wf, wf}, 200)
 	require.ErrorContains(t, err, "multiple workflows claim index")
+}
+
+func largeLegacyProgressFixture(t *testing.T) (*legacyRecurringRunProgress, *model.Run, *util.Workflow) {
+	t.Helper()
+	job, swf, run, workflow := legacyAdoptionFixture()
+	swf.Status.Trigger.LastIndex = util.Int64Pointer(1200)
+	last := metav1.NewTime(time.Unix(1200, 0))
+	swf.Status.Trigger.LastTriggeredTime = &last
+	progress, err := newLegacyRecurringRunProgress(job, swf, 2000)
+	require.NoError(t, err)
+	for index := int64(1); index <= 1201; index++ {
+		run.UUID = fmt.Sprintf("run-%d", index)
+		run.K8SName = fmt.Sprintf("workflow-%d", index)
+		run.DisplayName = legacyRecurringRunRequestKey(swf, index)
+		run.ScheduledAtInSec = index
+		run.CreatedAtInSec = index + 1
+		require.NoError(t, progress.addRun(run))
+	}
+	for index := int64(1); index <= 1201; index++ {
+		workflow.Name = fmt.Sprintf("workflow-%d", index)
+		workflow.SetCannonicalLabels(swf.Name, index, index)
+		workflow.SetLabels(util.LabelKeyWorkflowRunId, fmt.Sprintf("run-%d", index))
+		require.NoError(t, progress.addWorkflow(workflow))
+	}
+	return progress, run, workflow
+}
+
+func TestLegacyRecurringRunProgressStreamsLargeHistory(t *testing.T) {
+	progress, run, workflow := largeLegacyProgressFixture(t)
+	// A scanner may reuse its input object after the callback returns. Neither
+	// the run nor the Workflow payload should remain referenced by the planner.
+	run.UUID = "reused-input"
+	run.ScheduledAtInSec = 0
+	workflow.Name = "reused-workflow"
+	state, err := progress.finish()
+	require.NoError(t, err)
+	require.Equal(t, int64(1201), state.LastRunIndex)
+	require.Equal(t, int64(1201), state.LastScheduledAtInSec)
+	require.Equal(t, int64(1202), state.LastCreatedAtInSec)
+	require.Equal(t, "run-1201", state.LastRunUUID)
+}
+
+func TestLegacyRecurringRunProgressRejectsLateConflicts(t *testing.T) {
+	for _, conflict := range []string{"duplicate run", "duplicate run index", "duplicate workflow index", "conflicting workflow owner"} {
+		t.Run(conflict, func(t *testing.T) {
+			progress, run, workflow := largeLegacyProgressFixture(t)
+			var err error
+			switch conflict {
+			case "duplicate run":
+				err = progress.addRun(run)
+			case "duplicate run index":
+				run.UUID = "another-run"
+				err = progress.addRun(run)
+			case "duplicate workflow index":
+				err = progress.addWorkflow(workflow)
+			case "conflicting workflow owner":
+				workflow.Labels[util.LabelKeyWorkflowScheduledWorkflowName] = "another-schedule"
+				err = progress.addWorkflow(workflow)
+			}
+			require.Error(t, err)
+			state, finishErr := progress.finish()
+			require.ErrorIs(t, finishErr, err)
+			require.Nil(t, state, "incomplete or conflicting inventory must never yield accepted progress")
+		})
+	}
 }

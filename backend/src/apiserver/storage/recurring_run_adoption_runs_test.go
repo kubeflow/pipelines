@@ -7,8 +7,10 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -71,7 +73,7 @@ func TestRecurringRunAdoptionQueryDialects(t *testing.T) {
 			d := dialect.NewDBDialect(name)
 			query, _, err := d.FinalizeSelect(recurringRunAdoptionQuery(d.QuoteIdentifier, "job"))
 			require.NoError(t, err)
-			for _, unwanted := range []string{"run_metrics", "tasks", "PipelineRuntimeManifest", "PipelineSpecManifest"} {
+			for _, unwanted := range []string{"run_metrics", "tasks", "PipelineRuntimeManifest", "PipelineSpecManifest", "LIMIT"} {
 				require.NotContains(t, query, unwanted)
 			}
 			require.Contains(t, query, d.QuoteIdentifier("WorkflowSpecManifest"))
@@ -82,16 +84,69 @@ func TestRecurringRunAdoptionQueryDialects(t *testing.T) {
 	}
 }
 
-func TestRecurringRunInventoryRejectsTruncatedHistory(t *testing.T) {
+func TestRecurringRunInventoryStreamsLargeHistory(t *testing.T) {
 	db, d, _ := initializeDBAndStore()
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	orm, err := OpenTransferDB(db, "sqlite")
 	require.NoError(t, err)
-	for i := 0; i <= legacyRunInventoryLimit; i++ {
-		require.NoError(t, orm.Create(&model.Run{UUID: fmt.Sprint("history-", i), RecurringRunId: "bounded-job"}).Error)
+	const count = 1205
+	for i := 0; i < count; i++ {
+		require.NoError(t, orm.Create(&model.Run{UUID: fmt.Sprintf("history-%04d", i), RecurringRunId: "large-job"}).Error)
 	}
 	store := NewRunStore(db, util.NewFakeTimeForEpoch(), d)
-	runs, err := store.ListRunsForRecurringRunAdoption(context.Background(), "bounded-job")
-	require.ErrorContains(t, err, "retained run inventory exceeds")
-	require.Nil(t, runs)
+	seen := 0
+	err = store.VisitRunsForRecurringRunAdoption(context.Background(), "large-job", func(run *model.Run) error {
+		require.Equal(t, fmt.Sprintf("history-%04d", seen), run.UUID)
+		seen++
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, count, seen)
+
+	// An error beyond the old limit must stop the scan and remain actionable.
+	rejected := errors.New("conflicting scheduling evidence")
+	seen = 0
+	err = store.VisitRunsForRecurringRunAdoption(context.Background(), "large-job", func(run *model.Run) error {
+		seen++
+		if seen == 1100 {
+			return rejected
+		}
+		return nil
+	})
+	require.ErrorIs(t, err, rejected)
+	require.Equal(t, 1100, seen)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	seen = 0
+	err = store.VisitRunsForRecurringRunAdoption(ctx, "large-job", func(run *model.Run) error {
+		seen++
+		cancel()
+		return nil
+	})
+	require.ErrorContains(t, err, "context canceled")
+	require.Equal(t, 1, seen)
+
+	// Early exits close their cursor and do not prevent a complete retry.
+	runs, err := store.ListRunsForRecurringRunAdoption(context.Background(), "large-job")
+	require.NoError(t, err)
+	require.Len(t, runs, count)
+}
+
+func TestRecurringRunInventoryCancelsStalledVisitor(t *testing.T) {
+	db, d, _ := initializeDBAndStore()
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	orm, err := OpenTransferDB(db, "sqlite")
+	require.NoError(t, err)
+	require.NoError(t, orm.Create(&model.Run{UUID: "history", RecurringRunId: "job"}).Error)
+	store := NewRunStore(db, util.NewFakeTimeForEpoch(), d)
+	err = store.visitRunsForRecurringRunAdoption(context.Background(), "job", func(run *model.Run) error {
+		time.Sleep(50 * time.Millisecond)
+		return nil
+	}, 10*time.Millisecond)
+	require.ErrorContains(t, err, "context canceled")
+	// Cancellation also closes the cursor, permitting another complete inventory.
+	runs, err := store.ListRunsForRecurringRunAdoption(context.Background(), "job")
+	require.NoError(t, err)
+	require.Len(t, runs, 1)
 }

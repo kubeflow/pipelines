@@ -592,18 +592,25 @@ healthy schedules. Neither API probes nor a suspended workflow alone establish
 all application-level availability or recovery behavior.
 
 
-### Automatic-adoption inventory limits
+### Automatic adoption of retained history
 
-Automatic adoption requires complete evidence and currently supports at most
-1,000 retained runs per schedule and 1,000 Workflow objects per namespace. Workflow
-inventory is paged in batches of 100; an incomplete, repeated, or oversized
-inventory blocks adoption without changing trusted progress or accepting a
-truncated result. The per-record deadline remains bounded.
+Operators do not need to delete completed history before upgrading. Automatic
+adoption streams retained SQL runs and reads namespace Workflows in pages of 100,
+without a fixed total-item limit. It releases full execution manifests as they
+are checked, retaining compact identity and progress metadata for relevant history.
+Memory use still grows with that metadata; larger histories take longer to verify.
 
-If this limit is reported, preserve the relevant execution and scheduling evidence
-and apply your normal retention process to completed history before retrying.
-Do not delete active runs or Workflows to bypass the limit. Large-history resumable
-adoption is not implemented by this release.
+Adoption requires the complete inventory. A failed page, conflicting identity,
+or interrupted scan leaves trusted progress unchanged and retries from the
+beginning. Once progress and its adoption receipt are committed together, retries
+resume synchronization without importing history again. Stalled reads have
+bounded timeouts; background adoption has no total-history deadline. API callers
+still retain their request deadlines.
+
+Preserve execution and scheduling evidence if adoption reports an inconsistency.
+Do not delete active runs or Workflows to bypass validation. A large history can
+delay this background worker's later schedules while it is checked; unrelated
+API requests remain available.
 
 Custom scheduled-controller readiness probes must become ready independently of
 handoff or adoption completion. The standard controller has no readiness probe;

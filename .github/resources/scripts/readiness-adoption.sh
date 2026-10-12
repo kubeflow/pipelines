@@ -20,6 +20,7 @@ if [[ "$adoption_phase" == source ]]; then
   configure_controllers
   start_forward
   mint_token
+  check large-history
   check active
   check snapshot --online
   availability start
@@ -123,6 +124,7 @@ write_object(state / 'reports/adoption-complete.json', dict(
     active_case='persisted_suspended_workflow', source_version='2.17.2',
     upgrade_mode='ordinary_rolling_apply',
     restart_recovery='api_and_scheduled_controller_with_active_run',
+    large_history=read_object(state / 'reports/adoption-large-history.json')['history'],
     schedule_uids=[case['schedule_uid'] for case in fixture['schedules']]))
 PY
 fi

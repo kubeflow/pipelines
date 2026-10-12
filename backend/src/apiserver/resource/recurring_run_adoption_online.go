@@ -62,21 +62,27 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 	if err != nil {
 		return err
 	}
-	receipt, err := storage.GetLegacyRecurringRunAdoptionForJob(db, id)
+	metadataCtx, cancelMetadata := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelMetadata()
+	receipt, err := storage.GetLegacyRecurringRunAdoptionForJob(db.WithContext(metadataCtx), id)
 	if err != nil {
 		return err
 	}
 	if receipt == nil {
 		var count int64
-		if err := db.Model(&model.RecurringRunState{}).Where(&model.RecurringRunState{JobUUID: id}).Count(&count).Error; err != nil {
+		if err := db.WithContext(metadataCtx).Model(&model.RecurringRunState{}).Where(&model.RecurringRunState{JobUUID: id}).Count(&count).Error; err != nil {
 			return err
 		}
 		if count == 0 {
+			cancelMetadata()
 			candidate, err := r.legacyRecurringRunCandidate(ctx, db, id)
 			if err != nil {
 				return err
 			}
-			if err := storage.ApplyLegacyRecurringRunAdoptionForJob(db, *candidate, r.time.Now().Unix()); err != nil {
+			commitCtx, cancelCommit := context.WithTimeout(ctx, 30*time.Second)
+			err = storage.ApplyLegacyRecurringRunAdoptionForJob(db.WithContext(commitCtx), *candidate, r.time.Now().Unix())
+			cancelCommit()
+			if err != nil {
 				return err
 			}
 		}
@@ -141,34 +147,43 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 	})
 }
 
-const legacyWorkflowInventoryLimit = 1000
-
 type legacyWorkflowPager interface {
 	ListPage(context.Context, metav1.ListOptions) (util.ExecutionSpecList, string, error)
 }
 
-func boundedLegacyWorkflowInventory(ctx context.Context, client any) (util.ExecutionSpecList, error) {
+// visitLegacyWorkflowInventory retains only one Kubernetes page. The complete
+// namespace must be inspected: filtering by label would hide owned workflows
+// whose labels conflict with their schedule identity.
+func visitLegacyWorkflowInventory(ctx context.Context, client any, visit func(util.ExecutionSpec) error) error {
 	pager, ok := client.(legacyWorkflowPager)
 	if !ok {
-		return nil, fmt.Errorf("execution inventory does not support bounded pagination")
+		return fmt.Errorf("execution inventory does not support bounded pagination")
 	}
-	inventory := make(util.ExecutionSpecList, 0)
 	token := ""
 	seen := make(map[string]bool)
 	for {
-		page, next, err := pager.ListPage(ctx, metav1.ListOptions{Limit: 100, Continue: token})
-		if err != nil {
-			return nil, err
+		if err := ctx.Err(); err != nil {
+			return err
 		}
-		inventory = append(inventory, page...)
-		if len(inventory) > legacyWorkflowInventoryLimit || (len(inventory) == legacyWorkflowInventoryLimit && next != "") {
-			return nil, fmt.Errorf("namespace execution inventory exceeds %d workflows; preserve evidence and reduce retained completed workflow history before retrying adoption; do not delete active workflows", legacyWorkflowInventoryLimit)
+		pageCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		page, next, err := pager.ListPage(pageCtx, metav1.ListOptions{Limit: 100, Continue: token})
+		cancel()
+		if err != nil {
+			return err
+		}
+		for _, workflow := range page {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if err := visit(workflow); err != nil {
+				return err
+			}
 		}
 		if next == "" {
-			return inventory, nil
+			return ctx.Err()
 		}
 		if len(page) == 0 || seen[next] {
-			return nil, fmt.Errorf("execution inventory pagination did not advance")
+			return fmt.Errorf("execution inventory pagination did not advance")
 		}
 		seen[next] = true
 		token = next
@@ -176,7 +191,9 @@ func boundedLegacyWorkflowInventory(ctx context.Context, client any) (util.Execu
 }
 
 func (r *ResourceManager) legacyRecurringRunCandidate(ctx context.Context, db *gorm.DB, id string) (*storage.RecurringRunAdoptionCandidate, error) {
-	transferred, err := r.transferScheduleIDs(ctx)
+	metadataCtx, cancelMetadata := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelMetadata()
+	transferred, err := r.transferScheduleIDs(metadataCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +201,7 @@ func (r *ResourceManager) legacyRecurringRunCandidate(ctx context.Context, db *g
 		return nil, fmt.Errorf("transferred scheduling state is missing; refusing to reseed progress")
 	}
 	var snapshot model.Job
-	if err := db.Where(&model.Job{UUID: id}).Take(&snapshot).Error; err != nil {
+	if err := db.WithContext(metadataCtx).Where(&model.Job{UUID: id}).Take(&snapshot).Error; err != nil {
 		return nil, err
 	}
 	job, err := r.jobStore.GetJob(id)
@@ -194,31 +211,28 @@ func (r *ResourceManager) legacyRecurringRunCandidate(ctx context.Context, db *g
 	if r.IsEmptyNamespace(job.Namespace) {
 		return nil, fmt.Errorf("recurring run %s has no stored namespace; resolve its destination before adoption", id)
 	}
-	swf, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})
+	swf, err := r.getScheduledWorkflowClient(job.Namespace).Get(metadataCtx, job.K8SName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	// Inspect the namespace, including owner-matching workflows with a missing or
-	// conflicting schedule label. A label selector would hide unsafe executions
-	// from the planner's identity checks.
-	live, err := boundedLegacyWorkflowInventory(ctx, r.getWorkflowClient(job.Namespace))
+	cancelMetadata()
+	planner, err := newLegacyRecurringRunProgress(job, swf, r.time.Now().Unix())
 	if err != nil {
 		return nil, err
-	}
-	if live == nil {
-		return nil, fmt.Errorf("execution inventory unavailable")
 	}
 	inventory, ok := r.runStore.(interface {
-		ListRunsForRecurringRunAdoption(context.Context, string) ([]*model.Run, error)
+		VisitRunsForRecurringRunAdoption(context.Context, string, func(*model.Run) error) error
 	})
 	if !ok {
 		return nil, fmt.Errorf("legacy execution inventory unavailable; configure a run store with adoption inventory support")
 	}
-	runs, err := inventory.ListRunsForRecurringRunAdoption(ctx, id)
-	if err != nil {
+	if err := inventory.VisitRunsForRecurringRunAdoption(ctx, id, planner.addRun); err != nil {
 		return nil, err
 	}
-	state, err := adoptLegacyRecurringRunProgress(job, swf, runs, live, r.time.Now().Unix())
+	if err := visitLegacyWorkflowInventory(ctx, r.getWorkflowClient(job.Namespace), planner.addWorkflow); err != nil {
+		return nil, err
+	}
+	state, err := planner.finish()
 	if err != nil {
 		return nil, err
 	}

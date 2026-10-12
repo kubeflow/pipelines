@@ -8,14 +8,13 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
-
-const legacyRunInventoryLimit = 1000
 
 func recurringRunAdoptionQuery(q dialect.QuoteFunction, jobID string) sq.SelectBuilder {
 	run := dialect.QualifiedColumn(q, "run_details")
@@ -40,16 +39,28 @@ func recurringRunAdoptionQuery(q dialect.QuoteFunction, jobID string) sq.SelectB
 			Where(sq.Eq{ref("ResourceType"): model.RunResourceType, ref("ReferenceType"): field.reference})
 		query = query.Column(sq.Expr("COALESCE(NULLIF("+run(field.column)+", ''), (?), '')", fallback))
 	}
-	return query.Where(recurringRunAssociation(q, jobID)).OrderBy(run("UUID")).Limit(legacyRunInventoryLimit + 1)
+	return query.Where(recurringRunAssociation(q, jobID)).OrderBy(run("UUID"))
 }
 
-// ListRunsForRecurringRunAdoption reads only scheduling evidence in one cancellable
+// VisitRunsForRecurringRunAdoption streams scheduling evidence in one cancellable
 // query. It deliberately includes records whose runtime manifest has not yet been
 // reported: unlike GetRun's API response, their persisted spec is valid evidence.
 // Metrics, tasks and unrelated pipeline payloads are not needed by the planner.
-func (s *RunStore) ListRunsForRecurringRunAdoption(ctx context.Context, jobID string) ([]*model.Run, error) {
-	fail := func(err error) ([]*model.Run, error) {
-		return nil, util.NewInternalServerError(err, "Failed to inventory runs for recurring run %s; retry adoption after restoring database access", jobID)
+// The visitor can discard each manifest after extracting its scheduling evidence;
+// the store does not retain a full history of manifests in memory.
+func (s *RunStore) VisitRunsForRecurringRunAdoption(ctx context.Context, jobID string, visit func(*model.Run) error) error {
+	return s.visitRunsForRecurringRunAdoption(ctx, jobID, visit, 30*time.Second)
+}
+
+func (s *RunStore) visitRunsForRecurringRunAdoption(ctx context.Context, jobID string, visit func(*model.Run) error, idleTimeout time.Duration) error {
+	// Bound a stalled query or row without limiting the total duration of a
+	// progressing inventory. QueryContext propagates cancellation to the driver.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	idle := time.AfterFunc(idleTimeout, cancel)
+	defer idle.Stop()
+	fail := func(err error) error {
+		return util.NewInternalServerError(err, "Failed to inventory runs for recurring run %s; retry adoption after restoring database access", jobID)
 	}
 	query, args, err := s.dbDialect.FinalizeSelect(recurringRunAdoptionQuery(s.dbDialect.QuoteIdentifier, jobID))
 	if err != nil {
@@ -60,10 +71,10 @@ func (s *RunStore) ListRunsForRecurringRunAdoption(ctx context.Context, jobID st
 		return fail(err)
 	}
 	defer rows.Close()
-	var runs []*model.Run
 	for rows.Next() {
-		if len(runs) == legacyRunInventoryLimit {
-			return fail(fmt.Errorf("retained run inventory exceeds %d records; preserve evidence and reduce retained completed run history before retrying adoption; do not delete active runs", legacyRunInventoryLimit))
+		idle.Reset(idleTimeout)
+		if err := ctx.Err(); err != nil {
+			return fail(err)
 		}
 		run := &model.Run{RecurringRunId: jobID}
 		if err := rows.Scan(&run.UUID, &run.DisplayName, &run.K8SName, &run.ImportedFrom,
@@ -71,10 +82,30 @@ func (s *RunStore) ListRunsForRecurringRunAdoption(ctx context.Context, jobID st
 			&run.WorkflowSpecManifest, &run.WorkflowRuntimeManifest, &run.Namespace, &run.PipelineVersionId); err != nil {
 			return fail(fmt.Errorf("read adoption inventory: %w", err))
 		}
-		runs = append(runs, run)
+		if err := visit(run); err != nil {
+			return err
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return fail(err)
+	}
+	if err := ctx.Err(); err != nil {
+		return fail(err)
+	}
+	return nil
+}
+
+// ListRunsForRecurringRunAdoption collects the inventory for callers that need a
+// slice. Online adoption uses VisitRunsForRecurringRunAdoption to release manifest
+// payloads as each row is processed.
+func (s *RunStore) ListRunsForRecurringRunAdoption(ctx context.Context, jobID string) ([]*model.Run, error) {
+	var runs []*model.Run
+	err := s.VisitRunsForRecurringRunAdoption(ctx, jobID, func(run *model.Run) error {
+		runs = append(runs, run)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return runs, nil
 }

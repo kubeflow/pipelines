@@ -162,7 +162,9 @@ func (a *AutomaticRecurringRunAdoption) ensure(ctx context.Context, id string, m
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := a.adopter.RequireRecurringRunAdoptionReady(ctx, id); err == nil {
+	preflightCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if err := a.adopter.RequireRecurringRunAdoptionReady(preflightCtx, id); err == nil {
 		a.retryMu.Lock()
 		if retry := a.retries[id]; retry != nil && !retry.running {
 			delete(a.retries, id)
@@ -170,9 +172,10 @@ func (a *AutomaticRecurringRunAdoption) ensure(ctx context.Context, id string, m
 		a.retryMu.Unlock()
 		return nil
 	}
-	if err := a.writersReady(ctx); err != nil {
+	if err := a.writersReady(preflightCtx); err != nil {
 		return util.NewUnavailableServerError(err, "Scheduling is waiting for the automatic upgrade handoff; retry shortly")
 	}
+	cancel()
 	var ok bool
 	var err error
 	if modeChanged {
@@ -195,33 +198,40 @@ func (a *AutomaticRecurringRunAdoption) ensure(ctx context.Context, id string, m
 	if err := a.adopter.AdoptLegacyRecurringRun(ctx, id); err != nil {
 		return err
 	}
-	return a.adopter.RequireRecurringRunAdoptionReady(ctx, id)
+	readyCtx, readyCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer readyCancel()
+	return a.adopter.RequireRecurringRunAdoptionReady(readyCtx, id)
 }
 
 // scan processes a bounded page, including disabled schedules. Advancing past
-// failures prevents a malformed early record from starving later records.
+// failures prevents a malformed early record from starving later records. A
+// complete inventory can take longer than a page or request timeout; inventory
+// I/O has its own stall deadlines and retains this worker's cancellation. Only
+// one inventory is held at a time, so a large history delays the following record
+// rather than multiplying memory use across concurrent background inventories.
 func (a *AutomaticRecurringRunAdoption) scan(ctx context.Context) error {
-	if err := a.writersReady(ctx); err != nil {
+	pageCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if err := a.writersReady(pageCtx); err != nil {
 		return err
 	}
 	const pageSize = 100
 	var candidates []storage.RecurringRunMigrationCandidate
 	var err error
 	if !a.startupDone {
-		candidates, err = a.adopter.PrepareRecurringRunStartupRepairs(ctx, a.cursor, pageSize)
+		candidates, err = a.adopter.PrepareRecurringRunStartupRepairs(pageCtx, a.cursor, pageSize)
 	} else {
-		candidates, err = a.adopter.ListLegacyRecurringRunAdoptionCandidates(ctx, a.cursor, pageSize)
+		candidates, err = a.adopter.ListLegacyRecurringRunAdoptionCandidates(pageCtx, a.cursor, pageSize)
 	}
 	if err != nil {
 		return err
 	}
+	cancel()
 	for _, candidate := range candidates {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		recordCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		_ = a.Ensure(recordCtx, candidate.ID)
-		cancel()
+		_ = a.Ensure(ctx, candidate.ID)
 		a.cursor = candidate.ID
 	}
 	if len(candidates) < pageSize {
@@ -236,9 +246,7 @@ func (a *AutomaticRecurringRunAdoption) Run(ctx context.Context) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	for {
-		scanCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-		err := a.scan(scanCtx)
-		cancel()
+		err := a.scan(ctx)
 		if err != nil && ctx.Err() == nil {
 			glog.Warningf("Automatic recurring-run adoption is waiting and will retry: %v", err)
 		}
