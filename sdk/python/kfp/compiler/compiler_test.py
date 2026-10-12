@@ -6432,6 +6432,76 @@ class TestComplexChannelTypesInFString(unittest.TestCase):
             "Items: {{$.inputs.parameters['pipelinechannel--produce-mime-types-Output']}}"
         )
 
+    def test_literal_containing_placeholder_terminator_in_fstring(self):
+
+        @dsl.component
+        def produce_delimiter() -> List[Literal[';}}']]:
+            return [';}}']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-delimiter-literal-in-fstring')
+        def my_pipeline():
+            delimiter_task = produce_delimiter()
+            consume_string(s=f'Items: {delimiter_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-delimiter', list(task.dependent_tasks))
+        compiled_value = (
+            task.inputs.parameters['s'].runtime_value.constant.string_value)
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertNotIn(';}}', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-delimiter-Output']}}"
+        )
+
+    def test_adjacent_placeholders_with_delimiter_literal_in_fstring(self):
+
+        @dsl.component
+        def produce_delimiter() -> List[Literal[';}}']]:
+            return [';}}']
+
+        @dsl.component
+        def produce_plain() -> str:
+            return 'x'
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-adjacent-placeholders')
+        def my_pipeline():
+            delimiter_task = produce_delimiter()
+            plain_task = produce_plain()
+            consume_string(
+                s=f'A: {delimiter_task.output} B: {plain_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertCountEqual(
+            list(task.dependent_tasks), ['produce-delimiter', 'produce-plain'])
+        compiled_value = (
+            task.inputs.parameters['s'].runtime_value.constant.string_value)
+        self.assertNotIn(';}}', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "A: {{$.inputs.parameters['pipelinechannel--produce-delimiter-Output']}} B: {{$.inputs.parameters['pipelinechannel--produce-plain-Output']}}"
+        )
+
 
 class TestPythonicArtifactAuthoring(unittest.TestCase):
     # python component
