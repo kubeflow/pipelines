@@ -29,7 +29,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
-CALLERS = {
+CALLERS = [
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
@@ -37,7 +37,9 @@ CALLERS = {
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
-}
+    ('.github/workflows/image-builds.yml', 'image-build'),
+    ('.github/workflows/image-builds.yml', 'image-build'),
+]
 
 
 def workflow(name):

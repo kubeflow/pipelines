@@ -18,6 +18,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tarfile
 import tempfile
 import unittest
 
@@ -50,6 +51,7 @@ from pathlib import Path
 import re
 import shutil
 import sys
+import tarfile
 
 args = sys.argv[1:]
 dockerfile = sys.stdin.read()
@@ -65,15 +67,20 @@ if '--no-cache' in args and mount.exists():
 mount.mkdir(exist_ok=True)
 output = args[args.index('--output') + 1]
 if output == 'type=cacheonly':
-    shutil.copytree(Path(args[-1]), mount, dirs_exist_ok=True)
+    with tarfile.open(Path(args[-1]) / 'go-build-cache.tar.gz') as archive:
+        archive.extractall(mount, filter='data')
 else:
     destination = Path(output.removeprefix('type=local,dest='))
-    shutil.copytree(mount, destination)
+    if not any(path.stat().st_size for path in mount.rglob('*-d')):
+        sys.exit(43)
+    destination.mkdir()
+    with tarfile.open(destination / 'go-build-cache.tar.gz', 'w:gz') as archive:
+        archive.add(mount, arcname='.')
 ''')
         docker.chmod(0o755)
         timeout = binaries / 'timeout'
         timeout.write_text('''#!/usr/bin/env bash
-[[ "$1 $2 $3" == '--foreground --kill-after=10s 120s' ]] || exit 91
+[[ "$1 $2 $3" == '--foreground --kill-after=10s 60s' ]] || exit 91
 shift 3
 exec "$@"
 ''')
@@ -102,6 +109,24 @@ exec "$@"
                               timeout=10,
                               check=False)
 
+    def make_archive(self, name='existing-d', content='compiled package'):
+        self.cache.mkdir(exist_ok=True)
+        source = self.directory / name
+        source.write_text(content)
+        with tarfile.open(self.cache / 'go-build-cache.tar.gz',
+                          'w:gz') as archive:
+            archive.add(source, arcname=name)
+        source.unlink()
+
+    def archive_contents(self):
+        with tarfile.open(self.cache / 'go-build-cache.tar.gz') as archive:
+            return {
+                Path(member.name).name:
+                    archive.extractfile(member).read().decode()
+                for member in archive.getmembers()
+                if member.isfile()
+            }
+
     def test_cold_cache_does_not_need_docker(self):
         for exists in (False, True):
             with self.subTest(exists=exists):
@@ -113,20 +138,20 @@ exec "$@"
                 self.assertFalse(self.commands.exists())
 
     def test_restore_and_save_transfer_the_same_mount_on_native_builder(self):
-        self.cache.mkdir()
-        (self.cache / 'existing').write_text('compiled package')
+        self.make_archive()
         result = self.run_helper('restore', TARGET_ARCH='arm64')
         self.assertEqual(result.returncode, 0, result.stderr)
         mount = self.mounts / 'kfp-go-build'
-        self.assertEqual((mount / 'existing').read_text(), 'compiled package')
+        self.assertEqual((mount / 'existing-d').read_text(), 'compiled package')
         # Simulate Go's update and garbage collection during compilation.
-        (mount / 'existing').unlink()
-        (mount / 'new').write_text('new compiled package')
+        (mount / 'existing-d').unlink()
+        (mount / 'new-d').write_text('new compiled package')
         result = self.run_helper('save', TARGET_ARCH='arm64')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual((self.cache / 'new').read_text(),
-                         'new compiled package')
-        self.assertFalse((self.cache / 'existing').exists())
+        self.assertEqual(self.archive_contents(),
+                         {'new-d': 'new compiled package'})
+        self.assertEqual([path.name for path in self.cache.iterdir()],
+                         ['go-build-cache.tar.gz'])
         calls = [
             json.loads(line) for line in self.commands.read_text().splitlines()
         ]
@@ -154,11 +179,11 @@ exec "$@"
         for cache_id in ('kfp-go-build', 'kfp-go-build-retry'):
             mount = self.mounts / cache_id
             mount.mkdir()
-            (mount / 'compiled').write_text(cache_id)
+            (mount / 'compiled-d').write_text(cache_id)
         result = self.run_helper('save', cache_id='kfp-go-build-retry')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual((self.cache / 'compiled').read_text(),
-                         'kfp-go-build-retry')
+        self.assertEqual(self.archive_contents(),
+                         {'compiled-d': 'kfp-go-build-retry'})
 
     def test_failed_export_preserves_restored_cache_and_cleans_temporary_files(
             self):
@@ -170,9 +195,23 @@ exec "$@"
         self.assertEqual(
             list(self.directory.glob('go-build-cache-transfer.*')), [])
 
+    def test_empty_mount_export_preserves_previous_archive(self):
+        self.make_archive()
+        previous = (self.cache / 'go-build-cache.tar.gz').read_bytes()
+        result = self.run_helper('save')
+        self.assertEqual(result.returncode, 43, result.stderr)
+        self.assertEqual((self.cache / 'go-build-cache.tar.gz').read_bytes(),
+                         previous)
+        call = json.loads(self.commands.read_text())
+        self.assertIn("-name '*-d' -size +0c", call['dockerfile'])
+        self.assertIn('gzip -1', call['dockerfile'])
+        self.assertNotIn('pipefail', call['dockerfile'])
+        self.assertNotIn(' | ', call['dockerfile'])
+        self.assertIn('tar -cf /tmp/go-cache.tar', call['dockerfile'])
+        self.assertIn('&& rm /tmp/go-cache.tar', call['dockerfile'])
+
     def test_failed_restore_propagates_for_the_workflow_to_ignore(self):
-        self.cache.mkdir()
-        (self.cache / 'entry').touch()
+        self.make_archive()
         result = self.run_helper('restore', FAIL_TRANSFER='true')
         self.assertEqual(result.returncode, 42, result.stderr)
 
@@ -246,19 +285,28 @@ class ImageBuildCacheWorkflowTest(unittest.TestCase):
         self.assertEqual(upload['if'], 'always()')
         self.assertEqual(upload['with']['retention-days'], 7)
 
-    def test_layers_are_shared_per_image_and_architecture_with_bounded_export(
+    def test_retained_images_replace_layer_exports_and_skip_compiler_transport(
             self):
-        build = self.by_id['save-image']['with']
-        for key in ('cache-from', 'cache-to'):
-            value = build[key]
-            self.assertIn('type=gha,version=2', value)
-            self.assertIn(
-                'scope=ci-image-v1-${{ matrix.image }}-${{ inputs.architecture }}',
-                value)
-            self.assertIn('timeout=60s', value)
-            self.assertNotIn('github.workflow', value)
-        self.assertIn('mode=max', build['cache-to'])
-        self.assertIn('ignore-error=true', build['cache-to'])
+        build = self.by_id['save-image']
+        self.assertNotIn('cache-from', build['with'])
+        self.assertNotIn('cache-to', build['with'])
+        self.assertIn("steps.validate-image.outcome != 'success'", build['if'])
+        lookup = self.by_id['retained-cache']
+        self.assertIn('git rev-parse HEAD^{tree}', lookup['run'])
+        self.assertIn('--paginate --slurp', lookup['run'])
+        self.assertIn('--head-repository-id', lookup['run'])
+        self.assertIn('--head-branch', lookup['run'])
+        download = self.by_id['retained-image']['with']
+        self.assertIn('artifact-ids', download)
+        self.assertIn('run-id', download)
+        self.assertNotIn('name', download)
+        validate = self.by_id['validate-image']['run']
+        self.assertIn('docker load', validate)
+        self.assertIn('docker image inspect', validate)
+        self.assertIn('linux/$TARGET_ARCH', validate)
+        for identifier in ('go-cache', 'buildx'):
+            self.assertIn("steps.validate-image.outcome != 'success'",
+                          self.by_id[identifier]['if'])
 
     def test_uncached_retry_is_isolated_from_both_external_caches(self):
         retry = self.by_id['rebuild']['with']
@@ -272,37 +320,39 @@ class ImageBuildCacheWorkflowTest(unittest.TestCase):
                       extract['env']['CACHE_ID'])
         self.assertIn('kfp-go-build-retry', extract['env']['CACHE_ID'])
 
-    def test_go_cache_refreshes_per_source_with_compatible_builder_fallback(
+    def test_compiler_cache_is_apiserver_only_and_compatible_across_source_edits(
             self):
-        restore = self.by_id['go-cache']
-        key = restore['with']['key']
-        prefix = restore['with']['restore-keys'].strip()
-        self.assertEqual(key, prefix + '${{ github.sha }}')
-        for discriminator in ('matrix.image', 'inputs.architecture',
-                              'matrix.dockerfile', "'go.mod'", "'go.sum'",
-                              "'api/go.mod'", "'kubernetes_platform/go.mod'"):
-            self.assertIn(discriminator, prefix)
+        for identifier in ('go-cache', 'extract-go-cache'):
+            self.assertIn("matrix.image == 'apiserver'",
+                          self.by_id[identifier]['if'])
+        lookup = self.by_id['retained-cache']['run']
+        go_key = next(line for line in lookup.splitlines() if 'go_key=' in line)
+        for value in ('TARGET_ARCH', 'DOCKERFILE', 'go.mod', 'go.sum',
+                      'api/go.mod', 'kubernetes_platform/go.mod'):
+            self.assertIn(value, go_key)
+        self.assertNotIn('github.sha', go_key)
+        self.assertNotIn('HEAD', go_key)
         save = next(step for step in self.steps
                     if step['name'] == 'Save Go compiler cache')
-        self.assertEqual(save['with']['path'], restore['with']['path'])
-        self.assertEqual(save['with']['key'],
-                         '${{ steps.go-cache.outputs.cache-primary-key }}')
+        self.assertEqual(save['with']['retention-days'], 7)
+        self.assertEqual(save['with']['compression-level'], 0)
+        self.assertTrue(save['with']['path'].endswith('/go-build-cache.tar.gz'))
 
     def test_optional_cache_failure_never_gates_image_upload(self):
-        cache_steps = [
-            step for step in self.steps if 'Go compiler cache' in step['name']
-        ]
-        self.assertEqual(len(cache_steps), 4)
-        for step in cache_steps:
-            self.assertTrue(step['continue-on-error'], step['name'])
-            self.assertLessEqual(step['timeout-minutes'], 3)
         upload = next(
             step for step in self.steps if step['name'] == 'Upload artifact')
-        self.assertNotIn('cache', upload['if'])
+        for outcome in ('validate-image', 'save-image', 'rebuild'):
+            self.assertIn(f"steps.{outcome}.outcome == 'success'", upload['if'])
+        for step in self.steps:
+            if ('Go compiler cache' in step['name'] or step.get('id')
+                    in ('retained-cache', 'retained-image', 'validate-image') or
+                    step['name'] == 'Retain successful image archive'):
+                self.assertTrue(step['continue-on-error'], step['name'])
+                self.assertLessEqual(step['timeout-minutes'], 2)
         self.assertLess(
             self.steps.index(upload),
             self.steps.index(self.by_id['extract-go-cache']))
-        self.assertIn("steps.go-cache.outputs.cache-hit != 'true'",
+        self.assertIn("steps.restore-go-cache.outcome != 'success'",
                       self.by_id['extract-go-cache']['if'])
 
 

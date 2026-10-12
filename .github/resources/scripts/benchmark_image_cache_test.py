@@ -91,9 +91,9 @@ class BenchmarkImageCacheTest(unittest.TestCase):
             if args[2] == 'save':
                 cache.mkdir()
                 if self.fault != 'empty-cache':
-                    (cache / 'package-a').write_bytes(b'compiled')
+                    (cache / 'go-build-cache.tar.gz').write_bytes(b'compiled')
             else:
-                self.assertEqual((cache / 'package-a').read_bytes(),
+                self.assertEqual((cache / 'go-build-cache.tar.gz').read_bytes(),
                                  b'compiled')
         return 1.5
 
