@@ -2423,7 +2423,57 @@ class TestTopologyValidation(unittest.TestCase):
                 with dsl.ParallelFor(items) as item:
                     print_and_return(text=f'Item: {item}')
 
-        self.assertTrue(my_pipeline.pipeline_spec)
+        # 1. Root ExitHandler task passes original items list parameter
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['exit-handler-1'].inputs
+            .parameters['pipelinechannel--items'].component_input_parameter,
+            'items',
+        )
+
+        # 2. ExitHandler component declares items without leaking loop-item
+        exit_handler_inputs = (
+            my_pipeline.pipeline_spec.components['comp-exit-handler-1']
+            .input_definitions.parameters)
+        self.assertIn('pipelinechannel--items', exit_handler_inputs)
+        self.assertEqual(
+            exit_handler_inputs['pipelinechannel--items'].parameter_type,
+            type_utils.LIST,
+        )
+        self.assertNotIn('pipelinechannel--items-loop-item',
+                         exit_handler_inputs)
+
+        # 3. ParallelFor loop inside ExitHandler reads declared items list input
+        for_loop_task = (
+            my_pipeline.pipeline_spec.components['comp-exit-handler-1'].dag
+            .tasks['for-loop-2'])
+        self.assertEqual(
+            for_loop_task.inputs.parameters['pipelinechannel--items']
+            .component_input_parameter,
+            'pipelinechannel--items',
+        )
+        self.assertEqual(
+            for_loop_task.parameter_iterator.items.input_parameter,
+            'pipelinechannel--items',
+        )
+        self.assertEqual(
+            for_loop_task.parameter_iterator.item_input,
+            'pipelinechannel--items-loop-item',
+        )
+
+        # 4. Consumer task inside loop resolves injected input parameter to loop-item parameter
+        consumer_task = (
+            my_pipeline.pipeline_spec.components['comp-for-loop-2'].dag
+            .tasks['print-and-return'])
+        self.assertEqual(
+            consumer_task.inputs.parameters['pipelinechannel--items-loop-item']
+            .component_input_parameter,
+            'pipelinechannel--items-loop-item',
+        )
+        self.assertEqual(
+            consumer_task.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "Item: {{$.inputs.parameters['pipelinechannel--items-loop-item']}}",
+        )
 
 
 class TestYamlComments(unittest.TestCase):
