@@ -2,6 +2,13 @@
 
 ## Features
 
+* By-name pipeline-version uploads accept an explicit `namespace` in the Python
+  client. CLI `pipeline create-version` and `run create` accept
+  `--pipeline-namespace` with `--pipeline-name`. Omitting it searches shared
+  pipelines only; the client/global namespace is not inherited. Missing names
+  now fail before uploading a version or creating an experiment/run. Namespace
+  selectors cannot be combined with an explicit pipeline ID.
+
 * The accompanying backend enables live pod-log following for direct API callers
   through `GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
   Omitting `follow` still returns a snapshot. Clients should set a deadline or

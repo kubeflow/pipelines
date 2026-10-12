@@ -114,7 +114,8 @@ def create_version(ctx: click.Context,
         pipeline_id = client_obj.get_pipeline_id(
             name=pipeline_name, namespace=pipeline_namespace)
         if pipeline_id is None:
-            scope = f'namespace {pipeline_namespace!r}' if pipeline_namespace else 'shared pipelines'
+            scope = (f'namespace {pipeline_namespace!r}'
+                     if pipeline_namespace else 'shared pipelines')
             raise click.ClickException(
                 f'Pipeline {pipeline_name!r} was not found in {scope}. '
                 'For a private pipeline, pass --pipeline-namespace explicitly '
