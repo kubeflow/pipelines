@@ -113,3 +113,19 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   `pipelines.kubeflow.org/pagination-fixture=true`, including after failure or
   cancellation. Source baselines and independent complete inventories distinguish
   old defects from changed comparison order; fresh candidate omissions always fail.
+
+- `cache-rolling-upgrade.yml` validates the legacy cache server separately from
+  native V2 caching. It loads the published 2.17.2 cache image and a source-built
+  candidate into disposable Kind with real MySQL, TLS admission and production
+  Pod watchers. It proves a populated pre-namespace schema migrates while an old
+  process remains active, old admissions and writes continue, and namespace-empty
+  writes cannot satisfy enforcing scoped lookups. A temporary Deployment
+  `minReadySeconds` and per-revision Services make overlap observable;
+  both watchers remain running. The ordinary rolling Deployment then converges
+  before cold-to-warm, cross-namespace and retained old-format completion checks.
+  Retained completion requires the candidate watcher’s explicit rejection log,
+  with pod-label and database invariants rechecked after subsequent writes.
+  Synthetic Pods replace Argo's completion label, so this is cache component
+  acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
+  records exact source/target revisions, live image IDs and successful phases;
+  failures remain failures and the disposable cluster is always deleted.

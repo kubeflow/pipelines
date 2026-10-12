@@ -1,0 +1,66 @@
+name: Legacy cache rolling upgrade
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [release-2.18]
+    paths:
+      - 'backend/src/cache/**'
+      - 'backend/Dockerfile.cacheserver'
+      - 'test/cache-rolling-upgrade/**'
+      - '.github/workflows/cache-rolling-upgrade.yml'
+  pull_request:
+    branches: [release-2.18]
+    paths:
+      - 'backend/src/cache/**'
+      - 'backend/Dockerfile.cacheserver'
+      - 'test/cache-rolling-upgrade/**'
+      - '.github/workflows/cache-rolling-upgrade.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cache-rolling-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test acceptance assertions
+        run: python3 -m unittest discover -s test/cache-rolling-upgrade -p 'test_*.py'
+      - name: Create disposable cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.36.1
+          cluster_name: cache-rolling
+      - name: Build candidate cache server
+        run: |
+          source .github/resources/scripts/helper-functions.sh
+          retry 2 10 docker build -f backend/Dockerfile.cacheserver -t kfp-cache-server:rolling-candidate .
+      - name: Load source, target and fixture images
+        run: |
+          set -euo pipefail
+          for image in ghcr.io/kubeflow/kfp-cache-server:2.17.2 mysql:8.0 busybox:1.37; do
+            bash .github/resources/scripts/docker-pull-with-retry.sh "$image"
+            kind load docker-image --name cache-rolling "$image"
+          done
+          kind load docker-image --name cache-rolling kfp-cache-server:rolling-candidate
+      - name: Validate populated rolling upgrade and converged isolation
+        run: python3 test/cache-rolling-upgrade/validate.py
+      - name: Diagnose failed fixture
+        if: failure()
+        run: |
+          kubectl -n cache-a get pods,deployments,replicasets,endpoints -o wide || true
+          kubectl -n cache-a logs mysql --tail=60 || true
+          kubectl -n kube-system logs -l component=kube-apiserver --tail=100 || true
+          kubectl -n cache-a get events --sort-by=.metadata.creationTimestamp || true
+          kubectl -n cache-a logs -l app=cache-server --all-containers --prefix --tail=150 || true
+      - name: Retain phase evidence
+        if: always()
+        uses: ./.github/actions/upload-artifact-with-retry
+        with:
+          name: cache-rolling-upgrade-${{ github.run_id }}
+          path: /tmp/cache-rolling-report.json
+      - name: Remove disposable cluster
+        if: always()
+        run: kind delete cluster --name cache-rolling
