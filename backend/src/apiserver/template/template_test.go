@@ -438,6 +438,19 @@ func TestV2Spec_GetTemplateType(t *testing.T) {
 	assert.Equal(t, V2, tmpl.GetTemplateType())
 }
 
+func TestNewV2SpecTemplate_DefaultPipelineRootPercentValidation(t *testing.T) {
+	template := loadYaml(t, "testdata/hello_world.yaml")
+
+	badRoot := "s3://bucket/root%20dir"
+	_, err := NewV2SpecTemplate([]byte("defaultPipelineRoot: "+badRoot+"\n"+template), TemplateOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), badRoot)
+
+	validRoot := "s3://bucket/root dir"
+	_, err = NewV2SpecTemplate([]byte("defaultPipelineRoot: "+validRoot+"\n"+template), TemplateOptions{})
+	require.NoError(t, err)
+}
+
 func TestV2Spec_IsV2(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world.yaml")
 	tmpl, _ := NewV2SpecTemplate([]byte(template), TemplateOptions{})
@@ -900,6 +913,55 @@ func TestValidateJobInputs(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 			}
+		})
+	}
+}
+
+func TestValidatePipelineJobInputs_PipelineRootPercentValidation(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
+	v2Template, err := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{})
+	require.NoError(t, err)
+	v2Spec := v2Template.(*V2Spec)
+
+	for _, badRoot := range []string{
+		"s3://bucket/root%20dir",
+		"s3://bucket/root%20dir/x",
+		"gs://bucket/100%complete",
+	} {
+		t.Run("rejects "+badRoot, func(t *testing.T) {
+			modelJob := &model.Job{
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters:   `{"y": "world"}`,
+						PipelineRoot: model.LargeText(badRoot),
+					},
+				},
+			}
+			err := v2Spec.ValidateJobInputs(modelJob)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), badRoot)
+		})
+	}
+
+	for _, validRoot := range []string{
+		"s3://bucket/root dir/x",
+		"s3://bucket/café/日本語",
+		"s3://bucket/a&b/x",
+		"s3://bucket/root dir?endpoint=seaweedfs:9000&disableSSL=true",
+	} {
+		t.Run("allows "+validRoot, func(t *testing.T) {
+			modelJob := &model.Job{
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters:   `{"y": "world"}`,
+						PipelineRoot: model.LargeText(validRoot),
+					},
+				},
+			}
+			require.NoError(t, v2Spec.ValidateJobInputs(modelJob))
 		})
 	}
 }

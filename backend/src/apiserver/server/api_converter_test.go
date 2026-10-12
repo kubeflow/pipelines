@@ -3204,3 +3204,35 @@ func TestToApiRecurringRunPluginsInput(t *testing.T) {
 		assert.Nil(t, got.PluginsInput)
 	})
 }
+
+func TestToModelRuntimeConfig_PipelineRootPercentValidation(t *testing.T) {
+	for _, badRoot := range []string{
+		"s3://bucket/root%20dir",
+		"s3://bucket/root%20dir/x",
+		"gs://bucket/100%complete",
+	} {
+		t.Run("rejects "+badRoot, func(t *testing.T) {
+			_, err := toModelRuntimeConfig(&apiv2beta1.RuntimeConfig{
+				PipelineRoot: badRoot,
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), badRoot)
+		})
+	}
+
+	for _, validRoot := range []string{
+		"",
+		"s3://bucket/root dir/x",
+		"s3://bucket/café/日本語",
+		"s3://bucket/a&b/x",
+		"s3://bucket/root dir?endpoint=seaweedfs:9000&disableSSL=true",
+	} {
+		t.Run("allows "+validRoot, func(t *testing.T) {
+			got, err := toModelRuntimeConfig(&apiv2beta1.RuntimeConfig{
+				PipelineRoot: validRoot,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, model.LargeText(validRoot), got.PipelineRoot)
+		})
+	}
+}

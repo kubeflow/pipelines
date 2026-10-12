@@ -190,6 +190,14 @@ func (c *Config) getBucketProviders() (*BucketProviders, error) {
 	return bucketProviders, nil
 }
 
+func newLauncherConfig(data map[string]string) (*Config, error) {
+	cfg := &Config{data: data}
+	if err := objectstore.ValidatePipelineRoot(cfg.DefaultPipelineRoot()); err != nil {
+		return nil, fmt.Errorf("invalid defaultPipelineRoot in launcher config: %w", err)
+	}
+	return cfg, nil
+}
+
 // FetchLauncherConfigMap loads config from a kfp-launcher Kubernetes config map.
 func FetchLauncherConfigMap(ctx context.Context, clientSet kubernetes.Interface, namespace string) (*Config, error) {
 	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
@@ -201,7 +209,7 @@ func FetchLauncherConfigMap(ctx context.Context, clientSet kubernetes.Interface,
 		}
 		return nil, err
 	}
-	return &Config{data: config.Data}, nil
+	return newLauncherConfig(config.Data)
 }
 
 // LoadLauncherConfig loads launcher config from an optional mounted ConfigMap
@@ -271,7 +279,11 @@ func loadLauncherConfigFromMount(mountPath string) (*Config, bool, error) {
 	if len(data) == 0 {
 		return nil, false, nil
 	}
-	return &Config{data: data}, true, nil
+	cfg, err := newLauncherConfig(data)
+	if err != nil {
+		return nil, false, err
+	}
+	return cfg, true, nil
 }
 
 // GetPipelineRootWithPipelineRunContext gets the pipeline root for a run.
@@ -292,6 +304,9 @@ func GetPipelineRootWithPipelineRunContext(
 		}
 		pipelineRoot = cfg.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
+	}
+	if err := objectstore.ValidatePipelineRoot(pipelineRoot); err != nil {
+		return "", fmt.Errorf("invalid pipeline root: %w", err)
 	}
 
 	pipelineRootAppended := util.GenerateOutputURI(pipelineRoot, []string{pipelineName, run.RunId}, true)
