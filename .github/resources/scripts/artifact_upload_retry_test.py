@@ -14,17 +14,14 @@
 # limitations under the License.
 """Regression tests for artifact-upload retry wiring."""
 
-import unittest
 from pathlib import Path
-
+import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 RETRY_ACTION = (
-    REPOSITORY_ROOT / '.github/actions/upload-artifact-with-retry/action.yml'
-)
+    REPOSITORY_ROOT / '.github/actions/upload-artifact-with-retry/action.yml')
 TEST_AND_REPORT_ACTION = (
-    REPOSITORY_ROOT / '.github/actions/test-and-report/action.yml'
-)
+    REPOSITORY_ROOT / '.github/actions/test-and-report/action.yml')
 CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 
 
@@ -37,8 +34,8 @@ class ArtifactUploadRetryTest(unittest.TestCase):
         self.assertIn("steps.primary.outcome == 'failure'", action)
         self.assertIn('sleep "$RETRY_DELAY_SECONDS"', action)
         self.assertIn(
-            'name: ${{ inputs.name }} - retry-${{ github.run_attempt }}', action
-        )
+            'name: ${{ inputs.name }} - retry-${{ github.run_attempt }}',
+            action)
         self.assertIn(
             'steps.primary.outputs.artifact-url || steps.retry.outputs.artifact-url',
             action,
@@ -53,25 +50,25 @@ class ArtifactUploadRetryTest(unittest.TestCase):
 
         self.assertEqual(
             action.count('uses: ./.github/actions/upload-artifact-with-retry'),
-            3,
+            4,
         )
         self.assertNotIn('uses: actions/upload-artifact@', action)
 
         for step_name in (
-            'Upload Kind cluster logs',
-            'Upload JUnit XML on failure',
-            'Upload HTML Report',
+                'Upload Kind cluster logs',
+                'Upload JUnit XML on failure',
+                'Upload HTML Report',
         ):
             with self.subTest(step=step_name):
-                step = action.split(f'- name: {step_name}', 1)[1].split(
-                    '\n    - name:', 1
-                )[0]
+                step = action.split(f'- name: {step_name}',
+                                    1)[1].split('\n    - name:', 1)[0]
                 self.assertIn('continue-on-error: true', step)
 
     def test_ci_runs_when_either_action_changes(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
-        self.assertIn("'.github/actions/upload-artifact-with-retry/**'", workflow)
+        self.assertIn("'.github/actions/upload-artifact-with-retry/**'",
+                      workflow)
         self.assertIn("'.github/actions/test-and-report/**'", workflow)
 
 

@@ -101,6 +101,10 @@ inputs:
     required: false
     default: 'false'
 
+  profile_e2e:
+    description: "Capture bounded E2E lifecycle profiles before test cleanup."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -259,6 +263,28 @@ runs:
         echo "API_TOKEN=$API_TOKEN" >> "$GITHUB_OUTPUT"
         echo "SERVICE_ACCOUNT_NAME=${SERVICE_ACCOUNT_NAME:-${INPUT_SERVICE_ACCOUNT_NAME:-}}" >> "$GITHUB_OUTPUT"
 
+    - name: Configure E2E profiling
+      id: e2e-profile
+      if: ${{ inputs.profile_e2e == 'true' }}
+      shell: bash
+      env:
+        PROFILE_REPORT_NAME: ${{ inputs.report_name }}
+      run: |
+        python3 - <<'PYPROFILE'
+        import os
+        from pathlib import Path
+        import re
+        import tempfile
+
+        root = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+        directory = Path(tempfile.mkdtemp(prefix='kfp-e2e-profile-', dir=root))
+        report = re.sub(r'[^A-Za-z0-9_.=-]+', '_', os.environ.get('PROFILE_REPORT_NAME', ''))[:120] or 'e2e'
+        name = f"e2e-profile-{report}-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}-{directory.name}"
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+            output.write(f'path={directory}\nname={name}\n')
+        PYPROFILE
+      continue-on-error: true
+
     - name: Run Tests
       id: run-tests
       shell: bash
@@ -269,6 +295,7 @@ runs:
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
         INPUT_TEST_LABEL: ${{ inputs.test_label }}
+        KFP_E2E_PROFILE_DIR: ${{ steps.e2e-profile.outputs.path }}
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z "$USE_PROXY" ]; then
@@ -411,6 +438,16 @@ runs:
         "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
 
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Upload E2E lifecycle profiles
+      uses: ./.github/actions/upload-artifact-with-retry
+      if: ${{ always() && inputs.profile_e2e == 'true' && steps.e2e-profile.outputs.path != '' }}
+      with:
+        name: ${{ steps.e2e-profile.outputs.name }}
+        path: ${{ steps.e2e-profile.outputs.path }}
+        retention-days: 7
+        if-no-files-found: warn
       continue-on-error: true
 
     - name: Report test-window network observability

@@ -14,6 +14,7 @@ import (
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/runtimeprofile"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
@@ -62,9 +63,16 @@ func CreatePipelineRunPayload(runName string, runDescription string, pipelineID 
 }
 
 // CreatePipelineRunAndWaitForItToFinish - Create a pipeline run and wait for it complete
-func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Client kubernetes.Interface, testContext *apitests.TestContext, pipelineID string, pipelineDisplayName string, pipelineVersionID *string, experimentID *string, runTimeParams map[string]interface{}, maxPipelineWaitTime int) string {
+func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Client kubernetes.Interface, testContext *apitests.TestContext, pipelineID string, pipelineDisplayName string, pipelineVersionID *string, experimentID *string, runTimeParams map[string]interface{}, maxPipelineWaitTime int, profiles ...*runtimeprofile.Profile) string {
+	var profile *runtimeprofile.Profile
+	if len(profiles) > 0 {
+		profile = profiles[0]
+	}
+	endPhase := profile.Phase("create_run")
 	logger.Log("Create run for pipeline with id: '%s' and name: '%s'", pipelineID, pipelineDisplayName)
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
+	endPhase()
+	defer profile.Phase("wait_for_run_terminal")()
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
 	timeout := time.Duration(maxPipelineWaitTime)
 	var checks []func() error
@@ -76,9 +84,12 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Cli
 }
 
 // ValidateComponentStatuses - Validate that all the components of a pipeline run ran successfully
-func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow) {
+func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow, profiles ...*runtimeprofile.Profile) {
 	logger.Log("Fetching updated pipeline run details for run with id=%s", runID)
 	updatedRun := testutil.GetPipelineRun(runClient, &runID)
+	if len(profiles) > 0 {
+		profiles[0].Run(updatedRun)
+	}
 	actualTasks := updatedRun.Tasks
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
