@@ -124,7 +124,7 @@ def key(value, namespace=None):
                    separators=(',', ':')).encode()).hexdigest()
 
 
-def task(name, marker, namespace=NS, enabled=True, forced_key=None):
+def task_manifest(name, marker, namespace=NS, enabled=True, forced_key=None):
     annotations = {
         OUTPUT: json.dumps({'parameters': [{
             'name': 'result',
@@ -162,6 +162,11 @@ def task(name, marker, namespace=NS, enabled=True, forced_key=None):
             }]
         }
     }
+    return pod
+
+
+def task(name, marker, namespace=NS, enabled=True, forced_key=None):
+    pod = task_manifest(name, marker, namespace, enabled, forced_key)
     k('create', '-f', '-', data=json.dumps(pod))
     result = get('pod', name, namespace)
     if enabled:
@@ -428,6 +433,23 @@ def setup():
 
 def validate():
     setup()
+    # Registration is asynchronous. Ignore-policy admission can succeed before
+    # the API server observes the webhook; prove mutation before real assertions.
+    readiness_pod = task_manifest('admission-readiness', 'readiness')
+
+    def source_admission_ready():
+        admitted = json.loads(
+            k('create',
+              '--dry-run=server',
+              '-f',
+              '-',
+              '-o',
+              'json',
+              data=json.dumps(readiness_pod)))
+        return admitted['metadata']['annotations'].get(KEY) == key(
+            template('readiness'))
+
+    wait(source_admission_ready, 'source webhook registered and mutating')
     assert_hit(task('source-populate', 'baseline'), False)
     complete('source-populate')
     assert_hit(task('source-hit', 'baseline'), True)

@@ -49,6 +49,8 @@ jobs:
         if: failure()
         run: |
           kubectl -n cache-a get pods,deployments,replicasets,endpoints -o wide || true
+          kubectl -n cache-a logs mysql --tail=60 || true
+          kubectl -n kube-system logs -l component=kube-apiserver --tail=100 || true
           kubectl -n cache-a get events --sort-by=.metadata.creationTimestamp || true
           kubectl -n cache-a logs -l app=cache-server --all-containers --prefix --tail=150 || true
       - name: Retain phase evidence
