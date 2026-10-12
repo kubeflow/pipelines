@@ -56,16 +56,43 @@ def command_failure(operation, stderr):
     return 'fixture_kubernetes_operation_failed'
 
 
-def command_diagnostics(result):
+KUBERNETES_STAGES = {
+    "kubernetes",
+    "history_create",
+    "history_readback",
+    "history_complete_status",
+    "history_progress_patch",
+}
+
+
+def command_diagnostics(result, operation="kubernetes", batch_offset=None):
     # Preserve unknown numeric SQL errors without exposing messages or queries.
     code = re.search(r'\bERROR\s+([0-9]{4})\b',
                      result.stderr + '\n' + result.stdout, re.IGNORECASE)
-    return dict(
+    evidence = dict(
         exit_code=result.returncode,
-        mysql_error=int(code.group(1)) if code else None)
+        mysql_error=int(code.group(1)) if code else None,
+        operation=operation if operation in SQL_OPERATIONS
+        | KUBERNETES_STAGES else 'kubernetes')
+    # Keep only fixed categories, never server messages or object payloads.
+    reasons = ('NotFound', 'AlreadyExists', 'Forbidden', 'Unauthorized',
+               'Invalid', 'Conflict', 'BadRequest', 'Timeout', 'InternalError')
+    evidence['kubernetes_reason'] = next(
+        (reason for reason in reasons if '(' + reason + ')' in result.stderr),
+        None)
+    if 'test failed' in result.stderr.lower(
+    ) or 'testing value' in result.stderr.lower():
+        evidence['category'] = 'json_patch_test_failed'
+    elif 'error validating' in result.stderr.lower():
+        evidence['category'] = 'validation_failed'
+    else:
+        evidence['category'] = 'command_failed'
+    if isinstance(batch_offset, int) and 0 <= batch_offset <= 1001:
+        evidence['batch_offset'] = batch_offset
+    return evidence
 
 
-def kube(*args, value=None, operation='kubernetes'):
+def kube(*args, value=None, operation='kubernetes', batch_offset=None):
     result = subprocess.run(
         ['kubectl', '--context', CONTEXT, '--request-timeout=30s', *args],
         input=json.dumps(value) if value is not None else None,
@@ -75,7 +102,8 @@ def kube(*args, value=None, operation='kubernetes'):
         check=False)
     if result.returncode:
         error = AdoptionError(command_failure(operation, result.stderr))
-        error.command_diagnostics = command_diagnostics(result)
+        error.command_diagnostics = command_diagnostics(result, operation,
+                                                        batch_offset)
         raise error
     if len(result.stdout) > 4 * 1024 * 1024:
         raise AdoptionError('fixture_collection_limit_exceeded')
@@ -753,6 +781,30 @@ def validate_large_history(current, schedule_uid):
         synthetic_completed_workflows=len(workflows))
 
 
+def history_progress_patch(source, last_index, finished):
+    # The 2.17 API omits enabled=false. Check its defaulted value locally and
+    # guard the observed object version so a concurrent enable cannot slip in.
+    require(
+        source.get('spec', {}).get('enabled', False) is False,
+        'history_schedule_must_be_disabled')
+    metadata = source.get('metadata', {})
+    require(
+        bool(metadata.get('uid')) and bool(metadata.get('resourceVersion')),
+        'history_schedule_identity_missing')
+    return [
+        dict(op='test', path='/metadata/uid', value=metadata['uid']),
+        dict(
+            op='test',
+            path='/metadata/resourceVersion',
+            value=metadata['resourceVersion']),
+        dict(
+            op='add',
+            path='/status/trigger',
+            value=dict(
+                lastWorkflowIndex=last_index, lastTriggeredTime=finished))
+    ]
+
+
 def seed_large_history(fixture):
     verify_state(CONTEXT, fixture)
     baseline = snapshot()
@@ -799,12 +851,22 @@ def seed_large_history(fixture):
             'create',
             '-f',
             '-',
-            value=dict(apiVersion='v1', kind='List', items=batch))
+            value=dict(apiVersion='v1', kind='List', items=batch),
+            operation='history_create',
+            batch_offset=offset)
     # CRDs with a status subresource may strip status from create requests.
     # Read back the actual objects and populate only that subresource if needed.
     created = json.loads(
-        kube('-n', NAMESPACE, 'get', 'workflows', '-l', HISTORY_LABEL + '=true',
-             '-o', 'json'))['items']
+        kube(
+            '-n',
+            NAMESPACE,
+            'get',
+            'workflows',
+            '-l',
+            HISTORY_LABEL + '=true',
+            '-o',
+            'json',
+            operation='history_readback'))['items']
     require(len(created) == LARGE_HISTORY_COUNT, 'history_creation_incomplete')
     missing = [
         workflow for workflow in created
@@ -820,21 +882,26 @@ def seed_large_history(fixture):
             '--subresource=status',
             '-f',
             '-',
-            value=dict(apiVersion='v1', kind='List', items=batch))
-    # Test UID and disabled state atomically; never advance an enabled schedule.
+            value=dict(apiVersion='v1', kind='List', items=batch),
+            operation='history_complete_status',
+            batch_offset=offset)
+    # Read again after seeding: a resource-version test protects the disabled
+    # observation even when the API omitted its false enabled field.
+    current_source = get(NAMESPACE,
+                         'scheduledworkflow/' + source['metadata']['name'])
+    require(current_source['metadata']['uid'] == candidate['UUID'],
+            'history_schedule_identity_changed')
     kube(
-        '-n', NAMESPACE, 'patch',
-        'scheduledworkflow/' + source['metadata']['name'], '--type=json', '-p',
-        json.dumps([
-            dict(op='test', path='/metadata/uid', value=candidate['UUID']),
-            dict(op='test', path='/spec/enabled', value=False),
-            dict(
-                op='add',
-                path='/status/trigger',
-                value=dict(
-                    lastWorkflowIndex=start + LARGE_HISTORY_COUNT,
-                    lastTriggeredTime=finished))
-        ]))
+        '-n',
+        NAMESPACE,
+        'patch',
+        'scheduledworkflow/' + source['metadata']['name'],
+        '--type=json',
+        '-p',
+        json.dumps(
+            history_progress_patch(current_source, start + LARGE_HISTORY_COUNT,
+                                   finished)),
+        operation="history_progress_patch")
     current = snapshot()
     validate_inventory(current, fixture)
     result = validate_large_history(current, candidate['UUID'])
@@ -1232,14 +1299,13 @@ def main():
         # Never expose backend payloads, SQL errors, manifests or credentials.
         report['reason'] = str(error) if type(error) is AdoptionError else \
             'adoption_validation_or_collection_failed'
-        if type(error) is not AdoptionError:
-            report['exception'] = exception_evidence(error)
+        report['exception'] = exception_evidence(error)
         if hasattr(error, 'job_evidence'):
             report['job_evidence'] = error.job_evidence
         if hasattr(error, 'source_observation'):
             report['source_observation'] = error.source_observation
-        if report['reason'].startswith('fixture_sql_'):
-            report['failed_command'] = getattr(error, 'command_diagnostics', {})
+        if hasattr(error, 'command_diagnostics'):
+            report['failed_command'] = error.command_diagnostics
     phase_label = args.phase + ('-' +
                                 (args.job_name or 'invalid').rsplit('-', 1)[-1]
                                 if args.phase == 'wait-job' else '')

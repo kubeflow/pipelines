@@ -76,8 +76,17 @@ def main():
                 return
             time.sleep(2)
         raise ValueError('availability_probe_not_running')
-    if get('kubeflow', 'pod/' + NAME).get('status',
-                                          {}).get('phase') != 'Succeeded':
+    probe = kube('-n', 'kubeflow', 'get', 'pod/' + NAME, '--ignore-not-found',
+                 '-o', 'json')
+    if not probe.strip():
+        write_object(
+            Path(args.state) / 'reports/adoption-availability.json',
+            dict(
+                outcome='inconclusive',
+                reason='availability_probe_not_started',
+                scope='api_service_health_during_rolling_adoption'))
+        raise SystemExit(1)
+    if json.loads(probe).get('status', {}).get('phase') != 'Succeeded':
         kube('-n', 'kubeflow', 'exec', NAME, '--', 'touch', '/tmp/stop')
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:

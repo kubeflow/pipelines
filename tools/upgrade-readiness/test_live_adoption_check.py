@@ -928,3 +928,86 @@ class LargeHistoryTests(unittest.TestCase):
                 seed_large_history({})
         execute.assert_not_called()
         kubernetes.assert_not_called()
+
+
+class HistoryProgressPatchTests(unittest.TestCase):
+
+    def test_disabled_omitted_or_explicit_false_uses_atomic_identity_guards(
+            self):
+        from live_adoption_check import history_progress_patch
+        for spec in ({}, {'enabled': False}):
+            with self.subTest(spec=spec):
+                source = dict(
+                    metadata=dict(uid='schedule-uid', resourceVersion='17'),
+                    spec=spec)
+                patch = history_progress_patch(source, 1002, 'finished')
+                self.assertEqual(patch[:2], [
+                    dict(op='test', path='/metadata/uid', value='schedule-uid'),
+                    dict(
+                        op='test', path='/metadata/resourceVersion', value='17')
+                ])
+                self.assertEqual(
+                    patch[2],
+                    dict(
+                        op='add',
+                        path='/status/trigger',
+                        value=dict(
+                            lastWorkflowIndex=1002,
+                            lastTriggeredTime='finished')))
+                self.assertNotIn('/spec/enabled', [p['path'] for p in patch])
+
+    def test_enabled_schedule_is_rejected_before_patch(self):
+        from live_adoption_check import history_progress_patch
+        with self.assertRaisesRegex(AdoptionError,
+                                    'history_schedule_must_be_disabled'):
+            history_progress_patch(
+                dict(
+                    metadata=dict(uid='schedule-uid', resourceVersion='18'),
+                    spec=dict(enabled=True)), 1002, 'finished')
+
+    def test_missing_identity_or_version_is_rejected(self):
+        from live_adoption_check import history_progress_patch
+        for metadata in ({}, {
+                'uid': 'schedule-uid'
+        }, {
+                'resourceVersion': '17'
+        }):
+            with self.subTest(metadata=metadata), self.assertRaisesRegex(
+                    AdoptionError, 'history_schedule_identity_missing'):
+                history_progress_patch(
+                    dict(metadata=metadata, spec={}), 1002, 'finished')
+
+
+class FixtureCommandDiagnosticsTests(unittest.TestCase):
+
+    def test_kubernetes_stage_and_batch_preserve_no_server_payload(self):
+        result = mock.Mock(
+            returncode=1,
+            stdout='SECRET-output',
+            stderr='Error from server (Invalid): testing value SECRET-token failed'
+        )
+        with mock.patch(
+                'live_adoption_check.subprocess.run', return_value=result):
+            with self.assertRaises(AdoptionError) as caught:
+                kube('create', operation='history_create', batch_offset=100)
+        evidence = caught.exception.command_diagnostics
+        self.assertEqual(evidence['operation'], 'history_create')
+        self.assertEqual(evidence['batch_offset'], 100)
+        self.assertEqual(evidence['kubernetes_reason'], 'Invalid')
+        self.assertEqual(evidence['category'], 'json_patch_test_failed')
+        self.assertNotIn('SECRET', json.dumps(evidence))
+        self.assertNotIn('SECRET', str(caught.exception))
+        unknown = command_diagnostics(result, 'SECRET-operation')
+        self.assertEqual(unknown['operation'], 'kubernetes')
+
+    def test_missing_availability_probe_has_actionable_report(self):
+        from live_adoption_availability import main
+        with mock.patch('sys.argv', ['probe', 'stop', '--state', '/fixture']), \
+             mock.patch('live_adoption_availability.kube', return_value=''), \
+             mock.patch('live_adoption_availability.write_object') as write:
+            with self.assertRaises(SystemExit) as caught:
+                main()
+        self.assertEqual(caught.exception.code, 1)
+        self.assertEqual(write.call_args.args[1]['reason'],
+                         'availability_probe_not_started')
+        self.assertEqual(write.call_args.args[1]['outcome'], 'inconclusive')
