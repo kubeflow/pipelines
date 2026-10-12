@@ -129,7 +129,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
+      "header_sha256": "214277bd434e2dd533523a0f9b80a0a3a1be7d85783e24d81f9335174c417028",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -196,7 +196,10 @@
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
-          "backend/Dockerfile",
+          "backend/Dockerfile*",
+          "backend/src/**",
+          "api/v2alpha1/go/**",
+          "kubernetes_platform/go/**",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",
@@ -401,7 +404,7 @@
     {
       "path": ".github/workflows/image-builds.yml",
       "name": "Build Images",
-      "header_sha256": "b17f9692bc07773917c49b6df66109a047d7222dcaeab8f08d1efcd75587c3f2",
+      "header_sha256": "e68407017b7075244cba2f8b9a6ba6c58c582cd10cca20a712bfdc57736a496a",
       "pull_request": null
     },
     {

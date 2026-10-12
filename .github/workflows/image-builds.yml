@@ -1,5 +1,6 @@
 name: Build Images
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       architecture:
@@ -24,6 +25,35 @@ env:
   GITHUB_SHA: ${{ github.sha }}
 
 jobs:
+  cache-benchmark:
+    if: ${{ github.event_name == 'workflow_dispatch' && contains(github.workflow_ref, '/.github/workflows/image-builds.yml@') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      TARGET_ARCH: amd64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
+      - name: Compare cold and warm API server compilation
+        shell: bash
+        run: python3 .github/resources/scripts/benchmark_image_cache.py "$RUNNER_TEMP/image-cache-benchmark"
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-cache-benchmark
+          path: ${{ runner.temp }}/image-cache-benchmark
+          if-no-files-found: warn
+          retention-days: 7
+
   runtime-base-images:
     # The ARM smoke pulls its small set of runtime dependencies natively.
     if: ${{ inputs.architecture == 'amd64' }}
@@ -141,6 +171,9 @@ jobs:
           retention-days: 1
 
   image-build:
+    # A direct dispatch runs only the cache benchmark. Manually dispatched
+    # callers retain their own github.workflow_ref and still build CI images.
+    if: ${{ github.event_name != 'workflow_dispatch' || !contains(github.workflow_ref, '/.github/workflows/image-builds.yml@') }}
     runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     outputs:
@@ -216,6 +249,30 @@ jobs:
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
+      - name: Restore Go compiler cache
+        if: ${{ matrix.image != 'frontend' }}
+        id: go-cache
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: actions/cache/restore@v6
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: ${{ runner.temp }}/go-build-cache
+          key: ci-go-v1-${{ matrix.image }}-${{ inputs.architecture }}-${{ hashFiles(matrix.dockerfile, 'go.mod', 'go.sum', 'api/go.mod', 'kubernetes_platform/go.mod') }}-${{ github.sha }}
+          restore-keys: |
+            ci-go-v1-${{ matrix.image }}-${{ inputs.architecture }}-${{ hashFiles(matrix.dockerfile, 'go.mod', 'go.sum', 'api/go.mod', 'kubernetes_platform/go.mod') }}-
+
+      - name: Restore Go compiler cache into BuildKit
+        if: ${{ matrix.image != 'frontend' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        shell: bash
+        env:
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          BUILDER_NAME: ${{ steps.buildx.outputs.builder_name }}
+        run: bash .github/resources/scripts/buildkit-go-cache.sh restore "$DOCKERFILE" "$BUILDER_NAME"
+
       - name: Build and save Docker image
         uses: docker/build-push-action@v7
         id: save-image
@@ -231,6 +288,10 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: false
           platforms: linux/${{ inputs.architecture }}
+          # Ref access is enforced by GitHub. Identical reusable callers share
+          # each image/architecture scope; simultaneous exports are best effort.
+          cache-from: type=gha,version=2,scope=ci-image-v1-${{ matrix.image }}-${{ inputs.architecture }},timeout=60s
+          cache-to: type=gha,version=2,scope=ci-image-v1-${{ matrix.image }}-${{ inputs.architecture }},mode=max,ignore-error=true,timeout=60s
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: |
@@ -278,6 +339,7 @@ jobs:
           no-cache: true
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
+            GO_BUILD_CACHE_ID=kfp-go-build-retry
           tags: |
             ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ matrix.image }}:ci
@@ -302,3 +364,24 @@ jobs:
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json
           if-no-files-found: error
           retention-days: 1
+
+      - name: Extract Go compiler cache from BuildKit
+        if: ${{ matrix.image != 'frontend' && steps.go-cache.outputs.cache-hit != 'true' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        id: extract-go-cache
+        continue-on-error: true
+        timeout-minutes: 3
+        shell: bash
+        env:
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          BUILDER_NAME: ${{ steps.buildx.outputs.builder_name }}
+          CACHE_ID: ${{ steps.rebuild.outcome == 'success' && 'kfp-go-build-retry' || 'kfp-go-build' }}
+        run: bash .github/resources/scripts/buildkit-go-cache.sh save "$DOCKERFILE" "$BUILDER_NAME" "$CACHE_ID"
+
+      - name: Save Go compiler cache
+        if: ${{ steps.extract-go-cache.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/go-build-cache
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}

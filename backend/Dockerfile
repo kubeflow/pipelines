@@ -28,8 +28,13 @@ ENV GOPROXY=https://proxy.golang.org|direct
 RUN GO111MODULE=on go mod download
 RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflows/v4 > /tmp/argo-version
 
-COPY . .
-RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+COPY ./backend/src ./backend/src
+COPY ./backend/api/v2beta1/go_client ./backend/api/v2beta1/go_client
+COPY ./api/v2alpha1/go ./api/v2alpha1/go
+COPY ./kubernetes_platform/go ./kubernetes_platform/go
+ARG GO_BUILD_CACHE_ID=kfp-go-build
+RUN --mount=type=cache,id=${GO_BUILD_CACHE_ID},target=/root/.cache/go-build,sharing=locked \
+    GO111MODULE=on GOCACHE=/root/.cache/go-build go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.11-slim AS compiler
