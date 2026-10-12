@@ -171,14 +171,23 @@ push of a pre-existing commit has no merged PR, so its arrival cannot be
 established and the check fails closed to pending rather than passing stale
 evidence as fresh.
 
-A temporary API failure and a genuinely missing record both leave the arrival
-lookup without a timestamp, but the publisher reports them distinctly. The
-lookup-failure reason says the base-arrival lookup failed and will retry; the
-missing-record reason names the full base SHA and requests maintainer
-investigation. Read the `ci-passed` status and CI Check logs to tell them
-apart. Rerunning CI cannot resolve a missing record: the base revision itself
-has no merged-PR provenance, so no fresh workflow run can establish when it
-arrived.
+The commit-to-PR association endpoint can omit a real merge. If it supplies no
+verified match, CI Check independently scans up to 500 recently updated closed
+PRs targeting the base branch (five pages of 100). Discovery only selects
+candidates whose merge SHA exactly equals the base SHA. Each candidate, including
+associated PRs, is reread through the individual PR endpoint and must have the
+same number, `merged: true`, the expected base repository and branch, the exact
+merge SHA, and a parseable string `merged_at`. Only that verified timestamp is
+used by the existing freshness check. A rerun of an execution created before
+that timestamp remains stale; commit dates, titles, and messages are never
+substituted for merge provenance.
+
+API failures remain pending with a retry diagnostic. Missing matches, including
+exhaustion of the bounded recent-PR window, remain pending and request maintainer
+investigation; malformed timestamps get a distinct diagnostic. Read the
+`ci-passed` status and CI Check logs to tell them apart. A missing association
+alone does not prove a direct push: inspect the authoritative merged PR record.
+Rerunning tests cannot establish missing provenance or expand the search window.
 
 Recovery for a missing record is a maintainer action. A maintainer should
 confirm whether the base revision landed through a pull request. If it did,

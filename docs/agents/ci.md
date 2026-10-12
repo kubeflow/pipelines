@@ -94,3 +94,5 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+
+- CI Check recovers missing commit-to-PR associations through a bounded recent closed-PR lookup and verifies the individual merged PR record against the exact base SHA, repository, and branch. API failures or no verified match remain pending; CI freshness still uses the verified merge timestamp. See [missing base merge records](ci-passed.md#missing-base-merge-record).

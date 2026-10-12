@@ -109,7 +109,7 @@ function invalidRunMetadata(run) {
 const MISSING_BASE_RECOVERY_DOCS =
   'https://github.com/kubeflow/pipelines/blob/master/docs/agents/ci-passed.md#missing-base-merge-record';
 
-async function baseArrivedAt({github, owner, repo, baseSha}) {
+async function baseArrivedAt({github, owner, repo, baseSha, baseRef}) {
   // A run tests the base revision that was live when it was created. For a
   // pull_request run, Actions checks out a synthetic merge commit whose SHA is
   // NOT exposed on the run object, so it cannot be compared directly. The
@@ -135,12 +135,44 @@ async function baseArrivedAt({github, owner, repo, baseSha}) {
     const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
       owner, repo, commit_sha: baseSha, per_page: 100,
     });
-    for (const pr of pulls) {
-      if (pr.merged_at) {
-        const arrived = Date.parse(pr.merged_at);
-        if (Number.isFinite(arrived)) return {status: 'arrived', arrivedAt: arrived};
+    if (!Array.isArray(pulls)) return {status: 'invalid'};
+    const verifyCandidate = async candidate => {
+      if (candidate.merge_commit_sha !== baseSha) return null;
+      if (!Number.isSafeInteger(candidate.number) || candidate.number <= 0) {
         return {status: 'invalid'};
       }
+      // Discovery is only a hint. Read the authoritative PR record, including
+      // merged (absent on list responses), before trusting its arrival time.
+      const {data: pr} = await github.rest.pulls.get({
+        owner, repo, pull_number: candidate.number,
+      });
+      if (pr.number !== candidate.number || pr.merged !== true ||
+          pr.merge_commit_sha !== baseSha || pr.base?.ref !== baseRef ||
+          typeof pr.base?.repo?.full_name !== 'string' ||
+          pr.base.repo.full_name.toLowerCase() !== `${owner}/${repo}`.toLowerCase()) {
+        return null;
+      }
+      const arrivedAt = typeof pr.merged_at === 'string' ? Date.parse(pr.merged_at) : NaN;
+      return Number.isFinite(arrivedAt) ? {status: 'arrived', arrivedAt} : {status: 'invalid'};
+    };
+    for (const pr of pulls) {
+      const result = await verifyCandidate(pr);
+      if (result) return result;
+    }
+    // GitHub's commit-to-PR association can be empty even for a merged PR.
+    // Search a bounded recent window independently; never infer provenance
+    // from a title, commit message, or commit timestamp. Exhaustion stays closed.
+    for (let page = 1; page <= 5; page++) {
+      const {data: candidates} = await github.rest.pulls.list({
+        owner, repo, state: 'closed', base: baseRef, sort: 'updated',
+        direction: 'desc', per_page: 100, page,
+      });
+      if (!Array.isArray(candidates)) return {status: 'invalid'};
+      for (const candidate of candidates) {
+        const result = await verifyCandidate(candidate);
+        if (result) return result;
+      }
+      if (candidates.length < 100) break;
     }
     return {status: 'missing'};
   } catch (error) {
@@ -194,7 +226,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   // When the base is frozen (release branches), skip the check entirely to
   // preserve existing behavior.
   const baseArrived = liveBase && baseSha ?
-    await baseArrivedAt({github, owner, repo, baseSha}) : null;
+    await baseArrivedAt({github, owner, repo, baseSha, baseRef: pullRequest.base.ref}) : null;
   // The missing/malformed-base provenance is repository-wide, not per-workflow.
   // A direct push leaves no merged PR (and a merged PR with an unparseable
   // merged_at cannot be resolved), so no fresh CI run can ever establish the
