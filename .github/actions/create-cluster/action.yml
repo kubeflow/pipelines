@@ -10,11 +10,43 @@ inputs:
     required: false
     default: 'kfp'
 
+  runtime_image_path:
+    description: "Opt in to prefetching runtime archives into the deploy image path."
+    required: false
+    default: ''
+  runtime_argo_version:
+    description: "Argo version used by the subsequent deploy action."
+    required: false
+    default: ''
+  runtime_db_type:
+    description: "Database used by the subsequent deploy action."
+    required: false
+    default: ''
+  runtime_modelcar:
+    description: "Whether deployment needs the Modelcar fixture."
+    required: false
+    default: 'false'
+
 runs:
   using: "composite"
   steps:
     - name: Free up disk space on runner
       uses: ./.github/actions/github-disk-cleanup
+
+    - name: Prefetch runtime images during cluster setup
+      if: ${{ inputs.runtime_image_path != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        IMAGE_PATH: ${{ inputs.runtime_image_path }}
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+        IMAGE_REGISTRY: kind-registry:5000
+        IMAGE_TAG: latest
+        SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        LOAD_MODELCAR_FIXTURE: ${{ inputs.runtime_modelcar }}
+        RUNTIME_ARGO_VERSION: ${{ inputs.runtime_argo_version }}
+        RUNTIME_DB_TYPE: ${{ inputs.runtime_db_type }}
+      run: python3 .github/resources/scripts/runtime_prefetch.py start "$RUNNER_TEMP/kfp-runtime-prefetch"
 
     - name: Configure Docker Hub mirror
       shell: bash
@@ -85,3 +117,13 @@ runs:
           echo "Unexpected kindnet CPU resources after patch" >&2
           exit 1
         fi
+
+    - name: Join runtime image prefetch after cluster readiness
+      if: ${{ success() && inputs.runtime_image_path != '' }}
+      shell: bash
+      run: python3 .github/resources/scripts/runtime_prefetch.py finish "$RUNNER_TEMP/kfp-runtime-prefetch"
+
+    - name: Stop runtime prefetch on every exit
+      if: ${{ always() && inputs.runtime_image_path != '' }}
+      shell: bash
+      run: python3 .github/resources/scripts/runtime_prefetch.py stop "$RUNNER_TEMP/kfp-runtime-prefetch"

@@ -51,6 +51,9 @@ if ! [[ "$PRODUCER_STATE_UNAVAILABLE_EXTENSIONS" =~ ^[0-9]+$ ]]; then
 fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
+if [[ "${RUNTIME_PREFETCH_ONLY:-false}" == true ]]; then
+  ALL_CI_IMAGE_ARTIFACTS=(runtime-base-images)
+fi
 
 producer_jobs_endpoint="repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?filter=latest&per_page=100"
 if [[ -n "${GITHUB_RUN_ATTEMPT:-}" ]]; then

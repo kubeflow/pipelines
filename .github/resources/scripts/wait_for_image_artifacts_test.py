@@ -86,6 +86,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self,
         *,
         ready_after: int,
+        runtime_prefetch_only: bool = False,
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
@@ -209,6 +210,8 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             if producer_state_unavailable_extensions is not None:
                 environment['PRODUCER_STATE_UNAVAILABLE_EXTENSIONS'] = str(
                     producer_state_unavailable_extensions)
+            if runtime_prefetch_only:
+                environment['RUNTIME_PREFETCH_ONLY'] = 'true'
             command = ['bash', str(SCRIPT)]
             if use_callback:
                 callback = root / 'callback'
@@ -225,6 +228,19 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 env=environment,
             )
             return result, int(counter.read_text(encoding='utf-8'))
+
+    def test_runtime_prefetch_stops_without_waiting_for_other_producers(self):
+        result, _ = self._run(
+            ready_after=99,
+            runtime_prefetch_only=True,
+            use_callback=True,
+            artifact_snapshots=[[artifact_record('runtime-base-images')]],
+            job_snapshots=[[producer_record('runtime-base-images')]])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = callback_calls(result)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls[0]), 3)
+        self.assertTrue(calls[0][2].startswith('runtime-base-images:'))
 
     def test_duplicate_names_select_newest_nonexpired_artifact_id(self):
         artifacts = [artifact_record(name) for name in ARTIFACTS]
