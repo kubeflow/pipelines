@@ -77,7 +77,11 @@ on:
       - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
       - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'
       - '.github/workflows/legacy-v2-api-integration-tests.yml'
-      - 'backend/Dockerfile'
+      # Go image source-closure and compiler-cache contracts.
+      - 'backend/Dockerfile*'
+      - 'backend/src/**'
+      - 'api/v2alpha1/go/**'
+      - 'kubernetes_platform/go/**'
       - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'api/v2alpha1/python/generate_proto.py'
       - 'kubernetes_platform/python/generate_proto.py'
