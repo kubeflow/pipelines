@@ -54,20 +54,25 @@ temporary=$(mktemp -d "$RUNNER_TEMP/go-build-cache-transfer.XXXXXX")
 trap 'rm -rf -- "$temporary"' EXIT
 trap 'exit 143' TERM
 trap 'exit 130' INT
+# --no-cache clears referenced cache mounts in BuildKit. A unique argument
+# reruns only the transfer instruction while preserving the compiler mount.
 mount="type=cache,id=$cache_id,target=/root/.cache/go-build,sharing=locked"
 build=(timeout --foreground --kill-after=10s 120s docker buildx build
-  --builder "$builder" --platform "linux/$TARGET_ARCH" --no-cache --file -)
+  --builder "$builder" --platform "linux/$TARGET_ARCH"
+  --build-arg "CACHE_TRANSFER_NONCE=${temporary##*/}" --file -)
 
 if [[ "$mode" == restore ]]; then
   "${build[@]}" --output type=cacheonly "$cache_directory" <<EOF
 FROM $base_image
 COPY . /restore/
-RUN --mount=$mount cp -a /restore/. /root/.cache/go-build/
+ARG CACHE_TRANSFER_NONCE
+RUN --mount=$mount test -n "\$CACHE_TRANSFER_NONCE" && cp -a /restore/. /root/.cache/go-build/
 EOF
 else
   "${build[@]}" --output "type=local,dest=$temporary/output" "$temporary" <<EOF
 FROM $base_image AS cache
-RUN --mount=$mount mkdir /export && cp -a /root/.cache/go-build/. /export/
+ARG CACHE_TRANSFER_NONCE
+RUN --mount=$mount test -n "\$CACHE_TRANSFER_NONCE" && mkdir /export && cp -a /root/.cache/go-build/. /export/
 FROM scratch
 COPY --from=cache /export/ /
 EOF
