@@ -70,21 +70,26 @@ This assumes legacy writers will not be reintroduced after handoff. A downgrade
 to legacy writers requires a separate coordinated rollback plan, not a live
 rolling downgrade.
 
-Migration processes bounded pages, including disabled schedules, with a timeout
-for each record. Background and submission-triggered retries share per-record
-capped exponential backoff. Failed records are logged and retried without
-preventing later records from migrating or blocking ordinary API availability. A schedule whose
-state or Kubernetes synchronization is incomplete remains blocked until its own
-migration succeeds; healthy and newly created schedules are independent.
+Migration includes disabled schedules. Background and submission-triggered retries
+share per-record capped exponential backoff. Failed records are logged and retried
+without preventing later records from migrating or blocking ordinary API
+availability. A schedule whose state or Kubernetes synchronization is incomplete
+remains blocked until its own migration succeeds; healthy and newly created
+schedules are independent.
 
-Check retained history before rollout. Adoption blocks a schedule with **more than
-1,000 retained SQL runs**, or when its **entire namespace contains more than 1,000
-Workflow objects**, including objects unrelated to that schedule. It does not
-accept a truncated inventory. Preserve execution and scheduling evidence, then
-use normal retention procedures for completed history before retrying. Never
-delete active runs or Workflows, reset counters, or remove scheduling state or
-receipts to force adoption. Large-history resumable adoption is not implemented;
-see [inventory limits](scheduled-service-accounts.md#upgrade-and-revocation).
+**No history cleanup is required before upgrading.** Adoption streams retained SQL
+runs and reads all namespace Workflows in pages of 100 without a total-item cap.
+It keeps compact identity/progress metadata rather than full manifests, so larger
+histories still need more time and memory. The background worker can take longer
+to reach later schedules while processing a large history. Stalled reads time out;
+a progressing background inventory has no fixed total deadline.
+
+An interrupted inventory retries from the beginning without committing partial
+progress. After progress and its receipt are committed, retries resume
+synchronization without importing history again. Preserve evidence if adoption
+reports inconsistent records. Never delete active runs or Workflows, reset
+counters, or remove scheduling state or receipts to force adoption; see
+[retained-history adoption](scheduled-service-accounts.md#upgrade-and-revocation).
 
 After handoff, each API process also performs one paginated startup repair of
 existing Kubernetes schedule objects from trusted SQL state, including records
