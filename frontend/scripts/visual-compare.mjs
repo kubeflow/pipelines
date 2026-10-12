@@ -786,7 +786,7 @@ export function runDiff({
     if (baselineFiles.has(name)) continue;
     try {
       if (capture.status !== 'ok') throw new Error(`Missing or failed current capture for ${name}`);
-      fs.accessSync(capture.filePath, fs.constants.R_OK);
+      PNG.sync.read(fs.readFileSync(capture.filePath));
       results.push({ name, added: true });
     } catch (error) {
       results.push({ name, error: String(error) });

@@ -240,6 +240,20 @@ it('reports successful additions informationally while missing or failed capture
   expect(failed.report).toContain('Missing or failed current capture for new-route.png');
 });
 
+it('fails a current-only capture with readable but invalid PNG bytes', async () => {
+  const { rawDir, baselineDir } = await comparisonFixture();
+  const manifestPath = path.join(rawDir, 'capture-results.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  fs.writeFileSync(path.join(rawDir, 'new-route.png'), 'not a PNG');
+  manifest.results.push({ filePath: 'new-route.png', status: 'ok' });
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  const result = diff(baselineDir, rawDir);
+  expect(result.status).toBe(1);
+  expect(result.report).toContain('class="error"');
+  expect(result.report).not.toContain('class="added"');
+  expect(result.report).toContain('class="match"');
+});
+
 it('decodes each source image only once when also producing side-by-side output', async () => {
   const { rawDir, baselineDir } = await comparisonFixture();
   const read = vi.spyOn(PNG.sync, 'read');

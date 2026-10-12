@@ -147,6 +147,10 @@
         "label": "Run name",
         "value": "Run of default version (baseline)"
       }
+    ],
+    "failOnRequestErrors": [
+      "/apis/v2beta1/pipelines/",
+      "/apis/v2beta1/experiments/"
     ]
   },
   {
@@ -158,6 +162,13 @@
         "label": "Recurring run config name",
         "value": "Recurring run of default version (baseline)"
       }
+    ],
+    "waitForSelectors": [
+      "text=Specify parameters required by the pipeline"
+    ],
+    "failOnRequestErrors": [
+      "/apis/v2beta1/pipelines/",
+      "/apis/v2beta1/experiments/"
     ]
   },
   {
