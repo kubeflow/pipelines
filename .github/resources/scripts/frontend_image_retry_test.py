@@ -93,10 +93,10 @@ class FrontendImageRetryTest(unittest.TestCase):
             self.assertEqual(step['with']['builder'], BUILDER_OUTPUT)
         self.assertLess(self.steps.index(setup), self.steps.index(self.first))
 
-    def test_only_a_successful_build_can_publish_the_image(self):
+    def test_only_a_successful_build_or_validated_cache_can_publish(self):
         self.assertEqual(
             self.upload['if'],
-            "${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}"
+            "${{ steps.validate-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}"
         )
         self.assertEqual(self.upload['with']['if-no-files-found'], 'error')
         self.assertLess(

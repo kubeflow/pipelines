@@ -44,8 +44,8 @@ if [[ ! "$base_image" =~ ^golang:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$ ]]; then
   exit 2
 fi
 
-if [[ "$mode" == restore ]] && \
-    { [[ ! -d "$cache_directory" ]] || [[ -z "$(ls -A "$cache_directory")" ]]; }; then
+archive_name=go-build-cache.tar.gz
+if [[ "$mode" == restore && ! -s "$cache_directory/$archive_name" ]]; then
   echo 'No saved Go compiler cache; building with an empty cache mount.'
   exit 0
 fi
@@ -57,27 +57,31 @@ trap 'exit 130' INT
 # --no-cache clears referenced cache mounts in BuildKit. A unique argument
 # reruns only the transfer instruction while preserving the compiler mount.
 mount="type=cache,id=$cache_id,target=/root/.cache/go-build,sharing=locked"
-build=(timeout --foreground --kill-after=10s 120s docker buildx build
+build=(timeout --foreground --kill-after=10s 60s docker buildx build
   --builder "$builder" --platform "linux/$TARGET_ARCH"
   --build-arg "CACHE_TRANSFER_NONCE=${temporary##*/}" --file -)
 
 if [[ "$mode" == restore ]]; then
   "${build[@]}" --output type=cacheonly "$cache_directory" <<EOF
 FROM $base_image
-COPY . /restore/
+COPY $archive_name /restore/$archive_name
 ARG CACHE_TRANSFER_NONCE
-RUN --mount=$mount test -n "\$CACHE_TRANSFER_NONCE" && cp -a /restore/. /root/.cache/go-build/
+RUN --mount=$mount test -n "\$CACHE_TRANSFER_NONCE" && tar -xzf /restore/$archive_name -C /root/.cache/go-build
 EOF
 else
   "${build[@]}" --output "type=local,dest=$temporary/output" "$temporary" <<EOF
 FROM $base_image AS cache
 ARG CACHE_TRANSFER_NONCE
-RUN --mount=$mount test -n "\$CACHE_TRANSFER_NONCE" && mkdir /export && cp -a /root/.cache/go-build/. /export/
+RUN --mount=$mount test -n "\$CACHE_TRANSFER_NONCE" && \
+    test -n "\$(find /root/.cache/go-build -type f -name '*-d' -size +0c -print -quit)" && \
+    mkdir /export && tar -cf /tmp/go-cache.tar -C /root/.cache/go-build . && \
+    gzip -1 -c /tmp/go-cache.tar > /export/$archive_name && rm /tmp/go-cache.tar
 FROM scratch
 COPY --from=cache /export/ /
 EOF
   # A fresh export discards Go entries that the compiler has garbage-collected.
   # Do not alter the restored cache if exporting the new mount failed.
-  rm -rf -- "$cache_directory"
-  mv "$temporary/output" "$cache_directory"
+  test -s "$temporary/output/$archive_name"
+  mkdir -p "$cache_directory"
+  mv -f "$temporary/output/$archive_name" "$cache_directory/$archive_name"
 fi

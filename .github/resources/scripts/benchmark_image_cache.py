@@ -210,10 +210,10 @@ def benchmark(repository, output, runner_temp):
                             str(dockerfile), builder
                         ], output / f'{scenario}.save.log', env)
                         cache = workspace / 'go-build-cache'
-                        summary['go_cache_bytes'] = sum(
-                            path.stat().st_size
-                            for path in cache.rglob('*')
-                            if path.is_file())
+                        archive = cache / 'go-build-cache.tar.gz'
+                        summary['go_cache_bytes'] = (
+                            archive.stat().st_size if archive.is_file() else 0)
+                        summary['go_cache_format'] = 'gzip tar archive'
                         if not summary['go_cache_bytes']:
                             raise RuntimeError('The Go cache export was empty')
                 finally:

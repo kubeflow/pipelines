@@ -68,6 +68,8 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         self.assertIn('merge-multiple: ${{ inputs.merge-multiple }}', action)
         self.assertIn('github-token: ${{ inputs.github-token }}', action)
         self.assertIn('run-id: ${{ inputs.run-id }}', action)
+        self.assertEqual(
+            action.count('artifact-ids: ${{ inputs.artifact-ids }}'), 2)
         self.assertIn('steps.primary.outputs.download-path', action)
         self.assertIn('steps.retry.outputs.download-path', action)
 

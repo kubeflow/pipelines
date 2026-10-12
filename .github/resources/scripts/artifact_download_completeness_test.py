@@ -233,11 +233,34 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(runner.run(), 'success', runner.log)
         expected = {
             key: runner.inputs[key]
-            for key in ('name', 'path', 'pattern', 'merge-multiple',
-                        'github-token', 'repository', 'run-id')
+            for key in ('artifact-ids', 'name', 'path', 'pattern',
+                        'merge-multiple', 'github-token', 'repository',
+                        'run-id')
         }
         self.assertEqual(received, [expected, expected])
         self.assertTrue((self.path / filename).is_file())
+
+    def test_exact_artifact_ids_survive_both_download_attempts(self):
+        received = []
+
+        def attempt(path, inputs):
+            received.append(
+                (inputs['artifact-ids'], inputs['run-id'], inputs['name']))
+            if len(received) == 1:
+                return 'failure'
+            return download(
+                files={name: 'image' for name in self.required.splitlines()})(
+                    path, inputs)
+
+        runner = CompositeAction(self.path, [attempt, attempt], self.required)
+        runner.inputs.update({
+            'artifact-ids': '12345',
+            'run-id': '9876',
+            'name': ''
+        })
+        self.assertEqual(runner.run(), 'success', runner.log)
+        self.assertEqual(received, [('12345', '9876', ''),
+                                    ('12345', '9876', '')])
 
     def test_expression_literals_are_not_operator_rewritten(self):
         runner = CompositeAction(self.path, [], self.required)

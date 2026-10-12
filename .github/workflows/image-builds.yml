@@ -176,6 +176,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || !contains(github.workflow_ref, '/.github/workflows/image-builds.yml@') }}
     runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
       image_tag: ${{ steps.configure.outputs.image_tag }}
@@ -240,40 +243,107 @@ jobs:
             echo "registry=${{ env.REGISTRY }}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Locate retained image and compiler artifacts
+        id: retained-cache
+        continue-on-error: true
+        timeout-minutes: 1
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REPOSITORY_ID: ${{ github.event.pull_request.head.repo.id || github.repository_id }}
+          HEAD_BRANCH: ${{ github.head_ref || github.ref_name }}
+          CI_IMAGE: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: |
+          set -euo pipefail
+          # The complete tree includes Dockerfiles, COPY inputs and build args.
+          # Conservative invalidation is preferable to reusing a stale image.
+          image_key="ci-image-artifact-v2-${CI_IMAGE}-${TARGET_ARCH}-$(git rev-parse HEAD^{tree})"
+          go_key="ci-go-artifact-v2-${TARGET_ARCH}-$(python3 .github/resources/scripts/runtime_base_image_artifacts.py fingerprint "$DOCKERFILE" go.mod go.sum api/go.mod kubernetes_platform/go.mod)"
+          echo "image-key=$image_key" >> "$GITHUB_OUTPUT"
+          echo "go-key=$go_key" >> "$GITHUB_OUTPUT"
+          for kind in image go; do
+            [[ "$kind" != go || "$CI_IMAGE" == apiserver ]] || continue
+            key="$image_key"
+            [[ "$kind" != go ]] || key="$go_key"
+            selected=$(gh api --method GET --paginate --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/artifacts" -f name="$key" -f per_page=100 | \
+              python3 .github/resources/scripts/image_cache_artifacts.py \
+                --name "$key" --head-repository-id "$HEAD_REPOSITORY_ID" --head-branch "$HEAD_BRANCH")
+            echo "$kind-id=$(jq -r '.artifact_id // empty' <<< "$selected")" >> "$GITHUB_OUTPUT"
+            echo "$kind-run=$(jq -r '.run_id // empty' <<< "$selected")" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Restore retained image
+        if: ${{ steps.retained-cache.outputs.image-id != '' }}
+        id: retained-image
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          required-files: ${{ env.ARTIFACT_NAME }}.tar
+          retry-delay-seconds: '5'
+          artifact-ids: ${{ steps.retained-cache.outputs.image-id }}
+          run-id: ${{ steps.retained-cache.outputs.image-run }}
+          github-token: ${{ github.token }}
+          path: ${{ env.ARTIFACTS_PATH }}
+          merge-multiple: true
+
+      - name: Validate retained image
+        env:
+          CI_IMAGE: ${{ matrix.image }}
+        if: ${{ steps.retained-image.outcome == 'success' }}
+        id: validate-image
+        continue-on-error: true
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$ARTIFACTS_PATH/$ARTIFACT_NAME.tar"
+          docker load --input "$ARTIFACTS_PATH/$ARTIFACT_NAME.tar"
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$REGISTRY/$CI_IMAGE:ci")" = "linux/$TARGET_ARCH"
+
       - name: Configure Docker Hub mirror
+        if: ${{ steps.validate-image.outcome != 'success' }}
         shell: bash
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Set up Docker Buildx
+        if: ${{ steps.validate-image.outcome != 'success' }}
         id: buildx
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
       - name: Restore Go compiler cache
-        if: ${{ matrix.image != 'frontend' }}
+        if: ${{ matrix.image == 'apiserver' && steps.validate-image.outcome != 'success' && steps.retained-cache.outputs.go-id != '' }}
         id: go-cache
         continue-on-error: true
-        timeout-minutes: 2
-        uses: actions/cache/restore@v6
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        timeout-minutes: 1
+        uses: ./.github/actions/download-artifact-with-retry
         with:
+          required-files: go-build-cache.tar.gz
+          retry-delay-seconds: '5'
+          artifact-ids: ${{ steps.retained-cache.outputs.go-id }}
+          run-id: ${{ steps.retained-cache.outputs.go-run }}
+          github-token: ${{ github.token }}
           path: ${{ runner.temp }}/go-build-cache
-          key: ci-go-v1-${{ matrix.image }}-${{ inputs.architecture }}-${{ hashFiles(matrix.dockerfile, 'go.mod', 'go.sum', 'api/go.mod', 'kubernetes_platform/go.mod') }}-${{ github.sha }}
-          restore-keys: |
-            ci-go-v1-${{ matrix.image }}-${{ inputs.architecture }}-${{ hashFiles(matrix.dockerfile, 'go.mod', 'go.sum', 'api/go.mod', 'kubernetes_platform/go.mod') }}-
+          merge-multiple: true
 
       - name: Restore Go compiler cache into BuildKit
-        if: ${{ matrix.image != 'frontend' }}
+        id: restore-go-cache
+        if: ${{ matrix.image == 'apiserver' && steps.validate-image.outcome != 'success' && steps.go-cache.outcome == 'success' }}
         continue-on-error: true
-        timeout-minutes: 3
+        timeout-minutes: 2
         shell: bash
         env:
           DOCKERFILE: ${{ matrix.dockerfile }}
           BUILDER_NAME: ${{ steps.buildx.outputs.builder_name }}
-        run: bash .github/resources/scripts/buildkit-go-cache.sh restore "$DOCKERFILE" "$BUILDER_NAME"
+        run: |
+          test -s "$RUNNER_TEMP/go-build-cache/go-build-cache.tar.gz"
+          bash .github/resources/scripts/buildkit-go-cache.sh restore "$DOCKERFILE" "$BUILDER_NAME"
 
       - name: Build and save Docker image
+        if: ${{ steps.validate-image.outcome != 'success' }}
         uses: docker/build-push-action@v7
         id: save-image
         continue-on-error: true
@@ -288,10 +358,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: false
           platforms: linux/${{ inputs.architecture }}
-          # Ref access is enforced by GitHub. Identical reusable callers share
-          # each image/architecture scope; simultaneous exports are best effort.
-          cache-from: type=gha,version=2,scope=ci-image-v1-${{ matrix.image }}-${{ inputs.architecture }},timeout=60s
-          cache-to: type=gha,version=2,scope=ci-image-v1-${{ matrix.image }}-${{ inputs.architecture }},mode=max,ignore-error=true,timeout=60s
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: |
@@ -346,7 +412,7 @@ jobs:
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
       - name: Record ARM image identity
-        if: ${{ inputs.architecture == 'arm64' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        if: ${{ inputs.architecture == 'arm64' && (steps.validate-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
         env:
           CI_IMAGE: ${{ matrix.image }}
         run: >-
@@ -356,7 +422,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
-        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        if: ${{ steps.validate-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -365,11 +431,24 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Retain successful image archive
+        if: ${{ steps.validate-image.outcome != 'success' && steps.retained-cache.outputs.image-key != '' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        continue-on-error: true
+        timeout-minutes: 1
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.retained-cache.outputs.image-key }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+          retention-days: 7
+          compression-level: 1
+          overwrite: true
+          if-no-files-found: error
+
       - name: Extract Go compiler cache from BuildKit
-        if: ${{ matrix.image != 'frontend' && steps.go-cache.outputs.cache-hit != 'true' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        if: ${{ matrix.image == 'apiserver' && steps.restore-go-cache.outcome != 'success' && steps.retained-cache.outputs.go-key != '' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
         id: extract-go-cache
         continue-on-error: true
-        timeout-minutes: 3
+        timeout-minutes: 2
         shell: bash
         env:
           DOCKERFILE: ${{ matrix.dockerfile }}
@@ -380,8 +459,12 @@ jobs:
       - name: Save Go compiler cache
         if: ${{ steps.extract-go-cache.outcome == 'success' }}
         continue-on-error: true
-        timeout-minutes: 2
-        uses: actions/cache/save@v6
+        timeout-minutes: 1
+        uses: actions/upload-artifact@v7
         with:
-          path: ${{ runner.temp }}/go-build-cache
-          key: ${{ steps.go-cache.outputs.cache-primary-key }}
+          name: ${{ steps.retained-cache.outputs.go-key }}
+          path: ${{ runner.temp }}/go-build-cache/go-build-cache.tar.gz
+          retention-days: 7
+          compression-level: 0
+          overwrite: true
+          if-no-files-found: error
