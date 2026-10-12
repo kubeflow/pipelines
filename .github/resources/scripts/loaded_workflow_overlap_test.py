@@ -123,6 +123,10 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     '${{ github.event.pull_request.head.sha || github.sha }}',
                 'LOAD_MODELCAR_FIXTURE':
                     '${{ inputs.load_modelcar_fixture }}',
+                'RUNTIME_ARGO_VERSION':
+                    '${{ inputs.argo_version }}',
+                'RUNTIME_DB_TYPE':
+                    '${{ inputs.db_type }}',
             })
         for step_id in ('deploy-tinyproxy', 'configure', 'deploy-kfp'):
             downstream = next(

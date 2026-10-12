@@ -126,6 +126,38 @@ except (OSError, RuntimeError, ValueError) as error:
 PYZIP
 }
 
+load_runtime_bundles() {
+  local reference=$1 destination=$2 selections bundle shared_id metadata inventory
+  selections=$(python3 "$script_directory/runtime_base_image_artifacts.py" reference-bundles "$reference" \
+    --argo-version "${RUNTIME_ARGO_VERSION:-}" --db-type "${RUNTIME_DB_TYPE:-}" \
+    --modelcar "$LOAD_MODELCAR_FIXTURE")
+  # Validate every selected source before importing anything. The reference is
+  # only an ID hint; GitHub metadata establishes source, fingerprint and expiry.
+  while read -r bundle shared_id; do
+    metadata=$(timeout --foreground --kill-after=30s 10m gh api \
+      "repos/$GITHUB_REPOSITORY/actions/artifacts/$shared_id")
+    python3 "$script_directory/runtime_base_image_artifacts.py" validate-bundle \
+      --reference "$reference" --bundle "$bundle" --source-sha "${SOURCE_SHA:?}" \
+      --repository-id "${GITHUB_REPOSITORY_ID:?}" <<< "$metadata" > /dev/null
+  done <<< "$selections"
+  while read -r bundle shared_id; do
+    echo "[runtime-base-images] selected bundle $bundle, validated shared artifact ID $shared_id"
+    download_artifact "runtime-$bundle" "$shared_id" "$destination/$bundle" "$bundle.tar"
+    echo "[runtime-$bundle] Kind archive load started"
+    retry 3 10 kind --name "$CLUSTER_NAME" load image-archive "$destination/$bundle/$bundle.tar"
+    echo "[runtime-$bundle] Kind archive load completed; CRI verification started"
+    if [[ "$bundle" != modelcar ]]; then
+      inventory="$destination/$bundle/images.txt"
+      python3 "$script_directory/runtime_image_bundles.py" "$bundle" --inventory "$script_directory/../runtime-base-images.txt" > "$inventory"
+      verify_runtime_base_images_in_kind "$inventory" "$CLUSTER_NAME"
+    fi
+    echo "[runtime-$bundle] CRI verification completed"
+    rm -- "$destination/$bundle/$bundle.tar"
+  done <<< "$selections"
+  rm -- "$reference"
+  echo "[runtime-base-images] import completed"
+}
+
 download_artifact() {
   local artifact=$1 artifact_id=$2 destination=$3 required_files=$4 attempt result
   local allow_reference=${5:-false} verified_files
@@ -181,6 +213,16 @@ load_artifact() {
     download_artifact "$artifact" "$artifact_id" "$destination" "$required_files" true
     if [[ -f "$destination/runtime-reference.json" ]]; then
       local reference="$destination/runtime-reference.json" metadata shared_id
+      if python3 - "$reference" <<'PYBUNDLES'
+import json
+from pathlib import Path
+import sys
+sys.exit(0 if 'bundles' in json.loads(Path(sys.argv[1]).read_text()) else 1)
+PYBUNDLES
+      then
+        load_runtime_bundles "$reference" "$destination"
+        return
+      fi
       shared_id=$(python3 "$script_directory/runtime_base_image_artifacts.py" reference-id "$reference")
       metadata=$(timeout --foreground --kill-after=30s 10m gh api \
         "repos/$GITHUB_REPOSITORY/actions/artifacts/$shared_id")

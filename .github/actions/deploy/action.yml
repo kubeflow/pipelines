@@ -68,6 +68,8 @@ runs:
         IMAGE_TAG: ${{ inputs.image_tag }}
         SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
+        RUNTIME_ARGO_VERSION: ${{ inputs.argo_version }}
+        RUNTIME_DB_TYPE: ${{ inputs.db_type }}
       run: |
         ./.github/resources/scripts/wait-for-image-artifacts.sh \
           ./.github/resources/scripts/load-ready-image-artifacts.sh

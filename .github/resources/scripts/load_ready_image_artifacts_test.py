@@ -81,7 +81,7 @@ if command == 'gh':
     prefix = 'repos/kubeflow/pipelines/actions/artifacts/'
     assert args[1].startswith(prefix), args
     if not args[1].endswith('/zip'):
-        print(json.dumps(config['shared_metadata']))
+        print(json.dumps(config.get('bundle_metadata', {}).get(args[1].rsplit('/', 1)[1], config.get('shared_metadata'))))
         sys.exit(0)
     artifact_id = args[1][len(prefix):-len('/zip')]
     artifact = config['artifact_ids'][artifact_id]
@@ -170,7 +170,8 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         for name in ('load-ready-image-artifacts.sh', 'artifact-files.sh',
                      'ci-image-artifacts.sh', 'helper-functions.sh',
                      'load-kind-image-archives.sh',
-                     'runtime_base_image_artifacts.py'):
+                     'runtime_base_image_artifacts.py',
+                     'runtime_image_bundles.py'):
             shutil.copy2(SCRIPTS / name, self.scripts / name)
         (self.root / 'resources/runtime-base-images.txt').write_text(
             '# runtime inventory\nregistry/runtime:one\n'
@@ -258,6 +259,81 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
             },
             'shared_metadata': metadata,
         }
+
+    def bundle_settings(self):
+        shutil.copy2(ROOT / '.github/resources/runtime-base-images.txt',
+                     self.root / 'resources/runtime-base-images.txt')
+        bundles = runtime_base_image_artifacts.BUNDLES
+        settings = self.shared_settings()
+        metadata = settings.pop('shared_metadata')
+        settings['reference'] = {
+            'bundles': {
+                bundle: 1000 + index for index, bundle in enumerate(bundles)
+            }
+        }
+        settings['bundle_metadata'] = {}
+        settings['downloads']['runtime-base-images'] = ['reference']
+        for bundle, artifact_id in settings['reference']['bundles'].items():
+            settings['artifact_ids'][str(artifact_id)] = bundle
+            settings['bundle_metadata'][str(artifact_id)] = {
+                **metadata, 'id': artifact_id,
+                'name': metadata['name'] + '-' + bundle
+            }
+        return settings
+
+    def test_selected_bundles_download_exact_ids_without_other_archives(self):
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_DB_TYPE'] = 'pgx'
+        self.env['LOAD_MODELCAR_FIXTURE'] = 'false'
+        self.configure(**self.bundle_settings())
+        result = self.run_loader('runtime-base-images')
+        self.assert_success(result)
+        self.assertEqual(self.state()['imports'], {
+            'fixtures.tar': 1,
+            'argo-v4.1.2.tar': 1
+        })
+        self.assertEqual(
+            set(self.state()['attempts']),
+            {'runtime-base-images', 'fixtures', 'argo-v4.1.2'})
+
+    def test_bundle_modelcar_and_mysql_are_required_when_enabled(self):
+        self.env['RUNTIME_ARGO_VERSION'] = 'v3.7.18'
+        self.configure(**self.bundle_settings())
+        self.assert_success(self.run_loader('runtime-base-images'))
+        self.assertEqual(
+            set(self.state()['imports']),
+            {'fixtures.tar', 'argo-v3.7.18.tar', 'mysql.tar', 'modelcar.tar'})
+
+    def test_all_selected_bundle_metadata_validated_before_any_import(self):
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        settings = self.bundle_settings()
+        settings['bundle_metadata']['1001']['expired'] = True
+        self.configure(**settings)
+        result = self.run_loader('runtime-base-images')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.state()['imports'])
+        self.assertEqual(set(self.state()['attempts']), {'runtime-base-images'})
+
+    def test_missing_bundle_archive_fails_completeness(self):
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        settings = self.bundle_settings()
+        settings['downloads']['fixtures'] = ['missing']
+        self.configure(**settings)
+        result = self.run_loader('runtime-base-images')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.state()['imports'])
+        self.assertEqual(self.state()['attempts']['fixtures'], 2)
+
+    def test_malformed_bundle_map_rejected_before_download(self):
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        for value in (0, True, '1000'):
+            with self.subTest(value=value):
+                settings = self.bundle_settings()
+                settings['reference']['bundles']['fixtures'] = value
+                self.configure(**settings)
+                result = self.run_loader('runtime-base-images')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(self.state()['imports'])
 
     def test_shared_reference_downloads_exact_validated_id_and_imports(self):
         self.configure(**self.shared_settings())
