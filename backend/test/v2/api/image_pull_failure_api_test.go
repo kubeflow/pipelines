@@ -34,13 +34,11 @@ import (
 )
 
 const (
-	persistenceAgentDeploymentName       = "ml-pipeline-persistenceagent"
-	imagePullFailureEnabledEnvVar        = "IMAGE_PULL_FAILURE_HANDLING_ENABLED"
-	imagePullFailureGracePeriodEnvVar    = "IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC"
-	imagePullFailureDefaultGracePeriod   = 300 * time.Second
-	imagePullFailureTerminationReasonKey = "pipelines.kubeflow.org/termination-reason"
-	imagePullFailureFailedImageKey       = "pipelines.kubeflow.org/failed-image"
-	unpullableImage                      = "registry.invalid/kubeflow/pipelines-unpullable:does-not-exist"
+	persistenceAgentDeploymentName     = "ml-pipeline-persistenceagent"
+	imagePullFailureEnabledEnvVar      = "IMAGE_PULL_FAILURE_HANDLING_ENABLED"
+	imagePullFailureGracePeriodEnvVar  = "IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC"
+	imagePullFailureDefaultGracePeriod = 300 * time.Second
+	unpullableImage                    = "registry.invalid/kubeflow/pipelines-unpullable:does-not-exist"
 	// imagePullFailureDetectionMargin is added to the configured grace period
 	// to cover pod scheduling, the kubelet reporting the pull error, and the
 	// persistence agent's 30s resync before and after the grace period.
@@ -86,12 +84,13 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 		)
 		diagnosticRunID = createdRun.RunID
 
-		timeoutInSeconds := time.Duration((gracePeriod + imagePullFailureDetectionMargin) / time.Second)
+		// WaitForRunToBeInState takes the timeout as a count of seconds.
+		waitTimeout := time.Duration((gracePeriod + imagePullFailureDetectionMargin) / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
 			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
-			&timeoutInSeconds,
+			&waitTimeout,
 		)
 
 		restConfig, err := commonutil.GetKubernetesConfig()
@@ -109,8 +108,8 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 		// patch and records why on the workflow so the cause is visible.
 		Expect(workflow.Spec.ActiveDeadlineSeconds).NotTo(BeNil())
 		Expect(*workflow.Spec.ActiveDeadlineSeconds).To(BeZero())
-		Expect(workflow.Annotations).To(HaveKeyWithValue(imagePullFailureTerminationReasonKey, "ImagePullFailure"))
-		Expect(workflow.Annotations).To(HaveKeyWithValue(imagePullFailureFailedImageKey, unpullableImage))
+		Expect(workflow.Annotations).To(HaveKeyWithValue(commonutil.AnnotationKeyTerminationReason, commonutil.TerminationReasonImagePullFailure))
+		Expect(workflow.Annotations).To(HaveKeyWithValue(commonutil.AnnotationKeyFailedImage, unpullableImage))
 		Expect(workflow.Status.Phase.Completed()).To(BeTrue())
 	})
 })

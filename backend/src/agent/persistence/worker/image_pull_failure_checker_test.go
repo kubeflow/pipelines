@@ -463,8 +463,8 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 	// recreated run under the same name is never terminated by a stale decision.
 	assert.Equal(t, string(testWorkflowUID("my-workflow")), patch.Metadata.UID)
 	assert.Equal(t, "100", patch.Metadata.ResourceVersion)
-	assert.Equal(t, "ImagePullFailure", patch.Metadata.Annotations["pipelines.kubeflow.org/termination-reason"])
-	assert.Equal(t, "bad-image:latest", patch.Metadata.Annotations["pipelines.kubeflow.org/failed-image"])
+	assert.Equal(t, util.TerminationReasonImagePullFailure, patch.Metadata.Annotations[util.AnnotationKeyTerminationReason])
+	assert.Equal(t, "bad-image:latest", patch.Metadata.Annotations[util.AnnotationKeyFailedImage])
 	require.NotNil(t, patch.Spec.ActiveDeadlineSeconds)
 	assert.Equal(t, int64(0), *patch.Spec.ActiveDeadlineSeconds, "KFP marks a run terminated via activeDeadlineSeconds=0")
 	// An ordinary task failure must use the deadline only, so that healthy
