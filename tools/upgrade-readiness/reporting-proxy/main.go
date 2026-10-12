@@ -17,6 +17,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,6 +52,7 @@ type target struct {
 
 type evidence struct {
 	target
+	PreDeleteState        string `json:"pre_delete_state"`
 	Deleted               bool   `json:"deleted"`
 	UpstreamCode          string `json:"upstream_code"`
 	Attempts              int    `json:"attempts"`
@@ -116,8 +118,7 @@ func (p *proxy) ReportWorkflowV1(ctx context.Context, request *api.ReportWorkflo
 	if json.Unmarshal([]byte(request.GetWorkflow()), &report) != nil ||
 		(report.Kind != "" && report.Kind != "Workflow") ||
 		(report.APIVersion != "" && report.APIVersion != "argoproj.io/v1alpha1") ||
-		report.Metadata.Namespace != fixtureNamespace ||
-		(report.Status.Phase != "Succeeded" && report.Status.Phase != "Failed" && report.Status.Phase != "Error") {
+		report.Metadata.Namespace != fixtureNamespace {
 		return p.reports.ReportWorkflowV1(ctx, request)
 	}
 	p.mu.Lock()
@@ -127,6 +128,11 @@ func (p *proxy) ReportWorkflowV1(ctx context.Context, request *api.ReportWorkflo
 		return p.reports.ReportWorkflowV1(ctx, request)
 	}
 	p.mu.Unlock()
+	// Never forward earlier selected reports: the API can replace their phase
+	// with the live terminal phase before this proxy captures the terminal report.
+	if report.Status.Phase != "Succeeded" && report.Status.Phase != "Failed" && report.Status.Phase != "Error" {
+		return nil, status.Error(codes.Unavailable, "fixture waiting for selected terminal report")
+	}
 	// Keep report operations ordered without blocking evidence snapshots on I/O.
 	p.reportMu.Lock()
 	defer p.reportMu.Unlock()
@@ -135,6 +141,18 @@ func (p *proxy) ReportWorkflowV1(ctx context.Context, request *api.ReportWorkflo
 	deleted := entry.Deleted
 	p.mu.Unlock()
 	if !deleted {
+		detail, err := p.runs.GetRunV1(ctx, &api.GetRunRequest{RunId: entry.RunID})
+		if err != nil {
+			return nil, status.Error(codes.Unavailable, "fixture could not observe pre-deletion run")
+		}
+		row := detail.GetRun()
+		state := strings.ToUpper(row.GetStatus())
+		if row.GetId() != entry.RunID || row.GetError() != "" || (state != "PENDING" && state != "RUNNING" && state != "PAUSED") {
+			return nil, status.Error(codes.FailedPrecondition, "fixture requires a nonterminal run immediately before deletion")
+		}
+		p.mu.Lock()
+		entry.PreDeleteState = state
+		p.mu.Unlock()
 		if err := p.deleteWorkflow(ctx, entry.target); err != nil {
 			p.mu.Lock()
 			entry.DeletionFailed = true

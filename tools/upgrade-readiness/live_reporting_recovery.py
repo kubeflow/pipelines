@@ -399,6 +399,9 @@ def deleted_evidence(client, proxy, records, state_dir=None):
         # NotFound. The API row, rather than RPC status alone, proves completion.
         require(item['upstream_code'] in ('OK', 'NotFound'),
                 'reporting_captured_report_rejected')
+        require(
+            item.get('pre_delete_state') in ('PENDING', 'RUNNING', 'PAUSED'),
+            'reporting_pre_delete_state_not_proven')
         require(record['workflow_name'] not in names,
                 'reporting_deleted_workflow_still_exists')
         obj = run(client, record['run_id'])

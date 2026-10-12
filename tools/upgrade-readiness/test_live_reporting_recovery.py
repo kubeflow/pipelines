@@ -346,6 +346,7 @@ class ReportingRecoveryTest(unittest.TestCase):
             record,
             deleted=True,
             upstream_code='NotFound',
+            pre_delete_state='RUNNING',
             deletion_failed=False)
         client, proxy = mock.Mock(), mock.Mock()
         client.get.return_value = obj
@@ -355,6 +356,11 @@ class ReportingRecoveryTest(unittest.TestCase):
                 recovery.deleted_evidence(client, proxy, [record]))
             obj['state'] = 'SUCCEEDED'
             self.assertTrue(recovery.deleted_evidence(client, proxy, [record]))
+            item['pre_delete_state'] = 'SUCCEEDED'
+            with self.assertRaisesRegex(ValueError,
+                                        'pre_delete_state_not_proven'):
+                recovery.deleted_evidence(client, proxy, [record])
+            item['pre_delete_state'] = 'RUNNING'
             item['workflow_uid'] = 'replacement'
             with self.assertRaisesRegex(ValueError, 'proxy_identity'):
                 recovery.deleted_evidence(client, proxy, [record])
@@ -363,7 +369,11 @@ class ReportingRecoveryTest(unittest.TestCase):
         obj, wf = run(), workflow()
         record = recovery.project(wf, obj)
         obj['state'] = 'SUCCEEDED'
-        item = dict(record, deleted=True, upstream_code='OK')
+        item = dict(
+            record,
+            deleted=True,
+            upstream_code='OK',
+            pre_delete_state='RUNNING')
         client, proxy = mock.Mock(), mock.Mock()
         client.get.return_value = obj
         proxy.get.return_value = dict(namespace=recovery.NAMESPACE, runs=[item])

@@ -32,12 +32,18 @@ no API-server identity is minted. Port 8888 serves `/healthz` from
 per-target outcomes. It does not forward artifact HTTP requests; fixture workloads
 must not depend on artifact metrics. The health endpoint is separate from evidence.
 
+Selected nonterminal reports receive retryable `Unavailable` and never reach the
+API, which could otherwise substitute the latest live terminal phase. Before
+deleting, the proxy requires the stored run to remain Pending, Running, or Paused
+and records that state in evidence. Already-terminal or unavailable rows fail
+closed. The fixture acceptance requires this pre-deletion evidence.
+
 For a terminal Workflow report matching all configured identity fields, the proxy
 holds that actual worker-captured request, deletes the exact Workflow with a UID
 precondition, waits for Kubernetes NotFound, then forwards the unchanged request.
 A missing Workflow before deletion, replacement UID, or deletion failure does not
 count as successful injection. Upstream status codes are preserved. Evidence lists
-`deleted`, `attempts`, `upstream_code`, and `deletion_failed` with the configured
+`pre_delete_state`, `deleted`, `attempts`, `upstream_code`, and `deletion_failed` with the configured
 identifiers. Require the corresponding API run to reach its correct terminal state
 separately; an injected deletion alone is not acceptance.
 

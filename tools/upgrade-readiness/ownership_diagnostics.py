@@ -50,11 +50,12 @@ def collect(client, namespaces):
             add(resource, 'missing_experiment_reference', 'review_required')
             return
         try:
+            encoded_id = identifier(exp_id)
             key = (namespace, exp_id)
             if key not in experiments:
                 try:
                     experiments[key] = client.get('/apis/v2beta1/experiments/' +
-                                                  identifier(exp_id))
+                                                  encoded_id)
                 except CollectionError as error:
                     experiments[key] = error
             exp = experiments[key]

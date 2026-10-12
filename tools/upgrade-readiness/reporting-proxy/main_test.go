@@ -49,7 +49,23 @@ func (c reportClient) ReportScheduledWorkflowV1(ctx context.Context, req *api.Re
 
 type runClient struct {
 	api.RunServiceClient
+	get    func(context.Context, *api.GetRunRequest) (*api.RunDetail, error)
 	report func(context.Context, *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
+}
+
+func (c runClient) GetRunV1(ctx context.Context, req *api.GetRunRequest, _ ...grpc.CallOption) (*api.RunDetail, error) {
+	if c.get != nil {
+		return c.get(ctx, req)
+	}
+	return &api.RunDetail{Run: &api.Run{Id: req.RunId, Status: "Running"}}, nil
+}
+
+func fixtureProxy(namespace, raw string) (*proxy, error) {
+	p, err := newProxy(namespace, raw)
+	if p != nil {
+		p.runs = runClient{}
+	}
+	return p, err
 }
 
 func (c runClient) ReportRunMetricsV1(ctx context.Context, req *api.ReportRunMetricsRequest, _ ...grpc.CallOption) (*api.ReportRunMetricsResponse, error) {
@@ -78,14 +94,14 @@ func TestConfigRejectsUnscopedTargets(t *testing.T) {
 		{fixtureNamespace, `[{"run_id":"../run","workflow_name":"selected-wf","workflow_uid":"uid"}]`},
 		{fixtureNamespace, strings.TrimSuffix(config, "]") + "," + strings.TrimPrefix(config, "[")},
 	} {
-		if _, err := newProxy(tc.ns, tc.raw); err == nil {
+		if _, err := fixtureProxy(tc.ns, tc.raw); err == nil {
 			t.Fatalf("accepted unsafe target %q", tc.ns)
 		}
 	}
 }
 
 func TestTerminalCaptureDeleteAndExactForward(t *testing.T) {
-	p, err := newProxy(fixtureNamespace, config)
+	p, err := fixtureProxy(fixtureNamespace, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +146,6 @@ func TestTerminalCaptureDeleteAndExactForward(t *testing.T) {
 
 func TestUnselectedReportsNeverDelete(t *testing.T) {
 	cases := []func(*workflowReport){
-		func(w *workflowReport) { w.Status.Phase = "Running" },
 		func(w *workflowReport) { w.Metadata.Namespace = "other" },
 		func(w *workflowReport) { w.Metadata.Name = "other" },
 		func(w *workflowReport) { w.Metadata.UID = "replacement" },
@@ -139,7 +154,7 @@ func TestUnselectedReportsNeverDelete(t *testing.T) {
 		func(w *workflowReport) { w.APIVersion = "other/v1" },
 	}
 	for _, mutate := range cases {
-		p, _ := newProxy(fixtureNamespace, config)
+		p, _ := fixtureProxy(fixtureNamespace, config)
 		p.deleteWorkflow = func(context.Context, target) error { t.Fatal("deleted an unselected Workflow"); return nil }
 		req := selectedReport(t, mutate)
 		calls := 0
@@ -158,7 +173,7 @@ func TestUnselectedReportsNeverDelete(t *testing.T) {
 }
 
 func TestDeleteFailureDoesNotForwardOrClaimSuccess(t *testing.T) {
-	p, _ := newProxy(fixtureNamespace, config)
+	p, _ := fixtureProxy(fixtureNamespace, config)
 	p.deleteWorkflow = func(context.Context, target) error { return errors.New("sensitive infrastructure detail") }
 	p.reports = reportClient{report: func(context.Context, *api.ReportWorkflowRequest) (*emptypb.Empty, error) {
 		t.Fatal("forwarded without establishing deletion")
@@ -204,7 +219,7 @@ func TestDeleteUsesUIDPreconditionAndWaitsForAbsence(t *testing.T) {
 }
 
 func TestScheduledAndMetricsForwardAuthentication(t *testing.T) {
-	p, _ := newProxy(fixtureNamespace, config)
+	p, _ := fixtureProxy(fixtureNamespace, config)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer unchanged"))
 	check := func(ctx context.Context) {
 		md, _ := metadata.FromOutgoingContext(ctx)
@@ -238,7 +253,7 @@ func TestScheduledAndMetricsForwardAuthentication(t *testing.T) {
 }
 
 func TestTerminalReportWithoutTypeMeta(t *testing.T) {
-	p, err := newProxy(fixtureNamespace, config)
+	p, err := fixtureProxy(fixtureNamespace, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +298,7 @@ func (f healthTransport) RoundTrip(r *http.Request) (*http.Response, error) { re
 func TestHealthRoutesForwardVersionedAPIHealth(t *testing.T) {
 	original := http.DefaultTransport
 	t.Cleanup(func() { http.DefaultTransport = original })
-	p, err := newProxy(fixtureNamespace, config)
+	p, err := fixtureProxy(fixtureNamespace, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,7 +325,7 @@ func TestHealthRoutesForwardVersionedAPIHealth(t *testing.T) {
 func TestEvidenceRemainsResponsiveDuringReportIO(t *testing.T) {
 	for _, stage := range []string{"deletion", "upstream"} {
 		t.Run(stage, func(t *testing.T) {
-			p, err := newProxy(fixtureNamespace, config)
+			p, err := fixtureProxy(fixtureNamespace, config)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -410,5 +425,34 @@ func TestDeletionDeadlineDistinguishesObservedFinalizers(t *testing.T) {
 		if got := deletionFailureReason(err); got != expected {
 			t.Fatalf("expected %s, got %s", expected, got)
 		}
+	}
+}
+
+func TestSelectedEarlierReportsCannotPersistLiveSuccess(t *testing.T) {
+	p, _ := fixtureProxy(fixtureNamespace, config)
+	p.reports = reportClient{report: func(context.Context, *api.ReportWorkflowRequest) (*emptypb.Empty, error) {
+		t.Fatal("earlier selected report could persist latest live success")
+		return nil, nil
+	}}
+	for _, phase := range []string{"", "Pending", "Running"} {
+		_, err := p.ReportWorkflowV1(context.Background(), selectedReport(t, func(w *workflowReport) { w.Status.Phase = phase }))
+		if status.Code(err) != codes.Unavailable {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+}
+
+func TestAlreadySuccessfulRowCannotProveDeletedReportRecovery(t *testing.T) {
+	p, _ := fixtureProxy(fixtureNamespace, config)
+	p.runs = runClient{get: func(context.Context, *api.GetRunRequest) (*api.RunDetail, error) {
+		return &api.RunDetail{Run: &api.Run{Id: "run-id", Status: "Succeeded"}}, nil
+	}}
+	p.deleteWorkflow = func(context.Context, target) error {
+		t.Fatal("deleted after success was already persisted")
+		return nil
+	}
+	_, err := p.ReportWorkflowV1(context.Background(), selectedReport(t, nil))
+	if status.Code(err) != codes.FailedPrecondition || p.targets["run-id"].Deleted {
+		t.Fatalf("false acceptance: %v", err)
 	}
 }

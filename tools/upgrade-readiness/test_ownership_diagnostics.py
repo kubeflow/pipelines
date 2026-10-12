@@ -75,6 +75,18 @@ class OwnershipTest(unittest.TestCase):
         self.assertEqual(coverage['completed_scopes'],
                          ['runs/team', 'recurringruns/team'])
 
+    def test_malformed_experiment_preserves_other_evidence(self):
+        for value in (["exp"], {"id": "exp"}):
+            with self.subTest(value=value):
+                findings, coverage, _ = self.assess(
+                    run=dict(
+                        run_id='run', experiment_id=value, state='RUNNING'))
+                self.assertIn('experiment_unavailable_invalid_identifier',
+                              self.reasons(findings))
+                self.assertIn('stored_identity_present', self.reasons(findings))
+                self.assertEqual(coverage['completed_scopes'],
+                                 ['runs/team', 'recurringruns/team'])
+
     def test_missing_namespace_and_identity_are_distinct(self):
         findings, _, _ = self.assess(detail=dict(run=dict(id='run')))
         self.assertEqual(
