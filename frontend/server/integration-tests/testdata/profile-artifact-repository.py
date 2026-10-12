@@ -58,7 +58,7 @@ def main():
     with patch.dict(
             producer.os.environ, controller_env, clear=True), patch.object(
                 producer,
-                "HTTPServer",
+                "ThreadingHTTPServer",
                 side_effect=lambda address, handler: SimpleNamespace(
                     RequestHandlerClass=handler),
             ):
