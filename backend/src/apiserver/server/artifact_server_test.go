@@ -227,6 +227,61 @@ func TestArtifactServer_CreateArtifact_WithIterationIndex(t *testing.T) {
 	assert.Equal(t, int64(5), *at.GetProducer().Iteration)
 }
 
+func TestArtifactServer_CreateArtifact_RejectsReuseIfExistsWithOperationID(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(
+		clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: false},
+	)
+	s := createArtifactServer(resourceManager)
+
+	// Create run.
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "reuse-operation-run",
+		DisplayName:  "reuse-operation-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	// Create task for the run.
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "reuse-operation-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	req := &apiv2beta1.CreateArtifactRequest{
+		RunId:         runid1,
+		TaskId:        task.UUID,
+		ProducerKey:   "reuse-output",
+		ReuseIfExists: true,
+		OperationId:   "operation-123",
+		Artifact: &apiv2beta1.Artifact{
+			Namespace:   "ns1",
+			Type:        apiv2beta1.Artifact_Dataset,
+			Uri:         strPTR("gs://bucket/reuse-operation/data"),
+			Name:        "reuse-operation-dataset",
+			Description: "Artifact for reuse_if_exists and operation_id validation",
+		},
+	}
+
+	_, err = s.CreateArtifact(ctxWithUser(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reuse_if_exists cannot be combined with operation_id")
+}
+
 func TestArtifactServer_CreateArtifact_UsesRunRetryGeneration(t *testing.T) {
 	viper.Set(common.MultiUserMode, "false")
 	t.Cleanup(func() {

@@ -105,6 +105,12 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2.Crea
 		return nil, util.Wrap(err, "Failed to convert artifact_task")
 	}
 
+	if request.GetReuseIfExists() && request.GetOperationId() != "" {
+		return nil, util.NewInvalidInputError(
+			"reuse_if_exists cannot be combined with operation_id",
+		)
+	}
+
 	var artifact *model.Artifact
 	if request.GetReuseIfExists() {
 		artifact, _, err = s.resourceManager.FindOrCreateArtifactWithTask(modelArtifact, modelAT)
@@ -115,6 +121,7 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2.Crea
 			request.GetOperationId(),
 		)
 	}
+
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact and artifact-task")
 	}

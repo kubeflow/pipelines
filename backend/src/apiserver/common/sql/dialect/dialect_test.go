@@ -325,6 +325,14 @@ func TestUpsert(t *testing.T) {
 			updateCols: []string{"col1", "col2"},
 			wantSQL:    `ON CONFLICT ("id") DO UPDATE SET "col1"=excluded."col1", "col2"=excluded."col2"`,
 		},
+		{
+			name:       "Postgres Keep Existing",
+			dialect:    pgDialect,
+			keyCols:    []string{"id"},
+			overwrite:  false,
+			updateCols: []string{"id"},
+			wantSQL:    `ON CONFLICT ("id") DO NOTHING`,
+		},
 	}
 
 	for _, tc := range testCases {
