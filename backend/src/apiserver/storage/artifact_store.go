@@ -612,7 +612,7 @@ func (s *ArtifactStore) claimArtifactWriteIdentity(
 	}
 
 	claimedIdentity, err :=
-		s.getArtifactWriteIdentity(
+		s.getArtifactWriteIdentityForUpdate(
 			tx,
 			identity.Identity,
 		)
@@ -970,23 +970,53 @@ func (s *ArtifactStore) getArtifactWriteIdentity(
 	tx *sql.Tx,
 	identity string,
 ) (*model.ArtifactWriteIdentity, error) {
-	q := s.dbDialect.QuoteIdentifier
+	return s.getArtifactWriteIdentityWithLock(tx, identity, false)
+}
 
-	query := fmt.Sprintf(
-		"SELECT %s, %s, %s, %s, %s, %s, %s FROM %s WHERE %s = ?",
-		q("Identity"),
-		q("Namespace"),
-		q("RunUUID"),
-		q("TaskID"),
-		q("OperationID"),
-		q("PayloadHash"),
-		q("ArtifactID"),
-		q("artifact_write_identities"),
-		q("Identity"),
-	)
+func (s *ArtifactStore) getArtifactWriteIdentityForUpdate(
+	tx *sql.Tx,
+	identity string,
+) (*model.ArtifactWriteIdentity, error) {
+	return s.getArtifactWriteIdentityWithLock(tx, identity, true)
+}
+
+func (s *ArtifactStore) getArtifactWriteIdentityWithLock(
+	tx *sql.Tx,
+	identity string,
+	forUpdate bool,
+) (*model.ArtifactWriteIdentity, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	query, args, err := qb.
+		Select(
+			q("Identity"),
+			q("Namespace"),
+			q("RunUUID"),
+			q("TaskID"),
+			q("OperationID"),
+			q("PayloadHash"),
+			q("ArtifactID"),
+		).
+		From(q("artifact_write_identities")).
+		Where(sq.Eq{
+			q("Identity"): identity,
+		}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to create query to get artifact write identity",
+		)
+	}
+
+	if forUpdate {
+		query = s.dbDialect.SelectForUpdate(query)
+	}
 
 	var result model.ArtifactWriteIdentity
-	err := tx.QueryRow(query, identity).Scan(
+	err = tx.QueryRow(query, args...).Scan(
 		&result.Identity,
 		&result.Namespace,
 		&result.RunUUID,
@@ -1100,6 +1130,8 @@ func (s *ArtifactStore) getArtifactTaskByUniqueLinkWithExecutor(
 			err.Error(),
 		)
 	}
+
+	sqlQuery = s.dbDialect.SelectForUpdate(sqlQuery)
 
 	rows, err := exec.Query(sqlQuery, args...)
 	if err != nil {
@@ -1329,6 +1361,8 @@ func (s *ArtifactStore) getArtifactWithExecutor(
 			err.Error(),
 		)
 	}
+
+	query = s.dbDialect.SelectForUpdate(query)
 
 	rows, err := exec.Query(query, args...)
 	if err != nil {
