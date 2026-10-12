@@ -37,7 +37,7 @@ test: mlmd # a MLMD server running in background is required by some tests
 .PHONY: test-update
 test-update: mlmd
 	# Updating compiled argo YAML golden files...
-	go test ./compiler/argocompiler --args --update
+	go test ../../test/compiler --args -updateCompiledFiles
 
 # make test-watch watches file system changes and rerun go unit tests automatically
 # install inotifywait by:
@@ -58,7 +58,7 @@ dev: pipeline/v2/hello_world \
 	pipeline/test/lightweight_python_functions_v2_pipeline \
 	pipeline/test/lightweight_python_functions_v2_with_outputs \
 	pipeline/core/exit_handler/exit_handler_v2 \
-	
+
 # pipeline/core/condition/condition_v2:
 # pipeline/core/loop_output/loop_output_v2:
 # pipeline/core/loop_static/loop_static_v2:
