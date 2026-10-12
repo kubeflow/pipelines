@@ -292,7 +292,7 @@ class ImageBuildCacheWorkflowTest(unittest.TestCase):
         self.assertNotIn('cache-to', build['with'])
         self.assertIn("steps.validate-image.outcome != 'success'", build['if'])
         lookup = self.by_id['retained-cache']
-        self.assertIn('git rev-parse HEAD^{tree}', lookup['run'])
+        self.assertIn("git rev-parse 'HEAD^{tree}'", lookup['run'])
         self.assertIn('--paginate --slurp', lookup['run'])
         self.assertIn('--head-repository-id', lookup['run'])
         self.assertIn('--head-branch', lookup['run'])

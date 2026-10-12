@@ -258,7 +258,7 @@ jobs:
           set -euo pipefail
           # The complete tree includes Dockerfiles, COPY inputs and build args.
           # Conservative invalidation is preferable to reusing a stale image.
-          image_key="ci-image-artifact-v2-${CI_IMAGE}-${TARGET_ARCH}-$(git rev-parse HEAD^{tree})"
+          image_key="ci-image-artifact-v2-${CI_IMAGE}-${TARGET_ARCH}-$(git rev-parse 'HEAD^{tree}')"
           go_key="ci-go-artifact-v2-${TARGET_ARCH}-$(python3 .github/resources/scripts/runtime_base_image_artifacts.py fingerprint "$DOCKERFILE" go.mod go.sum api/go.mod kubernetes_platform/go.mod)"
           echo "image-key=$image_key" >> "$GITHUB_OUTPUT"
           echo "go-key=$go_key" >> "$GITHUB_OUTPUT"
