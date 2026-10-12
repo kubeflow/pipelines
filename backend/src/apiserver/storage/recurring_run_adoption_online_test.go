@@ -110,7 +110,9 @@ func TestOnlineAdoptionModeChangeUsesSameSerialization(t *testing.T) {
 		synced <- SynchronizeLegacyRecurringRunAdoption(db, "a", func(job *model.Job, _ *model.RecurringRunState) error {
 			close(entered)
 			<-release
-			require.True(t, job.Enabled)
+			if !job.Enabled {
+				return fmt.Errorf("job was disabled before serialized mode change")
+			}
 			return nil
 		})
 	}()

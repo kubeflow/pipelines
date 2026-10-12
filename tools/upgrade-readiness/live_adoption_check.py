@@ -15,6 +15,8 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from urllib.parse import quote
+from urllib.parse import urlencode
 import uuid
 
 from fixture_http import FixtureClient
@@ -114,6 +116,60 @@ def get(namespace, resource):
     return json.loads(kube('-n', namespace, 'get', resource, '-o', 'json'))
 
 
+def workflow_inventory(namespace):
+    """Read one consistent Workflow list, retaining at most one raw page."""
+    path = '/apis/argoproj.io/v1alpha1/namespaces/' + quote(
+        namespace, safe='') + '/workflows'
+    token = ''
+    version = None
+    seen_tokens = set()
+    seen_uids = set()
+    while True:
+        query = {'limit': 100}
+        if token:
+            query['continue'] = token
+        page = json.loads(kube('get', '--raw=' + path + '?' + urlencode(query)))
+        require(isinstance(page, dict), 'invalid_workflow_page')
+        metadata = page.get('metadata')
+        items = page.get('items')
+        require(
+            isinstance(metadata, dict) and isinstance(items, list) and
+            len(items) <= 100, 'invalid_workflow_page')
+        current_version = metadata.get('resourceVersion')
+        require(
+            isinstance(current_version, str) and current_version,
+            'missing_workflow_list_version')
+        if version is None:
+            version = current_version
+        require(current_version == version, 'workflow_list_version_changed')
+        next_token = metadata.get('continue', '')
+        require(isinstance(next_token, str), 'invalid_workflow_continue_token')
+        remaining = metadata.get('remainingItemCount')
+        require(
+            remaining is None or (type(remaining) is int and remaining >= 0),
+            'invalid_workflow_remaining_count')
+        require(
+            next_token or remaining in (None, 0), 'incomplete_workflow_list')
+        require(not next_token or next_token not in seen_tokens,
+                'repeated_workflow_continue_token')
+        for obj in items:
+            require(
+                isinstance(obj, dict) and isinstance(obj.get('metadata'), dict),
+                'invalid_workflow_page')
+            uid = obj['metadata'].get('uid')
+            require(
+                isinstance(uid, str) and uid and uid not in seen_uids,
+                'duplicate_or_missing_workflow_uid')
+            seen_uids.add(uid)
+            yield obj
+        if not next_token:
+            return
+        seen_tokens.add(next_token)
+        token = next_token
+        # Drop full specs/status before requesting the next page.
+        del page, items
+
+
 def sql(table, columns, where=''):
     # Only fixed table/column names and this fixture namespace reach SQL.
     require(table in SQL_OPERATIONS, 'fixture_sql_table_not_allowed')
@@ -171,7 +227,7 @@ def snapshot(adopted=False):
                 enabled=obj['spec'].get('enabled', False),
                 trigger=obj.get('status', {}).get('trigger', {})))
     workflows = []
-    for obj in get(NAMESPACE, 'workflows')['items']:
+    for obj in workflow_inventory(NAMESPACE):
         meta = obj['metadata']
         labels = meta.get('labels', {})
         owners = [

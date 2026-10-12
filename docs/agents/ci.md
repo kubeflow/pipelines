@@ -57,7 +57,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - Release merge-group runtime-image consumers retain exact queue SHA, branch, upstream repository, and successful producer-workflow validation. After three unsuccessful lookups or a failed download, they use the shared archive builder on the queued checkout. Queue and regular producers fingerprint the same generation inputs, including that builder; queue jobs remain read-only and do not publish images or prune caches.
 
-- The release-2.18 upgrade workflow always upgrades from 2.17.2, including merge-group runs, and fails before target deployment if source preparation fails. The independent readiness schedule lane is off by default. After candidate policy review, activate it with repository variable `KFP_218_READINESS_SCHEDULES=enabled` or the manual `run_readiness_schedules=true` dispatch input, then record live acceptance in #14421. Its preflight rejects missing prerequisites. The isolated fixture verifies source reporting permissions, correlates 2.17.2 runs with their Workflows, requires legacy schedule rejection before reviewed recreation, and checks successful enforce/audit runs plus scoped audit emission. It then verifies return to enforcement, named controller-grant revocation and restoration, and V1 jobs submitted through the retained V1 API. Each phase uses fresh identity-correlated evidence and a working default-account control; prior runs do not satisfy a later phase. The opt-in lane has a 90-minute ceiling to accommodate controller retry backoff and the additional bounded observation windows. It does not introduce master MLMD-to-native migration.
+- The release-2.18 upgrade workflow always upgrades from 2.17.2, including merge-group runs, and fails before target deployment if source preparation fails. The independent readiness schedule lane is off by default. After candidate policy review, activate it with repository variable `KFP_218_READINESS_SCHEDULES=enabled` or the manual `run_readiness_schedules=true` dispatch input, then record live acceptance in #14421. Its preflight rejects missing prerequisites. The isolated fixture verifies source reporting permissions, correlates 2.17.2 runs with their Workflows, verifies automatic adoption of the original legacy schedule IDs before policy observation, and checks successful enforce/audit runs plus scoped audit emission. It then verifies return to enforcement, named controller-grant revocation and restoration, and V1 jobs submitted through the retained V1 API. Each phase uses fresh identity-correlated evidence and a working default-account control; prior runs do not satisfy a later phase. The opt-in lane has a 90-minute ceiling to accommodate controller retry backoff and the additional bounded observation windows. It does not introduce master MLMD-to-native migration.
 - `upgrade-readiness.yml` runs standalone preview tests and conformance against the explicitly pinned proposed scheduling policy; neither substitutes for a populated candidate upgrade run. Python 3.11 and 3.13 tests use synthetic inventories, subprocesses and loopback HTTP servers, never cluster credentials. Slow-header/chunk-framing probes enforce the response deadline, and fake-clock observations cover the final collection interval.
 - CI Scripts Tests installs PyYAML 6.0.3 for Dependabot configuration validation. Argo dependency updates use `third_party/argo/Makefile` and the coordinated updater; update both runtime slots only after checking compatibility, module major version, and manifest downloads.
 
@@ -86,6 +86,27 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the synthetic Workflow records, or reconcile profile-controller proxies; those
   remain separate live acceptance scopes. Its fixtures use only disposable
   credentials and a dedicated Kind namespace.
+
+- The manual `run_readiness_adoption=true` input adds a separate populated
+  2.17.2-to-candidate adoption job. It retains real completed source history,
+  one enabled schedule with a persisted suspended Workflow, and two disabled
+  schedules. It applies candidate images through the managed rolling deployment
+  while writers remain running, then compares automatic adoption receipts,
+  progress and stored definitions. Workflow evidence is read in pages of 100
+  with a consistent list resource version and the existing per-response size
+  limit; snapshots retain compact identity/progress fields rather than manifests.
+  Missing or inconsistent pages cannot establish successful adoption.
+  The fixture restarts the upgraded API and
+  scheduled controller while the active run holds its concurrency slot, requires
+  fresh ready Pod identities with no old or terminating Pods, reopens its local
+  forwarding connection, and verifies preserved state and successful continuation.
+  The separate scheduling-policy lane also adopts original source schedule IDs.
+  A suspended Workflow tests nonterminal run accounting; it does not establish
+  transparent retries in arbitrary task containers or zero downtime for every
+  API operation. Rejected handoff mutations and successful retries are covered
+  by deterministic resource tests. Only sanitized phase summaries under
+  `reports/` are uploaded; SQL snapshots, manifests, credentials and raw adoption
+  logs remain in the disposable runner.
 
 - `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
   isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
@@ -129,20 +150,3 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
   failures remain failures and the disposable cluster is always deleted.
-
-- The manual `run_readiness_adoption=true` input adds a separate populated
-  2.17.2-to-candidate adoption job. It retains real completed source history,
-  one enabled schedule with a persisted suspended Workflow, and two disabled
-  schedules. It applies candidate images through the managed rolling deployment
-  while writers remain running, then compares automatic adoption receipts,
-  progress and stored definitions. The fixture restarts the upgraded API and
-  scheduled controller while the active run holds its concurrency slot, requires
-  fresh ready Pod identities with no old or terminating Pods, reopens its local
-  forwarding connection, and verifies preserved state and successful continuation.
-  The separate scheduling-policy lane also adopts original source schedule IDs.
-  A suspended Workflow tests nonterminal run accounting; it does not establish
-  transparent retries in arbitrary task containers or zero downtime for every
-  API operation. Rejected handoff mutations and successful retries are covered
-  by deterministic resource tests. Only sanitized phase summaries under
-  `reports/` are uploaded; SQL snapshots, manifests, credentials and raw adoption
-  logs remain in the disposable runner.

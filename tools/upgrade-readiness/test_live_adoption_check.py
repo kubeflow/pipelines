@@ -12,6 +12,8 @@ import json
 from pathlib import Path
 import unittest
 from unittest import mock
+from urllib.parse import parse_qs
+from urllib.parse import urlsplit
 
 from live_adoption_availability import validate_samples
 from live_adoption_check import adoption_job_diagnostics
@@ -42,6 +44,7 @@ from live_adoption_check import validate_large_history
 from live_adoption_check import validate_restart
 from live_adoption_check import wait_active
 from live_adoption_check import wait_adoption_job
+from live_adoption_check import workflow_inventory
 
 
 def inventory():
@@ -614,6 +617,99 @@ class AdoptionTests(unittest.TestCase):
                     '^fixture_sql_jobs_json_character_set_failed$'):
                 kube('exec', operation='jobs')
 
+    def test_large_workflow_snapshot_pages_before_compacting(self):
+        workflows = [
+            dict(
+                metadata=dict(uid=str(i), name='w' + str(i)),
+                spec=dict(templates=['x' * 5000])) for i in range(1001)
+        ]
+        self.assertGreater(
+            len(json.dumps(dict(items=workflows))), 4 * 1024 * 1024)
+        with mock.patch(
+                'live_adoption_check.subprocess.run',
+                return_value=mock.Mock(
+                    returncode=0,
+                    stdout=json.dumps(dict(items=workflows)),
+                    stderr='')):
+            with self.assertRaisesRegex(AdoptionError,
+                                        'fixture_collection_limit_exceeded'):
+                kube('get', 'workflows', '-o', 'json')
+        requests = []
+
+        def collect(command, **kwargs):
+            query = parse_qs(urlsplit(command[-1].removeprefix('--raw=')).query)
+            self.assertEqual(query['limit'], ['100'])
+            token = query.get('continue', [''])[0]
+            start = int(token.split('/')[0]) if token else 0
+            requests.append(start)
+            end = min(start + 100, len(workflows))
+            page = dict(
+                metadata=dict(
+                    resourceVersion='42',
+                    **{
+                        'continue':
+                            str(end) +
+                            '/opaque+=token' if end < len(workflows) else ''
+                    }),
+                items=workflows[start:end])
+            return mock.Mock(returncode=0, stdout=json.dumps(page), stderr='')
+
+        with mock.patch('live_adoption_check.subprocess.run', side_effect=collect), \
+                mock.patch('live_adoption_check.sql', return_value=[]), \
+                mock.patch('live_adoption_check.get', return_value=dict(items=[])):
+            result = snapshot()
+        self.assertEqual(requests, list(range(0, 1001, 100)))
+        self.assertEqual(len(result['workflows']), 1001)
+        self.assertEqual({w['uid'] for w in result['workflows']},
+                         {str(i) for i in range(1001)})
+        self.assertNotIn('templates', json.dumps(result))
+
+    def test_workflow_pagination_rejects_incomplete_or_inconsistent_evidence(
+            self):
+        first = dict(
+            metadata=dict(resourceVersion='42', **{'continue': 'next'}),
+            items=[dict(metadata=dict(uid='one'))])
+        cases = [
+            dict(metadata=dict(resourceVersion='43'), items=[]),
+            dict(
+                metadata=dict(resourceVersion='42', **{'continue': 'next'}),
+                items=[]),
+            dict(
+                metadata=dict(resourceVersion='42'),
+                items=[dict(metadata=dict(uid='one'))]),
+            dict(metadata={}, items=[]),
+            dict(
+                metadata=dict(resourceVersion='42', remainingItemCount=1),
+                items=[]),
+            dict(metadata=dict(resourceVersion='42'), items=None),
+        ]
+        for last in cases:
+            with self.subTest(last=last), mock.patch(
+                    'live_adoption_check.kube',
+                    side_effect=[json.dumps(first),
+                                 json.dumps(last)]):
+                with self.assertRaises(AdoptionError):
+                    list(workflow_inventory('team'))
+        with mock.patch(
+                'live_adoption_check.kube',
+                side_effect=[
+                    json.dumps(first),
+                    AdoptionError('fixture_kubernetes_failed')
+                ]):
+            with self.assertRaisesRegex(AdoptionError,
+                                        'fixture_kubernetes_failed'):
+                list(workflow_inventory('team'))
+
+    def test_workflow_page_retains_output_limit(self):
+        with mock.patch(
+                'live_adoption_check.subprocess.run',
+                return_value=mock.Mock(
+                    returncode=0, stdout='x' * (4 * 1024 * 1024 + 1),
+                    stderr='')):
+            with self.assertRaisesRegex(AdoptionError,
+                                        'fixture_collection_limit_exceeded'):
+                list(workflow_inventory('team'))
+
     def test_reads_real_workflow_label_and_progress_field(self):
         objects = [
             dict(items=[
@@ -646,7 +742,8 @@ class AdoptionTests(unittest.TestCase):
             ])
         ]
         with mock.patch('live_adoption_check.sql', return_value=[]), \
-                mock.patch('live_adoption_check.get', side_effect=objects):
+                mock.patch('live_adoption_check.get', return_value=objects[0]), \
+                mock.patch('live_adoption_check.workflow_inventory', return_value=iter(objects[1]['items'])):
             actual = snapshot()
         self.assertEqual(actual['workflows'][0]['index'], 7)
         self.assertEqual(actual['schedules'][0]['trigger']['lastWorkflowIndex'],

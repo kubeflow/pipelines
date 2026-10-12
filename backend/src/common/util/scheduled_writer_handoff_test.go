@@ -246,11 +246,19 @@ func TestManagedScheduleWriterHandoffCachesOnlySuccess(t *testing.T) {
 	calls := len(client.Actions())
 	fail = true
 	var wg sync.WaitGroup
+	results := make(chan error, 20)
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
-		go func() { defer wg.Done(); require.NoError(t, ready(context.Background())) }()
+		go func() {
+			defer wg.Done()
+			results <- ready(context.Background())
+		}()
 	}
 	wg.Wait()
+	close(results)
+	for err := range results {
+		require.NoError(t, err)
+	}
 	require.Len(t, client.Actions(), calls, "completed handoff must not read Kubernetes again")
 	// A replacement process must perform its own handoff.
 	require.Error(t, NewManagedScheduleWriterHandoff(client, "kubeflow", pods[0].Name)(context.Background()))
