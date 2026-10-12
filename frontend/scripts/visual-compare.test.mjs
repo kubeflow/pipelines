@@ -270,6 +270,41 @@ describe('route-specific baseline assertions', () => {
     );
   });
 
+  it('rejects a recurring-run shell before its pipeline parameters load', async () => {
+    const route = baselineRoutes.find(({ name }) => name === 'new-recurring-run');
+    saveRoutes([route]);
+    const { browserType, pages } = fakeBrowser({
+      missingSelectors: ['text=Specify parameters required by the pipeline'],
+    });
+    await expect(captureScreenshots(captureOptions(browserType))).rejects.toThrow(
+      '1 screenshot capture(s) failed',
+    );
+    expect(pages[0].waitForSelector).toHaveBeenCalledWith('text=Run trigger', { timeout: 60000 });
+    expect(pages[0].screenshot).not.toHaveBeenCalled();
+  });
+
+  it.each(['new-run-configured', 'new-recurring-run'])(
+    'rejects %s when the version fixture request fails despite visible form text',
+    async (routeName) => {
+      saveRoutes([baselineRoutes.find(({ name }) => name === routeName)]);
+      const { browserType, pages } = fakeBrowser({
+        events: [
+          {
+            name: 'response',
+            value: {
+              url: () => 'http://localhost:3000/apis/v2beta1/pipelines/fixture/versions/fixture',
+              status: () => 500,
+            },
+          },
+        ],
+      });
+      await expect(captureScreenshots(captureOptions(browserType))).rejects.toThrow(
+        '1 screenshot capture(s) failed',
+      );
+      expect(pages[0].screenshot).not.toHaveBeenCalled();
+    },
+  );
+
   it('rejects an empty comparison message when a named fixture row did not load', async () => {
     const compare = baselineRoutes.find(({ name }) => name === 'compare');
     saveRoutes([compare]);
