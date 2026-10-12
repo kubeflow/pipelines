@@ -9,6 +9,10 @@ on:
     paths:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/actions/create-cluster/**'
+      - '.github/resources/scripts/runtime_prefetch*.py'
+      - '.github/resources/scripts/load-ready-image-artifacts.sh'
+      - '.github/resources/scripts/wait-for-image-artifacts.sh'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
       - '.github/resources/scripts/build-runtime-base-images.sh'
@@ -22,6 +26,10 @@ on:
     paths:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/actions/create-cluster/**'
+      - '.github/resources/scripts/runtime_prefetch*.py'
+      - '.github/resources/scripts/load-ready-image-artifacts.sh'
+      - '.github/resources/scripts/wait-for-image-artifacts.sh'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
       - '.github/resources/scripts/build-runtime-base-images.sh'

@@ -171,7 +171,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
                      'ci-image-artifacts.sh', 'helper-functions.sh',
                      'load-kind-image-archives.sh',
                      'runtime_base_image_artifacts.py',
-                     'runtime_image_bundles.py'):
+                     'runtime_image_bundles.py', 'runtime_prefetch_files.py'):
             shutil.copy2(SCRIPTS / name, self.scripts / name)
         (self.root / 'resources/runtime-base-images.txt').write_text(
             '# runtime inventory\nregistry/runtime:one\n'
@@ -259,6 +259,59 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
             },
             'shared_metadata': metadata,
         }
+
+    def start_prefetch(self):
+        self.env['GITHUB_RUN_ATTEMPT'] = '1'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_DOWNLOAD_ONLY'] = 'true'
+        result = self.run_loader('runtime-base-images')
+        self.assert_success(result)
+        self.assertFalse(self.state()['imports'])
+        self.env.pop('RUNTIME_DOWNLOAD_ONLY')
+
+    def test_prefetch_bundle_downloads_reused_only_after_cluster_ready(self):
+        self.configure(**self.bundle_settings())
+        self.start_prefetch()
+        downloads = dict(self.state()['attempts'])
+        self.assert_success(self.run_loader('runtime-base-images'))
+        self.assertEqual(self.state()['attempts'], downloads)
+        self.assertEqual(
+            set(self.state()['imports']),
+            {'fixtures.tar', 'mysql.tar', 'argo-v4.1.2.tar', 'modelcar.tar'})
+        self.assertTrue(
+            all(count == 1 for count in self.state()['imports'].values()))
+
+    def test_prefetch_full_archive_fallback_reused(self):
+        self.start_prefetch()
+        self.assert_success(self.run_loader('runtime-base-images'))
+        self.assertEqual(self.state()['attempts']['runtime-base-images'], 1)
+        self.assertEqual(self.state()['imports'], {
+            'runtime-base-images.tar': 1,
+            'modelcar.tar': 1
+        })
+
+    def test_prefetch_stale_head_or_attempt_restarts_validated_download(self):
+        self.start_prefetch()
+        self.env['GITHUB_RUN_ATTEMPT'] = '2'
+        self.env['SOURCE_SHA'] = 'new-head'
+        self.assert_success(self.run_loader('runtime-base-images'))
+        self.assertEqual(self.state()['attempts']['runtime-base-images'], 2)
+
+    def test_prefetch_incomplete_archive_restarts_download(self):
+        self.start_prefetch()
+        self.archive('runtime-base-images').write_text('truncated')
+        self.assert_success(self.run_loader('runtime-base-images'))
+        self.assertEqual(self.state()['attempts']['runtime-base-images'], 2)
+
+    def test_prefetch_revalidates_shared_trust_before_import(self):
+        settings = self.bundle_settings()
+        self.configure(**settings)
+        self.start_prefetch()
+        settings['bundle_metadata']['1001']['expired'] = True
+        self.configure(**settings)
+        result = self.run_loader('runtime-base-images')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.state()['imports'])
 
     def bundle_settings(self):
         shutil.copy2(ROOT / '.github/resources/runtime-base-images.txt',

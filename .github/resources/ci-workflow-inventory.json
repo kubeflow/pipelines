@@ -650,11 +650,15 @@
     {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "bb8e625a82019eeac97e61caee3c44ba26a640edee7682eb7a07b0512be0dd5c",
+      "header_sha256": "1e3c1a1299dd9df67de260c3a42acbd4389d8bf1539aada8f90670636e5ab424",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/image-builds.yml",
+          ".github/actions/create-cluster/**",
+          ".github/resources/scripts/runtime_prefetch*.py",
+          ".github/resources/scripts/load-ready-image-artifacts.sh",
+          ".github/resources/scripts/wait-for-image-artifacts.sh",
           ".github/resources/runtime-base-images.txt",
           ".github/resources/scripts/helper-functions.sh",
           ".github/resources/scripts/build-runtime-base-images.sh",
