@@ -159,3 +159,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   snapshot was captured. The lane must restore injected permissions on failure,
   upload only explicit sanitized report files, and delete its isolated cluster.
   Raw manifests, token files and restoration inputs are not acceptance artifacts.
+- Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
+  privileged standard-library-only helper. Do not select a setup-python runtime
+  from `PATH` or preserve loader environment variables through `sudo`: tool-cache
+  interpreters can require `LD_LIBRARY_PATH`, which elevation removes.
