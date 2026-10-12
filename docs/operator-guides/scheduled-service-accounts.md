@@ -222,7 +222,7 @@ synchronize the same record on every request or prevent other records recovering
    terminating or incompatible Pods, and missing handoff permissions. The
    controller exits on invalid Pod identity or denied handoff permissions; correct
    its configuration or RBAC and allow Kubernetes to restart it.
-4. Inspect `Automatic recurring-run adoption will retry schedule` diagnostics and
+4. Inspect `Recurring-run reconciliation will retry schedule` diagnostics and
    the inventory below. Verify next-tick execution, disabled state, preserved
    progress, concurrency accounting, and duplicate prevention. Recover missing
    persistence reports or other inconsistent records while unrelated schedules
@@ -306,13 +306,13 @@ progress after the snapshot.
 
 The API logs `Automatic recurring-run adoption is waiting and will retry` while
 managed writers are not ready or inventory collection fails, and
-`Automatic recurring-run adoption will retry schedule` for record-specific
+`Recurring-run reconciliation will retry schedule` for record-specific
 failures. These are retry diagnostics, not a complete inventory or a count of
 successful migrations. Missing logs are not evidence that no schedules remain.
 Use a read-only database check and inspect Kubernetes schedule identities:
 
 ```bash
-kubectl -n kubeflow logs deployment/ml-pipeline --all-pods=true --all-containers=true --prefix | grep 'Automatic recurring-run adoption'
+kubectl -n kubeflow logs deployment/ml-pipeline --all-pods=true --all-containers=true --prefix | grep -E 'Automatic recurring-run adoption|Recurring-run reconciliation will retry schedule'
 kubectl get scheduledworkflows.kubeflow.org --all-namespaces \
   -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,UID:.metadata.uid,ENABLED:.spec.enabled'
 ```

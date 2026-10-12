@@ -22,6 +22,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	argofake "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned/fake"
+	workflowclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
 	argolister "github.com/argoproj/argo-workflows/v4/pkg/client/listers/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
@@ -2648,6 +2649,50 @@ func TestWorkflowInterface_List(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
+}
+
+type workflowListPageClient struct {
+	workflowclient.WorkflowInterface
+	list func(context.Context, metav1.ListOptions) (*workflowapi.WorkflowList, error)
+}
+
+func (c workflowListPageClient) List(ctx context.Context, opts metav1.ListOptions) (*workflowapi.WorkflowList, error) {
+	return c.list(ctx, opts)
+}
+
+func TestWorkflowInterface_ListPage(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run(fmt.Sprint(fail), func(t *testing.T) {
+			options := metav1.ListOptions{Limit: 100, Continue: "previous-page", LabelSelector: "schedule=example"}
+			readErr := fmt.Errorf("workflow list unavailable")
+			client := workflowListPageClient{list: func(_ context.Context, opts metav1.ListOptions) (*workflowapi.WorkflowList, error) {
+				require.Equal(t, options, opts)
+				if fail {
+					return nil, readErr
+				}
+				return &workflowapi.WorkflowList{
+					ListMeta: metav1.ListMeta{Continue: "next-page"},
+					Items: []workflowapi.Workflow{
+						{ObjectMeta: metav1.ObjectMeta{Name: "first", Labels: map[string]string{"schedule": "example"}}},
+						{ObjectMeta: metav1.ObjectMeta{Name: "second", Labels: map[string]string{"schedule": "example"}}},
+					},
+				}, nil
+			}}
+			wfi := &WorkflowInterface{workflowInterface: client}
+			items, next, err := wfi.ListPage(context.Background(), options)
+			if fail {
+				require.ErrorIs(t, err, readErr)
+				require.Nil(t, items)
+				require.Empty(t, next)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, "next-page", next)
+			require.Len(t, items, 2)
+			require.Equal(t, "first", items[0].ExecutionName())
+			require.Equal(t, "second", items[1].ExecutionName())
+		})
+	}
 }
 
 func TestWorkflowInterface_Patch(t *testing.T) {
