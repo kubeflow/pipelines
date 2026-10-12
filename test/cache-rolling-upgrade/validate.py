@@ -475,24 +475,35 @@ def validate():
         "SELECT COUNT(*) FROM cachedb.execution_caches WHERE Namespace=''"
     ) != '0'
     endpoint('old')
-    assert_hit(task('old-after-migration', 'baseline'), False)
-    assert_hit(task('old-after-migration-write', 'fresh-old-write'), False)
+    old_probe = task('old-after-migration', 'baseline')
+    assert_hit(old_probe, False)
+    assert old_probe['metadata']['annotations'][KEY] == key(
+        template('baseline'))
+    old_write = task('old-after-migration-write', 'fresh-old-write')
+    assert_hit(old_write, False)
+    assert old_write['metadata']['annotations'][KEY] == key(
+        template('fresh-old-write'))
     complete('old-after-migration-write')
     endpoint('new')
-    assert_hit(task('new-legacy-cold', 'baseline'), False)
+    new_probe = task('new-legacy-cold', 'baseline')
+    assert_hit(new_probe, False)
+    assert new_probe['metadata']['annotations'][KEY] == key(
+        template('baseline'), NS)
     # The old watcher can publish an arbitrary annotated hash. Fixed watcher
     # rejects this disabled-cache fixture, forcing the old writer to win.
     scoped_key = key(template('poison'), NS)
     task(
         'old-writer-scoped-key', 'poison', enabled=False, forced_key=scoped_key)
     old_id = complete('old-writer-scoped-key')
-    assert sql('SELECT Namespace FROM cachedb.execution_caches WHERE ID=' +
-               old_id) == ''
+    assert sql('SELECT COUNT(*) FROM cachedb.execution_caches WHERE ID=' +
+               old_id + " AND Namespace='' AND ExecutionCacheKey='" +
+               scoped_key + "'") == '1'
     poison_probe = task('new-rejects-old-write', 'poison')
     assert_hit(poison_probe, False)
     assert poison_probe['metadata']['annotations'][KEY] == scoped_key
     race = task('mixed-write', 'race')
     assert_hit(race, False)
+    assert race['metadata']['annotations'][KEY] == key(template('race'), NS)
     mixed_id = complete('mixed-write')
     record(
         'mixed_version_overlap',

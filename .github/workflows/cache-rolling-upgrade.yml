@@ -3,7 +3,12 @@ name: Legacy cache rolling upgrade
 on:
   workflow_dispatch:
   push:
-    branches: [codex/218-cache-rolling-validation]
+    branches: [release-2.18]
+    paths:
+      - 'backend/src/cache/**'
+      - 'backend/Dockerfile.cacheserver'
+      - 'test/cache-rolling-upgrade/**'
+      - '.github/workflows/cache-rolling-upgrade.yml'
   pull_request:
     branches: [release-2.18]
     paths:
