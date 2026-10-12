@@ -26,6 +26,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
+      - name: Test acceptance assertions
+        run: python3 -m unittest discover -s test/cache-rolling-upgrade -p 'test_*.py'
       - name: Create disposable cluster
         uses: ./.github/actions/create-cluster
         with:

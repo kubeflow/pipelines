@@ -69,6 +69,10 @@ func TestRollingUpgradeExecutionCacheStorage(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 	defer closeDB(t, db)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	// An in-memory SQLite database belongs to one connection.
+	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(&executionCache217{}))
 	require.NoError(t, insertCache217(db, "legacy-key", "legacy-output"))
 	store := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect.NewDBDialect("sqlite"))

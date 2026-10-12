@@ -123,6 +123,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   `minReadySeconds` and per-revision Services make overlap observable;
   both watchers remain running. The ordinary rolling Deployment then converges
   before cold-to-warm, cross-namespace and retained old-format completion checks.
+  Retained completion requires the candidate watcher’s explicit rejection log,
+  with pod-label and database invariants rechecked after subsequent writes.
   Synthetic Pods replace Argo's completion label, so this is cache component
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;

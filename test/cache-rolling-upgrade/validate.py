@@ -204,6 +204,30 @@ def complete(name):
                 'watcher persisted ' + name)
 
 
+def assert_legacy_completion_unwritten():
+    assert not get('pod', 'old-inflight')['metadata']['labels'].get(CACHE_ID), (
+        'Retained legacy completion was cached; inspect candidate watcher logs')
+    legacy_key = key(template('inflight'))
+    assert sql(
+        "SELECT COUNT(*) FROM cachedb.execution_caches WHERE "
+        "ExecutionCacheKey='" + legacy_key + "'") == '0', (
+            'Retained legacy completion wrote a cache row; inspect watcher logs'
+        )
+
+
+def wait_for_legacy_completion_rejection():
+    # Read the converged candidate's explicit rejection, not elapsed wall time.
+    rejection = (
+        'skipping cache write for pod ' + NS +
+        '/old-inflight: execution cache key does not match namespace and template'
+    )
+    wait(
+        lambda: rejection in k('-n', NS, 'logs', 'deployment/cache-server',
+                               '-c', 'server'),
+        'candidate watcher rejected retained legacy completion')
+    assert_legacy_completion_unwritten()
+
+
 def assert_hit(pod, expected):
     actual = pod['metadata']['labels'].get(HIT) == 'true'
     assert actual == expected, (pod['metadata']['name'], actual, expected)
@@ -595,8 +619,7 @@ def validate():
         lambda: len(pods()) == 1 and pods()[0]['metadata']['labels']['version']
         == 'new', 'all old processes terminated')
     k('-n', NS, 'label', 'pod', 'old-inflight', COMPLETE + '=true')
-    time.sleep(5)
-    assert not get('pod', 'old-inflight')['metadata']['labels'].get(CACHE_ID)
+    wait_for_legacy_completion_rejection()
     assert_hit(task('inflight-cold', 'inflight'), False)
     complete('inflight-cold')
     assert_hit(task('inflight-warm', 'inflight'), True)
@@ -611,8 +634,10 @@ def validate():
     assert_hit(task('baseline-cold', 'baseline'), False)
     complete('baseline-cold')
     assert_hit(task('baseline-warm', 'baseline'), True)
+    assert_legacy_completion_unwritten()
     record(
         'converged_enforcement',
+        retained_legacy_completion_rejected=True,
         old_processes=0,
         same_namespace_hit=True,
         cross_namespace_hit=False,
