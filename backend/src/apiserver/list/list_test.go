@@ -15,6 +15,7 @@
 package list
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -141,6 +142,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "CreatedTimestamp", IsDesc: true},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "CreatedTimestamp",
 				SortByFieldValue:  int64(1234),
 				SortByFieldPrefix: "",
@@ -155,6 +157,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "PrimaryKey", IsDesc: true},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "PrimaryKey",
 				SortByFieldValue:  "uuid123",
 				SortByFieldPrefix: "",
@@ -169,6 +172,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "FakeName", IsDesc: false},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
@@ -187,6 +191,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "FakeName",
 				SortByFieldValue:  "Fake",
 				SortByFieldPrefix: "",
@@ -205,6 +210,7 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				},
 			},
 			want: &token{
+				OrderingVersion:   currentOrderingVersion,
 				SortByFieldName:   "m1",
 				SortByFieldValue:  1.0,
 				SortByFieldPrefix: "",
@@ -432,6 +438,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "CreatedTimestamp",
@@ -447,6 +454,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "CreatedTimestamp",
@@ -462,6 +470,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -477,6 +486,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -492,6 +502,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "FakeName",
@@ -507,6 +518,7 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
+					OrderingVersion:     currentOrderingVersion,
 					KeyFieldName:        "PrimaryKey",
 					KeyFieldPrefix:      "",
 					SortByFieldName:     "PrimaryKey",
@@ -1332,9 +1344,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 // A sort field that GetFieldValue cannot resolve still returns a first page,
 // then fails the whole call once NextPageToken has to build a token.
 func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
-	// Both stores parse the StateHistory column into a slice and drop the raw
-	// value, so a page token has nothing to carry. Filters still read the column.
-	unresolvable := map[string]bool{"StateHistory": true}
+	// Run history remains a parsed slice without a cursor value. Task listing
+	// preserves its raw SQL value separately from the public response model.
+	unresolvable := map[string]bool{"Run.StateHistory": true}
 
 	listables := []Listable{
 		&model.Run{},
@@ -1350,7 +1362,7 @@ func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
 		for apiField, modelField := range listable.APIToModelFieldMap() {
 			t.Run(modelName+"/"+apiField, func(t *testing.T) {
 				value := listable.GetFieldValue(modelField)
-				if unresolvable[modelField] {
+				if unresolvable[modelName+"."+modelField] {
 					assert.Nil(t, value,
 						"%s.GetFieldValue(%q) now returns a value, so remove %q from unresolvable",
 						modelName, modelField, modelField)
@@ -1361,5 +1373,72 @@ func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
 					modelName, modelField, apiField)
 			})
 		}
+	}
+}
+
+type nullableListable struct {
+	*fakeListable
+	value interface{}
+}
+
+func (n *nullableListable) GetFieldValue(name string) interface{} {
+	if name == "FakeName" {
+		return n.value
+	}
+	return n.fakeListable.GetFieldValue(name)
+}
+
+func TestNextPageToken_PreservesSQLNullAndZeroValues(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		value, want interface{}
+		isNull      bool
+	}{
+		{"null string", sql.NullString{}, nil, true},
+		{"empty string", sql.NullString{Valid: true}, "", false},
+		{"null integer", sql.NullInt64{}, nil, true},
+		{"zero integer", sql.NullInt64{Valid: true}, int64(0), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			original := &fakeListable{PrimaryKey: "key"}
+			opts, err := NewOptions(original, 2, "name", nil)
+			assert.NoError(t, err)
+			got, err := opts.nextPageToken(&nullableListable{fakeListable: original, value: tc.value})
+			assert.NoError(t, err)
+			if assert.NotNil(t, got) {
+				assert.Equal(t, tc.want, got.SortByFieldValue)
+				assert.Equal(t, tc.isNull, got.SortByFieldIsNull)
+				assert.Equal(t, "key", got.KeyFieldValue)
+			}
+		})
+	}
+}
+
+func TestNewOptions_NamedStringsUseSameOrderAcrossPages(t *testing.T) {
+	for _, tc := range []struct {
+		name, sort string
+		row        Listable
+	}{
+		{"pipeline description", "description", &model.Pipeline{UUID: "id", Description: model.LargeText("Bravo")}},
+		{"version description", "description", &model.PipelineVersion{UUID: "id", Description: model.LargeText("Bravo")}},
+		{"task state", "state", &model.Task{UUID: "id", State: model.RuntimeStateRunning}},
+		{"task state history", "state_history", &model.Task{UUID: "id", StateHistoryString: model.LargeText("[]")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, err := NewOptions(tc.row, 2, tc.sort, nil)
+			assert.NoError(t, err)
+			assert.True(t, opts.SortByFieldIsString)
+			first, _, err := opts.AddSortingToSelect(sq.Select("*"), testQuote, "").ToSql()
+			assert.NoError(t, err)
+			token, err := opts.NextPageToken(tc.row)
+			assert.NoError(t, err)
+			next, err := NewOptionsFromToken(token, 2)
+			assert.NoError(t, err)
+			assert.True(t, next.SortByFieldIsString)
+			resumed, _, err := next.AddSortingToSelect(sq.Select("*"), testQuote, "").ToSql()
+			assert.NoError(t, err)
+			assert.Equal(t, strings.Split(first, " ORDER BY ")[1], strings.Split(resumed, " ORDER BY ")[1])
+			assert.Contains(t, first, "LOWER(")
+		})
 	}
 }

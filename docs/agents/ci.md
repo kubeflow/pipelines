@@ -98,3 +98,18 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   handler authorization and Kubernetes SAR, not ingress authentication, Argo
   execution, archived logs, browser navigation, or TensorFlow execution. The job
   deletes its entire disposable cluster even on failure.
+
+- The pagination upgrade fixture retains its source API through mixed-version
+  verification and evidence upload, then removes that deployment before general
+  upgrade verification. Cleanup runs after failures and cancellation, tolerates
+  an absent fixture, and waits for foreground deletion of its Pods. General
+  upgrade verification uses an explicit non-cancellation condition so pagination,
+  evidence-upload, or cleanup failure cannot silently skip it; those failures
+  still fail the job.
+
+- Pagination acceptance additionally creates suspended synthetic V1 runs to test
+  mixed-case V1/V2 run lists and nullable metric cursors. A separate always-run
+  cleanup deletes only Workflows labeled
+  `pipelines.kubeflow.org/pagination-fixture=true`, including after failure or
+  cancellation. Source baselines and independent complete inventories distinguish
+  old defects from changed comparison order; fresh candidate omissions always fail.

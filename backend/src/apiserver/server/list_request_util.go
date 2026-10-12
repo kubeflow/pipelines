@@ -219,6 +219,9 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 		}
 	}
 
+	if err := opts.ValidateOrdering(listable); err != nil {
+		return nil, err
+	}
 	return opts, nil
 }
 

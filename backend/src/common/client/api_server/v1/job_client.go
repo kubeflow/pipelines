@@ -196,7 +196,7 @@ func (c *JobClient) List(parameters *params.JobServiceListJobsParams) (
 	response, err := c.apiClient.JobService.JobServiceListJobsContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceListJobsDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatusWithDetails(defaultError.Payload.Message, defaultError.Payload.Code, defaultError.Payload.Details)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

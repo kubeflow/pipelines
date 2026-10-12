@@ -69,8 +69,10 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): React.JSX.Eleme
         columns={props.pipelineSelectorColumns}
         emptyMessage='No pipelines found. Upload a pipeline and then try again.'
         initialSortColumn={PipelineSortKeys.CREATED_AT}
-        selectionChanged={async (selectedId: string) => {
+        selectionCleared={() => setUnconfirmedSelectedPipeline(undefined)}
+        selectionChanged={async (selectedId: string, isCurrent?: () => boolean) => {
           const selectedPipeline = await Apis.pipelineServiceApi.getPipeline(selectedId);
+          if (isCurrent?.() === false) return;
           setUnconfirmedSelectedPipeline(selectedPipeline);
         }}
       />
