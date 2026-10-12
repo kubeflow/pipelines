@@ -67,61 +67,46 @@ jobs:
           set -euo pipefail
 
           for attempt in $(seq 1 3); do
-            producer_run_id=""
-            if artifacts=$(gh api --method GET \
+            reference=""
+            if artifacts=$(gh api --method GET --paginate --slurp \
                 "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
-                -f name="${ARTIFACT_NAME}" \
-                -f per_page=100); then
-              producer_run_id=$(python3 \
+                -f name="${ARTIFACT_NAME}" -f per_page=100); then
+              if ! reference=$(python3 \
                 .github/resources/scripts/runtime_base_image_artifacts.py \
-                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
+                select-artifact --source-sha "${SOURCE_SHA}" \
+                --repository-id "$GITHUB_REPOSITORY_ID" <<< "$artifacts"); then
+                reference=""
+                echo "::warning::Invalid shared runtime artifact metadata; retrying lookup"
+              fi
             else
               echo "::warning::Failed to query runtime base image artifacts"
             fi
-
-            if [[ -n "${producer_run_id}" ]]; then
-              echo "run-id=${producer_run_id}" >> "$GITHUB_OUTPUT"
+            if [[ -n "$reference" ]]; then
+              mkdir -p "$ARTIFACTS_PATH"
+              printf '%s\n' "$reference" > "$ARTIFACTS_PATH/runtime-reference.json"
+              echo "shared=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-
-            if [[ "${attempt}" -lt 3 ]]; then
-              echo "Runtime base image artifact not ready; retrying in 10 seconds..."
-              sleep 10
-            fi
+            if [[ "$attempt" -lt 3 ]]; then sleep 10; fi
           done
-
           echo "::warning::No eligible shared runtime image archive found; building from this checkout."
 
-      - name: Download runtime base images from producer
-        id: download-runtime-base-images
-        if: steps.runtime-base-images-producer.outputs.run-id != ''
-        continue-on-error: true
-        uses: ./.github/actions/download-artifact-with-retry
-        with:
-          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
-          path: ${{ env.ARTIFACTS_PATH }}
-          github-token: ${{ github.token }}
-          run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
-          required-files: ${{ env.RUNTIME_IMAGE_FILES }}
-
       - name: Configure Docker Hub mirror
-        if: steps.download-runtime-base-images.outcome != 'success'
+        if: steps.runtime-base-images-producer.outputs.shared != 'true'
         shell: bash
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Build runtime base image archives
         id: build-runtime-base-images
-        if: steps.download-runtime-base-images.outcome != 'success'
+        if: steps.runtime-base-images-producer.outputs.shared != 'true'
         shell: bash
         env:
-          DOWNLOAD_OUTCOME: ${{ steps.download-runtime-base-images.outcome }}
           REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}
         run: |
-          echo "Runtime image cache download: $DOWNLOAD_OUTCOME; rebuilding locally"
-          echo "Runtime image cache download: $DOWNLOAD_OUTCOME. Rebuilding and verifying archives locally." >> "$GITHUB_STEP_SUMMARY"
-          # This job owns one fixed cache directory. Clear failed multi-gigabyte
-          # downloads before allocating the fresh rebuild, without accepting an
-          # arbitrary cleanup path from the download action or its outputs.
+          echo "No shared runtime image archive; rebuilding locally"
+          echo "Rebuilding and verifying runtime archives locally." >> "$GITHUB_STEP_SUMMARY"
+          # This job owns one fixed directory. Never accept an arbitrary
+          # cleanup path before allocating the fresh rebuild.
           if [[ "$ARTIFACTS_PATH" != 'runtime-base-images-cache' ]]; then
             echo "::error::Unexpected runtime image cache path: $ARTIFACTS_PATH"
             exit 1

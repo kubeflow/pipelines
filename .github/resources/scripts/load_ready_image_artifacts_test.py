@@ -15,6 +15,7 @@
 """Execute ready-image downloads/imports with isolated GitHub/Kind/Docker
 fakes."""
 
+import contextlib
 import fcntl
 import json
 import os
@@ -25,7 +26,10 @@ import tempfile
 import time
 import unittest
 
+import runtime_base_image_artifacts
+
 SCRIPTS = Path(__file__).resolve().parent
+ROOT = SCRIPTS.parents[2]
 ARTIFACTS = ('apiserver', 'scheduledworkflow', 'persistenceagent', 'frontend',
              'viewer-crd-controller', 'driver', 'launcher',
              'runtime-base-images')
@@ -75,7 +79,10 @@ if command == 'sleep':
 if command == 'gh':
     assert len(args) == 2 and args[0] == 'api', args
     prefix = 'repos/kubeflow/pipelines/actions/artifacts/'
-    assert args[1].startswith(prefix) and args[1].endswith('/zip'), args
+    assert args[1].startswith(prefix), args
+    if not args[1].endswith('/zip'):
+        print(json.dumps(config['shared_metadata']))
+        sys.exit(0)
     artifact_id = args[1][len(prefix):-len('/zip')]
     artifact = config['artifact_ids'][artifact_id]
     destination = Path(os.environ['IMAGE_PATH']) / artifact
@@ -99,7 +106,12 @@ if command == 'gh':
     time.sleep(0.08)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
-        if mode == 'unsafe':
+        if mode in ('reference', 'mixed', 'bad-reference'):
+            archive.writestr('runtime-reference.json',
+                             json.dumps(config.get('reference', {'artifact_id': 999})))
+            if mode == 'mixed':
+                archive.writestr('runtime-base-images.tar', 'mixed archives')
+        elif mode == 'unsafe':
             entry = zipfile.ZipInfo(artifact + '.tar')
             entry.create_system = 3
             entry.external_attr = (stat.S_IFLNK | 0o777) << 16
@@ -157,7 +169,8 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.scripts.mkdir(parents=True)
         for name in ('load-ready-image-artifacts.sh', 'artifact-files.sh',
                      'ci-image-artifacts.sh', 'helper-functions.sh',
-                     'load-kind-image-archives.sh'):
+                     'load-kind-image-archives.sh',
+                     'runtime_base_image_artifacts.py'):
             shutil.copy2(SCRIPTS / name, self.scripts / name)
         (self.root / 'resources/runtime-base-images.txt').write_text(
             '# runtime inventory\nregistry/runtime:one\n'
@@ -191,6 +204,10 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
                 str(self.bin) + os.pathsep + os.environ['PATH'],
             'GITHUB_REPOSITORY':
                 'kubeflow/pipelines',
+            'SOURCE_SHA':
+                'test-sha',
+            'GITHUB_REPOSITORY_ID':
+                '1',
             'GITHUB_RUN_ID':
                 '12345',
             'GH_TOKEN':
@@ -211,6 +228,88 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
                 str(self.config_file),
         }
         self.script = self.scripts / 'load-ready-image-artifacts.sh'
+
+    def shared_settings(self, **overrides):
+        with contextlib.chdir(ROOT):
+            artifact_name = runtime_base_image_artifacts.expected_artifact_name(
+            )
+        metadata = {
+            'id': 999,
+            'name': artifact_name,
+            'expired': False,
+            'created_at': '2026-01-01T00:00:00Z',
+            'expires_at': '2099-01-01T00:00:00Z',
+            'workflow_run': {
+                'id': 111,
+                'repository_id': 1,
+                'head_repository_id': 1,
+                'head_sha': 'other-source',
+                'head_branch': 'master',
+            },
+        }
+        metadata.update(overrides)
+        return {
+            'artifact_ids': {
+                str(ARTIFACT_IDS['runtime-base-images']): 'runtime-base-images',
+                '999': 'runtime-base-images',
+            },
+            'downloads': {
+                'runtime-base-images': ['reference', 'good']
+            },
+            'shared_metadata': metadata,
+        }
+
+    def test_shared_reference_downloads_exact_validated_id_and_imports(self):
+        self.configure(**self.shared_settings())
+        result = self.run_loader('runtime-base-images')
+        self.assert_success(result)
+        self.assertIn('artifact ID 999', self.state()['loaded_content'])
+        self.assertEqual(self.state()['attempts']['runtime-base-images'], 2)
+        self.assertIn('ZIP transfer completed; extraction started',
+                      result.stdout)
+        self.assertIn('Kind archive load completed; CRI verification started',
+                      result.stdout)
+
+    def test_shared_reference_rejects_untrusted_or_expired_metadata_before_download(
+            self):
+        for override in ({
+                'expired': True
+        }, {
+                'name': 'wrong-fingerprint'
+        }, {
+                'id': 998
+        }, {
+                'workflow_run': {
+                    'id': 111,
+                    'repository_id': 1,
+                    'head_repository_id': 2,
+                    'head_branch': 'master',
+                    'head_sha': 'other'
+                }
+        }):
+            with self.subTest(override=override):
+                self.configure(**self.shared_settings(**override))
+                state = self.state()
+                state['attempts'] = {}
+                self.state_file.write_text(json.dumps(state))
+                result = self.run_loader('runtime-base-images')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(
+                    self.state()['attempts']['runtime-base-images'], 1)
+                self.assertFalse(self.state()['imports'])
+
+    def test_reference_cannot_mix_archives_or_follow_another_reference(self):
+        for modes in (['mixed'], ['reference', 'reference']):
+            with self.subTest(modes=modes):
+                settings = self.shared_settings()
+                settings['downloads']['runtime-base-images'] = modes
+                self.configure(**settings)
+                state = self.state()
+                state['attempts'] = {}
+                self.state_file.write_text(json.dumps(state))
+                result = self.run_loader('runtime-base-images')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(self.state()['imports'])
 
     def configure(self, **settings):
         settings.setdefault('artifact_ids', {
@@ -237,6 +336,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
     def run_loader(self, *artifacts):
         return subprocess.run(
             self.command(*artifacts),
+            cwd=ROOT,
             env=self.env,
             text=True,
             capture_output=True,

@@ -109,12 +109,20 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         self.assertFalse(wait.get('continue-on-error', False))
         self.assertEqual(
             wait['env'], {
-                'GH_TOKEN': '${{ github.token }}',
-                'IMAGE_PATH': '${{ inputs.image_path }}',
-                'CLUSTER_NAME': '${{ inputs.cluster_name }}',
-                'IMAGE_REGISTRY': '${{ inputs.image_registry }}',
-                'IMAGE_TAG': '${{ inputs.image_tag }}',
-                'LOAD_MODELCAR_FIXTURE': '${{ inputs.load_modelcar_fixture }}',
+                'GH_TOKEN':
+                    '${{ github.token }}',
+                'IMAGE_PATH':
+                    '${{ inputs.image_path }}',
+                'CLUSTER_NAME':
+                    '${{ inputs.cluster_name }}',
+                'IMAGE_REGISTRY':
+                    '${{ inputs.image_registry }}',
+                'IMAGE_TAG':
+                    '${{ inputs.image_tag }}',
+                'SOURCE_SHA':
+                    '${{ github.event.pull_request.head.sha || github.sha }}',
+                'LOAD_MODELCAR_FIXTURE':
+                    '${{ inputs.load_modelcar_fixture }}',
             })
         for step_id in ('deploy-tinyproxy', 'configure', 'deploy-kfp'):
             downstream = next(

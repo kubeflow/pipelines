@@ -71,7 +71,7 @@ docker() { timeout --foreground --kill-after=30s 10m docker "$@"; }
 # Extract only declared files; validate every ZIP entry before writing any file.
 # The shared artifact-files helper validates destination paths before this runs.
 extract_artifact() {
-  timeout --foreground --kill-after=30s 10m python3 - "$artifact_zip" "$1" "$2" <<'PYZIP'
+  timeout --foreground --kill-after=30s 10m python3 - "$artifact_zip" "$1" "$2" "${3:-false}" <<'PYZIP'
 from pathlib import Path
 import shutil
 import stat
@@ -79,11 +79,18 @@ import sys
 import zipfile
 import zlib
 
-archive_path, destination, manifest = sys.argv[1:]
+archive_path, destination, manifest, allow_reference = sys.argv[1:]
 required = set(manifest.splitlines())
 root = Path(destination)
 try:
     with zipfile.ZipFile(archive_path) as archive:
+        if allow_reference == 'true' and 'runtime-reference.json' in archive.namelist():
+            if any(name in archive.namelist() for name in required):
+                raise ValueError('Runtime artifact mixes a reference with image archives')
+            required = {'runtime-reference.json'}
+            reference = archive.getinfo('runtime-reference.json')
+            if reference.file_size > 1024:
+                raise ValueError('Runtime reference exceeds 1024 bytes')
         selected = {}
         for entry in archive.infolist():
             name = entry.filename
@@ -121,14 +128,24 @@ PYZIP
 
 download_artifact() {
   local artifact=$1 artifact_id=$2 destination=$3 required_files=$4 attempt result
+  local allow_reference=${5:-false} verified_files
   for attempt in 1 2; do
     DOWNLOAD_PATH="$destination" REQUIRED_FILES="$required_files" \
       bash "$script_directory/artifact-files.sh" prepare
+    if [[ "$allow_reference" == true ]]; then
+      rm -f -- "$destination/runtime-reference.json"
+    fi
     echo "[$artifact] download started (artifact ID $artifact_id, attempt $attempt/2)"
     if timeout --foreground --kill-after=30s 10m gh api \
         "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$artifact_zip"; then
-      if extract_artifact "$destination" "$required_files"; then
-        if DOWNLOAD_PATH="$destination" REQUIRED_FILES="$required_files" \
+      echo "[$artifact] ZIP transfer completed; extraction started"
+      if extract_artifact "$destination" "$required_files" "$allow_reference"; then
+        echo "[$artifact] ZIP extraction completed; completeness verification started"
+        verified_files=$required_files
+        if [[ "$allow_reference" == true && -f "$destination/runtime-reference.json" ]]; then
+          verified_files=runtime-reference.json
+        fi
+        if DOWNLOAD_PATH="$destination" REQUIRED_FILES="$verified_files" \
             bash "$script_directory/artifact-files.sh" verify; then
           rm -- "$artifact_zip"
           echo "[$artifact] download completed"
@@ -160,7 +177,23 @@ load_artifact() {
       required_files+="${file#"$artifact/"}"$'\n'
     fi
   done <<< "$deploy_files"
-  download_artifact "$artifact" "$artifact_id" "$destination" "$required_files"
+  if [[ "$artifact" == runtime-base-images ]]; then
+    download_artifact "$artifact" "$artifact_id" "$destination" "$required_files" true
+    if [[ -f "$destination/runtime-reference.json" ]]; then
+      local reference="$destination/runtime-reference.json" metadata shared_id
+      shared_id=$(python3 "$script_directory/runtime_base_image_artifacts.py" reference-id "$reference")
+      metadata=$(timeout --foreground --kill-after=30s 10m gh api \
+        "repos/$GITHUB_REPOSITORY/actions/artifacts/$shared_id")
+      shared_id=$(python3 "$script_directory/runtime_base_image_artifacts.py" validate-reference \
+        --reference "$reference" --source-sha "${SOURCE_SHA:?}" \
+        --repository-id "${GITHUB_REPOSITORY_ID:?}" <<< "$metadata")
+      echo "[$artifact] validated shared artifact ID $shared_id; downloading directly"
+      rm -- "$reference"
+      download_artifact "$artifact" "$shared_id" "$destination" "$required_files"
+    fi
+  else
+    download_artifact "$artifact" "$artifact_id" "$destination" "$required_files"
+  fi
   archive="$destination/$artifact.tar"
   echo "[$artifact] import started"
   case "$artifact" in
@@ -173,11 +206,16 @@ load_artifact() {
       docker image rm "$IMAGE_REGISTRY/$artifact:ci"
       ;;
     runtime-base-images)
+      echo "[$artifact] Kind archive load started"
       retry 3 10 kind --name "$CLUSTER_NAME" load image-archive "$archive"
+      echo "[$artifact] Kind archive load completed; CRI verification started"
       verify_runtime_base_images_in_kind "$script_directory/../runtime-base-images.txt" "$CLUSTER_NAME"
+      echo "[$artifact] CRI verification completed"
       rm -- "$archive"
       if [[ "$LOAD_MODELCAR_FIXTURE" == true ]]; then
+        echo "[$artifact] Modelcar import started"
         retry 3 10 kind --name "$CLUSTER_NAME" load image-archive "$destination/modelcar.tar"
+        echo "[$artifact] Modelcar import completed"
         rm -- "$destination/modelcar.tar"
       fi
       ;;

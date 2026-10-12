@@ -71,6 +71,7 @@ runs:
         CLUSTER_NAME: ${{ inputs.cluster_name }}
         IMAGE_REGISTRY: ${{ inputs.image_registry }}
         IMAGE_TAG: ${{ inputs.image_tag }}
+        SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
       run: |
         ./.github/resources/scripts/wait-for-image-artifacts.sh \
