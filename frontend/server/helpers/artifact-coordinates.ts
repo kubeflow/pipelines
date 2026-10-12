@@ -15,14 +15,16 @@
 import type { Request } from 'express';
 
 export function resolveArtifactCoordinates(
-  request: Request,
+  request: Pick<Request, 'path' | 'query'>,
 ): { source: string; bucket: string; key: string } | null {
-  const artifactPathStart = request.path.indexOf('/artifacts/');
+  // Express routes are case-insensitive and accept a trailing slash by default.
+  // Resolve the same route here rather than falling back to unrelated queries.
+  const artifactPathStart = request.path.search(/\/artifacts\//i);
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
-  const isExactGetEndpoint = artifactPath === '/artifacts/get';
+  const isExactGetEndpoint = /^\/artifacts\/get\/?$/i.test(artifactPath);
   if (!isExactGetEndpoint) {
-    const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
+    const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/i);
     if (downloadPathMatch) {
       try {
         return {

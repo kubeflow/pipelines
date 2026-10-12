@@ -418,7 +418,7 @@ func normalizeCompletedRunRoots(g Graph, runs []RunHistory) {
 }
 
 // Export follows artifact producers and execution parents, never unrelated consumers.
-func (m *Metadata) Export(ctx context.Context, runs []RunHistory, authorizeRun func(string) error) (Graph, error) {
+func (m *Metadata) Export(ctx context.Context, runs []RunHistory, loadAuthorizedRun func(string) (RunHistory, error)) (Graph, error) {
 	g := Graph{}
 	all := map[string]map[string]Node{"contexts": {}, "executions": {}, "artifacts": {}}
 	graphBytes := 0
@@ -635,14 +635,23 @@ func (m *Metadata) Export(ctx context.Context, runs []RunHistory, authorizeRun f
 	for _, t := range g["context_types"] {
 		contextTypes[sid(t["id"])] = sid(t["name"])
 	}
+	normalizationRuns := append([]RunHistory(nil), runs...)
+	selectedRuns := make(map[string]bool, len(runs))
+	for _, history := range runs {
+		selectedRuns[history.Run.UUID] = true
+	}
 	for _, c := range g["contexts"] {
 		if contextTypes[sid(c["type_id"])] == "system.PipelineRun" {
-			if err := authorizeRun(sid(c["name"])); err != nil {
+			history, err := loadAuthorizedRun(sid(c["name"]))
+			if err != nil {
 				props := object(c["custom_properties"])
 				ns, exists := props[provenance+"namespace"]
 				if !exists || sid(object(ns)["string_value"]) != m.Namespace || sid(object(props[provenance+"source"])["string_value"]) == "" {
 					return nil, err
 				}
+			} else if history.Run.UUID == sid(c["name"]) && !selectedRuns[history.Run.UUID] {
+				// Provenance-only authorization never supplies completion evidence.
+				normalizationRuns = append(normalizationRuns, history)
 			}
 		}
 	}
@@ -656,7 +665,7 @@ func (m *Metadata) Export(ctx context.Context, runs []RunHistory, authorizeRun f
 			}
 		}
 	}
-	normalizeCompletedRunRoots(g, runs)
+	normalizeCompletedRunRoots(g, normalizationRuns)
 	return g, validateGraph(g, runs)
 }
 

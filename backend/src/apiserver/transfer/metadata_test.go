@@ -251,7 +251,7 @@ func TestGeneratedMLMDContractExportStageAndRetry(t *testing.T) {
 	source := Metadata{RPC: ProtoRPC{Conn: descriptorConn{sourceStore}}}
 	runs := []RunHistory{{Run: model.Run{UUID: runID, Namespace: "team", RunDetails: model.RunDetails{PipelineRuntimeManifest: "v2"}}, Tasks: []model.Task{{UUID: "task", RunID: runID, Namespace: "team", MLMDExecutionID: "10", Fingerprint: "source-cache", MLMDOutputs: `{"artifacts":{"artifactIds":[20]}}`}}}}
 	var authorized []string
-	graph, err := source.Export(ctx, runs, func(id string) error { authorized = append(authorized, id); return nil })
+	graph, err := source.Export(ctx, runs, func(id string) (RunHistory, error) { authorized = append(authorized, id); return RunHistory{}, nil })
 	require.NoError(t, err)
 	require.Equal(t, []string{runID}, authorized)
 	require.Len(t, graph["executions"], 3)
@@ -293,11 +293,11 @@ func TestMLMDRejectsNamespaceProvenanceAndTypeConflicts(t *testing.T) {
 	g["contexts"] = append(g["contexts"], Node{"id": "7", "type_id": "1", "name": "other-namespace-run"})
 	g["associations"] = append(g["associations"], Node{"context_id": "7", "execution_id": "12"})
 	m := Metadata{RPC: ProtoRPC{Conn: descriptorConn{&memoryMetadata{graph: g}}}}
-	_, err := m.Export(ctx, []RunHistory{{Run: model.Run{UUID: "run"}}}, func(id string) error {
+	_, err := m.Export(ctx, []RunHistory{{Run: model.Run{UUID: "run"}}}, func(id string) (RunHistory, error) {
 		if id != "run" {
-			return errors.New("cross namespace")
+			return RunHistory{}, errors.New("cross namespace")
 		}
-		return nil
+		return RunHistory{}, nil
 	})
 	require.ErrorContains(t, err, "cross namespace")
 	target := &memoryMetadata{graph: Graph{"execution_types": {{"id": "30", "name": "system.ContainerExecution", "properties": Node{"different": "STRING"}}}}}
@@ -318,7 +318,9 @@ func TestReexportImportedMetadataUsesRecordedNamespace(t *testing.T) {
 	mapping, err := metadata.Stage(ctx, lineageGraph(runID), "source")
 	require.NoError(t, err)
 	runs := []RunHistory{{Run: model.Run{UUID: runID, RunDetails: model.RunDetails{PipelineRuntimeManifest: "v2"}}}}
-	graph, err := metadata.Export(ctx, runs, func(string) error { return errors.New("ancestor producer SQL row was not included in prior batch") })
+	graph, err := metadata.Export(ctx, runs, func(string) (RunHistory, error) {
+		return RunHistory{}, errors.New("ancestor producer SQL row was not included in prior batch")
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, graph["executions"])
 	require.Equal(t, mapping["contexts"]["5"], strconv.FormatInt(runs[0].Run.PipelineRunContextId, 10))
@@ -328,7 +330,7 @@ func TestReexportImportedMetadataUsesRecordedNamespace(t *testing.T) {
 		}
 	}
 	metadata.Namespace = "other"
-	_, err = metadata.Export(ctx, runs, func(string) error { return errors.New("cross namespace") })
+	_, err = metadata.Export(ctx, runs, func(string) (RunHistory, error) { return RunHistory{}, errors.New("cross namespace") })
 	require.ErrorContains(t, err, "cross namespace")
 }
 
@@ -380,7 +382,7 @@ func TestExportCompletedLegacyRoot(t *testing.T) {
 			store := &memoryMetadata{graph: graph}
 			source := Metadata{RPC: ProtoRPC{Conn: descriptorConn{store}}}
 			require.ErrorContains(t, validateGraph(graph, runs), "unfinished execution")
-			exported, err := source.Export(context.Background(), runs, func(string) error { return nil })
+			exported, err := source.Export(context.Background(), runs, func(string) (RunHistory, error) { return RunHistory{}, nil })
 			require.NoError(t, err)
 			for _, node := range exported["executions"] {
 				if sid(node["id"]) == "11" {

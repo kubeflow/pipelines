@@ -22,12 +22,14 @@ import FilterIcon from '@mui/icons-material/FilterList';
 import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
 import { ListRequest } from '../lib/Apis';
+import { PaginationRestartRequired } from '../lib/Pagination';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { LocalStorage } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { debounce } from 'lodash';
 import {
+  Alert,
   InputAdornment,
   Checkbox,
   CircularProgress,
@@ -203,11 +205,14 @@ interface CustomTableProps {
   selectedIds?: string[];
   toggleExpansion?: (rowId: number) => void;
   updateSelection?: (selectedIds: string[]) => void;
+  onPaginationRestart?: () => void;
   useRadioButtons?: boolean;
   disableAdditionalSelection?: boolean;
 }
 
 interface CustomTableState {
+  paginationNotice?: string;
+  paginationRestartFailed?: boolean;
   currentPage: number;
   filterString: string;
   filterStringEncoded: string;
@@ -224,6 +229,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   /** Suppresses stale `isBusy` updates when reload() overlaps (e.g. React StrictMode remounts). */
   private _activeReloadGeneration = 0;
+  private _paginationResetGeneration = 0;
 
   private _debouncedFilterRequest = debounce(
     (filterString: string) => this._requestFilter(filterString),
@@ -253,7 +259,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public handleSelectAllClick(event: React.ChangeEvent<HTMLInputElement>): void {
-    if (this.props.disableSelection === true) {
+    if (this.props.disableSelection === true || this.state.paginationRestartFailed) {
       // This should be impossible to reach
       return;
     }
@@ -264,7 +270,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public handleClick(e: React.MouseEvent, id: string): void {
-    if (this.props.disableSelection === true) {
+    if (this.props.disableSelection === true || this.state.paginationRestartFailed) {
       return;
     }
 
@@ -303,12 +309,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public render(): React.JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
+    const rows = this.state.paginationRestartFailed ? [] : this.props.rows;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total + (c.flex || 1), 0);
     const widths = this.props.columns.map((c) => ((c.flex || 1) / totalFlex) * 100);
 
     return (
       <div className={commonCss.pageOverflowHidden}>
+        {this.state.paginationNotice && (
+          <Alert severity={this.state.paginationRestartFailed ? 'error' : 'info'} role='status'>
+            {this.state.paginationNotice}
+          </Alert>
+        )}
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
           <div
@@ -352,8 +364,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             // Called as function to avoid breaking shallow rendering tests.
             HeaderRowSelectionSection({
               disableSelection: this.props.disableSelection,
-              indeterminate: !!numSelected && numSelected < this.props.rows.length,
-              isSelected: !!numSelected && numSelected === this.props.rows.length,
+              indeterminate: !!numSelected && numSelected < rows.length,
+              isSelected: !!numSelected && numSelected === rows.length,
               onSelectAll: this.handleSelectAllClick.bind(this),
               showExpandButton: !!this.props.getExpandComponent,
               useRadioButtons: this.props.useRadioButtons,
@@ -410,10 +422,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           )}
 
           {/* Empty experience */}
-          {this.props.rows.length === 0 && !!this.props.emptyMessage && !this.state.isBusy && (
+          {rows.length === 0 && !!this.props.emptyMessage && !this.state.isBusy && (
             <div className={css.emptyMessage}>{this.props.emptyMessage}</div>
           )}
-          {this.props.rows.map((row, i) => {
+          {rows.map((row, i) => {
             if (row.otherFields.length !== this.props.columns.length) {
               logger.error('Rows must have the same number of cells defined in columns');
               return null;
@@ -533,7 +545,68 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         request.sortBy += ' desc';
       }
 
-      result = await this.props.reload(request);
+      const isCurrent = () => this._isMounted && reloadGeneration === this._activeReloadGeneration;
+      // Callbacks may augment filters. Give every attempt a fresh copy so the
+      // retry preserves the original filter rather than appending predicates twice.
+      let requestFailed = false;
+      const attempt = (pageToken: string | undefined) => {
+        const attemptRequest = { ...request, pageToken };
+        requestFailed = false;
+        // Local lifecycle metadata must not become part of the API query.
+        Object.defineProperties(attemptRequest, {
+          isCurrent: { value: isCurrent },
+          onFailure: {
+            value: () => {
+              requestFailed = true;
+            },
+          },
+        });
+        return this.props.reload(attemptRequest);
+      };
+      try {
+        result = await attempt(request.pageToken);
+        if (isCurrent() && !requestFailed)
+          this.setStateSafe({ paginationRestartFailed: false, paginationNotice: undefined });
+      } catch (error) {
+        if (!(error instanceof PaginationRestartRequired)) throw error;
+        if (!isCurrent()) return '';
+        ++this._paginationResetGeneration;
+        this._resetToFirstPage();
+        this.props.updateSelection?.([]);
+        this.props.onPaginationRestart?.();
+        this.setStateSafe({
+          paginationNotice:
+            'Pagination changed after an update. This list was restarted from page one.',
+          paginationRestartFailed: true,
+        });
+        if (!request.pageToken) {
+          this.setStateSafe({ paginationNotice: error.message });
+          return '';
+        }
+        try {
+          // Exactly one retry. A first-page rejection remains visible; it must
+          // never trigger another automatic restart during a mixed-version rollout.
+          result = await attempt('');
+          if (isCurrent()) {
+            this._resetToFirstPage(result);
+            this.setStateSafe({
+              paginationRestartFailed: requestFailed,
+              paginationNotice: requestFailed
+                ? 'Pagination changed, but the first page could not be loaded. Retry this listing.'
+                : 'Pagination changed after an update. This list was restarted from page one.',
+            });
+          }
+        } catch (retryError) {
+          if (isCurrent())
+            this.setStateSafe({
+              paginationNotice:
+                retryError instanceof PaginationRestartRequired
+                  ? retryError.message
+                  : 'Pagination changed, but the first page could not be loaded. Retry this listing.',
+            });
+          return '';
+        }
+      }
     } finally {
       if (this._isMounted && reloadGeneration === this._activeReloadGeneration) {
         this.setStateSafe({ isBusy: false });
@@ -563,7 +636,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           ? this._createAndEncodeFilterV2(filterString)
           : '';
     this.setStateSafe({ filterStringEncoded });
-    this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
+    await this._reloadFirstPage({ filter: filterStringEncoded, pageToken: '' });
   }
 
   private _createAndEncodeFilterV1(filterString: string): string {
@@ -607,9 +680,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       const sortOrder =
         this.state.sortBy === sortBy ? (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
       this.setStateSafe({ sortOrder, sortBy }, async () => {
-        this._resetToFirstPage(
-          await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }),
-        );
+        await this._reloadFirstPage({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy });
       });
     }
   }
@@ -620,9 +691,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     newCurrentPage = Math.max(0, newCurrentPage);
     newCurrentPage = Math.min(this.state.maxPageIndex, newCurrentPage);
 
+    const resetGeneration = this._paginationResetGeneration;
+    const reloadGeneration = this._activeReloadGeneration + 1;
     const newPageToken = await this.reload({
       pageToken: this.state.tokenList[newCurrentPage],
     });
+
+    if (
+      reloadGeneration !== this._activeReloadGeneration ||
+      resetGeneration !== this._paginationResetGeneration ||
+      !this._isMounted
+    )
+      return;
 
     if (newPageToken) {
       // If we're using the greatest yet known page, then the pageToken will be new.
@@ -641,7 +721,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   ): Promise<void> {
     const pageSize = Number(event.target.value);
     LocalStorage.saveTablePageSize(pageSize, this._getPageId());
-    this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
+    await this._reloadFirstPage({ pageSize, pageToken: '' });
+  }
+
+  private async _reloadFirstPage(request: ListRequest): Promise<void> {
+    const generation = this._activeReloadGeneration + 1;
+    const nextToken = await this.reload(request);
+    if (generation === this._activeReloadGeneration) this._resetToFirstPage(nextToken);
   }
 
   private _getPageId(): string | undefined {

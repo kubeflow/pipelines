@@ -4,7 +4,10 @@ The read-only baseline and observation helpers inspect **prepared schedules in a
 isolated multi-user test installation**. The separate `provision_live_schedules.py`
 CI helper creates fixtures and changes their activation state; it is never invoked
 by the operator readiness scan.
-No passing live-cluster result has yet been recorded for this fixture protocol.
+The original V2 protocol passed on release revision `b7a875f3b` in
+[run 37387996475](https://github.com/kubeflow/pipelines/actions/runs/37387996475).
+The transition and V1 extensions below require their own candidate-specific
+acceptance record; the earlier pass does not cover them.
 
 The release acceptance sequence is: prepare on 2.17.2, preserve scanner reports and
 baselines, upgrade to the exact candidate, and verify that the old schedules
@@ -20,7 +23,7 @@ single-user persistence tests. The schedule lane requires either the repository 
 `run_readiness_schedules=true`. Enable it only after the
 scheduling prerequisites land and activation has been reviewed. Preflight rejects
 a candidate missing those prerequisites. The reviewed manual dispatch input permits
-a single isolated acceptance run without changing the repository-wide gate. Integration and an actual passing candidate run remain open in #14421.
+a single isolated acceptance run without changing the repository-wide gate. Record each candidate and the exact scenarios that passed in #14421.
 
 ## Fixture contract
 
@@ -77,6 +80,34 @@ downward-API form and waits for rollout. This prevents a fixture-only literal va
 from conflicting with `valueFrom` during candidate manifest application. No fixture
 schedule is active during this transition; the target phase restores its namespace
 scope before enabling the legacy rejection checks.
+
+## Policy transitions and V1 acceptance
+
+API mode changes must wait for all old/terminating API Pods to disappear and
+for every remaining API Pod to be ready with the requested mode. A Deployment
+rollout readiness result alone is insufficient: existing controller connections
+can still reach an old process during termination. Keep schedules disabled
+through this cutover and retain sanitized Pod UID/mode evidence.
+
+After audit completion and audit-log verification, disable and drain the same
+three schedules before restoring API enforcement. Capture a new baseline and
+require default/granted success plus a fresh denial and no new run for the denied
+account. This verifies return to enforcement after successful audit execution.
+
+Next remove only the fixture controller's named `readiness-granted` use grant.
+Keep the owner's grant and the controller's run-creation access. Verify the actual
+SubjectAccessReview results before activating schedules. Require a working default
+control and fresh rejections with no new runs for the revoked and denied accounts.
+Restore the exact grant afterward and require successful custom-account execution
+again. Each phase retains its own baseline, cutover, observation and completion
+reports. Existing controller retry backoff can delay a fresh tick, so observations
+remain bounded but allow that delay; the fixture does not reset controller state.
+
+The V1 lane creates jobs through `/apis/v1beta1/jobs` using a reviewed, minimal raw
+Argo workflow. It checks default and explicitly granted accounts complete while the
+denied custom account cannot create runs under enforcement. This covers the retained
+V1 scheduling path; it does not claim all V1 components, plugins or customer workloads
+are compatible. All mutations remain restricted to the disposable fixture namespace.
 
 ## Legacy migration acceptance
 
@@ -282,3 +313,17 @@ If audit-emission verification fails, its report includes an allowlisted local
 reason, validation/collection stage, elapsed time, and available collected-byte
 and process-exit counters. Raw log lines and subprocess error text remain private;
 collection limits and exact audit-record requirements remain mandatory.
+
+The post-disable drain allows 600 seconds for successful API run completion,
+covering the persistence agent's existing maximum 360-second retry backoff plus
+execution and reporting grace. A drain failure retains a fixed reason category
+and the last collected run IDs/states for each case, alongside Kubernetes state
+counts. Successful Kubernetes Workflows alone do not satisfy the API completion
+check; blocked runs, failed runs, and collection failures still fail closed.
+
+The target fixture runs retained V1 execution immediately after initial enforce
+validation, before audit and permission transitions. Each activation verifies the
+ScheduledWorkflow enabled state. Activation and failed-observation reports retain
+bounded, sanitized scheduler state, Workflow completion labels, and Event counts
+and classifications. These distinguish API completion from the controller's
+concurrency view without retaining Workflow specs or raw Event messages.

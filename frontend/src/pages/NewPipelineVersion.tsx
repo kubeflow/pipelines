@@ -41,6 +41,7 @@ import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+import { discoverUploadedPipelineVersion } from 'src/lib/PipelineVersionDiscovery';
 
 import { Button, FormControlLabel, InputAdornment, Radio } from '@mui/material';
 
@@ -127,6 +128,55 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
   private _pipelineDisplayNameRef = React.createRef<HTMLInputElement>();
   private _pipelineDescriptionRef = React.createRef<HTMLInputElement>();
+
+  private _versionDiscovery?: AbortController;
+  private _uploadedPipeline?: { pipelineId: string; file: File | null; intent: string };
+
+  // Upload success is retained only for the exact request that created it.
+  private _uploadIntent(state = this.state, props = this.props): string {
+    return JSON.stringify([
+      state.newPipeline,
+      state.importMethod,
+      state.pipelineName,
+      state.pipelineDisplayName,
+      state.pipelineDescription,
+      state.codeSourceUrl,
+      state.packageUrl,
+      state.isPrivate,
+      props.namespace,
+      props.buildInfo?.apiServerMultiUser,
+    ]);
+  }
+
+  private _canRetryVersionDiscovery(): boolean {
+    return (
+      !!this._uploadedPipeline &&
+      this._uploadedPipeline.file === this.state.file &&
+      this._uploadedPipeline.intent === this._uploadIntent()
+    );
+  }
+
+  public componentDidUpdate(
+    previousProps: NewPipelineVersionProps,
+    previousState: NewPipelineVersionState,
+  ): void {
+    // Synchronize outstanding external requests with changed upload inputs.
+    if (
+      previousState.file !== this.state.file ||
+      this._uploadIntent(previousState, previousProps) !== this._uploadIntent()
+    ) {
+      this._uploadedPipeline = undefined;
+      this._versionDiscovery?.abort();
+      if (this._versionDiscovery && this.state.isbeingCreated) {
+        this.setStateSafe({ isbeingCreated: false });
+      }
+    }
+  }
+
+  public componentWillUnmount(): void {
+    this._versionDiscovery?.abort();
+    super.componentWillUnmount();
+  }
 
   private pipelineSelectorColumns = [
     {
@@ -491,7 +541,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               disabled={!!validationError}
               busy={isbeingCreated}
               className={commonCss.buttonAction}
-              title={'Create'}
+              title={this._canRetryVersionDiscovery() ? 'Retry version discovery' : 'Create'}
               onClick={this._create.bind(this)}
             />
             <Button
@@ -588,6 +638,9 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 
   private async _create(): Promise<void> {
+    if (this._versionDiscovery && !this._versionDiscovery.signal.aborted) return;
+    const controller = new AbortController();
+    this._versionDiscovery = controller;
     this.setState({ isbeingCreated: true }, async () => {
       try {
         let namespace: undefined | string;
@@ -602,25 +655,43 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         // (3) new pipeline version (under an existing pipeline) from url
         let pipelineVersionResponse: V2beta1PipelineVersion;
         if (this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL) {
-          const pipelineResponse = await Apis.uploadPipelineV2(
-            this.state.pipelineName!,
-            this.state.pipelineDisplayName!,
-            this.state.pipelineDescription,
-            this.state.file!,
-            namespace,
-            this.state.codeSourceUrl || undefined,
-          );
-          const listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
-            pipelineResponse.pipeline_id!,
-            undefined,
-            1, // Only need the latest one
-            'created_at desc',
-          );
-          if (listVersionsResponse.pipeline_versions) {
-            pipelineVersionResponse = listVersionsResponse.pipeline_versions[0];
-          } else {
-            throw new Error('Pipeline is empty');
+          const intent = this._uploadIntent();
+          const file = this.state.file;
+          let pipelineId = this._canRetryVersionDiscovery()
+            ? this._uploadedPipeline!.pipelineId
+            : undefined;
+          if (!pipelineId) {
+            const pipelineResponse = await Apis.uploadPipelineV2(
+              this.state.pipelineName!,
+              this.state.pipelineDisplayName!,
+              this.state.pipelineDescription,
+              file!,
+              namespace,
+              this.state.codeSourceUrl || undefined,
+            );
+            if (!this._isMounted || controller.signal.aborted) return;
+            pipelineId = pipelineResponse.pipeline_id;
+            if (!pipelineId) {
+              throw new Error(
+                'The upload response did not include a pipeline ID. Check the pipeline list before uploading again.',
+              );
+            }
+            this._uploadedPipeline = { pipelineId, file, intent };
           }
+          pipelineVersionResponse = await discoverUploadedPipelineVersion(
+            pipelineId,
+            async (signal) =>
+              Apis.pipelineServiceApiV2.listPipelineVersions(
+                pipelineId!,
+                undefined,
+                1,
+                'created_at desc',
+                undefined,
+                { signal },
+              ),
+            controller.signal,
+          );
+          if (!this._isMounted || controller.signal.aborted) return;
         } else if (this.state.newPipeline && this.state.importMethod === ImportMethod.URL) {
           const newPipeline: V2beta1Pipeline = {
             description: this.state.pipelineDescription,
@@ -636,6 +707,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           pipelineVersionResponse = await this._createPipelineVersion();
         }
 
+        if (!this._isMounted || controller.signal.aborted) return;
         // If success, go to pipeline details page of the new version
         this.props.history.push(
           RoutePage.PIPELINE_DETAILS.replace(
@@ -652,10 +724,22 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           open: true,
         });
       } catch (err) {
+        if (!this._isMounted || controller.signal.aborted) return;
         const errorMessage = await errorToMessage(err);
-        await this.showErrorDialog('Pipeline version creation failed', errorMessage);
+        if (!this._isMounted || controller.signal.aborted) return;
+        const uploaded = this._canRetryVersionDiscovery();
+        this.showErrorDialog(
+          uploaded ? 'Pipeline uploaded; version unavailable' : 'Pipeline version creation failed',
+          uploaded
+            ? `Your pipeline was uploaded. ${errorMessage} Select Retry version discovery to check again without uploading your file again.`
+            : errorMessage,
+        );
         logger.error('Error creating pipeline version:', err);
-        this.setState({ isbeingCreated: false });
+        this.setStateSafe({ isbeingCreated: false });
+      } finally {
+        if (this._versionDiscovery === controller) {
+          this._versionDiscovery = undefined;
+        }
       }
     });
   }

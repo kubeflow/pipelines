@@ -335,23 +335,44 @@ func (e *Engine) Export(ctx context.Context, namespace string, opts ExportOption
 
 	if e.Metadata != nil {
 		e.Metadata.Namespace = namespace
-		b.Metadata, err = e.Metadata.Export(ctx, b.Runs, func(id string) error {
+		selectedRuns := make(map[string]RunHistory, len(b.Runs))
+		for _, history := range b.Runs {
+			selectedRuns[history.Run.UUID] = history
+		}
+		var historyError error
+		b.Metadata, err = e.Metadata.Export(ctx, b.Runs, func(id string) (RunHistory, error) {
 			var run model.Run
 			if err := e.DB.WithContext(ctx).Where(equal("UUID", id)).First(&run).Error; err != nil {
-				return util.NewInvalidInputError("MLMD provenance run %s is unavailable; restore its producer history before exporting", id)
+				return RunHistory{}, util.NewInvalidInputError("MLMD provenance run %s is unavailable; restore its producer history before exporting", id)
 			}
 			var experiment model.Experiment
 			if err := e.DB.WithContext(ctx).Where(equal("UUID", run.ExperimentId)).First(&experiment).Error; err != nil {
-				return util.NewInvalidInputError("MLMD provenance experiment is unavailable")
+				return RunHistory{}, util.NewInvalidInputError("MLMD provenance experiment is unavailable")
 			}
 			if experiment.Namespace != namespace {
-				return util.NewInvalidInputError("MLMD ancestry crosses experiment namespaces")
+				return RunHistory{}, util.NewInvalidInputError("MLMD ancestry crosses experiment namespaces")
 			}
 			if run.Namespace != b.RuntimeNamespace && run.Namespace != namespace {
-				return util.NewInvalidInputError("MLMD ancestry crosses namespaces; export this history separately after removing cross-namespace references")
+				return RunHistory{}, util.NewInvalidInputError("MLMD ancestry crosses namespaces; export this history separately after removing cross-namespace references")
 			}
-			return nil
+			if selected, ok := selectedRuns[id]; ok {
+				return selected, nil
+			}
+			history := RunHistory{Run: run}
+			if terminal(run) {
+				// Task identity prevents classifying a real task as root bookkeeping.
+				if loadErr := collect(e.DB.WithContext(ctx).Where(equal("RunUUID", id)), &history.Tasks, budget); loadErr != nil {
+					historyError = loadErr
+					return RunHistory{}, loadErr
+				}
+			}
+			return history, nil
 		})
+		// Imported provenance may bypass missing SQL authorization, but never a
+		// failure to load bounded task evidence for an existing authorized run.
+		if historyError != nil {
+			return nil, historyError
+		}
 		if err != nil {
 			return nil, err
 		}

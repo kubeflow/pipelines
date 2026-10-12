@@ -28,6 +28,8 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { ExpandState } from 'src/components/CustomTable';
 import { vi } from 'vitest';
 
+import { PaginationRestartRequired } from '../lib/Pagination';
+
 describe('PipelineList', () => {
   let renderResult: ReturnType<typeof render> | null = null;
   let pipelineListRef: React.RefObject<PipelineList> | null = null;
@@ -336,7 +338,7 @@ describe('PipelineList', () => {
   });
 
   it('shows error banner when listing pipelines fails', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
+    listPipelinesSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderPipelineList();
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -374,7 +376,7 @@ describe('PipelineList', () => {
   });
 
   it('hides error banner when listing pipelines fails then succeeds', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy as any, 'bad stuff happened');
+    listPipelinesSpy.mockRejectedValue(new Error('bad stuff happened'));
     await renderPipelineList();
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -605,6 +607,42 @@ describe('PipelineList', () => {
       });
     });
   });
+
+  it.each([false, true])(
+    'clears nested selections on a pagination restart (retry fails: %s)',
+    async (retryFails) => {
+      listPipelinesSpy.mockResolvedValue({
+        pipelines: [{ pipeline_id: 'pipeline', display_name: 'Pipeline' }],
+        next_page_token: 'old-token',
+      });
+      listPipelineVersionsSpy.mockResolvedValue({
+        pipeline_versions: [
+          { pipeline_id: 'pipeline', pipeline_version_id: 'version', display_name: 'Version' },
+        ],
+      });
+      await renderPipelineList();
+      await waitForPipelinesLoad();
+      await userEvent.click(screen.getByRole('button', { name: /expand/i }));
+      await selectPipeline('pipeline');
+      await selectPipelineVersion('pipeline', 'version');
+      listPipelinesSpy.mockImplementation(async (_namespace, token) => {
+        if (token) throw new PaginationRestartRequired();
+        if (retryFails) throw new Error('Unavailable');
+        return { pipelines: [] };
+      });
+      const nextButtons = screen.getAllByTestId('next-page-btn');
+      await userEvent.click(nextButtons[nextButtons.length - 1]);
+      await waitFor(() => {
+        expect(getPipelineListState()?.selectedIds).toEqual([]);
+        expect(getPipelineListState()?.selectedVersionIds).toEqual({});
+        expect(
+          updateToolbarSpy.mock.calls.at(-1)?.[0].actions[ButtonKeys.DELETE_RUN].disabled,
+        ).toBe(true);
+      });
+      expect(deletePipelineSpy).not.toHaveBeenCalled();
+      expect(deletePipelineVersionSpy).not.toHaveBeenCalled();
+    },
+  );
 
   it("delete a pipeline and some other pipeline's version together", async () => {
     deletePipelineSpy.mockResolvedValue(undefined as any);

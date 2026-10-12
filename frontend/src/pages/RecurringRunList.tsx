@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import { ExperimentInfo } from 'src/lib/RunUtils';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
@@ -314,7 +315,13 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
         displayRecurringRuns = (response.recurringRuns || []).map((rr) => ({ recurringRun: rr }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
+        if (request.isCurrent?.() === false) return '';
+        await throwIfPaginationRestartRequired(err);
+        request.onFailure?.();
+        if (request.isCurrent?.() === false) return '';
+        this.setState({ recurringRuns: [] });
         const error = new Error(await errorToMessage(err));
+        if (request.isCurrent?.() === false) return '';
         this.props.onError('Error: failed to fetch recurring runs.', error);
         // No point in continuing if we couldn't retrieve any recurring runs.
         return '';
@@ -323,6 +330,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
 
     await this._setColumns(displayRecurringRuns);
 
+    if (request.isCurrent?.() === false) return '';
     this.setState({
       recurringRuns: displayRecurringRuns,
     });

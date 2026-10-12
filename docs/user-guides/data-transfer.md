@@ -24,7 +24,11 @@ MLMD. Export derives that root record's archive state from the matching complete
 SQL run (succeeded, failed, or canceled), without modifying source MLMD. This
 requires an unambiguous root identity and run-context association. Actual unfinished
 tasks or nested DAGs still prevent export; skipped or ambiguous root states are
-not inferred.
+not inferred. When lineage reaches an older run outside the selected completion
+window, export can use its authorized SQL run and task records for the same root
+normalization. Those ancestor run-history rows are not added to the archive. Keep
+ancestor SQL history available until export completes; imported provenance alone
+cannot establish that a legacy root finished.
 
 Archives can contain parameters, runtime manifests and storage references. Share
 and retain them as you would the original namespace data. An archive contains no

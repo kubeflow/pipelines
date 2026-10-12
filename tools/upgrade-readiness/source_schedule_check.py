@@ -128,7 +128,8 @@ def main():
         source_version='2.17.2',
         scope='source_run_creation_with_workflow_identity',
         outcome='inconclusive',
-        observed_scenarios=[])
+        observed_scenarios=[],
+        cases=[])
     try:
         fixture = read_object(state / 'state.json')
         if fixture.get('context') != CONTEXT or fixture.get(
@@ -138,12 +139,23 @@ def main():
         cases = [
             dict(case, baseline_run_ids=[]) for case in fixture['schedules']
         ]
+        observed_runs = {case['schedule_uid']: {} for case in cases}
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline:
             client = Client(args.endpoint, args.token_file)
             seen = []
             for case in cases:
-                if source_run_evidence(client, NAMESPACE, case, start):
+                records = source_run_evidence(client, NAMESPACE, case, start)
+                observed_runs[case['schedule_uid']].update(
+                    (record['run_id'], record) for record in records)
+                report['cases'] = [
+                    dict(
+                        scenario=item['scenario'],
+                        schedule_uid=item['schedule_uid'],
+                        runs=list(observed_runs[item['schedule_uid']].values()))
+                    for item in cases
+                ]
+                if records:
                     seen.append(case['scenario'])
             report['observed_scenarios'] = sorted(seen)
             if len(seen) == 3:

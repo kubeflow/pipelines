@@ -17,6 +17,7 @@ import sys
 
 import click
 from kfp.cli import cli
+from kfp.client import is_pagination_restart_required
 
 
 def main():
@@ -24,5 +25,13 @@ def main():
     try:
         cli.cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
-        click.echo(str(e), err=True)
+        if is_pagination_restart_required(e):
+            click.echo(
+                'Pagination restart required. Remove --page-token and restart '
+                'the listing from page one with the same filters and sort order. '
+                'Discard earlier output from this listing; reconcile any '
+                'actions already taken before restarting to avoid duplicates.',
+                err=True)
+        else:
+            click.echo(str(e), err=True)
         sys.exit(1)

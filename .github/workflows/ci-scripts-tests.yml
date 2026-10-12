@@ -34,6 +34,7 @@ on:
       - '.github/actions/upload-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
       - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/artifact-storage-acceptance.yml'
       - '.github/workflows/create-manifest.yml'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/e2e-test-frontend.yml'

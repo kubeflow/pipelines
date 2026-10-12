@@ -336,6 +336,14 @@ kubectl -n kubeflow set env deployment/ml-pipeline KFP_SECURITY_SERVICE_ACCOUNT_
 kubectl -n kubeflow rollout status deployment/ml-pipeline
 ```
 
+Before treating the mode change as complete, also verify that every old API Pod
+has terminated and all remaining API Pods use the requested mode. Deployment
+rollout readiness alone does not establish that terminating Pods have stopped
+serving existing connections. During this overlap, a request can still reach a
+process with the previous mode. For a strict cutover, pause new submissions and
+disable recurring runs until this check completes, then resume them. Runs
+already admitted under audit are not retroactively rejected.
+
 A previously denied schedule may retain up to 360 seconds of controller retry
 backoff after permissions or the policy mode change. Disabling and re-enabling
 the schedule does not reset that delay. Allow time for the retry and workload
