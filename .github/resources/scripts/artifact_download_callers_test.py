@@ -36,7 +36,6 @@ CALLERS = [
     ('.github/workflows/create-manifest.yml', 'create-manifest'),
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
-    ('.github/workflows/image-builds.yml', 'runtime-base-images'),
     ('.github/workflows/image-builds.yml', 'image-build'),
     ('.github/workflows/image-builds.yml', 'image-build'),
 ]
@@ -209,10 +208,17 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         producer = (ROOT / '.github/workflows/build-and-push.yml').read_text()
         self.assertIn('> "/tmp/digests/${ARCH}.json"', producer)
 
-    def test_shared_runtime_download_requires_both_produced_archives(self):
+    def test_direct_runtime_and_local_fallback_require_produced_archives(self):
         job = workflow('image-builds.yml')['jobs']['runtime-base-images']
-        actual = self.required_files('.github/workflows/image-builds.yml',
-                                     'runtime-base-images', {'env': job['env']})
+        self.assertFalse(
+            any(step.get('uses') == WRAPPER for step in job['steps']))
+        actual = set(job['env']['RUNTIME_IMAGE_FILES'].splitlines())
+        consumer_files = {
+            filename.removeprefix('runtime-base-images/')
+            for filename in self.inventory('deploy-image-files', 'true')
+            if filename.startswith('runtime-base-images/')
+        }
+        self.assertEqual(actual, consumer_files)
         self.assertEqual(actual, {'runtime-base-images.tar', 'modelcar.tar'})
         producer = (ROOT /
                     '.github/resources/scripts/build-runtime-base-images.sh'
