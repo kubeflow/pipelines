@@ -57,6 +57,16 @@ class FrontendQualificationWorkflowTest(unittest.TestCase):
         self.assertIn('vite build', scripts['build:bundle'])
         self.assertNotIn('npm run build', scripts['test:ci'])
 
+    def test_presubmit_runs_all_retained_node_check_suites(self):
+        steps = workflow('frontend.yml')['jobs']['frontend-tests']['steps']
+        commands = '\n'.join(step.get('run', '') for step in steps)
+        scripts = json.loads(
+            (ROOT / 'frontend/package.json').read_text())['scripts']
+        commands += '\n' + scripts['test:browser-runner']
+        for suite in (ROOT / 'frontend/scripts').glob('*.check.mjs'):
+            with self.subTest(suite=suite.name):
+                self.assertIn(f'scripts/{suite.name}', commands)
+
     def test_presubmit_runs_linux_chromium_against_shared_bundle(self):
         presubmit = workflow('frontend.yml')
         self.assertEqual(

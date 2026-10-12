@@ -187,6 +187,22 @@ it('preserves falsy fields, structured values, and custom field content', () => 
   expect(screen.getByRole('link', { name: 'Artifact URI' })).toHaveAttribute('href', 's3://model');
 });
 
+it.each(['plain text', '{invalid}', '[1,', 'null', 'false', '123', '"text"', ''])(
+  'preserves non-structured JSON or invalid text verbatim: %s',
+  (value) => {
+    const { container } = render(<InspectionFields fields={[['Value', value]]} />);
+    expect(container.querySelector('pre')).toBeNull();
+    expect(container.querySelector('dd')?.textContent).toBe(value);
+  },
+);
+
+it.each(['[]', '{}', '[1, {"nested":true}]'])('formats structured JSON: %s', (value) => {
+  const { container } = render(<InspectionFields fields={[['Value', value]]} />);
+  expect(container.querySelector('pre')?.textContent).toBe(
+    JSON.stringify(JSON.parse(value), null, 2),
+  );
+});
+
 function PanelExample() {
   const [open, setOpen] = useState(false);
   return (

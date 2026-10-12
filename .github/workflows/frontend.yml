@@ -97,7 +97,7 @@ jobs:
       working-directory: frontend
       run: |
         npm run test:browser-runner
-        node --test scripts/production-bundle-diagnostics.check.mjs
+        node --test scripts/production-bundle-diagnostics.check.mjs scripts/performance-evidence.check.mjs
 
     - name: Build shared production bundle
       working-directory: frontend
