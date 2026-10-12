@@ -514,6 +514,7 @@ def validate():
         json.dumps({
             'spec': {
                 'minReadySeconds': 900,
+                'progressDeadlineSeconds': 1200,
                 'template': {
                     'metadata': {
                         'labels': {
@@ -587,7 +588,7 @@ def validate():
     # Return to ordinary service routing and let the Deployment finish normally.
     webhook_service('cache-server')
     k('-n', NS, 'patch', 'deployment', 'cache-server', '--type=merge', '-p',
-      '{"spec":{"minReadySeconds":0}}')
+      '{"spec":{"minReadySeconds":0,"progressDeadlineSeconds":600}}')
     k('-n', NS, 'rollout', 'status', 'deployment/cache-server',
       '--timeout=180s')
     wait(
