@@ -67,7 +67,9 @@ class TestPipelineLookupScope(parameterized.TestCase):
         self.assertEqual(result.exit_code, 0, result.exception)
         self.client.get_pipeline_id.assert_called_once_with(
             name='training', namespace=namespace)
-        operation = self.client.upload_pipeline_version if command == 'version' else self.client.run_pipeline
+        operation = (
+            self.client.upload_pipeline_version
+            if command == 'version' else self.client.run_pipeline)
         operation.assert_called_once()
         self.assertEqual(operation.call_args.kwargs['pipeline_id'],
                          'pipeline-id')
@@ -109,6 +111,20 @@ class TestPipelineLookupScope(parameterized.TestCase):
             ['--pipeline-id', 'pipeline-id', '--pipeline-namespace', 'team-a'])
         self.assertEqual(result.exit_code, 2)
         self.assertIn('--pipeline-name', result.output)
+        self.client.get_pipeline_id.assert_not_called()
+        self.client.create_experiment.assert_not_called()
+        self.client.run_pipeline.assert_not_called()
+        self.client.upload_pipeline_version.assert_not_called()
+
+    @parameterized.named_parameters(
+        ('without_name', []),
+        ('with_name_and_id',
+         ['--pipeline-name', 'training', '--pipeline-id', 'pipeline-id']))
+    def test_run_scope_requires_name_without_id(self, options):
+        result = self.invoke('run',
+                             options + ['--pipeline-namespace', 'team-a'])
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('--pipeline-name without --pipeline-id', result.output)
         self.client.get_pipeline_id.assert_not_called()
         self.client.create_experiment.assert_not_called()
         self.client.run_pipeline.assert_not_called()
