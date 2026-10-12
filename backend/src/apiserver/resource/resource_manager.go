@@ -3318,6 +3318,37 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 		}
 		return r.jobStore.UpdateJobStatus(swf)
 	}
+	// CR API versions describe transport, not parameter encoding: both pipeline
+	// formats use the same CR and the persistence agent reports v2beta1.
+	// Use the stored source, never whether a parameter happens to parse as JSON.
+	if swf.Spec.Workflow != nil {
+		version := util.ApiVersionV2
+		if job.WorkflowSpecManifest != "" {
+			version = util.ApiVersionV1
+			if job.PipelineSpecManifest != "" {
+				// A historical unused inline manifest must not override the
+				// exact pinned source. Never resolve a moving latest version.
+				manifest := job.PipelineSpecManifest
+				if job.PipelineVersionId != "" {
+					pinned, err := r.GetPipelineVersion(job.PipelineVersionId)
+					if err != nil {
+						return util.Wrap(err, "Cannot determine recurring-run parameter format; restore the pinned pipeline version before retrying the report")
+					}
+					manifest = pinned.PipelineSpec
+				}
+				tmpl, err := template.New([]byte(manifest), template.TemplateOptions{})
+				if err != nil {
+					return util.Wrap(err, "Cannot determine recurring-run parameter format; restore the stored pipeline source before retrying the report")
+				}
+				if tmpl.GetTemplateType() == template.V2 {
+					version = util.ApiVersionV2
+				}
+			}
+		}
+		swf = util.NewScheduledWorkflow(swf.DeepCopy())
+		swf.APIVersion = version
+		swf.Kind = util.SwfKind
+	}
 	return r.jobStore.UpdateJob(swf)
 }
 

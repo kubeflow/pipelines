@@ -531,7 +531,9 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 		})
 	if len(parameters) > 0 {
 		if swf.GetVersion() == util.SWFv1 {
-			updateSQL = updateSQL.SetMap(sq.Eq{q("Parameters"): parameters})
+			// Clear stale V2 values from older reports so API conversion uses
+			// the authoritative legacy parameter array.
+			updateSQL = updateSQL.SetMap(sq.Eq{q("Parameters"): parameters, q("RuntimeParameters"): ""})
 		} else if swf.GetVersion() == util.SWFv2 {
 			updateSQL = updateSQL.SetMap(sq.Eq{q("RuntimeParameters"): parameters})
 		} else {

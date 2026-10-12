@@ -9892,3 +9892,80 @@ func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.
 	require.NoError(t, err, "a concurrent create must not fail an otherwise valid request")
 	assert.Equal(t, winner.UUID, got, "the loser must adopt the winner's experiment")
 }
+
+func TestReportScheduledWorkflowParameterEncoding(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		v2      bool
+		values  []string
+		invalid bool
+		variant string
+	}{
+		{name: "v1 JSON-only strings", values: []string{"true", "null", "9007199254740993", `"quoted"`, `{"key":1}`, `[1,2]`}},
+		{name: "v1 stale runtime parameters", values: []string{"true", "9007199254740993"}, variant: "stale"},
+		{name: "v1 plain strings", values: []string{"enabled", "", "true"}},
+		{name: "v2 typed values", v2: true, values: []string{"true", "null", "123", `"quoted"`, `{"key":1}`, `[1,2]`}},
+		{name: "generic v2", v2: true, values: []string{"true", `"quoted"`}, variant: "generic"},
+		{name: "pinned v1 with unused v2 manifest", values: []string{"true", "9007199254740993"}, variant: "pinned"},
+		{name: "v2 malformed value", v2: true, values: []string{"true", "enabled"}, invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			init := initWithJob
+			if tc.v2 {
+				init = initWithJobV2
+			}
+			store, manager, job := init(t)
+			defer store.Close()
+			switch tc.variant {
+			case "stale":
+				_, err := store.db.Exec(`UPDATE jobs SET RuntimeParameters = ? WHERE UUID = ?`, `{"p0":true,"p1":9007199254740992}`, job.UUID)
+				require.NoError(t, err)
+			case "generic":
+				_, err := store.db.Exec(`UPDATE jobs SET PipelineSpecManifest = '', WorkflowSpecManifest = '' WHERE UUID = ?`, job.UUID)
+				require.NoError(t, err)
+			case "pinned":
+				pinned, err := store.PipelineStore().CreatePipelineVersion(&model.PipelineVersion{Name: "legacy", PipelineSpec: job.WorkflowSpecManifest, Status: model.PipelineVersionReady})
+				require.NoError(t, err)
+				_, err = store.db.Exec(`UPDATE jobs SET PipelineSpecManifest = ?, PipelineVersionId = ? WHERE UUID = ?`, v2SpecHelloWorld, pinned.UUID, job.UUID)
+				require.NoError(t, err)
+			}
+			swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+				TypeMeta:   v1.TypeMeta{APIVersion: util.ApiVersionV2, Kind: util.SwfKind},
+				ObjectMeta: v1.ObjectMeta{Name: job.K8SName, Namespace: job.Namespace, UID: types.UID(job.UUID)},
+				Spec:       swfapi.ScheduledWorkflowSpec{Workflow: &swfapi.WorkflowResource{}},
+			})
+			for i, value := range tc.values {
+				swf.Spec.Workflow.Parameters = append(swf.Spec.Workflow.Parameters, swfapi.Parameter{Name: fmt.Sprintf("p%d", i), Value: value})
+			}
+			before := swf.DeepCopy()
+			err := manager.ReportScheduledWorkflowResource(swf)
+			if tc.invalid {
+				require.Error(t, err)
+				actual, readErr := manager.GetJob(job.UUID)
+				require.NoError(t, readErr)
+				require.Equal(t, job.RuntimeConfig.Parameters, actual.RuntimeConfig.Parameters)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, before, swf.ScheduledWorkflow, "report serialization must not mutate its input")
+			actual, err := manager.GetJob(job.UUID)
+			require.NoError(t, err)
+			if tc.v2 {
+				var want = make(map[string]interface{})
+				for i, value := range tc.values {
+					var parsed interface{}
+					require.NoError(t, json.Unmarshal([]byte(value), &parsed))
+					want[fmt.Sprintf("p%d", i)] = parsed
+				}
+				encoded, err := json.Marshal(want)
+				require.NoError(t, err)
+				require.JSONEq(t, string(encoded), string(actual.RuntimeConfig.Parameters))
+			} else {
+				encoded, err := json.Marshal(swf.Spec.Workflow.Parameters)
+				require.NoError(t, err)
+				require.JSONEq(t, string(encoded), string(actual.Parameters))
+				require.Equal(t, job.RuntimeConfig.Parameters, actual.RuntimeConfig.Parameters)
+			}
+		})
+	}
+}
