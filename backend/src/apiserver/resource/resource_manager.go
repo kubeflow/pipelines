@@ -2118,9 +2118,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	// Evaluate the effective status at return time because identity validation
 	// can replace a stale non-terminal snapshot with the terminal live workflow.
 	defer func() {
-		r.reconcileStrandedTasks(ctx, runID, execSpec, execStatus.IsInFinalState())
 		if execStatus.IsInFinalState() {
-
 			r.storedWorkflowIdentities.delete(runID)
 		}
 	}()
@@ -2132,7 +2130,6 @@ func (r *ResourceManager) reportWorkflowResource(
 		state = model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
 	}
 	var verifiedLiveWorkflow util.ExecutionSpec
-	r.reconcileStrandedTasks(ctx, runID, execSpec, execStatus.IsInFinalState())
 	if execStatus.IsInFinalState() {
 
 		var workflowStillMatchesReport bool
@@ -2491,7 +2488,9 @@ func (r *ResourceManager) reportWorkflowResource(
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
-		r.reconcileStrandedTasks(ctx, runID, execSpec, execStatus.IsInFinalState())
+		if err := r.reconcileStrandedTasks(ctx, run, execSpec, execStatus.IsInFinalState()); err != nil {
+			return nil, err
+		}
 		if execStatus.IsInFinalState() {
 
 			updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
@@ -2581,7 +2580,9 @@ func (r *ResourceManager) reportWorkflowResource(
 		execSpec.SetLabels(util.LabelKeyWorkflowRunId, runID)
 		return execSpec, nil
 	}
-	r.reconcileStrandedTasks(ctx, runID, execSpec, execStatus.IsInFinalState())
+	if err := r.reconcileStrandedTasks(ctx, run, execSpec, execStatus.IsInFinalState()); err != nil {
+		return nil, err
+	}
 	if execStatus.IsInFinalState() {
 
 		// Notify plugins of terminal state. If terminal handling cannot be

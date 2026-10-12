@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -10,17 +11,25 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runID string, execSpec util.ExecutionSpec, isFinalState bool) {
+func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model.Run, execSpec util.ExecutionSpec, isFinalState bool) error {
+	if run == nil || execSpec == nil || execSpec.ExecutionStatus() == nil {
+		return nil
+	}
+
+	// Retry fencing: do not let reports from older retry generations reconcile retried tasks
+	if run.RetryGeneration > 0 && reportedRetryGeneration(execSpec.ExecutionObjectMeta()) < run.RetryGeneration {
+		return nil
+	}
+
 	nodeStatuses := execSpec.ExecutionStatus().NodeStatuses()
 	if len(nodeStatuses) == 0 {
-		return
+		return nil
 	}
 
 	opts, _ := list.NewOptions(&model.Task{}, 1000, "", nil)
-	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID}}, opts)
+	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: run.UUID}}, opts)
 	if err != nil {
-		glog.Warningf("Failed to list tasks for run %s during stranded task reconciliation: %v", runID, err)
-		return
+		return fmt.Errorf("failed to list tasks for run %s during stranded task reconciliation: %w", run.UUID, err)
 	}
 
 	// 1. Reconcile terminal engine nodes with RUNNING tasks
@@ -34,34 +43,28 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runID stri
 			continue // DAG states are determined by their children, not their driver pods
 		}
 
-		if len(task.Pods) == 0 {
-			continue
-		}
-		if len(task.Pods) == 0 {
-			continue
-		}
-
-		podObj, ok := task.Pods[0].(map[string]interface{})
-		if !ok {
+		podNames := podNamesFromTask(task)
+		if len(podNames) == 0 {
 			continue
 		}
 
-		podName, ok := podObj["name"].(string)
-		if !ok || podName == "" {
+		var matchingNode *util.NodeStatus
+		for _, podName := range podNames {
+			if node, exists := nodeStatuses[podName]; exists {
+				matchingNode = &node
+				break
+			}
+		}
+		if matchingNode == nil {
 			continue
 		}
 
-		nodeStatus, exists := nodeStatuses[podName]
-		if !exists {
-			continue
-		}
-
-		if isTerminalNodeState(nodeStatus.State, isFinalState) {
-			glog.Infof("Reconciling stranded task %s (pod: %s) which is RUNNING but its engine node is %s", task.UUID, podName, nodeStatus.State)
+		if isTerminalNodeState(matchingNode.State, isFinalState) {
+			glog.Infof("Reconciling stranded task %s which is RUNNING but its engine node is %s", task.UUID, matchingNode.State)
 
 			// Map engine state to MLMD state
 			var newState apiv2beta1.PipelineTask_TaskState
-			switch nodeStatus.State {
+			switch matchingNode.State {
 			case "Succeeded":
 				newState = apiv2beta1.PipelineTask_SUCCEEDED
 			case "Failed", "Error":
@@ -73,15 +76,18 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runID stri
 			}
 
 			task.State = model.TaskStatus(newState)
-			task.FinishedInSec = nodeStatus.FinishTime
+			task.FinishedInSec = matchingNode.FinishTime
 			if task.FinishedInSec == 0 {
 				task.FinishedInSec = r.time.Now().Unix()
 			}
+			if matchingNode.Message != "" {
+				task.StatusMetadata = model.JSONData{"message": matchingNode.Message}
+				lm := model.LargeText(matchingNode.Message)
+				task.LifecycleMessage = &lm
+			}
 
-			_, err := r.taskStore.UpdateTask(task)
-			if err != nil {
-				glog.Warningf("Failed to atomically reconcile stranded task %s: %v", task.UUID, err)
-				continue
+			if _, err := r.taskStore.UpdateTask(task); err != nil {
+				return fmt.Errorf("failed to atomically reconcile stranded task %s: %w", task.UUID, err)
 			}
 			reconciledAny = true
 		}
@@ -89,18 +95,20 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, runID stri
 
 	// 2. If we reconciled any task, we must aggregate the DAG states to ensure parent DAGs fail before exit handlers run.
 	if reconciledAny {
-		r.aggregateDAGTaskStatuses(runID)
+		if err := r.aggregateDAGTaskStatuses(run.UUID); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // aggregateDAGTaskStatuses traverses the DAG tree from bottom to top, updating parent task states.
-func (r *ResourceManager) aggregateDAGTaskStatuses(runID string) {
+func (r *ResourceManager) aggregateDAGTaskStatuses(runID string) error {
 	// Re-fetch tasks since some might have been updated by reconciliation
 	opts, _ := list.NewOptions(&model.Task{}, 1000, "", nil)
 	tasks, _, _, err := r.taskStore.ListTasks(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID}}, opts)
 	if err != nil {
-		glog.Warningf("Failed to list tasks for run %s during DAG aggregation: %v", runID, err)
-		return
+		return fmt.Errorf("failed to list tasks for run %s during DAG aggregation: %w", runID, err)
 	}
 
 	// Map parent UUID -> list of child tasks
@@ -149,15 +157,14 @@ func (r *ResourceManager) aggregateDAGTaskStatuses(runID string) {
 				parent.State = model.TaskStatus(apiv2beta1.PipelineTask_FAILED)
 				parent.FinishedInSec = r.time.Now().Unix()
 
-				_, err := r.taskStore.UpdateTask(parent)
-				if err != nil {
-					glog.Warningf("Failed to atomically update aggregated DAG task %s: %v", parentID, err)
-					continue
+				if _, err := r.taskStore.UpdateTask(parent); err != nil {
+					return fmt.Errorf("failed to atomically update aggregated DAG task %s: %w", parentID, err)
 				}
 				changed = true
 			}
 		}
 	}
+	return nil
 }
 
 func isTerminalNodeState(state string, isFinalState bool) bool {

@@ -8695,6 +8695,7 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 				"my-pod-name": {
 					ID:         "my-pod-name",
 					Phase:      v1alpha1.NodeFailed,
+					Message:    "OOMKilled executor terminated before launcher",
 					FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
 				},
 				"dag-driver-pod": {
@@ -8709,16 +8710,71 @@ func TestReportWorkflowResource_ReconcilesStrandedTasksAndParentDAG(t *testing.T
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
-	// Verify stranded task was updated to FAILED
+	// Verify stranded task was updated to FAILED and message was preserved
 	updatedTask, err := store.TaskStore().GetTask(strandedTask.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedTask.State)
 	assert.Equal(t, int64(9999), updatedTask.FinishedInSec)
+	assert.Equal(t, model.JSONData{"message": "OOMKilled executor terminated before launcher"}, updatedTask.StatusMetadata)
 
 	// Verify the parent DAG was also failed by the aggregator
 	updatedDag, err := store.TaskStore().GetTask(dagTask.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedDag.State)
+}
+
+func TestReportWorkflowResource_StrandedTasks_RetryGenerationFenced(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	namespace := common.GetPodNamespace()
+	defer store.Close()
+
+	// Set run to retry generation 2 in DB
+	_, err := store.DB().Exec("UPDATE run_details SET RetryGeneration = 2 WHERE UUID = ?", run.UUID)
+	require.NoError(t, err)
+
+	// Seed a RUNNING task for attempt 2
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		RunUUID:     run.UUID,
+		Namespace:   namespace,
+		UUID:        string(uuid.NewUUID()),
+		Name:        "retried-task",
+		Fingerprint: "fp-retried",
+		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Pods:        model.JSONSlice{map[string]interface{}{"name": "attempt-2-pod"}},
+		Type:        0,
+		TypeAttrs:   model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	// Stale workflow report from attempt 1 (generation 1)
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			Namespace:   namespace,
+			UID:         types.UID(run.UUID),
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.Time{Time: time.Unix(1000, 0)},
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"attempt-2-pod": {
+					ID:    "attempt-2-pod",
+					Phase: v1alpha1.NodeFailed,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, staleWorkflow)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	assert.Nil(t, err)
+
+	// Task must remain RUNNING because the report had stale retry generation 1 < 2
+	checkTask, err := store.TaskStore().GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), checkTask.State)
 }
 func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
