@@ -202,6 +202,7 @@ func TestPipelineVersionWebhookIntegration(t *testing.T) {
 	var statusError *k8serrors.StatusError
 	require.ErrorAs(t, err, &statusError)
 	assert.EqualValues(t, 400, statusError.ErrStatus.Code)
+	// Use the literal cause type to pin the wire contract independently of the production constant.
 	cause, found := k8serrors.StatusCause(err, "pipelines.kubeflow.org/PipelineVersionRejected")
 	require.True(t, found, "the API server must preserve the validating webhook's rejection cause")
 	assert.Equal(t, "Pipeline spec is immutable; only mutable fields (display_name, tags) can be updated", cause.Message)
