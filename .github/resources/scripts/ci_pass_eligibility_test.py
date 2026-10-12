@@ -79,7 +79,11 @@ jobs:
         isBinary: false, isTruncated: false}}))}}};
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
-    get: async () => ({data: structuredClone(pr)})},
+    get: async request => ({data: request.pull_number === 100 ? {
+      number: 100, merged: true, merge_commit_sha: baseTip,
+      merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z',
+      base: {ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
+    } : structuredClone(pr)})},
   actions: {listWorkflowRunsForRepo: methods.runs},
   checks: {listForRef: async () => {
     if (options.checkApiFailure) throw Error('Checks API unavailable');
@@ -128,7 +132,7 @@ jobs:
   }
   if (method === methods.associated) {
     if (options.associationFailure) throw Error('Associated PRs API unavailable');
-    return [{number: 7, merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z'}];
+    return [{number: 100, merge_commit_sha: baseTip}];
   }
   if (method === methods.runs) {
     if (options.missing) return [];
