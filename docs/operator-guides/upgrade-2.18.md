@@ -22,6 +22,18 @@ omit that setup.
 | API, controller, and RBAC | Multi-user scheduled executions go through the API under the controller's identity. Custom accounts require scoped authorization for both the creator and controller. | Apply the complete release manifests together, retain `--multiUser=true` and removal of controller `workflows/create`, and update custom roles. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
 | UI signing key | The complete default manifests automatically create or reuse a persistent signing key and start the UI when it is available. First adoption briefly interrupts the UI and invalidates old TensorBoard URLs. | Apply the complete manifests, wait for the UI rollout, then reopen TensorBoard. No manual key generation is needed. Custom overlays and GitOps have separate checks. See [UI startup](#prepare-the-ui-signing-key). |
 
+## Check applicable compatibility changes
+
+Review these before rollout when the corresponding features are in use:
+
+| Area | Preparation |
+| --- | --- |
+| Service-account and workflow-identity policy | Inventory custom runner, template, and plugin identities and test their scoped grants. Both controls default to `enforce`; temporary `audit` modes restore the associated exposure and are planned for removal in 3.0. Keep modes consistent across API replicas. See [service-account migration](scheduled-service-accounts.md#temporary-audit-mode-for-migration) and [workflow-identity audit scope](server-config.md#audit-mode-for-rollout). Audit does not bypass schedule adoption or the independent [RBAC/client changes](rbac-migration-2.18.md). |
+| Legacy V1/raw-Argo cache | Stop old cache-server replicas before starting upgraded replicas and coordinate the webhook interruption with submissions. Default enforcement stops reusing historical entries of unknown ownership: extra computation occurs when steps next execute and miss the cache, not as a startup rebuild. Native V2 caching is unaffected. See [cache rollout and temporary audit mode](https://github.com/kubeflow/pipelines/blob/release-2.18/backend/src/cache/README.md#namespace-isolation-and-upgrades). |
+| Custom artifact storage | Configure exact trusted S3 origins and the HTTP artifact base where applicable; a permissive domain regex alone is insufficient for custom S3 origins. Propagate configuration to existing profile proxies and verify artifacts and archived logs in those profiles. See [endpoint configuration](server-config.md#artifact-storage-endpoint-allowlist) and [HTTP/profile migration](server-config.md#http-artifact-migration-for-218). |
+| Pipeline size ceilings | Check uploads, extracted specifications, and update bodies against their separate 32 MiB defaults. Supported overrides are bounded at 128 MiB; size memory and the entire request path before raising them. There is no audit/unlimited mode. See [settings and actionable errors](server-config.md#pipeline-size-limits). |
+| Saved pagination tokens | Plan to restart affected listings after the API rollout. The updated UI retries once; SDK/custom clients must handle `PAGINATION_RESTART_REQUIRED` and discard or reconcile earlier traversal results before restarting. Updating the server does not update installed clients. See [pagination recovery](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/pagination-recovery.md). |
+
 ## Plan the multi-user rollout
 
 ### Standard managed installations: automatic schedule adoption
@@ -39,6 +51,12 @@ accepted intent during the wait. Run operations, reads, reporting, and deletion
 remain available. Existing legacy schedules retain old behavior until handoff,
 while the new controller waits. This is an automatic scheduling-write pause, not
 an operator-managed outage.
+
+An explicit handoff rejection means the operation was not applied: a rejected
+**disable leaves the schedule enabled**. Retry with bounded exponential backoff,
+then read the schedule back to confirm its state. Surface an exhausted retry
+budget and investigate the rollout. A generic connection timeout is ambiguous;
+check whether a create succeeded before resubmitting it.
 
 The upgraded controller automatically waits for the managed API/controller
 Deployments to finish rolling out and for incompatible or terminating writer Pods
@@ -58,6 +76,15 @@ capped exponential backoff. Failed records are logged and retried without
 preventing later records from migrating or blocking ordinary API availability. A schedule whose
 state or Kubernetes synchronization is incomplete remains blocked until its own
 migration succeeds; healthy and newly created schedules are independent.
+
+Check retained history before rollout. Adoption blocks a schedule with **more than
+1,000 retained SQL runs**, or when its **entire namespace contains more than 1,000
+Workflow objects**, including objects unrelated to that schedule. It does not
+accept a truncated inventory. Preserve execution and scheduling evidence, then
+use normal retention procedures for completed history before retrying. Never
+delete active runs or Workflows, reset counters, or remove scheduling state or
+receipts to force adoption. Large-history resumable adoption is not implemented;
+see [inventory limits](scheduled-service-accounts.md#upgrade-and-revocation).
 
 After handoff, each API process also performs one paginated startup repair of
 existing Kubernetes schedule objects from trusted SQL state, including records
@@ -103,6 +130,11 @@ writers sharing the database. Custom overlays must retain the handoff configurat
 and permissions and account for every writer; renamed or unmanaged deployments
 need an equivalent coordinated migration plan. Image-only upgrades omit required
 RBAC and configuration.
+
+Custom controller readiness probes must become ready independently of handoff or
+adoption. The standard controller has no readiness probe; waiting for its
+post-handoff HTTP listener creates a circular wait. API health starts independently
+of background adoption.
 
 The offline `--adopt-legacy-recurring-runs` command remains a recovery tool, not a
 prerequisite for normal startup. Use its detailed recovery procedure only when
