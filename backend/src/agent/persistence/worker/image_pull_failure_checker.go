@@ -405,8 +405,8 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflo
 			"uid":             string(workflow.UID),
 			"resourceVersion": workflow.ResourceVersion,
 			"annotations": map[string]interface{}{
-				"pipelines.kubeflow.org/termination-reason": "ImagePullFailure",
-				"pipelines.kubeflow.org/failed-image":       failedImage,
+				util.AnnotationKeyTerminationReason: util.TerminationReasonImagePullFailure,
+				util.AnnotationKeyFailedImage:       failedImage,
 			},
 		},
 	}

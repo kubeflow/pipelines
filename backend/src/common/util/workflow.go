@@ -498,6 +498,10 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 	// A workflow terminated with a shutdown strategy (e.g. by the persistence
 	// agent's image pull failure handling) would otherwise fail again immediately.
 	newWF.Spec.Shutdown = ""
+	// The image pull failure annotations describe the terminated attempt only;
+	// a retry that succeeds must not keep advertising a stale failure.
+	delete(newWF.Annotations, AnnotationKeyTerminationReason)
+	delete(newWF.Annotations, AnnotationKeyFailedImage)
 
 	// Iterate the previous nodes. If it was successful Pod carry it forward
 	newWF.Status.Nodes = make(map[string]workflowapi.NodeStatus)
