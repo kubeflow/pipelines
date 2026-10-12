@@ -221,7 +221,7 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesV1P
 	response, err := c.apiClient.PipelineService.PipelineServiceListPipelinesV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceListPipelinesV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatusWithDetails(defaultError.Payload.Message, defaultError.Payload.Code, defaultError.Payload.Details)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -300,7 +300,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 	response, err := c.apiClient.PipelineService.PipelineServiceListPipelineVersionsV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceListPipelineVersionsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatusWithDetails(defaultError.Payload.Message, defaultError.Payload.Code, defaultError.Payload.Details)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

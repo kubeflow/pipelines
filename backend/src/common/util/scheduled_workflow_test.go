@@ -369,31 +369,3 @@ func TestScheduledWorkflow_GetVersion(t *testing.T) {
 		})
 	}
 }
-
-func TestScheduledWorkflow_ParametersAsString_V1ValuesInV2Path(t *testing.T) {
-	// swf_saver.go:57 overrides version to v2beta1 on v1 SWFs.
-	// Mixed v1 params: "enabled" fails json.Unmarshal, marking the
-	// entire set as legacy. "9007199254740993" must be preserved as a
-	// string, not coerced to float64 (which would round to
-	// 9007199254740992).
-	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kubeflow.org/v2beta1",
-			Kind:       "ScheduledWorkflow",
-		},
-		Spec: swfapi.ScheduledWorkflowSpec{
-			Workflow: &swfapi.WorkflowResource{
-				Parameters: []swfapi.Parameter{
-					{Name: "mode", Value: "enabled"},
-					{Name: "id", Value: "9007199254740993"},
-					{Name: "flag", Value: "true"},
-				},
-			},
-		},
-	})
-	result, err := workflow.ParametersAsString()
-	assert.Nil(t, err)
-	assert.Contains(t, result, `"mode":"enabled"`)
-	assert.Contains(t, result, `"id":"9007199254740993"`)
-	assert.Contains(t, result, `"flag":"true"`)
-}

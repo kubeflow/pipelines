@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { NewPipelineVersion } from './NewPipelineVersion';
@@ -23,6 +23,10 @@ import { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
+import {
+  VERSION_DISCOVERY_TIMEOUT_MS,
+  VERSION_DISCOVERY_INTERVAL_MS,
+} from 'src/lib/PipelineVersionDiscovery';
 
 // Exposes protected drop handlers for testing (JSDOM lacks DataTransfer/FileList support).
 class TestNewPipelineVersion extends NewPipelineVersion {
@@ -132,11 +136,228 @@ describe('NewPipelineVersion', () => {
     renderResult?.unmount();
     renderResult = null;
     componentRef = null;
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   // New pipeline version page has two functionalities: creating a pipeline and creating a version under an existing pipeline.
   // Our tests are divided into 3 parts: switching between creating pipeline or creating version; test pipeline creation; test pipeline version creation.
+
+  describe('discovering an uploaded pipeline version', () => {
+    async function prepareUpload(): Promise<void> {
+      await renderNewPipelineVersion(
+        '',
+        { namespace: 'team-a', buildInfo: { apiServerMultiUser: true } },
+        { withRef: true },
+      );
+      await userEvent.click(screen.getByLabelText(/Upload a file/i));
+      await simulateFileDrop([
+        new File(['pipeline'], 'pipeline.yaml', { type: 'application/yaml' }),
+      ]);
+    }
+
+    it('polls missing and empty version lists before opening the uploaded pipeline', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ pipeline_versions: [] });
+      vi.useFakeTimers();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      });
+      expect(historyPushSpy).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2 * VERSION_DISCOVERY_INTERVAL_MS);
+      });
+      expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(3);
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(historyPushSpy).toHaveBeenCalledWith(
+        expect.stringContaining(MOCK_PIPELINE_VERSION.pipeline_version_id),
+      );
+    });
+
+    it('retries only version discovery after its deadline, without another upload', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy.mockResolvedValue({ pipeline_versions: [] });
+      vi.useFakeTimers();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(VERSION_DISCOVERY_TIMEOUT_MS);
+      });
+      expect(updateDialogSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Pipeline uploaded; version unavailable',
+          content: expect.stringContaining('without uploading your file again'),
+        }),
+      );
+      expect(historyPushSpy).not.toHaveBeenCalled();
+      listPipelineVersionsSpy.mockResolvedValue({ pipeline_versions: [MOCK_PIPELINE_VERSION] });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Retry version discovery' }));
+      });
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+      expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('retains upload identity after a permission error and does not automatically retry that error', async () => {
+      await prepareUpload();
+      listPipelineVersionsSpy.mockRejectedValueOnce(new Error('Permission denied'));
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Retry version discovery' })).toBeEnabled(),
+      );
+      expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(1);
+      expect(updateDialogSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('Permission denied') }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Retry version discovery' }));
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(historyPushSpy).toHaveBeenCalledTimes(1));
+    });
+
+    it.each(['name', 'description', 'source', 'file', 'namespace'])(
+      'starts a new upload when %s changes after discovery failure',
+      async (field) => {
+        await prepareUpload();
+        listPipelineVersionsSpy.mockRejectedValueOnce(new Error('Read unavailable'));
+        await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: 'Retry version discovery' })).toBeEnabled(),
+        );
+        if (field === 'file') {
+          await simulateFileDrop([
+            new File(['different'], 'pipeline.yaml', { type: 'application/yaml' }),
+          ]);
+        } else if (field === 'namespace') {
+          renderResult!.rerender(
+            <TestNewPipelineVersion
+              ref={componentRef!}
+              {...generateProps()}
+              namespace='team-b'
+              buildInfo={{ apiServerMultiUser: true }}
+            />,
+          );
+        } else {
+          const label =
+            field === 'name'
+              ? /Pipeline Name/
+              : field === 'description'
+                ? /Pipeline Description/
+                : /Code Source/i;
+          fireEvent.change(screen.getByLabelText(label), {
+            target: { value: field === 'source' ? 'https://example.com/source' : 'changed' },
+          });
+        }
+        await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+        await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalledTimes(2));
+      },
+    );
+
+    it('ignores late discovery results after inputs change', async () => {
+      await prepareUpload();
+      let finishRead!: (value: { pipeline_versions: (typeof MOCK_PIPELINE_VERSION)[] }) => void;
+      listPipelineVersionsSpy.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishRead = resolve;
+          }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(1));
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), { target: { value: 'new-name' } });
+      await act(async () => {
+        finishRead({ pipeline_versions: [MOCK_PIPELINE_VERSION] });
+      });
+      expect(historyPushSpy).not.toHaveBeenCalled();
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
+    });
+
+    it('does not submit a second upload while the first is pending', async () => {
+      await prepareUpload();
+      let finishUpload!: (value: typeof MOCK_PIPELINE) => void;
+      uploadPipelineSpy.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishUpload = resolve;
+          }),
+      );
+      const create = screen.getByRole('button', { name: 'Create' });
+      await act(async () => {
+        fireEvent.click(create);
+        fireEvent.click(create);
+      });
+      expect(uploadPipelineSpy).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        finishUpload(MOCK_PIPELINE);
+      });
+      expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not show a stale error after its response body finishes reading', async () => {
+      await prepareUpload();
+      let finishError!: (value: string) => void;
+      const text = vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            finishError = resolve;
+          }),
+      );
+      listPipelineVersionsSpy.mockRejectedValueOnce({ text });
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(text).toHaveBeenCalledTimes(1));
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), { target: { value: 'new-name' } });
+      await act(async () => {
+        finishError('Permission denied');
+      });
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
+    });
+
+    it('ignores a late upload response after the upload inputs change', async () => {
+      await prepareUpload();
+      let finishUpload!: (value: typeof MOCK_PIPELINE) => void;
+      uploadPipelineSpy.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishUpload = resolve;
+          }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalledTimes(1));
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), { target: { value: 'new-name' } });
+      await act(async () => {
+        finishUpload(MOCK_PIPELINE);
+      });
+      expect(listPipelineVersionsSpy).not.toHaveBeenCalled();
+      expect(historyPushSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
+    });
+
+    it('aborts discovery and ignores late results on unmount', async () => {
+      await prepareUpload();
+      let finishRead!: (value: { pipeline_versions: (typeof MOCK_PIPELINE_VERSION)[] }) => void;
+      listPipelineVersionsSpy.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishRead = resolve;
+          }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(1));
+      const signal = listPipelineVersionsSpy.mock.calls[0][5].signal as AbortSignal;
+      renderResult!.unmount();
+      renderResult = null;
+      expect(signal.aborted).toBe(true);
+      await act(async () => {
+        finishRead({ pipeline_versions: [MOCK_PIPELINE_VERSION] });
+      });
+      expect(historyPushSpy).not.toHaveBeenCalled();
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+    });
+  });
 
   describe('switching between creating pipeline and creating pipeline version', () => {
     it('creates pipeline is default when landing from pipeline list page', async () => {

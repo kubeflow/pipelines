@@ -406,3 +406,58 @@ with `python3 -m pip install -r tools/upgrade-readiness/requirements.txt`.
 CI uploads fixture JSON reports without an additional redaction pass. Reports
 omit raw payloads and credentials but retain resource and run identifiers; they
 are not anonymized and must come only from the isolated synthetic fixture.
+
+
+### Pagination upgrade acceptance
+
+`live_pagination.py` runs only in the disposable 2.17.2-to-candidate upgrade
+cluster. It saves real source pages and opaque continuation tokens before the
+upgrade, then routes requests explicitly to old and new API replicas sharing
+MySQL. Its additional V1/V2 experiment and run cases exercise mixed-case names,
+case-folding ties in run names, ascending/descending sorts, equal sort values,
+and run metric cursors with both present and absent (SQL NULL) values. Suspended
+synthetic V1 runs keep sort fields stable without downloading task images.
+
+Each case compares pagination with a separate single-page inventory and verifies
+that the inventory contains every created ID exactly once. Fresh candidate
+pagination must return that entire ordered inventory. The report distinguishes:
+
+- `compatible`: the source baseline succeeds and source/candidate order agrees;
+  saved source cursors and both alternating-reader sequences must succeed.
+- `restart_after_comparison_order_change`: full source and candidate ordering
+  differs. The report retains the continuation and mixed-reader outcomes; a fresh
+  candidate traversal must still succeed.
+- `preexisting_source_pagination_failure`: the source traversal already fails;
+  this is not evidence of a newly introduced upgrade regression. Candidate fresh
+  pagination must still succeed. Membership is first checked independently with
+  an identity sort. If the source's selected sort itself fails (observed for run
+  metric sorts on 2.17.2/MySQL), its ordering is unknown and recorded as
+  `sorted_inventory` failure, not a comparison change. A source first-page error
+  is recorded separately. Whenever 2.17.2 cannot emit a cursor, saved-token
+  continuation is `not_available`, never represented by a fresh candidate request.
+
+On MySQL, 2.17.2 ascending sorts place SQL NULL values first; 2.18 places them
+last in both directions. A continuation saved before upgrade can therefore repeat
+NULL rows already seen on an earlier source page. This affects ascending lists
+whose selected sort column actually contains NULLs. Tested examples include task
+`display_name`, pipeline-version `description`, pipeline `namespace`, run `state`,
+`scheduled_at` and `finished_at`, and recurring-run/job `updated_at`. An empty
+string or zero timestamp is not a SQL NULL. Lists without NULLs are not affected
+by this ordering change. Nullable descending order already places
+NULLs last on MySQL, although 2.17.2 can independently fail to produce a cursor
+when the lookahead value is NULL. The source also cannot create a run
+`recurring_run_id` cursor; this is a preexisting pagination failure, not a working
+old continuation that 2.18 can preserve.
+
+For an affected nullable sort in either direction, or another confirmed ordering change (such as
+mixed-case strings on a case-sensitive database collation), finish the API
+rollout, discard the old continuation token and partial results, and restart that
+list request from page one with the same filters and sort. Do not append that fresh traversal to partial old results
+without deduplicating by resource ID. During mixed-version service, pin the complete traversal to one API
+version or wait until rollout finishes. A token rejected after changing a request's
+filter is a separate client error; keep filters consistent across pages.
+
+These are acceptance assertions, not a claim that the expanded live run has
+passed. JSON evidence must identify the exact tested candidate. Pipeline,
+pipeline-version, task and recurring-run list endpoints, concurrent mutations,
+and non-MySQL deployments remain outside this fixture's coverage.
