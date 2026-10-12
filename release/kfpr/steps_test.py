@@ -1967,15 +1967,16 @@ class UvReleasePackagesTest(unittest.TestCase):
             self.assertFalse((root / 'kubernetes_platform/python').exists())
 
     def test_older_unified_checkout_retains_two_exports(self):
-        for shared_exporter in (False, True):
-            with self.subTest(shared_exporter=shared_exporter
+        """Legacy exports do not depend on whether an old helper is present."""
+        for legacy_exporter_present in (False, True):
+            with self.subTest(legacy_exporter_present=legacy_exporter_present
                              ), TemporaryDirectory() as tmpdir:
                 root = Path(tmpdir)
                 bundled_api = root / 'sdk/python/kfp/server_api/__init__.py'
                 bundled_api.parent.mkdir(parents=True)
                 bundled_api.touch()
                 (root / 'requirements.txt').write_text('legacy export\n')
-                if shared_exporter:
+                if legacy_exporter_present:
                     exporter = root / '.github/resources/scripts/export_python_requirements.sh'
                     exporter.parent.mkdir(parents=True)
                     exporter.write_text('#!/bin/bash\n')
@@ -2000,9 +2001,10 @@ class UvReleasePackagesTest(unittest.TestCase):
                         'sdk/python/dist'
                     ],
                 ])
-                self.assertEqual((root / '.github').exists(), shared_exporter)
+                self.assertEqual((root / '.github').exists(),
+                                 legacy_exporter_present)
 
-    def test_modern_checkout_without_exporter_does_not_restore_exports(self):
+    def test_modern_checkout_without_exports_or_helper_builds_only_kfp(self):
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             bundled_api = root / 'sdk/python/kfp/server_api/__init__.py'

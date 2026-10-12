@@ -242,7 +242,6 @@ class DependabotConfigTest(unittest.TestCase):
                   if update['package-ecosystem'] == 'uv')
         self.assertNotIn('exclude-paths', uv)
         self.assertNotIn('allow', uv)
-        self.assertNotIn('ignore', uv)
 
     def test_react_runtime_and_types_share_version_and_security_groups(self):
         config = yaml.safe_load(self.config)

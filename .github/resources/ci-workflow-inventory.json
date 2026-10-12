@@ -129,7 +129,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "a87cf7c4f4235bbe1152a68c38fef041ee47319da2e86238b8ae3bcef1a81a1b",
+      "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -152,6 +152,7 @@
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
           "test/presubmit-backend-test.sh",
+          "hack/update-all-requirements.sh",
           ".github/workflows/**",
           ".github/scripts/*.py",
           ".github/resources/scripts/*.sh",

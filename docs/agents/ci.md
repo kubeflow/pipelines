@@ -105,3 +105,6 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
 
 - CI Check recovers missing commit-to-PR associations through a bounded recent closed-PR lookup and verifies the individual merged PR record against the exact base SHA, repository, and branch. API failures or no verified match remain pending; CI freshness still uses the verified merge timestamp. See [missing base merge records](ci-passed.md#missing-base-merge-record).
+
+The CI Scripts Tests path filters include `hack/update-all-requirements.sh`, which
+is inspected by the packaging regression suite to prevent tracked exports from returning.
