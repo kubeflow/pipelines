@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
@@ -80,10 +79,11 @@ func TestPipelineVersionWebhook_AdmissionErrorContract(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			webhook := &PipelineVersionsWebhook{Client: testCase.cached, ClientNoCache: testCase.direct}
-			handler := admission.WithCustomValidator(scheme, &k8sapi.PipelineVersion{}, webhook)
+			validating, mutating, err := NewPipelineVersionWebhook(testCase.cached, testCase.direct)
+			require.NoError(t, err)
+			handler := validating
 			if testCase.mutating {
-				handler = admission.WithCustomDefaulter(scheme, &k8sapi.PipelineVersion{}, webhook)
+				handler = mutating
 			}
 			raw, err := json.Marshal(testCase.version)
 			require.NoError(t, err)
