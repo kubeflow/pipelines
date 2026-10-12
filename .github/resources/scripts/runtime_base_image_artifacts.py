@@ -10,6 +10,9 @@ from pathlib import Path
 import sys
 from typing import Any, Iterable, Optional
 
+from runtime_image_bundles import BUNDLES
+from runtime_image_bundles import selected_bundles
+
 
 def fingerprint_files(paths: Iterable[Path]) -> str:
     """Return a stable fingerprint of each path name and file contents."""
@@ -63,6 +66,7 @@ def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
 
 
 GENERATION_INPUTS = (
+    '.github/resources/scripts/runtime_image_bundles.py',
     '.github/resources/runtime-base-images.txt',
     '.github/resources/scripts/helper-functions.sh',
     '.github/resources/scripts/build-runtime-base-images.sh',
@@ -121,6 +125,48 @@ def select_artifact(pages, name, source_sha, repository_id):
         default=None)
 
 
+def bundle_reference(path):
+    reference = json.loads(path.read_text())
+    if (not isinstance(reference, dict) or set(reference) != {'bundles'} or
+            not isinstance(reference['bundles'], dict) or
+            set(reference['bundles']) != set(BUNDLES) or any(
+                type(value) is not int or value <= 0
+                for value in reference['bundles'].values()) or
+            len(set(reference['bundles'].values())) != len(BUNDLES)):
+        raise ValueError(
+            'Expected a complete runtime bundle reference with unique positive IDs'
+        )
+    return reference['bundles']
+
+
+def select_bundles(pages, source_sha, repository_id):
+    # A refresh may be partially uploaded. Never combine mutable image snapshots
+    # from different producer runs just because their generation code matches.
+    runs = {}
+    prefix = expected_artifact_name()
+    for page in pages:
+        for artifact in page['artifacts']:
+            for bundle in BUNDLES:
+                name = prefix + '-' + bundle
+                if eligible_artifact(artifact, name, source_sha, repository_id):
+                    run = runs.setdefault(artifact['workflow_run']['id'], {})
+                    previous = run.get(bundle)
+                    if previous is None or (artifact['created_at'],
+                                            artifact['id']) > (
+                                                previous['created_at'],
+                                                previous['id']):
+                        run[bundle] = artifact
+                    break
+    complete = [run for run in runs.values() if set(run) == set(BUNDLES)]
+    if not complete:
+        return None
+    newest = max(
+        complete,
+        key=lambda run: max(
+            (item['created_at'], item['id']) for item in run.values()))
+    return {'bundles': {bundle: newest[bundle]['id'] for bundle in BUNDLES}}
+
+
 def reference_id(path):
     reference = json.loads(path.read_text())
     if (not isinstance(reference, dict) or set(reference) != {'artifact_id'} or
@@ -142,8 +188,19 @@ def main() -> int:
     select_parser.add_argument('--source-sha', required=True)
 
     shared_parser = subparsers.add_parser('select-artifact')
+    bundles_parser = subparsers.add_parser('select-bundles')
+    bundle_parser = subparsers.add_parser('validate-bundle')
+    bundle_parser.add_argument('--bundle', choices=BUNDLES, required=True)
+    bundle_parser.add_argument('--reference', type=Path, required=True)
+    selection_parser = subparsers.add_parser('reference-bundles')
+    selection_parser.add_argument('path', type=Path)
+    selection_parser.add_argument('--argo-version', default='')
+    selection_parser.add_argument('--db-type', default='')
+    selection_parser.add_argument(
+        '--modelcar', choices=('true', 'false'), default='false')
     validate_parser = subparsers.add_parser('validate-reference')
-    for command_parser in (shared_parser, validate_parser):
+    for command_parser in (shared_parser, validate_parser, bundles_parser,
+                           bundle_parser):
         command_parser.add_argument('--source-sha', required=True)
         command_parser.add_argument('--repository-id', type=int, required=True)
     validate_parser.add_argument('--reference', type=Path, required=True)
@@ -154,6 +211,27 @@ def main() -> int:
     try:
         if args.command == 'fingerprint':
             print(fingerprint_files(args.paths))
+        elif args.command == 'reference-bundles':
+            reference = bundle_reference(args.path)
+            for bundle in selected_bundles(args.argo_version, args.db_type,
+                                           args.modelcar == 'true'):
+                print(f'{bundle} {reference[bundle]}')
+        elif args.command == 'select-bundles':
+            selected = select_bundles(
+                json.load(sys.stdin), args.source_sha, args.repository_id)
+            if selected:
+                print(json.dumps(selected))
+        elif args.command == 'validate-bundle':
+            artifact = json.load(sys.stdin)
+            reference = bundle_reference(args.reference)
+            if (not eligible_artifact(
+                    artifact,
+                    expected_artifact_name() + '-' + args.bundle,
+                    args.source_sha, args.repository_id) or
+                    artifact['id'] != reference[args.bundle]):
+                raise ValueError(
+                    'Shared runtime bundle metadata failed validation')
+            print(artifact['id'])
         elif args.command == 'reference-id':
             print(reference_id(args.path))
         elif args.command == 'select-artifact':

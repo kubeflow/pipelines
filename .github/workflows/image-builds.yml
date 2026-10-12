@@ -49,6 +49,7 @@ jobs:
           set -euo pipefail
           archive_fingerprint=$(python3 \
             .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
+            .github/resources/scripts/runtime_image_bundles.py \
             .github/resources/runtime-base-images.txt \
             .github/resources/scripts/helper-functions.sh \
             .github/resources/scripts/build-runtime-base-images.sh \
@@ -68,12 +69,16 @@ jobs:
 
           for attempt in $(seq 1 3); do
             reference=""
-            if artifacts=$(gh api --method GET --paginate --slurp \
-                "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
-                -f name="${ARTIFACT_NAME}" -f per_page=100); then
+            if artifacts=$(
+              for bundle in fixtures mysql argo-v3.7.18 argo-v4.1.2 modelcar; do
+                gh api --method GET --paginate --slurp \
+                  "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
+                  -f name="${ARTIFACT_NAME}-${bundle}" -f per_page=100 || exit 1
+              done | jq -s add
+            ); then
               if ! reference=$(python3 \
                 .github/resources/scripts/runtime_base_image_artifacts.py \
-                select-artifact --source-sha "${SOURCE_SHA}" \
+                select-bundles --source-sha "${SOURCE_SHA}" \
                 --repository-id "$GITHUB_REPOSITORY_ID" <<< "$artifacts"); then
                 reference=""
                 echo "::warning::Invalid shared runtime artifact metadata; retrying lookup"

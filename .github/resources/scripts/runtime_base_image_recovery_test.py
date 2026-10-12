@@ -24,6 +24,8 @@ import textwrap
 import unittest
 
 import runtime_base_image_artifacts as runtime_artifacts
+from runtime_image_bundles import bundle_images
+from runtime_image_bundles import BUNDLES
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -66,6 +68,23 @@ def producer_artifact(**overrides):
     }
     artifact.update(overrides)
     return artifact
+
+
+def producer_bundles(**overrides):
+    return [
+        producer_artifact(
+            id=index + 1,
+            name=expected_artifact_name() + '-' + bundle,
+            **overrides) for index, bundle in enumerate(BUNDLES)
+    ]
+
+
+def expected_reference():
+    return {
+        'bundles': {
+            bundle: index + 1 for index, bundle in enumerate(BUNDLES)
+        }
+    }
 
 
 class FakeCommandsTestCase(unittest.TestCase):
@@ -139,45 +158,54 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
         )
 
     def test_trusted_hit_returns_producer_without_waiting(self):
-        result, output, requests = self.run_lookup([producer_artifact()])
+        result, output, requests = self.run_lookup(producer_bundles())
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, 'shared=true\n')
         self.assertEqual(
             json.loads((self.directory /
                         'reference/runtime-reference.json').read_text()),
-            {'artifact_id': 1})
-        self.assertEqual(len(requests), 1)
-        self.assertIn('name=' + expected_artifact_name(), requests[0])
+            expected_reference())
+        self.assertEqual(len(requests), len(BUNDLES))
+        for bundle, request in zip(BUNDLES, requests):
+            self.assertIn('name=' + expected_artifact_name() + '-' + bundle,
+                          request)
         self.assertEqual(self.sleeps(), [])
+
+    def test_missing_one_bundle_falls_back_without_partial_reference(self):
+        self.assert_bounded_miss(producer_bundles()[:-1])
+        self.assertFalse(
+            (self.directory / 'reference/runtime-reference.json').exists())
 
     def test_missing_generation_falls_back_after_bounded_wait(self):
         self.assert_bounded_miss([])
 
     def test_expired_master_generation_falls_back(self):
-        self.assert_bounded_miss([producer_artifact(expired=True)])
+        self.assert_bounded_miss(producer_bundles(expired=True))
 
     def test_unrelated_fork_cannot_supply_recovery_archive(self):
-        candidate = producer_artifact()
-        candidate['workflow_run']['head_repository_id'] = 2
-        self.assert_bounded_miss([candidate])
+        candidates = producer_bundles()
+        for candidate in candidates:
+            candidate['workflow_run']['head_repository_id'] = 2
+        self.assert_bounded_miss(candidates)
 
     def test_current_source_fork_producer_remains_eligible(self):
-        candidate = producer_artifact()
-        candidate['workflow_run'].update({
-            'head_repository_id': 2,
-            'head_sha': SOURCE_SHA,
-            'head_branch': 'feature',
-        })
-        result, output, requests = self.run_lookup([candidate])
+        candidates = producer_bundles()
+        for candidate in candidates:
+            candidate['workflow_run'].update({
+                'head_repository_id': 2,
+                'head_sha': SOURCE_SHA,
+                'head_branch': 'feature',
+            })
+        result, output, requests = self.run_lookup(candidates)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, 'shared=true\n')
         self.assertEqual(
             json.loads((self.directory /
                         'reference/runtime-reference.json').read_text()),
-            {'artifact_id': 1})
-        self.assertEqual(len(requests), 1)
+            expected_reference())
+        self.assertEqual(len(requests), len(BUNDLES))
 
     def test_artifact_api_failure_does_not_block_local_generation(self):
         self.assert_bounded_miss([], fail_api=True)
@@ -189,7 +217,7 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
                                                    }])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, '')
-        self.assertEqual(len(requests), 3)
+        self.assertEqual(len(requests), 3 * len(BUNDLES))
         self.assertEqual(self.sleeps(), ['10', '10'])
         self.assertFalse(
             (self.directory / 'reference/runtime-reference.json').exists())
@@ -199,7 +227,7 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, '')
-        self.assertEqual(len(requests), 3)
+        self.assertEqual(len(requests), 3 if fail_api else 3 * len(BUNDLES))
         self.assertEqual(self.sleeps(), ['10', '10'])
         self.assertIn('::warning::', result.stdout)
 
@@ -232,10 +260,10 @@ if arguments[0] == 'save':
     Path(arguments[arguments.index(flag) + 1]).write_bytes(b'new archive')
 ''')
 
-    def run_build(self, failed_command=''):
+    def run_build(self, failed_command='', bundles=False):
         result = subprocess.run(
             ['bash', str(BUILD_SCRIPT),
-             str(self.output_directory)],
+             str(self.output_directory)] + (['--bundles'] if bundles else []),
             cwd=ROOT,
             env={
                 **self.environment,
@@ -278,6 +306,29 @@ if arguments[0] == 'save':
         self.assertEqual(len(saves), 2)
         self.assertIn(MODELCAR_IMAGE, saves[1])
         self.assertEqual(self.sleeps(), [])
+
+    def test_bundle_build_partitions_images_and_saves_modelcar(self):
+        result, commands = self.run_build(bundles=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        saves = [command for command in commands if command[0] == 'save']
+        self.assertEqual(len(saves), len(BUNDLES))
+        for bundle, save in zip(BUNDLES, saves):
+            archive = self.output_directory / bundle / (bundle + '.tar')
+            self.assertEqual(archive.read_bytes(), b'new archive')
+            flag = '-o' if '-o' in save else '--output'
+            images = save[1:].copy()
+            index = images.index(flag)
+            del images[index:index + 2]
+            expected = [MODELCAR_IMAGE
+                       ] if bundle == 'modelcar' else bundle_images(bundle)
+            self.assertCountEqual(
+                images, [image.split('@', 1)[0] for image in expected])
+        pulls = [command[1] for command in commands if command[0] == 'pull']
+        inventory = [
+            image for bundle in BUNDLES for image in bundle_images(bundle)
+        ]
+        self.assertCountEqual(pulls, inventory)
+        self.assertEqual(len(pulls), len(set(pulls)))
 
     def test_pull_failure_stops_before_saving_or_building_modelcar(self):
         result, commands = self.run_build('pull')

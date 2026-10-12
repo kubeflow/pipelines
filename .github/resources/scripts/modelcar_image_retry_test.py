@@ -54,7 +54,7 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         self.assertIn(f'--file {MODELCAR_DOCKERFILE}', build_script)
         self.assertIn(f'--tag {MODELCAR_IMAGE}', build_script)
         self.assertIn(f'docker save {MODELCAR_IMAGE}', build_script)
-        self.assertIn('${artifacts_path}/modelcar.tar', build_script)
+        self.assertIn('$artifacts_path/modelcar.tar', build_script)
 
     def test_e2e_consumes_prebuilt_modelcar_and_fails_closed(self):
         workflow = E2E_WORKFLOW.read_text(encoding='utf-8')
