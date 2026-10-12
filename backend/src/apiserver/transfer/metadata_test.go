@@ -251,7 +251,7 @@ func TestGeneratedMLMDContractExportStageAndRetry(t *testing.T) {
 	source := Metadata{RPC: ProtoRPC{Conn: descriptorConn{sourceStore}}}
 	runs := []RunHistory{{Run: model.Run{UUID: runID, Namespace: "team", RunDetails: model.RunDetails{PipelineRuntimeManifest: "v2"}}, Tasks: []model.Task{{UUID: "task", RunID: runID, Namespace: "team", MLMDExecutionID: "10", Fingerprint: "source-cache", MLMDOutputs: `{"artifacts":{"artifactIds":[20]}}`}}}}
 	var authorized []string
-	graph, err := source.Export(ctx, runs, func(id string) error { authorized = append(authorized, id); return nil })
+	graph, err := source.Export(ctx, runs, func(id string) (RunHistory, error) { authorized = append(authorized, id); return RunHistory{}, nil })
 	require.NoError(t, err)
 	require.Equal(t, []string{runID}, authorized)
 	require.Len(t, graph["executions"], 3)
@@ -293,11 +293,11 @@ func TestMLMDRejectsNamespaceProvenanceAndTypeConflicts(t *testing.T) {
 	g["contexts"] = append(g["contexts"], Node{"id": "7", "type_id": "1", "name": "other-namespace-run"})
 	g["associations"] = append(g["associations"], Node{"context_id": "7", "execution_id": "12"})
 	m := Metadata{RPC: ProtoRPC{Conn: descriptorConn{&memoryMetadata{graph: g}}}}
-	_, err := m.Export(ctx, []RunHistory{{Run: model.Run{UUID: "run"}}}, func(id string) error {
+	_, err := m.Export(ctx, []RunHistory{{Run: model.Run{UUID: "run"}}}, func(id string) (RunHistory, error) {
 		if id != "run" {
-			return errors.New("cross namespace")
+			return RunHistory{}, errors.New("cross namespace")
 		}
-		return nil
+		return RunHistory{}, nil
 	})
 	require.ErrorContains(t, err, "cross namespace")
 	target := &memoryMetadata{graph: Graph{"execution_types": {{"id": "30", "name": "system.ContainerExecution", "properties": Node{"different": "STRING"}}}}}
@@ -318,7 +318,9 @@ func TestReexportImportedMetadataUsesRecordedNamespace(t *testing.T) {
 	mapping, err := metadata.Stage(ctx, lineageGraph(runID), "source")
 	require.NoError(t, err)
 	runs := []RunHistory{{Run: model.Run{UUID: runID, RunDetails: model.RunDetails{PipelineRuntimeManifest: "v2"}}}}
-	graph, err := metadata.Export(ctx, runs, func(string) error { return errors.New("ancestor producer SQL row was not included in prior batch") })
+	graph, err := metadata.Export(ctx, runs, func(string) (RunHistory, error) {
+		return RunHistory{}, errors.New("ancestor producer SQL row was not included in prior batch")
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, graph["executions"])
 	require.Equal(t, mapping["contexts"]["5"], strconv.FormatInt(runs[0].Run.PipelineRunContextId, 10))
@@ -328,7 +330,7 @@ func TestReexportImportedMetadataUsesRecordedNamespace(t *testing.T) {
 		}
 	}
 	metadata.Namespace = "other"
-	_, err = metadata.Export(ctx, runs, func(string) error { return errors.New("cross namespace") })
+	_, err = metadata.Export(ctx, runs, func(string) (RunHistory, error) { return RunHistory{}, errors.New("cross namespace") })
 	require.ErrorContains(t, err, "cross namespace")
 }
 
@@ -356,4 +358,90 @@ func TestTransferLiveMLMDIntegration(t *testing.T) {
 	resp, err := m.call(context.Background(), "GetContextByTypeAndName", Node{"type_name": "system.PipelineRun", "context_name": graph["contexts"][0]["name"]})
 	require.NoError(t, err)
 	require.Equal(t, mapping["contexts"]["5"], sid(object(resp["context"])["id"]))
+}
+
+func completedRootFixture() (Graph, []RunHistory) {
+	g := lineageGraph("completed-run")
+	g["execution_types"] = append(g["execution_types"], Node{"id": "7", "name": "system.DAGExecution"})
+	g["executions"][1] = Node{"id": "11", "type_id": "7", "name": "run/completed-run", "last_known_state": "RUNNING"}
+	g["associations"] = append(g["associations"], Node{"context_id": "5", "execution_id": "11"})
+	runs := []RunHistory{{Run: model.Run{UUID: "completed-run", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded, FinishedAtInSec: 100, PipelineRunContextId: 5}}, Tasks: []model.Task{{MLMDExecutionID: "10"}}}}
+	return g, runs
+}
+
+func TestExportCompletedLegacyRoot(t *testing.T) {
+	for _, tc := range []struct {
+		state    model.RuntimeState
+		expected string
+	}{
+		{model.RuntimeStateSucceeded, "COMPLETE"}, {model.RuntimeStateFailed, "FAILED"}, {model.RuntimeStateCanceled, "CANCELED"}, {model.RuntimeState("Succeeded"), "COMPLETE"},
+	} {
+		t.Run(string(tc.state), func(t *testing.T) {
+			graph, runs := completedRootFixture()
+			runs[0].Run.State = tc.state
+			store := &memoryMetadata{graph: graph}
+			source := Metadata{RPC: ProtoRPC{Conn: descriptorConn{store}}}
+			require.ErrorContains(t, validateGraph(graph, runs), "unfinished execution")
+			exported, err := source.Export(context.Background(), runs, func(string) (RunHistory, error) { return RunHistory{}, nil })
+			require.NoError(t, err)
+			for _, node := range exported["executions"] {
+				if sid(node["id"]) == "11" {
+					require.Equal(t, tc.expected, node["last_known_state"])
+				}
+			}
+			require.Equal(t, "RUNNING", store.graph["executions"][1]["last_known_state"])
+			require.Zero(t, store.puts)
+			destination := &memoryMetadata{}
+			_, err = (&Metadata{RPC: ProtoRPC{Conn: descriptorConn{destination}}}).Stage(context.Background(), exported, "source")
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestCompletedLegacyRootRemainsFailClosed(t *testing.T) {
+	cases := map[string]func(Graph, []RunHistory){
+		"unfinished SQL":      func(g Graph, r []RunHistory) { r[0].Run.State = model.RuntimeStateRunning },
+		"missing SQL finish":  func(g Graph, r []RunHistory) { r[0].Run.FinishedAtInSec = 0 },
+		"skipped SQL":         func(g Graph, r []RunHistory) { r[0].Run.State = model.RuntimeStateSkipped },
+		"wrong name":          func(g Graph, r []RunHistory) { g["executions"][1]["name"] = "another-root" },
+		"wrong type":          func(g Graph, r []RunHistory) { g["executions"][1]["type_id"] = "3" },
+		"new root":            func(g Graph, r []RunHistory) { g["executions"][1]["last_known_state"] = "NEW" },
+		"missing association": func(g Graph, r []RunHistory) { g["associations"] = g["associations"][:3] },
+		"wrong context ID":    func(g Graph, r []RunHistory) { r[0].Run.PipelineRunContextId = 6 },
+		"wrong context name":  func(g Graph, r []RunHistory) { g["contexts"][0]["name"] = "another-run" },
+		"multiple run contexts": func(g Graph, r []RunHistory) {
+			g["contexts"] = append(g["contexts"], Node{"id": "8", "type_id": "1", "name": "another-run"})
+			g["associations"] = append(g["associations"], Node{"context_id": "8", "execution_id": "11"})
+		},
+		"actual task":      func(g Graph, r []RunHistory) { r[0].Tasks = append(r[0].Tasks, model.Task{MLMDExecutionID: "11"}) },
+		"unfinished child": func(g Graph, r []RunHistory) { g["executions"][0]["last_known_state"] = "RUNNING" },
+		"unfinished nested DAG": func(g Graph, r []RunHistory) {
+			g["executions"][0]["type_id"] = "7"
+			g["executions"][0]["last_known_state"] = "RUNNING"
+		},
+	}
+	for _, key := range []string{"parent_dag_id", "cached_execution_id", "total_dag_tasks", "iteration_count", "iteration_index"} {
+		cases[key] = func(g Graph, r []RunHistory) {
+			g["executions"][1]["custom_properties"] = Node{key: Node{"int_value": "0"}}
+		}
+	}
+	for name, change := range cases {
+		t.Run(name, func(t *testing.T) {
+			graph, runs := completedRootFixture()
+			change(graph, runs)
+			normalizeCompletedRunRoots(graph, runs)
+			require.ErrorContains(t, validateGraph(graph, runs), "unfinished execution")
+		})
+	}
+}
+
+func TestCompletedLegacyRootSnapshotAndLegacyConditions(t *testing.T) {
+	graph, runs := completedRootFixture()
+	runs[0].Run.Conditions = "Succeeded"
+	runs[0].Run.State = ""
+	sourceRoot := graph["executions"][1]
+	normalizeCompletedRunRoots(graph, runs)
+	require.Equal(t, "COMPLETE", graph["executions"][1]["last_known_state"])
+	require.Equal(t, "RUNNING", sourceRoot["last_known_state"])
+	require.NoError(t, validateGraph(graph, runs))
 }

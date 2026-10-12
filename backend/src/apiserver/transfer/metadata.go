@@ -335,8 +335,90 @@ func (m *Metadata) contextNodes(ctx context.Context, collection, id string) ([]N
 	}
 }
 
+// normalizeCompletedRunRoots derives only the legacy run-root bookkeeping state
+// in the export snapshot. The legacy runtime deliberately leaves root DAGs without
+// expected task counts RUNNING. SQL is authoritative for the completed run, but
+// validateGraph still requires every task and nested DAG to be terminal. Never
+// apply this normalization on import or write the derived state back to MLMD.
+func normalizeCompletedRunRoots(g Graph, runs []RunHistory) {
+	contextTypes, executionTypes := map[string]string{}, map[string]string{}
+	for _, row := range g["context_types"] {
+		contextTypes[sid(row["id"])] = sid(row["name"])
+	}
+	for _, row := range g["execution_types"] {
+		executionTypes[sid(row["id"])] = sid(row["name"])
+	}
+	runContexts := map[string]string{}
+	for _, row := range g["contexts"] {
+		if contextTypes[sid(row["type_id"])] == "system.PipelineRun" {
+			runContexts[sid(row["id"])] = sid(row["name"])
+		}
+	}
+	// An execution associated with multiple run contexts is ambiguous.
+	executionContexts := map[string][]string{}
+	for _, row := range g["associations"] {
+		id := sid(row["context_id"])
+		if _, ok := runContexts[id]; ok {
+			executionContexts[sid(row["execution_id"])] = append(executionContexts[sid(row["execution_id"])], id)
+		}
+	}
+	completed := map[string]RunHistory{}
+	for _, h := range runs {
+		if h.Run.UUID != "" && terminal(h.Run) {
+			completed[h.Run.UUID] = h
+		}
+	}
+	for i, execution := range g["executions"] {
+		if sid(execution["last_known_state"]) != "RUNNING" || executionTypes[sid(execution["type_id"])] != "system.DAGExecution" {
+			continue
+		}
+		contexts := executionContexts[sid(execution["id"])]
+		if len(contexts) != 1 {
+			continue
+		}
+		h, ok := completed[runContexts[contexts[0]]]
+		if !ok || sid(execution["name"]) != "run/"+h.Run.UUID || contexts[0] != strconv.FormatInt(h.Run.PipelineRunContextId, 10) {
+			continue
+		}
+		props := object(execution["custom_properties"])
+		bookkeeping := true
+		for _, key := range []string{"parent_dag_id", "cached_execution_id", "total_dag_tasks", "iteration_count", "iteration_index"} {
+			if _, exists := props[key]; exists {
+				bookkeeping = false
+			}
+		}
+		for _, task := range h.Tasks {
+			if task.MLMDExecutionID == sid(execution["id"]) {
+				bookkeeping = false
+			}
+		}
+		if !bookkeeping {
+			continue
+		}
+		state := h.Run.State
+		if state == "" {
+			state = model.RuntimeState(h.Run.Conditions)
+		}
+		var derived string
+		switch state.ToV2() {
+		case model.RuntimeStateSucceeded:
+			derived = "COMPLETE"
+		case model.RuntimeStateFailed:
+			derived = "FAILED"
+		case model.RuntimeStateCanceled:
+			derived = "CANCELED"
+		default:
+			continue // MLMD has no equivalent skipped-run state.
+		}
+		// Even RPC implementations that retain their returned maps must not see a mutation.
+		snapshot := clone(execution)
+		snapshot["last_known_state"] = derived
+		g["executions"][i] = snapshot
+	}
+}
+
 // Export follows artifact producers and execution parents, never unrelated consumers.
-func (m *Metadata) Export(ctx context.Context, runs []RunHistory, authorizeRun func(string) error) (Graph, error) {
+func (m *Metadata) Export(ctx context.Context, runs []RunHistory, loadAuthorizedRun func(string) (RunHistory, error)) (Graph, error) {
 	g := Graph{}
 	all := map[string]map[string]Node{"contexts": {}, "executions": {}, "artifacts": {}}
 	graphBytes := 0
@@ -553,14 +635,27 @@ func (m *Metadata) Export(ctx context.Context, runs []RunHistory, authorizeRun f
 	for _, t := range g["context_types"] {
 		contextTypes[sid(t["id"])] = sid(t["name"])
 	}
+	normalizationRuns := append([]RunHistory(nil), runs...)
+	selectedRuns := make(map[string]bool, len(runs))
+	for _, history := range runs {
+		selectedRuns[history.Run.UUID] = true
+	}
 	for _, c := range g["contexts"] {
 		if contextTypes[sid(c["type_id"])] == "system.PipelineRun" {
-			if err := authorizeRun(sid(c["name"])); err != nil {
+			history, err := loadAuthorizedRun(sid(c["name"]))
+			if err != nil {
 				props := object(c["custom_properties"])
 				ns, exists := props[provenance+"namespace"]
 				if !exists || sid(object(ns)["string_value"]) != m.Namespace || sid(object(props[provenance+"source"])["string_value"]) == "" {
 					return nil, err
 				}
+			} else if history.Run.UUID == sid(c["name"]) && !selectedRuns[history.Run.UUID] {
+				// Native SQL runs may omit the MLMD ID; preserve any explicit conflicting ID.
+				if history.Run.PipelineRunContextId == 0 {
+					history.Run.PipelineRunContextId, _ = strconv.ParseInt(sid(c["id"]), 10, 64)
+				}
+				// Provenance-only authorization never supplies completion evidence.
+				normalizationRuns = append(normalizationRuns, history)
 			}
 		}
 	}
@@ -574,6 +669,7 @@ func (m *Metadata) Export(ctx context.Context, runs []RunHistory, authorizeRun f
 			}
 		}
 	}
+	normalizeCompletedRunRoots(g, normalizationRuns)
 	return g, validateGraph(g, runs)
 }
 
