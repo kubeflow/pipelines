@@ -59,6 +59,9 @@ if os.environ.get('FAIL_TRANSFER') == 'true':
     sys.exit(42)
 cache_id = re.search(r'type=cache,id=([^,]+),', dockerfile).group(1)
 mount = Path(os.environ['MOUNTS']) / cache_id
+# BuildKit invalidates mounts referenced by an IgnoreCache RUN.
+if '--no-cache' in args and mount.exists():
+    shutil.rmtree(mount)
 mount.mkdir(exist_ok=True)
 output = args[args.index('--output') + 1]
 if output == 'type=cacheonly':
@@ -132,11 +135,18 @@ exec "$@"
             args = call['args']
             self.assertEqual(args[args.index('--builder') + 1], 'test-builder')
             self.assertEqual(args[args.index('--platform') + 1], 'linux/arm64')
-            self.assertIn('--no-cache', args)
+            self.assertNotIn('--no-cache', args)
+            nonce = args[args.index('--build-arg') + 1]
+            self.assertTrue(nonce.startswith('CACHE_TRANSFER_NONCE='))
+            self.assertIn('ARG CACHE_TRANSFER_NONCE', call['dockerfile'])
+            self.assertIn('test -n "$CACHE_TRANSFER_NONCE"', call['dockerfile'])
             self.assertIn(f'FROM {BASE}', call['dockerfile'])
             self.assertIn(
                 'id=kfp-go-build,target=/root/.cache/go-build,sharing=locked',
                 call['dockerfile'])
+        self.assertNotEqual(
+            calls[0]['args'][calls[0]['args'].index('--build-arg') + 1],
+            calls[1]['args'][calls[1]['args'].index('--build-arg') + 1])
         self.assertEqual(
             list(self.directory.glob('go-build-cache-transfer.*')), [])
 
