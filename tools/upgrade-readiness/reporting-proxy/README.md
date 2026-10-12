@@ -35,7 +35,9 @@ must not depend on artifact metrics. The health endpoint is separate from eviden
 The disposable fixture temporarily grants the worker `get` on only the two
 selected `runs.pipelines.kubeflow.org` resource names (their Workflow names, as
 used by API authorization), so the forwarded worker identity can observe stored
-state before deletion. A preflight checks both names; cleanup removes this
+state before deletion. A direct SubjectAccessReview checks both names using the
+API server's exact resource attributes; KFP run resources are virtual and absent
+from Kubernetes discovery. Cleanup removes this
 namespace-scoped grant. Production worker RBAC remains unchanged.
 
 Selected nonterminal reports receive retryable `Unavailable` and never reach the

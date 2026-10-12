@@ -108,6 +108,19 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   `reports/` are uploaded; SQL snapshots, manifests, credentials and raw adoption
   logs remain in the disposable runner.
 
+- Manual `run_readiness_reporting=true` adds a separate disposable 2.17.2 upgrade
+  lane. It retains suspended V1 immediate and recurring runs, captures read-only
+  ownership findings, and verifies that the actual persistence worker catches up
+  after API-server Workflow GET permission is restored. The fault does not remove
+  the worker's informer access. Its scoped observer preflight submits explicit
+  SubjectAccessReview attributes for the selected virtual KFP run resources;
+  `kubectl auth can-i` discovery fallback does not preserve their API group.
+  A test-only reporting interceptor exercises the
+  deletion-after-capture race; it does not establish recovery when no terminal
+  snapshot was captured. The lane must restore injected permissions on failure,
+  upload only explicit sanitized report files, and delete its isolated cluster.
+  Raw manifests, token files and restoration inputs are not acceptance artifacts.
+
 - `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
   isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
   namespaced custom-role users: private/shared upload and version inheritance,
@@ -150,15 +163,6 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
   failures remain failures and the disposable cluster is always deleted.
-- Manual `run_readiness_reporting=true` adds a separate disposable 2.17.2 upgrade
-  lane. It retains suspended V1 immediate and recurring runs, captures read-only
-  ownership findings, and verifies that the actual persistence worker catches up
-  after API-server Workflow GET permission is restored. The fault does not remove
-  the worker's informer access. A test-only reporting interceptor exercises the
-  deletion-after-capture race; it does not establish recovery when no terminal
-  snapshot was captured. The lane must restore injected permissions on failure,
-  upload only explicit sanitized report files, and delete its isolated cluster.
-  Raw manifests, token files and restoration inputs are not acceptance artifacts.
 - Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache

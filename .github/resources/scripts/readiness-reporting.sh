@@ -126,11 +126,21 @@ state = Path(sys.argv[1])
 worker = json.loads((state / 'agent-before.json').read_text())['spec']['template']['spec']['serviceAccountName']
 records = json.loads((state / 'reporting-source.json').read_text())['deletion_runs']
 for record in records:
-    subprocess.run(['kubectl', '--context', sys.argv[2], '--request-timeout=15s',
-                    '-n', 'kfp-readiness-test', 'auth', 'can-i', 'get',
-                    'runs.pipelines.kubeflow.org/' + record['workflow_name'],
-                    '--as=system:serviceaccount:kubeflow:' + worker],
-                   check=True, timeout=20)
+    # KFP authorizes virtual resources absent from Kubernetes discovery. Submit
+    # the same attributes directly instead of kubectl's resource-name mapping.
+    review = dict(apiVersion='authorization.k8s.io/v1', kind='SubjectAccessReview',
+                  spec=dict(user='system:serviceaccount:kubeflow:' + worker,
+                            resourceAttributes=dict(namespace='kfp-readiness-test',
+                                                    group='pipelines.kubeflow.org',
+                                                    version='v1beta1', resource='runs',
+                                                    verb='get', name=record['workflow_name'])))
+    result = subprocess.run(['kubectl', '--context', sys.argv[2], '--request-timeout=15s',
+                             'create', '-f', '-', '-o', 'json'],
+                            input=json.dumps(review), capture_output=True, text=True,
+                            check=True, timeout=20)
+    status = json.loads(result.stdout).get('status', {})
+    if status.get('allowed') is not True or status.get('denied') or status.get('evaluationError'):
+        raise RuntimeError('reporting observer access was not confirmed; verify the scoped fixture Role and RoleBinding')
 PY_PREFLIGHT
 if ! kube -n kubeflow rollout status deployment/kfp-reporting-proxy --timeout=180s; then
   check proxy-diagnostics
