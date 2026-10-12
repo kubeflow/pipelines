@@ -120,7 +120,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Pod watchers. It proves a populated pre-namespace schema migrates while an old
   process remains active, old admissions and writes continue, and namespace-empty
   writes cannot satisfy enforcing scoped lookups. A temporary Deployment
-  `minReadySeconds` and per-revision Service selector make overlap observable;
+  `minReadySeconds` and per-revision Services make overlap observable;
   both watchers remain running. The ordinary rolling Deployment then converges
   before cold-to-warm, cross-namespace and retained old-format completion checks.
   Synthetic Pods replace Argo's completion label, so this is cache component

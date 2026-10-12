@@ -68,8 +68,8 @@ def record(phase, **details):
 
 
 def sql(query):
-    return k('-n', NS, 'exec', 'mysql', '--', 'mysql', '-uroot',
-             '-pfixture-only', '-N', '-B', '-e', query)
+    return k('-n', NS, 'exec', 'mysql', '--', 'mysql', '-h', '127.0.0.1',
+             '-uroot', '-pfixture-only', '-N', '-B', '-e', query)
 
 
 def pods():
@@ -78,17 +78,21 @@ def pods():
           'json'))['items']
 
 
-def endpoint(version):
-    # Deterministic admission routing, without stopping either background writer.
+def webhook_service(name):
     k(
-        '-n', NS, 'patch', 'service', 'cache-server', '--type=merge', '-p',
-        json.dumps(
-            {'spec': {
-                'selector': {
-                    'app': 'cache-server',
-                    'version': version
-                }
-            }}))
+        'patch', 'mutatingwebhookconfiguration', 'cache-rolling-fixture',
+        '--type=json', '-p',
+        json.dumps([{
+            'op': 'replace',
+            'path': '/webhooks/0/clientConfig/service/name',
+            'value': name
+        }]))
+
+
+def endpoint(version):
+    # Separate service hostnames also separate API-server keep-alive pools.
+    # Changing a selector alone can leave a connection to the previous Pod.
+    service = 'cache-server-' + version
 
     def selected_endpoint():
         expected = {
@@ -98,12 +102,29 @@ def endpoint(version):
         }
         actual = {
             address['targetRef']['uid']
-            for subset in get('endpoints', 'cache-server').get('subsets', [])
+            for subset in get('endpoints', service).get('subsets', [])
             for address in subset.get('addresses', [])
         }
         return actual and actual == expected
 
     wait(selected_endpoint, 'selected webhook endpoint')
+    webhook_service(service)
+    probe = task_manifest('routing-readiness', 'routing-readiness')
+    expected_key = key(
+        template('routing-readiness'), NS if version == 'new' else None)
+
+    def admission_ready():
+        admitted = json.loads(
+            k('create',
+              '--dry-run=server',
+              '-f',
+              '-',
+              '-o',
+              'json',
+              data=json.dumps(probe)))
+        return admitted['metadata']['annotations'].get(KEY) == expected_key
+
+    wait(admission_ready, 'revision-specific admission routing')
 
 
 def template(marker):
@@ -286,10 +307,13 @@ def setup():
     k('-n', NS, 'wait', '--for=condition=Ready', 'pod/mysql', '--timeout=180s')
     certdir = Path('/tmp/cache-rolling-tls')
     certdir.mkdir(exist_ok=True)
-    run('openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days',
+    run(
+        'openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days',
         '1', '-keyout', str(certdir / 'key.pem'), '-out',
         str(certdir / 'cert.pem'), '-subj', '/CN=cache-server.cache-a.svc',
-        '-addext', 'subjectAltName=DNS:cache-server.cache-a.svc')
+        '-addext',
+        'subjectAltName=DNS:cache-server.cache-a.svc,DNS:cache-server-old.cache-a.svc,DNS:cache-server-new.cache-a.svc'
+    )
     apply({
         'apiVersion': 'v1',
         'kind': 'Secret',
@@ -388,6 +412,26 @@ def setup():
     })
     k('-n', NS, 'rollout', 'status', 'deployment/cache-server',
       '--timeout=180s')
+    for version in ('old', 'new'):
+        apply({
+            'apiVersion': 'v1',
+            'kind': 'Service',
+            'metadata': {
+                'name': 'cache-server-' + version,
+                'namespace': NS
+            },
+            'spec': {
+                'selector': {
+                    'app': 'cache-server',
+                    'version': version
+                },
+                'ports': [{
+                    'port': 443,
+                    'targetPort': 8443
+                }]
+            }
+        })
+
     apply({
         'apiVersion':
             'admissionregistration.k8s.io/v1',
@@ -541,8 +585,7 @@ def validate():
     assert {p['metadata']['labels']['version'] for p in pods()
            } == {'old', 'new'}
     # Return to ordinary service routing and let the Deployment finish normally.
-    k('-n', NS, 'patch', 'service', 'cache-server', '--type=json', '-p',
-      '[{"op":"remove","path":"/spec/selector/version"}]')
+    webhook_service('cache-server')
     k('-n', NS, 'patch', 'deployment', 'cache-server', '--type=merge', '-p',
       '{"spec":{"minReadySeconds":0}}')
     k('-n', NS, 'rollout', 'status', 'deployment/cache-server',
