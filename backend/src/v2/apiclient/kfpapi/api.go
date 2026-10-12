@@ -69,22 +69,32 @@ type API interface {
 // It is a thin wrapper delegating to the generated gRPC clients.
 
 type clientAdapter struct {
-	c *apiclient.Client
+	c           *apiclient.Client
+	retryPolicy RetryPolicy
 }
 
-// New wraps the apiclient.Client into an API interface.
+// New wraps the apiclient.Client into an API interface using the default retry policy.
 func New(c *apiclient.Client) API {
-	return &clientAdapter{c: c}
+	return NewWithRetryPolicy(c, defaultRetryPolicy)
+}
+
+// NewWithRetryPolicy wraps the apiclient.Client using the provided retry policy.
+func NewWithRetryPolicy(c *apiclient.Client, policy RetryPolicy) API {
+	return &clientAdapter{c: c, retryPolicy: policy}
 }
 
 // Implement API by forwarding calls to typed clients.
 
 func (k *clientAdapter) GetRun(ctx context.Context, req *gc.GetRunRequest) (*gc.Run, error) {
-	return k.c.Run.GetRun(ctx, req)
+	return retryRead(ctx, "GetRun", k.retryPolicy, func(callCtx context.Context) (*gc.Run, error) {
+		return k.c.Run.GetRun(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error) {
-	return k.c.Run.ListRuns(ctx, req)
+	return retryRead(ctx, "ListRuns", k.retryPolicy, func(callCtx context.Context) (*gc.ListRunsResponse, error) {
+		return k.c.Run.ListRuns(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error) {
@@ -100,15 +110,21 @@ func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasks
 }
 
 func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.GetTask(ctx, req)
+	return retryRead(ctx, "GetTask", k.retryPolicy, func(callCtx context.Context) (*gc.PipelineTask, error) {
+		return k.c.Run.GetTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) ListTasks(ctx context.Context, req *gc.ListTasksRequest) (*gc.ListTasksResponse, error) {
-	return k.c.Run.ListTasks(ctx, req)
+	return retryRead(ctx, "ListTasks", k.retryPolicy, func(callCtx context.Context) (*gc.ListTasksResponse, error) {
+		return k.c.Run.ListTasks(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) FindCachedTask(ctx context.Context, req *gc.FindCachedTaskRequest) (*gc.FindCachedTaskResponse, error) {
-	return k.c.Run.FindCachedTask(ctx, req)
+	return retryRead(ctx, "FindCachedTask", k.retryPolicy, func(callCtx context.Context) (*gc.FindCachedTaskResponse, error) {
+		return k.c.Run.FindCachedTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateArtifact(ctx context.Context, req *gc.CreateArtifactRequest) (*gc.Artifact, error) {
@@ -138,12 +154,12 @@ func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace s
 		return nil, fmt.Errorf("failed to marshal filter: %v", err)
 	}
 
-	artifactsResponse, err := k.c.Artifact.ListArtifacts(ctx, &gc.ListArtifactRequest{
-		Namespace: namespace,
-		Filter:    string(filterJSON),
-		// Large enough for typical URI match cardinality; server URI fast path
-		// ignores pagination and returns the full equality result set.
-		PageSize: 1000,
+	artifactsResponse, err := retryRead(ctx, "ListArtifacts", k.retryPolicy, func(callCtx context.Context) (*gc.ListArtifactResponse, error) {
+		return k.c.Artifact.ListArtifacts(callCtx, &gc.ListArtifactRequest{
+			Namespace: namespace,
+			Filter:    string(filterJSON),
+			PageSize:  1000,
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -152,7 +168,9 @@ func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace s
 }
 
 func (k *clientAdapter) ListArtifactTasks(ctx context.Context, req *gc.ListArtifactTasksRequest) (*gc.ListArtifactTasksResponse, error) {
-	return k.c.Artifact.ListArtifactTasks(ctx, req)
+	return retryRead(ctx, "ListArtifactTasks", k.retryPolicy, func(callCtx context.Context) (*gc.ListArtifactTasksResponse, error) {
+		return k.c.Artifact.ListArtifactTasks(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateArtifactTask(ctx context.Context, req *gc.CreateArtifactTaskRequest) (*gc.ArtifactTask, error) {
@@ -164,7 +182,9 @@ func (k *clientAdapter) CreateArtifactTasks(ctx context.Context, req *gc.CreateA
 }
 
 func (k *clientAdapter) GetPipelineVersion(ctx context.Context, req *gc.GetPipelineVersionRequest) (*gc.PipelineVersion, error) {
-	return k.c.Pipeline.GetPipelineVersion(ctx, req)
+	return retryRead(ctx, "GetPipelineVersion", k.retryPolicy, func(callCtx context.Context) (*gc.PipelineVersion, error) {
+		return k.c.Pipeline.GetPipelineVersion(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) FetchPipelineSpecFromRun(ctx context.Context, run *gc.Run) (*structpb.Struct, error) {

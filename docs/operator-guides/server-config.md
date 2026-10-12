@@ -447,3 +447,19 @@ warnings, restoring the associated security exposure. It does not disable
 existing authentication or namespace authorization. See the
 [scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
 Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).
+
+## Runtime API RPC retries
+
+The v2 runtime API client retries eligible read-only RPC failures using bounded attempts, per-attempt timeouts, a total timeout, and randomized backoff. Write operations are not automatically retried.
+
+The following environment variables configure the retry policy:
+
+| Environment variable | Description | Default |
+| --- | --- | --- |
+| `KFP_RUNTIME_RPC_ATTEMPT_TIMEOUT` | Maximum duration of an individual RPC attempt | `5s` |
+| `KFP_RUNTIME_RPC_TOTAL_TIMEOUT` | Maximum total duration for an RPC, including retries and backoff | `15s` |
+| `KFP_RUNTIME_RPC_MAX_ATTEMPTS` | Maximum attempts, including the initial call | `3` |
+| `KFP_RUNTIME_RPC_INITIAL_BACKOFF` | Initial upper bound for randomized retry delay | `100ms` |
+| `KFP_RUNTIME_RPC_MAX_BACKOFF` | Maximum upper bound for randomized retry delay | `1s` |
+
+Duration values use Go duration syntax, such as `500ms`, `5s`, or `1m`. The maximum attempts value must be a positive integer. Invalid retry configuration causes runtime API client initialization to fail.
