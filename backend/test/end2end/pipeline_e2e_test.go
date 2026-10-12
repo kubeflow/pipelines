@@ -30,6 +30,7 @@ import (
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	e2e_utils "github.com/kubeflow/pipelines/backend/test/end2end/utils"
 	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/runtimeprofile"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
@@ -308,21 +309,34 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) string {
 	testutil.CheckIfSkipping(pipelineFile)
+	profile := runtimeprofile.Start(pipelineFile)
+	defer func() {
+		profile.Capture(testutil.GetNamespace(), testContext.PipelineRun.CreatedRunIds)
+		profile.Metrics("after")
+		profile.Finish()
+	}()
+	profile.Metrics("before")
+	endPhase := profile.Phase("upload_pipeline")
 	pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 	logger.Log("Uploading pipeline file %s", pipelineFile)
 	uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 	Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
 	logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
+	endPhase()
+	endPhase = profile.Phase("pipeline_version_and_inputs")
 	uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 	pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+	endPhase()
+	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime, profile)
+	endPhase = profile.Phase("validate_components")
 	logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
 	if strings.Contains(pipelineFile, "/") {
 		pipelineFile = strings.Split(pipelineFile, "/")[1]
 	}
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
-	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
+	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow, profile)
+	endPhase()
 	return createdRunID
 }
 
