@@ -938,10 +938,13 @@ const B1 = 'a'.repeat(40);
 const B2 = 'c'.repeat(40);
 const LIVE = process.argv[2];
 const TIP = process.argv[3];
-const ADVANCE_AFTER = process.argv[4];
+const ADVANCE_AFTER = process.argv[4] || undefined;
+const FLIP = process.argv[5] || undefined;
+let statusPaginationFlip = false;
 let getRefCalls = 0;
 const nextLiveTip = () => {
   const n = getRefCalls++;
+  if (FLIP === 'status-pagination') return statusPaginationFlip ? B2 : LIVE;
   return (ADVANCE_AFTER !== undefined && n >= Number(ADVANCE_AFTER)) ? B2 : LIVE;
 };
 const stamp = base => crypto.createHash('sha256')
@@ -956,7 +959,9 @@ const statuses = {
   pending: {state: 'pending', description: 'some pending'},
   blocked: {state: 'success', description: successDesc(B1)},
 };
-const prs = [
+const prs = FLIP === 'status-pagination'
+  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []}]
+  : [
   {number: 1, head: {sha: 'stale'}, base: {ref: 'master', sha: B1}, labels: []},
   {number: 2, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []},
   {number: 3, head: {sha: 'legacy'}, base: {ref: 'master', sha: B1}, labels: []},
@@ -980,6 +985,7 @@ const github = {
 };
 github.paginate.iterator = async function* (method, params) {
   yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+  if (FLIP === 'status-pagination') statusPaginationFlip = true;
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
@@ -988,10 +994,12 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
 }).catch(e => {console.error(e); process.exit(1);});
 """
 
-    def _run_revoke(self, live_tip, tip, advance_after=None):
-        argv = ['node', '-e', self.REVOKE_SCRIPT, str(MODULE), live_tip, tip]
-        if advance_after is not None:
-            argv.append(str(advance_after))
+    def _run_revoke(self, live_tip, tip, advance_after=None, flip=None):
+        argv = [
+            'node', '-e', self.REVOKE_SCRIPT,
+            str(MODULE), live_tip, tip,
+            str(advance_after or ''), flip or ''
+        ]
         result = subprocess.run(
             argv, check=True, capture_output=True, text=True)
         return json.loads(result.stdout)
@@ -1028,6 +1036,15 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
         actual = self._run_revoke('a' * 40, 'a' * 40, advance_after=2)
         self.assertEqual(actual['count'], 1)
         self.assertEqual([w['sha'] for w in actual['writes']], ['stale'])
+
+    def test_push_revocation_revalidates_after_status_pagination(self):
+        # tip = B1. The status lookup paginates: page 1 is an unrelated status,
+        # then master advances B1->B2 and a fresh B2-stamped success is
+        # published before page 2. The B1 job must read that fresh success,
+        # re-check the live tip (now B2 != B1), and BAIL without writing failure.
+        actual = self._run_revoke('a' * 40, 'a' * 40, flip='status-pagination')
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
 
     def test_push_revocation_rejects_non_sha_tip(self):
         script = r"""

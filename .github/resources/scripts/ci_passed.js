@@ -117,12 +117,11 @@ async function revokeStaleGreens({github, context, tip}) {
   let revoked = 0;
   for (const pr of prs) {
     if (blocked(pr)) continue;
-    // Revalidate before revoking: master may advance mid-scan; a newer revoker
-    // then owns the remaining work, so bail rather than clobber a success
-    // freshly stamped against the advanced base.
+    const status = await currentStatus(github, context, pr.head.sha);
+    // Revalidate AFTER reading the status: the combined-status lookup can
+    // paginate, and master may advance mid-read publishing a fresher success.
     const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: 'heads/master'});
     if (liveRef.object.sha !== tip) return revoked;
-    const status = await currentStatus(github, context, pr.head.sha);
     // Never revoke a head without a ci-passed success.
     if (status?.state !== 'success') continue;
     if (status.description === successDescription(pr, tip)) continue;
