@@ -55,7 +55,7 @@ The following packages will be merged into `kfp`:
 
 ### Build System Modernization
 
-The prerequisite uv migration introduced `pyproject.toml` and the workspace lockfile. Consolidation leaves one SDK distribution in `sdk/python/pyproject.toml`; the root `pyproject.toml` manages development tooling. Root and SDK `requirements.txt` files remain generated compatibility exports.
+The prerequisite uv migration introduced `pyproject.toml` and the workspace lockfile. Consolidation leaves one SDK distribution in `sdk/python/pyproject.toml`; the root `pyproject.toml` manages development tooling. Root and SDK requirements exports are no longer tracked; optional pip dependency artifacts are generated explicitly from `uv.lock`.
 
 ### Version Alignment
 

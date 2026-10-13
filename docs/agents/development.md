@@ -12,8 +12,8 @@ make -C sdk generate-python
 ```
 
 The only distributable workspace member is `sdk/python` (`kfp`); regenerate
-`uv.lock` with `uv lock` after dependency changes. Keep the exported requirements
-files synchronized using the commands in `.github/workflows/check-requirements-txt.yml`.
+`uv.lock` with `uv lock` after dependency changes. Workspace requirements exports are not committed; see
+[dependency artifacts](dependabot.md) for optional pip consumers.
 
 Install Ginkgo into the repository when running its suites:
 

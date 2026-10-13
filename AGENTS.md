@@ -11,6 +11,7 @@ Read the guide relevant to the files or task you are changing:
 - [Generated code and APIs](docs/agents/generation.md)
 - [Frontend](docs/agents/frontend.md)
 - [CI and workflows](docs/agents/ci.md)
+- [Dependency updates](docs/agents/dependabot.md)
 - [Go version policy](docs/agents/go-version-policy.md) when changing compiler,
   module, setup-action, or builder-image pins
 - [Domain documentation](docs/agents/domain.md) when exploring domain behavior or architecture decisions

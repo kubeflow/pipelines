@@ -80,16 +80,17 @@ kfpr run update-version-tags \
 Single-step commands do not update the checkpoint unless `--done` is passed.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
-SDK package versions, requirements, docs versions, and `sdk/RELEASE.md`.
-The unified workspace requires uv: release updates regenerate the Python bindings,
-lockfile, and two requirements exports, then build only `kfp`. Bundled modules
-share `kfp.version`, independently of backend `VERSION`. This also applies to
-SDK-only releases. Older checkout layouts retain their legacy build path.
+SDK package metadata, docs versions, and `sdk/RELEASE.md`.
+The unified workspace requires uv: release updates regenerate the Python bindings
+and lockfile, then build only `kfp`. Bundled modules share `kfp.version`,
+independently of backend `VERSION`. This also applies to SDK-only releases.
+Older checkout layouts retain their legacy build and tracked-export behavior.
 
-Requirements exports retain editable workspace packages and pinned dependencies,
-but omit hashes because pip cannot hash editable sources. Consume these files
-with `pip install -r <export>` from the repository root. The uv lockfile retains
-dependency hashes; CI checks both export freshness and actual pip resolution.
+Modern checkouts do not commit workspace requirements exports. For optional pip
+consumers, run `.github/resources/scripts/export_python_requirements.sh OUTPUT_DIRECTORY`
+to generate portable, frozen dependency-only artifacts; install the SDK wheel
+separately. CI validates lock consistency, frozen installation, artifact resolution,
+and a clean wheel install. See [dependency maintenance](../docs/agents/dependabot.md).
 
 Maintenance releases continue to dispatch the publishing workflow from their
 release branch. The current `publish-packages.yml` also accepts pre-uv tags:
