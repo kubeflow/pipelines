@@ -158,3 +158,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned backend checkout. Upgrade gate regression tests require every upgrade job
   to retain its checked-in pause; run the CI scripts suite and `make check-go-version`
   when changing these workflows.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
