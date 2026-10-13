@@ -1136,7 +1136,15 @@ def _single_binary_operation_to_cel_condition(
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
                     pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
                 ]
-                operand_value = 'true' if int(operand_value) == 0 else 'false'
+                if isinstance(value_or_reference,
+                              pipeline_channel.PipelineChannel):
+                    # operand_value is a CEL expression here; compare it to 0.
+                    zero = ('0.0' if parameter_type
+                            == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+                            else '0')
+                    operand_value = f'({operand_value} != {zero})'
+                else:
+                    operand_value = str(bool(value_or_reference)).lower()
             else:
                 assert canonical_parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
                 assert parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
