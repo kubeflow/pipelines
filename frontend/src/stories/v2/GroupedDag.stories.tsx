@@ -11,6 +11,7 @@ import {
   exitHandlerSpec,
   loopSpec,
   loopTasks,
+  manySubDagsSpec,
   nestedArtifactSpec,
 } from 'src/data/test/groupedFlow';
 import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
@@ -24,25 +25,22 @@ function GroupedDag({
   spec,
   tasks,
   title,
-  initialLayers = ['root'],
   nodesDraggable = true,
 }: {
   spec: PipelineSpec;
   tasks?: V2beta1PipelineTask[];
   title: string;
-  initialLayers?: string[];
   nodesDraggable?: boolean;
 }) {
-  const [layers, setLayers] = useState(initialLayers);
   const [selection, setSelection] = useState<LayerFlowElement>();
   const resolve = useMemo<LayerElementsResolver>(
     () =>
       tasks
         ? createRuntimeLayerResolver(spec, tasks)
-        : (layers, maxNodes) => convertSubDagToFlowElements(spec, layers, maxNodes),
+        : (layers) => convertSubDagToFlowElements(spec, layers),
     [spec, tasks],
   );
-  const elements = useMemo(() => resolve(layers), [resolve, layers]);
+  const elements = useMemo(() => resolve(['root']), [resolve]);
   return (
     <div
       style={{
@@ -56,17 +54,15 @@ function GroupedDag({
       <header style={{ padding: '16px 24px', borderBottom: '1px solid #d8e0ea' }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{title}</h2>
         <p style={{ margin: 0, color: '#52677f', fontSize: 13 }}>
-          Expanded sub-DAGs · Select a task for details · Use the controls to expand or collapse
-          groups
+          Up to 20 sub-DAGs expand by default · Expand all shows every group · Collapse all hides
+          every group
         </p>
       </header>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <DagCanvas
-          layers={layers}
-          onLayersUpdate={setLayers}
+          layers={['root']}
           elements={elements}
           getSubDagElements={resolve}
-          setFlowElements={() => {}}
           nodesDraggable={nodesDraggable}
           selectedElement={selection}
           onElementClick={(_event, selection) => setSelection(selection)}
@@ -76,15 +72,6 @@ function GroupedDag({
         <div style={{ padding: 12 }}>
           Selected: {selection.layers.join(' / ')} /{' '}
           {String(selection.element.data?.label ?? selection.element.id)}
-          <button
-            style={{ marginLeft: 16 }}
-            onClick={() => {
-              setLayers(selection.layers);
-              setSelection(undefined);
-            }}
-          >
-            Focus selected layer
-          </button>
         </div>
       )}
     </div>
@@ -118,11 +105,18 @@ export const NestedLoops: Story = {
     title: 'Nested loops — SDK compiler fixture',
   },
 };
+export const TwentyFiveSubDags: Story = {
+  args: {
+    spec: manySubDagsSpec(25, 5),
+    title: '25 sub-DAGs — five parallel branches',
+  },
+};
+
 export const LargeLoop: Story = {
   args: {
     spec: loopSpec,
     tasks: loopTasks.map((task) =>
-      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '10000' } } : task,
+      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '30' } } : task,
     ),
     title: 'Large loop — automatic expansion is bounded',
   },
@@ -130,9 +124,8 @@ export const LargeLoop: Story = {
 export const DraggableLayers: Story = {
   args: {
     spec: nestedArtifactSpec,
-    initialLayers: ['root', 'workflow', 'fit'],
     nodesDraggable: true,
-    title: 'Drag positions in focused and nested layers',
+    title: 'Drag inline groups and their tasks',
   },
 };
 

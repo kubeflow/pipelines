@@ -35,33 +35,23 @@ import {
 } from '@xyflow/react';
 import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
-import SubDagLayer from 'src/components/graph/SubDagLayer';
-import SubDagGroupNode from 'src/components/graph/SubDagGroupNode';
+import { NODE_TYPES } from 'src/components/graph/NodeTypes';
 import { buildGroupedFlow, GROUP_NODE_TYPE, layerNodeId } from 'src/lib/v2/GroupedFlow';
 import { color } from 'src/Css';
-import { getFlowNodeSize } from 'src/lib/v2/FlowNodeSize';
 import type {
   LayerElementsResolver,
   LayerFlowElement,
   PipelineFlowElement,
 } from 'src/lib/v2/FlowTypes';
-import {
-  buildGraphLayout,
-  getTaskKeyFromNodeKey,
-  isNode,
-  NodeTypeNames,
-  NODE_TYPES,
-} from 'src/lib/v2/StaticFlow';
+import { getTaskNodeKey } from 'src/lib/v2/StaticFlow';
 
 type PipelineNode = Node<FlowElementDataBase>;
-const nodeTypes = { ...NODE_TYPES, [GROUP_NODE_TYPE]: SubDagGroupNode };
+const emptyLayer: LayerElementsResolver = () => [];
 const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parentId ?? null]);
 
 export interface DagCanvasProps {
   elements: PipelineFlowElement[];
-  setFlowElements: (elements: PipelineFlowElement[]) => void;
   layers: string[];
-  onLayersUpdate: (layers: string[]) => void;
   onElementClick: (event: ReactMouseEvent, selection: LayerFlowElement) => void;
   getSubDagElements?: LayerElementsResolver;
   selectedElement?: LayerFlowElement | null;
@@ -72,8 +62,6 @@ export interface DagCanvasProps {
 export default function DagCanvas({
   elements,
   layers,
-  onLayersUpdate,
-  setFlowElements,
   onElementClick,
   nodesDraggable = true,
   selectedElement,
@@ -87,25 +75,46 @@ export default function DagCanvas({
   );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
-  const [renderSubDags, setRenderSubDags] = useState(true);
   const [locked, setLocked] = useState(false);
   const canDrag = nodesDraggable && !locked;
   const [expansion, setExpansion] = useState({
     collapsed: new Set<string>(),
     expanded: new Set<string>(),
-    allCollapsed: false,
+    mode: 'default' as 'default' | 'all' | 'none',
   });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const selectionLayers = selectedElement?.layers ?? layers;
+  const selectedId = selectedElement
+    ? layerNodeId(selectionLayers, selectedElement.element.id)
+    : undefined;
+  const focusedId = focusNodeId ? layerNodeId(selectionLayers, focusNodeId) : undefined;
+  const [previousFocus, setPreviousFocus] = useState<string>();
+  if (focusedId !== previousFocus) {
+    setPreviousFocus(focusedId);
+    if (focusedId) {
+      // A new deep link opens its ancestors once; later user collapse choices win.
+      const expanded = new Set(expansion.expanded);
+      const collapsed = new Set(expansion.collapsed);
+      for (let index = layers.length; index < selectionLayers.length; index++) {
+        const id = layerNodeId(
+          selectionLayers.slice(0, index),
+          getTaskNodeKey(selectionLayers[index]),
+        );
+        expanded.add(id);
+        collapsed.delete(id);
+      }
+      setExpansion({ ...expansion, expanded, collapsed });
+      setPositions({});
+    }
+  }
   const grouped = useMemo(
     () =>
-      renderSubDags && getSubDagElements
-        ? buildGroupedFlow(elements, layers, getSubDagElements, expansion.collapsed, {
-            expanded: expansion.expanded,
-            collapseAll: expansion.allCollapsed,
-            nodeScale,
-          })
-        : undefined,
-    [elements, layers, getSubDagElements, expansion, nodeScale, renderSubDags],
+      buildGroupedFlow(elements, layers, getSubDagElements ?? emptyLayer, expansion.collapsed, {
+        expanded: expansion.expanded,
+        expansionMode: getSubDagElements ? expansion.mode : 'none',
+        nodeScale,
+      }),
+    [elements, layers, getSubDagElements, expansion, nodeScale],
   );
   const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
     setExpansion((previous) => {
@@ -130,61 +139,16 @@ export default function DagCanvas({
     });
   }, []);
   const expandAll = useCallback(() => {
-    // Keep explicit opt-ins, but do not bypass the automatic budget for new groups.
-    setExpansion((previous) => ({ ...previous, collapsed: new Set(), allCollapsed: false }));
+    setExpansion({ collapsed: new Set(), expanded: new Set(), mode: 'all' });
     resetPositionsAndFitView();
   }, [resetPositionsAndFitView]);
   const collapseAll = useCallback(() => {
-    setExpansion({ collapsed: new Set(), expanded: new Set(), allCollapsed: true });
+    setExpansion({ collapsed: new Set(), expanded: new Set(), mode: 'none' });
     resetPositionsAndFitView();
   }, [resetPositionsAndFitView]);
-  const changeRenderingMode = useCallback(
-    (enabled: boolean) => {
-      setRenderSubDags(enabled);
-      resetPositionsAndFitView();
-    },
-    [resetPositionsAndFitView],
-  );
-  const selectionLayers = selectedElement?.layers ?? layers;
-  const selectionVisible =
-    selectionLayers.length === layers.length &&
-    selectionLayers.every((layer, index) => layer === layers[index]);
-  const visibleNodeId = (id?: string) => {
-    if (!id) return undefined;
-    if (grouped) return layerNodeId(selectionLayers, id);
-    return selectionVisible ? id : undefined;
-  };
-  const selectedId = visibleNodeId(selectedElement?.element.id);
-  const focusedId = visibleNodeId(focusNodeId);
-  const subDagExpand = useCallback(
-    (nodeKey: string) => {
-      const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
-      onLayersUpdate(newLayers);
-    },
-    [layers, onLayersUpdate],
-  );
-
-  const clickThroughElements = useMemo(() => {
-    if (grouped) return elements;
-    // The click-through sub-DAG card is taller than an execution node and has a 2px border.
-    // Lay out the visible layer using rendered sizes, without resolving any children.
-    return buildGraphLayout(
-      elements.map((element) => {
-        if (!isNode(element)) return { ...element };
-        const { width, height } = getFlowNodeSize(element, nodeScale, false);
-        return {
-          ...element,
-          width,
-          height,
-          style: { ...element.style, width, height },
-          position: { ...element.position },
-        };
-      }),
-    );
-  }, [elements, grouped, nodeScale]);
   const nodes = useMemo(
     () =>
-      (grouped?.nodes ?? clickThroughElements.filter(isNode)).map((node) => {
+      grouped.nodes.map((node) => {
         const selectedNode = {
           ...node,
           position: positions[positionKey(node)] ?? node.position,
@@ -198,25 +162,11 @@ export default function DagCanvas({
             data: { ...node.data, expand: (id: string) => toggleGroup(id, node.data.collapsed) },
           };
         }
-        return selectedNode.type === NodeTypeNames.SUB_DAG && selectedNode.data
-          ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
-          : selectedNode;
+        return selectedNode;
       }),
-    [
-      clickThroughElements,
-      grouped,
-      positions,
-      selectedId,
-      subDagExpand,
-      toggleGroup,
-      canDrag,
-      locked,
-    ],
+    [grouped, positions, selectedId, toggleGroup, canDrag, locked],
   );
-  const edges = useMemo(
-    () => grouped?.edges ?? clickThroughElements.filter((el): el is Edge => !isNode(el)),
-    [clickThroughElements, grouped],
-  );
+  const edges = grouped.edges;
 
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
@@ -242,19 +192,14 @@ export default function DagCanvas({
         ...previous,
         [positionKey(draggedNode)]: draggedNode.position,
       }));
-      if (grouped) return;
-      const updatedElements = elements.map((el) =>
-        isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
-      );
-      setFlowElements(updatedElements);
     },
-    [elements, grouped, setFlowElements, canDrag],
+    [canDrag],
   );
 
   const handleElementClick = useCallback(
     (event: ReactMouseEvent, element: PipelineFlowElement) => {
       if (locked) return;
-      onElementClick(event, grouped?.sources.get(element.id) ?? { element, layers });
+      onElementClick(event, grouped.sources.get(element.id) ?? { element, layers });
     },
     [grouped, layers, onElementClick, locked],
   );
@@ -280,49 +225,44 @@ export default function DagCanvas({
   }, [fitCurrentView, focusedId]);
 
   return (
-    <>
-      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate} />
-      <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
-        <ReactFlowProvider>
-          <ReactFlow<PipelineNode, Edge>
-            style={{ background: color.lightGrey }}
-            nodes={nodes}
-            edges={edges}
-            snapToGrid={true}
-            nodesDraggable={canDrag}
-            elementsSelectable={!locked}
-            nodesConnectable={false}
-            onInit={(instance) => {
-              reactFlowInstance.current = instance;
-              lastFocusedNodeId.current = focusedId || null;
-              fitCurrentView(instance);
-            }}
-            fitView
-            fitViewOptions={focusedId ? { nodes: [{ id: focusedId }] } : undefined}
-            minZoom={0.05}
-            nodeTypes={nodeTypes}
-            edgeTypes={{}}
-            onNodeClick={handleElementClick}
-            onEdgeClick={handleElementClick}
-            onNodesChange={onNodesChange}
-            onNodeDragStop={canDrag ? onNodeDragStop : undefined}
-            deleteKeyCode={null}
-          >
-            <MiniMap />
-            <GraphControls
-              showSubDagControls={!!getSubDagElements}
-              hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
-              renderSubDags={renderSubDags}
-              onRenderSubDagsChange={changeRenderingMode}
-              locked={locked}
-              onLockChange={setLocked}
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-            />
-            <Background />
-          </ReactFlow>
-        </ReactFlowProvider>
-      </div>
-    </>
+    <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
+      <ReactFlowProvider>
+        <ReactFlow<PipelineNode, Edge>
+          style={{ background: color.lightGrey }}
+          nodes={nodes}
+          edges={edges}
+          snapToGrid={true}
+          nodesDraggable={canDrag}
+          elementsSelectable={!locked}
+          nodesConnectable={false}
+          onInit={(instance) => {
+            reactFlowInstance.current = instance;
+            lastFocusedNodeId.current = focusedId || null;
+            fitCurrentView(instance);
+          }}
+          fitView
+          fitViewOptions={focusedId ? { nodes: [{ id: focusedId }] } : undefined}
+          minZoom={0.05}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={{}}
+          onNodeClick={handleElementClick}
+          onEdgeClick={handleElementClick}
+          onNodesChange={onNodesChange}
+          onNodeDragStop={canDrag ? onNodeDragStop : undefined}
+          deleteKeyCode={null}
+        >
+          <MiniMap />
+          <GraphControls
+            showSubDagControls={!!getSubDagElements}
+            hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+            locked={locked}
+            onLockChange={setLocked}
+            onExpandAll={expandAll}
+            onCollapseAll={collapseAll}
+          />
+          <Background />
+        </ReactFlow>
+      </ReactFlowProvider>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import GraphControls, { GraphControlsProps } from './GraphControls';
 
 const mocked = vi.hoisted(() => ({
@@ -18,9 +18,7 @@ function props(): GraphControlsProps {
   return {
     showSubDagControls: true,
     hasSubDags: true,
-    renderSubDags: true,
     locked: false,
-    onRenderSubDagsChange: vi.fn(),
     onLockChange: vi.fn(),
     onExpandAll: vi.fn(),
     onCollapseAll: vi.fn(),
@@ -38,7 +36,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it('uses fullscreen controls at the bottom and dispatches each action', () => {
+it('orders the six graph controls and dispatches each action', () => {
   const options = props();
   const { rerender } = render(<GraphControls {...options} />);
   const buttons = screen.getAllByRole('button');
@@ -49,9 +47,7 @@ it('uses fullscreen controls at the bottom and dispatches each action', () => {
     'Zoom out',
     'Fit view',
     'Lock graph',
-    'Render subdags',
   ]);
-  expect(within(buttons[6]).getByTestId('FullscreenExitIcon')).toBeInTheDocument();
   for (const button of buttons) fireEvent.click(button);
   expect(options.onExpandAll).toHaveBeenCalledOnce();
   expect(options.onCollapseAll).toHaveBeenCalledOnce();
@@ -59,15 +55,9 @@ it('uses fullscreen controls at the bottom and dispatches each action', () => {
   expect(mocked.viewport.zoomOut).toHaveBeenCalledOnce();
   expect(mocked.viewport.fitView).toHaveBeenCalledOnce();
   expect(options.onLockChange).toHaveBeenCalledWith(true);
-  expect(options.onRenderSubDagsChange).toHaveBeenCalledWith(false);
-  rerender(<GraphControls {...options} locked renderSubDags={false} />);
+  rerender(<GraphControls {...options} locked />);
   fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   expect(options.onLockChange).toHaveBeenLastCalledWith(false);
-  expect(screen.getByTestId('FullscreenIcon')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Render subdags' })).toHaveAttribute(
-    'aria-pressed',
-    'false',
-  );
 });
 
 it.each([
@@ -77,7 +67,6 @@ it.each([
   ['Zoom out', 'Zoom out'],
   ['Fit view', 'Fit graph to view'],
   ['Lock graph', 'Lock node dragging and selection'],
-  ['Render subdags', 'Disable inline sub-DAG rendering'],
 ])('shows the %s tooltip after 500ms, not sooner', (label, tooltip) => {
   render(<GraphControls {...props()} />);
   const button = screen.getByRole('button', { name: label });
@@ -94,7 +83,7 @@ it.each([
 });
 
 it('retains the 500ms delay when moving between icons and explains disabled actions', () => {
-  render(<GraphControls {...props()} renderSubDags={false} />);
+  render(<GraphControls {...props()} hasSubDags={false} />);
   const zoom = screen.getByRole('button', { name: 'Zoom in' });
   fireEvent.mouseOver(zoom.parentElement!);
   act(() => {
@@ -115,10 +104,10 @@ it('retains the 500ms delay when moving between icons and explains disabled acti
   act(() => {
     vi.advanceTimersByTime(1);
   });
-  expect(screen.getByRole('tooltip')).toHaveTextContent('Enable sub-DAG rendering to expand all');
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Expand all sub-DAGs');
 });
 
-it('respects zoom limits without disabling fit or mode controls', () => {
+it('respects zoom limits without disabling fit or expansion controls', () => {
   mocked.store.transform[2] = mocked.store.maxZoom;
   const { rerender } = render(<GraphControls {...props()} />);
   expect(screen.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
@@ -126,5 +115,5 @@ it('respects zoom limits without disabling fit or mode controls', () => {
   rerender(<GraphControls {...props()} />);
   expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Fit view' })).not.toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Render subdags' })).not.toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Expand all' })).not.toBeDisabled();
 });

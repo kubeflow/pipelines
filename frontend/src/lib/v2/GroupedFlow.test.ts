@@ -6,9 +6,9 @@ import {
   exitHandlerSpec,
   loopSpec,
   loopTasks,
+  manySubDagsSpec,
   nestedArtifactSpec,
 } from 'src/data/test/groupedFlow';
-import dagre from 'dagre';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { buildGroupedFlow, GROUP_HEADER_HEIGHT, GROUP_NODE_TYPE, layerNodeId } from './GroupedFlow';
@@ -22,8 +22,7 @@ import realNestedLoops from 'src/data/test/pipeline_with_loops_and_conditions.ya
 import { convertYamlToV2PipelineSpec } from './WorkflowUtils';
 
 function staticGraph(spec = nestedArtifactSpec, collapsed = new Set<string>()) {
-  const resolve = (layers: string[], maxNodes?: number) =>
-    convertSubDagToFlowElements(spec, layers, maxNodes);
+  const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
   return buildGroupedFlow(resolve(['root']), ['root'], resolve, collapsed);
 }
 
@@ -49,8 +48,7 @@ describe('buildGroupedFlow', () => {
   });
 
   it('matches rem-sized cards and group headers with the application root font', () => {
-    const resolve = (layers: string[], maxNodes?: number) =>
-      convertSubDagToFlowElements(nestedArtifactSpec, layers, maxNodes);
+    const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
     const graph = buildGroupedFlow(
       resolve(['root']),
       ['root'],
@@ -178,65 +176,125 @@ describe('buildGroupedFlow', () => {
     }
   });
 
-  it('defers a 10,000-iteration loop before allocating or laying out its iteration layer', () => {
-    const tasks = loopTasks.map((task) =>
-      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '10000' } } : task,
+  it.each([19, 20, 21, 25])(
+    'expands at most 20 sub-DAGs in upstream order (%s groups)',
+    (count) => {
+      const spec = manySubDagsSpec(count);
+      const resolve = vi.fn((layers: string[]) => convertSubDagToFlowElements(spec, layers));
+      const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
+      const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
+      expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(Math.min(count, 20));
+      for (let index = 0; index < count; index++) {
+        expect(groups.find((node) => node.id === `task.group-${index}`)?.data.collapsed).toBe(
+          index >= 20,
+        );
+      }
+      expect(resolve).toHaveBeenCalledTimes(1 + Math.min(count, 20));
+    },
+  );
+
+  it('prioritizes shallow groups before nested groups and preserves upstream parent order', () => {
+    const spec = manySubDagsSpec(12);
+    spec.components.inner = spec.components.body;
+    spec.components.body = {
+      dag: {
+        tasks: {
+          nested: PipelineTaskSpec.fromPartial({
+            taskInfo: { name: 'Nested' },
+            componentRef: { name: 'inner' },
+          }),
+        },
+      },
+    };
+    const graph = staticGraph(spec);
+    const expanded = graph.nodes.filter(
+      (node) => node.type === GROUP_NODE_TYPE && !node.data.collapsed,
     );
-    const resolve = createRuntimeLayerResolver(loopSpec, tasks);
-    const root = resolve(['root']);
-    const originalLayout = dagre.layout;
-    const layout = vi.spyOn(dagre, 'layout').mockImplementation((graph, options) => {
-      if (graph.nodeCount() > 500) throw new Error('Oversized layer reached Dagre');
-      return originalLayout(graph, options);
-    });
-    try {
-      const graph = buildGroupedFlow(root, ['root'], resolve, new Set());
-      const group = graph.nodes.find((node) => node.id === 'task.sweep')!;
-      expect(group.data.collapsed).toBe(true);
-      expect(group.data.expansionDeferred).toContain('10,000');
-      expect(group.data.expansionError).toBeUndefined();
-      expect(graph.nodes).toHaveLength(root.filter((element) => !('source' in element)).length);
-      expect(layout).toHaveBeenCalledTimes(1);
-    } finally {
-      layout.mockRestore();
+    expect(expanded).toHaveLength(20);
+    expect(expanded.filter((node) => !node.parentId)).toHaveLength(12);
+    for (let index = 0; index < 12; index++) {
+      const nested = graph.nodes.find(
+        (node) => node.id === layerNodeId(['root', `group-${index}`], 'task.nested'),
+      )!;
+      expect(nested.data.collapsed).toBe(index >= 8);
     }
   });
 
-  it('defers oversized static scopes through the real resolver', () => {
-    const spec = structuredClone(nestedArtifactSpec);
-    spec.components.workflow.dag!.tasks = Object.fromEntries(
-      Array.from({ length: 500 }, (_, index) => [
-        `train-${index}`,
+  it('stops a deeply nested chain at the twenty-first group without resolving its children', () => {
+    const spec = manySubDagsSpec(1);
+    for (let depth = 0; depth < 25; depth++) {
+      spec.components[`layer-${depth}`] = {
+        dag: {
+          tasks: {
+            child: PipelineTaskSpec.fromPartial({
+              taskInfo: { name: `Depth ${depth + 1}` },
+              componentRef: { name: depth < 24 ? `layer-${depth + 1}` : 'step' },
+            }),
+          },
+        },
+      };
+    }
+    spec.root!.dag!.tasks['group-0'].componentRef = { name: 'layer-0' };
+    const resolve = vi.fn((layers: string[]) => convertSubDagToFlowElements(spec, layers));
+    const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
+    const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
+    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(20);
+    expect(groups).toHaveLength(21);
+    expect(groups[20].data.collapsed).toBe(true);
+    expect(resolve).toHaveBeenCalledTimes(21);
+    const all = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
+      expansionMode: 'all',
+    });
+    expect(
+      all.nodes.filter((node) => node.type === GROUP_NODE_TYPE && !node.data.collapsed),
+    ).toHaveLength(25);
+    expect(all.nodes.some((node) => node.type === NodeTypeNames.EXECUTION)).toBe(true);
+  });
+
+  it('counts sub-DAGs, not the component or artifact nodes inside them', () => {
+    const spec = manySubDagsSpec(1);
+    spec.components.body.dag!.tasks = Object.fromEntries(
+      Array.from({ length: 501 }, (_, index) => [
+        `step-${index}`,
         PipelineTaskSpec.fromPartial({
-          taskInfo: { name: `Train ${index}` },
-          componentRef: { name: 'train' },
+          taskInfo: { name: `Step ${index}` },
+          componentRef: { name: 'step' },
         }),
       ]),
     );
     const graph = staticGraph(spec);
-    expect(
-      graph.nodes.find((node) => node.id === 'task.workflow')?.data.expansionDeferred,
-    ).toContain('1,000');
-    expect(graph.nodes).toHaveLength(3);
+    expect(graph.nodes).toHaveLength(502);
+    expect(graph.nodes.find((node) => node.id === 'task.group-0')?.data.collapsed).toBe(false);
   });
 
-  it('bounds automatic expansion across many individually small iteration bodies', () => {
+  it('counts runtime loops and iterations toward the default and lets bulk actions override it', () => {
     const tasks = loopTasks.map((task) =>
-      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '300' } } : task,
+      task.task_id === 'sweep' ? { ...task, type_attributes: { iteration_count: '30' } } : task,
     );
     const resolve = createRuntimeLayerResolver(loopSpec, tasks);
-    const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
-    expect(graph.nodes.length).toBeLessThanOrEqual(500);
+    const root = resolve(['root']);
+    const graph = buildGroupedFlow(root, ['root'], resolve, new Set());
+    const expandedGroups = (graph: ReturnType<typeof buildGroupedFlow>) =>
+      graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE && !node.data.collapsed);
+    expect(expandedGroups(graph)).toHaveLength(20);
     const deferred = graph.nodes.find((node) => node.data.expansionDeferred)!;
-    expect(deferred).toBeDefined();
-    const manuallyExpanded = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
+    const manuallyExpanded = buildGroupedFlow(root, ['root'], resolve, new Set(), {
       expanded: new Set([deferred.id]),
     });
     expect(manuallyExpanded.nodes.find((node) => node.id === deferred.id)?.data.collapsed).toBe(
       false,
     );
-    expect(manuallyExpanded.nodes.length).toBeLessThanOrEqual(503);
-    expect(manuallyExpanded.nodes.some((node) => node.data.expansionDeferred)).toBe(true);
+    expect(expandedGroups(manuallyExpanded)).toHaveLength(21);
+    const all = buildGroupedFlow(root, ['root'], resolve, new Set(), { expansionMode: 'all' });
+    expect(expandedGroups(all)).toHaveLength(31);
+    const none = buildGroupedFlow(root, ['root'], resolve, new Set(), { expansionMode: 'none' });
+    expect(expandedGroups(none)).toHaveLength(0);
+    const reopened = buildGroupedFlow(root, ['root'], resolve, new Set(), {
+      expansionMode: 'none',
+      expanded: new Set(['task.sweep']),
+    });
+    expect(expandedGroups(reopened)).toHaveLength(1);
+    expect(reopened.nodes.filter((node) => node.data.groupKind === 'Iteration')).toHaveLength(30);
   });
 
   it('keeps exit-handler ordering and its nested notification condition in the compact fixture', () => {
@@ -269,7 +327,7 @@ describe('buildGroupedFlow', () => {
     const root = convertSubDagToFlowElements(loopSpec, ['root']);
     const graph = buildGroupedFlow(root, Array(64).fill('scope'), () => [], new Set());
     expect(graph.nodes.find((node) => node.data.expansionError)?.data.expansionError).toBe(
-      'Sub-DAG nesting exceeds 64 layers. Reduce the nesting depth or open a deeper layer directly.',
+      'Sub-DAG nesting exceeds 64 layers. Reduce the nesting depth in the pipeline spec.',
     );
   });
 

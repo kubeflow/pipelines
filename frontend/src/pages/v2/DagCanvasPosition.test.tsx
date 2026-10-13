@@ -58,9 +58,7 @@ it('updates leaves and groups during dragging without changing child-relative po
       layers={['root']}
       elements={resolve(['root'])}
       getSubDagElements={resolve}
-      onLayersUpdate={vi.fn()}
       onElementClick={vi.fn()}
-      setFlowElements={vi.fn()}
     />,
   );
   const leaf = screen.getByTestId('task.deploy');
@@ -87,9 +85,7 @@ it('still respects a read-only host for both leaves and groups', () => {
       elements={resolve(['root'])}
       getSubDagElements={resolve}
       nodesDraggable={false}
-      onLayersUpdate={vi.fn()}
       onElementClick={vi.fn()}
-      setFlowElements={vi.fn()}
     />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
@@ -110,9 +106,7 @@ it('rejects live drag updates while locked, including after a refresh', () => {
     layers: ['root'],
     elements: resolve(['root']),
     getSubDagElements: resolve,
-    onLayersUpdate: vi.fn(),
     onElementClick: vi.fn(),
-    setFlowElements: vi.fn(),
   };
   const { rerender } = render(<DagCanvas {...options} />);
   fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
@@ -147,9 +141,7 @@ it('marks only the selected layer instance, not its flat namesake, as selected',
       ]}
       getSubDagElements={resolve}
       selectedElement={{ element: nested, layers }}
-      onLayersUpdate={vi.fn()}
       onElementClick={vi.fn()}
-      setFlowElements={vi.fn()}
     />,
   );
   expect(screen.getByTestId(layerNodeId(layers, 'task.train'))).toHaveAttribute(
@@ -157,33 +149,24 @@ it('marks only the selected layer instance, not its flat namesake, as selected',
     'true',
   );
   expect(screen.getByTestId('task.train')).toHaveAttribute('data-selected', 'false');
-  fireEvent.click(screen.getByRole('button', { name: 'Render subdags' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
   expect(screen.getByTestId('task.train')).toHaveAttribute('data-selected', 'false');
 });
 
-it('keeps drag positions separate for focused and parent-relative coordinate frames', () => {
+it('preserves nested task drag positions across data refreshes', () => {
   const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
-  const focusedLayers = ['root', 'workflow', 'fit'];
-  const id = layerNodeId(focusedLayers, 'task.train');
-  const canvas = (layers: string[]) => (
+  const id = layerNodeId(['root', 'workflow', 'fit'], 'task.train');
+  const canvas = () => (
     <DagCanvas
-      layers={layers}
-      elements={resolve(layers)}
+      layers={['root']}
+      elements={resolve(['root'])}
       getSubDagElements={resolve}
-      onLayersUpdate={vi.fn()}
       onElementClick={vi.fn()}
-      setFlowElements={vi.fn()}
     />
   );
-  const { rerender } = render(canvas(focusedLayers));
-  fireEvent.click(screen.getByTestId(id));
-  expect(screen.getByTestId(id)).toHaveTextContent('{"x":17,"y":23}');
-  rerender(canvas(['root']));
-  expect(screen.getByTestId(id)).not.toHaveTextContent('{"x":17,"y":23}');
+  const { rerender } = render(canvas());
   fireEvent.click(screen.getByTestId(id));
   expect(screen.getByTestId(id)).toHaveTextContent('{"x":77,"y":88}');
-  rerender(canvas(focusedLayers));
-  expect(screen.getByTestId(id)).toHaveTextContent('{"x":17,"y":23}');
-  rerender(canvas(['root']));
+  rerender(canvas());
   expect(screen.getByTestId(id)).toHaveTextContent('{"x":77,"y":88}');
 });

@@ -14,28 +14,15 @@
 
 import dagre from 'dagre';
 import { Edge, MarkerType, Node, Position } from '@xyflow/react';
-import ArtifactNode from 'src/components/graph/ArtifactNode';
 import {
   ArtifactFlowElementData,
   FlowElementDataBase,
   SubDagTaskData,
 } from 'src/components/graph/Constants';
-import ExecutionNode from 'src/components/graph/ExecutionNode';
-import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 
 import type { PipelineFlowElement } from './FlowTypes';
-
-export class GraphExpansionLimitError extends Error {
-  constructor(nodeCount?: number) {
-    super(
-      nodeCount === undefined
-        ? 'Automatic expansion limit reached. Expand to load this group.'
-        : `${nodeCount.toLocaleString('en-US')} nodes exceed the automatic expansion limit. Expand to load this group.`,
-    );
-  }
-}
 
 export function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
   return !('source' in el) && !('target' in el);
@@ -61,12 +48,6 @@ export enum NodeTypeNames {
   ARTIFACT = 'ARTIFACT',
   SUB_DAG = 'SUB_DAG',
 }
-
-export const NODE_TYPES = {
-  [NodeTypeNames.EXECUTION]: ExecutionNode,
-  [NodeTypeNames.ARTIFACT]: ArtifactNode,
-  [NodeTypeNames.SUB_DAG]: SubDagNode,
-};
 
 export enum TaskType {
   EXECUTOR,
@@ -97,7 +78,6 @@ export function convertFlowElements(spec: PipelineSpec): PipelineFlowElement[] {
 export function convertSubDagToFlowElements(
   spec: PipelineSpec,
   layers: string[],
-  maxNodes = Infinity,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
@@ -129,7 +109,7 @@ export function convertSubDagToFlowElements(
     }
   }
 
-  return buildDag(spec, componentSpec, maxNodes);
+  return buildDag(spec, componentSpec);
 }
 
 /**
@@ -141,7 +121,6 @@ export function convertSubDagToFlowElements(
 export function buildDag(
   pipelineSpec: PipelineSpec,
   componentSpec: ComponentSpec,
-  maxNodes = Infinity,
 ): PipelineFlowElement[] {
   const dag = componentSpec.dag;
   if (!dag) {
@@ -152,7 +131,6 @@ export function buildDag(
   let flowGraph: PipelineFlowElement[] = [];
 
   const tasksMap = dag.tasks || {};
-  let nodeCount = Object.keys(componentSpec.inputDefinitions?.artifacts || {}).length;
   for (const [key, task] of Object.entries(tasksMap)) {
     const reference = task.componentRef?.name;
     const target = reference ? componentsMap[reference] : undefined;
@@ -166,9 +144,7 @@ export function buildDag(
         `Task "${key}" has no display name or executable component. Correct its taskInfo and component definition.`,
       );
     }
-    nodeCount += 1 + Object.keys(target.outputDefinitions?.artifacts || {}).length;
   }
-  if (nodeCount > maxNodes) throw new GraphExpansionLimitError(nodeCount);
 
   addTaskNodes(tasksMap, componentsMap, flowGraph);
   addInputArtifactNodes(componentSpec.inputDefinitions?.artifacts, flowGraph);

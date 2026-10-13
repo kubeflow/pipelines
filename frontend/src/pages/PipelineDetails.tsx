@@ -18,10 +18,9 @@ import type * as React from 'react';
 import { CircularProgress } from '@mui/material';
 import * as JsYaml from 'js-yaml';
 import { Apis } from 'src/lib/Apis';
-import { convertFlowElements, convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import {
   V2beta1ListPipelineVersionsResponse,
@@ -138,16 +137,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public render(): React.JSX.Element {
     const { v2Pipeline, v2SelectedVersion, v2Versions, graphV2, templateString } = this.state;
 
-    const setLayers = (layers: string[]) => {
-      if (!templateString) {
-        console.warn('pipeline spec template is unknown.');
-        return;
-      }
-      const pipelineSpec = convertYamlToV2PipelineSpec(templateString!);
-      const newElements = convertSubDagToFlowElements(pipelineSpec!, layers);
-      this.setStateSafe({ graphV2: newElements, graphIsLoading: false });
-    };
-
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {this.state.graphIsLoading && (
@@ -161,7 +150,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             key={v2SelectedVersion?.pipeline_version_id ?? templateString}
             templateString={templateString}
             pipelineFlowElements={graphV2 || []}
-            setSubDagLayers={setLayers}
             pipeline={v2Pipeline}
             selectedVersion={v2SelectedVersion}
             versions={v2Versions}

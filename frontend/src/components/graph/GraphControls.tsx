@@ -9,8 +9,6 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 
@@ -46,8 +44,6 @@ function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps)
 export interface GraphControlsProps {
   showSubDagControls: boolean;
   hasSubDags: boolean;
-  renderSubDags: boolean;
-  onRenderSubDagsChange: (enabled: boolean) => void;
   locked: boolean;
   onLockChange: (locked: boolean) => void;
   onExpandAll: () => void;
@@ -57,8 +53,6 @@ export interface GraphControlsProps {
 export default function GraphControls({
   showSubDagControls,
   hasSubDags,
-  renderSubDags,
-  onRenderSubDagsChange,
   locked,
   onLockChange,
   onExpandAll,
@@ -79,20 +73,16 @@ export default function GraphControls({
         <>
           <PaletteButton
             label='Expand all'
-            tooltip={
-              renderSubDags ? 'Expand all sub-DAGs' : 'Enable sub-DAG rendering to expand all'
-            }
-            disabled={!renderSubDags || !hasSubDags}
+            tooltip='Expand all sub-DAGs'
+            disabled={!hasSubDags}
             onClick={onExpandAll}
           >
             <UnfoldMoreIcon />
           </PaletteButton>
           <PaletteButton
             label='Collapse all'
-            tooltip={
-              renderSubDags ? 'Collapse all sub-DAGs' : 'Enable sub-DAG rendering to collapse all'
-            }
-            disabled={!renderSubDags || !hasSubDags}
+            tooltip='Collapse all sub-DAGs'
+            disabled={!hasSubDags}
             onClick={onCollapseAll}
           >
             <UnfoldLessIcon />
@@ -137,16 +127,6 @@ export default function GraphControls({
       >
         {locked ? <LockIcon /> : <LockOpenIcon />}
       </PaletteButton>
-      {showSubDagControls && (
-        <PaletteButton
-          label='Render subdags'
-          aria-pressed={renderSubDags}
-          tooltip={renderSubDags ? 'Disable inline sub-DAG rendering' : 'Render sub-DAGs inline'}
-          onClick={() => onRenderSubDagsChange(!renderSubDags)}
-        >
-          {renderSubDags ? <FullscreenExitIcon /> : <FullscreenIcon />}
-        </PaletteButton>
-      )}
     </Panel>
   );
 }

@@ -32,11 +32,11 @@ import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
+const ROOT_LAYERS = ['root'];
 
 interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
-  setSubDagLayers: (layers: string[]) => void;
   pipeline: V2beta1Pipeline | null;
   selectedVersion: V2beta1PipelineVersion | undefined;
   versions: V2beta1PipelineVersion[];
@@ -46,13 +46,12 @@ interface PipelineDetailsV2Props {
 function PipelineDetailsV2({
   templateString,
   pipelineFlowElements,
-  setSubDagLayers,
   pipeline,
   selectedVersion,
   versions,
   handleVersionSelected,
 }: PipelineDetailsV2Props) {
-  const [layers, setLayers] = useState(['root']);
+  const layers = ROOT_LAYERS;
   const [selectedTab, setSelectedTab] = useState(0);
   const [selection, setSelection] = useState<LayerFlowElement | null>(null);
   const pipelineSpec = useMemo(
@@ -60,16 +59,9 @@ function PipelineDetailsV2({
     [templateString],
   );
   const getSubDagElements = useCallback<LayerElementsResolver>(
-    (layers, maxNodes) =>
-      pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, layers, maxNodes) : [],
+    (layers) => (pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, layers) : []),
     [pipelineSpec],
   );
-
-  const layerChange = (l: string[]) => {
-    setSelection(null);
-    setLayers(l);
-    setSubDagLayers(l);
-  };
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
@@ -78,12 +70,10 @@ function PipelineDetailsV2({
         <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
           <DagCanvas
             layers={layers}
-            onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
             getSubDagElements={pipelineSpec ? getSubDagElements : undefined}
             selectedElement={selection}
             onElementClick={(_event, selection) => setSelection(selection)}
-            setFlowElements={() => {}}
           ></DagCanvas>
           <PipelineVersionCard
             pipeline={pipeline}
@@ -104,7 +94,6 @@ function PipelineDetailsV2({
                     <StaticNodeDetailsV2
                       templateString={templateString}
                       layers={selection?.layers ?? layers}
-                      onLayerChange={layerChange}
                       element={selection?.element ?? null}
                     />
                   </div>

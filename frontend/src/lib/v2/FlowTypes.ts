@@ -12,5 +12,5 @@ export interface LayerFlowElement {
   layers: string[];
 }
 
-/** Resolves one DAG layer, rejecting oversized layers before constructing nodes. */
-export type LayerElementsResolver = (layers: string[], maxNodes?: number) => PipelineFlowElement[];
+/** Resolves the task and artifact nodes in one DAG layer. */
+export type LayerElementsResolver = (layers: string[]) => PipelineFlowElement[];

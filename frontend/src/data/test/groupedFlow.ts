@@ -167,6 +167,30 @@ export const exitHandlerSpec = PipelineSpec.fromPartial({
   },
 });
 
+/** Reverse declaration order verifies expansion follows dependencies, not object order. */
+export function manySubDagsSpec(count = 25, parallelBranches = 1) {
+  return PipelineSpec.fromPartial({
+    components: {
+      step: { executorLabel: 'exec-step' },
+      body: { dag: { tasks: { step: task('Step', 'step') } } },
+    },
+    root: {
+      dag: {
+        tasks: Object.fromEntries(
+          Array.from({ length: count }, (_, index) => [
+            `group-${index}`,
+            task(
+              `Group ${index}`,
+              'body',
+              index >= parallelBranches ? [`group-${index - parallelBranches}`] : [],
+            ),
+          ]).reverse(),
+        ),
+      },
+    },
+  });
+}
+
 export const loopTasks: V2beta1PipelineTask[] = [
   { task_id: 'root', name: 'root', type: Type.ROOT, state: State.RUNNING },
   {

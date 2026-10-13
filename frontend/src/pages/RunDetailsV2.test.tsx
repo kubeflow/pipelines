@@ -324,6 +324,41 @@ describe('RunDetailsV2', () => {
     expect(navigateSpy).not.toHaveBeenCalled();
   });
 
+  it('reveals a deep-linked iteration beyond the default limit without leaving the root graph', async () => {
+    const tasks = loopTasks.map((task) =>
+      task.task_id === 'sweep'
+        ? { ...task, type_attributes: { iteration_count: '30' } }
+        : task.task_id === 'train-1'
+          ? { ...task, type_attributes: { iteration_index: '29' } }
+          : task,
+    );
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks });
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          {...generateProps()}
+          location={{ pathname: `/runs/details/${RUN_ID}`, search: '?task=train-1' } as any}
+          parsedPipelineSpec={loopSpec}
+          pipeline_job={JSON.stringify(PipelineSpec.toJSON(loopSpec))}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.RUNNING }}
+        />
+      </CommonTestWrapper>,
+    );
+    const nodeId = layerNodeId(['root', 'sweep', 'sweep.29'], 'task.train');
+    await waitFor(() => expect(screen.getByTestId(`rf__node-${nodeId}`)).toBeInTheDocument());
+    expect(screen.getByText('Summarize results')).toBeInTheDocument();
+    expect(screen.queryByText('Layers')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByText('Task Details'));
+    await screen.findByText('train-1');
+    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    expect(screen.getByText('Summarize results')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Hyperparameter sweep'));
+    expect(screen.queryByRole('button', { name: 'Open Sub-DAG' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Collapse Hyperparameter sweep' }),
+    ).toBeInTheDocument();
+  });
+
   it('does not substitute a same-named linked task when selecting a nested task', async () => {
     const spec = PipelineSpec.fromPartial({
       ...loopSpec,
