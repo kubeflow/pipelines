@@ -146,6 +146,62 @@ describe('DynamicFlow', () => {
       ).toMatchObject({ hasArtifact: true });
     });
 
+    it('sets the lifecycle message on a task node without changing its state', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const stuckTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      };
+
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycleMessage: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      });
+    });
+
+    it('clears the lifecycle message when the task recovers', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const stuckTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'ImagePullBackOff',
+      };
+      const withWarning = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+      const recoveredTask = { ...stuckTask, lifecycle_message: undefined };
+
+      const recovered = updateFlowElementsState(['root'], withWarning, [rootTask, recoveredTask]);
+
+      expect(
+        (recovered.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleMessage,
+      ).toBeUndefined();
+    });
+
+    it('does not set a lifecycle message on a task that finished successfully', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const doneTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        lifecycle_message: 'ImagePullBackOff',
+      };
+
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, doneTask]);
+
+      expect(
+        (runtimeGraph.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleMessage,
+      ).toBeUndefined();
+    });
+
     it('does not preserve React Flow hidden flags when applying task state', () => {
       const preprocessTask: V2beta1PipelineTask = {
         task_id: 'preprocess-task',

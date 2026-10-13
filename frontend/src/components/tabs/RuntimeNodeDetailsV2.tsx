@@ -52,7 +52,7 @@ import {
   isTaskFinished,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
-import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
 import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 
@@ -60,6 +60,8 @@ export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
+export const LIFECYCLE_WARNING_MESSAGE =
+  "Kubernetes reported a problem with this task's pod. The task has not failed yet and may recover. Select Details to see the raw message.";
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -218,9 +220,17 @@ function TaskNodeDetail({
     (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
+  const lifecycleMessage = getTaskLifecycleMessage(task);
 
   return (
     <div className={commonCss.page}>
+      {lifecycleMessage && (
+        <Banner
+          mode='warning'
+          message={LIFECYCLE_WARNING_MESSAGE}
+          additionalInfo={lifecycleMessage}
+        />
+      )}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}

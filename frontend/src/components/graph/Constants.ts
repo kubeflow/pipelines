@@ -30,6 +30,9 @@ export type SubDagFlowElementData = FlowElementDataBase & {
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the execution engine. Set only while the task has an
+  // unresolved problem such as ImagePullBackOff, and cleared when the task recovers.
+  lifecycleMessage?: string;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {
