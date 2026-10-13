@@ -612,6 +612,12 @@ class TestNormalizeTimeString(parameterized.TestCase):
         ('0.5 hours', '0.5h'),
         ('1.5m', '1.5m'),
         ('0.25h', '0.25h'),
+        ('10M', '10m'),
+        ('1H', '1h'),
+        ('60S', '60s'),
+        ('1 HOUR', '1h'),
+        ('10 M', '10m'),
+        ('2 Weeks', '2w'),
     ])
     def test(self, unnorm: str, norm: str):
         self.assertEqual(structures.normalize_time_string(unnorm), norm)
@@ -643,6 +649,13 @@ class TestConvertDurationToSeconds(parameterized.TestCase):
         ('0.25h', 900),
         ('2.5m', 150),
         ('2.05m', 123),
+        ('10M', 600),
+        ('1H', 3600),
+        ('60S', 60),
+        ('1 HOUR', 3600),
+        ('10 M', 600),
+        ('2D', 172800),
+        ('1W', 604800),
     ])
     def test(self, duration: str, seconds: int):
         self.assertEqual(
@@ -674,6 +687,19 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
                          1209600)
+
+    def test_to_proto_uppercase_duration(self):
+        retry_policy_struct = structures.RetryPolicy(
+            max_retry_count=10,
+            backoff_duration='10M',
+            backoff_factor=1.5,
+            backoff_max_duration='1H')
+
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.max_retry_count, 10)
+        self.assertEqual(retry_policy_proto.backoff_duration.seconds, 600)
+        self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
 
     def test_to_proto_with_policy(self):
         _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy

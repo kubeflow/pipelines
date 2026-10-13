@@ -1761,6 +1761,31 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.max_retry_count, 3)
         self.assertEqual(retry_policy.policy, _Policy.POLICY_ON_ERROR)
 
+    def test_set_retry_uppercase_duration(self):
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_retry(
+                num_retries=3,
+                backoff_duration='30S',
+                backoff_factor=1.0,
+                backoff_max_duration='3H',
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 3)
+        self.assertEqual(retry_policy.backoff_duration.seconds, 30)
+        self.assertEqual(retry_policy.backoff_factor, 1.0)
+        self.assertEqual(retry_policy.backoff_max_duration.seconds, 10800)
+
 
 from google.protobuf import json_format
 
