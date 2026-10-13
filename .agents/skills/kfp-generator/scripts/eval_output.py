@@ -6,9 +6,8 @@ import json
 
 def get_venv_python():
     """Locates the project's local virtual environment Python interpreter."""
-    # Since this script runs from within the monorepo, resolve paths relative to the root
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+    repo_root = os.path.abspath(os.path.join(script_dir, "..", "..", "..", ".."))
    
     venv_paths = [
         os.path.join(repo_root, ".venv", "bin", "python"),
@@ -18,7 +17,7 @@ def get_venv_python():
     for path in venv_paths:
         if os.path.exists(path):
             return path
-    # Fallback to the globally executing python interpreter
+
     return sys.executable
 
 def validate_pipeline(pipeline_path):
@@ -32,7 +31,7 @@ def validate_pipeline(pipeline_path):
     python_exe = get_venv_python()
     print(f"[*] Compiling pipeline statically using: {python_exe}")
    
-    # Run the compiled file to trigger KFP v2 YAML generation
+    
     result = subprocess.run(
         [python_exe, pipeline_path],
         capture_output=True,
@@ -44,104 +43,66 @@ def validate_pipeline(pipeline_path):
 
 def run_backend_verification(pipeline_path, host, namespace=None, timeout=600, pipeline_args=None):
     """
-    Executes the pipeline function on a real KFP backend using create_run_from_pipeline_func,
-    waits for completion, and captures evidence of success using get_run.
-    """
+    Executes the compiled pipeline YAML package on a real KFP backend using create_run_from_pipeline_package, waits for completion, and captures evidence using get_run."""
     python_exe = get_venv_python()
-    print(f"\n[*] Submitting pipeline to live backend ({host}) for E2E verification...")
-
-    runner_script = """
+    expected_yaml = pipeline_path + ".yaml"
+    
+    if not os.path.exists(expected_yaml):
+        return 1, "", f"Error: Compiled YAML package {expected_yaml} not found. Run validation first."
+    print(f"\n[*] Submitting compiled YAML package {expected_yaml} to live backend ({host}) for E2E verification...")
+    
+    runner_script = """ 
 import sys
 import os
 import json
-import importlib.util
 import kfp
 
-pipeline_path = sys.argv[1]
+yaml_path = sys.argv[1]
 host = sys.argv[2]
-namespace = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "None" else None
+namespace = sys.argv[3] if (len(sys.argv) > 3 and sys.argv[3] != "None") else None
 timeout = int(sys.argv[4]) if len(sys.argv) > 4 else 600
 raw_args = sys.argv[5] if len(sys.argv) > 5 and sys.argv[5] != "None" else "{}"
 
 try:
-    pipeline_arguments = json.loads(raw_args)
+  pipeline_arguments =  json.loads(raw_args)
 except Exception as e:
     print(f"[!] Invalid JSON for pipeline arguments: {e}", file=sys.stderr)
     sys.exit(1)
-
-# Dynamically load the pipeline script
-abs_path = os.path.abspath(pipeline_path)
-file_dir = os.path.dirname(abs_path)
-
-sys.path.insert(0, file_dir)
-
-spec = importlib.util.spec_from_file_location("eval_target_pipeline", abs_path)
-if not spec or not spec.loader:
-    print(f"[!] Could not load spec for pipeline file at {abs_path}", file=sys.stderr)
-    sys.exit(1)
-
-module = importlib.util.module_from_spec(spec)
-sys.modules["eval_target_pipeline"] = module
-spec.loader.exec_module(module)
-
-# Search for the pipeline function
-pipeline_func = None
-for attr_name in dir(module):
-    attr = getattr(module, attr_name)
-    if type(attr).__name__ in ("Pipeline", "GraphComponent") or getattr(attr, "is_pipeline", False):
-        pipeline_func = attr
-        break
-
-if not pipeline_func:
-    for attr_name in dir(module):
-        attr = getattr(module, attr_name)
-        if hasattr(attr, "pipeline_spec"):
-            pipeline_func = attr
-            break
-
-
-if not pipeline_func:
-    from kfp.dsl import base_component
-    for attr_name in dir(module):
-        attr = getattr(module, attr_name)
-        if isinstance(attr, base_component.BaseComponent):
-            pipeline_func = attr
-            break
-
-if not pipeline_func:
-    print(f"[!] Error: Could not locate a @dsl.pipeline decorated function in {pipeline_path}", Action: Decorate your main workflow function with @dsl.pipeline)
-    sys.exit(1)
-
-# Instantiate client and submit run using create_run_from_pipeline_func
+    
+# Instantiate the KFP Client
 client = kfp.Client(host=host, namespace=namespace)
 try:
     if client.get_kfp_healthz().multi_user:
-        if not namespace:
-            namespace = 'user'
-            client.set_user_namespace('user')
+        if namespace:
+           client.set_user_namespace(namespace)
+           
         for api_attr in ('_experiment_api', '_pipelines_api', '_run_api', '_upload_api'):
-            api_obj = getattr(client, api_attr, None)
-            if api_obj and hasattr(api_obj, 'api_client'):
-                api_obj.api_client.set_default_header('kubeflow-userid', 'user@example.com')
+           api_obj = getattr(client, api_attr, None)
+           if api_obj and hasattr(api_obj, 'api_client'):
+              existing_headers = getattr(api_obj.api_client, 'default_headers', {})
+              if 'kubeflow-userid' not in existing_headers:
+                  env_user = os.getenv("KFP_USERID", os.getenv("USER", "default-user"))
+                  api_obj.api_client.set_default_header('kubeflow-userid', env_user)
+
 except Exception as e:
     pass
+    
+run_name = f"eval_{os.path.splitext(os.path.basename(yaml_path))[0]}"
 
-run_name = f"eval_{os.path.splitext(os.path.basename(pipeline_path))[0]}"
-pipe_name = getattr(pipeline_func, "name", None) or getattr(pipeline_func, "__name__", "pipeline")
-
-print(f"[*] Calling create_run_from_pipeline_func for pipeline '{pipe_name}'...")
+print(f"[*] Calling create_run_from_pipeline_package for package '{yaml_path}...'")
 try:
-    run_result = client.create_run_from_pipeline_func(
-        pipeline_func=pipeline_func,
-        arguments=pipeline_arguments,
-        run_name=run_name
-    )
-except Exception as e:
-    print(f"[!] Failed during create_run_from_pipeline_func call: {e}", file=sys.stderr)
-    sys.exit(1)
+   run_result = client.create_run_from_pipeline_package(
+       pipeline_file=yaml_path,
+       arguments=pipeline_arguments,
+       run_name=run_name,
+   )
 
+except Exception as e:
+    print(f"[!] Failed during create_run_from_pipeline_package call: {e}", file=sys.stderr)
+    sys.exit(1)
+    
 run_id = run_result.run_id
-print(f"[✓] Run created successfully via create_run_from_pipeline_func. Run ID: {run_id}")
+print(f"[✓] Run created successfully with run_id: {run_id}")
 
 print(f"[*] Waiting for run execution on backend (timeout={timeout}s)...")
 try:
@@ -149,53 +110,53 @@ try:
 except Exception as e:
     print(f"[!] Timeout or error while waiting for run completion: {e}", file=sys.stderr)
 
+
 print(f"[*] Fetching final execution evidence using get_run(run_id='{run_id}')...")
 try:
-    run_info = client.get_run(run_id=run_id)
-    run_data = {
-        "run_id": run_info.run_id,
-        "display_name": run_info.display_name,
-        "state": str(run_info.state),
-        "created_at": str(run_info.created_at),
-        "finished_at": str(run_info.finished_at)
-    }
-    # Save to pipeline_path.run.json
-    output_file = pipeline_path + ".run.json"
-    with open(output_file, "w") as f:
+   run_info = client.get_run(run_id=run_id)
+   run_data = {
+       "run_id": run_info.run_id,
+       "display_name": run_info.display_name,
+       "state": str(run_info.state),
+       "created_at": str(run_info.created_at),
+       "finished_at": str(run_info.finished_at)
+   }
+   
+   output_file = yaml_path + ".run.json"
+   with open(output_file, "w") as f:
         json.dump(run_data, f, indent=2)
-    print(f"[✓] Execution evidence saved to {output_file}")
-
+   print(f"[✓] Execution evidence saved to: {output_file}")
+    
 except Exception as e:
     print(f"[!] Failed to retrieve run info using get_run: {e}", file=sys.stderr)
     sys.exit(1)
-
-
+    
 if "SUCCEEDED" in run_data["state"] or "COMPLETED" in run_data["state"]:
     print(f"[✓] BACKEND VERIFICATION PASSED: Pipeline run {run_id} executed and SUCCEEDED on backend.")
     sys.exit(0)
+    
 else:
     print(f"[!] BACKEND VERIFICATION FAILED: Pipeline run {run_id} finished with non-successful state: {run_data['state']}", file=sys.stderr)
     sys.exit(1)
+    
 """
 
     args_str = json.dumps(pipeline_args) if pipeline_args else "None"
     result = subprocess.run(
-        [
-            python_exe,
-            "-c",
-            runner_script,
-            pipeline_path,
-            host,
-            str(namespace) if namespace else "None",
-            str(timeout),
-            args_str,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=timeout + 30,
-    )
-
+       [python_exe, 
+       "-c", 
+       runner_script, 
+       expected_yaml, 
+       host, str(namespace) 
+       if namespace else "None", 
+       str(timeout), args_str,], 
+       capture_output=True, 
+       text=True, 
+       timeout=timeout + 30,
+   )
+   
     return result.returncode, result.stdout, result.stderr
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -210,7 +171,7 @@ def main():
         "--run", "--run-e2e",
         action="store_true",
         dest="run_e2e",
-        help="Execute the pipeline on a real backend using create_run_from_pipeline_func and verify success using get_run."
+        help="Execute the pipeline on a real backend using create_run_from_pipeline_package and verify success using get_run."
     )
     parser.add_argument(
         "--host",
@@ -238,6 +199,14 @@ def main():
     )
 
     args = parser.parse_args()
+    
+    expected_yaml = args.pipeline_file + ".yaml"
+    if os.path.exists(expected_yaml):
+        try:
+            os.remove(expected_yaml)
+            print(f"[*] Removed stale YAML artifacts: {expected_yaml}")
+        except Exception as e:
+            sys.stderr.write(f"[!] Warning: Could not remove stale YAML file: {e}\"\n")
 
     return_code, stdout, stderr = validate_pipeline(args.pipeline_file)
    
@@ -256,7 +225,7 @@ def main():
             f"Action: Ensure the pipeline file includes an entrypoint block that compiles "
             f"the pipeline using the KFP compiler:\n\n"
             f"   if __name__ == '__main__':\n"
-            f"       compiler.Compiler().compile(pipeline_func={args.pipeline_file.split('.')[0]}, __file__ + '.yaml')\n\n"
+            f"       compiler.Compiler().compile(pipeline_file={args.pipeline_file.split('.')[0]}, __file__ + '.yaml')\n\n"
             )
         sys.exit(1)
     print(f"[✓] Output specification saved successfully at: {expected_yaml}")

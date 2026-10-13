@@ -157,7 +157,15 @@ The `--run` step:
 
 If validation fails, read the traceback, fix the generated pipeline, and re-run until it passes.
 
+### 3. Eval-Driven Suite (agentskills.io standard)
+To evaluate the overall output quality of this skill across the standardized test cases:
+
+```bash
+# Run the full benchmark evaluation suite for iteration 1:
+python .agents/skills/kfp-generator/main.py --suite --iteration 1
 ```
+
+This runs the eval suite defined in `evals/evals.json`, creates the workspace under `workspaces/iteration-1/`, executes assertion grading across `with_skill` vs `without_skill` configurations, and generates `benchmark.json` with aggregate metrics (pass rate, duration, tokens, delta) and `feedback.json` for human review.
 
 ## Generation checklist
 
