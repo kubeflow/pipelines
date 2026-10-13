@@ -90,6 +90,51 @@ async function recoveryCandidates({github, context}) {
   return candidates;
 }
 
+async function revokeStaleGreens({github, context, tip}) {
+  // Push-triggered revocation narrows the stale-green merge window (#14762): the
+  // moment master advances, a ci-passed success stamped against any prior base
+  // revision is revoked instead of waiting for the next scheduled sweep.
+  // Freshness reuses the same determination as recovery: a green is fresh only
+  // when its description still carries the stamp for the live base tip. This
+  // writes only the commit status; the sweep reconciles the informational label
+  // with its broader permissions.
+  if (!/^[0-9a-f]{40}$/.test(tip || '')) {
+    throw new Error('Stale revocation requires a full base commit SHA');
+  }
+  // Only the most recent push may revoke. Push jobs can execute out of order:
+  // master may advance B then C, CI Check publish a success stamped for C, and
+  // a delayed B job would otherwise treat that valid C green as stale and
+  // overwrite it with failure. Resolve the LIVE master tip and bail out when it
+  // has already moved past this push's tip; the newer job (or the sweep) owns
+  // revocation for the advanced base.
+  const {data: ref} = await github.rest.git.getRef({
+    ...context.repo, ref: 'heads/master',
+  });
+  if (ref.object.sha !== tip) return 0;
+  const prs = await github.paginate(github.rest.pulls.list, {
+    ...context.repo, state: 'open', base: 'master', per_page: 100,
+  });
+  let revoked = 0;
+  for (const pr of prs) {
+    if (blocked(pr)) continue;
+    const status = await currentStatus(github, context, pr.head.sha);
+    // Revalidate AFTER reading the status: the combined-status lookup can
+    // paginate, and master may advance mid-read publishing a fresher success.
+    const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: 'heads/master'});
+    if (liveRef.object.sha !== tip) return revoked;
+    // Never revoke a head without a ci-passed success.
+    if (status?.state !== 'success') continue;
+    if (status.description === successDescription(pr, tip)) continue;
+    await github.rest.repos.createCommitStatus({
+      ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
+      description: 'Base advanced; re-test against new master.',
+      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    });
+    revoked++;
+  }
+  return revoked;
+}
+
 async function resolve(github, context, recovery) {
   if (context.eventName === 'schedule') {
     if (!Number.isSafeInteger(recovery?.number) || recovery.number <= 0 || !recovery.head) {
@@ -304,4 +349,4 @@ async function finalize({github, context, core, number, head, before, pollPassed
   }
 }
 
-module.exports = {recoveryCandidates, snapshot, resolve, freshAfter, prepare, finalize};
+module.exports = {recoveryCandidates, revokeStaleGreens, snapshot, resolve, freshAfter, prepare, finalize};

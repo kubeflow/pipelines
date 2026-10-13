@@ -930,6 +930,140 @@ async function run(liveTip) {
                     'expression': 'b' * 40 + ':.github/workflows',
                 })
 
+    REVOKE_SCRIPT = r"""
+const {revokeStaleGreens} = require(process.argv[1]);
+const crypto = require('node:crypto');
+const B0 = 'b'.repeat(40);
+const B1 = 'a'.repeat(40);
+const B2 = 'c'.repeat(40);
+const LIVE = process.argv[2];
+const TIP = process.argv[3];
+const ADVANCE_AFTER = process.argv[4] || undefined;
+const FLIP = process.argv[5] || undefined;
+let statusPaginationFlip = false;
+let getRefCalls = 0;
+const nextLiveTip = () => {
+  const n = getRefCalls++;
+  if (FLIP === 'status-pagination') return statusPaginationFlip ? B2 : LIVE;
+  return (ADVANCE_AFTER !== undefined && n >= Number(ADVANCE_AFTER)) ? B2 : LIVE;
+};
+const stamp = base => crypto.createHash('sha256')
+  .update(JSON.stringify(['master', base])).digest('hex');
+const successDesc = base =>
+  'Expected CI and all checks passed; base policy ' + stamp(base) + '.';
+const statuses = {
+  stale: {state: 'success', description: successDesc(B0)},
+  fresh: {state: 'success', description: successDesc(B2)},
+  legacy: {state: 'success', description: 'Expected CI and all checks passed for this head.'},
+  failure: {state: 'failure', description: 'some failure'},
+  pending: {state: 'pending', description: 'some pending'},
+  blocked: {state: 'success', description: successDesc(B1)},
+};
+const prs = FLIP === 'status-pagination'
+  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []}]
+  : [
+  {number: 1, head: {sha: 'stale'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 2, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 3, head: {sha: 'legacy'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 4, head: {sha: 'failure'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 5, head: {sha: 'pending'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 6, head: {sha: 'blocked'}, base: {ref: 'master', sha: B1},
+    labels: [{name: 'needs-ok-to-test'}]},
+];
+const listCalls = [];
+const writes = [];
+const github = {
+  rest: {pulls: {list: {}},
+    git: {getRef: async () => ({data: {object: {sha: nextLiveTip()}}})},
+    repos: {
+    getCombinedStatusForRef: async ({ref}) => ({
+      data: {statuses: statuses[ref] ?
+        [{context: 'ci-passed', ...statuses[ref]}] : []}}),
+    createCommitStatus: async request => {writes.push(request);},
+  }},
+  paginate: async (method, params) => {listCalls.push(params); return prs;},
+};
+github.paginate.iterator = async function* (method, params) {
+  yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+  if (FLIP === 'status-pagination') statusPaginationFlip = true;
+  yield await github.rest.repos.getCombinedStatusForRef(params);
+};
+const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
+revokeStaleGreens({github, context, tip: TIP}).then(count => {
+  console.log(JSON.stringify({count, writes, listCalls}));
+}).catch(e => {console.error(e); process.exit(1);});
+"""
+
+    def _run_revoke(self, live_tip, tip, advance_after=None, flip=None):
+        argv = [
+            'node', '-e', self.REVOKE_SCRIPT,
+            str(MODULE), live_tip, tip,
+            str(advance_after or ''), flip or ''
+        ]
+        result = subprocess.run(
+            argv, check=True, capture_output=True, text=True)
+        return json.loads(result.stdout)
+
+    def test_push_revocation_revokes_only_stale_success(self):
+        actual = self._run_revoke('c' * 40, 'c' * 40)
+        self.assertEqual(actual['count'], 2)
+        self.assertEqual([write['sha'] for write in actual['writes']],
+                         ['stale', 'legacy'])
+        for write in actual['writes']:
+            self.assertEqual(write['context'], 'ci-passed')
+            self.assertEqual(write['state'], 'failure')
+            self.assertEqual(write['description'],
+                             'Base advanced; re-test against new master.')
+            self.assertLessEqual(len(write['description']), 140)
+        self.assertEqual(actual['listCalls'][0]['base'], 'master')
+        self.assertEqual(actual['listCalls'][0]['state'], 'open')
+        self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_bails_when_master_has_advanced(self):
+        # A delayed job for an older push (tip=B1) must not revoke a green
+        # stamped for the newer live tip (B2); revokeStaleGreens resolves the
+        # live tip and skips when it has moved past the triggering push.
+        actual = self._run_revoke('c' * 40, 'a' * 40)
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
+        self.assertEqual(actual['listCalls'], [])
+
+    def test_push_revocation_revalidates_live_tip_mid_scan(self):
+        # tip = B1. getRef returns B1 for the initial guard and the first PR,
+        # then B2 for later PRs (master advanced mid-scan). A fresh B2-stamped
+        # success appears on a later PR. The B1 job must revoke only the
+        # pre-advance stale PR and BAIL before touching the fresh B2 success.
+        actual = self._run_revoke('a' * 40, 'a' * 40, advance_after=2)
+        self.assertEqual(actual['count'], 1)
+        self.assertEqual([w['sha'] for w in actual['writes']], ['stale'])
+
+    def test_push_revocation_revalidates_after_status_pagination(self):
+        # tip = B1. The status lookup paginates: page 1 is an unrelated status,
+        # then master advances B1->B2 and a fresh B2-stamped success is
+        # published before page 2. The B1 job must read that fresh success,
+        # re-check the live tip (now B2 != B1), and BAIL without writing failure.
+        actual = self._run_revoke('a' * 40, 'a' * 40, flip='status-pagination')
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
+
+    def test_push_revocation_rejects_non_sha_tip(self):
+        script = r"""
+const {revokeStaleGreens} = require(process.argv[1]);
+const github = {rest: {pulls: {list: {}}},
+  paginate: async () => {throw new Error('must not list');}};
+revokeStaleGreens({github, context: {repo: {owner: 'o', repo: 'r'}}, tip: 'main'})
+  .then(() => console.log(JSON.stringify({error: null})))
+  .catch(e => console.log(JSON.stringify({error: e.message})));
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertEqual(actual['error'],
+                         'Stale revocation requires a full base commit SHA')
+
 
 if __name__ == '__main__':
     unittest.main()
