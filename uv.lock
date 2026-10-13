@@ -1508,8 +1508,8 @@ requires-dist = [
     { name = "jupyter-client", marker = "extra == 'all'", specifier = ">=7,<9" },
     { name = "jupyter-client", marker = "extra == 'notebooks'", specifier = ">=7,<9" },
     { name = "kubernetes", specifier = ">=8.0.0,<31" },
-    { name = "nbclient", marker = "extra == 'all'", specifier = ">=0.10,<1" },
-    { name = "nbclient", marker = "extra == 'notebooks'", specifier = ">=0.10,<1" },
+    { name = "nbclient", marker = "extra == 'all'", specifier = ">=0.11.0,<1" },
+    { name = "nbclient", marker = "extra == 'notebooks'", specifier = ">=0.11.0,<1" },
     { name = "protobuf", specifier = ">=6.33.5,<7.0" },
     { name = "python-dateutil" },
     { name = "pyyaml", specifier = ">=5.3,<7" },
@@ -2108,7 +2108,7 @@ wheels = [
 
 [[package]]
 name = "nbclient"
-version = "0.10.4"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jupyter-client" },
@@ -2116,9 +2116,9 @@ dependencies = [
     { name = "nbformat" },
     { name = "traitlets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/56/91/1c1d5a4b9a9ebba2b4e32b8c852c2975c872aec1fe42ab5e516b2cecd193/nbclient-0.10.4.tar.gz", hash = "sha256:1e54091b16e6da39e297b0ece3e10f6f29f4ac4e8ee515d29f8a7099bd6553c9", size = 62554, upload-time = "2025-12-23T07:45:46.369Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/a5/b3bae4b590c0cbcada2c63a34f7580024e834a8ba213e949a2f906705787/nbclient-0.11.0.tar.gz", hash = "sha256:04a134a5b087f2c5887f228aca155db50169b8cd9334dee6942c8e927e56081a", size = 62535, upload-time = "2026-06-05T07:52:41.746Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/a0/5b0c2f11142ed1dddec842457d3f65eaf71a0080894eb6f018755b319c3a/nbclient-0.10.4-py3-none-any.whl", hash = "sha256:9162df5a7373d70d606527300a95a975a47c137776cd942e52d9c7e29ff83440", size = 25465, upload-time = "2025-12-23T07:45:44.51Z" },
+    { url = "https://files.pythonhosted.org/packages/36/c9/94d73e5a01c5b926c3fa2496e97d7a8dc28ed5a77c0b2ed712f1a62e6694/nbclient-0.11.0-py3-none-any.whl", hash = "sha256:ef7fa0d59d6e1d41103933d8a445a18d5de860ca6b613b87b8574accdb3c2895", size = 25288, upload-time = "2026-06-05T07:52:40.115Z" },
 ]
 
 [[package]]

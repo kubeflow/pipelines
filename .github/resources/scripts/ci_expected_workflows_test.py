@@ -47,7 +47,11 @@ def verify(runs=None,
            live_base=True,
            base_arrived_at='2026-09-07T13:00:00Z',
            association_failure=False,
-           associated_prs=None):
+           associated_prs=None,
+           fallback_pages=None,
+           pr_records=None,
+           fallback_failure=False,
+           record_failure=False):
     if runs is None:
         runs = [good_run()]
     if files is None:
@@ -98,14 +102,49 @@ def verify(runs=None,
             'number': 7,
             'merged_at': base_arrived_at,
         }] if base_sha else [])
+
+    def record(pr):
+        return {
+            'number': 7,
+            'merged': True,
+            'merge_commit_sha': base_sha,
+            'merged_at': base_arrived_at,
+            'base': {
+                'ref': 'master',
+                'repo': {
+                    'full_name': 'owner/repo'
+                }
+            },
+            **pr,
+        }
+
+    associated_prs = [record(pr) for pr in associated_prs]
+    fallback_pages = fallback_pages or [[]]
+    if pr_records is None:
+        pr_records = {str(pr['number']): record(pr) for pr in associated_prs}
     return node(f'''
 const fixture = {json.dumps(fixture)};
 const requests = [];
 const associationCalls = [];
 const associationFailure = {json.dumps(association_failure)};
 const associatedPRs = {json.dumps(associated_prs)};
+const fallbackPages = {json.dumps(fallback_pages)};
+const prRecords = {json.dumps(pr_records)};
+const fallbackCalls = [];
+const recordCalls = [];
 const github = {{
-  rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}},
+  rest: {{pulls: {{listFiles: 'files',
+    list: async options => {{
+      fallbackCalls.push(options);
+      if ({json.dumps(fallback_failure)}) throw Error('PR list unavailable');
+      return {{data: fallbackPages[options.page - 1] || []}};
+    }},
+    get: async options => {{
+      recordCalls.push(options);
+      if ({json.dumps(record_failure)}) throw Error('PR record unavailable');
+      return {{data: prRecords[options.pull_number]}};
+    }},
+  }}, actions: {{listWorkflowRunsForRepo: 'runs'}},
     repos: {{listPullRequestsAssociatedWithCommit: 'associated-prs'}}}},
   paginate: async (route, options) => {{
     requests.push({{route, options}});
@@ -118,7 +157,7 @@ const github = {{
   }},
 }};
 gate.verifyExpectedWorkflows({{...fixture, github, owner: 'owner', repo: 'repo'}})
-  .then(result => console.log(JSON.stringify({{...result, requests, associationCalls}})))
+  .then(result => console.log(JSON.stringify({{...result, requests, associationCalls, fallbackCalls, recordCalls}})))
   .catch(error => console.log(JSON.stringify({{error: error.message}})));
 ''')
 
@@ -555,6 +594,194 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         self.assertFalse(result['passed'])
         self.assertIn('lookup failed', result['reasons'][0])
         self.assertNotIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def fallback_result(self, record=None, **options):
+        valid = {
+            'number': 14815,
+            'merged': True,
+            'merge_commit_sha': 'c' * 40,
+            'merged_at': '2026-09-07T11:00:00Z',
+            'base': {
+                'ref': 'master',
+                'repo': {
+                    'full_name': 'owner/repo'
+                }
+            },
+        }
+        return verify(
+            base_sha='c' * 40,
+            associated_prs=[],
+            fallback_pages=[[{
+                'number': 14815,
+                'merge_commit_sha': 'c' * 40
+            }]],
+            pr_records={'14815': {
+                **valid,
+                **(record or {})
+            }},
+            **options)
+
+    def test_empty_association_recovers_verified_merge_record(self):
+        result = self.fallback_result()
+        self.assertTrue(result['passed'])
+        self.assertEqual(len(result['fallbackCalls']), 1)
+        self.assertEqual(
+            result['fallbackCalls'][0], {
+                'owner': 'owner',
+                'repo': 'repo',
+                'state': 'closed',
+                'base': 'master',
+                'sort': 'updated',
+                'direction': 'desc',
+                'per_page': 100,
+                'page': 1,
+            })
+        self.assertEqual(result['recordCalls'], [{
+            'owner': 'owner',
+            'repo': 'repo',
+            'pull_number': 14815,
+        }])
+
+    def test_recovered_record_still_rejects_stale_and_rerun_ci(self):
+        for attempt in [1, 2]:
+            with self.subTest(attempt=attempt):
+                result = self.fallback_result(runs=[
+                    good_run(
+                        created_at='2026-09-07T10:00:00Z',
+                        run_attempt=attempt,
+                        run_started_at='2026-09-07T14:00:00Z')
+                ])
+                self.assertFalse(result['passed'])
+                self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+
+    def test_fallback_requires_authoritative_exact_merge_identity(self):
+        for override in [
+            {
+                'merge_commit_sha': 'd' * 40
+            },
+            {
+                'merged': False
+            },
+            {
+                'number': 14816
+            },
+            {
+                'base': {
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'owner/repo'
+                    }
+                }
+            },
+            {
+                'base': {
+                    'ref': 'master',
+                    'repo': {
+                        'full_name': 'fork/repo'
+                    }
+                }
+            },
+        ]:
+            with self.subTest(override=override):
+                result = self.fallback_result(record=override)
+                self.assertFalse(result['passed'])
+                self.assertIn('no merged PR', result['reasons'][0])
+
+    def test_fallback_requires_valid_merge_timestamp(self):
+        for value in [None, 0, '', 'not-a-date']:
+            with self.subTest(value=value):
+                result = self.fallback_result(record={'merged_at': value})
+                self.assertFalse(result['passed'])
+                self.assertIn('malformed merged-PR', result['reasons'][0])
+
+    def test_fallback_api_errors_do_not_authorize_success(self):
+        for failure in ['fallback_failure', 'record_failure']:
+            with self.subTest(failure=failure):
+                result = self.fallback_result(**{failure: True})
+                self.assertFalse(result['passed'])
+                self.assertIn('lookup failed', result['reasons'][0])
+
+    def test_fallback_search_is_bounded_and_ignores_unrelated_records(self):
+        unrelated = [{
+            'number': number + 1,
+            'merge_commit_sha': 'd' * 40
+        } for number in range(100)]
+        for pages in [[unrelated, []], [unrelated] * 6]:
+            with self.subTest(pages=len(pages)):
+                result = verify(
+                    base_sha='c' * 40, associated_prs=[], fallback_pages=pages)
+                self.assertFalse(result['passed'])
+                self.assertEqual(
+                    len(result['fallbackCalls']), min(len(pages), 5))
+                self.assertEqual(result['recordCalls'], [])
+
+    def test_fallback_finds_candidate_on_later_page(self):
+        result = verify(
+            base_sha='c' * 40,
+            associated_prs=[],
+            fallback_pages=[
+                [{
+                    'number': 1,
+                    'merge_commit_sha': 'd' * 40
+                }] * 100,
+                [{
+                    'number': 8,
+                    'merge_commit_sha': 'c' * 40
+                }],
+            ],
+            pr_records={
+                '8': {
+                    'number': 8,
+                    'merged': True,
+                    'merge_commit_sha': 'c' * 40,
+                    'merged_at': '2026-09-07T11:00:00Z',
+                    'base': {
+                        'ref': 'master',
+                        'repo': {
+                            'full_name': 'owner/repo'
+                        }
+                    },
+                }
+            })
+        self.assertTrue(result['passed'])
+        self.assertEqual(len(result['fallbackCalls']), 2)
+
+    def test_unrelated_association_does_not_hide_verified_fallback(self):
+        result = verify(
+            base_sha='c' * 40,
+            associated_prs=[{
+                'number': 9,
+                'merge_commit_sha': 'd' * 40
+            }],
+            fallback_pages=[[{
+                'number': 8,
+                'merge_commit_sha': 'c' * 40
+            }]],
+            pr_records={
+                '8': {
+                    'number': 8,
+                    'merged': True,
+                    'merge_commit_sha': 'c' * 40,
+                    'merged_at': '2026-09-07T11:00:00Z',
+                    'base': {
+                        'ref': 'master',
+                        'repo': {
+                            'full_name': 'owner/repo'
+                        }
+                    },
+                }
+            })
+        self.assertTrue(result['passed'])
+        self.assertEqual(len(result['fallbackCalls']), 1)
+        self.assertEqual(
+            [call['pull_number'] for call in result['recordCalls']], [8])
+
+    def test_primary_association_is_verified_without_fallback(self):
+        result = verify(
+            base_sha='c' * 40, base_arrived_at='2026-09-07T11:00:00Z')
+        self.assertTrue(result['passed'])
+        self.assertEqual(len(result['recordCalls']), 1)
+        self.assertEqual(result['fallbackCalls'], [])
 
     def test_missing_base_merge_record_requires_maintainer(self):
         # A direct push leaves no merged PR for the base revision, so its

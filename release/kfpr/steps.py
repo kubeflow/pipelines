@@ -631,23 +631,28 @@ def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
 
 
 def _refresh_uv_release_packages(context: ReleaseContext) -> None:
-    """Regenerate the workspace lock, requirements exports, and local release
-    dists."""
+    """Regenerate the workspace lock and release dists, preserving legacy
+    exports."""
     if (context.root / 'sdk/python/kfp/server_api/__init__.py').is_file():
         context.runner.run(['make', '-C', 'sdk', 'generate-python'],
                            cwd=context.root)
         context.runner.run(['uv', 'lock'], cwd=context.root)
-        export_command = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
-        context.runner.run(
-            export_command +
-            ['--format', 'requirements-txt', '-o', 'requirements.txt'],
-            cwd=context.root)
-        context.runner.run(
-            export_command + [
-                '--package', 'kfp', '--format', 'requirements-txt', '-o',
-                'sdk/python/requirements.txt'
-            ],
-            cwd=context.root)
+        if (context.root / 'requirements.txt').is_file():
+            # Older consolidated checkouts still commit both requirements exports.
+            # Current checkouts build from metadata and the lock without exports.
+            export_command = [
+                'uv', 'export', '--frozen', '--no-dev', '--no-hashes'
+            ]
+            context.runner.run(
+                export_command +
+                ['--format', 'requirements-txt', '-o', 'requirements.txt'],
+                cwd=context.root)
+            context.runner.run(
+                export_command + [
+                    '--package', 'kfp', '--format', 'requirements-txt', '-o',
+                    'sdk/python/requirements.txt'
+                ],
+                cwd=context.root)
         context.runner.run(
             ['uv', 'build', '--package', 'kfp', '--out-dir', 'sdk/python/dist'],
             cwd=context.root)
