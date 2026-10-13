@@ -76,7 +76,7 @@ postgresql:
 		},
 	})
 
-	persist, namespace, err := loadArgoPersistConfig(context.Background(), kube)
+	persist, namespace, _, err := loadArgoPersistConfig(context.Background(), kube)
 	require.NoError(t, err)
 	assert.Equal(t, "kubeflow-pipelines", namespace)
 	require.NotNil(t, persist)
@@ -103,7 +103,7 @@ func TestLoadArgoPersistConfig_MissingPersistenceKey(t *testing.T) {
 		},
 	})
 
-	persist, namespace, err := loadArgoPersistConfig(context.Background(), kube)
+	persist, namespace, _, err := loadArgoPersistConfig(context.Background(), kube)
 	require.NoError(t, err)
 	assert.Equal(t, "kubeflow-pipelines", namespace)
 	assert.Nil(t, persist)
@@ -141,7 +141,7 @@ func TestLoadArgoPersistConfig_FromDataConfig(t *testing.T) {
 		},
 	})
 
-	persist, namespace, err := loadArgoPersistConfig(context.Background(), kube)
+	persist, namespace, _, err := loadArgoPersistConfig(context.Background(), kube)
 	require.NoError(t, err)
 	assert.Equal(t, "kubeflow-pipelines", namespace)
 	require.NotNil(t, persist)
@@ -168,7 +168,7 @@ func TestLoadArgoPersistConfig_MalformedConfigWithExtraKeys(t *testing.T) {
 		},
 	})
 
-	_, _, err := loadArgoPersistConfig(context.Background(), kube)
+	_, _, _, err := loadArgoPersistConfig(context.Background(), kube)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "must only have one item")
 }
@@ -179,7 +179,7 @@ func TestLoadArgoPersistConfig_MissingConfigMap(t *testing.T) {
 	viper.Set(common.PodNamespace, "kubeflow-pipelines")
 	viper.AutomaticEnv()
 
-	_, _, err := loadArgoPersistConfig(context.Background(), k8sfake.NewClientset())
+	_, _, _, err := loadArgoPersistConfig(context.Background(), k8sfake.NewClientset())
 	require.Error(t, err)
 }
 
@@ -199,7 +199,7 @@ func TestTryInitLazyOffloadHydrator_DisabledWhenPersistenceAbsent(t *testing.T) 
 			"containerRuntimeExecutor": "emissary",
 		},
 	})
-	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (persistCfg *argoconfig.PersistConfig, ns string, err error) {
+	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (persistCfg *argoconfig.PersistConfig, ns string, revision string, err error) {
 		return loadArgoPersistConfig(ctx, kube)
 	})
 

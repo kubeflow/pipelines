@@ -33,7 +33,7 @@ func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
 		glog.Warning("Skipping Argo offload hydrator: Kubernetes client is unavailable")
 		return
 	}
-	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (*argoconfig.PersistConfig, string, error) {
+	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (*argoconfig.PersistConfig, string, string, error) {
 		return loadArgoPersistConfig(ctx, kube)
 	})
 	util.SetWorkflowHydrator(lazy)
@@ -52,30 +52,31 @@ func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
 	glog.Info("Argo node status offload is disabled; inline and compressed node status hydration only")
 }
 
-func loadArgoPersistConfig(ctx context.Context, kube kubernetes.Interface) (*argoconfig.PersistConfig, string, error) {
+func loadArgoPersistConfig(ctx context.Context, kube kubernetes.Interface) (*argoconfig.PersistConfig, string, string, error) {
 	namespace := common.GetArgoWorkflowControllerNamespace()
 	configMapName := common.GetArgoWorkflowControllerConfigMap()
 	configMap, err := kube.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
+	revision := configMap.ResourceVersion
 	if _, ok := configMap.Data["config"]; ok {
 		cfg, err := argoconfig.NewController(namespace, configMapName, kube).Parse(configMap)
 		if err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 		if cfg.Persistence == nil {
-			return nil, namespace, nil
+			return nil, namespace, revision, nil
 		}
-		return cfg.Persistence, namespace, nil
+		return cfg.Persistence, namespace, revision, nil
 	}
 	raw, ok := configMap.Data["persistence"]
 	if !ok || strings.TrimSpace(raw) == "" {
-		return nil, namespace, nil
+		return nil, namespace, revision, nil
 	}
 	persist, err := util.ParseArgoPersistConfig([]byte(raw))
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
-	return persist, namespace, nil
+	return persist, namespace, revision, nil
 }
