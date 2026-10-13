@@ -60,15 +60,22 @@ const (
 	// AnnotationKeyRetryGeneration is stamped on a retried Workflow with the
 	// RetryGeneration claim token from ClaimRunForRetry. ReportWorkflowResource
 	// compares it against the run's current generation to fence terminal
-	// reports from stale pre-retry workflow snapshots.
+	// reports from stale pre-retry workflow snapshots. Ownership and activation
+	// also require AnnotationKeyRetryClaimNonce to match the stored claim.
 	AnnotationKeyRetryGeneration = "pipelines.kubeflow.org/retry-generation"
+
+	// AnnotationKeyRetryClaimNonce carries the unpredictable RetryClaimNonce
+	// written by ClaimRunForRetry. It is stamped on both placeholders (via the
+	// claim value) and activated retry Workflows so foreign actors cannot forge
+	// ownership with only a predictable generation.
+	AnnotationKeyRetryClaimNonce = "pipelines.kubeflow.org/retry-claim-nonce"
 
 	// AnnotationKeyRetryPlaceholderClaim authenticates a status-free retry
 	// placeholder created for a specific run and ClaimRunForRetry generation.
-	// Value format is "<runID>/<generation>". It is set on NewRetryPlaceholder
-	// (which omits AnnotationKeyRetryGeneration until activation) so RetryRun
-	// can adopt the placeholder's UID without treating a foreign suspended
-	// same-name Workflow as owned.
+	// Value format is "<runID>/<generation>/<nonce>". It is set on
+	// NewRetryPlaceholder (which omits AnnotationKeyRetryGeneration until
+	// activation) so RetryRun can adopt the placeholder's UID without treating
+	// a foreign suspended same-name Workflow as owned.
 	AnnotationKeyRetryPlaceholderClaim = "pipelines.kubeflow.org/retry-placeholder-claim"
 
 	// AnnotationKeyTerminationReason and AnnotationKeyFailedImage are stamped
