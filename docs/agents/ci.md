@@ -127,3 +127,8 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   Deployment can mean operator-managed database migration is blocked; do not
   force replicas or treat `Available=True` at zero replicas as successful setup.
   Diagnostic failures retain partial evidence and do not alter the failed step.
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
