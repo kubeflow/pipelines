@@ -17,6 +17,8 @@ package auth
 import (
 	"context"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/requestprofile"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -75,6 +77,7 @@ func (tra *TokenReviewAuthenticator) ensureAudience(requested []string, statusAu
 }
 
 func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIdentity string, audiences []string) (*authv1.UserInfo, []string, error) {
+	finishReview := requestprofile.StartPhase(ctx, requestprofile.TokenReview)
 	review, err := tra.client.Create(
 		ctx,
 		&authv1.TokenReview{
@@ -85,6 +88,7 @@ func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIden
 		},
 		v1.CreateOptions{},
 	)
+	finishReview()
 	if err != nil {
 		return nil, nil, util.NewUnauthenticatedError(err, "Request header error: Failed to review the token provided")
 	}

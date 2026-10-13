@@ -188,6 +188,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
+          profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -293,6 +294,7 @@ jobs:
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         with:
+          profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           cache_enabled: "false"
           argo_version: "v4.1.2"
           image_path: images_${{ github.run_id }}
@@ -352,6 +354,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
@@ -488,6 +491,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}

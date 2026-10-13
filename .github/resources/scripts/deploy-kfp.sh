@@ -261,7 +261,7 @@ fi
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
-kubectl kustomize --load-restrictor LoadRestrictionsNone "${TEST_MANIFESTS}" | kubectl apply -f - || EXIT_CODE=$?
+"${C_DIR}/render-profiled-manifests.sh" "${TEST_MANIFESTS}" | kubectl apply -f - || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."

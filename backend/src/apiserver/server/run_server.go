@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/requestprofile"
+
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -326,6 +328,8 @@ func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRun
 // Fetches a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
+	ctx, finishProfile := requestprofile.Start(ctx, "GetRun")
+	defer finishProfile()
 	if s.options.CollectMetrics {
 		getRunRequests.Inc()
 	}
@@ -351,7 +355,9 @@ func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, h
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
+	finishRunRead := requestprofile.StartPhase(ctx, requestprofile.RunRead)
 	run, err := s.resourceManager.GetRunWithHydration(runID, hydrateTasks)
+	finishRunRead()
 	if err != nil {
 		return nil, err
 	}
@@ -478,6 +484,8 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 
 // CreateTask Creates an API Task
 func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	ctx, finishProfile := requestprofile.Start(ctx, "CreateTask")
+	defer finishProfile()
 	runID := request.GetRunId()
 	if runID == "" {
 		return nil, util.NewInvalidInputError("Run ID is required")
@@ -501,10 +509,15 @@ func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTa
 		return nil, util.Wrap(err, "Failed to convert task to model")
 	}
 	modelTask.RunUUID = runID
-	if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
+	if err := func() error {
+		defer requestprofile.StartPhase(ctx, requestprofile.ParentValidation)()
+		return s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID)
+	}(); err != nil {
 		return nil, util.Wrap(err, "Failed to validate parent task")
 	}
+	finishTaskCreate := requestprofile.StartPhase(ctx, requestprofile.TaskCreate)
 	createdTask, err := s.resourceManager.CreateTask(modelTask)
+	finishTaskCreate()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create task")
 	}
@@ -518,6 +531,8 @@ func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTa
 // UpdateTask updates an existing task with the specified task ID and details provided in the request.
 // It validates input, ensures authorization, and returns the updated task details or an error if the update fails.
 func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	ctx, finishProfile := requestprofile.Start(ctx, "UpdateTask")
+	defer finishProfile()
 	runID := request.GetRunId()
 	taskID := request.GetTaskId()
 	task := request.GetTask()
@@ -539,7 +554,9 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTa
 	}
 
 	// First get the existing task to find the run UUID for authorization
+	finishTaskRead := requestprofile.StartPhase(ctx, requestprofile.TaskRead)
 	existingTask, err := s.resourceManager.GetTask(taskID)
+	finishTaskRead()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get existing task for authorization")
 	}
@@ -559,15 +576,22 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTa
 	}
 	modelTask.UUID = taskID // Always use the path parameter task ID
 	modelTask.RunUUID = runID
-	if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
+	if err := func() error {
+		defer requestprofile.StartPhase(ctx, requestprofile.ParentValidation)()
+		return s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID)
+	}(); err != nil {
 		return nil, util.Wrap(err, "Failed to validate parent task")
 	}
+	finishTaskUpdate := requestprofile.StartPhase(ctx, requestprofile.TaskUpdate)
 	updatedTask, err := s.resourceManager.UpdateTask(modelTask)
+	finishTaskUpdate()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to update task")
 	}
 
+	finishTaskChildren := requestprofile.StartPhase(ctx, requestprofile.TaskChildren)
 	taskChildren, err := s.resourceManager.GetTaskChildren(updatedTask.UUID)
+	finishTaskChildren()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get task children")
 	}
@@ -577,6 +601,8 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTa
 
 // UpdateTasksBulk updates multiple tasks in bulk.
 func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	ctx, finishProfile := requestprofile.Start(ctx, "UpdateTasksBulk")
+	defer finishProfile()
 	if request == nil || len(request.GetTasks()) == 0 {
 		return nil, util.NewInvalidInputError("UpdateTasksBulkRequest must contain at least one task")
 	}
@@ -603,7 +629,9 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.Upd
 	}
 	sort.Strings(taskIDs)
 
+	finishTaskReads := requestprofile.StartPhase(ctx, requestprofile.TaskRead)
 	existingTasksByID, err := s.resourceManager.GetTasksByIDs(taskIDs)
+	finishTaskReads()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get existing tasks for authorization")
 	}
@@ -634,16 +662,23 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.Upd
 		}
 		modelTask.UUID = taskID // Always use the map key task ID
 		modelTask.RunUUID = runID
-		if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
+		if err := func() error {
+			defer requestprofile.StartPhase(ctx, requestprofile.ParentValidation)()
+			return s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID)
+		}(); err != nil {
 			return nil, util.Wrapf(err, "Failed to validate parent task for task %s", taskID)
 		}
 
+		finishTaskUpdate := requestprofile.StartPhase(ctx, requestprofile.TaskUpdate)
 		updatedTask, err := s.resourceManager.UpdateTask(modelTask)
+		finishTaskUpdate()
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to update task %s", taskID)
 		}
 
+		finishTaskChildren := requestprofile.StartPhase(ctx, requestprofile.TaskChildren)
 		taskChildren, err := s.resourceManager.GetTaskChildren(updatedTask.UUID)
+		finishTaskChildren()
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to get task children for task %s", taskID)
 		}
@@ -661,6 +696,8 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.Upd
 
 // GetTask retrieves the details of a specific task based on its ID and performs authorization checks.
 func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	ctx, finishProfile := requestprofile.Start(ctx, "GetTask")
+	defer finishProfile()
 	runID := request.GetRunId()
 	taskID := request.GetTaskId()
 	if runID == "" {
@@ -670,7 +707,9 @@ func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequ
 		return nil, util.NewInvalidInputError("Task ID is required")
 	}
 
+	finishTaskRead := requestprofile.StartPhase(ctx, requestprofile.TaskRead)
 	task, err := s.resourceManager.GetTask(taskID)
+	finishTaskRead()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get task")
 	}
@@ -685,7 +724,9 @@ func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequ
 		return nil, util.Wrap(err, "Failed to authorize task access")
 	}
 
+	finishTaskChildren := requestprofile.StartPhase(ctx, requestprofile.TaskChildren)
 	childTasks, err := s.resourceManager.GetTaskChildren(task.UUID)
+	finishTaskChildren()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get task children")
 	}
@@ -696,6 +737,8 @@ func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequ
 // ListTasks retrieves tasks for a specified run and can optionally narrow the results to a parent task.
 // It validates authorization, processes pagination options, and ensures parent-scoped reads stay within the run.
 func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasksRequest) (*apiv2beta1.ListTasksResponse, error) {
+	ctx, finishProfile := requestprofile.Start(ctx, "ListTasks")
+	defer finishProfile()
 	runID := request.GetRunId()
 	parentID := request.GetParentId()
 
@@ -725,7 +768,9 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
+	finishTaskList := requestprofile.StartPhase(ctx, requestprofile.TaskRead)
 	tasks, totalSize, nextPageToken, err := s.resourceManager.ListTasks(runID, parentID, "", opts)
+	finishTaskList()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list tasks")
 	}
@@ -734,7 +779,9 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 	for _, task := range tasks {
 		taskIDs = append(taskIDs, task.UUID)
 	}
+	finishChildrenList := requestprofile.StartPhase(ctx, requestprofile.TaskChildren)
 	childTasksByParent, err := s.resourceManager.GetTaskChildrenByParentIDs(taskIDs)
+	finishChildrenList()
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get task children")
 	}
@@ -861,12 +908,15 @@ func filterTaskChildrenByRun(childTasks []*model.Task, runID string) []*model.Ta
 
 // canAccessRun verifies if the current user has access to a specified run utilizing the provided resource attributes.
 func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	defer requestprofile.StartPhase(ctx, requestprofile.Authorization)()
 	if !common.IsMultiUserMode() {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
 	if runId != "" {
+		finishAuthLookup := requestprofile.StartPhase(ctx, requestprofile.AuthRunLookup)
 		run, err := s.resourceManager.GetRun(runId)
+		finishAuthLookup()
 		if err != nil {
 			return util.Wrapf(err, "Failed to authorize with the run ID %v", runId)
 		}
