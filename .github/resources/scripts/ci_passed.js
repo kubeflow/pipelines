@@ -213,13 +213,16 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
     throw error;
   }
   if (!pr) return;
+  // A merged PR must keep its published status; never publish pending over it.
+  // Return before emitting the identity outputs so the always() finalize step
+  // is skipped (it bails when number/head are unset) and cannot republish a
+  // failure over the merged head.
+  if (pr.merged) return;
   // Set the identity before any further API operation so the always() step
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
-  // A merged PR must keep its published status; never publish pending over it.
-  if (pr.merged) return;
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
   if (pr.state !== 'open' || blocked(pr)) return;
   const result = await evidence(github, context, pr, root);
@@ -269,6 +272,8 @@ async function finalize({github, context, core, number, head, before, pollPassed
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
       const after = await readPR(github, context, Number(number));
+      // A merge during publication preserves the success that authorized it.
+      if (after.merged) return;
       if (snapshot(after) !== before) {
         errorReason = 'PR changed during publication; rerun CI on the current head.';
         await publish(github, context, original, 'failure', errorReason);
@@ -286,6 +291,14 @@ async function finalize({github, context, core, number, head, before, pollPassed
       }
     }
   } catch (error) {
+    // A transient read failure must not flip a merged PR to failure. Re-read
+    // once: if the PR merged in the meantime, preserve its status and stop.
+    try {
+      const merged = await readPR(github, context, Number(number));
+      if (merged.merged) return;
+    } catch (retryError) {
+      // Still unreadable; fall through and fail closed.
+    }
     await publish(github, context, original, 'failure', errorReason);
     throw error;
   }
