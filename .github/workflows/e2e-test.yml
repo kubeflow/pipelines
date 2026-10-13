@@ -499,6 +499,12 @@ jobs:
           s3_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
           s3_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
 
+      - name: Collect failed MLflow deployment evidence
+        if: ${{ failure() && steps.deploy-mlflow.outcome == 'failure' }}
+        timeout-minutes: 2
+        shell: bash
+        run: python3 .github/resources/scripts/collect_mlflow_diagnostics.py
+
       - name: Deploy MLflow directly
         id: deploy_direct_mlflow
         shell: bash

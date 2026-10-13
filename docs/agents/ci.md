@@ -117,3 +117,8 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
+- Failed Kubernetes-auth MLflow deployments collect bounded CR status, migration
+  Job/Pod status and logs, operator logs and warning events. A zero-replica
+  Deployment can mean operator-managed database migration is blocked; do not
+  force replicas or treat `Available=True` at zero replicas as successful setup.
+  Diagnostic failures retain partial evidence and do not alter the failed step.
