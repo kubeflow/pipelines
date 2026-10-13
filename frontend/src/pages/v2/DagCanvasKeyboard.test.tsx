@@ -54,6 +54,20 @@ it.each([
   },
 );
 
+it.each([
+  ['f', true],
+  ['F', true],
+  ['f', false],
+  ['F', false],
+])('fits the whole graph with %s when locked=%s', (key, locked) => {
+  render(canvas());
+  if (!locked) fireEvent.click(screen.getByLabelText('Unlock graph'));
+  viewport.fitView.mockClear();
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Node' }), { key });
+  expect(viewport.fitView).toHaveBeenCalledExactlyOnceWith();
+  expect(viewport.setViewport).not.toHaveBeenCalled();
+});
+
 it('pans from focused nodes only while locked and resumes panning when relocked', () => {
   render(canvas());
   const node = screen.getByRole('button', { name: 'Node' });
@@ -68,11 +82,14 @@ it('pans from focused nodes only while locked and resumes panning when relocked'
 });
 
 it.each(['Input', 'Textarea', 'Select', 'Editable'])(
-  'leaves arrow keys in %s controls alone',
+  'leaves navigation shortcuts in %s controls alone',
   (label) => {
     render(canvas());
-    fireEvent.keyDown(screen.getByLabelText(label), { key: 'ArrowLeft' });
+    viewport.fitView.mockClear();
+    for (const key of ['ArrowLeft', 'f', 'F'])
+      fireEvent.keyDown(screen.getByLabelText(label), { key });
     expect(viewport.setViewport).not.toHaveBeenCalled();
+    expect(viewport.fitView).not.toHaveBeenCalled();
   },
 );
 
@@ -84,10 +101,13 @@ it('ignores modified keys, unrelated keys, and keyboard input outside the graph'
     </>,
   );
   const graph = screen.getByRole('region', { name: 'Pipeline graph' });
+  viewport.fitView.mockClear();
   for (const modifier of ['altKey', 'ctrlKey', 'metaKey']) {
-    fireEvent.keyDown(graph, { key: 'ArrowRight', [modifier]: true });
+    for (const key of ['ArrowRight', 'f']) fireEvent.keyDown(graph, { key, [modifier]: true });
   }
   for (const key of ['Enter', 'Tab', 'constructor']) fireEvent.keyDown(graph, { key });
-  fireEvent.keyDown(screen.getByLabelText('Outside graph'), { key: 'ArrowRight' });
+  for (const key of ['ArrowRight', 'f'])
+    fireEvent.keyDown(screen.getByLabelText('Outside graph'), { key });
   expect(viewport.setViewport).not.toHaveBeenCalled();
+  expect(viewport.fitView).not.toHaveBeenCalled();
 });

@@ -227,12 +227,9 @@ function DagCanvasView({
     [grouped, layers, onElementClick],
   );
 
-  const panWithArrowKeys = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    const direction = panDirections.get(event.key);
+  const handleGraphKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const instance = reactFlowInstance.current;
     if (
-      !locked ||
-      !direction ||
       !instance ||
       event.altKey ||
       event.ctrlKey ||
@@ -240,6 +237,14 @@ function DagCanvasView({
       (event.target instanceof Element && event.target.closest(editableSelector))
     )
       return;
+    if (event.key === 'f' || event.key === 'F') {
+      event.preventDefault();
+      event.stopPropagation();
+      void instance.fitView();
+      return;
+    }
+    const direction = panDirections.get(event.key);
+    if (!locked || !direction) return;
     event.preventDefault();
     event.stopPropagation();
     const viewport = instance.getViewport();
@@ -277,12 +282,12 @@ function DagCanvasView({
       aria-label='Pipeline graph'
       aria-description={
         locked
-          ? 'Drag or use arrow keys to pan. Click nodes to inspect details. Unlock to move nodes.'
-          : 'Drag nodes or use arrow keys on a selected node to move it.'
+          ? 'Drag or use arrow keys to pan. Press F to fit the graph. Click nodes to inspect details. Unlock to move nodes.'
+          : 'Drag nodes or use arrow keys on a selected node to move it. Press F to fit the graph.'
       }
       tabIndex={0}
       className={locked ? lockedCanvas : undefined}
-      onKeyDownCapture={panWithArrowKeys}
+      onKeyDownCapture={handleGraphKeyDown}
       onPointerDownCapture={(event) => {
         if (
           event.target instanceof Element &&

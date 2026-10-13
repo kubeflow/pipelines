@@ -48,6 +48,10 @@ it('orders the six graph controls and dispatches each action', () => {
     'Fit view',
     'Lock graph',
   ]);
+  expect(screen.getByRole('button', { name: 'Fit view' })).toHaveAttribute(
+    'aria-keyshortcuts',
+    'F',
+  );
   for (const button of buttons) fireEvent.click(button);
   expect(options.onExpandAll).toHaveBeenCalledOnce();
   expect(options.onCollapseAll).toHaveBeenCalledOnce();
@@ -65,7 +69,7 @@ it.each([
   ['Collapse all', 'Collapse all sub-DAGs'],
   ['Zoom in', 'Zoom in'],
   ['Zoom out', 'Zoom out'],
-  ['Fit view', 'Fit graph to view'],
+  ['Fit view', 'Fit graph to view (F)'],
   ['Lock graph', 'Lock nodes to pan with dragging and arrow keys'],
 ])('shows the %s tooltip after 500ms, not sooner', (label, tooltip) => {
   render(<GraphControls {...props()} />);

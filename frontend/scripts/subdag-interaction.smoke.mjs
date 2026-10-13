@@ -39,6 +39,27 @@ test(
         Promise.all([outer, inner, leaf, artifact, outside].map((node) => node.boundingBox()));
       const close = (actual, expected, message) =>
         assert.ok(Math.abs(actual - expected) < 1.5, message + ': ' + actual + ' vs ' + expected);
+      async function expectFitShortcut(key) {
+        await page.getByRole('button', { name: 'Fit view', exact: true }).click();
+        await settle();
+        const fitted = await positions();
+        await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+        await settle();
+        assert.notDeepEqual(await positions(), fitted, 'Zoom changes the view before the shortcut');
+        await canvas.focus();
+        await page.keyboard.press(key);
+        await settle();
+        const after = await positions();
+        for (let index = 0; index < fitted.length; index++) {
+          for (const dimension of ['x', 'y', 'width', 'height']) {
+            close(
+              after[index][dimension],
+              fitted[index][dimension],
+              'F matches the Fit view button',
+            );
+          }
+        }
+      }
       async function drag(start, verify, delta = { x: 30, y: 18 }) {
         await page.mouse.move(start.x, start.y);
         await page.mouse.down();
@@ -132,6 +153,9 @@ test(
           close(after[index].y - before[index].y, dy, 'Arrow key pans all nodes vertically');
         }
       }
+      await expectFitShortcut('f');
+      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+      await settle();
       await canvas.evaluate((element) => {
         const input = document.createElement('input');
         input.setAttribute('aria-label', 'Graph text input');
@@ -145,7 +169,16 @@ test(
       await input.press('ArrowLeft');
       assert.equal(await input.evaluate((element) => element.selectionStart), 2);
       assert.deepEqual(await positions(), beforeTyping, 'Arrow keys in inputs do not pan');
+      await input.press('f');
+      assert.equal(await input.inputValue(), 'abfc');
+      assert.deepEqual(
+        await positions(),
+        beforeTyping,
+        'Typing F in inputs does not fit the graph',
+      );
       await input.evaluate((element) => element.remove());
+      await page.getByRole('button', { name: 'Fit view', exact: true }).click();
+      await settle();
 
       // Selected groups must still allow body panning, without changing selection.
       await outer.getByRole('button', { name: 'Training pipeline', exact: true }).click();
@@ -173,6 +206,7 @@ test(
           .getAttribute('aria-pressed'),
         'false',
       );
+      await expectFitShortcut('F');
       await leaf.locator('button').first().click();
       await leaf.focus();
       const beforeNodeArrow = await positions();

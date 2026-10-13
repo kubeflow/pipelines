@@ -111,7 +111,8 @@ export default function GraphControls({
       </PaletteButton>
       <PaletteButton
         label='Fit view'
-        tooltip='Fit graph to view'
+        tooltip='Fit graph to view (F)'
+        aria-keyshortcuts='F'
         className='react-flow__controls-fitview'
         onClick={() => {
           void fitView();
