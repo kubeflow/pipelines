@@ -13,14 +13,59 @@
 # limitations under the License.
 
 import os
+from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 from absl.testing import parameterized
+import google.auth.compute_engine.credentials
+import google.oauth2.credentials
+import google.oauth2.service_account
 from kfp.client import auth
 
 
 class TestAuth(parameterized.TestCase):
+
+    @patch('kfp.client.auth.google.auth.default')
+    def test_user_credentials_skip_service_account_auth(self, mock_default):
+        credentials = MagicMock(spec=google.oauth2.credentials.Credentials)
+        mock_default.return_value = (credentials, 'project')
+
+        self.assertIsNone(auth.get_service_account_credentials('audience'))
+        credentials.refresh.assert_not_called()
+
+    @parameterized.named_parameters(('compute_engine', True),
+                                    ('service_account', False))
+    @patch('kfp.client.auth.google.auth.iam.Signer')
+    @patch('kfp.client.auth.google.auth.default')
+    def test_service_account_credentials_use_modern_signer(
+            self, compute_engine, mock_default, mock_iam_signer):
+        credential_type = (
+            google.auth.compute_engine.credentials.Credentials
+            if compute_engine else google.oauth2.service_account.Credentials)
+        credentials = MagicMock(spec=credential_type)
+        credentials.service_account_email = None
+
+        def refresh(request):
+            credentials.service_account_email = 'test@example.iam.gserviceaccount.com'
+
+        credentials.refresh.side_effect = refresh
+        mock_default.return_value = (credentials, 'project')
+        result = auth.get_service_account_credentials('audience')
+
+        mock_default.assert_called_once_with(scopes=[auth.IAM_SCOPE])
+        credentials.refresh.assert_called_once()
+        self.assertEqual(result.service_account_email,
+                         'test@example.iam.gserviceaccount.com')
+        self.assertEqual(result._additional_claims,
+                         {'target_audience': 'audience'})
+        if compute_engine:
+            mock_iam_signer.assert_called_once_with(
+                ANY, credentials, 'test@example.iam.gserviceaccount.com')
+            self.assertIs(result.signer, mock_iam_signer.return_value)
+        else:
+            mock_iam_signer.assert_not_called()
+            self.assertIs(result.signer, credentials.signer)
 
     def test_is_ipython_return_false(self):
         mock = MagicMock()

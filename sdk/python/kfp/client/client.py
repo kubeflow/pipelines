@@ -329,6 +329,22 @@ class Client:
                 e)
             return config
 
+        if 'BearerToken' in config.api_key:
+            # Kubernetes 36.0.1 renamed the key used by its kubeconfig loader.
+            # Keep the generated KFP client's authorization key synchronized,
+            # including after the loader replaces its own refresh hook.
+            refresh_api_key_hook = config.refresh_api_key_hook
+
+            def refresh_kube_config(configuration):
+                if refresh_api_key_hook is not None:
+                    refresh_api_key_hook(configuration)
+                configuration.api_key['authorization'] = (
+                    configuration.api_key['BearerToken'])
+                configuration.refresh_api_key_hook = refresh_kube_config
+
+            config.api_key['authorization'] = config.api_key['BearerToken']
+            config.refresh_api_key_hook = refresh_kube_config
+
         if config.host:
             config.host = config.host + '/' + Client._KUBE_PROXY_PATH.format(
                 namespace)
