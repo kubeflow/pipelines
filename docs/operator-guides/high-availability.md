@@ -15,9 +15,9 @@ below in your own Kustomize overlay.
 
 | Component | Deployment | More than one replica | Notes |
 | --- | --- | --- | --- |
-| API server | `ml-pipeline` | Yes | Serves requests statelessly. Run garbage collection uses [leader election](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/gc/run_gc.go#L216), so only one replica collects. See [installs and upgrades](#install-and-upgrade-the-api-server-with-one-replica). |
+| API server | `ml-pipeline` | Yes | Serves requests statelessly. Each replica reconciles ScheduledWorkflow resources once at startup and [skips conflicting updates](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/resource/resource_manager.go#L1031). Run garbage collection, when enabled, uses [leader election](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/gc/run_gc.go#L216), so only one replica collects. See [installs and upgrades](#install-and-upgrade-the-api-server-with-one-replica). |
 | UI | `ml-pipeline-ui` | Yes | Serves requests statelessly. All replicas share the [TensorBoard proxy signing secret](server-config.md#tensorboard-proxy-signing-secret). |
-| Profile controller (multi-user) | `kubeflow-pipelines-profile-controller` | Yes | Stateless metacontroller webhook. Metacontroller never syncs the same namespace concurrently. Use a release that includes [kubeflow/pipelines#14809](https://github.com/kubeflow/pipelines/pull/14809) (2.18.0 and later), which adds [health probes and a threaded server](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L619-L649). |
+| Profile controller (multi-user) | `kubeflow-pipelines-profile-controller` | Yes | Stateless metacontroller webhook. Metacontroller never syncs the same namespace concurrently. Use a release that includes [kubeflow/pipelines#14809](https://github.com/kubeflow/pipelines/pull/14809) (2.18.0 and later), which adds [a health endpoint and a threaded server](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L619-L649). |
 | Scheduled workflow controller | `ml-pipeline-scheduledworkflow` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 | Persistence agent | `ml-pipeline-persistenceagent` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 | Viewer controller | `ml-pipeline-viewer-crd` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
@@ -31,9 +31,10 @@ that needs changes:
 
 - For a fresh install or an upgrade that changes the schema, run the API server with
   one replica until it is ready, then scale it up.
-- If you keep several replicas during an upgrade, keep a rollout strategy that starts
-  one new Pod at a time. The default `RollingUpdate` strategy does this for small
-  replica counts.
+- If you keep several replicas during an upgrade, use a rollout that starts one new
+  Pod at a time, such as a `RollingUpdate` strategy with `maxSurge: 1` and
+  `maxUnavailable: 0`. The default strategy (`maxSurge` and `maxUnavailable` of 25%)
+  only does this for up to three replicas.
 
 Upgrades that change scheduling state have additional rollout steps; see
 [scheduled service accounts](scheduled-service-accounts.md).
@@ -143,9 +144,12 @@ scheduled runs don't start and run status isn't updated until it is back.
 
 ## Dependencies
 
-Kubeflow Pipelines availability also depends on components outside these manifests:
+Kubeflow Pipelines availability also depends on these components:
 
 - The database (MySQL or PostgreSQL) and the object store each need their own
   high-availability setup, such as a managed service.
+- In multi-user mode, metacontroller calls the profile controller. The bundled
+  metacontroller runs one replica; to run more, enable its `--leader-election`
+  [flag](https://metacontroller.github.io/metacontroller/guide/configuration.html).
 - Argo Workflows runs pipeline workflows. See its
   [high-availability guide](https://argo-workflows.readthedocs.io/en/latest/high-availability/).
