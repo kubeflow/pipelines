@@ -238,3 +238,7 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
 
+- The deploy action provisions GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
