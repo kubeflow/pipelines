@@ -841,9 +841,14 @@ func (c *replaceOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpe
 		// retry-generation but carries the placeholder-claim marker.
 		if meta != nil {
 			runID := labels[util.LabelKeyWorkflowRunId]
-			if generationRaw, ok := meta.Annotations[util.AnnotationKeyRetryGeneration]; ok && runID != "" {
+			nonce := ""
+			if meta.Annotations != nil {
+				nonce = meta.Annotations[util.AnnotationKeyRetryClaimNonce]
+			}
+			if generationRaw, ok := meta.Annotations[util.AnnotationKeyRetryGeneration]; ok && runID != "" && nonce != "" {
 				if generation, err := strconv.ParseInt(generationRaw, 10, 64); err == nil && generation > 0 {
-					annotations[util.AnnotationKeyRetryPlaceholderClaim] = util.RetryPlaceholderClaimValue(runID, generation)
+					annotations[util.AnnotationKeyRetryPlaceholderClaim] = util.RetryPlaceholderClaimValue(runID, generation, nonce)
+					annotations[util.AnnotationKeyRetryClaimNonce] = nonce
 				}
 			}
 		}
@@ -3510,6 +3515,123 @@ func TestRetryRun_RejectsForeignSuspendedSameNameWorkflowWithoutClaimMarker(t *t
 	assert.Equal(t, int64(1), unchangedRun.RetryGeneration)
 }
 
+func TestRetryRun_RejectsForeignWorkflowWithForgedRetryGenerationOnly(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	forged := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				util.AnnotationKeyRetryGeneration: "1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	created, err := workflowClient.Create(ctx, forged, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	err = manager.RetryRun(ctx, runDetail.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to this run")
+
+	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, created.ExecutionObjectMeta().UID, live.ExecutionObjectMeta().UID)
+	unchanged, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, unchanged))
+}
+
+func TestRetryRun_RejectsForeignPlaceholderWithForgedDeterministicClaim(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	suspend := true
+	// Legacy forgeable claim shape without nonce, or wrong nonce.
+	forged := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				util.AnnotationKeyRetryPlaceholderClaim: fmt.Sprintf("%s/%d", run.UUID, 1),
+				util.AnnotationKeyRetryClaimNonce:       "forged-nonce",
+			},
+		},
+		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowUnknown},
+	})
+	_, err = workflowClient.Create(ctx, forged, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	err = manager.RetryRun(ctx, runDetail.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to this run")
+}
+
+func TestRetryRun_AdoptsTerminalOffloadedWorkflowHydratesBeforePersist(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
+
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	_ = workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{})
+
+	activated := util.NewWorkflow(testWorkflow.DeepCopy())
+	activated.SetServiceAccount(run.ServiceAccount)
+	activated.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
+	activated.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+	activated.SetAnnotations(util.AnnotationKeyRetryClaimNonce, claimNonce)
+	activated.Status.Phase = v1alpha1.WorkflowFailed
+	activated.Status.Nodes = nil
+	activated.Status.OffloadNodeStatusVersion = "offload-hash"
+	activated.Status.FinishedAt = v1.NewTime(time.Unix(500, 0))
+	created, err := workflowClient.Create(ctx, activated, v1.CreateOptions{})
+	require.NoError(t, err)
+	terminalUID := created.ExecutionObjectMeta().UID
+	repo.Put(string(terminalUID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	})
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	adopted, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, adopted.State)
+	assert.Contains(t, string(adopted.WorkflowRuntimeManifest), "node1")
+	assert.NotContains(t, string(adopted.WorkflowRuntimeManifest), "offload-hash")
+
+	require.NoError(t, repo.Delete(ctx, string(terminalUID), "offload-hash"))
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID),
+		"next retry must use the hydrated adopted snapshot after offload GC")
+}
+
 func TestRetryRun_AdoptsOwnedPlaceholderWithClaimMarker(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -3524,8 +3646,14 @@ func TestRetryRun_AdoptsOwnedPlaceholderWithClaimMarker(t *testing.T) {
 	workflowClient := store.ExecClient().Execution(run.Namespace)
 
 	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
-	// Pre-create the status-free placeholder that a prior create-only attempt
-	// would have left behind. ClaimRunForRetry will assign generation 1.
+	// Claim first so the planted placeholder can carry the unpredictable nonce.
+	// Expire the claim so RetryRun resumes activation instead of taking over.
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
 	// Ownership alone must not report success: RetryRun resumes activation.
 	suspend := true
 	ownedPlaceholder := util.NewWorkflow(&v1alpha1.Workflow{
@@ -3534,7 +3662,8 @@ func TestRetryRun_AdoptsOwnedPlaceholderWithClaimMarker(t *testing.T) {
 			Namespace: run.Namespace,
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Annotations: map[string]string{
-				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(run.UUID, 1),
+				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(run.UUID, 1, claimNonce),
+				util.AnnotationKeyRetryClaimNonce:       claimNonce,
 			},
 		},
 		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
@@ -3771,9 +3900,10 @@ func TestRetryRun_ExpiredClaimOwnedPlaceholderResumesActivation(t *testing.T) {
 	defer store.Close()
 	ctx := context.Background()
 
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
 	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
 	require.NoError(t, err)
 
@@ -3789,7 +3919,8 @@ func TestRetryRun_ExpiredClaimOwnedPlaceholderResumesActivation(t *testing.T) {
 			Namespace: run.Namespace,
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: runDetail.UUID},
 			Annotations: map[string]string{
-				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(runDetail.UUID, 1),
+				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(runDetail.UUID, 1, claimNonce),
+				util.AnnotationKeyRetryClaimNonce:       claimNonce,
 			},
 		},
 		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
@@ -3840,9 +3971,10 @@ func TestRetryRun_ExpiredClaimOwnedPlaceholder_DeniedAccountDoesNotActivate(t *t
 	_, err = manager.ReportWorkflowResource(ctx, failedWorkflow)
 	require.NoError(t, err)
 
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
 	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
 	require.NoError(t, err)
 
@@ -3856,7 +3988,8 @@ func TestRetryRun_ExpiredClaimOwnedPlaceholder_DeniedAccountDoesNotActivate(t *t
 			Namespace: run.Namespace,
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Annotations: map[string]string{
-				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(run.UUID, 1),
+				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(run.UUID, 1, claimNonce),
+				util.AnnotationKeyRetryClaimNonce:       claimNonce,
 			},
 		},
 		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
@@ -4003,14 +4136,16 @@ func TestRetryRun_OffloadedNodeStatus_RecreateUsesNewUID(t *testing.T) {
 	_, hasRetryGeneration := recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryGeneration]
 	assert.False(t, hasRetryGeneration,
 		"placeholder must omit retry-generation so create-only failures are not treated as applied")
-	assert.Equal(t, util.RetryPlaceholderClaimValue(runDetail.UUID, 1),
-		recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryPlaceholderClaim],
-		"placeholder must carry a claim marker authenticating this retry create")
-	assert.True(t, recordingClient.updateSawCreationTimestamp,
-		"the activating update must carry the server-assigned creation timestamp")
-
 	retried, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
+	require.NotEmpty(t, retried.RetryClaimNonce)
+	assert.Equal(t, util.RetryPlaceholderClaimValue(runDetail.UUID, 1, retried.RetryClaimNonce),
+		recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryPlaceholderClaim],
+		"placeholder must carry a claim marker authenticating this retry create")
+	assert.Equal(t, retried.RetryClaimNonce,
+		recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryClaimNonce])
+	assert.True(t, recordingClient.updateSawCreationTimestamp,
+		"the activating update must carry the server-assigned creation timestamp")
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(retried.WorkflowRuntimeManifest))
 	require.NoError(t, err)
 	workflow := execSpec.(*util.Workflow)
@@ -4266,10 +4401,10 @@ type archiveOnClaimRunStore struct {
 	runID string
 }
 
-func (s *archiveOnClaimRunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+func (s *archiveOnClaimRunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, string, error) {
 	if runID == s.runID {
 		if err := s.RunStoreInterface.ArchiveRun(runID); err != nil {
-			return "", "", 0, 0, err
+			return "", "", 0, 0, "", err
 		}
 	}
 	return s.RunStoreInterface.ClaimRunForRetry(runID, takeoverExpiredClaim)
@@ -6100,9 +6235,10 @@ func TestReportWorkflowResource_AdoptsRecreatedWorkflowForActiveRetryClaim(t *te
 	run, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	originalUID := storedWorkflowUID(t, run)
-	_, _, _, claimGeneration, err := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, claimGeneration, claimNonce, err := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
 
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	require.NoError(t, err)
@@ -6110,6 +6246,7 @@ func TestReportWorkflowResource_AdoptsRecreatedWorkflowForActiveRetryClaim(t *te
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
 	require.NoError(t, err)
 	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, claimNonce)
 	retryExecSpec.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
 
 	workflowClient := store.ExecClient().Execution(run.Namespace)
@@ -7239,7 +7376,7 @@ func TestReportWorkflowResource_PersistedFinalStateRestoresAbandonedRetryBeforeD
 	syncWorkflowReportWithFakeCluster(t, store, terminal)
 	_, err := manager.ReportWorkflowResource(ctx, terminal)
 	require.NoError(t, err)
-	_, _, _, generation, err := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, generation, _, err := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), generation)
 	_, err = store.DB().Exec(
@@ -8624,7 +8761,7 @@ func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *test
 	// Drive the run terminal, then claim it for retry.
 	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
 	require.Nil(t, err)
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, claimGeneration, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
 
@@ -8657,7 +8794,7 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 	syncWorkflowReportWithFakeCluster(t, store, terminal)
 	_, err := manager.ReportWorkflowResource(context.Background(), terminal)
 	require.Nil(t, err)
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, claimGeneration, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
 
 	retried := util.NewWorkflow(&v1alpha1.Workflow{
@@ -8700,7 +8837,7 @@ func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
 	syncWorkflowReportWithFakeCluster(t, store, staleWorkflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
 	require.Nil(t, err)
-	_, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
 
 	// Simulate an orphaned claim: the claim timestamp is gone (rollback) or
@@ -8734,17 +8871,23 @@ func TestRetryRun_StampsRetryGenerationAnnotation(t *testing.T) {
 }
 
 // Regression: when the workflow mutation errors but was actually applied (the
-// live workflow carries this claim's retry-generation annotation), RetryRun
-// must adopt the live workflow — even if it already reached a terminal state —
-// instead of rolling back the claim, which would restore a GC-eligible
+// live workflow carries this claim's retry-generation annotation and nonce),
+// RetryRun must adopt the live workflow — even if it already reached a terminal
+// state — instead of rolling back the claim, which would restore a GC-eligible
 // FinishedAtInSec under a live retried workflow and permit a duplicate retry.
 func TestRetryRun_AdoptsAppliedWorkflowInsteadOfRollingBack(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	// Seed the retried workflow as already terminal and carrying the
-	// generation the upcoming claim will produce (1), simulating a timed-out
-	// update that was applied and a retry that finished quickly.
+	// Claim first so the seeded "already applied" workflow can carry the
+	// unpredictable nonce, then expire the claim so RetryRun adopts it.
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
+	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+
 	run, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
@@ -8753,6 +8896,7 @@ func TestRetryRun_AdoptsAppliedWorkflowInsteadOfRollingBack(t *testing.T) {
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
 	require.NoError(t, err)
 	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, claimNonce)
 	appliedWorkflow := retryExecSpec.(*util.Workflow)
 	appliedWorkflow.Status.Phase = v1alpha1.WorkflowSucceeded
 	appliedWorkflow.Status.FinishedAt = v1.Time{Time: time.Unix(500, 0)}
@@ -8760,8 +8904,7 @@ func TestRetryRun_AdoptsAppliedWorkflowInsteadOfRollingBack(t *testing.T) {
 	workflowClient := client.NewWorkflowClientFake()
 	_, err = workflowClient.Create(context.Background(), appliedWorkflow, v1.CreateOptions{})
 	require.NoError(t, err)
-	conflictClient := &persistentConflictWorkflowClient{FakeWorkflowClient: workflowClient}
-	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictClient}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
 
 	err = manager.RetryRun(context.Background(), runDetail.UUID)
 	require.NoError(t, err, "an applied retry must be adopted, not treated as failed")
@@ -8786,9 +8929,10 @@ func TestRetryRun_ExpiredClaimWithLiveWorkflowIsAdoptedNotTakenOver(t *testing.T
 	// the workflow, but before persisting the run row: claim via the store
 	// (leaves the terminal manifest untouched), seed the live generation-1
 	// workflow, and age out the claim timestamp.
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
 	_, err := store.DB().Exec(
 		`UPDATE run_details SET RetryClaimedAtInSec = 0, Name = ? WHERE UUID = ?`,
 		"stale-workflow-name", runDetail.UUID)
@@ -8802,6 +8946,7 @@ func TestRetryRun_ExpiredClaimWithLiveWorkflowIsAdoptedNotTakenOver(t *testing.T
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
 	require.NoError(t, err)
 	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, claimNonce)
 	workflowClient := client.NewWorkflowClientFake()
 	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
 	require.NoError(t, err)
@@ -8835,7 +8980,7 @@ func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
 	defer store.Close()
 
 	// Claim generation 1 but never create the workflow (crash before create).
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	_, _, _, claimGeneration, _, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
 	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
@@ -8892,7 +9037,7 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 	syncWorkflowReportWithFakeCluster(t, store, staleWorkflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
 	require.Nil(t, err)
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, claimGeneration, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
 
@@ -8945,9 +9090,10 @@ func TestRetryRun_AdoptionFiresPluginRetryHook(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	_, _, _, claimGeneration, claimNonce, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
+	require.NotEmpty(t, claimNonce)
 	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0, PluginsOutput = ? WHERE UUID = ?`,
 		`{"mlflow":{"runId":"abc"}}`, runDetail.UUID)
 	require.NoError(t, err)
@@ -8960,6 +9106,7 @@ func TestRetryRun_AdoptionFiresPluginRetryHook(t *testing.T) {
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
 	require.NoError(t, err)
 	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, claimNonce)
 	workflowClient := client.NewWorkflowClientFake()
 	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
 	require.NoError(t, err)
