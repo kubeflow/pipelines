@@ -117,10 +117,8 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
-- Multi-user CI keeps the pinned Kubeflow/Istio manifests and image versions,
-  but migrates rendered `registry.istio.io/release` and `gcr.io/istio-release`
-  references to `docker.io/istio` before applying them. This includes CNI,
-  gateway/control-plane images and embedded injector hub values. Empty renders,
-  unknown retired endpoints and pipeline failures abort deployment. Istio has
-  announced outage tests and December 2026 retirement of the old registries:
-  https://istio.io/latest/blog/2026/retirement-of-gcp/.
+- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
+  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+  gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
+  When advancing this pin, review and render all four consumed paths, including
+  the profile controller; the pin selects more than Istio images.
