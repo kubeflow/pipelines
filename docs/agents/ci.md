@@ -262,3 +262,7 @@ The frontend qualification reliability reporter supports `--collect --repository
   Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
   font configuration with network connections rejected before building the full
   references. Keep the no-network regression when changing themes or fonts.
+- The deploy action provisions GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
