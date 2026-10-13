@@ -106,6 +106,7 @@ func New(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 		grpc.WithTransportCredentials(creds),
 		grpc.WithPerRPCCredentials(newTokenPerRPCCredentials(tlsCfg != nil, cfg.TokenSource)),
 	}
+	dialOptions = append(dialOptions, runtimeTimingDialOptions()...)
 	connectParams, err := cfg.connectParams()
 	if err != nil {
 		return nil, fmt.Errorf("invalid gRPC connect params: %w", err)

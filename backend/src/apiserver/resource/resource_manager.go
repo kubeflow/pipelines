@@ -29,6 +29,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/requestprofile"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -3864,6 +3866,7 @@ func (r *ResourceManager) isAuthorized(ctx context.Context, resourceAttributes *
 
 	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
 	glog.Info("Authorizing request")
+	finishReview := requestprofile.StartPhase(ctx, requestprofile.SubjectAccessReview)
 	result, err := r.subjectAccessReviewClient.Create(
 		ctx,
 		&authorizationv1.SubjectAccessReview{
@@ -3874,6 +3877,7 @@ func (r *ResourceManager) isAuthorized(ctx context.Context, resourceAttributes *
 		},
 		v1.CreateOptions{},
 	)
+	finishReview()
 	if err != nil {
 		if netError, ok := err.(net.Error); ok && netError.Timeout() {
 			reportErr := util.NewUnavailableServerError(

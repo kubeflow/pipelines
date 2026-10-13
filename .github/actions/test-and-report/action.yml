@@ -285,6 +285,19 @@ runs:
         PYPROFILE
       continue-on-error: true
 
+    - name: Enable runtime RPC timing for profiling
+      if: ${{ inputs.profile_e2e == 'true' && steps.e2e-profile.outputs.path != '' }}
+      shell: bash
+      env:
+        PROFILE_RUNTIME_TIMINGS: ${{ inputs.profile_e2e }}
+        KFP_E2E_PROFILE_DIR: ${{ steps.e2e-profile.outputs.path }}
+        PROFILE_NAMESPACE: ${{ inputs.default_namespace }}
+      run: |
+        python3 -m venv "$RUNNER_TEMP/kfp-runtime-profile-tools"
+        "$RUNNER_TEMP/kfp-runtime-profile-tools/bin/python" -m pip install -r .github/scripts/requirements.txt
+        "$RUNNER_TEMP/kfp-runtime-profile-tools/bin/python" .github/resources/scripts/configure_runtime_timings.py
+      continue-on-error: true
+
     - name: Run Tests
       id: run-tests
       shell: bash
@@ -438,6 +451,16 @@ runs:
         "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
 
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+      continue-on-error: true
+
+    - name: Collect structured runtime server timings
+      if: ${{ always() && inputs.profile_e2e == 'true' && steps.e2e-profile.outputs.path != '' }}
+      shell: bash
+      env:
+        PROFILE_RUNTIME_TIMINGS: ${{ inputs.profile_e2e }}
+        KFP_E2E_PROFILE_DIR: ${{ steps.e2e-profile.outputs.path }}
+        PROFILE_NAMESPACE: ${{ inputs.default_namespace }}
+      run: python3 .github/resources/scripts/collect_runtime_server_timings.py
       continue-on-error: true
 
     - name: Upload E2E lifecycle profiles

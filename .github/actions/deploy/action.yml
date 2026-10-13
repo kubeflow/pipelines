@@ -2,6 +2,10 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  profile_runtime_timings:
+    description: "Enable opt-in runtime timing on the initial API-server deployment."
+    default: 'false'
+    required: false
   cluster_name:
     description: "Kind cluster name"
     default: 'kfp'
@@ -137,6 +141,8 @@ runs:
     - name: Deploy KFP
       id: deploy-kfp
       if: ${{ steps.configure.outcome == 'success' }}
+      env:
+        PROFILE_RUNTIME_TIMINGS: ${{ inputs.profile_runtime_timings }}
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
       with:
         max_attempts: 2
