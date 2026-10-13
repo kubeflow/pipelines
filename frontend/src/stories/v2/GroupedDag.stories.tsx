@@ -55,7 +55,7 @@ function GroupedDag({
       <header style={{ padding: '16px 24px', borderBottom: '1px solid #d8e0ea' }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{title}</h2>
         <p style={{ margin: 0, color: '#52677f', fontSize: 13 }}>
-          Up to 20 sub-DAGs expand by default · Expand all shows every group · Collapse all hides
+          Up to 10 sub-DAGs expand by default · Expand all shows every group · Collapse all hides
           every group
         </p>
       </header>

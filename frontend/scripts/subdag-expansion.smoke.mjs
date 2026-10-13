@@ -63,7 +63,7 @@ async function captureComparison(browser, prefix, height, partialDescription, fu
 }
 
 test(
-  '25 sub-DAGs: default expands 20, Expand all expands 25, Collapse all collapses 25',
+  '25 sub-DAGs: default expands 10, Expand all expands 25, Collapse all collapses 25',
   {
     timeout: 90000,
   },
@@ -91,13 +91,13 @@ test(
 
       const capture = (name) => captureGraph(page, name);
 
-      await assertCounts(20, 5);
+      await assertCounts(10, 15);
       for (let index = 0; index < 25; index++) {
         const button = page.getByRole('button', {
-          name: `${index < 20 ? 'Collapse' : 'Expand'} Group ${index}`,
+          name: `${index < 10 ? 'Collapse' : 'Expand'} Group ${index}`,
           exact: true,
         });
-        assert.equal(await button.getAttribute('aria-expanded'), String(index < 20));
+        assert.equal(await button.getAttribute('aria-expanded'), String(index < 10));
       }
       const labels = await page
         .getByRole('group', { name: 'Graph controls' })
@@ -124,14 +124,14 @@ test(
       await page.getByRole('button', { name: 'Expand Group 24', exact: true }).click();
       await assertCounts(1, 24);
       await page.reload();
-      await assertCounts(20, 5);
+      await assertCounts(10, 15);
       assert.deepEqual(errors, [], 'graph controls must not cause uncaught browser errors');
 
       await captureComparison(
         browser,
         'twenty-five-subdags',
         1400,
-        '20 expanded · 5 collapsed (Groups 20–24, bottom row)',
+        '10 expanded · 15 collapsed (Groups 10–24, bottom three rows)',
         '25 expanded · 0 collapsed',
       );
       await writeFile(
@@ -139,7 +139,7 @@ test(
         JSON.stringify(
           {
             story: 'v2-groupeddag--twenty-five-sub-dags',
-            default: { expanded: 20, collapsed: 5 },
+            default: { expanded: 10, collapsed: 15 },
             expandAll: { expanded: 25, collapsed: 0 },
             collapseAll: { expanded: 0, collapsed: 25 },
             individualExpansion: { expanded: 1, collapsed: 24 },
@@ -171,27 +171,27 @@ test(
       await page.goto(
         baseUrl + '/iframe.html?id=v2-groupeddag--twenty-five-nested-sub-dags&viewMode=story',
       );
-      await page.getByRole('button', { name: 'Expand Level 21', exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Expand Level 11', exact: true }).waitFor();
       const counts = async () => ({
         components: await page.getByText(/^Component \d{3}$/, { exact: true }).count(),
         expanded: await page.locator(expandedGroups).count(),
         collapsed: await page.locator(collapsedGroups).count(),
       });
-      const partial = { components: 40, expanded: 20, collapsed: 1 };
+      const partial = { components: 20, expanded: 10, collapsed: 1 };
       const full = { components: 50, expanded: 25, collapsed: 0 };
       assert.deepEqual(await counts(), partial);
-      assert.equal(await page.locator('.react-flow__node').count(), 61);
+      assert.equal(await page.locator('.react-flow__node').count(), 31);
       assert.equal(await page.getByText('Component 050', { exact: true }).count(), 0);
       await captureGraph(page, 'twenty-five-levels-default.png');
       const boundary = await page
-        .getByRole('button', { name: 'Level 21', exact: true })
+        .getByRole('button', { name: 'Level 11', exact: true })
         .boundingBox();
       await page.mouse.move(boundary.x + boundary.width / 2, boundary.y + boundary.height / 2);
       await page.mouse.wheel(0, -800);
       await page.waitForFunction(
         () =>
           document
-            .querySelector('button[aria-label="Expand Level 21"]')
+            .querySelector('button[aria-label="Expand Level 11"]')
             .closest('.react-flow__node')
             .getBoundingClientRect().width >= 260,
       );
@@ -204,7 +204,7 @@ test(
         browser,
         'twenty-five-levels',
         1600,
-        'Levels 1–20 expanded · Level 21 collapsed · 40 components visible',
+        'Levels 1–10 expanded · Level 11 collapsed · 20 components visible',
         'All 25 levels expanded · 50 components visible',
       );
 
@@ -242,11 +242,11 @@ test(
         browser,
         'twenty-five-levels-detail',
         1600,
-        'Level 21 stays collapsed; its components and deeper levels are hidden',
-        'Levels 21–25 and their two components per level are revealed',
+        'Level 11 stays collapsed; its components and deeper levels are hidden',
+        'All levels, including 21–25, and their component tasks are revealed',
       );
       await page.reload();
-      await page.getByRole('button', { name: 'Expand Level 21', exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Expand Level 11', exact: true }).waitFor();
       assert.deepEqual(await counts(), partial);
       assert.deepEqual(errors, []);
       await writeFile(
@@ -259,7 +259,7 @@ test(
             totalGraphNodes: 75,
             default: partial,
             expandAll: full,
-            defaultHiddenLevels: [22, 23, 24, 25],
+            defaultHiddenLevels: Array.from({ length: 14 }, (_, index) => index + 12),
             collapseLevel10: { components: 18, expanded: 9, collapsed: 1 },
             collapseAll: { components: 0, expanded: 0, collapsed: 1 },
             reopenLevel1: { components: 2, expanded: 1, collapsed: 1 },

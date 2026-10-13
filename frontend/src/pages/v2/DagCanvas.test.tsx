@@ -20,7 +20,70 @@ function props(): DagCanvasProps {
   };
 }
 
-beforeEach(() => mockResizeObserver());
+beforeEach(() => {
+  mockResizeObserver();
+  localStorage.clear();
+});
+
+it.each(['Expand all', 'Collapse all'])(
+  'restores %s and individual choices after remount',
+  (action) => {
+    const canvas = () => (
+      <CommonTestWrapper>
+        <DagCanvas {...props()} graphId='run:persisted' />
+      </CommonTestWrapper>
+    );
+    const first = render(canvas());
+    fireEvent.click(screen.getByRole('button', { name: action, exact: true }));
+    if (action === 'Collapse all')
+      fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
+    else fireEvent.click(screen.getByRole('button', { name: 'Collapse Training and evaluation' }));
+    first.unmount();
+    render(canvas());
+    expect(screen.getByText('Prepare data')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand Training and evaluation' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+  },
+);
+
+it('isolates saved graph identities without overwriting the previous graph', () => {
+  const canvas = (graphId: string) => (
+    <CommonTestWrapper>
+      <DagCanvas {...props()} graphId={graphId} />
+    </CommonTestWrapper>
+  );
+  const { rerender } = render(canvas('pipeline-version:1'));
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
+  rerender(canvas('pipeline-version:2'));
+  expect(screen.getByText('Train model')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse Training and evaluation' }));
+  rerender(canvas('pipeline-version:1'));
+  expect(screen.getByRole('button', { name: 'Expand Training pipeline' })).toBeInTheDocument();
+  rerender(canvas('pipeline-version:2'));
+  expect(screen.getByText('Prepare data')).toBeInTheDocument();
+  expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+});
+
+it('keeps interaction working if saving preferences fails', () => {
+  const save = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+    throw new Error('Blocked');
+  });
+  try {
+    render(
+      <CommonTestWrapper>
+        <DagCanvas {...props()} graphId='run:blocked' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all', exact: true }));
+    expect(screen.queryByText('Train model')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand all', exact: true }));
+    expect(screen.getByText('Train model')).toBeInTheDocument();
+  } finally {
+    save.mockRestore();
+  }
+});
 
 it('shows nested tasks immediately and collapses in place without navigating or selecting', () => {
   const options = props();
@@ -83,7 +146,7 @@ it('preserves nested collapse choices across refreshes and parent toggles', () =
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
 });
 
-it('defaults to 20 upstream groups and preserves manual and bulk overrides through refresh', () => {
+it('defaults to 10 upstream groups and preserves manual and bulk overrides through refresh', () => {
   let spec = manySubDagsSpec();
   const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
   const options = { ...props(), elements: resolve(['root']), getSubDagElements: resolve };
@@ -93,14 +156,14 @@ it('defaults to 20 upstream groups and preserves manual and bulk overrides throu
     </CommonTestWrapper>
   );
   const { rerender } = render(canvas());
-  expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(20);
-  expect(screen.getByRole('button', { name: 'Expand Group 20' })).toHaveAccessibleDescription(
-    'Only the first 20 sub-DAGs are expanded by default. Expand this sub-DAG or use Expand all to show more.',
+  expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(10);
+  expect(screen.getByRole('button', { name: 'Expand Group 10' })).toHaveAccessibleDescription(
+    'Only the first 10 sub-DAGs are expanded by default. Expand this sub-DAG or use Expand all to show more.',
   );
   fireEvent.click(screen.getByRole('button', { name: 'Expand Group 24' }));
   rerender(canvas());
   expect(screen.getByRole('button', { name: 'Collapse Group 24' })).toBeInTheDocument();
-  expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(21);
+  expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(11);
 
   fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
   expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(25);
@@ -120,7 +183,7 @@ it('defaults to 20 upstream groups and preserves manual and bulk overrides throu
   expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(1);
 });
 
-it('shows 20 expanded and five collapsed groups in the 25-sub-DAG visual example', () => {
+it('shows 10 expanded and fifteen collapsed groups in the 25-sub-DAG visual example', () => {
   const spec = manySubDagsSpec(25, 5);
   const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
   render(
@@ -131,13 +194,13 @@ it('shows 20 expanded and five collapsed groups in the 25-sub-DAG visual example
   for (let index = 0; index < 25; index++) {
     expect(
       screen.getByRole('button', {
-        name: `${index < 20 ? 'Collapse' : 'Expand'} Group ${index}`,
+        name: `${index < 10 ? 'Collapse' : 'Expand'} Group ${index}`,
       }),
-    ).toHaveAttribute('aria-expanded', String(index < 20));
+    ).toHaveAttribute('aria-expanded', String(index < 10));
   }
-  expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(20);
-  expect(screen.getAllByRole('button', { name: /^Expand Group / })).toHaveLength(5);
-  expect(screen.getAllByText('Step', { exact: true })).toHaveLength(20);
+  expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(10);
+  expect(screen.getAllByRole('button', { name: /^Expand Group / })).toHaveLength(15);
+  expect(screen.getAllByText('Step', { exact: true })).toHaveLength(10);
 
   fireEvent.click(screen.getByRole('button', { name: 'Expand all', exact: true }));
   expect(screen.getAllByRole('button', { name: /^Collapse Group / })).toHaveLength(25);
@@ -159,9 +222,9 @@ it('reveals all 25 nested levels on demand and preserves individual collapse cho
     </CommonTestWrapper>
   );
   const { rerender } = render(canvas());
-  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(40);
-  expect(screen.getAllByRole('button', { name: /^Collapse Level / })).toHaveLength(20);
-  expect(screen.getByRole('button', { name: 'Expand Level 21', exact: true })).toBeInTheDocument();
+  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(20);
+  expect(screen.getAllByRole('button', { name: /^Collapse Level / })).toHaveLength(10);
+  expect(screen.getByRole('button', { name: 'Expand Level 11', exact: true })).toBeInTheDocument();
   expect(screen.queryByText('Component 050', { exact: true })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Expand all', exact: true }));
   expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(50);

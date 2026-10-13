@@ -7,7 +7,7 @@ import { buildGraphLayout, getTaskKeyFromNodeKey, isNode, NodeTypeNames } from '
 
 import type { LayerElementsResolver, LayerFlowElement, PipelineFlowElement } from './FlowTypes';
 import { getFlowNodeSize, NODE_CARD_HEIGHT, SUB_DAG_STATUS_CARD_WIDTH } from './FlowNodeSize';
-export const DEFAULT_EXPANDED_SUB_DAG_LIMIT = 20;
+export const DEFAULT_EXPANDED_SUB_DAG_LIMIT = 10;
 export const GROUP_NODE_TYPE = 'subDagGroup';
 export const GROUP_HEADER_HEIGHT = NODE_CARD_HEIGHT;
 const GROUP_PADDING = 24;

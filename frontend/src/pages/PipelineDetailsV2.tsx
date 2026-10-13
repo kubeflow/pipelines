@@ -76,6 +76,10 @@ function PipelineDetailsV2({
           }}
         >
           <DagCanvas
+            graphId={
+              selectedVersion?.pipeline_version_id &&
+              `pipeline-version:${selectedVersion.pipeline_version_id}`
+            }
             layers={layers}
             elements={pipelineFlowElements}
             getSubDagElements={pipelineSpec ? getSubDagElements : undefined}

@@ -177,25 +177,22 @@ describe('buildGroupedFlow', () => {
     }
   });
 
-  it.each([19, 20, 21, 25])(
-    'expands at most 20 sub-DAGs in upstream order (%s groups)',
-    (count) => {
-      const spec = manySubDagsSpec(count);
-      const resolve = vi.fn((layers: string[]) => convertSubDagToFlowElements(spec, layers));
-      const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
-      const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
-      expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(Math.min(count, 20));
-      for (let index = 0; index < count; index++) {
-        expect(groups.find((node) => node.id === `task.group-${index}`)?.data.collapsed).toBe(
-          index >= 20,
-        );
-      }
-      expect(resolve).toHaveBeenCalledTimes(1 + Math.min(count, 20));
-    },
-  );
+  it.each([9, 10, 11, 25])('expands at most 10 sub-DAGs in upstream order (%s groups)', (count) => {
+    const spec = manySubDagsSpec(count);
+    const resolve = vi.fn((layers: string[]) => convertSubDagToFlowElements(spec, layers));
+    const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
+    const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
+    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(Math.min(count, 10));
+    for (let index = 0; index < count; index++) {
+      expect(groups.find((node) => node.id === `task.group-${index}`)?.data.collapsed).toBe(
+        index >= 10,
+      );
+    }
+    expect(resolve).toHaveBeenCalledTimes(1 + Math.min(count, 10));
+  });
 
   it('prioritizes shallow groups before nested groups and preserves upstream parent order', () => {
-    const spec = manySubDagsSpec(12);
+    const spec = manySubDagsSpec(6);
     spec.components.inner = spec.components.body;
     spec.components.body = {
       dag: {
@@ -211,17 +208,17 @@ describe('buildGroupedFlow', () => {
     const expanded = graph.nodes.filter(
       (node) => node.type === GROUP_NODE_TYPE && !node.data.collapsed,
     );
-    expect(expanded).toHaveLength(20);
-    expect(expanded.filter((node) => !node.parentId)).toHaveLength(12);
-    for (let index = 0; index < 12; index++) {
+    expect(expanded).toHaveLength(10);
+    expect(expanded.filter((node) => !node.parentId)).toHaveLength(6);
+    for (let index = 0; index < 6; index++) {
       const nested = graph.nodes.find(
         (node) => node.id === layerNodeId(['root', `group-${index}`], 'task.nested'),
       )!;
-      expect(nested.data.collapsed).toBe(index >= 8);
+      expect(nested.data.collapsed).toBe(index >= 4);
     }
   });
 
-  it('stops a deeply nested chain at the twenty-first group without resolving its children', () => {
+  it('stops a deeply nested chain at the eleventh group without resolving its children', () => {
     const spec = manySubDagsSpec(1);
     for (let depth = 0; depth < 25; depth++) {
       spec.components[`layer-${depth}`] = {
@@ -239,10 +236,10 @@ describe('buildGroupedFlow', () => {
     const resolve = vi.fn((layers: string[]) => convertSubDagToFlowElements(spec, layers));
     const graph = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set());
     const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
-    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(20);
-    expect(groups).toHaveLength(21);
-    expect(groups[20].data.collapsed).toBe(true);
-    expect(resolve).toHaveBeenCalledTimes(21);
+    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(10);
+    expect(groups).toHaveLength(11);
+    expect(groups[10].data.collapsed).toBe(true);
+    expect(resolve).toHaveBeenCalledTimes(11);
     const all = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
       expansionMode: 'all',
     });
@@ -252,18 +249,18 @@ describe('buildGroupedFlow', () => {
     expect(all.nodes.some((node) => node.type === NodeTypeNames.EXECUTION)).toBe(true);
   });
 
-  it('defaults to 20 of 25 nested sub-DAGs, each enclosing two executable components', () => {
+  it('defaults to 10 of 25 nested sub-DAGs, each enclosing two executable components', () => {
     const spec = deeplyNestedSpec();
     expect(
       Object.values(spec.components).filter((component) => component.executorLabel),
     ).toHaveLength(50);
     const graph = staticGraph(spec);
-    expect(graph.nodes.filter((node) => node.type === NodeTypeNames.EXECUTION)).toHaveLength(40);
+    expect(graph.nodes.filter((node) => node.type === NodeTypeNames.EXECUTION)).toHaveLength(20);
     const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
-    expect(groups).toHaveLength(21);
-    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(20);
-    expect(groups.find((node) => node.data.collapsed)?.data.label).toBe('Level 21');
-    expect(graph.nodes.some((node) => node.data.label === 'Component 041')).toBe(false);
+    expect(groups).toHaveLength(11);
+    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(10);
+    expect(groups.find((node) => node.data.collapsed)?.data.label).toBe('Level 11');
+    expect(graph.nodes.some((node) => node.data.label === 'Component 021')).toBe(false);
 
     const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
     const full = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
@@ -331,7 +328,7 @@ describe('buildGroupedFlow', () => {
     const graph = buildGroupedFlow(root, ['root'], resolve, new Set());
     const expandedGroups = (graph: ReturnType<typeof buildGroupedFlow>) =>
       graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE && !node.data.collapsed);
-    expect(expandedGroups(graph)).toHaveLength(20);
+    expect(expandedGroups(graph)).toHaveLength(10);
     const deferred = graph.nodes.find((node) => node.data.expansionDeferred)!;
     const manuallyExpanded = buildGroupedFlow(root, ['root'], resolve, new Set(), {
       expanded: new Set([deferred.id]),
@@ -339,7 +336,7 @@ describe('buildGroupedFlow', () => {
     expect(manuallyExpanded.nodes.find((node) => node.id === deferred.id)?.data.collapsed).toBe(
       false,
     );
-    expect(expandedGroups(manuallyExpanded)).toHaveLength(21);
+    expect(expandedGroups(manuallyExpanded)).toHaveLength(11);
     const all = buildGroupedFlow(root, ['root'], resolve, new Set(), { expansionMode: 'all' });
     expect(expandedGroups(all)).toHaveLength(31);
     const none = buildGroupedFlow(root, ['root'], resolve, new Set(), { expansionMode: 'none' });

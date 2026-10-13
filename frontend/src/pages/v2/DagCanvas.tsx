@@ -45,6 +45,7 @@ import type {
   PipelineFlowElement,
 } from 'src/lib/v2/FlowTypes';
 import { getTaskNodeKey } from 'src/lib/v2/StaticFlow';
+import { loadGraphExpansion, saveGraphExpansion } from 'src/lib/v2/GraphExpansionState';
 
 type PipelineNode = Node<FlowElementDataBase>;
 const emptyLayer: LayerElementsResolver = () => [];
@@ -58,9 +59,15 @@ export interface DagCanvasProps {
   selectedElement?: LayerFlowElement | null;
   nodesDraggable?: boolean;
   focusNodeId?: string;
+  /** Stable run or pipeline-version identity; omitted for ephemeral graphs. */
+  graphId?: string;
 }
 
-export default function DagCanvas({
+export default function DagCanvas(props: DagCanvasProps) {
+  return <DagCanvasView key={props.graphId} {...props} />;
+}
+
+function DagCanvasView({
   elements,
   layers,
   onElementClick,
@@ -68,6 +75,7 @@ export default function DagCanvas({
   selectedElement,
   focusNodeId,
   getSubDagElements,
+  graphId,
 }: DagCanvasProps) {
   // Node cards use rem-based Tailwind dimensions. Match their actual size in
   // both the application's 13px root font and standalone Storybook's 16px root.
@@ -78,11 +86,9 @@ export default function DagCanvas({
   const lastFocusedNodeId = useRef<string | null>(null);
   const [locked, setLocked] = useState(false);
   const canDrag = nodesDraggable && !locked;
-  const [expansion, setExpansion] = useState({
-    collapsed: new Set<string>(),
-    expanded: new Set<string>(),
-    mode: 'default' as 'default' | 'all' | 'none',
-  });
+  const [expansion, setExpansion] = useState(() => loadGraphExpansion(graphId));
+  // External synchronization: persist preferences after committed state changes.
+  useEffect(() => saveGraphExpansion(graphId, expansion), [graphId, expansion]);
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const selectionLayers = selectedElement?.layers ?? layers;
   const selectedId = selectedElement

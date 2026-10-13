@@ -62,6 +62,7 @@ describe('PipelineDetailsV2', () => {
   };
 
   beforeEach(() => {
+    localStorage.clear();
     mockResizeObserver();
   });
 

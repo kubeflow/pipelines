@@ -568,6 +568,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             }}
           >
             <DagCanvas
+              graphId={`run:${runId}`}
               layers={layers}
               elements={dynamicFlowElements}
               getSubDagElements={selectedNodeState?.navigationError ? undefined : getSubDagElements}

@@ -202,6 +202,7 @@ describe('RunDetailsV2', () => {
   }
 
   beforeEach(() => {
+    localStorage.clear();
     mockResizeObserver();
 
     updateBannerSpy = vi.fn();
