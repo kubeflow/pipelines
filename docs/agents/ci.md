@@ -127,3 +127,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
