@@ -46,14 +46,14 @@ func TestLazyOffloadHydrator_InitFailureThenSuccess(t *testing.T) {
 	failInit := true
 	var failMu sync.Mutex
 
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		attempts.Add(1)
 		failMu.Lock()
 		defer failMu.Unlock()
 		if failInit {
-			return nil, errors.New("db unavailable")
+			return nil, "", errors.New("db unavailable")
 		}
-		return inner, nil
+		return inner, "", nil
 	})
 
 	wf := &workflowapi.Workflow{
@@ -80,9 +80,9 @@ func TestLazyOffloadHydrator_InitFailureThenSuccess(t *testing.T) {
 
 func TestLazyOffloadHydrator_HydrateInlineWithoutInit(t *testing.T) {
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
-		return nil, errors.New("db unavailable")
+		return nil, "", errors.New("db unavailable")
 	})
 
 	wf := &workflowapi.Workflow{
@@ -117,9 +117,9 @@ func TestLazyOffloadHydrator_HydrateCompressedWithoutInit(t *testing.T) {
 	require.Empty(t, wf.Status.Nodes)
 
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
-		return nil, errors.New("db unavailable")
+		return nil, "", errors.New("db unavailable")
 	})
 
 	require.NoError(t, lazy.Hydrate(ctx, wf))
@@ -132,9 +132,9 @@ func TestLazyOffloadHydrator_DehydrateSmallWithoutInit(t *testing.T) {
 	t.Cleanup(cleanup)
 
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
-		return nil, errors.New("db unavailable")
+		return nil, "", errors.New("db unavailable")
 	})
 
 	wf := &workflowapi.Workflow{
@@ -154,9 +154,9 @@ func TestLazyOffloadHydrator_DehydrateSmallWithoutInit(t *testing.T) {
 
 func TestLazyOffloadHydrator_HydrateWithNodesLocal(t *testing.T) {
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
-		return nil, errors.New("db unavailable")
+		return nil, "", errors.New("db unavailable")
 	})
 
 	wf := &workflowapi.Workflow{
@@ -187,16 +187,16 @@ postgresql:
   tableName: argo_workflows
 `)
 
-	lazy := NewLazyOffloadHydrator(k8sfake.NewClientset(), func(ctx context.Context) (*argoconfig.PersistConfig, string, error) {
+	lazy := NewLazyOffloadHydrator(k8sfake.NewClientset(), func(ctx context.Context) (*argoconfig.PersistConfig, string, string, error) {
 		loadCalls.Add(1)
 		if failLoad {
-			return nil, "", errors.New("configmap not found")
+			return nil, "", "", errors.New("configmap not found")
 		}
 		persist, err := ParseArgoPersistConfig(persistYAML)
 		if err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
-		return persist, "ns", nil
+		return persist, "ns", "rv-1", nil
 	})
 
 	wf := &workflowapi.Workflow{
@@ -227,12 +227,12 @@ func TestLazyOffloadHydrator_DisabledOffloadReloadable(t *testing.T) {
 
 	offloadEnabled := false
 	var loadCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		loadCalls.Add(1)
 		if !offloadEnabled {
-			return hydratorfake.Noop, nil
+			return hydratorfake.Noop, "", nil
 		}
-		return inner, nil
+		return inner, "", nil
 	})
 
 	ctx := context.Background()
@@ -266,13 +266,61 @@ func TestLazyOffloadHydrator_DisabledOffloadReloadable(t *testing.T) {
 func TestTryInitLazyOffloadHydrator_OffloadEnabled(t *testing.T) {
 	repo := NewMemoryOffloadNodeStatusRepo()
 	inner := NewMemoryWorkflowHydrator(repo)
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
-		return inner, nil
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
+		return inner, "", nil
 	})
 
 	offloadEnabled, err := TryInitLazyOffloadHydrator(lazy, context.Background())
 	require.NoError(t, err)
 	assert.True(t, offloadEnabled)
+}
+
+func TestLazyOffloadHydrator_ConfigRevisionChangeInvalidatesCache(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	repo.Put("wf-uid", "offload-hash", workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	})
+	enabled := NewMemoryWorkflowHydrator(repo)
+
+	revision := "rv-enabled"
+	offloadEnabled := true
+	var loadCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
+		loadCalls.Add(1)
+		if !offloadEnabled {
+			return hydratorfake.Noop, revision, nil
+		}
+		return enabled, revision, nil
+	})
+
+	ctx := context.Background()
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, int32(1), loadCalls.Load())
+	assert.Empty(t, wf.Status.OffloadNodeStatusVersion)
+
+	// Same revision: cached enabled hydrator is reused (probe may still run).
+	wf.Status.OffloadNodeStatusVersion = "offload-hash"
+	wf.Status.Nodes = nil
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.GreaterOrEqual(t, loadCalls.Load(), int32(2))
+	assert.Empty(t, wf.Status.OffloadNodeStatusVersion)
+
+	// Config flipped to disabled under a new revision: must observe Noop.
+	offloadEnabled = false
+	revision = "rv-disabled"
+	wf.Status.OffloadNodeStatusVersion = "offload-hash"
+	wf.Status.Nodes = nil
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, "offload-hash", wf.Status.OffloadNodeStatusVersion,
+		"disabled config must stop hydrating offloaded nodes")
+	assert.Empty(t, wf.Status.Nodes)
 }
 
 // TestLazyOffloadHydrator_SecretMissingThenPresent models API-server startup when
@@ -292,16 +340,16 @@ func TestLazyOffloadHydrator_SecretMissingThenPresent(t *testing.T) {
 
 	kube := k8sfake.NewClientset()
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
 		_, err := kube.CoreV1().Secrets(ns).Get(ctx, secretName, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to create Argo offload DB session: secrets %q not found", secretName)
+			return nil, "", fmt.Errorf("failed to create Argo offload DB session: secrets %q not found", secretName)
 		}
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return memoryHydrator, nil
+		return memoryHydrator, "", nil
 	})
 
 	ctx := context.Background()
@@ -350,8 +398,8 @@ func TestLazyOffloadHydrator_DehydrateTooLargeOffloadDisabled(t *testing.T) {
 	cleanup := packer.SetMaxWorkflowSize(1)
 	t.Cleanup(cleanup)
 
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
-		return hydratorfake.Noop, nil
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
+		return hydratorfake.Noop, "", nil
 	})
 
 	nodes := make(workflowapi.Nodes, 32)
@@ -409,9 +457,9 @@ func TestLazyOffloadHydrator_ReinitAfterClosedSession(t *testing.T) {
 	closed.failOnce.Store(true)
 
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
-		return closed, nil
+		return closed, "", nil
 	})
 
 	wf := &workflowapi.Workflow{
@@ -441,10 +489,10 @@ func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
 
 	var initCalls atomic.Int32
 	start := make(chan struct{})
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		initCalls.Add(1)
 		<-start
-		return inner, nil
+		return inner, "", nil
 	})
 
 	var wg sync.WaitGroup
@@ -506,12 +554,12 @@ func TestLazyOffloadHydrator_ConcurrentClosedSessionRecovery(t *testing.T) {
 	failed := &syncClosedSessionHydrator{entered: entered, release: release}
 
 	var initCalls atomic.Int32
-	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
 		n := initCalls.Add(1)
 		if n == 1 {
-			return failed, nil
+			return failed, "", nil
 		}
-		return healthy, nil
+		return healthy, "", nil
 	})
 
 	// Install the failing session once so both callers share the same pointer.
