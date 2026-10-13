@@ -15,6 +15,7 @@
  */
 
 import {
+  KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   useCallback,
   useEffect,
@@ -33,6 +34,7 @@ import {
   OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
+import { style } from 'typestyle';
 import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { NODE_TYPES } from 'src/components/graph/NodeTypes';
@@ -50,6 +52,17 @@ import { loadGraphExpansion, saveGraphExpansion } from 'src/lib/v2/GraphExpansio
 type PipelineNode = Node<FlowElementDataBase>;
 const emptyLayer: LayerElementsResolver = () => [];
 const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parentId ?? null]);
+const lockedCanvas = style({
+  $nest: { '& .react-flow__edge, & .react-flow__edge *': { pointerEvents: 'none' } },
+});
+const panDirections = new Map([
+  ['ArrowLeft', { x: -40, y: 0 }],
+  ['ArrowRight', { x: 40, y: 0 }],
+  ['ArrowUp', { x: 0, y: -40 }],
+  ['ArrowDown', { x: 0, y: 40 }],
+]);
+const editableSelector =
+  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]';
 
 export interface DagCanvasProps {
   elements: PipelineFlowElement[];
@@ -84,7 +97,7 @@ function DagCanvasView({
   );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
-  const [locked, setLocked] = useState(false);
+  const [locked, setLocked] = useState(true);
   const canDrag = nodesDraggable && !locked;
   const [expansion, setExpansion] = useState(() => loadGraphExpansion(graphId));
   // External synchronization: persist preferences after committed state changes.
@@ -161,7 +174,7 @@ function DagCanvasView({
           position: positions[positionKey(node)] ?? node.position,
           selected: node.id === selectedId,
           draggable: canDrag,
-          selectable: !locked,
+          selectable: true,
         };
         if (node.type === GROUP_NODE_TYPE) {
           return {
@@ -174,7 +187,7 @@ function DagCanvasView({
         }
         return selectedNode;
       }),
-    [grouped, positions, selectedId, toggleGroup, canDrag, locked],
+    [grouped, positions, selectedId, toggleGroup, canDrag],
   );
   const edges = grouped.edges;
 
@@ -208,11 +221,33 @@ function DagCanvasView({
 
   const handleElementClick = useCallback(
     (event: ReactMouseEvent, element: PipelineFlowElement) => {
-      if (locked) return;
       onElementClick(event, grouped.sources.get(element.id) ?? { element, layers });
     },
-    [grouped, layers, onElementClick, locked],
+    [grouped, layers, onElementClick],
   );
+
+  const panWithArrowKeys = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const direction = panDirections.get(event.key);
+    const instance = reactFlowInstance.current;
+    if (
+      !locked ||
+      !direction ||
+      !instance ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      (event.target instanceof Element && event.target.closest(editableSelector))
+    )
+      return;
+    event.preventDefault();
+    event.stopPropagation();
+    const viewport = instance.getViewport();
+    void instance.setViewport({
+      ...viewport,
+      x: viewport.x + direction.x,
+      y: viewport.y + direction.y,
+    });
+  };
 
   const fitCurrentView = useCallback(
     (instance: ReactFlowInstance<PipelineNode, Edge>) => {
@@ -235,7 +270,27 @@ function DagCanvasView({
   }, [fitCurrentView, focusedId]);
 
   return (
-    <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
+    <div
+      data-testid='DagCanvas'
+      role='region'
+      aria-label='Pipeline graph'
+      aria-description={
+        locked
+          ? 'Drag or use arrow keys to pan. Click nodes to inspect details. Unlock to move nodes.'
+          : 'Drag nodes or use arrow keys on a selected node to move it.'
+      }
+      tabIndex={0}
+      className={locked ? lockedCanvas : undefined}
+      onKeyDownCapture={panWithArrowKeys}
+      onPointerDownCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          !event.target.closest(editableSelector + ', button, .react-flow__panel')
+        )
+          event.currentTarget.focus({ preventScroll: true });
+      }}
+      style={{ width: '100%', height: '100%' }}
+    >
       <ReactFlowProvider>
         <ReactFlow<PipelineNode, Edge>
           style={{ background: color.lightGrey }}
@@ -243,7 +298,9 @@ function DagCanvasView({
           edges={edges}
           snapToGrid={true}
           nodesDraggable={canDrag}
-          elementsSelectable={!locked}
+          elementsSelectable
+          selectionKeyCode={locked ? null : 'Shift'}
+          multiSelectionKeyCode={locked ? null : undefined}
           nodesConnectable={false}
           onInit={(instance) => {
             reactFlowInstance.current = instance;

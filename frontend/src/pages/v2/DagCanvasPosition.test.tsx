@@ -61,6 +61,7 @@ it('updates leaves and groups during dragging without changing child-relative po
       onElementClick={vi.fn()}
     />,
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   const leaf = screen.getByTestId('task.deploy');
   expect(leaf).toHaveAttribute('data-draggable', 'true');
   fireEvent.mouseMove(leaf);
@@ -88,7 +89,6 @@ it('still respects a read-only host for both leaves and groups', () => {
       onElementClick={vi.fn()}
     />,
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
   fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   for (const id of ['task.workflow', 'task.deploy']) {
     const node = screen.getByTestId(id);
@@ -109,7 +109,7 @@ it('rejects live drag updates while locked, including after a refresh', () => {
     onElementClick: vi.fn(),
   };
   const { rerender } = render(<DagCanvas {...options} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
+  expect(screen.getByRole('button', { name: 'Unlock graph' })).toBeInTheDocument();
   rerender(<DagCanvas {...options} elements={resolve(['root'])} />);
   for (const id of ['task.workflow', 'task.deploy']) {
     const node = screen.getByTestId(id);
@@ -165,6 +165,7 @@ it('preserves nested task drag positions across data refreshes', () => {
     />
   );
   const { rerender } = render(canvas());
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
   fireEvent.click(screen.getByTestId(id));
   expect(screen.getByTestId(id)).toHaveTextContent('{"x":77,"y":88}');
   rerender(canvas());

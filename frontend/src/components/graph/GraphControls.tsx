@@ -121,7 +121,8 @@ export default function GraphControls({
       </PaletteButton>
       <PaletteButton
         label={locked ? 'Unlock graph' : 'Lock graph'}
-        tooltip={locked ? 'Unlock node dragging and selection' : 'Lock node dragging and selection'}
+        tooltip={locked ? 'Unlock node dragging' : 'Lock nodes to pan with dragging and arrow keys'}
+        aria-pressed={locked}
         className='react-flow__controls-interactive'
         onClick={() => onLockChange(!locked)}
       >

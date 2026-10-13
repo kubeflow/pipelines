@@ -24,7 +24,10 @@ export default function SubDagGroupNode({
   id,
   data,
   selected,
-}: Pick<NodeProps<Node<SubDagFlowElementData>>, 'id' | 'data' | 'selected'>) {
+  draggable = false,
+}: Pick<NodeProps<Node<SubDagFlowElementData>>, 'id' | 'data' | 'selected'> & {
+  draggable?: boolean;
+}) {
   const collapsed = !!data.collapsed;
   const status = getIcon(data.state);
   return (
@@ -68,7 +71,10 @@ export default function SubDagGroupNode({
           </button>
           <button
             type='button'
-            className='nodrag nopan focus:outline-none focus:ring-0 text-mui-grey-600 flex items-center justify-center flex-shrink-0'
+            className={classes(
+              'nodrag focus:outline-none focus:ring-0 text-mui-grey-600 flex items-center justify-center flex-shrink-0',
+              draggable && 'nopan',
+            )}
             aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${data.label}`}
             aria-expanded={!collapsed}
             aria-description={data.expansionDeferred}

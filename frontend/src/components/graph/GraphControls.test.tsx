@@ -66,7 +66,7 @@ it.each([
   ['Zoom in', 'Zoom in'],
   ['Zoom out', 'Zoom out'],
   ['Fit view', 'Fit graph to view'],
-  ['Lock graph', 'Lock node dragging and selection'],
+  ['Lock graph', 'Lock nodes to pan with dragging and arrow keys'],
 ])('shows the %s tooltip after 500ms, not sooner', (label, tooltip) => {
   render(<GraphControls {...props()} />);
   const button = screen.getByRole('button', { name: label });

@@ -324,7 +324,7 @@ it('places expand then collapse above native zoom controls and toggles all desce
   expect(buttons[2]).toHaveAccessibleName('Zoom in');
   expect(buttons[3]).toHaveAccessibleName('Zoom out');
   expect(buttons[4]).toHaveAccessibleName('Fit view');
-  expect(buttons[5]).toHaveAccessibleName('Lock graph');
+  expect(buttons[5]).toHaveAccessibleName('Unlock graph');
   expect(buttons).toHaveLength(6);
   expect(screen.queryByRole('button', { name: 'Render subdags' })).not.toBeInTheDocument();
   expect(screen.queryByText('Layers')).not.toBeInTheDocument();
@@ -379,21 +379,27 @@ it.each([
   }
 });
 
-it('locks dragging and node selection without disabling viewport controls', () => {
+it('starts locked while keeping node details and viewport controls available', () => {
   const options = props();
   render(
     <CommonTestWrapper>
       <DagCanvas {...options} />
     </CommonTestWrapper>,
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
-
-  fireEvent.click(screen.getByText('Train model'));
-  expect(options.onElementClick).not.toHaveBeenCalled();
-  expect(screen.getByRole('button', { name: 'Zoom in' })).not.toBeDisabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
+  expect(screen.getByRole('button', { name: 'Unlock graph' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   fireEvent.click(screen.getByText('Train model'));
   expect(options.onElementClick).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'Zoom in' })).not.toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
+  expect(screen.getByRole('button', { name: 'Lock graph' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  fireEvent.click(screen.getByText('Train model'));
+  expect(options.onElementClick).toHaveBeenCalledTimes(2);
 });
 
 it('supports keyboard collapse and expansion', async () => {
