@@ -189,3 +189,11 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+
+- Multi-user CI keeps the pinned Kubeflow/Istio manifests and image versions,
+  but migrates rendered `registry.istio.io/release` and `gcr.io/istio-release`
+  references to `docker.io/istio` before applying them. This includes CNI,
+  gateway/control-plane images and embedded injector hub values. Empty renders,
+  unknown retired endpoints and pipeline failures abort deployment. Istio has
+  announced outage tests and December 2026 retirement of the old registries:
+  https://istio.io/latest/blog/2026/retirement-of-gcp/.
