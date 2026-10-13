@@ -141,7 +141,11 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                     '  echo "Registry Mirrors: ${DOCKER_HUB_MIRROR:-https://mirror.gcr.io}/"\n'
                     'fi\n'),
                 'sudo':
-                    '#!/usr/bin/env bash\nexec "$@"\n',
+                    '#!/usr/bin/env bash\nunset LD_LIBRARY_PATH\nexec "$@"\n',
+                # Model a setup-python executable that cannot load after sudo
+                # strips its shared-library environment.
+                'python3': ('#!/usr/bin/env bash\n'
+                            'echo missing-libpython >&2\nexit 127\n'),
                 'systemctl': ('#!/usr/bin/env bash\n'
                               'echo "systemctl $*" >> "$COMMAND_LOG"\n'),
         }.items():

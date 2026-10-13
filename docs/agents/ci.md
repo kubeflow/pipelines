@@ -81,6 +81,11 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
 
+- Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
+  privileged standard-library-only helper. Do not select a setup-python runtime
+  from `PATH` or preserve loader environment variables through `sudo`: tool-cache
+  interpreters may require shared-library paths that privilege elevation removes.
+
 - Prebuilt pipeline-spec generation (`make -C api python` / `golang`) reuses a locally available generator image. On a cold Docker cache it explicitly pulls through `docker-pull-with-retry.sh` (three attempts, 20-second delays), then runs with `--pull=never`. Pull exhaustion stops generation; generator failures are not retried. Source-built generation remains unchanged.
 
 - Contributor Report treats `FORBIDDEN` errors on individual comment-history nodes as an unavailable PR-comment metric, because that history spans repositories with independent access policies. It reports `Unavailable (GitHub access restrictions)` rather than a partial count, while retaining the other verified metrics. Other GraphQL errors and membership lookup failures still fail the job. Report fixes must land on `master` before a fresh `pull_request_target` event can use them; rerunning an old execution retains its trusted workflow revision.
