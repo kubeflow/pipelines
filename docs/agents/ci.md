@@ -140,3 +140,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
 Compiler CVE remediation compiles all tracked Go modules and their test binaries, runs backend unit tests, and verifies dependency checksums for tool-only modules. Both native verification lanes build every managed Go Dockerfile, including the conformance and API-generator images, before issuing a publication certificate. These builds do not claim cluster conformance or live release qualification.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
