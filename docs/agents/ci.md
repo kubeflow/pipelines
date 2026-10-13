@@ -130,15 +130,6 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
 
-- Docker mirror setup only modifies and restarts an active local systemd Docker
-  service. Containerized/provider-managed runners without that service retain
-  their daemon configuration; the helper still requires `docker info` to succeed.
-  Configure daemon mirrors in the runner provider when local service management
-  is unavailable. BuildKit mirror configuration remains independent.
-- The deploy action provisions GitHub CLI when absent on Linux runners, using a
-  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
-  installations remain in use. Image-artifact polling fails immediately when
-  invoked without `gh`; missing runner dependencies are not publication delays.
 Compiler CVE remediation compiles all tracked Go modules and their test binaries, runs backend unit tests, and verifies dependency checksums for tool-only modules. Both native verification lanes build every managed Go Dockerfile, including the conformance and API-generator images, before issuing a publication certificate. These builds do not claim cluster conformance or live release qualification.
 
 - Docker mirror setup only modifies and restarts an active local systemd Docker
@@ -152,3 +143,8 @@ Compiler CVE remediation compiles all tracked Go modules and their test binaries
   Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
   font configuration with network connections rejected before building the full
   references. Keep the no-network regression when changing themes or fonts.
+
+- The deploy action provisions GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
