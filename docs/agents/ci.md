@@ -183,3 +183,9 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   provenance and supported platforms were checked before selection. Retain real
   migration/serving acceptance; a static pin guard does not prove live upgrades.
   The separate `red-hat-data-services` RHOAI image selection is unchanged.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
