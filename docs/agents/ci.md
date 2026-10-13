@@ -144,3 +144,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
 
 - Hosted Ubuntu frontend browser jobs replace the unavailable Azure Ubuntu mirror with the official HTTPS Ubuntu archive while retaining package signature verification, suites and components. Browser dependency downloads use 30-second APT transport timeouts, two retries and a 15-minute installation-step limit. The shared helper refuses local/self-hosted execution; other APT sources remain unchanged.
 - The production router defers creation forms (run, experiment, pipeline version) and namespace transfer until navigation; shell and page chrome remain mounted during loading. Production smoke checks ensure these chunks are absent at startup and load through their real routes. Pending/rejected route imports retain loading feedback and navigation-error recovery; the existing entry payload budget remains unchanged.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
