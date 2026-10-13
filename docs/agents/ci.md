@@ -189,3 +189,9 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+
+- The readiness policy-conformance lane prefetches Go modules from its pinned
+  `policy-source` checkout before running tests. Downloads have three attempts,
+  each capped at 120 seconds, with 5- and 10-second backoffs. Exhaustion fails
+  the job; normal Go checksum verification remains enabled. Conformance runs
+  once after a successful prefetch, so test failures are never retried.
