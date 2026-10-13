@@ -933,16 +933,23 @@ async function run(liveTip) {
     REVOKE_SCRIPT = r"""
 const {revokeStaleGreens} = require(process.argv[1]);
 const crypto = require('node:crypto');
+const B0 = 'b'.repeat(40);
 const B1 = 'a'.repeat(40);
 const B2 = 'c'.repeat(40);
 const LIVE = process.argv[2];
 const TIP = process.argv[3];
+const ADVANCE_AFTER = process.argv[4];
+let getRefCalls = 0;
+const nextLiveTip = () => {
+  const n = getRefCalls++;
+  return (ADVANCE_AFTER !== undefined && n >= Number(ADVANCE_AFTER)) ? B2 : LIVE;
+};
 const stamp = base => crypto.createHash('sha256')
   .update(JSON.stringify(['master', base])).digest('hex');
 const successDesc = base =>
   'Expected CI and all checks passed; base policy ' + stamp(base) + '.';
 const statuses = {
-  stale: {state: 'success', description: successDesc(B1)},
+  stale: {state: 'success', description: successDesc(B0)},
   fresh: {state: 'success', description: successDesc(B2)},
   legacy: {state: 'success', description: 'Expected CI and all checks passed for this head.'},
   failure: {state: 'failure', description: 'some failure'},
@@ -962,7 +969,7 @@ const listCalls = [];
 const writes = [];
 const github = {
   rest: {pulls: {list: {}},
-    git: {getRef: async () => ({data: {object: {sha: LIVE}}})},
+    git: {getRef: async () => ({data: {object: {sha: nextLiveTip()}}})},
     repos: {
     getCombinedStatusForRef: async ({ref}) => ({
       data: {statuses: statuses[ref] ?
@@ -981,13 +988,12 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
 }).catch(e => {console.error(e); process.exit(1);});
 """
 
-    def _run_revoke(self, live_tip, tip):
+    def _run_revoke(self, live_tip, tip, advance_after=None):
+        argv = ['node', '-e', self.REVOKE_SCRIPT, str(MODULE), live_tip, tip]
+        if advance_after is not None:
+            argv.append(str(advance_after))
         result = subprocess.run(
-            ['node', '-e', self.REVOKE_SCRIPT,
-             str(MODULE), live_tip, tip],
-            check=True,
-            capture_output=True,
-            text=True)
+            argv, check=True, capture_output=True, text=True)
         return json.loads(result.stdout)
 
     def test_push_revocation_revokes_only_stale_success(self):
@@ -1013,6 +1019,15 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
         self.assertEqual(actual['count'], 0)
         self.assertEqual(actual['writes'], [])
         self.assertEqual(actual['listCalls'], [])
+
+    def test_push_revocation_revalidates_live_tip_mid_scan(self):
+        # tip = B1. getRef returns B1 for the initial guard and the first PR,
+        # then B2 for later PRs (master advanced mid-scan). A fresh B2-stamped
+        # success appears on a later PR. The B1 job must revoke only the
+        # pre-advance stale PR and BAIL before touching the fresh B2 success.
+        actual = self._run_revoke('a' * 40, 'a' * 40, advance_after=2)
+        self.assertEqual(actual['count'], 1)
+        self.assertEqual([w['sha'] for w in actual['writes']], ['stale'])
 
     def test_push_revocation_rejects_non_sha_tip(self):
         script = r"""
