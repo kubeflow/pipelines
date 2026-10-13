@@ -85,6 +85,22 @@ class MLflowDiagnosticsTest(unittest.TestCase):
         self.assertIn('postgresql://[redacted]@database/db', '\n'.join(output))
         self.assertEqual(output.count('[diagnostic output truncated]'), 6)
 
+    def test_credentials_crossing_output_boundary_are_redacted(self):
+        output = []
+        uri = b'postgresql://user:password-crossing-boundary@database/db'
+        prefix = b'x' * (diagnostics.MAX_OUTPUT_BYTES - 25) + b' '
+
+        def run(command, **kwargs):
+            kwargs['stdout'].write(prefix + uri)
+            return subprocess.CompletedProcess(command, 0)
+
+        diagnostics.collect(runner=run, output=output.append)
+        captured = '\n'.join(output)
+        self.assertNotIn('user:', captured)
+        self.assertNotIn('password', captured)
+        self.assertIn('postgresql://[redacted]@', captured)
+        self.assertEqual(output.count('[diagnostic output truncated]'), 6)
+
     def test_workflow_collects_after_failed_deploy_without_masking_failure(
             self):
         root = Path(__file__).resolve().parents[3]

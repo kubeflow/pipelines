@@ -55,7 +55,8 @@ def commands():
 
 def redact(text):
     """Remove URI credentials from errors emitted by database clients."""
-    return re.sub(r'(://)[^\s/@]+:[^\s/@]+@', r'\1[redacted]@', text)
+    # A bounded read may end inside userinfo before its terminating @.
+    return re.sub(r'(://)[^\s/@]+:[^\s/@]*(?:@|$)', r'\1[redacted]@', text)
 
 
 def collect(namespace='opendatahub', runner=subprocess.run, output=print):
