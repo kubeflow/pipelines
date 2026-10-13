@@ -31,6 +31,10 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+- Deployment and runtime prefetch provision GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
 - Use `.github/actions/setup-python` for uv workspace jobs; it synchronizes the CI extra from `uv.lock`. Include `**/pyproject.toml`, `uv.lock`, and the setup action in dependency-sensitive workflow triggers. Legacy jobs outside the workspace retain `.github/actions/setup-python-pip-cache` with distinct cache scopes.
 - The workspace `ci` extra includes `test`, which activates `kfp[notebooks]`. This makes the real-kernel regression in `sdk/python/kfp/dsl/notebook_component_decorator_test.py` run in both SDK unit-test matrix lanes (Python 3.11 and 3.13). It executes the generated notebook helper with the test interpreter and temporary kernelspec/Jupyter directories, covering parameter injection, streamed stdout/stderr, artifact output, and cell-error propagation without Docker. The test skips only when notebook dependencies are absent from an ad hoc environment; keep them enabled in the CI extra.
 - `pre-commit.yml` runs the hooks pinned by `.pre-commit-config.yaml` over each base-to-head change. Its local isort hook pins isort 5.10.1 through `additional_dependencies`, matching the SDK lint extra; do not replace it with a newer upstream hook without also updating the SDK formatter. Configuration-only updates also run each applicable content hook against a small set of clean representative files so a hook upgrade executes without requiring the repository's historical formatting backlog to be fixed in the same PR.

@@ -33,6 +33,11 @@ runs:
     - name: Free up disk space on runner
       uses: ./.github/actions/github-disk-cleanup
 
+    - name: Ensure GitHub CLI is available for runtime prefetch
+      if: ${{ inputs.runtime_image_path != '' }}
+      shell: bash
+      run: bash .github/resources/scripts/setup-github-cli.sh
+
     - name: Prefetch runtime images during cluster setup
       if: ${{ inputs.runtime_image_path != '' }}
       shell: bash
