@@ -126,6 +126,14 @@ func TestErrorConstructors(t *testing.T) {
 			expectedExtMessage: "Service unavailable",
 		},
 		{
+			name: "NewUnavailableError",
+			constructor: func() *UserError {
+				return NewUnavailableError("Request was not applied; retry after %s", "handoff")
+			},
+			expectedCode:       codes.Unavailable,
+			expectedExtMessage: "Request was not applied; retry after handoff",
+		},
+		{
 			name: "NewNotFoundError",
 			constructor: func() *UserError {
 				return NewNotFoundError(baseError, "resource %s not found", "foo")

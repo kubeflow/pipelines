@@ -166,12 +166,12 @@ func TestFakeSwfClient_Patch(t *testing.T) {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	result, err := swfClient.Patch(ctx, "patch-me", "application/merge-patch+json", []byte(`{}`))
+	result, err := swfClient.Patch(ctx, "patch-me", "application/merge-patch+json", []byte(`{"spec":{"enabled":true}}`))
 	if err != nil {
 		t.Fatalf("Patch() unexpected error: %v", err)
 	}
-	if result != nil {
-		t.Error("Patch() expected nil result from stub implementation")
+	if result == nil || !result.Spec.Enabled || result.Name != "patch-me" {
+		t.Error("Patch() did not return the updated schedule")
 	}
 }
 

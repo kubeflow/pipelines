@@ -73,6 +73,16 @@ class FixturePolicyTests(unittest.TestCase):
         self.assertEqual([f['status'] for f in result['findings']],
                          ['no_issue_detected'] * 3)
 
+    def test_adopted_fixture_uses_same_ids_and_distinct_target_scope(self):
+        self.fixture.pop('recreated')
+        self.fixture['adopted'] = True
+        with mock.patch.object(check, 'collect', return_value=(self.records, [], self.coverage)), \
+                mock.patch.object(check, 'kubectl_get', return_value=(self.schedules, None)):
+            result = check.assess(None, check.CONTEXT, self.fixture,
+                                  self.policy)
+        self.assertEqual(result['scope'], 'post_adoption_target_policy_check')
+        self.assertFalse(result['pre_upgrade_prediction_validated'])
+
     def test_legacy_embedded_workflow_remains_unresolved(self):
         self.schedules['items'][0]['spec'] = dict(
             workflow=dict(spec={'serviceAccountName': 'pipeline-runner'}))

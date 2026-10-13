@@ -72,6 +72,13 @@ func (r *ResourceManager) PrepareRecurringRun(ctx context.Context, run *model.Ru
 				"A recurring run can only create runs in its own namespace and experiment")
 		}
 	}
+	if r.options != nil && r.options.EnsureRecurringRunAdopted != nil {
+		if err := r.options.EnsureRecurringRunAdopted(ctx, job.UUID); err != nil {
+			return err
+		}
+	} else if err := r.requireRecurringRunAdoptionReady(ctx); err != nil {
+		return err
+	}
 	swf, err := r.getScheduledWorkflowClient(namespace).Get(ctx, job.K8SName, v1.GetOptions{})
 	if err != nil {
 		return util.Wrap(err, "Failed to retrieve the authorized ScheduledWorkflow")

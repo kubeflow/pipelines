@@ -9,12 +9,14 @@ on:
       - tools/upgrade-readiness/**
       - .github/workflows/upgrade-readiness.yml
       - .github/resources/scripts/readiness-schedules.sh
+      - .github/resources/scripts/readiness-adoption.sh
   push:
     branches: [release-2.18]
     paths:
       - tools/upgrade-readiness/**
       - .github/workflows/upgrade-readiness.yml
       - .github/resources/scripts/readiness-schedules.sh
+      - .github/resources/scripts/readiness-adoption.sh
 
 permissions:
   contents: read

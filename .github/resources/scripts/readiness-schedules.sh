@@ -37,7 +37,7 @@ if [[ "$phase" == preflight ]]; then
   fi
   exit 0
 fi
-[[ "$phase" == source || "$phase" == target ]]
+[[ "$phase" == source || "$phase" == target || "$phase" == library ]]
 [[ $(kubectl config current-context) == "$context" ]]
 preflight
 kube() { kubectl --context "$context" --request-timeout=30s "$@"; }
@@ -61,13 +61,7 @@ trap cleanup EXIT
 
 configure_api() {
   local mode=$1
-  kube -n kubeflow set env deployment/ml-pipeline \
-    MULTIUSER=true TOKEN_REVIEW_AUDIENCE=pipelines.kubeflow.org \
-    KUBEFLOW_USERID_HEADER=kubeflow-userid KUBEFLOW_USERID_PREFIX= \
-    DEFAULTPIPELINERUNNERSERVICEACCOUNT=pipeline-runner \
-    ALLOWEDSERVICEACCOUNTS=readiness-granted,readiness-denied \
-    COMPILED_PIPELINE_SPEC_PATCH='{}' \
-    KFP_SECURITY_SERVICE_ACCOUNT_MODE="$mode" KFP_SECURITY_WORKFLOW_IDENTITY_MODE=enforce
+  set_api_env "$mode"
   kube -n kubeflow rollout status deployment/ml-pipeline --timeout=300s
   # Rollout readiness excludes terminating replicas. Existing controller gRPC
   # connections can still reach an old audit process during its grace period.
@@ -103,6 +97,16 @@ configure_api() {
   done
   echo '::error::API policy cutover could not exclude stale, terminating, or unready Pods.'
   return 1
+}
+set_api_env() {
+  local mode=$1
+  kube -n kubeflow set env deployment/ml-pipeline \
+    MULTIUSER=true TOKEN_REVIEW_AUDIENCE=pipelines.kubeflow.org \
+    KUBEFLOW_USERID_HEADER=kubeflow-userid KUBEFLOW_USERID_PREFIX= \
+    DEFAULTPIPELINERUNNERSERVICEACCOUNT=pipeline-runner \
+    ALLOWEDSERVICEACCOUNTS=readiness-granted,readiness-denied \
+    COMPILED_PIPELINE_SPEC_PATCH='{}' \
+    KFP_SECURITY_SERVICE_ACCOUNT_MODE="$mode" KFP_SECURITY_WORKFLOW_IDENTITY_MODE=enforce
 }
 configure_controllers() {
   kube -n kubeflow set env deployment/ml-pipeline-scheduledworkflow MULTIUSER=true NAMESPACE="$namespace"
@@ -281,6 +285,9 @@ observe() {
   fi
 }
 
+# Shared primitives for the separate adoption fixture; no source/target actions.
+[[ "$phase" != library ]] || return 0
+
 if [[ "$phase" == source ]]; then
   kube apply -k 'https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=2.17.2'
   kube apply -k 'https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=2.17.2'
@@ -313,6 +320,19 @@ PY
   drain source
   # Full cluster snapshot is intentional for this controlled RBAC-only fixture.
   kube get roles,rolebindings,clusterroles,clusterrolebindings --all-namespaces -o json >"$state/source-rbac.json"
+  # This isolated fixture enables multi-user mode on the standalone overlay.
+  # Explicitly include its handoff grant; ordinary standalone installs omit it.
+  python3 - <<'HANDOFF'
+from pathlib import Path
+import yaml
+path = Path('.github/resources/manifests/standalone/default/kustomization.yaml')
+manifest = yaml.safe_load(path.read_text())
+resource = '../../../../../manifests/kustomize/base/installs/multi-user/managed-schedule-writers.yaml'
+if resource not in manifest.setdefault('resources', []):
+    manifest['resources'].append(resource)
+manifest['namespace'] = 'kubeflow'
+path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+HANDOFF
   kube kustomize --load-restrictor LoadRestrictionsNone .github/resources/manifests/standalone/default >"$state/candidate.yaml"
   kube kustomize manifests/kustomize/cluster-scoped-resources >"$state/candidate-cluster.yaml"
   python3 - "$state" <<'PY'
@@ -354,6 +374,7 @@ PY
   printf '{"source_version":"2.17.2","target_revision":"%s"}\n' "$revision" >"$reports/revisions.json"
   # Fixtures are disabled and source runs drained before controllers leave the
   # fixture namespace. Target configuration restores this scope after upgrade.
+  python3 "$helpers/live_adoption_check.py" source-disabled --state "$state"
   restore_controller_namespaces
 else
   configure_api enforce
@@ -361,31 +382,17 @@ else
   kube -n kubeflow rollout status deployment/ml-pipeline-persistenceagent --timeout=300s
   start_forward
   mint_token
-  # Old multi-user schedules intentionally lack API-owned state. Establish the
-  # migration rejection first; account audit is not a bypass for this boundary.
-  fixture --phase enable
-  python3 "$helpers/verify_legacy_schedules.py" --context "$context" \
-    --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
-    --baseline "$reports/source-legacy-baseline.json" \
-    --not-before "$(cat "$state/fixture/activation-start.txt")" \
-    >"$reports/legacy-migration.json"
-  fixture --phase disable
-  fixture --phase recreate --pipeline-spec "$state/pipeline.json" \
-    --legacy-report "$reports/legacy-migration.json"
-  python3 - "$state" <<'PYRECREATE'
-from pathlib import Path
-import sys
-from provision_live_schedules import read_object, write_object
-state = Path(sys.argv[1])
-for mode in ('enforce', 'audit'):
-    cases = read_object(state / 'fixture/cases.json')
-    if mode == 'audit':
-        for case in cases['cases']:
-            case['expected_outcome'] = 'run_created'
-            if case['scenario'] == 'denied':
-                case['expected_prediction'] = 'operational_impact'
-    write_object(state / f'{mode}-cases.json', cases)
-PYRECREATE
+  # Automatic adoption must finish on the original disabled source IDs before
+  # account-policy observation enables them. No deletion or recreation occurs.
+  adopted=false
+  for observation in {1..60}; do
+    if python3 "$helpers/live_adoption_check.py" adopted-disabled --state "$state"; then
+      adopted=true
+      break
+    fi
+    sleep 5
+  done
+  [[ "$adopted" == true ]]
   for mode in enforce audit; do
     python3 "$helpers/check_fixture_policy.py" --context "$context" \
       --fixture-state "$state/fixture/state.json" --policy "$state/$mode-policy.json" \
@@ -409,7 +416,7 @@ PYRECREATE
   stop_forward
   configure_api audit
   start_forward
-  # Use the recreated-fixture target policy check, with a fresh baseline after enforce.
+  # Use the adopted-fixture target policy check, with a fresh baseline after enforce.
   capture audit
   observe audit
   python3 "$helpers/verify_live_audit.py" --context "$context" \

@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -90,8 +92,41 @@ func (c *FakeWorkflowClient) Get(ctx context.Context, name string, options v1.Ge
 }
 
 func (c *FakeWorkflowClient) List(ctx context.Context, opts v1.ListOptions) (*util.ExecutionSpecList, error) {
-	glog.Error("This fake method is not yet implemented")
-	return nil, nil
+	selector, err := labels.Parse(opts.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	result := util.ExecutionSpecList{}
+	for _, workflow := range c.workflows {
+		if selector.Matches(labels.Set(workflow.Labels)) {
+			result = append(result, util.NewWorkflow(workflow.DeepCopy()))
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ExecutionName() < result[j].ExecutionName() })
+	return &result, nil
+}
+
+// ListPage returns bounded fake inventory with explicit continuation.
+func (c *FakeWorkflowClient) ListPage(ctx context.Context, opts v1.ListOptions) (util.ExecutionSpecList, string, error) {
+	all, err := c.List(ctx, opts)
+	if err != nil {
+		return nil, "", err
+	}
+	start := 0
+	if opts.Continue != "" {
+		start, err = strconv.Atoi(opts.Continue)
+	}
+	if err != nil || start < 0 || start > len(*all) || opts.Limit <= 0 {
+		return nil, "", fmt.Errorf("invalid fake inventory page")
+	}
+	end := min(start+int(opts.Limit), len(*all))
+	next := ""
+	if end < len(*all) {
+		next = strconv.Itoa(end)
+	}
+	return (*all)[start:end], next, nil
 }
 
 func (c *FakeWorkflowClient) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
