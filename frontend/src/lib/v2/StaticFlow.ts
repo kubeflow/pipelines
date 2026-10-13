@@ -14,14 +14,15 @@
 
 import dagre from 'dagre';
 import { Edge, MarkerType, Node, Position } from '@xyflow/react';
-import ArtifactNode from 'src/components/graph/ArtifactNode';
-import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
-import ExecutionNode from 'src/components/graph/ExecutionNode';
-import SubDagNode from 'src/components/graph/SubDagNode';
+import {
+  ArtifactFlowElementData,
+  FlowElementDataBase,
+  SubDagTaskData,
+} from 'src/components/graph/Constants';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 
-export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
+import type { PipelineFlowElement } from './FlowTypes';
 
 export function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
   return !('source' in el) && !('target' in el);
@@ -47,12 +48,6 @@ export enum NodeTypeNames {
   ARTIFACT = 'ARTIFACT',
   SUB_DAG = 'SUB_DAG',
 }
-
-export const NODE_TYPES = {
-  [NodeTypeNames.EXECUTION]: ExecutionNode,
-  [NodeTypeNames.ARTIFACT]: ArtifactNode,
-  [NodeTypeNames.SUB_DAG]: SubDagNode,
-};
 
 export enum TaskType {
   EXECUTOR,
@@ -136,6 +131,20 @@ export function buildDag(
   let flowGraph: PipelineFlowElement[] = [];
 
   const tasksMap = dag.tasks || {};
+  for (const [key, task] of Object.entries(tasksMap)) {
+    const reference = task.componentRef?.name;
+    const target = reference ? componentsMap[reference] : undefined;
+    if (!target) {
+      throw new Error(
+        `Task "${key}" references missing component "${reference || '(unset)'}". Correct its componentRef in the pipeline spec.`,
+      );
+    }
+    if (!task.taskInfo?.name || (!target.executorLabel && !target.dag)) {
+      throw new Error(
+        `Task "${key}" has no display name or executable component. Correct its taskInfo and component definition.`,
+      );
+    }
+  }
 
   addTaskNodes(tasksMap, componentsMap, flowGraph);
   addInputArtifactNodes(componentSpec.inputDefinitions?.artifacts, flowGraph);
@@ -184,9 +193,19 @@ function addTaskNodes(
       flowGraph.push(node);
     } else if (componentSpec.dag) {
       // dag exists means this is a sub-DAG instance.
-      const node: Node<FlowElementDataBase> = {
+      const node: Node<SubDagTaskData> = {
         id: getTaskNodeKey(taskKey),
-        data: { label: name, taskType: TaskType.DAG },
+        data: {
+          label: name,
+          taskType: TaskType.DAG,
+          componentRefName,
+          groupKind:
+            taskSpec.parameterIterator || taskSpec.artifactIterator
+              ? 'Loop'
+              : taskSpec.triggerPolicy?.condition
+                ? 'Condition'
+                : 'Sub-DAG',
+        },
         position: { x: 100, y: 200 },
         type: NodeTypeNames.SUB_DAG,
       };
@@ -419,7 +438,10 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
 
   flowGraph.forEach((el) => {
     if (isNode(el)) {
-      dagreGraph.setNode(el.id, { width: nodeWidth, height: nodeHeight });
+      dagreGraph.setNode(el.id, {
+        width: el.width ?? nodeWidth,
+        height: el.height ?? nodeHeight,
+      });
     } else {
       dagreGraph.setEdge(el.source, el.target);
     }
@@ -433,12 +455,10 @@ export function buildGraphLayout(flowGraph: PipelineFlowElement[]) {
       el.sourcePosition = Position.Bottom;
       el.targetPosition = Position.Top;
 
-      // unfortunately we need this little hack to pass a slightly different position
-      // to notify react flow about the change. Moreover we are shifting the dagre node position
-      // (anchor=center center) to the top left so it matches the react flow node anchor point (top left).
+      // Dagre uses center coordinates; React Flow uses the top-left corner.
       el.position = {
-        x: nodeWithPosition.x - nodeWidth / 2 + Math.random() / 1000,
-        y: nodeWithPosition.y - nodeHeight / 2,
+        x: nodeWithPosition.x - (el.width ?? nodeWidth) / 2,
+        y: nodeWithPosition.y - (el.height ?? nodeHeight) / 2,
       };
     }
     return el;

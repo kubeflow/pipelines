@@ -25,7 +25,7 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { color, commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/StaticGraphParser';
@@ -36,7 +36,8 @@ import {
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import type { LayerElementsResolver, LayerFlowElement } from 'src/lib/v2/FlowTypes';
+import { convertFlowElements, getNodeName } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -55,6 +56,7 @@ import DagCanvas from './v2/DagCanvas';
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
+const ROOT_LAYERS = ['root'];
 
 interface MlmdPackage {
   executions: Execution[];
@@ -91,10 +93,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
   const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
-  const [flowElements, setFlowElements] = useState(initialElements);
-  const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
+  const [selectedNode, setSelectedNode] = useState<LayerFlowElement | null>(null);
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
@@ -147,37 +147,46 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     }
   }, [isError, isSuccess, error, experimentIsError, experimentError, updateBanner]);
 
-  const layerChange = useCallback(
-    (layers: string[]) => {
-      setSelectedNode(null);
-      setLayers(layers);
-      setFlowElements(
-        convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
-      ); // render elements in the sub-layer.
-    },
-    [data, pipelineSpec],
-  );
-
   const dynamicFlowElements = useMemo(() => {
     if (!isSuccess || !data) {
-      return flowElements;
+      return initialElements;
     }
 
-    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
     return updateFlowElementsState(
-      layers,
-      flowElements,
+      ROOT_LAYERS,
+      initialElements,
       data.executions,
       data.events,
       data.artifacts,
     );
-  }, [data, flowElements, isSuccess, layers]);
+  }, [data, initialElements, isSuccess]);
 
-  const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
-    setSelectedNode(element);
+  const getSubDagElements = useCallback<LayerElementsResolver>(
+    (layers) => {
+      const elements = convertSubDagToRuntimeFlowElements(
+        pipelineSpec,
+        layers,
+        data ? data.executions : [],
+      );
+      if (!data) {
+        return elements;
+      }
+      return updateFlowElementsState(
+        layers,
+        elements,
+        data.executions,
+        data.events,
+        data.artifacts,
+      );
+    },
+    [data, pipelineSpec],
+  );
+
+  const onElementSelection = (_event: ReactMouseEvent, selection: LayerFlowElement) => {
+    setSelectedNode(selection);
     if (data) {
       setSelectedNodeMlmdInfo(
-        getNodeMlmdInfo(element, data.executions, data.events, data.artifacts),
+        getNodeMlmdInfo(selection.element, data.executions, data.events, data.artifacts),
       );
     }
   };
@@ -212,29 +221,36 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
         {/* DAG tab */}
         {selectedTab === 0 && (
-          <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+          <div
+            className={commonCss.page}
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              borderTop: `8px solid ${color.background}`,
+            }}
+          >
             <DagCanvas
-              layers={layers}
-              onLayersUpdate={layerChange}
+              graphId={`run:${runId}`}
+              layers={ROOT_LAYERS}
               elements={dynamicFlowElements}
+              getSubDagElements={getSubDagElements}
+              selectedElement={selectedNode}
               onElementClick={onElementSelection}
-              setFlowElements={(elems) => setFlowElements(elems)}
             ></DagCanvas>
 
             {/* Side panel for Execution, Artifact, Sub-DAG. */}
             <div className='z-20'>
               <SidePanel
                 isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
+                title={getNodeName(selectedNode?.element ?? null)}
                 onClose={() => setSelectedNode(null)}
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
-                  layers={layers}
-                  onLayerChange={layerChange}
+                  layers={selectedNode?.layers ?? ROOT_LAYERS}
                   pipelineJobString={pipelineJobStr}
                   runId={runId}
-                  element={selectedNode}
+                  element={selectedNode?.element}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}
                 ></RuntimeNodeDetailsV2>
