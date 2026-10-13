@@ -39,10 +39,11 @@ dependencies = [
   "python-dateutil",
   "six>=1.10",
   "PyYAML>=5.3,<7",
-  "requests==2.33.0",
+  "requests>=2.33.0,<3",
   "requests-toolbelt>=0.8.0,<2",
   "tabulate>=0.8.6,<1",
-  "urllib3==2.7.0",
+  # 2.6.0 removed HTTPResponse.getheader/getheaders used by the API client.
+  "urllib3!=2.6.0",
 ]
 
 [project.optional-dependencies]
@@ -50,7 +51,7 @@ all = ["kfp[kubernetes,notebooks]", "docker"]
 # Compatibility extra: Kubernetes support is included in the unified SDK.
 kubernetes = []
 notebooks = [
-  "nbclient>=0.10,<1",
+  "nbclient>=0.11.0,<1",
   "ipykernel>=6,<7",
   "jupyter_client>=7,<9",
 ]

@@ -19,4 +19,5 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/.."
 
 cd "${REPO_ROOT}/test/sample-test/hack" && bash update_requirements.sh
-cd "${REPO_ROOT}" && uv lock
+cd "${REPO_ROOT}"
+uv lock

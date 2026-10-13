@@ -48,6 +48,7 @@ on:
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
+      - 'backend/test/constants/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
@@ -248,33 +249,24 @@ jobs:
       contents: read
     strategy:
       matrix:
-        # Partition the API surface across the two existing cache variants.
-        # Complementary filters guarantee that every ApiServerTests spec runs
-        # exactly once, while explicit cache labels divide the expensive run
-        # matrix evenly between matching deployments.
-        # PostgreSQL is scoped to the core multi-user path (cache_enabled=true,
-        # artifact proxy off); other pgx combinations have no overlay yet and are
-        # rejected by deploy-kfp.sh.
-        # TODO: Add pgx + cache_enabled=false entry once a
-        # multiuser/postgresql/cache-disabled kustomize overlay is created.
-        include:
-          - k8s_version: "v1.36.1"
-            cache_enabled: "true"
-            multi_user: "true"
-            db_type: "mysql"
-            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
-          - k8s_version: "v1.36.1"
-            cache_enabled: "true"
-            multi_user: "true"
-            db_type: "pgx"
-            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
-          - k8s_version: "v1.36.1"
+        k8s_version: [ "v1.36.1" ]
+        multi_user: [ "true" ]
+        cache_enabled: [ "true", "false" ]
+        db_type: [ "mysql", "pgx" ]
+        # Manual dispatch retains one user-selected suite per deployment.
+        test_shard: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["all"]' || '["A", "B"]') }}
+        exclude:
+          # No cache-disabled PostgreSQL multi-user overlay exists yet.
+          - db_type: "pgx"
             cache_enabled: "false"
-            multi_user: "true"
-            db_type: "mysql"
+        include:
+          # Preserve the existing cache-specific API coverage within each pair.
+          - cache_enabled: "true"
+            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
+          - cache_enabled: "false"
             test_label: "ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
-    name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} dbType=${{ matrix.db_type }}
+    name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} dbType=${{ matrix.db_type }} shard=${{ matrix.test_shard }}
 
     steps:
       - name: Checkout code
@@ -305,12 +297,17 @@ jobs:
         if: ${{ steps.deploy.outcome == 'success' }}
         env:
           AUTOMATIC_TEST_LABEL: ${{ matrix.test_label }}
+          AUTOMATIC_TEST_SHARD: ${{ matrix.test_shard }}
           DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
           DISPATCH_NAMESPACE: ${{ inputs.namespace }}
         run: |
           NUMBER_OF_NODES=${{ env.NUMBER_OF_MULTI_USER_PARALLEL_NODES }}
           TEST_LABEL=$AUTOMATIC_TEST_LABEL
+          case "$AUTOMATIC_TEST_SHARD" in
+            A) TEST_LABEL="($TEST_LABEL) && (ApiPipelineShardA || Pipeline)" ;;
+            B) TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline)" ;;
+          esac
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
@@ -338,4 +335,4 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}
-          report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}"
+          report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}_shard=${{ matrix.test_shard }}"

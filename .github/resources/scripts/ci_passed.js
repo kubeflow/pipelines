@@ -39,11 +39,36 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
-function successDescription(pr) {
-  // Bind green evidence to the exact checked-in workflow policy. Legacy
-  // statuses and statuses from another base must be reconsidered by recovery.
-  const stamp = require('node:crypto').createHash('sha256')
-    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+async function baseRevision(github, context, pr) {
+  // ONE validated base revision for policy loading, execution freshness,
+  // publication, and the post-publication check. GitHub freezes pr.base.sha at
+  // the PR's last sync, so any use of the frozen sha leaves a stale green
+  // untouched as the base advances. Key every use off the LIVE base branch tip
+  // instead, so an advance revokes the green and forces fresh CI against the
+  // new base. Release branches keep their frozen base.sha behavior.
+  let sha = pr.base.sha;
+  if (pr.base.ref === 'master') {
+    const {data} = await github.rest.git.getRef({
+      ...context.repo, ref: `heads/${pr.base.ref}`,
+    });
+    sha = data.object.sha;
+  }
+  return sha;
+}
+
+function basePolicyStamp(baseRef, baseSha) {
+  // Bind green evidence to the exact checked-in workflow policy. The base
+  // revision is resolved ONCE per cycle and threaded through every site, so
+  // this helper must never re-resolve the live tip (re-resolving can stamp a
+  // green with a base whose evidence was validated against another revision).
+  return require('node:crypto').createHash('sha256')
+    .update(JSON.stringify([baseRef, baseSha])).digest('hex');
+}
+
+function successDescription(pr, baseSha) {
+  // Legacy statuses and statuses from another base must be reconsidered by
+  // recovery. baseSha is the single validated revision resolved by the caller.
+  const stamp = basePolicyStamp(pr.base.ref, baseSha);
   return `Expected CI and all checks passed; base policy ${stamp}.`;
 }
 
@@ -57,7 +82,8 @@ async function recoveryCandidates({github, context}) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
-    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
+    if (status?.state === 'success' &&
+        status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -143,11 +169,17 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
+  const baseSha = await baseRevision(github, context, pr);
+  // Only the live master tip advances behind the publisher's back; release
+  // branches keep their frozen base.sha behavior (see baseRevision). The
+  // freshness check is scoped to the live base so release branches are
+  // unchanged.
+  const liveBase = pr.base.ref === 'master';
   const [inventory, cutoff] = await Promise.all([
-    loadBaseInventory({github, ...context.repo, pullRequest: pr, root}),
+    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, ...inventory, freshAfter: cutoff};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.
@@ -165,7 +197,7 @@ async function evidence(github, context, pr, root) {
       result = await verifyExpectedWorkflows({...args, registrationStartedAt: new Date(start).toISOString()});
     }
   }
-  return result;
+  return {...result, baseSha};
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
@@ -202,6 +234,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
     let state = 'failure';
+    let validatedBaseSha;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
       'PR changed or is closed; complete current-head CI and retry.';
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
@@ -209,6 +242,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
         evidence(github, context, pr, root),
         verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
+      validatedBaseSha = workflows.baseSha;
       core.info(JSON.stringify({workflows, checks}));
       const results = [workflows, checks];
       state = results.some(result => result.state === 'failure') ? 'failure' :
@@ -226,7 +260,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? successDescription(pr) : reason);
+      state === 'success' ? successDescription(pr, validatedBaseSha) : reason);
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {

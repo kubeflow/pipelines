@@ -244,6 +244,9 @@ jobs:
 
       - name: Reset frontend builder before retry
         if: ${{ matrix.image == 'frontend' && steps.save-image.outcome == 'failure' }}
+        # GitHub implicitly adds success() to the rebuild's condition, so a
+        # failed reset would skip the rebuild entirely.
+        continue-on-error: true
         # Allow 120s of helper backoff, 45s of cleanup, and time for Docker work.
         timeout-minutes: 5
         shell: bash
@@ -252,7 +255,10 @@ jobs:
         run: |
           # Preserve daemon diagnostics before discarding a potentially stuck builder.
           timeout 15s docker logs --tail 200 "buildx_buildkit_${BUILDER_NAME}0" || true
-          timeout 30s docker buildx rm --force "$BUILDER_NAME"
+          # setup_builder removes the builder again under its own retry.
+          if ! timeout 30s docker buildx rm --force "$BUILDER_NAME"; then
+            echo "::warning::Could not remove builder $BUILDER_NAME"
+          fi
           bash ./.github/resources/scripts/setup-buildx-with-retry.sh "$BUILDER_NAME"
 
       - name: Rebuild Images in case of failure

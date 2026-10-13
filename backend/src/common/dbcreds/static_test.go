@@ -83,3 +83,53 @@ func TestStaticProviderBuildsPostgresConnector(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, connector)
 }
+
+// A configured CA bundle is a promise that the connection is encrypted. The
+// driver never encrypts a Unix socket, so a socket route -- as the only host or
+// as a fallback -- must be refused rather than quietly connected in the clear.
+func TestStaticProviderRejectsUnencryptedPostgresRoutes(t *testing.T) {
+	provider, err := dbcreds.NewProvider(dbcreds.StaticProviderName, dbcreds.Config{Password: "hunter2"})
+	require.NoError(t, err)
+	caBundle := writeCABundle(t)
+
+	tests := []struct {
+		name string
+		host string
+		want string
+	}{
+		{name: "socket host", host: "/var/run/postgresql", want: "resolves to an unencrypted route"},
+		{name: "socket fallback", host: "db.example.com,/var/run/postgresql", want: "falling back to an unencrypted route"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := provider.Connector(context.Background(), dbcreds.Target{
+				Driver: dbcreds.DriverPostgreSQL,
+				Host:   test.host,
+				Port:   "5432",
+				User:   "root",
+				DBName: "mlpipeline",
+				TLS:    &dbcreds.TLSOptions{CABundlePath: caBundle},
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), test.want)
+			assert.Contains(t, err.Error(), "/var/run/postgresql")
+		})
+	}
+}
+
+// Without a CA bundle nothing was promised, so a socket keeps working as it
+// did before the check existed.
+func TestStaticProviderAllowsPostgresSocketWithoutABundle(t *testing.T) {
+	provider, err := dbcreds.NewProvider(dbcreds.StaticProviderName, dbcreds.Config{Password: "hunter2"})
+	require.NoError(t, err)
+
+	connector, err := provider.Connector(context.Background(), dbcreds.Target{
+		Driver: dbcreds.DriverPostgreSQL,
+		Host:   "/var/run/postgresql",
+		User:   "root",
+		DBName: "mlpipeline",
+		Params: map[string]string{"sslmode": "disable"},
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, connector)
+}

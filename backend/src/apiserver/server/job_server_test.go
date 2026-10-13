@@ -549,3 +549,91 @@ func TestDeleteRecurringRun(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
+
+func TestJobServer_CreateRecurringRun_NamespaceResolution(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct))
+
+	newRecurringRun := func(namespace string) *apiv2beta1.RecurringRun {
+		return &apiv2beta1.RecurringRun{
+			DisplayName:    "job1",
+			Namespace:      namespace,
+			Mode:           apiv2beta1.RecurringRun_ENABLE,
+			MaxConcurrency: 1,
+			Trigger: &apiv2beta1.Trigger{
+				Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+					StartTime: timestamppb.New(time.Unix(1, 0)),
+					Cron:      "1 * * * *",
+				}},
+			},
+			PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+			RuntimeConfig: &apiv2beta1.RuntimeConfig{
+				Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("world")},
+			},
+		}
+	}
+
+	tests := []struct {
+		name          string
+		request       *apiv2beta1.CreateRecurringRunRequest
+		wantNamespace string
+		wantErrMsg    string
+	}{
+		{
+			name:          "namespace on the recurring run body",
+			request:       &apiv2beta1.CreateRecurringRunRequest{RecurringRun: newRecurringRun("ns1")},
+			wantNamespace: "ns1",
+		},
+		{
+			name:          "namespace from the request (?namespace=)",
+			request:       &apiv2beta1.CreateRecurringRunRequest{RecurringRun: newRecurringRun(""), Namespace: "ns1"},
+			wantNamespace: "ns1",
+		},
+		{
+			name:          "recurring run body wins over the request",
+			request:       &apiv2beta1.CreateRecurringRunRequest{RecurringRun: newRecurringRun("ns1"), Namespace: "ns2"},
+			wantNamespace: "ns1",
+		},
+		{
+			name:       "neither is set",
+			request:    &apiv2beta1.CreateRecurringRunRequest{RecurringRun: newRecurringRun("")},
+			wantErrMsg: "a recurring run cannot have an empty namespace in multi-user mode",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// A real UUID generator: the constant-UUID fake collides on the
+			// primary key when a second experiment is created, which surfaces
+			// misleadingly as a duplicate-name error.
+			initEnvVars()
+			clients, err := resource.NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+			require.NoError(t, err)
+			defer clients.Close()
+			manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+			server := createJobServer(manager)
+			md := metadata.New(map[string]string{
+				common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com",
+			})
+			ctx := metadata.NewIncomingContext(context.Background(), md)
+
+			got, err := server.CreateRecurringRun(ctx, tt.request)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrMsg)
+				return
+			}
+			require.NoError(t, err)
+
+			// The recurring run has no experiment of its own, so it must land in
+			// the default experiment of the resolved namespace.
+			experiment, err := manager.GetExperiment(got.GetExperimentId())
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantNamespace, experiment.Namespace)
+			assert.Equal(t, "Default", experiment.Name)
+		})
+	}
+}

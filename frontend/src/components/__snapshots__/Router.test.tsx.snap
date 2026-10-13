@@ -412,6 +412,7 @@ exports[`Router > initial render 1`] = `
             class="separator_furuwhr"
           />
           <button
+            aria-label="Collapse navigation"
             class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
             data-testid="chevron-toggle"
             tabindex="0"

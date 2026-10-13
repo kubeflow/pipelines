@@ -1922,6 +1922,8 @@ class UvReleasePackagesTest(unittest.TestCase):
                     'from kfp.version import __version__\n',
                 'sdk/python/kfp/kubernetes/__init__.py':
                     'from kfp.version import __version__\n',
+                '.github/resources/scripts/export_python_requirements.sh':
+                    '#!/bin/bash\n',
             }
             for relative, content in files.items():
                 path = root / relative
@@ -1943,9 +1945,16 @@ class UvReleasePackagesTest(unittest.TestCase):
             self.assertEqual((root / 'VERSION').read_text(), '2.18.0\n')
             self.assertIn('3.0.0',
                           (root / 'sdk/python/kfp/version.py').read_text())
-            self.assertEqual(
-                runner.run.call_args_list[0],
-                mock.call(['make', '-C', 'sdk', 'generate-python'], cwd=root))
+            self.assertEqual(runner.run.call_args_list[:2], [
+                mock.call(['make', '-C', 'sdk', 'generate-python'], cwd=root),
+                mock.call(['uv', 'lock'], cwd=root),
+            ])
+            self.assertFalse(
+                any(call.args[0][0] == 'bash'
+                    for call in runner.run.call_args_list))
+            self.assertFalse(
+                any(call.args[0][:2] == ['uv', 'export']
+                    for call in runner.run.call_args_list))
             builds = [
                 call.args[0]
                 for call in runner.run.call_args_list
@@ -1956,6 +1965,57 @@ class UvReleasePackagesTest(unittest.TestCase):
                 'sdk/python/dist'
             ]])
             self.assertFalse((root / 'kubernetes_platform/python').exists())
+
+    def test_older_unified_checkout_retains_two_exports(self):
+        """Legacy exports do not depend on whether an old helper is present."""
+        for legacy_exporter_present in (False, True):
+            with self.subTest(legacy_exporter_present=legacy_exporter_present
+                             ), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                bundled_api = root / 'sdk/python/kfp/server_api/__init__.py'
+                bundled_api.parent.mkdir(parents=True)
+                bundled_api.touch()
+                (root / 'requirements.txt').write_text('legacy export\n')
+                if legacy_exporter_present:
+                    exporter = root / '.github/resources/scripts/export_python_requirements.sh'
+                    exporter.parent.mkdir(parents=True)
+                    exporter.write_text('#!/bin/bash\n')
+                runner = mock.Mock(spec=core.CommandRunner)
+                context = mock.Mock(root=root, runner=runner)
+
+                steps._refresh_uv_release_packages(context)
+
+                commands = [call.args[0] for call in runner.run.call_args_list]
+                prefix = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
+                self.assertEqual(commands, [
+                    ['make', '-C', 'sdk', 'generate-python'],
+                    ['uv', 'lock'],
+                    prefix +
+                    ['--format', 'requirements-txt', '-o', 'requirements.txt'],
+                    prefix + [
+                        '--package', 'kfp', '--format', 'requirements-txt',
+                        '-o', 'sdk/python/requirements.txt'
+                    ],
+                    [
+                        'uv', 'build', '--package', 'kfp', '--out-dir',
+                        'sdk/python/dist'
+                    ],
+                ])
+                self.assertEqual((root / '.github').exists(),
+                                 legacy_exporter_present)
+
+    def test_modern_checkout_without_exports_or_helper_builds_only_kfp(self):
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            bundled_api = root / 'sdk/python/kfp/server_api/__init__.py'
+            bundled_api.parent.mkdir(parents=True)
+            bundled_api.touch()
+            runner = mock.Mock(spec=core.CommandRunner)
+            steps._refresh_uv_release_packages(
+                mock.Mock(root=root, runner=runner))
+            commands = [call.args[0] for call in runner.run.call_args_list]
+            self.assertEqual([command[:2] for command in commands],
+                             [['make', '-C'], ['uv', 'lock'], ['uv', 'build']])
 
     def test_update_sdk_versions_regenerates_server_api_and_refreshes_workspace(
             self) -> None:

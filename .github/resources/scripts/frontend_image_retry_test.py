@@ -79,7 +79,7 @@ class FrontendImageRetryTest(unittest.TestCase):
             self.reset['if'],
             "${{ matrix.image == 'frontend' && steps.save-image.outcome == 'failure' }}"
         )
-        self.assertFalse(self.reset.get('continue-on-error', False))
+        self.assertTrue(self.reset['continue-on-error'])
         self.assertLess(
             self.steps.index(self.first), self.steps.index(self.reset))
         self.assertLess(
@@ -101,6 +101,12 @@ class FrontendImageRetryTest(unittest.TestCase):
         self.assertEqual(self.upload['with']['if-no-files-found'], 'error')
         self.assertLess(
             self.steps.index(self.retry), self.steps.index(self.upload))
+
+    def test_reset_outcome_never_gates_the_rebuild(self):
+        self.assertTrue(self.reset['continue-on-error'])
+        self.assertEqual(self.retry['if'], FAILED_ATTEMPT)
+        self.assertNotIn('reset', self.retry['if'])
+        self.assertNotIn('reset', self.upload['if'])
 
     def _run_reset(self,
                    inspect_fails=False,
@@ -235,18 +241,21 @@ printf 'sleep %s\\n' "$*" >> "$COMMAND_LOG"
                       commands)
         self.assertEqual(output, 'builder_name=frontend-retry-test\n')
 
-    def test_required_removal_failure_stops_before_fresh_setup(self):
+    def test_removal_failure_still_recreates_the_builder(self):
         result, commands, output = self._run_reset(remove_fails=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(commands, [
-            'timeout 15s docker logs --tail 200 buildx_buildkit_frontend-retry-test0',
-            'docker logs --tail 200 buildx_buildkit_frontend-retry-test0',
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
             'timeout 30s docker buildx rm --force frontend-retry-test',
-            'docker buildx rm --force frontend-retry-test',
-        ])
-        self.assertEqual(output, '')
+            commands)
+        create = next(
+            c for c in commands if c.startswith('docker buildx create '))
+        self.assertIn('--name frontend-retry-test ', create)
+        self.assertIn('docker buildx inspect frontend-retry-test --bootstrap',
+                      commands)
+        self.assertEqual(output, 'builder_name=frontend-retry-test\n')
 
-    def test_reset_failure_is_not_hidden_by_optional_diagnostics(self):
+    def test_exhausted_setup_still_reports_failure_in_the_log(self):
+        # Best effort at the step level, but the script must still report why.
         result, commands, output = self._run_reset(inspect_fails=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(

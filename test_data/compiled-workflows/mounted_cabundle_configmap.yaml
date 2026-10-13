@@ -193,10 +193,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}

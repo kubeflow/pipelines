@@ -55,7 +55,8 @@ class V2beta1Run(object):
         'plugins_output': 'dict(str, V2beta1PluginOutput)',
         'pipeline_reference': 'V2beta1PipelineVersionReference',
         'task_count': 'int',
-        'tasks': 'list[V2beta1PipelineTask]'
+        'tasks': 'list[V2beta1PipelineTask]',
+        'namespace': 'str'
     }
 
     attribute_map = {
@@ -81,10 +82,11 @@ class V2beta1Run(object):
         'plugins_output': 'plugins_output',
         'pipeline_reference': 'pipeline_reference',
         'task_count': 'task_count',
-        'tasks': 'tasks'
+        'tasks': 'tasks',
+        'namespace': 'namespace'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, pipeline_reference=None, task_count=None, tasks=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, pipeline_reference=None, task_count=None, tasks=None, namespace=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -113,6 +115,7 @@ class V2beta1Run(object):
         self._pipeline_reference = None
         self._task_count = None
         self._tasks = None
+        self._namespace = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -161,6 +164,8 @@ class V2beta1Run(object):
             self.task_count = task_count
         if tasks is not None:
             self.tasks = tasks
+        if namespace is not None:
+            self.namespace = namespace
 
     @property
     def experiment_id(self):
@@ -672,6 +677,29 @@ class V2beta1Run(object):
         """
 
         self._tasks = tasks
+
+    @property
+    def namespace(self):
+        """Gets the namespace of this V2beta1Run.  # noqa: E501
+
+        Optional input field. Namespace this run belongs to. Derived from the parent experiment when experiment_id is set. In multi-user mode with experiment_id omitted, this selects the namespace whose default experiment the run is placed in.  # noqa: E501
+
+        :return: The namespace of this V2beta1Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, namespace):
+        """Sets the namespace of this V2beta1Run.
+
+        Optional input field. Namespace this run belongs to. Derived from the parent experiment when experiment_id is set. In multi-user mode with experiment_id omitted, this selects the namespace whose default experiment the run is placed in.  # noqa: E501
+
+        :param namespace: The namespace of this V2beta1Run.  # noqa: E501
+        :type namespace: str
+        """
+
+        self._namespace = namespace
 
     def to_dict(self):
         """Returns the model properties as a dict"""

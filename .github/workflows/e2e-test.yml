@@ -266,6 +266,43 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
+  dag-scale-test:
+    name: DAG Scale Test - 120 nodes
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: "v1.36.1"
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        with:
+          cache_enabled: "false"
+          argo_version: "v4.1.2"
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+
+      - name: Run 120-node DAG scale test
+        uses: ./.github/actions/test-and-report
+        with:
+          cache_enabled: "false"
+          test_directory: ${{ env.E2E_TESTS_DIR }}
+          test_label: E2EScale
+          num_parallel_nodes: "1"
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: DAGScale120Nodes
+
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
     permissions:
