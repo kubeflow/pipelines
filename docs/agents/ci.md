@@ -234,3 +234,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
 - `release-promote-latest.yml` is upstream/master dispatch-only. Its read-only job derives the image matrix from the immutable published release tag commit. The serialized promotion job alone has `packages: write`, rechecks highest stable release eligibility, snapshots every published full index, and copies only `@digest` to `:latest` without builds. It verifies full indexes and unchanged versioned tags and always uploads partial/success evidence. Dispatch through `kfpr promote-latest --version X.Y.Z`; this workflow must first be merged upstream. Test with `PYTHONPATH=release python -m unittest kfpr.promotion_test`.
 
 - `legacy-native-transfer.yml` qualifies the merged 2.18 exporter against candidate native import in two independent Kind stores. The source uses a pinned 2.18 API server over the published 2.17.2 MLMD runtime; this is archive compatibility coverage, not an in-place upgrade or complete release qualification. See `docs/design/218-native-transfer.md` for checked invariants and exclusions. Keep the existing upgrade pause intact.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
