@@ -1452,6 +1452,7 @@ func TestListK8sPipelineVersions_Pagination_TiedSortValues(t *testing.T) {
 	sorted := slices.Clone(names)
 	slices.Sort(sorted)
 	require.Equal(t, []string{"v1", "v2", "v3", "v4", "v5", "v6"}, sorted, "every version exactly once")
+}
 
 // TestDeleteK8sPipelineAndVersions verifies that DeletePipelineAndVersions
 // explicitly deletes all owned versions before deleting the pipeline itself,
