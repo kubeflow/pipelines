@@ -190,10 +190,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
 
-- Multi-user CI keeps the pinned Kubeflow/Istio manifests and image versions,
-  but migrates rendered `registry.istio.io/release` and `gcr.io/istio-release`
-  references to `docker.io/istio` before applying them. This includes CNI,
-  gateway/control-plane images and embedded injector hub values. Empty renders,
-  unknown retired endpoints and pipeline failures abort deployment. Istio has
-  announced outage tests and December 2026 retirement of the old registries:
-  https://istio.io/latest/blog/2026/retirement-of-gcp/.
+- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
+  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+  gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
+  When advancing this pin, review and render all four consumed paths, including
+  the profile controller; the pin selects more than Istio images.
