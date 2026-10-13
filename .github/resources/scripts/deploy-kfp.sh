@@ -189,7 +189,14 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
   kubectl apply -k "https://github.com/kubeflow/manifests/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
   kubectl apply -k "https://github.com/kubeflow/manifests/common/istio/istio-namespace/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
-  kubectl apply -k "https://github.com/kubeflow/manifests/common/istio/istio-install/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  # Include embedded injector hubs, not only Deployment image fields.
+  # Pipe failures must abort deployment even when kubectl apply exits zero.
+  (
+    set -o pipefail
+    kubectl kustomize "https://github.com/kubeflow/manifests/common/istio/istio-install/base?ref=${KUBEFLOW_MANIFESTS_SHA}" |
+      python3 "${C_DIR}/migrate_istio_registry.py" |
+      kubectl apply -f -
+  )
   echo "Waiting for all Istio Pods to become ready..."
   wait_for_pods_ready istio-system "" 300s "Istio pods"
 
