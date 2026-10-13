@@ -46,7 +46,7 @@ import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { color, commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/DetailsTableTypes';
@@ -559,7 +559,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         <MD2Tabs selectedTab={activeTab} tabs={TAB_NAMES} onSwitch={switchTab} />
         {/* DAG tab */}
         {activeTab === 0 && (
-          <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+          <div
+            className={commonCss.page}
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              borderTop: `8px solid ${color.background}`,
+            }}
+          >
             <DagCanvas
               layers={layers}
               elements={dynamicFlowElements}

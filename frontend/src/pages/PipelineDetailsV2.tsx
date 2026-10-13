@@ -28,7 +28,7 @@ import type {
   PipelineFlowElement,
 } from 'src/lib/v2/FlowTypes';
 
-import { commonCss, padding } from 'src/Css';
+import { color, commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
@@ -67,7 +67,14 @@ function PipelineDetailsV2({
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
       <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
       {selectedTab === 0 && (
-        <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+        <div
+          className={commonCss.page}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderTop: `8px solid ${color.background}`,
+          }}
+        >
           <DagCanvas
             layers={layers}
             elements={pipelineFlowElements}
