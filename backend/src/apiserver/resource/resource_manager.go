@@ -1426,7 +1426,17 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 				// Owned placeholder without activation: resume activation
 				// under the placeholder UID. Do not persist the empty
 				// suspended placeholder as a successful Running run.
+				// This starts new work, so re-check pipeline source and
+				// service-account authorization before activating — an
+				// expired claim must not bypass those checks.
 				glog.Warningf("Run %s has an expired retry claim (generation %d) with an owned placeholder; resuming activation", runId, run.RetryGeneration)
+				allowCompilerPodSpecPatch, authErr := r.allowsCompilerPodSpecPatch(run.PipelineSpec)
+				if authErr != nil {
+					return util.Wrapf(authErr, "Failed to retry run %s due to error determining its pipeline source", runId)
+				}
+				if authErr := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace, "retry_run"); authErr != nil {
+					return util.Wrapf(authErr, "Failed to retry run %s due to service account authorization error", runId)
+				}
 				newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(run.RetryGeneration, 10))
 				activated, resumeErr := r.resumeRetryPlaceholderActivation(ctx, namespace, run, newExecSpec, liveWorkflow)
 				if resumeErr != nil {
@@ -1487,18 +1497,21 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
-	// Capture the workflow name the retry operates on before newExecSpec is
-	// reassigned (it is nil on error). This is the name from the stored
-	// runtime manifest, which is the object updateOrCreateRetryWorkflow
-	// mutates; run.K8SName can diverge from it.
+	// Capture the workflow name and prepared retry specification before
+	// updateOrCreateRetryWorkflow reassigns newExecSpec (nil on error). The
+	// name comes from the stored runtime manifest, which is the object
+	// updateOrCreateRetryWorkflow mutates; run.K8SName can diverge from it.
+	// Keep preparedRetrySpec for immediate placeholder activation recovery —
+	// the nil error result must not be passed to resume.
 	retryWorkflowName := newExecSpec.ExecutionName()
+	preparedRetrySpec := newExecSpec
 	// Reset attempt-local task state before resuming Argo so a failed DB reset
 	// cannot leave a live workflow against stale task/link rows. Reset is
 	// idempotent if the subsequent workflow write fails.
 	if err := r.resetRetriedTaskState(run); err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
 	}
-	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, run, newExecSpec)
+	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, run, preparedRetrySpec)
 	if err != nil {
 		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
 		// are ambiguous: the API server may have applied the running workflow
@@ -1529,7 +1542,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			// resume activation instead of persisting the empty placeholder.
 			glog.Warningf("Retry workflow for run %s returned error with an owned placeholder for claim generation %d; resuming activation. Original error: %v",
 				runId, claimGeneration, err)
-			activated, resumeErr := r.resumeRetryPlaceholderActivation(ctx, namespace, run, newExecSpec, liveWorkflow)
+			activated, resumeErr := r.resumeRetryPlaceholderActivation(ctx, namespace, run, preparedRetrySpec, liveWorkflow)
 			if resumeErr != nil {
 				glog.Warningf("Retry workflow for run %s owned-placeholder activation failed; preserving claimed row. Resume error: %v; original error: %v",
 					runId, resumeErr, err)
@@ -1725,6 +1738,25 @@ func adoptExecutionIdentity(dst, src util.ExecutionSpec) {
 	dstMeta.UID = srcMeta.UID
 	dstMeta.ResourceVersion = srcMeta.ResourceVersion
 	dstMeta.CreationTimestamp = srcMeta.CreationTimestamp
+}
+
+// copyStoredWorkflowIdentityFields copies only Kubernetes identity metadata
+// from src onto dst, leaving dst's specification, phase, and nodes intact.
+// Used when repairing a legacy stored runtime manifest that lacked a UID.
+func copyStoredWorkflowIdentityFields(dst, src util.ExecutionSpec) error {
+	if dst == nil || src == nil {
+		return fmt.Errorf("missing workflow identity copy inputs")
+	}
+	dstMeta := dst.ExecutionObjectMeta()
+	srcMeta := src.ExecutionObjectMeta()
+	if dstMeta == nil || srcMeta == nil {
+		return fmt.Errorf("missing workflow object metadata")
+	}
+	dstMeta.UID = srcMeta.UID
+	dstMeta.Name = srcMeta.Name
+	dstMeta.Namespace = srcMeta.Namespace
+	dstMeta.CreationTimestamp = srcMeta.CreationTimestamp
+	return nil
 }
 
 func isRetryableWorkflowReconcileError(err error) bool {
@@ -3387,11 +3419,29 @@ func (r *ResourceManager) repairLegacyStoredWorkflowIdentityBeforeRetryReconcile
 	expectedStoredWorkflowIdentityManifest := storedWorkflowIdentityManifest(run)
 	expectedState := run.State
 
+	// Repair only validated identity fields on the retained terminal
+	// manifest. Saving verifiedLive wholesale would replace Failed/Error
+	// node data with an empty placeholder (or other live) snapshot when
+	// retry creates a status-free CR after the original Workflow is gone.
+	storedManifest := string(run.WorkflowRuntimeManifest)
+	if storedManifest == "" {
+		storedManifest = string(run.PipelineRuntimeManifest)
+	}
+	storedSpec, parseErr := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(storedManifest))
+	if parseErr != nil {
+		return storedIdentity, util.Wrapf(parseErr,
+			"Failed to parse stored workflow while repairing legacy identity for run %s", runID)
+	}
+	if err := copyStoredWorkflowIdentityFields(storedSpec, verifiedLive); err != nil {
+		return storedIdentity, util.Wrapf(err,
+			"Failed to copy legacy workflow identity for run %s", runID)
+	}
+
 	run.K8SName = verifiedLive.ExecutionName()
 	if legacySingleUserRow {
 		run.Namespace = verifiedLive.ExecutionNamespace()
 	}
-	run.WorkflowRuntimeManifest = model.LargeText(verifiedLive.ToStringForStore())
+	run.WorkflowRuntimeManifest = model.LargeText(storedSpec.ToStringForStore())
 
 	updated, err := r.runStore.UpdateRunFromWorkflow(
 		run,
