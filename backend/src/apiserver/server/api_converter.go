@@ -1843,7 +1843,14 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 	}
 	if apiTask.LifecycleCategory != nil {
 		category := apiTask.GetLifecycleCategory()
+		if category != "" && apiTask.GetLifecycleMessage() == "" {
+			return nil, util.NewInvalidInputError("lifecycle_category requires a non-empty lifecycle_message")
+		}
 		task.LifecycleCategory = &category
+	} else if apiTask.LifecycleMessage != nil && apiTask.GetLifecycleMessage() == "" {
+		// Clearing the message clears the category with it.
+		cleared := ""
+		task.LifecycleCategory = &cleared
 	}
 
 	return task, nil

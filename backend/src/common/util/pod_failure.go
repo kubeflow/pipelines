@@ -106,6 +106,18 @@ func ClassifyPodFailure(message, phase string) PodFailure {
 }
 
 func getFailureCategoryForMessage(message string) FailureCategory {
+	if category := matchFailureCategory(message); category != FailureCategoryUnknown {
+		return category
+	}
+	// Argo can prefix the container name, as in "main: OOMKilled (exit code 137)".
+	// Retry on the text after a single-word prefix so that name is not taken as the reason.
+	if prefix, rest, found := strings.Cut(message, ":"); found && !strings.ContainsAny(strings.TrimSpace(prefix), " \t") {
+		return matchFailureCategory(strings.TrimSpace(rest))
+	}
+	return FailureCategoryUnknown
+}
+
+func matchFailureCategory(message string) FailureCategory {
 	lower := strings.ToLower(message)
 	reason := strings.ToLower(lifecycleMessageReason(message))
 
@@ -121,7 +133,7 @@ func getFailureCategoryForMessage(message string) FailureCategory {
 	}
 	// A bare Error reason is a runtime failure. "Error (exit code N)" has no
 	// colon, so its reason is the whole string and does not match.
-	if hasExactReason(reason, runtimeReasonCodes) || reason == "error" {
+	if reasonStartsWithCode(reason, runtimeReasonCodes) || reason == "error" {
 		return FailureCategoryRuntime
 	}
 	return FailureCategoryUnknown
@@ -130,6 +142,16 @@ func getFailureCategoryForMessage(message string) FailureCategory {
 func hasExactReason(reason string, codes []string) bool {
 	for _, code := range codes {
 		if reason == code {
+			return true
+		}
+	}
+	return false
+}
+
+// reasonStartsWithCode matches a code on its own or followed by detail, such as "OOMKilled (exit code 137)".
+func reasonStartsWithCode(reason string, codes []string) bool {
+	for _, code := range codes {
+		if reason == code || strings.HasPrefix(reason, code+" ") {
 			return true
 		}
 	}

@@ -191,3 +191,25 @@ func TestClassifyPodFailure_ImagePullNotClassifiedAsRuntime(t *testing.T) {
 	assert.Equal(t, FailureCategoryImagePull, got.Category)
 	assert.Equal(t, FailureTierWarning, got.Tier)
 }
+
+func TestClassifyPodFailure_ContainerPrefixedMessages(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		wantCat FailureCategory
+	}{
+		{"oom with container prefix", "main: OOMKilled (exit code 137)", FailureCategoryRuntime},
+		{"oom without prefix and with exit code", "OOMKilled (exit code 137)", FailureCategoryRuntime},
+		{"crash loop with container prefix", "main: CrashLoopBackOff", FailureCategoryRuntime},
+		{"bare error with container prefix", "wait: Error", FailureCategoryRuntime},
+		{"user exit code with container prefix stays unknown", "main: Error (exit code 1)", FailureCategoryUnknown},
+		{"unrelated text with prefix stays unknown", "main: something went wrong", FailureCategoryUnknown},
+		{"multi-word prefix is not a container name", "the pod: OOMKilled (exit code 137)", FailureCategoryUnknown},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ClassifyPodFailure(tt.message, "Failed")
+			assert.Equal(t, tt.wantCat, got.Category)
+		})
+	}
+}
