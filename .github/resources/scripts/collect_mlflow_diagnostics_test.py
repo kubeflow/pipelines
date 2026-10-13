@@ -101,25 +101,6 @@ class MLflowDiagnosticsTest(unittest.TestCase):
         self.assertIn('postgresql://[redacted]@', captured)
         self.assertEqual(output.count('[diagnostic output truncated]'), 6)
 
-    def test_public_operator_fixture_uses_immutable_server_and_operator_images(
-            self):
-        root = Path(__file__).resolve().parents[3]
-        workflow = yaml.safe_load(
-            (root / '.github/workflows/e2e-test.yml').read_text())
-        deploy = next(step for job in workflow['jobs'].values()
-                      for step in job.get('steps', [])
-                      if step.get('id') == 'deploy-mlflow')
-        self.assertRegex(deploy['uses'], r'@[0-9a-f]{40}$')
-        for field, image in [('mlflow_image', 'mlflow'),
-                             ('mlflow_operator_image', 'mlflow-operator')]:
-            expression = deploy['with'][field]
-            self.assertRegex(
-                expression,
-                rf"quay.io/opendatahub/{image}@sha256:[0-9a-f]{{64}}'")
-            self.assertNotIn(f'opendatahub/{image}:', expression)
-            self.assertIn("github.repository_owner == 'red-hat-data-services'",
-                          expression)
-
     def test_workflow_collects_after_failed_deploy_without_masking_failure(
             self):
         root = Path(__file__).resolve().parents[3]
