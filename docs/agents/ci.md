@@ -150,3 +150,10 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
   failures remain failures and the disposable cluster is always deleted.
+
+- Kubernetes-auth MLflow E2E lanes pin the ODH runtime and operator by digest as
+  a compatible MLflow 3.15.2 pair. The operator refuses database migration when
+  the runtime version differs from its supported version, holding serving
+  replicas at zero. Update both pins together after checking runtime provenance,
+  operator-supported version, and all four file/S3 and cache-enabled/disabled
+  combinations. The separate `red-hat-data-services` image selection is unchanged.
