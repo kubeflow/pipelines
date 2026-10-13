@@ -129,16 +129,6 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
-
-- Docker mirror setup only modifies and restarts an active local systemd Docker
-  service. Containerized/provider-managed runners without that service retain
-  their daemon configuration; the helper still requires `docker info` to succeed.
-  Configure daemon mirrors in the runner provider when local service management
-  is unavailable. BuildKit mirror configuration remains independent.
-- The deploy action provisions GitHub CLI when absent on Linux runners, using a
-  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
-  installations remain in use. Image-artifact polling fails immediately when
-  invoked without `gh`; missing runner dependencies are not publication delays.
 - The readiness workflow also runs `tools/upgrade-readiness/conformance.py` against the exact backend revision in `schedule_policy.POLICY_SOURCE`. A Go overlay adds the fixture test without editing that checkout. This compares Python predictions with real backend main-account policy code under controlled SAR responses; it is not live RBAC, schedule firing, or upgrade validation. The pinned revision and policy contract must be reviewed together when the modeled policy changes.
 
 - `upgrade-test.yml` includes paused `readiness-schedules` scaffolding for a
@@ -164,3 +154,7 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+- The deploy action provisions GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
