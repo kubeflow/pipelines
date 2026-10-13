@@ -151,6 +151,8 @@ Static collection members must:
 - be pipeline channels;
 - represent scalar values rather than list-valued parameter or artifact
   channels;
+- be independently valid scalar references at the consumer's control-flow
+  scope;
 - all be parameters or all be artifacts; and
 - have compatible channel types.
 
@@ -158,6 +160,13 @@ The SDK rejects empty collections because their type cannot be inferred. It
 also rejects `dsl.OneOf` and nested `dsl.Collected` values because those
 constructs have different control-flow semantics. Restricting members to scalar
 channels avoids introducing nested-list or implicit flattening semantics.
+
+Existing control-flow restrictions apply to every member independently. A
+producer in the consumer's current loop iteration and an outer-to-inner
+broadcast are valid. Inner-to-outer and sibling-loop references are not static
+fan-in and are rejected, as are existing illegal escapes from `dsl.If` and
+`dsl.ExitHandler`. Parameter selectors from `LoopArgumentVariable` are retained
+on the corresponding list item.
 
 ### Backward Compatibility and Migration
 
@@ -183,13 +192,21 @@ Each task input currently identifies one source, such as an upstream task output
 or a parent component input. Static fan-in requires one task input to retain an
 ordered set of those references.
 
-Add list variants to the existing task-input definitions. Each item reuses the
-existing scalar input reference:
+Add list variants to the existing task-input definitions. List items use
+non-recursive scalar reference messages so directly submitted pipeline
+specifications cannot express nested lists or unrelated input kinds:
 
 ```protobuf
 message InputArtifactSpec {
+  message ArtifactListItemSpec {
+    oneof kind {
+      TaskOutputArtifactSpec task_output_artifact = 1;
+      string component_input_artifact = 2;
+    }
+  }
+
   message ArtifactListSpec {
-    repeated InputArtifactSpec items = 1;
+    repeated ArtifactListItemSpec items = 1;
   }
 
   oneof kind {
@@ -199,8 +216,17 @@ message InputArtifactSpec {
 }
 
 message InputParameterSpec {
+  message ParameterListItemSpec {
+    oneof kind {
+      TaskOutputParameterSpec task_output_parameter = 1;
+      string component_input_parameter = 2;
+    }
+
+    string parameter_expression_selector = 3;
+  }
+
   message ParameterListSpec {
-    repeated InputParameterSpec items = 1;
+    repeated ParameterListItemSpec items = 1;
   }
 
   oneof kind {
@@ -210,13 +236,26 @@ message InputParameterSpec {
 }
 ```
 
-Reusing the existing input reference types preserves order and supports channels
-surfaced through nested DAG boundaries. Although the recursive protobuf shape
-can represent a list inside another list, nested lists are not valid for this
-feature. Pipeline validation rejects nested list variants and list items that
-reference list-valued task outputs or component inputs. This validation applies
-to directly submitted pipeline specifications as well as SDK-compiled
-pipelines.
+The item messages intentionally exclude runtime constants, task-final-status
+inputs, nested list variants, and list-valued source references. A parameter
+item selector is evaluated before the selected value is appended to the result.
+The outer `InputParameterSpec.parameter_expression_selector` is invalid when
+`parameter_list` is selected.
+
+A shared semantic validator runs for every pipeline-spec ingestion path before
+driver execution. It verifies that:
+
+- the destination input exists;
+- `parameter_list` targets a `LIST` parameter;
+- `artifact_list` targets an artifact input with `is_artifact_list = true`;
+- every source is scalar and valid at the consumer's control-flow scope;
+- all artifact sources are schema-compatible with the destination; and
+- all parameter sources are homogeneous where the IR retains enough type
+  information to determine that.
+
+The pipeline IR does not retain the element type of `List[T]` parameters, so
+backend validation cannot recover or enforce `T`. The SDK continues to perform
+the stronger source-language type check.
 
 ### SDK and Backend
 
@@ -225,6 +264,15 @@ as an input of the consumer, and emits the ordered list. The backend compiler
 adds every referenced producer as an implicit dependency. At runtime, the
 driver resolves each item through the existing scalar input paths into an
 ordered parameter list or artifact list.
+
+KFP v3 stores artifacts and task relationships in the native KFP task and
+artifact APIs rather than ML Metadata. Static artifact fan-in must preserve
+authored order and duplicates through those APIs and across nested DAG
+boundaries. The native artifact-task input relationship therefore records a
+collection position. Hydration orders static collection members by that
+position, and relationship uniqueness includes the position so a collection
+such as `[a, b, a]` remains valid. Loop collection continues to use its existing
+iteration identity.
 
 ### KFP Local Considerations
 
@@ -238,6 +286,9 @@ The generated TypeScript pipeline-spec bindings must be regenerated for the new
 input variants. Static graph parsing must inspect each parameter-list and
 artifact-list item so every producer is connected to the consumer. Artifact
 members retain the existing producer-to-artifact-to-consumer visualization.
+Artifact edge IDs include the producer task, output key, consumer task, and list
+position so producers with the same output key and repeated members create
+distinct edges.
 
 Static fan-in does not add a pipeline-level runtime input or change the run
 creation experience.
@@ -246,11 +297,19 @@ creation experience.
 
 SDK tests will cover existing single-channel behavior, each new constructor
 form, ordering, nested DAG boundaries, and invalid collections, including
-list-valued members. Backend tests will cover validation of directly submitted
-nested or list-valued references, dependency inference, and ordered resolution
-for parameter and artifact lists. KFP Local tests will execute both input kinds.
-Frontend tests will verify parameter and artifact edges for every collected
-producer.
+list-valued members. Control-flow tests will cover same-iteration,
+outer-to-inner, inner-to-outer, sibling-loop, `dsl.If`, and `dsl.ExitHandler`
+references, including per-item parameter selectors.
+
+Backend tests will cover direct-IR validation for unsupported item kinds,
+selectors, missing or scalar destinations, incompatible artifact schemas,
+dependency inference, and ordered resolution. A nested remote artifact
+regression will verify exact count, order, and duplicates with `[a, b, a]`
+through the native task and artifact APIs. KFP Local tests will execute both
+input kinds.
+
+Frontend tests will use multiple producers with the same output key and a
+repeated member, verifying distinct edge IDs and every expected source.
 
 An integration test will execute the issue #11930 example with three independent
 model trainers and one `Input[List[Model]]` evaluator.
