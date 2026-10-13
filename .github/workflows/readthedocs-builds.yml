@@ -49,6 +49,9 @@ jobs:
       - name: Test release automation
         run: uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
 
+      - name: Verify SDK docs build without font downloads
+        run: uv run python -m unittest discover -s docs/sdk -p '*_test.py'
+
       - name: Build KFP SDK Docs
         working-directory: docs/sdk
         run: |
