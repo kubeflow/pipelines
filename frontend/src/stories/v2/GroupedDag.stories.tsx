@@ -8,6 +8,7 @@ import DagCanvas from 'src/pages/v2/DagCanvas';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import {
   conditionSpec,
+  deeplyNestedSpec,
   exitHandlerSpec,
   loopSpec,
   loopTasks,
@@ -109,6 +110,13 @@ export const TwentyFiveSubDags: Story = {
   args: {
     spec: manySubDagsSpec(25, 5),
     title: '25 sub-DAGs — five parallel branches',
+  },
+};
+
+export const HundredComponentsTwentyLevels: Story = {
+  args: {
+    spec: deeplyNestedSpec(),
+    title: '100 components — 20 levels of nesting',
   },
 };
 
