@@ -1,28 +1,28 @@
-# High Availability
+# High availability
 
-The Kubeflow Pipelines manifests run one replica of each component and define no
+The Kubeflow Pipelines manifests deploy one replica of each component and define no
 PodDisruptionBudgets (PDBs). This guide lists the components you can run with more
 than one replica, shows an example overlay that adds replicas, pod anti-affinity, and
 PDBs, and explains which components must stay at one replica.
 
 :::{tip}
 Replica counts depend on your load and availability targets, so this guide doesn't
-recommend specific numbers. The default manifests are unchanged; apply the settings
-below in your own Kustomize overlay.
+recommend specific numbers. Apply the settings below in your own Kustomize overlay;
+this guide doesn't change the default manifests.
 :::
 
 ## Which components can run more than one replica
 
 | Component | Deployment | More than one replica | Notes |
 | --- | --- | --- | --- |
-| API server | `ml-pipeline` | Yes | Serves requests statelessly. Each replica reconciles ScheduledWorkflow resources once at startup and [skips conflicting updates](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/resource/resource_manager.go#L1031). Run garbage collection, when enabled, uses [leader election](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/gc/run_gc.go#L216), so only one replica collects. See [installs and upgrades](#install-and-upgrade-the-api-server-with-one-replica). |
-| UI | `ml-pipeline-ui` | Yes | Serves requests statelessly. All replicas share the [TensorBoard proxy signing secret](server-config.md#tensorboard-proxy-signing-secret). |
-| Profile controller (multi-user) | `kubeflow-pipelines-profile-controller` | Yes | Stateless metacontroller webhook. Metacontroller never syncs the same namespace concurrently. Use a release that includes [kubeflow/pipelines#14809](https://github.com/kubeflow/pipelines/pull/14809) (2.18.0 and later), which adds [a health endpoint and a threaded server](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L619-L649). |
+| API server | `ml-pipeline` | Yes | Serves requests statelessly. Each replica reconciles ScheduledWorkflow resources once at startup and [skips conflicting updates](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/resource/resource_manager.go#L1031). Garbage collection of expired runs, when enabled, uses [leader election](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/gc/run_gc.go#L216), so only one replica collects. See [API server installs and upgrades](#api-server-installs-and-upgrades). |
+| UI | `ml-pipeline-ui` | Yes | Serves requests statelessly. All replicas share the [TensorBoard proxy signing secret](server-config.md#tensorboard-proxy-signing-secret). The Deployment uses the `Recreate` strategy by default, so upgrades stop all UI Pods before starting new ones; to keep the UI available during upgrades, [enable rolling UI updates](server-config.md#enabling-rolling-ui-updates). |
+| Profile controller (multi-user) | `kubeflow-pipelines-profile-controller` | Yes | Stateless metacontroller webhook. Metacontroller never syncs the same namespace concurrently. Use a release that includes [kubeflow/pipelines#14809](https://github.com/kubeflow/pipelines/pull/14809) (2.18.0 or later), which adds [a health endpoint and a threaded server](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L619-L649). |
 | Scheduled workflow controller | `ml-pipeline-scheduledworkflow` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 | Persistence agent | `ml-pipeline-persistenceagent` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 | Viewer controller | `ml-pipeline-viewer-crd` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 
-### Install and upgrade the API server with one replica
+### API server installs and upgrades
 
 Every API server replica checks and migrates the database schema when it starts.
 These startup migrations are [not coordinated across replicas](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/client_manager/client_manager.go#L1358-L1364),
@@ -36,14 +36,16 @@ that needs changes:
   `maxUnavailable: 0`. The default strategy (`maxSurge` and `maxUnavailable` of 25%)
   only does this for up to three replicas.
 
-Upgrades that change scheduling state have additional rollout steps; see
-[scheduled service accounts](scheduled-service-accounts.md).
+During a rolling upgrade, old and new API server replicas run at the same time. For
+the steps that keep recurring runs consistent, see
+[Upgrade and revocation](scheduled-service-accounts.md#upgrade-and-revocation).
 
 ## Example overlay
 
-The following overlay runs two replicas of each component that supports it, spreads
+The following overlay sets two replicas for each component that supports it, spreads
 them across nodes, and adds a PDB for each. Replace `<version>` with your Kubeflow
-Pipelines release, and the base with the environment you install.
+Pipelines release (2.18.0 or later for the profile controller), and the base with the
+environment you install.
 
 ```yaml
 # kustomization.yaml
@@ -118,8 +120,8 @@ voluntary disruptions, such as node drains, so that enough replicas keep running
 
 :::{warning}
 Don't use `minAvailable: 1` for a component that runs one replica. Evicting its only
-Pod would violate the budget, so the eviction is always refused and node drains and
-upgrades never complete. Use `maxUnavailable: 1`, which allows one Pod at a time to
+Pod would violate the budget, so the eviction is always refused, and node drains,
+including those during cluster or node upgrades, never complete. Use `maxUnavailable: 1`, which allows one Pod at a time to
 be evicted at any replica count, or don't define a PDB for single-replica components.
 :::
 
@@ -139,8 +141,9 @@ leader election, so every replica would process the same objects:
   every replica would reconcile the same TensorBoard viewers.
 
 Keep these at one replica. If one of their Pods stops, Kubernetes recreates it.
-Pipeline runs that are already executing are not affected while it is down, but
-scheduled runs don't start and run status isn't updated until it is back.
+Pipeline runs that are already executing continue in the meantime, but scheduled runs
+don't start, run status isn't updated, and new TensorBoard viewers aren't created
+until the corresponding Pod is back.
 
 ## Dependencies
 
@@ -149,7 +152,9 @@ Kubeflow Pipelines availability also depends on these components:
 - The database (MySQL or PostgreSQL) and the object store each need their own
   high-availability setup, such as a managed service.
 - In multi-user mode, metacontroller calls the profile controller. The bundled
-  metacontroller runs one replica; to run more, enable its `--leader-election`
-  [flag](https://metacontroller.github.io/metacontroller/guide/configuration.html).
+  metacontroller runs one replica without leader election, and its ClusterRole doesn't
+  grant access to Leases. To run more replicas, enable its `--leader-election` flag and
+  grant that access; see the
+  [metacontroller configuration guide](https://metacontroller.github.io/metacontroller/guide/configuration.html).
 - Argo Workflows runs pipeline workflows. See its
   [high-availability guide](https://argo-workflows.readthedocs.io/en/latest/high-availability/).
