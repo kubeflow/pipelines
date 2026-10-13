@@ -129,6 +129,52 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                     contents.index(following_step),
                 )
 
+    def test_provider_managed_docker_requires_health_without_mutation(self):
+        for service in ('missing', 'inactive'):
+            for healthy in (True, False):
+                with self.subTest(service=service, healthy=healthy):
+                    with tempfile.TemporaryDirectory() as directory:
+                        root = Path(directory)
+                        binaries = root / 'bin'
+                        binaries.mkdir()
+                        (binaries / 'bash').symlink_to('/bin/bash')
+                        commands = {
+                            'docker':
+                                '#!/bin/bash\nexit %s\n' %
+                                (0 if healthy else 1),
+                            'sleep':
+                                '#!/bin/bash\nexit 0\n',
+                            'sudo':
+                                '#!/bin/bash\necho unexpected-sudo >&2\nexit 99\n',
+                        }
+                        if service == 'inactive':
+                            commands['systemctl'] = '#!/bin/bash\nexit 1\n'
+                        for name, content in commands.items():
+                            path = binaries / name
+                            path.write_text(content, encoding='utf-8')
+                            path.chmod(0o755)
+                        config = root / 'daemon.json'
+                        config.write_text(
+                            '{"provider": true}', encoding='utf-8')
+                        result = subprocess.run(
+                            ['/bin/bash',
+                             str(CONFIGURE_MIRROR_SCRIPT)],
+                            env={
+                                **os.environ, 'PATH': str(binaries),
+                                'DOCKER_DAEMON_CONFIG': str(config)
+                            },
+                            capture_output=True,
+                            text=True,
+                            check=False)
+                        self.assertEqual(result.returncode, 0 if healthy else 1,
+                                         result.stderr)
+                        self.assertEqual(
+                            config.read_text(encoding='utf-8'),
+                            '{"provider": true}')
+                        self.assertNotIn('unexpected-sudo', result.stderr)
+                        if healthy:
+                            self.assertIn('provider-managed', result.stdout)
+
     def test_shell_wrapper_uses_system_python_and_restarts_only_on_change(self):
         binary_directory = Path(self.temp_directory.name) / 'bin'
         binary_directory.mkdir()
