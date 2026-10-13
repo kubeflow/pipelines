@@ -167,3 +167,9 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache
   interpreters can require `LD_LIBRARY_PATH`, which elevation removes.
+
+- Failed Kubernetes-auth MLflow deployments collect bounded CR status, migration
+  Job/Pod status and logs, operator logs and warning events. A zero-replica
+  Deployment can mean operator-managed database migration is blocked; do not
+  force replicas or treat `Available=True` at zero replicas as successful setup.
+  Diagnostic failures retain partial evidence and do not alter the failed step.
