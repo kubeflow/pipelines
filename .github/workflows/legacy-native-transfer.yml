@@ -45,6 +45,14 @@ jobs:
       - uses: ./.github/actions/create-cluster
         with:
           k8s_version: v1.36.1
+      - name: Install compiler for CGO source build
+        timeout-minutes: 5
+        run: |
+          if ! command -v gcc >/dev/null; then
+            sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+            sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --yes --no-install-recommends build-essential
+          fi
+          gcc --version
       - name: Build pinned 2.18 source API server
         working-directory: source-218
         run: |
