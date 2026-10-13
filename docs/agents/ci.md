@@ -139,3 +139,8 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+- Both SDK reference sites set the Sphinx Immaterial `font` option to `False`.
+  This uses the theme's system fallback fonts and disables build-time Google
+  Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
+  font configuration with network connections rejected before building the full
+  references. Keep the no-network regression when changing themes or fonts.
