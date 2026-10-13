@@ -109,3 +109,8 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 The CI Scripts Tests path filters include `hack/update-all-requirements.sh`, which
 is inspected by the packaging regression suite to prevent tracked exports from returning.
+
+- The deploy action provisions GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
