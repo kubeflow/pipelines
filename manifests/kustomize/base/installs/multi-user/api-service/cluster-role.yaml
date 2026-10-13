@@ -67,6 +67,7 @@ rules:
   - configmaps
   resourceNames:
   - kfp-launcher
+  - workflow-controller-configmap
   verbs:
   - get
 - apiGroups:
@@ -77,3 +78,16 @@ rules:
   - kfp-mlflow-credentials
   verbs:
   - get
+# Argo nodeStatusOffLoad upgrade checklist (API server):
+# 1. Read Secret names from workflow-controller-configmap
+#    persistence.{postgresql,mysql}.{userNameSecret,passwordSecret} (do not
+#    hard-code names here; grant get in a site overlay).
+# 2. Ensure those Secrets are in the same namespace the API server reads for
+#    persistence credentials (usually the workflow-controller ConfigMap
+#    namespace, unless overridden).
+# 3. Allow network from ml-pipeline-apiserver to the offload DB used by Argo.
+# 4. Before enabling offload cleanup / relying on hydrate-on-finalize: confirm
+#    logs show "Argo offload hydrator initialized", or dry-run hydrate a known
+#    offloaded Workflow. Terminal reports fail closed without hydration rather
+#    than persisting a bare offload pointer.
+# See manifests/kustomize/README.md#argo-nodestatusoffload-api-server.
