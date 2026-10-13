@@ -13,7 +13,7 @@ Method | HTTP request | Description
 
 
 # **recurring_run_service_create_recurring_run**
-> V2beta1RecurringRun recurring_run_service_create_recurring_run(recurring_run)
+> V2beta1RecurringRun recurring_run_service_create_recurring_run(recurring_run, namespace=namespace)
 
 Creates a new recurring run in an experiment, given the experiment ID.
 
@@ -52,10 +52,11 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.RecurringRunServiceApi(api_client)
     recurring_run = kfp.server_api.V2beta1RecurringRun() # V2beta1RecurringRun | The recurring run to be created.
+namespace = 'namespace_example' # str | Optional input field. Namespace for the recurring run. Ignored when recurring_run.namespace is set. (optional)
 
     try:
         # Creates a new recurring run in an experiment, given the experiment ID.
-        api_response = api_instance.recurring_run_service_create_recurring_run(recurring_run)
+        api_response = api_instance.recurring_run_service_create_recurring_run(recurring_run, namespace=namespace)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RecurringRunServiceApi->recurring_run_service_create_recurring_run: %s\n" % e)
@@ -66,6 +67,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **recurring_run** | [**V2beta1RecurringRun**](V2beta1RecurringRun.md)| The recurring run to be created. | 
+ **namespace** | **str**| Optional input field. Namespace for the recurring run. Ignored when recurring_run.namespace is set. | [optional] 
 
 ### Return type
 

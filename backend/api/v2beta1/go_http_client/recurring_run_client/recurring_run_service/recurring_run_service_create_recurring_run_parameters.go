@@ -63,6 +63,12 @@ RecurringRunServiceCreateRecurringRunParams contains all the parameters to send 
 */
 type RecurringRunServiceCreateRecurringRunParams struct {
 
+	// Namespace.
+	//
+	// Optional input field. Namespace for the recurring run. Ignored when
+	// recurring_run.namespace is set.
+	Namespace *string
+
 	// RecurringRun.
 	//
 	// The recurring run to be created.
@@ -125,6 +131,17 @@ func (o *RecurringRunServiceCreateRecurringRunParams) SetHTTPClient(client *http
 	o.HTTPClient = client
 }
 
+// WithNamespace adds the namespace to the recurring run service create recurring run params.
+func (o *RecurringRunServiceCreateRecurringRunParams) WithNamespace(namespace *string) *RecurringRunServiceCreateRecurringRunParams {
+	o.SetNamespace(namespace)
+	return o
+}
+
+// SetNamespace adds the namespace to the recurring run service create recurring run params.
+func (o *RecurringRunServiceCreateRecurringRunParams) SetNamespace(namespace *string) {
+	o.Namespace = namespace
+}
+
 // WithRecurringRun adds the recurringRun to the recurring run service create recurring run params.
 func (o *RecurringRunServiceCreateRecurringRunParams) WithRecurringRun(recurringRun *recurring_run_model.V2beta1RecurringRun) *RecurringRunServiceCreateRecurringRunParams {
 	o.SetRecurringRun(recurringRun)
@@ -142,6 +159,23 @@ func (o *RecurringRunServiceCreateRecurringRunParams) WriteToRequest(r runtime.C
 		return err
 	}
 	var res []error
+
+	if o.Namespace != nil {
+
+		// query param namespace
+		var qrNamespace string
+
+		if o.Namespace != nil {
+			qrNamespace = *o.Namespace
+		}
+		qNamespace := qrNamespace
+		if qNamespace != "" {
+
+			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
+				return err
+			}
+		}
+	}
 	if o.RecurringRun != nil {
 		if err := r.SetBodyParam(o.RecurringRun); err != nil {
 			return err

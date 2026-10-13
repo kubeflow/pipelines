@@ -2,10 +2,10 @@
 
 CI Check is the sole publisher of the `ci-passed` commit status. The label with
 the same name is informational. Tide remains the merge authority; human PRs
-still require review. Automatic Dependabot creation holds remain configured for every ecosystem;
-existing PR-specific holds remain separate maintainer decisions and are never
-removed by the publisher. Removing creation holds remains a separate change
-after the deployed merge policy has been verified. Required `ci-passed` protection is intended for
+still require review. Automatic Dependabot creation holds have been removed;
+merging now relies on the required `ci-passed` status and the deployed Tide
+policy. Existing PR-specific holds remain separate maintainer decisions and are
+never removed by the publisher. Required `ci-passed` protection is intended for
 `master` only: older release branches do not publish this commit status.
 
 ## Contract and enforcement
@@ -161,6 +161,41 @@ scheduled runs; manually rerunning CI Check remains the fallback. Do not rely
 solely on `check_run`: GitHub suppresses that trigger when the check suite's
 head SHA is associated with GitHub Actions. See the
 [GitHub event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+
+## Missing base merge record
+
+The freshness check establishes when the base revision became reachable on
+`master` by reading the merged-PR record for that commit. A commit merged
+through a pull request carries an authoritative `merged_at` timestamp. A direct
+push of a pre-existing commit has no merged PR, so its arrival cannot be
+established and the check fails closed to pending rather than passing stale
+evidence as fresh.
+
+The commit-to-PR association endpoint can omit a real merge. If it supplies no
+verified match, CI Check independently scans up to 500 recently updated closed
+PRs targeting the base branch (five pages of 100). Discovery only selects
+candidates whose merge SHA exactly equals the base SHA. Each candidate, including
+associated PRs, is reread through the individual PR endpoint and must have the
+same number, `merged: true`, the expected base repository and branch, the exact
+merge SHA, and a parseable string `merged_at`. Only that verified timestamp is
+used by the existing freshness check. A rerun of an execution created before
+that timestamp remains stale; commit dates, titles, and messages are never
+substituted for merge provenance.
+
+API failures remain pending with a retry diagnostic. Missing matches, including
+exhaustion of the bounded recent-PR window, remain pending and request maintainer
+investigation; malformed timestamps get a distinct diagnostic. Read the
+`ci-passed` status and CI Check logs to tell them apart. A missing association
+alone does not prove a direct push: inspect the authoritative merged PR record.
+Rerunning tests cannot establish missing provenance or expand the search window.
+
+Recovery for a missing record is a maintainer action. A maintainer should
+confirm whether the base revision landed through a pull request. If it did,
+investigate why the merge record is absent or malformed and correct it. If it
+landed through a direct push (for example a fast-forward integration), the
+maintainer decides the next step, such as merging a follow-up through a pull
+request to restore provenance. Do not weaken the freshness check to admit
+stale evidence.
 
 ## Validation and coordinated rollout
 

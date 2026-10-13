@@ -9,10 +9,13 @@
 # not by this file. This file does not turn them on or off, though they still
 # honor configuration here such as `ignore` rules and directory/ecosystem scope.
 #
-# Every Dependabot PR starts held to prevent unattended merging. Remove the hold
-# only immediately before merge after verifying CI for the current head, and
-# restore it if the head changes. Custom labels replace Dependabot's defaults, so
-# each ecosystem explicitly retains the dependencies and ecosystem labels.
+# Every Dependabot PR is no longer held by default. Merging is gated by the
+# required `ci-passed` commit status on the verified head SHA (published by the
+# CI Check workflow) and the deployed Tide policy, so a PR auto-merges once
+# `ci-passed` is green. Maintainers can still apply `do-not-merge/hold` to a
+# specific PR to hold it back; that PR-specific hold is never removed by the
+# publisher. Custom labels replace Dependabot's defaults, so each ecosystem
+# explicitly retains the dependencies and ecosystem labels.
 #
 # Tracks: https://github.com/kubeflow/pipelines/issues/13490
 version: 2
@@ -26,7 +29,6 @@ updates:
     labels:
       - "dependencies"
       - "go"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -59,7 +61,6 @@ updates:
     labels:
       - "dependencies"
       - "docker"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -82,10 +83,23 @@ updates:
     labels:
       - "dependencies"
       - "javascript"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
+      react-version:
+        applies-to: version-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      react-security:
+        applies-to: security-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
       # @mui/icons-material declares a peer dependency on the matching
       # @mui/material version, so bumping either one alone leaves the other
       # outside its peer range and `npm install` fails to resolve. They have to
@@ -100,21 +114,19 @@ updates:
   - package-ecosystem: pip
     # Generated API clients are excluded: their requirements express generated
     # compatibility minimums and must be changed through API regeneration.
+    # The root and SDK form the uv workspace; uv owns those manifests and lock.
     directories:
-      - "/"
       - "/.github/scripts"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
       - "/release"
-      - "/sdk/python"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
       - "python"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -122,7 +134,7 @@ updates:
       python-dependencies:
         group-by: dependency-name
   - package-ecosystem: uv
-    # uv.lock updates use a separate ecosystem from pip, including security PRs.
+    # Workspace manifests and uv.lock are the only tracked dependency sources.
     directory: "/"
     schedule:
       interval: weekly
@@ -130,7 +142,6 @@ updates:
     labels:
       - "dependencies"
       - "python:uv"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
@@ -144,7 +155,6 @@ updates:
     labels:
       - "dependencies"
       - "github_actions"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -158,7 +168,6 @@ updates:
     labels:
       - "dependencies"
       - "pre_commit"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     ignore:

@@ -238,7 +238,8 @@ type RecurringRun struct {
 	// If false, the recurring run will catch up on each past interval.
 	NoCatchup bool `protobuf:"varint,15,opt,name=no_catchup,json=noCatchup,proto3" json:"no_catchup,omitempty"`
 	// TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.
-	// Output only. Namespace this recurring run belongs to. Derived from the parent experiment.
+	// Optional input field. Namespace this recurring run belongs to. Derived
+	// from the parent experiment when experiment_id is set.
 	Namespace string `protobuf:"bytes,16,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// ID of the parent experiment this recurring run belongs to.
 	ExperimentId string `protobuf:"bytes,17,opt,name=experiment_id,json=experimentId,proto3" json:"experiment_id,omitempty"`
@@ -456,7 +457,10 @@ func (*RecurringRun_PipelineVersionReference) isRecurringRun_PipelineSource() {}
 type CreateRecurringRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The recurring run to be created.
-	RecurringRun  *RecurringRun `protobuf:"bytes,1,opt,name=recurring_run,json=recurringRun,proto3" json:"recurring_run,omitempty"`
+	RecurringRun *RecurringRun `protobuf:"bytes,1,opt,name=recurring_run,json=recurringRun,proto3" json:"recurring_run,omitempty"`
+	// Optional input field. Namespace for the recurring run. Ignored when
+	// recurring_run.namespace is set.
+	Namespace     string `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -496,6 +500,13 @@ func (x *CreateRecurringRunRequest) GetRecurringRun() *RecurringRun {
 		return x.RecurringRun
 	}
 	return nil
+}
+
+func (x *CreateRecurringRunRequest) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
 }
 
 type GetRecurringRunRequest struct {
@@ -1100,9 +1111,10 @@ const file_backend_api_v2beta1_recurring_run_proto_rawDesc = "" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aENABLED\x10\x01\x12\f\n" +
 	"\bDISABLED\x10\x03B\x11\n" +
-	"\x0fpipeline_source\"v\n" +
+	"\x0fpipeline_source\"\x94\x01\n" +
 	"\x19CreateRecurringRunRequest\x12Y\n" +
-	"\rrecurring_run\x18\x01 \x01(\v24.kubeflow.pipelines.backend.api.v2beta1.RecurringRunR\frecurringRun\"B\n" +
+	"\rrecurring_run\x18\x01 \x01(\v24.kubeflow.pipelines.backend.api.v2beta1.RecurringRunR\frecurringRun\x12\x1c\n" +
+	"\tnamespace\x18\x02 \x01(\tR\tnamespace\"B\n" +
 	"\x16GetRecurringRunRequest\x12(\n" +
 	"\x10recurring_run_id\x18\x01 \x01(\tR\x0erecurringRunId\"\xca\x01\n" +
 	"\x18ListRecurringRunsRequest\x12\x1d\n" +

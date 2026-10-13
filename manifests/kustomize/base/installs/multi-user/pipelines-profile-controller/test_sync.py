@@ -1,5 +1,6 @@
 import json
 import os
+import runpy
 import threading
 from unittest import mock
 
@@ -34,6 +35,55 @@ ENV_IMAGES = {
     "FRONTEND_TAG": "somehash",
     "ARTIFACTS_PROXY_ENABLED": "true",
 }
+
+
+@pytest.mark.parametrize("bundled", [False, True])
+def test_botocore_import_initializes_clients(bundled):
+    original_import = __import__
+    awscli_imported = False
+    botocore = mock.Mock()
+    session = botocore.session.get_session.return_value
+    session.create_client.side_effect = [mock.sentinel.s3, mock.sentinel.iam]
+
+    def import_package(name, *args, **kwargs):
+        nonlocal awscli_imported
+        if name == "awscli":
+            assert bundled, "Standalone botocore must not require awscli"
+            awscli_imported = True
+            return mock.sentinel.awscli
+        if name == "botocore.session":
+            if bundled and not awscli_imported:
+                raise ModuleNotFoundError(
+                    "No module named 'botocore'", name="botocore")
+            return botocore
+        return original_import(name, *args, **kwargs)
+
+    with mock.patch("builtins.__import__", side_effect=import_package):
+        loaded = runpy.run_path(sync.__file__, run_name="profile_import_test")
+
+    assert awscli_imported is bundled
+    assert loaded["s3"] is mock.sentinel.s3
+    assert loaded["iam"] is mock.sentinel.iam
+    assert [call.args[0] for call in session.create_client.call_args_list
+           ] == ["s3", "iam"]
+
+
+@pytest.mark.parametrize("missing_module", ["urllib3", "botocore.session"])
+def test_botocore_import_preserves_other_missing_modules(missing_module):
+    original_import = __import__
+    error = ModuleNotFoundError(
+        f"No module named '{missing_module}'", name=missing_module)
+
+    def import_package(name, *args, **kwargs):
+        if name == "botocore.session":
+            raise error
+        assert name != "awscli", "An unrelated import error must not fall back"
+        return original_import(name, *args, **kwargs)
+
+    with mock.patch("builtins.__import__", side_effect=import_package):
+        with pytest.raises(ModuleNotFoundError) as raised:
+            runpy.run_path(sync.__file__, run_name="profile_import_test")
+    assert raised.value is error
 
 
 def observed_attachments(proxy_enabled=False, ready=False):
@@ -249,3 +299,81 @@ def test_create_iam_client_uses_endpoint(monkeypatch):
     sync.create_iam_client()
     assert called["service_name"] == "iam"
     assert called["endpoint_url"] == "http://seaweedfs.kubeflow:8111"
+
+
+def start_minimal_server(start_sync_server):
+    return start_sync_server(
+        frontend_image="image",
+        frontend_tag="tag",
+        disable_istio_sidecar=False,
+        artifacts_proxy_enabled="false",
+        artifact_retention_days=-1,
+        controller_port=0,
+    )
+
+
+def get_path(server, path, timeout=5):
+    host, port = server.server_address
+    return requests.get(f"http://{host}:{port}{path}", timeout=timeout)
+
+
+def test_healthz_returns_ok(start_sync_server):
+    response = get_path(start_minimal_server(start_sync_server), "/healthz")
+    assert response.status_code == 200
+    assert response.text == "ok"
+
+
+def test_get_unknown_path_returns_not_found(start_sync_server):
+    response = get_path(start_minimal_server(start_sync_server), "/unknown")
+    assert response.status_code == 404
+
+
+def test_healthz_is_not_logged(start_sync_server, capsys):
+    server = start_minimal_server(start_sync_server)
+    assert get_path(server, "/healthz").status_code == 200
+    assert get_path(server, "/unknown").status_code == 404
+    logs = capsys.readouterr().err
+    assert "/healthz" not in logs
+    assert "/unknown" in logs
+
+
+def test_post_to_healthz_path_is_logged(start_sync_server, capsys):
+    server = start_minimal_server(start_sync_server)
+    host, port = server.server_address
+    with mock.patch.object(
+            server.RequestHandlerClass, "sync",
+            lambda handler, parent, attachments: {
+                "status": {},
+                "attachments": []
+            }):
+        requests.post(
+            f"http://{host}:{port}/healthz",
+            json={
+                "object": PARENT,
+                "attachments": {}
+            },
+            timeout=5).raise_for_status()
+    assert '"POST /healthz' in capsys.readouterr().err
+
+
+def test_healthz_responds_during_slow_sync(start_sync_server):
+    server = start_minimal_server(start_sync_server)
+    sync_started = threading.Event()
+    release_sync = threading.Event()
+
+    def slow_sync(handler, parent, attachments):
+        sync_started.set()
+        release_sync.wait(timeout=10)
+        return {"status": {}, "attachments": []}
+
+    with mock.patch.object(server.RequestHandlerClass, "sync", slow_sync):
+        post = threading.Thread(
+            target=post_sync, args=(server, PARENT, observed_attachments()))
+        post.start()
+        try:
+            assert sync_started.wait(timeout=5)
+            # A single-threaded server could not answer until the sync ends.
+            assert get_path(server, "/healthz", timeout=2).status_code == 200
+        finally:
+            release_sync.set()
+            post.join(timeout=10)

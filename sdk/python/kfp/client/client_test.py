@@ -15,6 +15,7 @@
 import json
 from logging import WARNING
 import os
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -364,6 +365,106 @@ class TestClient(parameterized.TestCase):
             with self.assertRaisesRegex(ValueError, 'Multiple pipelines'):
                 self.client.get_pipeline_id(
                     'test-pipeline', namespace='test-ns')
+
+    def test_run_pipeline_sends_namespace_without_experiment(self):
+        # The server resolves the namespace's default experiment when
+        # experiment_id is omitted, so both fields must reach the request.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            self.client.run_pipeline(
+                job_name='run1',
+                namespace='ns1',
+                pipeline_id='p1',
+            )
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.namespace, 'ns1')
+            self.assertIsNone(run.experiment_id)
+
+    def test_run_pipeline_keeps_positional_experiment_id(self):
+        # experiment_id stays the first parameter, so existing positional
+        # callers are unaffected.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            self.client.run_pipeline('exp1', 'run1', pipeline_id='p1')
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.experiment_id, 'exp1')
+            self.assertIsNone(run.namespace)
+
+    def test_run_pipeline_keeps_later_positional_arguments(self):
+        # namespace is appended rather than inserted, so a caller passing
+        # pipeline_root positionally still sets the pipeline root.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            self.client.run_pipeline('exp1', 'run1', None, {}, 'p1', 'v1',
+                                     'gs://bucket/root')
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.runtime_config.pipeline_root,
+                             'gs://bucket/root')
+            self.assertIsNone(run.namespace)
+
+    def test_create_recurring_run_keeps_later_positional_arguments(self):
+        # The same for recurring runs: interval_second must not shift onto
+        # another parameter.
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client.create_recurring_run(
+                'exp1', 'recurring1', None, None, None, 3600, pipeline_id='p1')
+
+            recurring_run = mock_create.call_args.kwargs['recurring_run']
+            self.assertEqual(
+                recurring_run.trigger.periodic_schedule.interval_second, 3600)
+            self.assertIsNone(recurring_run.namespace)
+
+    def test_create_recurring_run_sends_namespace_without_experiment(self):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client.create_recurring_run(
+                job_name='recurring1',
+                namespace='ns1',
+                pipeline_id='p1',
+                interval_second=3600,
+            )
+
+            recurring_run = mock_create.call_args.kwargs['recurring_run']
+            self.assertEqual(recurring_run.namespace, 'ns1')
+            self.assertIsNone(recurring_run.experiment_id)
+
+    def test_run_pipeline_requires_job_name(self):
+        # job_name only defaults to None because experiment_id precedes it;
+        # an empty name reaches the server as a 500, so reject it locally.
+        with patch.object(self.client._run_api,
+                          'run_service_create_run') as mock_create:
+            for job_name in (None, ''):
+                with self.assertRaisesRegex(ValueError,
+                                            'job_name is required.'):
+                    self.client.run_pipeline(
+                        job_name=job_name,
+                        namespace='ns1',
+                        pipeline_id='p1',
+                    )
+
+            mock_create.assert_not_called()
+
+    def test_create_recurring_run_requires_job_name(self):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_create_recurring_run') as mock_create:
+            for job_name in (None, ''):
+                with self.assertRaisesRegex(ValueError,
+                                            'job_name is required.'):
+                    self.client.create_recurring_run(
+                        job_name=job_name,
+                        namespace='ns1',
+                        pipeline_id='p1',
+                        interval_second=3600,
+                    )
+
+            mock_create.assert_not_called()
 
     @patch('kfp.Client.get_user_namespace', return_value='ns2')
     def test_list_recurring_runs_uses_user_namespace_when_not_provided(
@@ -889,6 +990,68 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
         )
         kwargs.update(overrides)
         return self.client._load_config(**kwargs)
+
+    def test_kube_config_exec_credentials_refresh_authorization(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        token_path = os.path.join(directory, 'token')
+        config_path = os.path.join(directory, 'config')
+        # Expired exec credentials force the real kubeconfig loader to refresh
+        # on each request, including replacement of its refresh hook.
+        script = ('import json, pathlib, sys; '
+                  'print(json.dumps({"apiVersion": '
+                  '"client.authentication.k8s.io/v1beta1", '
+                  '"kind": "ExecCredential", "status": {'
+                  '"token": pathlib.Path(sys.argv[1]).read_text(), '
+                  '"expirationTimestamp": "2000-01-01T00:00:00Z"}}))')
+        kube_config = {
+            'apiVersion':
+                'v1',
+            'kind':
+                'Config',
+            'clusters': [{
+                'name': 'test',
+                'cluster': {
+                    'server': 'https://127.0.0.1:6443'
+                },
+            }],
+            'contexts': [{
+                'name': 'test',
+                'context': {
+                    'cluster': 'test',
+                    'user': 'test'
+                },
+            }],
+            'current-context':
+                'test',
+            'users': [{
+                'name': 'test',
+                'user': {
+                    'exec': {
+                        'apiVersion': 'client.authentication.k8s.io/v1beta1',
+                        'command': sys.executable,
+                        'args': ['-c', script, token_path],
+                    },
+                },
+            }],
+        }
+        with open(config_path, 'w') as stream:
+            yaml.safe_dump(kube_config, stream)
+        with open(token_path, 'w') as stream:
+            stream.write('initial-token')
+        with patch.dict(
+                os.environ,
+            {}, clear=True), patch(
+                'kubernetes.config.kube_config.KUBE_CONFIG_DEFAULT_LOCATION',
+                config_path):
+            config = self._load_config(kube_context='test')
+            self.assertEqual(
+                config.host, 'https://127.0.0.1:6443/' +
+                client.Client._KUBE_PROXY_PATH.format('my-namespace'))
+            for token in ('initial-token', 'refreshed-token', 'rotated-token'):
+                with open(token_path, 'w') as stream:
+                    stream.write(token)
+                self.assertEqual(config.auth_settings()['Bearer']['value'],
+                                 'Bearer ' + token)
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')

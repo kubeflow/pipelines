@@ -113,6 +113,13 @@
             "schema": {
               "$ref": "#/definitions/v2beta1RecurringRun"
             }
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input field. Namespace for the recurring run. Ignored when\nrecurring_run.namespace is set.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -474,8 +481,7 @@
         },
         "namespace": {
           "type": "string",
-          "description": "TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.\nOutput only. Namespace this recurring run belongs to. Derived from the parent experiment.",
-          "readOnly": true
+          "description": "TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.\nOptional input field. Namespace this recurring run belongs to. Derived\nfrom the parent experiment when experiment_id is set."
         },
         "experiment_id": {
           "type": "string",

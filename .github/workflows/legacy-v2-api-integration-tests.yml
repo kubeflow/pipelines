@@ -67,6 +67,9 @@ jobs:
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
+      - name: Download Go modules
+        run: bash .github/resources/scripts/download-go-modules.sh
+
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -140,6 +143,7 @@ jobs:
         # overrun into an explicit annotation instead of a buried panic.
         shell: bash
         run: |
+          export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
           FILTER_ARGS=(-skip '^TestCache$/^TestCacheSingleRunWithPVC_SameName_Caches$')
           if [[ "${{ matrix.test_group }}" == "pvc-cache" ]]; then
             FILTER_ARGS=(-run '^TestCache$/^TestCacheSingleRunWithPVC_SameName_Caches$')

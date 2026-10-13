@@ -155,6 +155,10 @@ runs:
           go-test-lanes-${{ runner.os }}-${{ hashFiles('go.mod', 'go.sum') }}-
           go-test-lanes-${{ runner.os }}-
 
+    - name: Download Go modules
+      shell: bash
+      run: bash .github/resources/scripts/download-go-modules.sh
+
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}
@@ -313,11 +317,6 @@ runs:
         else
           DISABLE_TLS_CHECK='false'
         fi
-
-        (
-          cd "$WORKSPACE_ROOT"
-          go mod download
-        )
 
         cleanup_port_forwards() {
           for pid in "${PORT_FORWARD_PIDS[@]}"; do

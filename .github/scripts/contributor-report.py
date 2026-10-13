@@ -68,7 +68,7 @@ class ContributorStats:
     created_at: str
     issues_opened: int
     merged_prs: int
-    pr_comments: int
+    pr_comments: int | None
 
 
 @dataclass(frozen=True)
@@ -139,6 +139,14 @@ def github_request(path: str,
     raise last_error
 
 
+def is_denied_comment_node(error: dict[str, Any]) -> bool:
+    path = error.get("path")
+    return (error.get("type") == "FORBIDDEN" and isinstance(path, list) and
+            len(path) == 4 and
+            path[:3] == ["user", "issueComments", "nodes"] and
+            type(path[3]) is int and path[3] >= 0)
+
+
 def github_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
     result = github_request(
         "/graphql",
@@ -148,10 +156,10 @@ def github_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
             "variables": variables,
         },
     )
-    if result.get("errors"):
-        raise RuntimeError(
-            f"GitHub GraphQL failed: {json.dumps(result['errors'])}")
-    return result["data"]
+    errors = result.get("errors", [])
+    if errors and not all(is_denied_comment_node(error) for error in errors):
+        raise RuntimeError(f"GitHub GraphQL failed: {json.dumps(errors)}")
+    return result
 
 
 def fetch_contributor_stats(username: str) -> ContributorStats:
@@ -159,13 +167,13 @@ def fetch_contributor_stats(username: str) -> ContributorStats:
     merged_pr_query = f"repo:{KFP_REPO} is:pr is:merged author:{username}"
 
     issue_comment_cursor = None
-    issue_comment_count = 0
+    issue_comment_count: int | None = 0
     created_at = None
     issues_opened = None
     merged_prs = None
 
     while True:
-        data = github_graphql(
+        result = github_graphql(
             CONTRIBUTOR_QUERY,
             {
                 "username": username,
@@ -174,6 +182,7 @@ def fetch_contributor_stats(username: str) -> ContributorStats:
                 "issueCommentCursor": issue_comment_cursor,
             },
         )
+        data = result["data"]
         user = data.get("user")
         if not user:
             raise RuntimeError(f"GitHub user not found: {username}")
@@ -182,6 +191,21 @@ def fetch_contributor_stats(username: str) -> ContributorStats:
             created_at = user["createdAt"]
             issues_opened = data["issuesOpened"]["issueCount"]
             merged_prs = data["mergedPrs"]["issueCount"]
+            if not isinstance(created_at, str) or not created_at or any(
+                    type(count) is not int or count < 0
+                    for count in (issues_opened, merged_prs)):
+                raise RuntimeError(
+                    "GitHub returned invalid contributor metrics")
+
+        if result.get("errors"):
+            # The history spans repositories with independent access policies.
+            # Missing nodes cannot support an exact count, even on later pages.
+            issue_comment_count = None
+            print(
+                "PR comment count unavailable: GitHub denied access to "
+                "comment history; retaining the other verified metrics.",
+                file=sys.stderr)
+            break
 
         for node in user["issueComments"]["nodes"]:
             issue = node.get("issue")
@@ -247,7 +271,8 @@ def build_user_rows(is_kubeflow_member: bool,
         ),
         MarkdownRow(
             metric=f"PR comments in {KFP_REPO}",
-            value=str(stats.pr_comments),
+            value=(str(stats.pr_comments) if stats.pr_comments is not None else
+                   "Unavailable (GitHub access restrictions)"),
         ),
     ]
 

@@ -104,11 +104,16 @@ func (s Settings) Describe(driverName string) string {
 	// operator their traffic is in the clear when it is not. That is the wrong
 	// way for a line whose whole job is orienting someone mid-rollout.
 	transport := "not configured by DB_TLS_CA_PATH"
+	if !s.Enabled {
+		// Only the provider path reads the bundle, so with the switch off it
+		// verifies nothing -- typically a rollback that left it set.
+		if s.CABundlePath != "" {
+			transport = "not configured by DB_TLS_CA_PATH (" + s.CABundlePath + " is inactive because no credential provider is enabled)"
+		}
+		return fmt.Sprintf("DB connection: driver=%s, credentials=configured password, TLS=%s", driverName, transport)
+	}
 	if s.CABundlePath != "" {
 		transport = "verified against " + s.CABundlePath
-	}
-	if !s.Enabled {
-		return fmt.Sprintf("DB connection: driver=%s, credentials=configured password, TLS=%s", driverName, transport)
 	}
 	return fmt.Sprintf("DB connection: driver=%s, credentials=%q provider, TLS=%s", driverName, s.ProviderName, transport)
 }
@@ -291,9 +296,8 @@ type BootstrapOptions struct {
 // database a bootstrap connection may name, when a refused creation is
 // survivable, and which driver parameters the application connection needs. A
 // caller supplies only what is genuinely its own -- where its configuration
-// came from, how it logs, how it wraps the handle for GORM. The API server is
-// the only caller today; it had a second one until the cache server was
-// removed, and a provider for another cloud needs no changes here at all.
+// came from, how it logs, how it wraps the handle for GORM. A provider for
+// another cloud needs no changes here at all.
 //
 // The returned string is a warning worth surfacing, or empty.
 func Bootstrap(ctx context.Context, provider Provider, target Target, options BootstrapOptions) (*sql.DB, string, error) {

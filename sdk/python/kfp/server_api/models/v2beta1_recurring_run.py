@@ -502,7 +502,7 @@ class V2beta1RecurringRun(object):
     def namespace(self):
         """Gets the namespace of this V2beta1RecurringRun.  # noqa: E501
 
-        TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment.  # noqa: E501
+        TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Optional input field. Namespace this recurring run belongs to. Derived from the parent experiment when experiment_id is set.  # noqa: E501
 
         :return: The namespace of this V2beta1RecurringRun.  # noqa: E501
         :rtype: str
@@ -513,7 +513,7 @@ class V2beta1RecurringRun(object):
     def namespace(self, namespace):
         """Sets the namespace of this V2beta1RecurringRun.
 
-        TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment.  # noqa: E501
+        TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Optional input field. Namespace this recurring run belongs to. Derived from the parent experiment when experiment_id is set.  # noqa: E501
 
         :param namespace: The namespace of this V2beta1RecurringRun.  # noqa: E501
         :type namespace: str

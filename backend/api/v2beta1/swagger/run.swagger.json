@@ -139,6 +139,13 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input field. Namespace for the run. Ignored when run.namespace is set.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -1313,6 +1320,10 @@
             "type": "object",
             "$ref": "#/definitions/v2beta1PipelineTask"
           }
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Optional input field. Namespace this run belongs to. Derived from the\nparent experiment when experiment_id is set. In multi-user mode with\nexperiment_id omitted, this selects the namespace whose default\nexperiment the run is placed in."
         }
       }
     },
