@@ -131,6 +131,7 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
+- `legacy-native-transfer.yml` qualifies the merged 2.18 exporter against candidate native import in two independent Kind stores. The source uses a pinned 2.18 API server over the published 2.17.2 MLMD runtime; this is archive compatibility coverage, not an in-place upgrade or complete release qualification. See `docs/design/218-native-transfer.md` for checked invariants and exclusions. Keep the existing upgrade pause intact.
 
 - Docker mirror setup only modifies and restarts an active local systemd Docker
   service. Containerized/provider-managed runners without that service retain
@@ -141,10 +142,3 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
-- `legacy-native-transfer.yml` qualifies the merged 2.18 exporter against candidate native import in two independent Kind stores. The source uses a pinned 2.18 API server over the published 2.17.2 MLMD runtime; this is archive compatibility coverage, not an in-place upgrade or complete release qualification. See `docs/design/218-native-transfer.md` for checked invariants and exclusions. Keep the existing upgrade pause intact.
-
-- Docker mirror setup only modifies and restarts an active local systemd Docker
-  service. Containerized/provider-managed runners without that service retain
-  their daemon configuration; the helper still requires `docker info` to succeed.
-  Configure daemon mirrors in the runner provider when local service management
-  is unavailable. BuildKit mirror configuration remains independent.
