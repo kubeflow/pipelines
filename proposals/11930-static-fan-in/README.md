@@ -23,22 +23,21 @@
 ## Summary
 
 Kubeflow Pipelines (KFP) can collect outputs from iterations of one task inside
-`dsl.ParallelFor`, but it cannot directly combine outputs from independently
-instantiated tasks into one ordered `List[...]` input.
+`dsl.ParallelFor`, but it cannot directly bind outputs from independently
+instantiated tasks to one ordered `List[...]` input.
 
-This KEP proposes extending `dsl.Collected` to support static fan-in:
+This KEP proposes allowing a homogeneous Python list of scalar pipeline channels
+as the value of a compatible list-typed component input:
 
 ```python
-# Existing ParallelFor behavior.
-dsl.Collected(task.output)
-
-# Proposed static fan-in behavior.
-dsl.Collected(task_a.output, task_b.output, task_c.output)
-dsl.Collected([task_a.output, task_b.output, task_c.output])
+evaluate_models(
+    models=[task_a.output, task_b.output, task_c.output],
+)
 ```
 
-Static fan-in combines pipeline channels known during compilation. It does not
-make the submitted pipeline graph dynamic.
+The Python list and all of its members are known during compilation. The
+compiler lowers the list to an ordered set of task-input references; this does
+not make the submitted pipeline graph dynamic.
 
 ## Motivation
 
@@ -63,9 +62,10 @@ def pipeline():
     )
 ```
 
-`dsl.Collected(task.output)` currently supports a different topology: one task
-output produced repeatedly inside `dsl.ParallelFor`. The current workaround is
-to define a fixed number of consumer inputs, coupling the component interface to
+`dsl.Collected(task.output)` supports a different topology: one task output
+produced repeatedly inside `dsl.ParallelFor`. It does not represent an ordered
+list of independently instantiated task outputs. The current workaround is to
+define a fixed number of consumer inputs, coupling the component interface to
 one pipeline topology and requiring it to change whenever a producer is added
 or removed.
 
@@ -82,8 +82,8 @@ combining a compile-time-known set of outputs.
    `List[...]` component input.
 2. Preserve the order provided by the pipeline author.
 3. Infer a dependency from the consumer to every producer.
-4. Provide explicit DSL syntax for static fan-in.
-5. Preserve existing `dsl.Collected(task.output)` behavior.
+4. Use ordinary Python list syntax for a compile-time-known list of channels.
+5. Leave `dsl.Collected` dedicated to `dsl.ParallelFor` collection.
 6. Support remote execution and KFP Local.
 
 ### Non-Goals
@@ -100,7 +100,7 @@ combining a compile-time-known set of outputs.
 
 ### SDK User Experience
 
-The sequence form supports the expression requested in issue #11930:
+The proposed syntax directly expresses the request in issue #11930:
 
 ```python
 @dsl.pipeline
@@ -109,13 +109,13 @@ def pipeline():
     for trainer in [train_svc, train_xgb, train_lr]:
         models.append(trainer().output)
 
-    evaluate_models(models=dsl.Collected(models))
+    evaluate_models(models=models)
 ```
 
 The Python loop executes while compiling the pipeline. The submitted graph
 contains three concrete producer tasks and one consumer task.
 
-The variadic form supports explicitly declared producers:
+Producers can also be declared explicitly:
 
 ```python
 @dsl.pipeline
@@ -125,7 +125,7 @@ def pipeline():
     lr = train_lr()
 
     evaluate_models(
-        models=dsl.Collected(svc.output, xgb.output, lr.output),
+        models=[svc.output, xgb.output, lr.output],
     )
 ```
 
@@ -133,22 +133,24 @@ The same API supports parameter outputs.
 
 ### Behavior
 
-`dsl.Collected` selects its behavior from the constructor call:
+The compiler distinguishes literal lists from static channel lists by their
+members and the destination component input:
 
 | Expression | Meaning |
 | --- | --- |
-| `dsl.Collected(channel)` | Existing `ParallelFor` collection |
-| `dsl.Collected(channel_a, channel_b)` | Static fan-in |
-| `dsl.Collected([channel_a, channel_b])` | Static fan-in |
-| `dsl.Collected([channel])` | One-element static fan-in |
+| `values=["a", "b"]` | Existing constant list parameter |
+| `values=[task_a.output, task_b.output]` | Static parameter fan-in |
+| `models=[task_a.output, task_b.output]` | Static artifact fan-in |
+| `models=[task.output]` | One-element static artifact fan-in |
+| `dsl.Collected(task.output)` | Existing `ParallelFor` collection |
 
-The single-channel form must retain its existing meaning for backward
-compatibility. Wrapping one channel in a sequence explicitly requests static
-fan-in.
+A non-empty list containing only pipeline channels is a static channel list.
+A list containing no channels follows existing literal-list behavior. A list
+that mixes channels with constants is rejected in the initial implementation.
+The destination must be a compatible list-typed input.
 
 Static collection members must:
 
-- be pipeline channels;
 - represent scalar values rather than list-valued parameter or artifact
   channels;
 - be independently valid scalar references at the consumer's control-flow
@@ -156,10 +158,11 @@ Static collection members must:
 - all be parameters or all be artifacts; and
 - have compatible channel types.
 
-The SDK rejects empty collections because their type cannot be inferred. It
-also rejects `dsl.OneOf` and nested `dsl.Collected` values because those
-constructs have different control-flow semantics. Restricting members to scalar
-channels avoids introducing nested-list or implicit flattening semantics.
+An empty list contains no channels and therefore follows existing parameter
+literal validation; it does not create a static channel list. The SDK rejects
+`dsl.OneOf`, `dsl.Collected`, nested lists, and other list-valued members because
+those constructs require flattening or control-flow semantics beyond static
+scalar binding.
 
 Existing control-flow restrictions apply to every member independently. A
 producer in the consumer's current loop iteration and an outer-to-inner
@@ -175,14 +178,15 @@ and KFP Local change in KFP v3.
 
 Existing pipelines require no migration:
 
-- `dsl.Collected(task.output)` retains its current behavior;
+- `dsl.Collected(task.output)` remains unchanged;
 - existing compiled pipeline specifications remain valid;
-- scalar inputs and constant list parameters are unchanged; and
+- scalar inputs and Python lists containing only ordinary values are unchanged;
+  and
 - component interfaces continue to use `List[T]` and
   `Input[List[ArtifactType]]`.
 
-Static fan-in is additive and only affects pipelines that opt into the new
-constructor forms.
+Static fan-in is additive and only affects a list argument that contains
+pipeline channels and targets a compatible list input.
 
 ## Design Details
 
@@ -259,11 +263,18 @@ the stronger source-language type check.
 
 ### SDK and Backend
 
-The SDK compiler validates and normalizes the collection, registers each member
-as an input of the consumer, and emits the ordered list. The backend compiler
-adds every referenced producer as an implicit dependency. At runtime, the
-driver resolves each item through the existing scalar input paths into an
-ordered parameter list or artifact list.
+The SDK compiler inspects task arguments before literal conversion. For a
+Python list containing channels, it validates the destination and members,
+registers every channel as an input of the consumer, and emits the ordered list.
+A list containing only ordinary Python values continues through the existing
+constant-list path. Mixed channel and constant lists fail with an actionable
+error instead of being partially serialized.
+
+Channel discovery and control-flow validation apply to every member
+independently, including channels surfaced through parent DAG boundaries. The
+backend compiler adds every referenced producer as an implicit dependency. At
+runtime, the driver resolves each item through the existing scalar input paths
+into an ordered parameter list or artifact list.
 
 KFP v3 stores artifacts and task relationships in the native KFP task and
 artifact APIs rather than ML Metadata. Static artifact fan-in must preserve
@@ -286,20 +297,25 @@ The generated TypeScript pipeline-spec bindings must be regenerated for the new
 input variants. Static graph parsing must inspect each parameter-list and
 artifact-list item so every producer is connected to the consumer. Artifact
 members retain the existing producer-to-artifact-to-consumer visualization.
-Artifact edge IDs include the producer task, output key, consumer task, and list
-position so producers with the same output key and repeated members create
-distinct edges.
+The graph represents unique dependencies rather than rendering overlapping
+edges for repeated members. Artifact edge IDs include the producer task, output
+key, consumer task, and consumer input name. Selecting the consumer shows the
+ordered input binding, including repeated members and per-item selectors, so a
+collection such as `[a, b, a]` remains inspectable without adding a synthetic
+runtime node for the Python list.
 
 Static fan-in does not add a pipeline-level runtime input or change the run
 creation experience.
 
 ### Test Plan
 
-SDK tests will cover existing single-channel behavior, each new constructor
-form, ordering, nested DAG boundaries, and invalid collections, including
-list-valued members. Control-flow tests will cover same-iteration,
-outer-to-inner, inner-to-outer, sibling-loop, `dsl.If`, and `dsl.ExitHandler`
-references, including per-item parameter selectors.
+SDK tests will cover unchanged constant lists and `dsl.Collected` behavior,
+parameter and artifact channel lists, one-element lists, ordering, duplicates,
+nested DAG boundaries, and invalid lists. Invalid cases include mixed constants
+and channels, incompatible members, nested lists, and list-valued channels.
+Control-flow tests will cover same-iteration, outer-to-inner, inner-to-outer,
+sibling-loop, `dsl.If`, and `dsl.ExitHandler` references, including per-item
+parameter selectors.
 
 Backend tests will cover direct-IR validation for unsupported item kinds,
 selectors, missing or scalar destinations, incompatible artifact schemas,
@@ -309,34 +325,44 @@ through the native task and artifact APIs. KFP Local tests will execute both
 input kinds.
 
 Frontend tests will use multiple producers with the same output key and a
-repeated member, verifying distinct edge IDs and every expected source.
+repeated member, verifying every unique dependency edge and the exact ordered
+binding in task details.
 
 An integration test will execute the issue #11930 example with three independent
 model trainers and one `Input[List[Model]]` evaluator.
 
 ## Drawbacks
 
-1. `dsl.Collected` gains a second, related meaning.
-2. A one-element static collection requires `dsl.Collected([channel])` because
-   `dsl.Collected(channel)` must retain its existing loop behavior.
+1. Python list handling becomes dependent on whether its members are ordinary
+   values or pipeline channels.
+2. Mixed constant and channel lists are rejected until their desired runtime
+   semantics are designed.
 3. The feature requires coordinated SDK, pipeline specification, backend, and
    KFP Local changes.
 
 ## Alternatives
 
-### Accept Raw Python Lists of Channels
+### Extend `dsl.Collected`
 
 ```python
-evaluate_models(models=[svc.output, xgb.output, lr.output])
+evaluate_models(
+    models=dsl.Collected(svc.output, xgb.output, lr.output),
+)
 ```
 
-This is shorter, but makes ordinary Python containers context-sensitive and
-blurs the distinction between Python executed during compilation and explicit
-KFP DSL constructs. It also raises broader questions about tuples,
-dictionaries, nested containers, and mixed constants and channels.
+This provides an explicit DSL marker without introducing a new class. However,
+`dsl.Collected` currently means runtime aggregation of one output across
+`dsl.ParallelFor` iterations. Extending it would make its behavior depend on
+constructor shape:
 
-An explicit `dsl.Collected` expression communicates that the values participate
-in pipeline graph construction.
+```python
+dsl.Collected(channel)    # Loop collection.
+dsl.Collected([channel])  # One-element static fan-in.
+```
+
+That distinction is subtle for pipeline authors and code-generating agents.
+Keeping `dsl.Collected` loop-specific provides a smaller and clearer authoring
+contract.
 
 ### Introduce a New `FanIn` or `UnionChannel` API
 
@@ -346,13 +372,15 @@ evaluate_models(
 )
 ```
 
-A dedicated API is unambiguous and avoids extending a loop-oriented class.
-However, it introduces another DSL concept that produces the same ordered list
-contract as `dsl.Collected`. `UnionChannel` may also imply set-like semantics,
-while this feature preserves order and duplicates.
+A dedicated API is unambiguous and leaves `dsl.Collected` unchanged. However,
+it introduces another DSL concept for a value already represented naturally by
+a Python list and a `List[T]` component input. The initial feature has no
+runtime assembly policy that requires a separate object.
 
-This is the preferred alternative if maintainers do not want
-`dsl.Collected` to support both loop collection and static fan-in.
+A dedicated construct may be appropriate in the future if collection gains
+semantics that Python list syntax cannot express, such as flattening a
+list-valued channel, omitting missing conditional members, or applying a
+minimum-success policy. Those behaviors are outside this KEP.
 
 ### Continue Using Separate Inputs
 
