@@ -400,8 +400,9 @@ func (s *PipelineStore) DeletePipeline(id string) error {
 // Tag tables (pipeline_tags, pipeline_version_tags) are cleaned up automatically
 // via ON DELETE CASCADE foreign key constraints.
 //
-// Squirrel is used instead of GORM because we need explicit transaction control
-// (tx.Begin/Exec/Commit/Rollback) which Squirrel's ToSql() supports cleanly.
+// Squirrel is used here because PipelineStore holds only *sql.DB (not *gorm.DB),
+// so there is no GORM session available in this store. Squirrel's ToSql() lets us
+// build the DELETE statements and execute them against the raw *sql.Tx.
 func (s *PipelineStore) DeletePipelineAndVersions(pipelineID string) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
