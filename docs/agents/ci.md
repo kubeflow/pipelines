@@ -117,3 +117,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
+
+- Both SDK reference sites set the Sphinx Immaterial `font` option to `False`.
+  This uses the theme's system fallback fonts and disables build-time Google
+  Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
+  font configuration with network connections rejected before building the full
+  references. Keep the no-network regression when changing themes or fonts.
