@@ -17,6 +17,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -29,30 +30,31 @@ import (
 )
 
 type lazyOffloadHydrator struct {
-	mu     sync.Mutex
-	initFn func(context.Context) (hydrator.Interface, error)
-	inner  hydrator.Interface
+	mu sync.Mutex
+	// loadConfig reads persistence settings and a revision token (ConfigMap
+	// resourceVersion). Used by production NewLazyOffloadHydrator.
+	loadConfig PersistConfigLoader
+	kube       kubernetes.Interface
+	// initFn is a test-only builder that returns (inner, revision). Empty
+	// revision disables revision-based cache invalidation.
+	initFn         func(context.Context) (hydrator.Interface, string, error)
+	inner          hydrator.Interface
+	configRevision string
 }
 
-// PersistConfigLoader loads Argo persistence config and the namespace for persistence secrets.
-type PersistConfigLoader func(ctx context.Context) (*argoconfig.PersistConfig, string, error)
+// PersistConfigLoader loads Argo persistence config, the namespace for persistence
+// secrets, and a revision token (typically the workflow-controller ConfigMap
+// resourceVersion) so enabled hydrators can pick up config changes.
+type PersistConfigLoader func(ctx context.Context) (*argoconfig.PersistConfig, string, string, error)
 
 // NewLazyOffloadHydrator returns a hydrator that lazily connects to Argo's offload database.
-// Initialization is retried on each offload read/write until it succeeds.
+// Initialization is retried on each offload read/write until it succeeds. When the
+// ConfigMap revision changes, a previously cached real hydrator is discarded.
 func NewLazyOffloadHydrator(kube kubernetes.Interface, load PersistConfigLoader) hydrator.Interface {
-	return newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
-		persist, secretsNamespace, err := load(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if persist == nil || !persist.NodeStatusOffload {
-			return hydratorfake.Noop, nil
-		}
-		return CreateWorkflowHydrator(ctx, kube, persist, secretsNamespace)
-	})
+	return &lazyOffloadHydrator{kube: kube, loadConfig: load}
 }
 
-func newLazyOffloadHydrator(initFn func(context.Context) (hydrator.Interface, error)) hydrator.Interface {
+func newLazyOffloadHydrator(initFn func(context.Context) (hydrator.Interface, string, error)) hydrator.Interface {
 	return &lazyOffloadHydrator{initFn: initFn}
 }
 
@@ -70,26 +72,91 @@ func TryInitLazyOffloadHydrator(h hydrator.Interface, ctx context.Context) (bool
 	return inner != hydratorfake.Noop, nil
 }
 
+func closeHydratorIfPossible(h hydrator.Interface) {
+	if h == nil || h == hydratorfake.Noop {
+		return
+	}
+	if closer, ok := h.(io.Closer); ok {
+		_ = closer.Close()
+	}
+}
+
+func (l *lazyOffloadHydrator) replaceInnerLocked(next hydrator.Interface, revision string) hydrator.Interface {
+	if l.inner != nil && l.inner != next {
+		closeHydratorIfPossible(l.inner)
+	}
+	l.inner = nil
+	l.configRevision = revision
+	if next == hydratorfake.Noop {
+		return next
+	}
+	l.inner = next
+	return l.inner
+}
+
 func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interface, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.inner != nil {
+
+	if l.loadConfig != nil {
+		return l.ensureInnerFromConfigLocked(ctx)
+	}
+	return l.ensureInnerFromInitFnLocked(ctx)
+}
+
+func (l *lazyOffloadHydrator) ensureInnerFromConfigLocked(ctx context.Context) (hydrator.Interface, error) {
+	persist, secretsNamespace, revision, err := l.loadConfig(ctx)
+	if err != nil {
+		if l.inner != nil {
+			// Keep serving the cached hydrator if the ConfigMap is temporarily
+			// unreadable; session-recovery paths still clear on hard DB errors.
+			return l.inner, nil
+		}
+		return nil, err
+	}
+	if l.inner != nil && revision != "" && revision == l.configRevision {
 		return l.inner, nil
 	}
-	if l.initFn == nil {
-		return nil, fmt.Errorf("argo offload hydrator is not initialized")
+	if persist == nil || !persist.NodeStatusOffload {
+		return l.replaceInnerLocked(hydratorfake.Noop, revision), nil
 	}
-	inner, err := l.initFn(ctx)
+	inner, err := CreateWorkflowHydrator(ctx, l.kube, persist, secretsNamespace)
 	if err != nil {
 		return nil, err
 	}
-	// Offload may be toggled in the workflow-controller ConfigMap; do not cache the no-op
-	// hydrator so later reads can pick up an enabled persistence config without restart.
-	if inner == hydratorfake.Noop {
-		return inner, nil
+	return l.replaceInnerLocked(inner, revision), nil
+}
+
+func (l *lazyOffloadHydrator) ensureInnerFromInitFnLocked(ctx context.Context) (hydrator.Interface, error) {
+	if l.initFn == nil {
+		return nil, fmt.Errorf("argo offload hydrator is not initialized")
 	}
-	l.inner = inner
-	return l.inner, nil
+	// When a revision-aware test initFn is cached, re-probe on each ensure so
+	// config flips are observed. Unversioned initFns (empty revision) keep the
+	// previous "init once" behavior for session-recovery tests.
+	if l.inner != nil && l.configRevision == "" {
+		return l.inner, nil
+	}
+	inner, revision, err := l.initFn(ctx)
+	if err != nil {
+		if l.inner != nil {
+			return l.inner, nil
+		}
+		return nil, err
+	}
+	if l.inner != nil && revision != "" && revision == l.configRevision {
+		if inner != l.inner {
+			closeHydratorIfPossible(inner)
+		}
+		return l.inner, nil
+	}
+	// Offload may be toggled; do not cache the no-op hydrator so later reads
+	// can pick up an enabled persistence config without restart. Still record
+	// the revision so an enabled→disabled flip clears a real cached hydrator.
+	if inner == hydratorfake.Noop {
+		return l.replaceInnerLocked(inner, revision), nil
+	}
+	return l.replaceInnerLocked(inner, revision), nil
 }
 
 // clearInnerIfSame drops the cached hydrator only when it is still the instance
@@ -99,7 +166,9 @@ func (l *lazyOffloadHydrator) clearInnerIfSame(failed hydrator.Interface) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.inner == failed {
+		closeHydratorIfPossible(l.inner)
 		l.inner = nil
+		l.configRevision = ""
 	}
 }
 
