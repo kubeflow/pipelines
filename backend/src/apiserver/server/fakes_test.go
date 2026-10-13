@@ -22,7 +22,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
-	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -33,81 +32,19 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	invalidPipelineVersionId = "not_exist_pipeline_version"
-	DefaultFakeUUID          = "123e4567-e89b-12d3-a456-426655440000"
-	NonDefaultFakeUUID       = "123e4567-e89b-12d3-a456-426655441000"
-	FakeUUIDOne              = "123e4567-e89b-12d3-a456-426655440001"
-	DefaultFakeIdOne         = "123e4567-e89b-12d3-a456-426655440000"
-	DefaultFakeIdTwo         = "123e4567-e89b-12d3-a456-426655440001"
-	DefaultFakeIdThree       = "123e4567-e89b-12d3-a456-426655440002"
-	DefaultFakeIdFour        = "123e4567-e89b-12d3-a456-426655440003"
-	DefaultFakeIdFive        = "123e4567-e89b-12d3-a456-426655440004"
-	DefaultFakeIdSix         = "123e4567-e89b-12d3-a456-426655440005"
-	DefaultFakeIdSeven       = "123e4567-e89b-12d3-a456-426655440006"
-	DefaultFakeIdEight       = "123e4567-e89b-12d3-a456-426655440007"
+	DefaultFakeUUID    = "123e4567-e89b-12d3-a456-426655440000"
+	NonDefaultFakeUUID = "123e4567-e89b-12d3-a456-426655441000"
+	DefaultFakeIdOne   = "123e4567-e89b-12d3-a456-426655440000"
+	DefaultFakeIdTwo   = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakeIdThree = "123e4567-e89b-12d3-a456-426655440002"
+	DefaultFakeIdFour  = "123e4567-e89b-12d3-a456-426655440003"
 )
-
-var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
-	Spec: v1alpha1.WorkflowSpec{
-		Entrypoint: "testy",
-		Templates: []v1alpha1.Template{{
-			Name: "testy",
-			Container: &corev1.Container{
-				Image:   "docker/whalesay",
-				Command: []string{"cowsay"},
-				Args:    []string{"hello world"},
-			},
-		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}},
-	},
-})
-
-var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
-	Spec: v1alpha1.WorkflowSpec{
-		Entrypoint: "testy",
-		Templates: []v1alpha1.Template{{
-			Name: "testy",
-			Container: &corev1.Container{
-				Image:   "docker/whalesay",
-				Command: []string{"cowsay"},
-				Args:    []string{"hello world"},
-			},
-		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}},
-	},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
-})
-
-var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name2", UID: "workflow2", Namespace: "ns2"},
-	Spec: v1alpha1.WorkflowSpec{
-		Entrypoint: "testy2",
-		Templates: []v1alpha1.Template{{
-			Name: "testy2",
-			Container: &corev1.Container{
-				Image:   "docker/whalesay2",
-				Command: []string{"cowsay2"},
-				Args:    []string{"hello world2"},
-			},
-		}},
-		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}},
-	},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
-})
 
 // This automatically runs before all the tests.
 func initEnvVars() {
@@ -189,80 +126,6 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	return clientManager, resourceManager, experiment, pv
 }
 
-func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClientManager {
-	initEnvVars()
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-
-	// Create an experiment.
-	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
-	modelExperiment, err := toModelExperiment(apiExperiment)
-	assert.Nil(t, err)
-	_, err = resourceManager.CreateExperiment(modelExperiment)
-	assert.Nil(t, err)
-
-	// Create a pipeline and then a pipeline version.
-	p, err := resourceManager.CreatePipeline(
-		&model.Pipeline{
-			Name:        "pipeline",
-			Description: "",
-			Namespace:   "",
-		},
-	)
-	assert.Nil(t, err)
-	_, err = resourceManager.CreatePipelineVersion(
-		&model.PipelineVersion{
-			Name:         "pipeline",
-			PipelineId:   p.UUID,
-			PipelineSpec: testIRPipeline,
-		},
-	)
-	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441001", nil))
-	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	_, err = resourceManager.CreatePipelineVersion(
-		&model.PipelineVersion{
-			Name:         "pipeline_version",
-			PipelineId:   DefaultFakeUUID,
-			PipelineSpec: testIRPipeline,
-		},
-	)
-	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
-	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	// Create another pipeline and then pipeline version.
-	p1, err := resourceManager.CreatePipeline(
-		&model.Pipeline{
-			Name:        "anpther-pipeline",
-			Description: "",
-			Namespace:   "",
-		},
-	)
-
-	assert.Nil(t, err)
-	_, err = resourceManager.CreatePipelineVersion(
-		&model.PipelineVersion{
-			Name:         "anpther-pipeline",
-			PipelineId:   p1.UUID,
-			Description:  "",
-			PipelineSpec: testIRPipeline,
-		},
-	)
-	assert.Nil(t, err)
-
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441002", nil))
-	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	_, err = resourceManager.CreatePipelineVersion(
-		&model.PipelineVersion{
-			Name:         "another_pipeline_version",
-			PipelineId:   NonDefaultFakeUUID,
-			PipelineSpec: testIRPipeline,
-		},
-	)
-	assert.Nil(t, err)
-	return clientManager
-}
-
 func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Run) {
 	clientManager, manager, exp := initWithExperiment(t)
 
@@ -312,12 +175,6 @@ func initWithOneTimeRunV2(t *testing.T) (*resource.FakeClientManager, *resource.
 	return clientManager, resourceManager, runDetail
 }
 
-func AssertUserError(t *testing.T, err error, expectedCode codes.Code) {
-	userError, ok := err.(*util.UserError)
-	assert.True(t, ok)
-	assert.Equal(t, expectedCode, userError.ExternalStatusCode())
-}
-
 func getPermissionDeniedError(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	return util.NewPermissionDeniedError(
 		errors.New("Unauthorized access"),
@@ -326,10 +183,6 @@ func getPermissionDeniedError(userIdentity string, resourceAttributes *authoriza
 		"this is not allowed",
 		resourceAttributes,
 	)
-}
-
-func wrapFailedAuthzApiResourcesError(err error) error {
-	return util.Wrap(err, "Failed to authorize with API")
 }
 
 func wrapFailedAuthzRequestError(err error) error {

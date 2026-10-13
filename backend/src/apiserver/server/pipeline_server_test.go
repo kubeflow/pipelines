@@ -101,13 +101,6 @@ func getMockServer(t *testing.T) *httptest.Server {
 	return httpServer
 }
 
-func getBadMockServer() *httptest.Server {
-	httpServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.WriteHeader(404)
-	}))
-	return httpServer
-}
-
 func TestPipelineServer_CreatePipeline(t *testing.T) {
 	httpServer := getMockServer(t)
 	defer httpServer.Close()

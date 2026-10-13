@@ -31,124 +31,13 @@ const (
 	CreatorRelationship Relationship = "Creator"
 )
 
-type ResourceReferenceRelationshipTriplet struct {
-	ResourceType     ResourceType
-	ReferenceType    ResourceType
-	RelationshipType Relationship
-}
-
-// Describes all possible relationship types between resources.
-var validResourceReferenceRelationship map[ResourceReferenceRelationshipTriplet]bool = map[ResourceReferenceRelationshipTriplet]bool{
-	// Experiment
-	{
-		ResourceType:     ExperimentResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-
-	// Pipeline
-	{
-		ResourceType:     PipelineResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-
-	// PipelineVersion
-	{
-		ResourceType:     PipelineVersionResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     PipelineVersionResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-
-	// Job
-	{
-		ResourceType:     JobResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     JobResourceType,
-		ReferenceType:    ExperimentResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     JobResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     JobResourceType,
-		ReferenceType:    PipelineVersionResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-
-	// RecurringRon
-	{
-		ResourceType:     RecurringRunResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     RecurringRunResourceType,
-		ReferenceType:    ExperimentResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     RecurringRunResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     RecurringRunResourceType,
-		ReferenceType:    PipelineVersionResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-
-	// Run
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    NamespaceResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    ExperimentResourceType,
-		RelationshipType: OwnerRelationship,
-	}: true,
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    JobResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    RecurringRunResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    PipelineResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-	{
-		ResourceType:     RunResourceType,
-		ReferenceType:    PipelineVersionResourceType,
-		RelationshipType: CreatorRelationship,
-	}: true,
-}
-
-// The type of a resource object.
+// ResourceType The type of a resource object.
 type ResourceType string
 
-// The relationship between two resource objects.
+// Relationship The relationship between two resource objects.
 type Relationship string
 
-// Resource reference table models the relationship between resources in a loosely coupled way.
+// ResourceReference Resource reference table models the relationship between resources in a loosely coupled way.
 // This model has a composite primary key consisting of ResourceUUID, ResourceType, and ReferenceType.
 type ResourceReference struct {
 	// ID of the resource object
@@ -183,24 +72,7 @@ type FilterContext struct {
 	*ReferenceKey
 }
 
-func EmptyFilterContext() *FilterContext {
-	return &FilterContext{}
-}
-
-// Checks whether the resource-reference relationship combination is valid.
-func ValidateResourceReferenceRelationship(resType ResourceType, refType ResourceType, relType Relationship) bool {
-	check, err := validResourceReferenceRelationship[ResourceReferenceRelationshipTriplet{
-		ResourceType:     resType,
-		ReferenceType:    refType,
-		RelationshipType: relType,
-	}]
-	if err {
-		return check
-	}
-	return false
-}
-
-// Fetches the first reference id of a given type
+// GetRefIdFromResourceReferences fetches the first reference id of a given type
 func GetRefIdFromResourceReferences(resRefs []*ResourceReference, refType ResourceType) string {
 	for _, ref := range resRefs {
 		if ref.ReferenceUUID != "" && ref.ReferenceType == refType {

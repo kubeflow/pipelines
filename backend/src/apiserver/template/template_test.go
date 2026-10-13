@@ -183,22 +183,6 @@ spec:
     container:
       image: docker/whalesay:latest`
 
-var emptyName = `
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: hello-world-
-spec:
-  entrypoint: whalesay
-  templates:
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: ""
-        value: "value1"
-    container:
-      image: docker/whalesay:latest`
-
 var defaultPVC = &corev1.PersistentVolumeClaimSpec{
 	AccessModes: []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteMany,
