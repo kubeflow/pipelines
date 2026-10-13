@@ -12,6 +12,8 @@ import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
 
+export const SUB_DAG_HEADER_CLASS_NAME = 'subdag-header';
+
 // The group outline clips the outer corners; do not expose the white header
 // behind the status cell's own rounded lower-right corner.
 const groupStatus = style({
@@ -44,8 +46,9 @@ export default function SubDagGroupNode({
       >
         <div
           data-testid='subdag-header'
-          className='flex items-stretch bg-white'
-          style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT }}
+          className={classes(SUB_DAG_HEADER_CLASS_NAME, 'flex items-stretch bg-white')}
+          style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT, pointerEvents: 'auto' }}
+          title={data.expansionError}
         >
           <div
             data-testid='subdag-type'

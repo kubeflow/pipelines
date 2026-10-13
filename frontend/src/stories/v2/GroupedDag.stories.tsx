@@ -113,10 +113,10 @@ export const TwentyFiveSubDags: Story = {
   },
 };
 
-export const HundredComponentsTwentyLevels: Story = {
+export const TwentyFiveNestedSubDags: Story = {
   args: {
     spec: deeplyNestedSpec(),
-    title: '100 components — 20 levels of nesting',
+    title: '25 nested sub-DAGs — two components per level',
   },
 };
 

@@ -191,24 +191,24 @@ export function manySubDagsSpec(count = 25, parallelBranches = 1) {
   });
 }
 
-/** Five executable components per level, enclosed by a single 20-level DAG chain. */
+/** Two executable components per level, enclosed by a single 25-level DAG chain. */
 export function deeplyNestedSpec() {
   const spec = PipelineSpec.fromPartial({
-    pipelineInfo: { name: 'nested-100-components-20-levels' },
+    pipelineInfo: { name: 'nested-50-components-25-levels' },
     deploymentSpec: {
       executors: { 'exec-noop': { container: { image: 'python:3.11', command: ['true'] } } },
     },
     root: { dag: { tasks: { 'level-1': task('Level 01', 'level-1') } } },
   });
-  for (let depth = 1; depth <= 20; depth++) {
+  for (let depth = 1; depth <= 25; depth++) {
     const tasks: Record<string, PipelineTaskSpec> = {};
-    for (let index = 1; index <= 5; index++) {
-      const number = (depth - 1) * 5 + index;
+    for (let index = 1; index <= 2; index++) {
+      const number = (depth - 1) * 2 + index;
       const key = `component-${number}`;
       tasks[key] = task(`Component ${String(number).padStart(3, '0')}`, key);
       spec.components[key] = ComponentSpec.fromPartial({ executorLabel: 'exec-noop' });
     }
-    if (depth < 20) {
+    if (depth < 25) {
       const nextLevel = `level-${depth + 1}`;
       tasks[nextLevel] = task(
         `Level ${String(depth + 1).padStart(2, '0')}`,

@@ -149,7 +149,7 @@ it('shows 20 expanded and five collapsed groups in the 25-sub-DAG visual example
   expect(screen.queryAllByText('Step', { exact: true })).toHaveLength(0);
 });
 
-it('selects the deepest of 100 components and preserves a level-10 collapse through refresh', () => {
+it('reveals all 25 nested levels on demand and preserves individual collapse choices', () => {
   const spec = deeplyNestedSpec();
   const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
   const options = { ...props(), getSubDagElements: resolve };
@@ -159,26 +159,28 @@ it('selects the deepest of 100 components and preserves a level-10 collapse thro
     </CommonTestWrapper>
   );
   const { rerender } = render(canvas());
-  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(100);
+  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(40);
   expect(screen.getAllByRole('button', { name: /^Collapse Level / })).toHaveLength(20);
-  fireEvent.click(screen.getByText('Component 100', { exact: true }));
+  expect(screen.getByRole('button', { name: 'Expand Level 21', exact: true })).toBeInTheDocument();
+  expect(screen.queryByText('Component 050', { exact: true })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Expand all', exact: true }));
+  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(50);
+  expect(screen.getAllByRole('button', { name: /^Collapse Level / })).toHaveLength(25);
+  fireEvent.click(screen.getByText('Component 050', { exact: true }));
   expect(options.onElementClick).toHaveBeenCalledWith(expect.anything(), {
-    element: expect.objectContaining({ id: 'task.component-100' }),
-    layers: ['root', ...Array.from({ length: 20 }, (_, index) => `level-${index + 1}`)],
+    element: expect.objectContaining({ id: 'task.component-50' }),
+    layers: ['root', ...Array.from({ length: 25 }, (_, index) => `level-${index + 1}`)],
   });
-
   fireEvent.click(screen.getByRole('button', { name: 'Collapse Level 10', exact: true }));
   rerender(canvas());
-  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(45);
+  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(18);
   expect(screen.getByRole('button', { name: 'Expand Level 10', exact: true })).toBeInTheDocument();
-  expect(screen.queryByText('Component 100', { exact: true })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Expand all', exact: true }));
-  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(100);
+  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(50);
   fireEvent.click(screen.getByRole('button', { name: 'Collapse all', exact: true }));
   expect(screen.queryAllByText(/^Component \d{3}$/)).toHaveLength(0);
-  expect(screen.getAllByRole('button', { name: /^Expand Level / })).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: 'Expand Level 01', exact: true }));
-  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(5);
+  expect(screen.getAllByText(/^Component \d{3}$/)).toHaveLength(2);
   expect(screen.getByRole('button', { name: 'Expand Level 02', exact: true })).toBeInTheDocument();
 });
 

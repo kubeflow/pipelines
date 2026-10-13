@@ -36,6 +36,7 @@ import {
 import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { NODE_TYPES } from 'src/components/graph/NodeTypes';
+import { SUB_DAG_HEADER_CLASS_NAME } from 'src/components/graph/SubDagGroupNode';
 import { buildGroupedFlow, GROUP_NODE_TYPE, layerNodeId } from 'src/lib/v2/GroupedFlow';
 import { color } from 'src/Css';
 import type {
@@ -148,7 +149,7 @@ export default function DagCanvas({
   }, [resetPositionsAndFitView]);
   const nodes = useMemo(
     () =>
-      grouped.nodes.map((node) => {
+      grouped.nodes.map<PipelineNode>((node) => {
         const selectedNode = {
           ...node,
           position: positions[positionKey(node)] ?? node.position,
@@ -159,6 +160,9 @@ export default function DagCanvas({
         if (node.type === GROUP_NODE_TYPE) {
           return {
             ...selectedNode,
+            // Let empty group space hit the pane for panning; only the header accepts pointers.
+            style: { ...node.style, pointerEvents: 'none' },
+            dragHandle: `.${SUB_DAG_HEADER_CLASS_NAME}`,
             data: { ...node.data, expand: (id: string) => toggleGroup(id, node.data.collapsed) },
           };
         }

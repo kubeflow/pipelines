@@ -252,25 +252,34 @@ describe('buildGroupedFlow', () => {
     expect(all.nodes.some((node) => node.type === NodeTypeNames.EXECUTION)).toBe(true);
   });
 
-  it('lays out 100 distinct components in 20 nested sub-DAGs by default', () => {
+  it('defaults to 20 of 25 nested sub-DAGs, each enclosing two executable components', () => {
     const spec = deeplyNestedSpec();
     expect(
       Object.values(spec.components).filter((component) => component.executorLabel),
-    ).toHaveLength(100);
+    ).toHaveLength(50);
     const graph = staticGraph(spec);
-    expect(graph.nodes.filter((node) => node.type === NodeTypeNames.EXECUTION)).toHaveLength(100);
-    expect(graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE)).toHaveLength(20);
-    expect(graph.nodes).toHaveLength(120);
-    expect(graph.edges).toHaveLength(95);
-    expect(graph.nodes.every((node) => !node.data.collapsed && !node.data.expansionError)).toBe(
+    expect(graph.nodes.filter((node) => node.type === NodeTypeNames.EXECUTION)).toHaveLength(40);
+    const groups = graph.nodes.filter((node) => node.type === GROUP_NODE_TYPE);
+    expect(groups).toHaveLength(21);
+    expect(groups.filter((node) => !node.data.collapsed)).toHaveLength(20);
+    expect(groups.find((node) => node.data.collapsed)?.data.label).toBe('Level 21');
+    expect(graph.nodes.some((node) => node.data.label === 'Component 041')).toBe(false);
+
+    const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
+    const full = buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
+      expansionMode: 'all',
+    });
+    expect(full.nodes.filter((node) => node.type === NodeTypeNames.EXECUTION)).toHaveLength(50);
+    expect(full.nodes.filter((node) => node.type === GROUP_NODE_TYPE)).toHaveLength(25);
+    expect(full.nodes).toHaveLength(75);
+    expect(full.edges).toHaveLength(48);
+    expect(full.nodes.every((node) => !node.data.collapsed && !node.data.expansionError)).toBe(
       true,
     );
-    expect(new Set(graph.nodes.map((node) => node.id)).size).toBe(120);
-    const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
-    expect(graph.edges.every((edge) => nodes.has(edge.source) && nodes.has(edge.target))).toBe(
-      true,
-    );
-    for (const node of graph.nodes) {
+    const nodes = new Map(full.nodes.map((node) => [node.id, node]));
+    expect(nodes.size).toBe(75);
+    expect(full.edges.every((edge) => nodes.has(edge.source) && nodes.has(edge.target))).toBe(true);
+    for (const node of full.nodes) {
       expect(Number.isFinite(node.position.x) && Number.isFinite(node.position.y)).toBe(true);
       if (!node.parentId) continue;
       const parent = nodes.get(node.parentId)!;
@@ -281,11 +290,11 @@ describe('buildGroupedFlow', () => {
     }
     const deepestLayers = [
       'root',
-      ...Array.from({ length: 20 }, (_, index) => `level-${index + 1}`),
+      ...Array.from({ length: 25 }, (_, index) => `level-${index + 1}`),
     ];
-    const deepestId = layerNodeId(deepestLayers, 'task.component-100');
-    expect(graph.sources.get(deepestId)).toMatchObject({
-      element: { id: 'task.component-100', data: { label: 'Component 100' } },
+    const deepestId = layerNodeId(deepestLayers, 'task.component-50');
+    expect(full.sources.get(deepestId)).toMatchObject({
+      element: { id: 'task.component-50', data: { label: 'Component 050' } },
       layers: deepestLayers,
     });
     let ancestor = nodes.get(deepestId);
@@ -294,13 +303,7 @@ describe('buildGroupedFlow', () => {
       depth++;
       ancestor = nodes.get(ancestor.parentId);
     }
-    expect(depth).toBe(20);
-    const resolve = (layers: string[]) => convertSubDagToFlowElements(spec, layers);
-    expect(
-      buildGroupedFlow(resolve(['root']), ['root'], resolve, new Set(), {
-        expansionMode: 'all',
-      }),
-    ).toEqual(graph);
+    expect(depth).toBe(25);
   });
 
   it('counts sub-DAGs, not the component or artifact nodes inside them', () => {
