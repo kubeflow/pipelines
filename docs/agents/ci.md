@@ -189,3 +189,9 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+
+- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
+  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+  gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
+  When advancing this pin, review and render all four consumed paths, including
+  the profile controller; the pin selects more than Istio images.
