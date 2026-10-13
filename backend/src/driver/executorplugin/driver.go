@@ -35,6 +35,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+
 	// Register runtime plugin factories.
 	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"

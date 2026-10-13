@@ -16,11 +16,12 @@ package mlflow
 
 import (
 	"encoding/json"
+	"testing"
+
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestMlflowHandlerFactory_CreateWithRuntimeArgs_Success(t *testing.T) {
