@@ -109,3 +109,10 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 The CI Scripts Tests path filters include `hack/update-all-requirements.sh`, which
 is inspected by the packaging regression suite to prevent tracked exports from returning.
+
+- Kubernetes-auth MLflow E2E lanes pin the ODH runtime and operator by digest as
+  a compatible MLflow 3.15.2 pair. The operator refuses database migration when
+  the runtime version differs from its supported version, holding serving
+  replicas at zero. Update both pins together after checking runtime provenance,
+  operator-supported version, and all four file/S3 and cache-enabled/disabled
+  combinations. The separate `red-hat-data-services` image selection is unchanged.
