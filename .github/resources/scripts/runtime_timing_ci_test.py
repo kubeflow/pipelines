@@ -118,10 +118,14 @@ class RuntimeTimingCITest(unittest.TestCase):
                     '.github/resources/scripts/render-profiled-manifests.sh'),
                 str(root)
             ]
-            for enabled in ('false', 'true'):
+            for enabled, tuned in (('false', 'false'), ('true', 'false'),
+                                   ('false', 'true'), ('true', 'true')):
                 result = subprocess.run(
                     command,
-                    env=dict(os.environ, PROFILE_RUNTIME_TIMINGS=enabled),
+                    env=dict(
+                        os.environ,
+                        PROFILE_RUNTIME_TIMINGS=enabled,
+                        TUNE_KUBERNETES_CLIENT=tuned),
                     text=True,
                     capture_output=True,
                     check=True,
@@ -135,6 +139,14 @@ class RuntimeTimingCITest(unittest.TestCase):
                 self.assertEqual(
                     any(e['name'] == configure.NAME for e in actual['env']),
                     enabled == 'true')
+                environment = {e['name']: e.get('value') for e in actual['env']}
+                self.assertEqual(
+                    environment.get('CLIENTQPS'),
+                    '20' if tuned == 'true' else None)
+                self.assertEqual(
+                    environment.get('CLIENTBURST'),
+                    '40' if tuned == 'true' else None)
+                self.assertEqual(actual['image'], 'same')
             self.assertEqual(
                 yaml.safe_load((root / 'deployment.yaml').read_text()),
                 deployment)
@@ -144,6 +156,8 @@ class RuntimeTimingCITest(unittest.TestCase):
         deploy = yaml.safe_load(
             (ROOT / '.github/actions/deploy/action.yml').read_text())
         self.assertEqual(deploy['inputs']['profile_runtime_timings']['default'],
+                         'false')
+        self.assertEqual(deploy['inputs']['tune_kubernetes_client']['default'],
                          'false')
         steps = deploy['runs']['steps']
         self.assertLess(
@@ -159,6 +173,20 @@ class RuntimeTimingCITest(unittest.TestCase):
             if step.get('uses') == './.github/actions/deploy'
         ]
         self.assertEqual(len(callers), 4)
+        self.assertTrue(
+            all(step['with']['tune_kubernetes_client'] == 'true'
+                for step in callers))
+        api_workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text())
+        api_callers = [
+            step for job in api_workflow['jobs'].values()
+            for step in job.get('steps', [])
+            if step.get('uses') == './.github/actions/deploy'
+        ]
+        self.assertEqual(len(api_callers), 3)
+        self.assertTrue(
+            all(step['with']['tune_kubernetes_client'] == 'true'
+                for step in api_callers))
         self.assertTrue(
             all(step['with']['profile_runtime_timings'] ==
                 "${{ github.event_name != 'workflow_dispatch' }}"

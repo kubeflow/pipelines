@@ -188,6 +188,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
+          tune_kubernetes_client: 'true'
           profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -294,6 +295,7 @@ jobs:
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         with:
+          tune_kubernetes_client: 'true'
           profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           cache_enabled: "false"
           argo_version: "v4.1.2"
@@ -354,6 +356,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          tune_kubernetes_client: 'true'
           profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
@@ -491,6 +494,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          tune_kubernetes_client: 'true'
           profile_runtime_timings: ${{ github.event_name != 'workflow_dispatch' }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
