@@ -27,6 +27,10 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+- Deployment and runtime prefetch provision GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.
 - Use `.github/actions/setup-python` for uv workspace jobs; it synchronizes the CI extra from `uv.lock`. Include `**/pyproject.toml`, `uv.lock`, and the setup action in dependency-sensitive workflow triggers. Legacy jobs outside the workspace retain `.github/actions/setup-python-pip-cache` with distinct cache scopes.
 - `pre-commit.yml` runs the hooks pinned by `.pre-commit-config.yaml` over each base-to-head change. Its local isort hook pins isort 5.10.1 through `additional_dependencies`, matching the SDK lint extra; do not replace it with a newer upstream hook without also updating the SDK formatter. Configuration-only updates also run each applicable content hook against a small set of clean representative files so a hook upgrade executes without requiring the repository's historical formatting backlog to be fixed in the same PR.
 - The uv development extra requires pre-commit >=3.2 for the current hook stage names. Do not reintroduce the unused legacy `filelock==3.0.*` pin: it prevents installing the compatible virtualenv/pre-commit versions.

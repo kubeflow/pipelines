@@ -66,6 +66,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Ensure GitHub CLI is available
+      shell: bash
+      run: bash .github/resources/scripts/setup-github-cli.sh
+
     - name: Download and import branch images as they become available
       shell: bash
       env:
