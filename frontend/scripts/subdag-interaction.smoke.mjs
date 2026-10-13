@@ -118,10 +118,10 @@ test(
       assert.equal(await page.getByText('Selected:', { exact: false }).count(), 0);
       await canvas.focus();
       for (const [key, dx, dy] of [
-        ['ArrowLeft', -40, 0],
-        ['ArrowRight', 40, 0],
-        ['ArrowUp', 0, -40],
-        ['ArrowDown', 0, 40],
+        ['ArrowLeft', 40, 0],
+        ['ArrowRight', -40, 0],
+        ['ArrowUp', 0, 40],
+        ['ArrowDown', 0, -40],
       ]) {
         const before = await positions();
         await page.keyboard.press(key);
@@ -162,7 +162,7 @@ test(
       for (let index = 0; index < beforeSelectedArrow.length; index++) {
         close(
           afterSelectedArrow[index].x - beforeSelectedArrow[index].x,
-          40,
+          -40,
           'Locked selected node arrows pan',
         );
       }
@@ -306,7 +306,7 @@ test(
       for (let index = 0; index < beforeRelock.length; index++) {
         close(
           afterRelock[index].x - beforeRelock[index].x,
-          40,
+          -40,
           'Relocking restores arrow-key panning',
         );
       }

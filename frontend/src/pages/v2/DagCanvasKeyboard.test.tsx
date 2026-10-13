@@ -41,15 +41,18 @@ beforeEach(() => vi.clearAllMocks());
 const canvas = () => <DagCanvas elements={[]} layers={['root']} onElementClick={vi.fn()} />;
 
 it.each([
-  ['ArrowLeft', -30, 20],
-  ['ArrowRight', 50, 20],
-  ['ArrowUp', 10, -20],
-  ['ArrowDown', 10, 60],
-])('pans the initially locked viewport with %s without changing zoom', (key, x, y) => {
-  render(canvas());
-  fireEvent.keyDown(screen.getByRole('region', { name: 'Pipeline graph' }), { key });
-  expect(viewport.setViewport).toHaveBeenCalledExactlyOnceWith({ x, y, zoom: 2 });
-});
+  ['ArrowLeft', 50, 20],
+  ['ArrowRight', -30, 20],
+  ['ArrowUp', 10, 60],
+  ['ArrowDown', 10, -20],
+])(
+  'scrolls the locked view with %s by translating content oppositely, without changing zoom',
+  (key, x, y) => {
+    render(canvas());
+    fireEvent.keyDown(screen.getByRole('region', { name: 'Pipeline graph' }), { key });
+    expect(viewport.setViewport).toHaveBeenCalledExactlyOnceWith({ x, y, zoom: 2 });
+  },
+);
 
 it('pans from focused nodes only while locked and resumes panning when relocked', () => {
   render(canvas());

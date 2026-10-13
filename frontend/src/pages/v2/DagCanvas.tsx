@@ -55,11 +55,12 @@ const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parent
 const lockedCanvas = style({
   $nest: { '& .react-flow__edge, & .react-flow__edge *': { pointerEvents: 'none' } },
 });
+// Scrolling the view moves graph content in the opposite direction.
 const panDirections = new Map([
-  ['ArrowLeft', { x: -40, y: 0 }],
-  ['ArrowRight', { x: 40, y: 0 }],
-  ['ArrowUp', { x: 0, y: -40 }],
-  ['ArrowDown', { x: 0, y: 40 }],
+  ['ArrowLeft', { x: 40, y: 0 }],
+  ['ArrowRight', { x: -40, y: 0 }],
+  ['ArrowUp', { x: 0, y: 40 }],
+  ['ArrowDown', { x: 0, y: -40 }],
 ]);
 const editableSelector =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]';
