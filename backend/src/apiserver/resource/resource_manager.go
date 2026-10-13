@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 	"net"
@@ -1389,7 +1390,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			liveWorkflow, readError := r.getWorkflowClient(namespace).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
 			switch {
 			case readError == nil && liveWorkflow != nil &&
-				retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), run.RetryGeneration):
+				retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), run.RetryGeneration, run.RetryClaimNonce):
 				// The previous retry was activated despite the expired claim.
 				// Persist its current state and report success.
 				glog.Warningf("Run %s has an expired retry claim (generation %d) but its workflow is live; adopting it instead of retrying again", runId, run.RetryGeneration)
@@ -1398,7 +1399,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 				}
 				return nil
 			case readError == nil && liveWorkflow != nil &&
-				retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, run.RetryGeneration):
+				retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, run.RetryGeneration, run.RetryClaimNonce):
 				// Owned placeholder without activation: resume activation
 				// under the placeholder UID. Do not persist the empty
 				// suspended placeholder as a successful Running run.
@@ -1414,6 +1415,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 					return util.Wrapf(authErr, "Failed to retry run %s due to service account authorization error", runId)
 				}
 				newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(run.RetryGeneration, 10))
+				if run.RetryClaimNonce != "" {
+					newExecSpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, run.RetryClaimNonce)
+				}
 				activated, resumeErr := r.resumeRetryPlaceholderActivation(ctx, namespace, run, newExecSpec, liveWorkflow)
 				if resumeErr != nil {
 					return util.NewUnavailableServerError(resumeErr,
@@ -1446,7 +1450,8 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// from overwriting with a stale terminal state. The returned claimGeneration
 	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
 	// and RollbackRetryClaim checks it to prevent ABA rollback of a later retry.
-	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimError := r.runStore.ClaimRunForRetry(runId, allowClaimTakeover)
+	// claimNonce authenticates ownership markers that generation alone cannot.
+	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimNonce, claimError := r.runStore.ClaimRunForRetry(runId, allowClaimTakeover)
 	if claimError != nil {
 		// Wrap (not re-classify) so NotFound / BadRequest from the claim
 		// reach the client as such instead of surfacing as HTTP 500.
@@ -1458,11 +1463,13 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.State = model.RuntimeStatePending
 	run.Conditions = string(model.RuntimeStatePending.ToExecutionPhase())
 	run.RetryGeneration = claimGeneration
+	run.RetryClaimNonce = claimNonce
 	run.RetryClaimedAtInSec = r.time.Now().Unix()
 	// Stamp the claim token on the workflow so ReportWorkflowResource can
 	// distinguish reports about this retried workflow from stale snapshots
 	// of the pre-retry workflow, without comparing timestamps across clocks.
 	newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+	newExecSpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, claimNonce)
 
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		// Pod deletion is a local operation that precedes any workflow mutation.
@@ -1501,7 +1508,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		switch {
 		case readError == nil && liveWorkflow != nil &&
-			retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), claimGeneration):
+			retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), claimGeneration, claimNonce):
 			// The activating mutation was applied despite the error: the live
 			// workflow carries this claim's generation. It may even be
 			// terminal already if the retry finished quickly. Adopt it and
@@ -1512,7 +1519,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 				runId, claimGeneration, err)
 			newExecSpec = liveWorkflow
 		case readError == nil && liveWorkflow != nil &&
-			retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, claimGeneration):
+			retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, claimGeneration, claimNonce):
 			// Create succeeded but activation did not. Ownership of the
 			// suspended placeholder is not proof of a successful retry —
 			// resume activation instead of persisting the empty placeholder.
@@ -1544,6 +1551,17 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 				"preserving claimed row for reconciliation. Workflow error: %v, read error: %v", runId, err, readError)
 			return util.NewUnavailableServerError(err,
 				"Retry workflow for run %s failed with ambiguous state; claim preserved for reconciliation", runId)
+		case isAmbiguousWorkflowMutationError(err) && (apierrors.IsNotFound(readError) ||
+			(readError == nil && liveWorkflow != nil &&
+				!retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), claimGeneration, claimNonce) &&
+				!retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, claimGeneration, claimNonce))):
+			// Mutation timed out / was otherwise ambiguous. A single follow-up
+			// read that misses our claim markers is not proof the write never
+			// applied — preserve the claim for reconciliation.
+			glog.Warningf("Retry workflow for run %s failed with an ambiguous mutation error; "+
+				"preserving claimed row after one inconclusive read. Workflow error: %v, read error: %v", runId, err, readError)
+			return util.NewUnavailableServerError(err,
+				"Retry workflow for run %s failed with ambiguous state; claim preserved for reconciliation", runId)
 		default:
 			// Workflow definitively absent (NotFound), terminal without this
 			// claim's generation, or a foreign same-name object (including a
@@ -1562,6 +1580,14 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 	}
 
+	// Hydrate terminal retries before persisting so the durable snapshot does
+	// not retain a short-lived OffloadNodeStatusVersion pointer.
+	if newExecSpec.ExecutionStatus().IsInFinalState() {
+		if hydrateErr := newExecSpec.Hydrate(ctx); hydrateErr != nil {
+			return util.Wrapf(hydrateErr,
+				"Failed to hydrate retry workflow node status before persisting run %s", runId)
+		}
+	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	run.Conditions = condition
 	// 0 for a freshly resubmitted (running) workflow; the real finish time
@@ -1572,9 +1598,17 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.State = model.RuntimeState(condition).ToV2()
 	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
 	run.PluginsOutputString = nil
-	err = r.runStore.UpdateRun(run)
+	updated, err := r.runStore.UpdateRunIfClaimStillPending(run)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
+	}
+	if !updated {
+		// A same-generation terminal report already committed. Treat as success
+		// for the caller: the claim's workflow is durable, just not via this write.
+		glog.Warningf("Retry persist for run %s generation %d lost the CAS race to a concurrent report; leaving stored row unchanged",
+			runId, claimGeneration)
+		r.storedWorkflowIdentities.delete(runId)
+		return nil
 	}
 	r.storedWorkflowIdentities.delete(runId)
 	return nil
@@ -1607,7 +1641,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 				return repairErr
 			}
 			storedIdentity = repairedIdentity
-			if retryReconcileForeignWorkflowNameConflict(runID, storedIdentity.uid, claimGeneration, latestWorkflow) {
+			if retryReconcileForeignWorkflowNameConflict(runID, storedIdentity.uid, claimGeneration, run.RetryClaimNonce, latestWorkflow) {
 				conflictErr := util.NewInvalidInputError(
 					"Failed to retry run %s because workflow %s does not belong to this run",
 					runID, newExecSpec.ExecutionName())
@@ -1617,7 +1651,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 					runID, newExecSpec.ExecutionName(), latestWorkflow.ExecutionObjectMeta().UID, storedIdentity.uid, claimGeneration)
 				return conflictErr
 			}
-			if liveWorkflowOwnedForRetryReconcile(runID, storedIdentity.uid, claimGeneration, latestWorkflow) {
+			if liveWorkflowOwnedForRetryReconcile(runID, storedIdentity.uid, claimGeneration, run.RetryClaimNonce, latestWorkflow) {
 				lastWorkflowAction = "rehydrating workflow node status for update"
 				if err := newExecSpec.Hydrate(ctx); err != nil {
 					lastWorkflowError = err
@@ -3410,6 +3444,7 @@ func liveWorkflowOwnedForRetryReconcile(
 	runID string,
 	storedUID types.UID,
 	claimGeneration int64,
+	claimNonce string,
 	live util.ExecutionSpec,
 ) bool {
 	liveMeta := live.ExecutionObjectMeta()
@@ -3422,7 +3457,7 @@ func liveWorkflowOwnedForRetryReconcile(
 	if storedUID != "" && liveMeta.UID == storedUID {
 		return true
 	}
-	if retryWorkflowActivatedForClaim(liveMeta, claimGeneration) {
+	if retryWorkflowActivatedForClaim(liveMeta, claimGeneration, claimNonce) {
 		return true
 	}
 	// A status-free retry placeholder may exist under a fresh UID while the
@@ -3433,33 +3468,37 @@ func liveWorkflowOwnedForRetryReconcile(
 	if claimGeneration > 0 &&
 		storedUID != "" &&
 		liveMeta.UID != storedUID &&
-		retryWorkflowOwnedPlaceholderForClaim(live, runID, claimGeneration) {
+		retryWorkflowOwnedPlaceholderForClaim(live, runID, claimGeneration, claimNonce) {
 		return true
 	}
 	return false
 }
 
 // retryWorkflowActivatedForClaim reports whether meta carries this claim's
-// activation-generation annotation, proving the activating Update applied.
-func retryWorkflowActivatedForClaim(meta *v1.ObjectMeta, generation int64) bool {
-	return generation > 0 && reportedRetryGeneration(meta) == generation
+// activation-generation annotation and matching nonce, proving the activating
+// Update applied for this claim (generation alone is forgeable).
+func retryWorkflowActivatedForClaim(meta *v1.ObjectMeta, generation int64, nonce string) bool {
+	return generation > 0 &&
+		nonce != "" &&
+		reportedRetryGeneration(meta) == generation &&
+		util.RetryClaimNonceMatches(meta, nonce)
 }
 
 // retryWorkflowOwnedPlaceholderForClaim reports whether live is a suspended
-// retry placeholder owned by this run/generation via the placeholder-claim
-// marker, but not yet activated (no matching retry-generation annotation).
+// retry placeholder owned by this run/generation/nonce via the placeholder-
+// claim marker, but not yet activated (no matching retry-generation annotation).
 // Ownership authorizes resume; it must not be treated as retry success.
-func retryWorkflowOwnedPlaceholderForClaim(live util.ExecutionSpec, runID string, generation int64) bool {
-	if live == nil || generation <= 0 {
+func retryWorkflowOwnedPlaceholderForClaim(live util.ExecutionSpec, runID string, generation int64, nonce string) bool {
+	if live == nil || generation <= 0 || nonce == "" {
 		return false
 	}
 	meta := live.ExecutionObjectMeta()
-	if meta == nil || retryWorkflowActivatedForClaim(meta, generation) {
+	if meta == nil || retryWorkflowActivatedForClaim(meta, generation, nonce) {
 		return false
 	}
 	return !live.ExecutionStatus().IsInFinalState() &&
 		retryWorkflowIsSuspendedPlaceholder(live) &&
-		util.RetryPlaceholderClaimMatches(meta, runID, generation)
+		util.RetryPlaceholderClaimMatches(meta, runID, generation, nonce)
 }
 
 // resumeRetryPlaceholderActivation hydrates the retry spec, adopts the
@@ -3481,7 +3520,12 @@ func (r *ResourceManager) resumeRetryPlaceholderActivation(
 		return nil, util.NewInternalServerError(fmt.Errorf("invalid retry generation %d", claimGeneration),
 			"Failed to resume retry placeholder activation for run %s", run.UUID)
 	}
+	if run.RetryClaimNonce == "" {
+		return nil, util.NewInternalServerError(fmt.Errorf("missing retry claim nonce"),
+			"Failed to resume retry placeholder activation for run %s", run.UUID)
+	}
 	retrySpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+	retrySpec.SetAnnotations(util.AnnotationKeyRetryClaimNonce, run.RetryClaimNonce)
 	if err := retrySpec.Hydrate(ctx); err != nil {
 		return nil, err
 	}
@@ -3499,13 +3543,20 @@ func (r *ResourceManager) resumeRetryPlaceholderActivation(
 
 // persistAdoptedRetryWorkflow writes an already-applied retry workflow (activated
 // or freshly resumed) to the run row and notifies plugins, matching the normal
-// retry success path.
+// retry success path. Terminal workflows are hydrated fail-closed before persist
+// so the durable snapshot does not depend on Argo offload GC.
 func (r *ResourceManager) persistAdoptedRetryWorkflow(
 	ctx context.Context,
 	run *model.Run,
 	namespace string,
 	adopted util.ExecutionSpec,
 ) error {
+	if adopted.ExecutionStatus().IsInFinalState() {
+		if err := adopted.Hydrate(ctx); err != nil {
+			return util.Wrapf(err,
+				"Failed to hydrate adopted retry workflow node status before persisting run %s", run.UUID)
+		}
+	}
 	condition := string(adopted.ExecutionStatus().Condition())
 	run.Conditions = condition
 	run.State = model.RuntimeState(condition).ToV2()
@@ -3521,8 +3572,13 @@ func (r *ResourceManager) persistAdoptedRetryWorkflow(
 		}
 	}
 	run.PluginsOutputString = nil
-	if updateError := r.runStore.UpdateRun(run); updateError != nil {
+	updated, updateError := r.runStore.UpdateRunIfClaimStillPending(run)
+	if updateError != nil {
 		return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", run.UUID)
+	}
+	if !updated {
+		glog.Warningf("Adopted retry persist for run %s generation %d lost the CAS race to a concurrent report; leaving stored row unchanged",
+			run.UUID, run.RetryGeneration)
 	}
 	r.storedWorkflowIdentities.delete(run.UUID)
 	return nil
@@ -3540,9 +3596,10 @@ func retryReconcileForeignWorkflowNameConflict(
 	runID string,
 	storedUID types.UID,
 	claimGeneration int64,
+	claimNonce string,
 	live util.ExecutionSpec,
 ) bool {
-	if liveWorkflowOwnedForRetryReconcile(runID, storedUID, claimGeneration, live) {
+	if liveWorkflowOwnedForRetryReconcile(runID, storedUID, claimGeneration, claimNonce, live) {
 		return false
 	}
 	liveMeta := live.ExecutionObjectMeta()
@@ -3552,6 +3609,23 @@ func retryReconcileForeignWorkflowNameConflict(
 	return liveMeta.Labels[util.LabelKeyWorkflowRunId] == runID &&
 		storedUID != "" &&
 		liveMeta.UID != storedUID
+}
+
+// isAmbiguousWorkflowMutationError reports Kubernetes write failures where the
+// server may have applied the mutation despite the client observing an error
+// (timeouts, overloaded API, connection resets mid-flight). Conflict /
+// AlreadyExists after retries are NOT ambiguous for recovery: the follow-up
+// Get can adopt or safely roll back.
+func isAmbiguousWorkflowMutationError(err error) bool {
+	for e := err; e != nil; e = stderrors.Unwrap(e) {
+		if apierrors.IsConflict(e) || apierrors.IsAlreadyExists(e) {
+			return false
+		}
+		if isTransientWorkflowReconcileError(e) {
+			return true
+		}
+	}
+	return false
 }
 
 // reportedRetryGeneration extracts the retry-generation annotation stamped by
