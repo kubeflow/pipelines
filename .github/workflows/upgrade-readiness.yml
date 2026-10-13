@@ -10,6 +10,7 @@ on:
       - .github/workflows/upgrade-readiness.yml
       - .github/resources/scripts/readiness-schedules.sh
       - .github/resources/scripts/readiness-adoption.sh
+      - .github/resources/scripts/readiness-reporting.sh
   push:
     branches: [release-2.18]
     paths:
@@ -17,6 +18,7 @@ on:
       - .github/workflows/upgrade-readiness.yml
       - .github/resources/scripts/readiness-schedules.sh
       - .github/resources/scripts/readiness-adoption.sh
+      - .github/resources/scripts/readiness-reporting.sh
 
 permissions:
   contents: read
@@ -35,6 +37,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Run standalone readiness tests
         run: python3 -m unittest discover -s tools/upgrade-readiness -p 'test_*.py' -v
+
+  reporting-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      - name: Test reporting proxy and concurrency
+        run: go test -race ./tools/upgrade-readiness/reporting-proxy
 
   policy-conformance:
     name: Pinned policy code conformance (not live upgrade)

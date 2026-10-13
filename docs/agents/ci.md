@@ -108,6 +108,19 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   `reports/` are uploaded; SQL snapshots, manifests, credentials and raw adoption
   logs remain in the disposable runner.
 
+- Manual `run_readiness_reporting=true` adds a separate disposable 2.17.2 upgrade
+  lane. It retains suspended V1 immediate and recurring runs, captures read-only
+  ownership findings, and verifies that the actual persistence worker catches up
+  after API-server Workflow GET permission is restored. The fault does not remove
+  the worker's informer access. Its scoped observer preflight submits explicit
+  SubjectAccessReview attributes for the selected virtual KFP run resources;
+  `kubectl auth can-i` discovery fallback does not preserve their API group.
+  A test-only reporting interceptor exercises the
+  deletion-after-capture race; it does not establish recovery when no terminal
+  snapshot was captured. The lane must restore injected permissions on failure,
+  upload only explicit sanitized report files, and delete its isolated cluster.
+  Raw manifests, token files and restoration inputs are not acceptance artifacts.
+
 - `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
   isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
   namespaced custom-role users: private/shared upload and version inheritance,
@@ -150,3 +163,29 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
   failures remain failures and the disposable cluster is always deleted.
+- Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
+  privileged standard-library-only helper. Do not select a setup-python runtime
+  from `PATH` or preserve loader environment variables through `sudo`: tool-cache
+  interpreters can require `LD_LIBRARY_PATH`, which elevation removes.
+
+- Failed Kubernetes-auth MLflow deployments collect bounded CR status, migration
+  Job/Pod status and logs, operator logs and warning events. A zero-replica
+  Deployment can mean operator-managed database migration is blocked; do not
+  force replicas or treat `Available=True` at zero replicas as successful setup.
+  Diagnostic failures retain partial evidence and do not alter the failed step.
+
+- Public Kubernetes-auth MLflow CI pins the server and operator by immutable
+  multi-platform digests. Update both as a compatible pair with the deploy-action
+  revision: the operator's `config/component_metadata.yaml` supported version
+  must match the server's `mlflow/version.py`. The selected server is 3.15.2
+  (source `ce140990e1c4951de597c33a16a9f0e05a4c9e9a`); the operator and action
+  are `45bce547f680ad310d9253bf8e3f77d370de5328`, supporting 3.15.2. Registry
+  provenance and supported platforms were checked before selection. Retain real
+  migration/serving acceptance; a static pin guard does not prove live upgrades.
+  The separate `red-hat-data-services` RHOAI image selection is unchanged.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
