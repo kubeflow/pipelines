@@ -24,6 +24,9 @@ import (
 	"time"
 
 	"google.golang.org/grpc/metadata"
+	authv1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 )
@@ -146,5 +149,27 @@ func TestKubernetesDisabledAndInvalidConfigUnchanged(t *testing.T) {
 	ConfigureKubernetes(config)
 	if config.RateLimiter != nil {
 		t.Fatal("invalid client-go burst silently accepted")
+	}
+}
+
+// Negative QPS disables only the implicit token bucket, never an explicitly
+// supplied limiter, including when timing instrumentation wraps that limiter.
+func TestKubernetesNegativeQPSPreservesCustomLimiter(t *testing.T) {
+	for _, enabled := range []string{"false", "true"} {
+		t.Run(enabled, func(t *testing.T) {
+			t.Setenv(Environment, enabled)
+			expected := errors.New("custom limiter refusal")
+			underlying := &limiter{RateLimiter: flowcontrol.NewFakeAlwaysRateLimiter(), err: expected}
+			config := &rest.Config{Host: "http://kubernetes.invalid", QPS: -1, Burst: 10, RateLimiter: underlying}
+			ConfigureKubernetes(config)
+			client, err := kubernetes.NewForConfig(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = client.AuthenticationV1().TokenReviews().Create(context.Background(), &authv1.TokenReview{}, metav1.CreateOptions{})
+			if !errors.Is(err, expected) || underlying.calls != 1 {
+				t.Fatalf("custom limiter was bypassed: calls=%d error=%v", underlying.calls, err)
+			}
+		})
 	}
 }

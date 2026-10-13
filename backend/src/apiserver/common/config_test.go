@@ -1028,5 +1028,8 @@ func TestKubernetesClientConfigEnvVars(t *testing.T) {
 		t.Setenv("KFP_RUNTIME_PROFILE_TIMINGS", profiling)
 		assert.Equal(t, float64(20), GetFloat64ConfigWithDefault("ClientQPS", 5))
 		assert.Equal(t, 40, GetIntConfigWithDefault("ClientBurst", 10))
+		t.Setenv("CLIENTQPS", "-1")
+		assert.Equal(t, float64(-1), GetFloat64ConfigWithDefault("ClientQPS", 5))
+		t.Setenv("CLIENTQPS", "20")
 	}
 }

@@ -7,6 +7,44 @@ customizations are available for more advanced usage.
 When deploying Kubeflow Pipelines servers, you can pass various environment variables
 to customize the behavior of servers.
 
+## Kubernetes API client rate limits
+
+The API server reads `CLIENTQPS` (default `5`) and `CLIENTBURST` (default `10`)
+when initializing its Kubernetes clients. These are per-client, per-process
+limits; they do not adjust to node count or workload concurrency. Separate
+clients, including TokenReview and SubjectAccessReview clients, have separate
+budgets. Increasing API-server replicas also increases aggregate client traffic.
+
+For installations that use Kubernetes API Priority and Fairness (APF), operators
+can explicitly disable the local token bucket with `CLIENTQPS="-1"`. A value of
+`0` restores client-go's default rate instead of disabling it. `CLIENTBURST` has
+no effect when the local token bucket is disabled. This option does not disable
+authentication, authorization, ownership checks or Kubernetes APF.
+
+```yaml
+env:
+  - name: CLIENTQPS
+    value: "-1"
+```
+
+APF queues or rejects requests after they reach the Kubernetes API server; it
+does not adjust the client's rate setting. Before using this option, verify
+that the API-server service account's requests match the intended APF
+FlowSchema and priority level. Observe APF queue wait, rejected requests, seat
+utilization and latency for competing clients under representative load. Keep
+finite client limits when this server-side policy cannot be verified. APF's
+capacity allocation is not automatic control-plane capacity provisioning.
+
+The pinned client-go implementation retries eligible HTTP 429 responses with
+an integer `Retry-After` header, within its retry budget and request context.
+This is not an adaptive local rate limiter and is not a guarantee that every
+operation succeeds under overload. Transport failures on POST requests are not
+indiscriminately retried. Retain request deadlines and test recovery as well as
+throughput. The disposable-cluster experiment in `backend/test/apf` exercises
+these behaviors; it is not a production capacity certification.
+
+See [Kubernetes API Priority and Fairness](https://kubernetes.io/docs/concepts/cluster-administration/flow-control/).
+
 ## API Server workflow service-account checks
 
 By default, the API server enforces the service-account policy for all identities
