@@ -17,6 +17,8 @@ package util
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	stdjson "encoding/json"
 	"fmt"
 	"strconv"
@@ -162,26 +164,44 @@ func (w *Workflow) ExecutionStatus() ExecutionStatus {
 	return w
 }
 
+// NewRetryClaimNonce returns an unpredictable claim secret for RetryClaimNonce.
+func NewRetryClaimNonce() (string, error) {
+	var buf [16]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf[:]), nil
+}
+
 // RetryPlaceholderClaimValue formats the AnnotationKeyRetryPlaceholderClaim value
-// that authenticates a retry placeholder for a run and ClaimRunForRetry generation.
-func RetryPlaceholderClaimValue(runID string, generation int64) string {
-	return fmt.Sprintf("%s/%d", runID, generation)
+// that authenticates a retry placeholder for a run, ClaimRunForRetry generation,
+// and unpredictable claim nonce.
+func RetryPlaceholderClaimValue(runID string, generation int64, nonce string) string {
+	return fmt.Sprintf("%s/%d/%s", runID, generation, nonce)
 }
 
 // RetryPlaceholderClaimMatches reports whether objMeta carries a placeholder claim
-// for the given run ID and claim generation.
-func RetryPlaceholderClaimMatches(objMeta *metav1.ObjectMeta, runID string, claimGeneration int64) bool {
-	if objMeta == nil || runID == "" || claimGeneration <= 0 {
+// for the given run ID, claim generation, and nonce.
+func RetryPlaceholderClaimMatches(objMeta *metav1.ObjectMeta, runID string, claimGeneration int64, nonce string) bool {
+	if objMeta == nil || runID == "" || claimGeneration <= 0 || nonce == "" {
 		return false
 	}
-	return objMeta.Annotations[AnnotationKeyRetryPlaceholderClaim] == RetryPlaceholderClaimValue(runID, claimGeneration)
+	return objMeta.Annotations[AnnotationKeyRetryPlaceholderClaim] == RetryPlaceholderClaimValue(runID, claimGeneration, nonce)
+}
+
+// RetryClaimNonceMatches reports whether objMeta carries the stored claim nonce.
+func RetryClaimNonceMatches(objMeta *metav1.ObjectMeta, nonce string) bool {
+	if objMeta == nil || nonce == "" {
+		return false
+	}
+	return objMeta.Annotations[AnnotationKeyRetryClaimNonce] == nonce
 }
 
 // NewRetryPlaceholder creates a suspended Workflow for the first phase of retry recreation.
 // The retry-generation claim stays off this object so a create-only partial failure is not
 // mistaken for a completed activation when RetryRun re-reads the live Workflow. A dedicated
-// placeholder-claim annotation still ties the object to this run and generation so RetryRun
-// can adopt its UID without trusting a foreign suspended same-name Workflow.
+// placeholder-claim annotation still ties the object to this run, generation, and nonce so
+// RetryRun can adopt its UID without trusting a foreign suspended same-name Workflow.
 func (w *Workflow) NewRetryPlaceholder() ExecutionSpec {
 	placeholder := NewWorkflow(w.DeepCopy())
 	placeholder.ClearPersistedNodeStatus()
@@ -192,13 +212,16 @@ func (w *Workflow) NewRetryPlaceholder() ExecutionSpec {
 		runID = placeholder.Labels[LabelKeyWorkflowRunId]
 	}
 	generationRaw := ""
+	nonce := ""
 	if placeholder.Annotations != nil {
 		generationRaw = placeholder.Annotations[AnnotationKeyRetryGeneration]
+		nonce = placeholder.Annotations[AnnotationKeyRetryClaimNonce]
 	}
 	delete(placeholder.Annotations, AnnotationKeyRetryGeneration)
-	if runID != "" && generationRaw != "" {
+	if runID != "" && generationRaw != "" && nonce != "" {
 		if generation, err := strconv.ParseInt(generationRaw, 10, 64); err == nil && generation > 0 {
-			placeholder.SetAnnotations(AnnotationKeyRetryPlaceholderClaim, RetryPlaceholderClaimValue(runID, generation))
+			placeholder.SetAnnotations(AnnotationKeyRetryPlaceholderClaim, RetryPlaceholderClaimValue(runID, generation, nonce))
+			placeholder.SetAnnotations(AnnotationKeyRetryClaimNonce, nonce)
 		}
 	}
 	suspend := true
