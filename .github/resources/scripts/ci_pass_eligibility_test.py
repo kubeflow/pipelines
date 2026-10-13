@@ -930,12 +930,13 @@ async function run(liveTip) {
                     'expression': 'b' * 40 + ':.github/workflows',
                 })
 
-    def test_push_revocation_revokes_only_stale_success(self):
-        script = r"""
+    REVOKE_SCRIPT = r"""
 const {revokeStaleGreens} = require(process.argv[1]);
 const crypto = require('node:crypto');
 const B1 = 'a'.repeat(40);
 const B2 = 'c'.repeat(40);
+const LIVE = process.argv[2];
+const TIP = process.argv[3];
 const stamp = base => crypto.createHash('sha256')
   .update(JSON.stringify(['master', base])).digest('hex');
 const successDesc = base =>
@@ -960,7 +961,9 @@ const prs = [
 const listCalls = [];
 const writes = [];
 const github = {
-  rest: {pulls: {list: {}}, repos: {
+  rest: {pulls: {list: {}},
+    git: {getRef: async () => ({data: {object: {sha: LIVE}}})},
+    repos: {
     getCombinedStatusForRef: async ({ref}) => ({
       data: {statuses: statuses[ref] ?
         [{context: 'ci-passed', ...statuses[ref]}] : []}}),
@@ -973,16 +976,21 @@ github.paginate.iterator = async function* (method, params) {
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
-revokeStaleGreens({github, context, tip: B2}).then(count => {
+revokeStaleGreens({github, context, tip: TIP}).then(count => {
   console.log(JSON.stringify({count, writes, listCalls}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
+
+    def _run_revoke(self, live_tip, tip):
         result = subprocess.run(
-            ['node', '-e', script, str(MODULE)],
+            ['node', '-e', self.REVOKE_SCRIPT, str(MODULE), live_tip, tip],
             check=True,
             capture_output=True,
             text=True)
-        actual = json.loads(result.stdout)
+        return json.loads(result.stdout)
+
+    def test_push_revocation_revokes_only_stale_success(self):
+        actual = self._run_revoke('c' * 40, 'c' * 40)
         self.assertEqual(actual['count'], 2)
         self.assertEqual([write['sha'] for write in actual['writes']],
                          ['stale', 'legacy'])
@@ -995,6 +1003,15 @@ revokeStaleGreens({github, context, tip: B2}).then(count => {
         self.assertEqual(actual['listCalls'][0]['base'], 'master')
         self.assertEqual(actual['listCalls'][0]['state'], 'open')
         self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_bails_when_master_has_advanced(self):
+        # A delayed job for an older push (tip=B1) must not revoke a green
+        # stamped for the newer live tip (B2); revokeStaleGreens resolves the
+        # live tip and skips when it has moved past the triggering push.
+        actual = self._run_revoke('c' * 40, 'a' * 40)
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
+        self.assertEqual(actual['listCalls'], [])
 
     def test_push_revocation_rejects_non_sha_tip(self):
         script = r"""
