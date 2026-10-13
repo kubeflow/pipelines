@@ -130,15 +130,6 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
 
-- Docker mirror setup only modifies and restarts an active local systemd Docker
-  service. Containerized/provider-managed runners without that service retain
-  their daemon configuration; the helper still requires `docker info` to succeed.
-  Configure daemon mirrors in the runner provider when local service management
-  is unavailable. BuildKit mirror configuration remains independent.
-- The deploy action provisions GitHub CLI when absent on Linux runners, using a
-  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
-  installations remain in use. Image-artifact polling fails immediately when
-  invoked without `gh`; missing runner dependencies are not publication delays.
 - Both SDK reference sites set the Sphinx Immaterial `font` option to `False`.
   This uses the theme's system fallback fonts and disables build-time Google
   Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
@@ -148,3 +139,8 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
