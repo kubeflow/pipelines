@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -euo pipefail
-if [[ "${PROFILE_RUNTIME_TIMINGS:-false}" != true ]]; then
+if [[ "${PROFILE_RUNTIME_TIMINGS:-false}" != true && "${TUNE_KUBERNETES_CLIENT:-false}" != true ]]; then
   exec kubectl kustomize --load-restrictor LoadRestrictionsNone "$1"
 fi
 # Patch before initial apply/readiness/port-forward; replacing the live API pod
@@ -40,7 +40,20 @@ patches:
             containers:
               - name: ml-pipeline-api-server
                 env:
+EOF
+if [[ "${PROFILE_RUNTIME_TIMINGS:-false}" == true ]]; then
+  cat >> "$profile_overlay/kustomization.yaml" <<EOF
                   - name: KFP_RUNTIME_PROFILE_TIMINGS
                     value: "true"
 EOF
+fi
+if [[ "${TUNE_KUBERNETES_CLIENT:-false}" == true ]]; then
+  # Existing API-server settings; retain a finite limiter and every auth check.
+  cat >> "$profile_overlay/kustomization.yaml" <<EOF
+                  - name: CLIENTQPS
+                    value: "20"
+                  - name: CLIENTBURST
+                    value: "40"
+EOF
+fi
 kubectl kustomize --load-restrictor LoadRestrictionsNone "$profile_overlay"

@@ -2,6 +2,10 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  tune_kubernetes_client:
+    description: "Use bounded 20 QPS / 40 burst API-server Kubernetes clients in CI. Independent of profiling."
+    default: 'false'
+    required: false
   profile_runtime_timings:
     description: "Enable opt-in runtime timing on the initial API-server deployment."
     default: 'false'
@@ -142,6 +146,7 @@ runs:
       id: deploy-kfp
       if: ${{ steps.configure.outcome == 'success' }}
       env:
+        TUNE_KUBERNETES_CLIENT: ${{ inputs.tune_kubernetes_client }}
         PROFILE_RUNTIME_TIMINGS: ${{ inputs.profile_runtime_timings }}
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
       with:
