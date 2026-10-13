@@ -173,3 +173,13 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Deployment can mean operator-managed database migration is blocked; do not
   force replicas or treat `Available=True` at zero replicas as successful setup.
   Diagnostic failures retain partial evidence and do not alter the failed step.
+
+- Public Kubernetes-auth MLflow CI pins the server and operator by immutable
+  multi-platform digests. Update both as a compatible pair with the deploy-action
+  revision: the operator's `config/component_metadata.yaml` supported version
+  must match the server's `mlflow/version.py`. The selected server is 3.15.2
+  (source `ce140990e1c4951de597c33a16a9f0e05a4c9e9a`); the operator and action
+  are `45bce547f680ad310d9253bf8e3f77d370de5328`, supporting 3.15.2. Registry
+  provenance and supported platforms were checked before selection. Retain real
+  migration/serving acceptance; a static pin guard does not prove live upgrades.
+  The separate `red-hat-data-services` RHOAI image selection is unchanged.

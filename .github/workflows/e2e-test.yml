@@ -426,8 +426,10 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
-          mlflow_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow:odh-stable
-          mlflow_operator_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow-operator:odh-stable
+          # ODH server 3.15.2 and operator-supported 3.15.2 must advance together.
+          # Mutable tags can update the server before the operator's migration contract.
+          mlflow_image: ${{ github.repository_owner == 'red-hat-data-services' && 'quay.io/rhoai/mlflow:odh-stable' || 'quay.io/opendatahub/mlflow@sha256:58b2649d85e20b7fb606f5a06e987d2114c1c698af6a4379745e3c428646d02f' }}
+          mlflow_operator_image: ${{ github.repository_owner == 'red-hat-data-services' && 'quay.io/rhoai/mlflow-operator:odh-stable' || 'quay.io/opendatahub/mlflow-operator@sha256:8b01358e2cb6c6caeaed19c5556db68717f8244cc267bf976fef2a5b5b4fc1e8' }}
           backend_store: ${{ matrix.backend_store }}
           artifact_storage: ${{ matrix.artifact_storage }}
           registry_store: ${{ matrix.registry_store }}
