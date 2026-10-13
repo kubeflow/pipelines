@@ -140,3 +140,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
 - `ui-smoke-full-stack.yml` qualifies smoke-tool changes on pull requests using independent disposable Kind base/candidate stacks. It records the canonically verified 2.17.1 release and candidate merge SHAs, builds each runtime, and preserves screenshot/diagnostic evidence on failure. The lane explicitly uses `--fail-threshold none` to qualify report production across intentional legacy-to-native presentation changes; all required capture, semantic and provenance validations remain mandatory, and visual differences remain reported. It does not assert visual equivalence; the CLI default remains zero. The semantic contract requires a legacy MLMD base and native head; native-to-native comparison is rejected before runtime setup. It uses read-only permissions and no deployment secrets; it does not enable paused upgrade lanes or establish historical upgrade compatibility. Artifact uploads deliberately exclude kubeconfigs, image archives, and worktree snapshots.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
