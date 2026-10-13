@@ -983,7 +983,8 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
 
     def _run_revoke(self, live_tip, tip):
         result = subprocess.run(
-            ['node', '-e', self.REVOKE_SCRIPT, str(MODULE), live_tip, tip],
+            ['node', '-e', self.REVOKE_SCRIPT,
+             str(MODULE), live_tip, tip],
             check=True,
             capture_output=True,
             text=True)
