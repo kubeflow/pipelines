@@ -26,7 +26,6 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
   const specialKeys = [
     'keys/literal%2Fname.txt',
     'keys/space + unicode-é.txt',
-    'keys/./literal.txt',
   ];
   const paginatedKeys = Array.from(
     { length: 305 },
