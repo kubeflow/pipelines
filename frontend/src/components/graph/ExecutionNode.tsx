@@ -17,27 +17,26 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { ReactElement } from 'react';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
-import { ExecutionFlowElementData } from './Constants';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { ExecutionFlowElementData, FlowElementState } from './Constants';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 
 export interface ExecutionNodeProps {
   id: string;
   data: ExecutionFlowElementData;
-  // selected: boolean;
-  // status: ExecutionNodeStatus;
 }
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
-  let icon = getIcon(data.state);
-  let executionIcon = getExecutionIcon(data.state);
+  const icon = getIcon(data.state);
+  const executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
 
@@ -55,7 +54,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
               {executionIcon}
             </div>
             <div className='px-3 py-4 w-44 h-full flex justify-center items-center'>
-              <span className='w-44 text-sm truncate' id={id}>
+              <span className='w-44 text-sm truncate' id={id} data-testid={id}>
                 {data.label}
               </span>
             </div>
@@ -69,51 +68,88 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
 }
 export default ExecutionNode;
 
-export function getExecutionIcon(state: Execution.State | undefined) {
+function isMlmdState(state: FlowElementState | undefined): state is Execution.State {
+  return typeof state === 'number';
+}
+
+export function getExecutionIcon(state: FlowElementState | undefined) {
   if (state === undefined) {
     return <ListAltIcon data-testid='execution-icon-default' className='text-mui-grey-500' />;
   }
   return <ListAltIcon data-testid='execution-icon-active' className='text-mui-blue-600' />;
 }
 
-export function getIcon(state: Execution.State | undefined) {
+export function getIcon(state: FlowElementState | undefined) {
   if (state === undefined) {
     return null;
   }
+  if (isMlmdState(state)) {
+    switch (state) {
+      case Execution.State.UNKNOWN:
+        return getStateIconWrapper(
+          <MoreHorizIcon className='text-mui-grey-600' />,
+          'bg-mui-grey-200',
+        );
+      case Execution.State.NEW:
+        return getStateIconWrapper(
+          <PowerSettingsNewIcon className='text-mui-blue-600' />,
+          'bg-mui-blue-50',
+        );
+      case Execution.State.RUNNING:
+        return getStateIconWrapper(
+          <RefreshIcon className='text-mui-green-600' />,
+          'bg-mui-green-50',
+        );
+      case Execution.State.CACHED:
+        return getStateIconWrapper(
+          <CloudDownloadIcon className='text-mui-green-600' />,
+          'bg-mui-green-50',
+        );
+      case Execution.State.FAILED:
+        return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
+      case Execution.State.CANCELED:
+        return getStateIconWrapper(
+          <StopCircle colorClass={'text-mui-grey-600'} />,
+          'bg-mui-grey-200',
+        );
+      case Execution.State.COMPLETE:
+        return getStateIconWrapper(
+          <CheckCircleIcon className='text-mui-green-600' />,
+          'bg-mui-green-50',
+        );
+      default:
+        console.error('Unknown execution state: ' + state);
+        return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
+    }
+  }
   switch (state) {
-    case Execution.State.UNKNOWN:
-      return getStateIconWrapper(
-        <MoreHorizIcon className='text-mui-grey-600' />,
-        'bg-mui-grey-200',
-      );
-
-    case Execution.State.NEW:
+    case V2beta1RuntimeState.PENDING:
       return getStateIconWrapper(
         <PowerSettingsNewIcon className='text-mui-blue-600' />,
         'bg-mui-blue-50',
       );
-    case Execution.State.RUNNING:
+    case V2beta1RuntimeState.RUNNING:
       return getStateIconWrapper(<RefreshIcon className='text-mui-green-600' />, 'bg-mui-green-50');
-    case Execution.State.CACHED:
-      return getStateIconWrapper(
-        <CloudDownloadIcon className='text-mui-green-600' />,
-        'bg-mui-green-50',
-      );
-    case Execution.State.FAILED:
-      return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
-    case Execution.State.CANCELED:
-      return getStateIconWrapper(
-        <StopCircle colorClass={'text-mui-grey-600'} />,
-        'bg-mui-grey-200',
-      );
-    case Execution.State.COMPLETE:
+    case V2beta1RuntimeState.SUCCEEDED:
       return getStateIconWrapper(
         <CheckCircleIcon className='text-mui-green-600' />,
         'bg-mui-green-50',
       );
+    case V2beta1RuntimeState.FAILED:
+      return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
+    case V2beta1RuntimeState.CANCELING:
+    case V2beta1RuntimeState.CANCELED:
+      return getStateIconWrapper(
+        <StopCircle colorClass={'text-mui-grey-600'} />,
+        'bg-mui-grey-200',
+      );
+    case V2beta1RuntimeState.SKIPPED:
+      return getStateIconWrapper(
+        <MoreHorizIcon className='text-mui-grey-600' />,
+        'bg-mui-grey-200',
+      );
     default:
-      console.error('Unknown exeuction state: ' + state);
-      return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
+      return getStateIconWrapper(<ListAltIcon className='text-mui-blue-600' />, 'bg-mui-blue-50');
   }
 }
 
@@ -129,11 +165,3 @@ function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
     </div>
   );
 }
-
-// The following code can be used for `canceling state`
-// return (
-//   <div className='px-2 h-full self-stretch flex flex-col justify-center rounded-r-lg bg-mui-lightblue-100'>
-//     <CircularProgress size={24} />
-//     {/* <SyncDisabledIcon className=' text-mui-organge-300' /> */}
-//   </div>
-// );
