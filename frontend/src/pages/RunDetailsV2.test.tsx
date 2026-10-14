@@ -121,7 +121,7 @@ describe('RunDetailsV2', () => {
     );
   });
 
-  it('Render detail page with reactflow', async () => {
+  it('renders the graph canvas without a top border', async () => {
     render(
       <CommonTestWrapper>
         <RunDetailsV2
@@ -131,7 +131,9 @@ describe('RunDetailsV2', () => {
         ></RunDetailsV2>
       </CommonTestWrapper>,
     );
-    expect(screen.getByTestId('DagCanvas')).not.toBeNull();
+    const canvas = screen.getByTestId('DagCanvas');
+    expect(canvas).toBeInTheDocument();
+    expect(canvas.parentElement!.style.borderTop).toBe('');
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
