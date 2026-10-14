@@ -139,3 +139,5 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+
+- Frontend Tests also runs `test/seaweedfs/artifact_authorization_test.sh` against disposable SeaweedFS 4.48. The fixture provisions real profile-controller IAM policies and administrator-authorized historical roots, then tests production authorization/proxy/storage handlers. Kubernetes identity/ConfigMap lookups are stubbed; the object store is real. This proves object read/list isolation and compatibility, not CNI enforcement. Run the generated proxy NetworkPolicy tests separately and verify ingress denial with the installation's CNI before enabling storage authorization.

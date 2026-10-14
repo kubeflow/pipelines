@@ -11,7 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs.js';
+import {
+  ArtifactAuthorizationMode,
+  AWSConfigs,
+  HttpConfigs,
+  MinioConfigs,
+  ProcessEnv,
+  UIConfigs,
+} from '../configs.js';
 import { Client as MinioClient } from 'minio';
 import {
   PreviewStream,
@@ -303,44 +310,11 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
 }
 
 /**
- * Returns an authorization middleware for artifact endpoints.
- * This middleware handles 3 modes:
- *
- * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
- *    No Subject Access Review and 100% insecure. The namespace query
- *    parameter is optional and not validated or authorized when
- *    authorization is disabled.
- *
- * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
- *    Namespace parameter is required, its format is validated, and RBAC is
- *    checked (the user is authenticated to access the artifact from the
- *    specific namespace folder on the object storage via Subject Access
- *    Review) before accessing SeaweedFS/storage directly.
- *
- * 3. Artifact PROXY MODE (overhead, disabled by default):
- *    Namespace parameter is required, its format is validated, and RBAC is
- *    checked. This adds significant overhead to each namespace, decreases
- *    scalability, and is prone to many CVEs in the artifact proxy
- *    deployment.
- *
- * Note: Secret-backed provider mode (fromEnv === 'false') names a Kubernetes
- * Secret to source object-store credentials from. The frontend server only
- * honors it when the requested namespace is the server's own namespace, so it
- * never reads Secrets from a customer namespace. In shared direct mode an
- * explicit Secret or custom destination is rejected rather than substituted
- * with central credentials; those settings require the namespace-isolated
- * artifact proxy.
- * See: https://github.com/kubeflow/pipelines/pull/12860
- *
- * Security: This addresses the vulnerability where the namespace parameter
- * could be manipulated to access artifacts from other namespaces.
- * See https://github.com/kubeflow/pipelines/issues/9889
- *
- * @param authorizeFn The authorization function to validate permissions
- * @param authEnabled Whether authorization is enabled
- * @param kubeflowUserIdHeader The header name containing the user identity
- * @param apiServerAddress KFP API server address used for namespace-ownership validation (#9889).
- * @param artifactProxyEnabled Whether volume artifacts are delegated to a namespace proxy.
+ * Authorizes the user for the requested namespace before resolving artifact access.
+ * The default policy validates object ownership with the API and namespace key prefix.
+ * Storage authorization delegates object access to the namespace artifact service's
+ * storage identity; it never permits direct retrieval with shared UI credentials.
+ * HTTP and volume artifacts retain their existing source-specific authorization.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
@@ -348,6 +322,7 @@ export function getArtifactsAuthMiddleware(
   kubeflowUserIdHeader: string,
   apiServerAddress?: string,
   artifactProxyEnabled = false,
+  authorizationMode: ArtifactAuthorizationMode = 'key-prefix',
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     hardenArtifactResponse(response);
@@ -357,6 +332,18 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
+    if (authorizationMode !== 'key-prefix' && authorizationMode !== 'storage') {
+      sendArtifactError(response, 500, 'Invalid artifact authorization mode');
+      return;
+    }
+    if (authorizationMode === 'storage' && (!authEnabled || !artifactProxyEnabled)) {
+      sendArtifactError(
+        response,
+        503,
+        'Storage artifact authorization requires authentication and a namespace artifact proxy',
+      );
+      return;
+    }
     if (!authEnabled) {
       return next();
     }
@@ -475,7 +462,30 @@ export function getArtifactsAuthMiddleware(
       }
     }
 
-    if (apiServerAddress) {
+    const storageAuthorization =
+      authorizationMode === 'storage' && isLauncherArtifactSource(coordinates.source);
+    if (storageAuthorization) {
+      try {
+        const storageCoordinates = normalizeArtifactStorageCoordinates(coordinates);
+        // Match the existing ownership policy's support for directory URIs. Trim
+        // one trailing separator for validation, never internal/doubled separators.
+        const policyKey = storageCoordinates.key.endsWith('/')
+          ? storageCoordinates.key.slice(0, -1)
+          : storageCoordinates.key;
+        if (
+          !isAllowedResourceName(storageCoordinates.bucket) ||
+          storageCoordinates.key.length > 1024 ||
+          applyArtifactPathPolicy(policyKey, ARTIFACT_PATH_POLICIES.ownership) === undefined
+        ) {
+          throw new Error('Invalid storage coordinates');
+        }
+      } catch {
+        sendArtifactError(response, 400, MALFORMED_ARTIFACT_KEY_MESSAGE);
+        return;
+      }
+    }
+
+    if (apiServerAddress && !storageAuthorization) {
       if (requiresArtifactOwnershipValidation(coordinates.source)) {
         const artifactUri = buildArtifactCoordinateUri(coordinates);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };
@@ -502,6 +512,8 @@ export function getArtifactsAuthMiddleware(
     }
 
     response.locals.authorizedArtifactUri = buildArtifactCoordinateUri(coordinates);
+    response.locals.authorizedArtifactNamespace = namespace;
+    response.locals.authorizedArtifactViaStorage = storageAuthorization;
     if (coordinates.source === 'volume') {
       // The proxy URL parser removes harmless "." path segments. Allow only that change.
       response.locals.authorizedNormalizedVolumeUri = buildArtifactCoordinateUri({
@@ -612,6 +624,14 @@ export function getArtifactsHandler({
     // hardening headers before parsing so every early error and storage path is
     // protected. Inline previews use fetch(), which ignores Content-Disposition.
     hardenArtifactResponse(res);
+    if (res.locals.authorizedArtifactViaStorage) {
+      sendArtifactError(
+        res,
+        503,
+        'Storage-authorized artifacts require the namespace artifact proxy',
+      );
+      return;
+    }
     const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
     if ('error' in artifactRequest) {
       sendArtifactError(res, artifactRequest.error.status, artifactRequest.error.message);
@@ -1940,8 +1960,21 @@ export function getArtifactsProxyHandler({
   namespacedServiceGetter: NamespacedServiceGetter;
 }): Handler {
   if (!enabled) {
-    return (_req, _res, next) => next();
+    return (_req, res, next) => {
+      if (res.locals.authorizedArtifactViaStorage) {
+        sendArtifactError(
+          res,
+          503,
+          'Storage-authorized artifacts require the namespace artifact proxy',
+        );
+        return;
+      }
+      next();
+    };
   }
+  // Resolve once after checking the authorized namespace. Routing must not re-read a
+  // mutable query parameter after asynchronous provider resolution.
+  const proxyTargets = new WeakMap<IncomingMessage, string>();
   const proxy = createProxyMiddleware({
     pathFilter: (_pathname, req) => {
       // only proxy requests with namespace query parameter
@@ -1964,17 +1997,11 @@ export function getArtifactsProxyHandler({
       return url.pathname + url.search;
     },
     router: (req) => {
-      const namespace = getNamespaceFromUrl(req.url || '');
-      if (!namespace) {
-        console.log(`namespace query param expected in ${req.url}.`);
-        throw new Error(`namespace query param expected.`);
+      const target = proxyTargets.get(req);
+      if (!target) {
+        throw new Error('Artifact proxy target was not authorized');
       }
-      const urlStr = namespacedServiceGetter(namespace!);
-      if (!isAllowedDomain(urlStr, allowedDomain)) {
-        console.log(`Domain is not allowed.`);
-        throw new Error(`Domain is not allowed.`);
-      }
-      return namespacedServiceGetter(namespace!);
+      return target;
     },
     target: '/artifacts',
     headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -1982,6 +2009,18 @@ export function getArtifactsProxyHandler({
   return async (req, res, next) => {
     hardenArtifactResponse(res);
     const authorizedArtifactUri = res.locals.authorizedArtifactUri;
+    const namespace = getNamespaceFromUrl(req.url || '');
+    if (
+      res.locals.authorizedArtifactNamespace !== undefined &&
+      namespace !== res.locals.authorizedArtifactNamespace
+    ) {
+      sendArtifactError(res, 403, 'Artifact namespace changed after authorization');
+      return;
+    }
+    if (res.locals.authorizedArtifactViaStorage && !namespace) {
+      sendArtifactError(res, 403, 'Storage-authorized artifacts require an authorized namespace');
+      return;
+    }
     if (
       typeof authorizedArtifactUri === 'string' &&
       (authorizedArtifactUri.startsWith('http://') || authorizedArtifactUri.startsWith('https://'))
@@ -1990,12 +2029,17 @@ export function getArtifactsProxyHandler({
       // A tenant service may still run older redirect handling code.
       return next();
     }
-    const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
       sendArtifactError(res, 400, 'Invalid namespace');
       return;
     }
     if (namespace) {
+      const target = namespacedServiceGetter(namespace);
+      if (!isAllowedDomain(target, allowedDomain)) {
+        sendArtifactError(res, 403, 'Artifact proxy domain is not allowed');
+        return;
+      }
+      proxyTargets.set(req, target);
       const url = new URL(req.url || '', DUMMY_BASE_PATH);
       url.searchParams.delete('providerInfo');
       const resolvedCoordinates = resolveArtifactCoordinates({

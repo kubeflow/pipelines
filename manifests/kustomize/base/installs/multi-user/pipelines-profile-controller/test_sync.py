@@ -122,6 +122,9 @@ def observed_attachments(proxy_enabled=False, ready=False, ca=False):
         "RoleBinding.rbac.authorization.k8s.io/v1": {
             "driver-plugin": {}
         } if ready else {},
+        "NetworkPolicy.networking.k8s.io/v1": {
+            "artifact": {}
+        } if ready and proxy_enabled else {},
     }
 
 
@@ -181,6 +184,7 @@ def assert_profile_resources(result, expected_image, ca_cert=None):
         expected.update({
             ("Deployment", "ml-pipeline-ui-artifact"),
             ("Service", "ml-pipeline-ui-artifact"),
+            ("NetworkPolicy", "ml-pipeline-ui-artifact"),
         })
         deployment = next(
             item for item in resources if item["kind"] == "Deployment")
@@ -224,6 +228,75 @@ def test_sync_desires_profile_resources(sync_server, expected_image, ready):
                        observed_attachments(bool(expected_image), ready))
     assert result["status"] == {"kubeflow-pipelines-ready": str(ready)}
     assert_profile_resources(result, expected_image)
+
+
+@pytest.mark.parametrize(
+    "sync_server, expected_namespace", [
+        (ENV_IMAGES, "kubeflow"),
+        ({
+            **ENV_IMAGES, "KFP_NAMESPACE": "custom-install"
+        }, "custom-install"),
+        ({
+            **ENV_IMAGES, "DISABLE_ISTIO_SIDECAR": "true"
+        }, "kubeflow"),
+    ],
+    indirect=["sync_server"])
+def test_artifact_network_policy_binds_shared_ui_identity(
+        sync_server, expected_namespace):
+    result = post_sync(sync_server, PARENT, observed_attachments(True))
+    policy = next(item for item in result["attachments"]
+                  if item["kind"] == "NetworkPolicy")
+    assert policy["metadata"] == {
+        "name": "ml-pipeline-ui-artifact",
+        "namespace": NAMESPACE,
+    }
+    assert policy["spec"] == {
+        "podSelector": {
+            "matchLabels": {
+                "app": "ml-pipeline-ui-artifact"
+            }
+        },
+        "policyTypes": ["Ingress"],
+        "ingress": [{
+            "from": [{
+                "namespaceSelector": {
+                    "matchLabels": {
+                        "kubernetes.io/metadata.name": expected_namespace
+                    }
+                },
+                "podSelector": {
+                    "matchLabels": {
+                        "app": "ml-pipeline-ui"
+                    }
+                },
+            }],
+            "ports": [{
+                "protocol": "TCP",
+                "port": 3000
+            }],
+        }],
+    }
+    # A single peer requires BOTH the install namespace and UI pod labels. Splitting
+    # these into two peers would allow a tenant to impersonate the UI using a label.
+    assert len(policy["spec"]["ingress"][0]["from"]) == 1
+
+
+@pytest.mark.parametrize("sync_server", [ENV_IMAGES], indirect=True)
+def test_artifact_proxy_waits_for_network_policy(sync_server):
+    attachments = observed_attachments(True, True)
+    attachments.pop("NetworkPolicy.networking.k8s.io/v1")
+    result = post_sync(sync_server, PARENT, attachments)
+    assert result["status"] == {"kubeflow-pipelines-ready": "False"}
+
+
+def test_kfp_namespace_setting_override():
+    with mock.patch.dict(
+            os.environ, {
+                **ENV_BASE, "KFP_NAMESPACE": "custom"
+            }, clear=True):
+        assert get_settings_from_env()["kfp_namespace"] == "custom"
+        assert get_settings_from_env(
+            kfp_namespace="other")["kfp_namespace"] == "other"
 
 
 def test_sync_server_with_direct_settings(start_sync_server):

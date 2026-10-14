@@ -39,6 +39,10 @@ spec:
     resource: rolebindings
     updateStrategy:
       method: InPlace
+  - apiVersion: networking.k8s.io/v1
+    resource: networkpolicies
+    updateStrategy:
+      method: InPlace
   - apiVersion: networking.istio.io/v1alpha3
     resource: destinationrules
     updateStrategy:

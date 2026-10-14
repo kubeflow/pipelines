@@ -4,6 +4,15 @@ Changelog
 
 ### Upgrade notes
 
+- **Existing artifact roots:** deployments with namespace-scoped storage credentials
+  can select `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the shared UI.
+  Namespace authorization remains mandatory; object storage authorizes reads through
+  namespace artifact services without an artifact-record lookup or prescribed key
+  layout. This is enforced authorization, not audit. The default `key-prefix` policy
+  remains available for shared storage credentials. Reconcile proxy ingress policies
+  and verify storage isolation before enabling the mode. Direct proxy consumers
+  must use the authenticated shared UI. HTTP artifacts and archived logs retain
+  their separate policies. See the [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
 - **Recurring-run security:** multi-user recurring runs created before API-owned
   scheduling state must be reviewed and recreated through the API. Otherwise they
   stop submitting executions, even when shown as enabled. API startup logs now

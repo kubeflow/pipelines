@@ -170,6 +170,8 @@ function parseArgs(argv: string[]) {
   return { staticDir, port };
 }
 
+export type ArtifactAuthorizationMode = 'key-prefix' | 'storage';
+
 export type ProcessEnv = NodeJS.ProcessEnv | { [key: string]: string };
 
 export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
@@ -194,6 +196,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     HTTP_BASE_URL = '',
     /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
+    /** Object authorization policy; storage delegates to namespace-scoped credentials. */
+    KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE = 'key-prefix',
     /** Additional object-store origins allowed for artifact provider configs. */
     ALLOWED_ARTIFACT_ENDPOINTS = '',
     /** Exact GCS universe domains the shared UI server may contact. */
@@ -263,6 +267,19 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     CLUSTER_DOMAIN = '.svc.cluster.local',
   } = env;
 
+  const authorizationMode = KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE.trim().toLowerCase();
+  if (authorizationMode !== 'key-prefix' && authorizationMode !== 'storage') {
+    throw new Error('KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE must be "key-prefix" or "storage"');
+  }
+  const artifactProxy = loadArtifactsProxyConfig(env);
+  if (authorizationMode === 'storage' && (!asBool(ENABLE_AUTHZ) || !artifactProxy.enabled)) {
+    throw new Error(
+      'KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage requires ENABLE_AUTHZ=true and ' +
+        'ARTIFACTS_SERVICE_PROXY_ENABLED=true on the shared UI. Configure namespace-scoped ' +
+        'storage credentials on the artifact services before enabling storage authorization.',
+    );
+  }
+
   const configuredAwsEndpoint = AWS_S3_ENDPOINT?.trim();
   const configuredAwsPort = parseOptionalPort(AWS_S3_PORT, 'AWS_S3_PORT');
   validateConfiguredEndpointPort(
@@ -323,7 +340,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         baseUrl: HTTP_BASE_URL,
       },
       minio,
-      proxy: loadArtifactsProxyConfig(env),
+      proxy: artifactProxy,
+      authorizationMode,
       allowOfficialAwsEndpoints: Boolean(configuredAwsEndpoint),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
@@ -460,6 +478,7 @@ export interface UIConfigs {
     minio: MinioConfigs;
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
+    authorizationMode: ArtifactAuthorizationMode;
     allowOfficialAwsEndpoints: boolean;
     streamLogsFromServerApi: boolean;
     allowedDomain: string;
