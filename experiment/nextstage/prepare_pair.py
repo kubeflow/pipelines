@@ -126,7 +126,7 @@ def constrained_flags(pods):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--provision-config',required=True);p.add_argument('--state',required=True);p.add_argument('--bundle',required=True);p.add_argument('--out',required=True);p.add_argument('--evidence-out',required=True);a=p.parse_args();os.umask(0o077)
     out=Path(a.out).resolve();out.mkdir(mode=0o700);c=load(a.provision_config);c['state']=a.state;owner=Owned(c);uid=owner.guard();ns='apf-competitor'
-    if c.get('scenario_id')!='constrained-stock-apf-positive-seats-v1':raise RuntimeError('wrong scenario identity')
+    if c.get('scenario_id')!='constrained-stock-apf-bulk-list-v2':raise RuntimeError('wrong scenario identity')
     flags=constrained_flags(json.loads(owner.k('-n','kube-system','get','pods','-l','component=kube-apiserver','-o','json')))
     evidence=Path(a.evidence_out);evidence.mkdir(parents=True,exist_ok=True);save(evidence/'apiserver-live-flags.json',flags)
     save(evidence/'kind-config-used.json',load(Path(a.state)/'kind-config.json'))

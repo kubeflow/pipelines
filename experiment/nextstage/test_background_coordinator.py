@@ -6,7 +6,7 @@ class BackgroundCoordinatorTests(unittest.TestCase):
  def test_frozen_pressure_uses_shared_clock_and_distinct_identity(self):
   with tempfile.TemporaryDirectory() as tmp:
    p=Path(tmp);(p/'frozen').write_text(json.dumps({'measurements_authorized_by_calibration':True,'selected':{'proven':True,'workers':64,'offered_rps':1000}}))
-   (p/'template').write_text(json.dumps({'priority_uid':'p','token_file':'background-private-token'}))
+   (p/'template').write_text(json.dumps({'priority_uid':'p','token_file':'background-private-token','background_bulk_list':True}))
    c={'background_calibration':str(p/'frozen'),'background_template':str(p/'template')}
    quiet={'rps':20,'max_inflight':64,'priority_uid':'p','token_file':'quiet-private-token','start_at':'start','seconds':1230,'timeline_file':'timeline','kubeconfig':'kube','context':'owned','cluster_uid':'uid'}
    bg=background_config(c,quiet)

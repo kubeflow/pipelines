@@ -1,21 +1,30 @@
 # Separate constrained-control-plane APF scenario
 
-This is a new experiment identity, `constrained-stock-apf-positive-seats-v1`.
-It does not replace the completed stock-pressure samples. KFP source, seven image
+This is a new experiment identity, `constrained-stock-apf-bulk-list-v2`.
+It preserves the completed stock-pressure samples and the v1 calibration failure.
+V1 reached queue depth9 but only one consecutive queued sample, so no pair ran. KFP source, seven image
 config digests, fixture YAML and source SDK remain pinned to the existing exact
 merge. The only control-plane change is `max-requests-inflight=10` and
 `max-mutating-requests-inflight=10`. Bootstrap APF specs must exactly match the
 archived v1.36.1 stock specs. Generated Kind configuration and actual API-server
 flags are both captured. Never configure zero seats or a protected priority.
 
-The background service account has only get/list/update permission on its named
-ConfigMap, independently from the fixed20-RPS quiet competitor. Actual response
+The background service account has namespace-scoped LIST permission only for
+ConfigMaps and GET/UPDATE permission only on its named probe ConfigMap. Its owned
+namespace contains1024 synthetic ConfigMaps with exactly1KiB data each, plus the
+probe and Kubernetes root-CA object. Each background LIST requests the namespace
+with limit2048; continuation or more than2048 returned objects fails explicitly.
+GET and serialized UPDATE remain named-probe operations; the fixed20-RPS quiet
+competitor still lists only its named probe. Seed counts and payload hashes are
+verified and captured before calibration. Actual response
 header UIDs must map both identities to the same Limited priority. This does not
 prove actual KFP client classification; that remains a separate unmet gate.
 
 Before a pair, bounded33-second calibration steps try `(workers,RPS)` of
 `(1,16),(4,64),(16,256),(64,1000)`, with30 seconds no calibration traffic between
-steps. The first step with ten contiguous complete one-second samples showing
+steps. The subprocess bound is60 seconds (5-second lead,33-second timeline,
+12-second observer context tail and10-second durable-output margin), within the
+unchanged370-second calibration bound. The first step with ten contiguous complete one-second samples showing
 queue>0 and executing seats>=observed limit>=1 is frozen. Policy specs must remain
 unchanged, no counter reset is permitted, and more than five consecutive missing
 or failed health samples blocks selection. Isolated missing observations remain

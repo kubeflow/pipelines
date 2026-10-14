@@ -199,7 +199,7 @@ class Provision:
         call(['tar', '-xf', str(archive), '-C', str(self.snapshot)])
         archive.unlink()
         # Separate constrained scenario only: preserve all bootstrap APF policies.
-        if self.c.get('scenario_id')!='constrained-stock-apf-positive-seats-v1':
+        if self.c.get('scenario_id')!='constrained-stock-apf-bulk-list-v2':
             raise RuntimeError('explicit constrained scenario identity required')
         kind_config=self.d/'kind-config.json'
         save(kind_config, {'kind':'Cluster','apiVersion':'kind.x-k8s.io/v1alpha4','nodes':[{'role':'control-plane','kubeadmConfigPatches':['kind: ClusterConfiguration\napiServer:\n  extraArgs:\n    - name: max-requests-inflight\n      value: "10"\n    - name: max-mutating-requests-inflight\n      value: "10"\n']}]})

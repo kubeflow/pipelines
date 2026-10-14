@@ -32,7 +32,7 @@ if __name__=='__main__':
  for index in (1,2):
   dest=out/f'arm-{index}'
   if dest.exists():raise SystemExit('Arm directory already exists; no rerun or overwrite')
-  save(out/f'arm-{index}-dispatch.json',{'index':index,'qps':20 if index==1 else -1,'scenario':'constrained-stock-apf-positive-seats-v1'})
+  save(out/f'arm-{index}-dispatch.json',{'index':index,'qps':20 if index==1 else -1,'scenario':'constrained-stock-apf-bulk-list-v2'})
   # The coordinator owns a 45-minute SIGALRM watchdog and bounded child-group
   # cleanup in finally. Do not add subprocess.run timeout's abrupt parent kill.
   try:

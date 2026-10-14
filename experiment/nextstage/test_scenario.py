@@ -19,4 +19,19 @@ class Scenario(unittest.TestCase):
   self.assertFalse(self.proof(r)['proven']);r=self.rows(20);r[19]['counter_reset']=True;self.assertFalse(self.proof(r)['proven'])
  def test_frozen_nonzero_bounded_scenario(self):
   self.assertEqual(SCENARIO['apiserver_flags'],{'max-requests-inflight':10,'max-mutating-requests-inflight':10});self.assertFalse(SCENARIO['apf_policy_mutations']);self.assertEqual(STEPS[-1],(64,1000))
+ def test_parent_timeout_allows_terminal_request_drain_and_capture(self):
+  import subprocess,tempfile
+  from pathlib import Path
+  from unittest.mock import patch
+  from scenario import execute
+  with tempfile.TemporaryDirectory() as d:
+   def bounded_observer(argv,**kwargs):
+    # Last offered call may take10s; parent previously killed it at45s.
+    self.assertGreater(kwargs['timeout'],5+33+10)
+    # Honor observer's full12s context tail and bounded output margin.
+    self.assertEqual(kwargs['timeout'],5+33+12+10)
+    self.assertLessEqual(4*kwargs['timeout']+4*30,370)
+    raise subprocess.TimeoutExpired(argv,kwargs['timeout'])
+   with patch('scenario.subprocess.run',bounded_observer):
+    with self.assertRaises(subprocess.TimeoutExpired):execute('observer',{},Path(d),'stock')
 if __name__=='__main__':unittest.main()

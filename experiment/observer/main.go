@@ -30,26 +30,30 @@ import (
 )
 
 type config struct {
-	PressureOnly      bool      `json:"pressure_only"`
-	Kubeconfig        string    `json:"kubeconfig"`
-	Context           string    `json:"context"`
-	ClusterUID        string    `json:"cluster_uid"`
-	Namespace         string    `json:"namespace"`
-	ConfigMap         string    `json:"configmap"`
-	TokenFile         string    `json:"token_file"`
-	KFPFlowUID        string    `json:"kfp_flow_uid"`
-	PriorityUID       string    `json:"priority_uid"`
-	CompetitorFlowUID string    `json:"competitor_flow_uid"`
-	Seconds           int       `json:"seconds"`
-	RPS               float64   `json:"rps"`
-	MaxInflight       int       `json:"max_inflight"`
-	StartAt           time.Time `json:"start_at"`
-	TimelineFile      string    `json:"timeline_file"`
-	windows           []window
-	baseline          []metric
+	BackgroundBulkList bool      `json:"background_bulk_list"`
+	PressureOnly       bool      `json:"pressure_only"`
+	Kubeconfig         string    `json:"kubeconfig"`
+	Context            string    `json:"context"`
+	ClusterUID         string    `json:"cluster_uid"`
+	Namespace          string    `json:"namespace"`
+	ConfigMap          string    `json:"configmap"`
+	TokenFile          string    `json:"token_file"`
+	KFPFlowUID         string    `json:"kfp_flow_uid"`
+	PriorityUID        string    `json:"priority_uid"`
+	CompetitorFlowUID  string    `json:"competitor_flow_uid"`
+	Seconds            int       `json:"seconds"`
+	RPS                float64   `json:"rps"`
+	MaxInflight        int       `json:"max_inflight"`
+	StartAt            time.Time `json:"start_at"`
+	TimelineFile       string    `json:"timeline_file"`
+	windows            []window
+	baseline           []metric
 }
 
 func (c config) validate() error {
+	if c.BackgroundBulkList && c.Namespace != "apf-background" {
+		return errors.New("bulk LIST restricted to isolated background namespace")
+	}
 	if !strings.HasPrefix(c.Context, "kind-kfp-apf-representative-") || c.ClusterUID == "" || c.Kubeconfig == "" || c.Namespace == "" || c.ConfigMap == "" || c.TokenFile == "" || c.KFPFlowUID == "" || c.PriorityUID == "" || c.CompetitorFlowUID == "" {
 		return errors.New("missing explicit isolated context/identity/configuration")
 	}
@@ -725,7 +729,15 @@ func compete(ctx context.Context, c config, client kubernetes.Interface, out *si
 			case "get":
 				_, e = cms.Get(call, c.ConfigMap, metav1.GetOptions{})
 			case "list":
-				_, e = cms.List(call, metav1.ListOptions{FieldSelector: "metadata.name=" + c.ConfigMap, Limit: 1})
+				options := metav1.ListOptions{FieldSelector: "metadata.name=" + c.ConfigMap, Limit: 1}
+				if c.BackgroundBulkList {
+					options = metav1.ListOptions{Limit: 2048}
+				}
+				var listed *corev1.ConfigMapList
+				listed, e = cms.List(call, options)
+				if e == nil && c.BackgroundBulkList && (listed.Continue != "" || len(listed.Items) > 2048) {
+					e = errors.New("background namespace LIST exceeded fixed bound")
+				}
 			case "update":
 				var cm *corev1.ConfigMap
 				cm, e = cms.Get(call, c.ConfigMap, metav1.GetOptions{})

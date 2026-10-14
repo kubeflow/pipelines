@@ -578,3 +578,78 @@ func TestNormalOfferBudgetUnchanged(t *testing.T) {
 		t.Fatal("normal final offer omitted")
 	}
 }
+
+func TestBackgroundBulkListChangesOnlyListScope(t *testing.T) {
+	for _, bulk := range []bool{false, true} {
+		t.Run(fmt.Sprint(bulk), func(t *testing.T) {
+			var lists, named atomic.Int64
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.URL.Path == "/api/v1/namespaces/apf-background/configmaps" {
+					lists.Add(1)
+					selector, limit := "metadata.name=probe", "1"
+					if bulk {
+						selector, limit = "", "2048"
+					}
+					if r.Method != "GET" || r.URL.Query().Get("fieldSelector") != selector || r.URL.Query().Get("limit") != limit {
+						t.Errorf("wrong LIST options: %v", r.URL)
+					}
+					fmt.Fprint(w, `{"apiVersion":"v1","kind":"ConfigMapList","items":[]}`)
+				} else {
+					named.Add(1)
+					if r.URL.Path != "/api/v1/namespaces/apf-background/configmaps/probe" || (r.Method != "GET" && r.Method != "PUT") {
+						t.Errorf("GET/UPDATE scope changed: %s %s", r.Method, r.URL.Path)
+					}
+					fmt.Fprint(w, `{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"probe","namespace":"apf-background","resourceVersion":"1"}}`)
+				}
+			}))
+			defer server.Close()
+			client, e := kubernetes.NewForConfig(&rest.Config{Host: server.URL, QPS: -1})
+			if e != nil {
+				t.Fatal(e)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+			defer cancel()
+			results := compete(ctx, config{BackgroundBulkList: bulk, Namespace: "apf-background", ConfigMap: "probe", Seconds: 2, RPS: 6, MaxInflight: 2, StartAt: time.Now().Add(20 * time.Millisecond)}, client, testSink(t, cancel))
+			if lists.Load() == 0 || named.Load() == 0 || len(results) != 12 {
+				t.Fatalf("missing real operations list%d named%d offers%d", lists.Load(), named.Load(), len(results))
+			}
+		})
+	}
+}
+func TestBulkListRefusesQuietNamespace(t *testing.T) {
+	if e := (config{BackgroundBulkList: true, Namespace: "quiet"}).validate(); e == nil || !strings.Contains(e.Error(), "bulk LIST restricted") {
+		t.Fatal(e)
+	}
+}
+
+func TestBulkListContinuationIsRecordedAsFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "/configmaps") {
+			fmt.Fprint(w, `{"apiVersion":"v1","kind":"ConfigMapList","metadata":{"continue":"more"},"items":[]}`)
+			return
+		}
+		fmt.Fprint(w, `{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"probe","namespace":"apf-background","resourceVersion":"1"}}`)
+	}))
+	defer server.Close()
+	client, e := kubernetes.NewForConfig(&rest.Config{Host: server.URL, QPS: -1})
+	if e != nil {
+		t.Fatal(e)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	results := compete(ctx, config{BackgroundBulkList: true, Namespace: "apf-background", ConfigMap: "probe", Seconds: 2, RPS: 3, MaxInflight: 2, StartAt: time.Now().Add(20 * time.Millisecond)}, client, testSink(t, cancel))
+	failures := 0
+	for _, r := range results {
+		if r.Operation == "list" {
+			if r.Outcome != "api_or_transport_error" {
+				t.Fatalf("incomplete LIST accepted: %+v", r)
+			}
+			failures++
+		}
+	}
+	if failures == 0 {
+		t.Fatal("no list was exercised")
+	}
+}

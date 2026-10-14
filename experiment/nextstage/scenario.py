@@ -4,7 +4,9 @@ from pathlib import Path
 SOURCE='6bea51e2003f9072a55068fb85e03cdb9391435d'
 NODE='kindest/node@sha256:21c46cf61fd45873f89e6a1bfcba4b7904dffa84c2bec88aeeca9a0409af4725'
 STEPS=((1,16),(4,64),(16,256),(64,1000))
-SCENARIO={'name':'constrained-stock-apf-positive-seats-v1','source':SOURCE,'node_image':NODE,'apiserver_flags':{'max-requests-inflight':10,'max-mutating-requests-inflight':10},'apf_policy_mutations':False,'calibration_steps':[{'workers':w,'offered_rps':r} for w,r in STEPS],'measurement_client_qps':[20,-1],'burst':40,'minimum_observed_shared_seats':1,'saturation_consecutive_samples':10,'calibration_seconds_per_step':33,'pipeline_variant':'two-active-per-tenant-total-eight-v1','caller_budget':{'kfp_reads':64,'background':64,'quiet_kubernetes':64,'pipeline_lifecycle_serial_per_tenant':4},'background_pressure_phases':['sustained','burst1','burst2','burst3'],'background_max_offers':210000,'acceptance_complete':False}
+#5s lead +33s timeline +12s observer context tail +10s durable output margin.
+CALIBRATION_OBSERVER_TIMEOUT_SECONDS=60
+SCENARIO={'name':'constrained-stock-apf-bulk-list-v2','source':SOURCE,'node_image':NODE,'apiserver_flags':{'max-requests-inflight':10,'max-mutating-requests-inflight':10},'apf_policy_mutations':False,'calibration_steps':[{'workers':w,'offered_rps':r} for w,r in STEPS],'measurement_client_qps':[20,-1],'burst':40,'minimum_observed_shared_seats':1,'saturation_consecutive_samples':10,'calibration_seconds_per_step':33,'pipeline_variant':'two-active-per-tenant-total-eight-v1','caller_budget':{'kfp_reads':64,'background':64,'quiet_kubernetes':64,'pipeline_lifecycle_serial_per_tenant':4},'background_pressure_phases':['sustained','burst1','burst2','burst3'],'background_max_offers':210000,'background_list':{'configmaps':1024,'payload_bytes_each':1024,'namespace_list_limit':2048,'named_get_update_unchanged':True},'acceptance_complete':False}
 def digest(v):return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 def save(p,v):
  p.write_text(json.dumps(v,indent=2)+'\n');p.chmod(0o600)
@@ -40,8 +42,8 @@ def execute(binary,template,root,stock):
  for number,(workers,rps) in enumerate(STEPS,1):
   d=root/f'calibration-{number}';d.mkdir(mode=0o700);config_for(template,d,workers,rps)
   remaining=deadline-time.monotonic()
-  if remaining<45:raise RuntimeError('bounded calibration exhausted')
-  code=subprocess.run([binary,'--config',str(d/'config.json'),'--out',str(d/'capture')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=45).returncode
+  if remaining<CALIBRATION_OBSERVER_TIMEOUT_SECONDS:raise RuntimeError('bounded calibration exhausted')
+  code=subprocess.run([binary,'--config',str(d/'config.json'),'--out',str(d/'capture')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=CALIBRATION_OBSERVER_TIMEOUT_SECONDS).returncode
   captured=d/'capture';summary=json.loads((captured/'summary.json').read_text());policies=json.loads((captured/'policies.json').read_text())
   if policy_digest(policies)!=stock:raise RuntimeError('stock APF specs changed')
   with (captured/'events.jsonl').open() as f:proof=pressure_proof((json.loads(line) for line in f),summary)
