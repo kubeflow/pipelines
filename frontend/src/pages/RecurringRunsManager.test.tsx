@@ -197,6 +197,47 @@ describe('RecurringRunsManager', () => {
     assertErrors();
   });
 
+  it('retries a list-row disable only after an explicit handoff rejection', async () => {
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
+    listRecurringRunsSpy.mockClear();
+    disableRecurringRunSpy.mockRejectedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: 14,
+          details: [
+            {
+              '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+              domain: 'kubeflow.org',
+              reason: 'SCHEDULE_HANDOFF_IN_PROGRESS',
+            },
+          ],
+        }),
+        { status: 503 },
+      ),
+    );
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(
+          within(getRowById('recurringrun1')).getByRole('button', { name: 'Enabled' }),
+        );
+      });
+      expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
+      expect(listRecurringRunsSpy).not.toHaveBeenCalled();
+      expect(managerRef!.current!.state.busyIds.has('recurringrun1')).toBe(true);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(disableRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
+      expect(managerRef!.current!.state.busyIds.has('recurringrun1')).toBe(false);
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('renders run name as link to its details page', async () => {
     renderManager();
     const link = await screen.findByRole('link', { name: 'test recurring run name' });

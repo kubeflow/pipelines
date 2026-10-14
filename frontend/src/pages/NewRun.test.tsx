@@ -2135,6 +2135,57 @@ describe('NewRun', () => {
       expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
     });
 
+    it('retries the submitted recurring-run snapshot even when the form changes', async () => {
+      getPipelineVersionSpy.mockImplementation(() => ({
+        ...MOCK_PIPELINE_VERSION,
+        parameters: [{ name: 'input', value: 'submitted' }],
+      }));
+      const props = generateProps();
+      props.location.search =
+        `?${QUERY_PARAMS.isRecurring}=1` +
+        `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
+        `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
+        `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
+      tree = await renderNewRunElement(<TestNewRun {...props} />);
+      const instance = tree.instance() as TestNewRun;
+      await flushPromisesInAct();
+      await updateFieldAndFlush(instance, 'runName', 'submitted schedule');
+      startJobSpy.mockRejectedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: 14,
+            details: [
+              {
+                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                domain: 'kubeflow.org',
+                reason: 'SCHEDULE_HANDOFF_IN_PROGRESS',
+              },
+            ],
+          }),
+          { status: 503 },
+        ),
+      );
+      vi.useFakeTimers();
+      try {
+        await act(async () => {
+          fireEvent.click(screen.getByText('Start'));
+        });
+        expect(startJobSpy).toHaveBeenCalledTimes(1);
+        const submitted = structuredClone(startJobSpy.mock.calls[0][0]);
+        await act(async () => {
+          instance._handleParamChange(0, 'edited while retrying');
+          instance._updateRecurringRunState(false);
+          await vi.advanceTimersByTimeAsync(1000);
+        });
+        expect(startJobSpy).toHaveBeenCalledTimes(2);
+        expect(startJobSpy.mock.calls[1][0]).toEqual(submitted);
+        expect(startRunSpy).not.toHaveBeenCalled();
+        expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.RECURRING_RUNS);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("sends a request to start a new recurring run with default periodic schedule when 'Start' is clicked", async () => {
       const props = generateProps();
       props.location.search =

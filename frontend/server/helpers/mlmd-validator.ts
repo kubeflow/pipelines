@@ -84,10 +84,12 @@ const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'priv
   .trim()
   .replace(/^\/+|\/+$/g, '');
 
-const ARTIFACT_OWNERSHIP_ENFORCEMENT = (process.env.ARTIFACT_OWNERSHIP_ENFORCEMENT || 'enforce')
+const KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE = (
+  process.env.KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE || 'enforce'
+)
   .trim()
   .toLowerCase();
-if (ARTIFACT_OWNERSHIP_ENFORCEMENT === 'audit') {
+if (KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE === 'audit') {
   console.warn(
     '[SECURITY] Artifact ownership audit mode permits legacy custom-root reads with matching ' +
       'MLMD evidence. Shared storage credentials can expose other tenants. Verify downstream ' +
@@ -392,7 +394,7 @@ export function decideArtifactOwnership(
   artifactUri: string,
   claimedNamespace: string,
   contextResults: { artifactId: number; contexts: ContextNamespace[] | null }[],
-  enforcementMode: string = ARTIFACT_OWNERSHIP_ENFORCEMENT,
+  enforcementMode: string = KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE,
 ): ValidationResult {
   if (enforcementMode !== 'enforce' && enforcementMode !== 'audit') {
     return { valid: false, reason: 'invalid-enforcement-mode' };
@@ -414,7 +416,10 @@ export async function validateArtifactNamespace(
   artifactUri: string,
   claimedNamespace: string,
 ): Promise<ValidationResult> {
-  if (ARTIFACT_OWNERSHIP_ENFORCEMENT !== 'enforce' && ARTIFACT_OWNERSHIP_ENFORCEMENT !== 'audit') {
+  if (
+    KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE !== 'enforce' &&
+    KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE !== 'audit'
+  ) {
     return { valid: false, reason: 'invalid-enforcement-mode' };
   }
   if (!loadProtos()) {

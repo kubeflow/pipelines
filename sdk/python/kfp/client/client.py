@@ -32,6 +32,7 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
+from kfp.client.schedule_handoff import retry_schedule_handoff
 from kfp.client.token_credentials_base import TokenCredentialsBase
 from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -844,6 +845,9 @@ class Client:
     ) -> kfp_server_api.V2beta1RecurringRun:
         """Creates a recurring run.
 
+        Explicit upgrade-handoff rejections are retried up to five attempts
+        with 1, 2, 4, and 8 second waits. Other failures are not replayed.
+
         Args:
             experiment_id: ID of the experiment. If not set, the recurring
                 run is placed in the default experiment of ``namespace``.
@@ -943,8 +947,9 @@ class Client:
             trigger=trigger,
             max_concurrency=max_concurrency,
             service_account=service_account)
-        return self._recurring_run_api.recurring_run_service_create_recurring_run(
-            recurring_run=job_body)
+        return retry_schedule_handoff(
+            lambda: self._recurring_run_api.
+            recurring_run_service_create_recurring_run(recurring_run=job_body))
 
     def _create_job_config(
         self,
@@ -1219,14 +1224,19 @@ class Client:
     def disable_recurring_run(self, recurring_run_id: str) -> dict:
         """Disables a recurring run.
 
+        Explicit upgrade-handoff rejections are retried up to five attempts
+        with 1, 2, 4, and 8 second waits. Other failures are not replayed.
+
         Args:
             recurring_run_id: ID of the recurring_run.
 
         Returns:
             Empty dictionary.
         """
-        return self._recurring_run_api.recurring_run_service_disable_recurring_run(
-            recurring_run_id=recurring_run_id)
+        return retry_schedule_handoff(
+            lambda: self._recurring_run_api.
+            recurring_run_service_disable_recurring_run(
+                recurring_run_id=recurring_run_id))
 
     def enable_job(self, job_id: str) -> dict:
         """Enables a job (recurring run).
@@ -1247,14 +1257,19 @@ class Client:
     def enable_recurring_run(self, recurring_run_id: str) -> dict:
         """Enables a recurring run.
 
+        Explicit upgrade-handoff rejections are retried up to five attempts
+        with 1, 2, 4, and 8 second waits. Other failures are not replayed.
+
         Args:
             recurring_run_id: ID of the recurring_run.
 
         Returns:
             Empty dictionary.
         """
-        return self._recurring_run_api.recurring_run_service_enable_recurring_run(
-            recurring_run_id=recurring_run_id)
+        return retry_schedule_handoff(
+            lambda: self._recurring_run_api.
+            recurring_run_service_enable_recurring_run(
+                recurring_run_id=recurring_run_id))
 
     def list_runs(
         self,

@@ -25,13 +25,9 @@ import * as JsYaml from 'js-yaml';
 import { loadYaml } from 'src/lib/YamlLoad';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
-import {
-  convertFlowElements,
-  convertSubDagToFlowElements,
-  PipelineFlowElement,
-} from 'src/lib/v2/StaticFlow';
+import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
 import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -189,16 +185,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       templateString,
     } = this.state;
 
-    const setLayers = (layers: string[]) => {
-      if (!templateString) {
-        console.warn('pipeline spec template is unknown.');
-        return;
-      }
-      const pipelineSpec = convertYamlToV2PipelineSpec(templateString!);
-      const newElements = convertSubDagToFlowElements(pipelineSpec!, layers);
-      this.setStateSafe({ graphV2: newElements, graphIsLoading: false });
-    };
-
     const showV2Pipeline =
       isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
@@ -212,8 +198,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         {!this.state.graphIsLoading && showV2Pipeline && (
           <PipelineDetailsV2
             templateString={templateString}
-            pipelineFlowElements={graphV2!}
-            setSubDagLayers={setLayers}
+            pipelineFlowElements={graphV2 || []}
             pipeline={v2Pipeline}
             selectedVersion={v2SelectedVersion}
             versions={v2Versions}

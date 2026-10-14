@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { retryScheduleHandoff } from 'src/lib/ScheduleHandoff';
 import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -1180,6 +1181,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       logger.error('Cannot start run without pipeline version');
       return;
     }
+    const submittedIsRecurringRun = this.state.isRecurringRun;
     const references: ApiResourceReference[] = [];
     if (this.state.experiment) {
       references.push({
@@ -1215,7 +1217,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       resource_references: references,
       service_account: this.state.serviceAccount,
     };
-    if (this.state.isRecurringRun) {
+    if (submittedIsRecurringRun) {
       newRun = Object.assign(newRun, {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
@@ -1224,14 +1226,15 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       });
     }
 
+    const submittedRun = structuredClone(newRun);
     this.setStateSafe({ isBeingStarted: true }, async () => {
       // TODO: there was previously a bug here where the await wasn't being applied to the API
       // calls, so a run creation could fail, and the success path would still be taken. We need
       // tests for this and other similar situations.
       try {
-        this.state.isRecurringRun
-          ? await Apis.jobServiceApi.createJob(newRun)
-          : await Apis.runServiceApi.createRun(newRun);
+        submittedIsRecurringRun
+          ? await retryScheduleHandoff('create', () => Apis.jobServiceApi.createJob(submittedRun))
+          : await Apis.runServiceApi.createRun(submittedRun);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog('Run creation failed', errorMessage);
@@ -1241,7 +1244,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         this.setStateSafe({ isBeingStarted: false });
       }
 
-      if (this.state.isRecurringRun) {
+      if (submittedIsRecurringRun) {
         this.props.history.push(RoutePage.RECURRING_RUNS);
       } else if (this.state.experiment) {
         this.props.history.push(
