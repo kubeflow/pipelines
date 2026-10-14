@@ -68,8 +68,17 @@ general limit on modern databases. Modern InnoDB with `DYNAMIC` row format and t
 default 16 KiB page size supports 3,072-byte index keys, enough for this 255-character
 column. Narrowing an existing column would require a table copy and block writes,
 so we preserve its existing width. The new MySQL index uses a 191-character
-**prefix**, which also accommodates historical text columns and older row formats;
-this does not truncate stored values or change full-value comparisons.
+**prefix** as a conservative compatibility choice for historical text columns and
+older row formats, not as a limit on the stored column. Ordinary schedule UUIDs
+fit entirely within that prefix. Longer values remain intact and SQL compares the
+complete value; identifiers sharing the prefix can require extra comparisons.
+We retain this approach rather than add schema-dependent index-selection branches
+that provide no meaningful benefit for ordinary UUIDs.
+
+PostgreSQL uses a full-column index on `"JobUUID"`, created with
+`CREATE INDEX CONCURRENTLY`; it does not use the MySQL prefix. Existing PostgreSQL
+column types and values are preserved too. Normal PostgreSQL index-entry size
+limits still apply; this does not promise indexing arbitrarily large text values.
 
 API startup preserves the existing type and width of `run_details.JobUUID` and
 adds its recurring-run lookup index separately. MySQL explicitly requires
