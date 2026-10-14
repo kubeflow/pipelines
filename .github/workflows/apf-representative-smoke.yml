@@ -1,14 +1,14 @@
-name: Isolated APF representative smoke
+name: Isolated APF representative paired measurements
 on:
   push:
-    branches: ['codex/apf-representative-smoke-*']
+    branches: ['codex/apf-representative-smoke-20261014']
 permissions:
   contents: read
   actions: read
 jobs:
   smoke:
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,17 +49,40 @@ jobs:
           --config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
           --provision harness/experiment/provision
           --output "$RUNNER_TEMP/apf-smoke-evidence/provision"
-      - name: Run actual flip_coin with output assertions
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: source/go.mod
+      - name: Build experiment clients from pinned dependency module
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p harness/experiment/bin
+          cd source
+          go build -o ../harness/experiment/bin/workload ../harness/experiment/workload/main.go
+          go build -o ../harness/experiment/bin/observer ../harness/experiment/observer/main.go
+          go build -o ../harness/experiment/bin/scheduled ../harness/experiment/workload/scheduled/main.go
+      - name: Prepare bounded same-priority candidate and offered rates
         run: >-
-          python harness/experiment/coordinator/smoke.py
-          --config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
-          --provision harness/experiment/provision --fixtures harness/experiment/fixtures
-          --output "$RUNNER_TEMP/apf-smoke-evidence/pipeline"
-      - name: Upload bounded sanitized smoke evidence
+          python harness/experiment/nextstage/prepare_pair.py
+          --provision-config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
+          --bundle harness/experiment --out "$RUNNER_TEMP/apf-pair-private"
+      - name: Measure 20 then negative one without accepting missing gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/apf-pair-evidence"
+          for index in 1 2; do
+            python harness/experiment/nextstage/coordinator.py arm \
+              --config "$RUNNER_TEMP/apf-pair-private/coordinator.json" \
+              --out "$RUNNER_TEMP/apf-pair-evidence/arm-$index" --index "$index"
+          done
+      - name: Upload bounded sanitized measurement evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: apf-smoke-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/apf-smoke-evidence
+          name: apf-pair-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/apf-smoke-evidence
+            ${{ runner.temp }}/apf-pair-evidence
           if-no-files-found: warn
           retention-days: 7
