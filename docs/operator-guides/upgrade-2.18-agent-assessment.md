@@ -95,11 +95,22 @@ Pod downward-API identity, rollout state, handoff permissions and controller pro
 Identify every writer sharing the database, including separate installations or
 external processes. Stock managed rollout adopts eligible schedules automatically:
 no history deletion, blanket recreation, manual writer shutdown or active-run drain
-is required. Renamed deployments need the same `KFP_SCHEDULE_WRITERS` inventory on all API/controller
-processes, the documented namespace-scoped ReplicaSet reads, and Deployment read
-grants covering the configured names (stock Role `resourceNames` are restricted); include any retiring
-writer deployments. See [custom identities](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/scheduled-service-accounts.md#renamed-managed-deployments).
-Unmanaged/shared-database writers need a coordinated plan covering all writers.
+is required. Deployment-name-only changes are discovered automatically when the
+standard component `app` labels and writer container names are retained. Verify
+namespace-scoped Deployment get/list and ReplicaSet get permissions from the release
+RBAC, rather than requiring a manually supplied inventory for every rename. Check
+that all old/new Deployments and their Pods participate, including retiring
+zero-replica Deployments and terminating Pods; new process registration alone is
+not a complete inventory.
+
+Changed component labels/container names require the same complete
+`KFP_SCHEDULE_WRITERS` inventory across API/controller processes. Inconsistent or
+unresolved ownership must block handoff, not select a convenient subset of writers.
+Flag in-place role-label/container changes while old Pods remain: the explicit
+inventory has one identity per Deployment and cannot describe both generations.
+See [discovery and custom identities](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/scheduled-service-accounts.md#renamed-managed-deployments).
+Unmanaged/shared-database or completely relabeled writers still need explicit
+assessment and coordination; metadata discovery cannot prove they are absent.
 A controller readiness probe tied to its post-handoff listener can deadlock rollout.
 Do not copy handoff annotations into templates or fabricate adoption receipts.
 

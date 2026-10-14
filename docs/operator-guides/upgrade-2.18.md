@@ -183,16 +183,23 @@ schedule does not stop its runs.
 
 ### Customized deployments and recovery
 
-The automatic handoff covers the standard `ml-pipeline` and
-`ml-pipeline-scheduledworkflow` Deployments and their labeled Pods in the
-installation namespace. It does not discover separate installations or external
-writers sharing the database. For renamed managed Deployments, configure the same
-`KFP_SCHEDULE_WRITERS` identity inventory on every API/controller process and grant
-the documented namespace-scoped ReplicaSet reads and reads of each configured
-Deployment (update stock Role `resourceNames` restrictions). Include retiring writer identities
-when renaming during upgrade; never omit an old writer to make handoff pass. See
-[renamed managed Deployments](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/scheduled-service-accounts.md#renamed-managed-deployments).
-Unmanaged writers still need a migration plan covering every writer. When maintaining your own
+The automatic handoff discovers API/controller Deployments in the installation
+namespace using their existing component `app` labels and standard container names.
+Deployment names may differ: **renaming a Deployment alone needs no extra setting**.
+It includes retiring Deployments with those labels and verifies each live Pod's
+ReplicaSet/Deployment ownership, rollout state and running-process registration.
+The complete release RBAC supplies the namespace-scoped discovery reads.
+
+If your customization also changes component labels or writer container names,
+configure the same complete `KFP_SCHEDULE_WRITERS` inventory on every API/controller
+process. Include every old and new writer; never omit one to make handoff pass.
+Do not change a Deployment's role labels/container identity in place while old
+writer Pods remain; use the documented separate-deployment or coordinated procedure.
+Missing or inconsistent identity evidence blocks handoff instead of guessing.
+See [managed writer discovery and custom identities](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/scheduled-service-accounts.md#renamed-managed-deployments).
+Discovery cannot establish that separate installations, completely relabeled
+processes or external writers sharing the database are absent. Those layouts still
+need a migration plan covering every writer. When maintaining your own
 deployment resources, incorporate the release changes to API/controller RBAC,
 `--multiUser=true`, controller pipeline-read permissions and the removal of direct
 controller `workflows/create`. Retain `POD_NAME` and `POD_NAMESPACE` from the
