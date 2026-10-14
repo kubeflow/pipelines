@@ -34,8 +34,12 @@ import (
 type mockPauseSignaler struct {
 	mu sync.Mutex
 
-	publishErr error
-	publishes  []DebugPauseBarrier
+	// publishErrs is consumed one error per PublishBarrier call, like
+	// resumeErrs; publishErr applies once the sequence is exhausted (or when
+	// no sequence is given).
+	publishErrs []error
+	publishErr  error
+	publishes   []DebugPauseBarrier
 
 	// resumeSequence is consumed one value per IsResumeRequested call; the
 	// last value is reused once exhausted. This lets a test express "not
@@ -51,7 +55,11 @@ type mockPauseSignaler struct {
 func (m *mockPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugPauseBarrier) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	idx := len(m.publishes)
 	m.publishes = append(m.publishes, barrier)
+	if idx < len(m.publishErrs) {
+		return m.publishErrs[idx]
+	}
 	return m.publishErr
 }
 
@@ -91,6 +99,22 @@ func (m *mockPauseSignaler) pollCountSafe() int {
 	return m.pollCount
 }
 
+// stallingPauseSignaler simulates an API server whose calls accept the
+// publish but then stall forever on the read - the request only returns
+// when the call's context expires. It proves the safety valve bounds
+// in-flight RPCs, not just idle ticks between polls.
+type stallingPauseSignaler struct {
+	mockPauseSignaler
+}
+
+func (m *stallingPauseSignaler) IsResumeRequested(ctx context.Context) (bool, error) {
+	m.mu.Lock()
+	m.pollCount++
+	m.mu.Unlock()
+	<-ctx.Done()
+	return false, ctx.Err()
+}
+
 func fastTestConfig() DebugPauseConfig {
 	return DebugPauseConfig{
 		Before:       true,
@@ -116,18 +140,57 @@ func TestPause_NoOpWhenBarrierIsNone(t *testing.T) {
 	require.False(t, signaler.clearCalled)
 }
 
-// TestPause_PublishFailuresStillParks verifies that a failure to report "I am
-// paused" does not prevent the actual pause from happening - the debugging
-// session must not be lost to a transient reporting error. Confirmed by the
-// loop still requiring a real resume signal before returning
+// TestPause_PublishFailuresStillParks verifies that a failure to report "I
+// am paused" does not abort the wait - the debugging session must not be
+// lost to a transient reporting error. The barrier is republished on every
+// poll tick until it lands, and a resume signal is honored only after the
+// barrier is actually visible (which also resets any stale resume flag).
 func TestPause_PublishFailuresStillParks(t *testing.T) {
 	signaler := &mockPauseSignaler{
-		publishErr:     errors.New("api server unreachable"),
+		publishErrs:    []error{errors.New("api server unreachable"), errors.New("still down")},
 		resumeSequence: []bool{false, true},
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.NoError(t, err, "a publish failure must not prevent parking or resuming")
 	require.True(t, signaler.clearCalled)
+	require.Len(t, signaler.publishes, 3, "publish must be retried until it succeeds")
+}
+
+// TestPause_ResumeNotHonoredBeforePublishSucceeds covers the stale-flag
+// hazard: a leftover resume_requested=true on the record must not release
+// a barrier that was never published - otherwise a new barrier could
+// "resume" itself immediately. The poll loop must reconcile publication
+// first; publishing resets the flag, after which a resume read is trusted.
+func TestPause_ResumeNotHonoredBeforePublishSucceeds(t *testing.T) {
+	signaler := &mockPauseSignaler{
+		publishErrs: []error{errors.New("api server unreachable")},
+		// The record already reads resume_requested=true (stale). If Pause
+		// honored it before republishing, it would return after a single
+		// publish attempt.
+		resumeSequence: []bool{true},
+	}
+	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
+	require.NoError(t, err)
+	require.Len(t, signaler.publishes, 2,
+		"resume must not release the barrier until a republish lands and resets the flag")
+	require.Equal(t, 1, signaler.pollCountSafe(),
+		"the stale flag must never be polled while the barrier is unpublished")
+}
+
+// TestPause_PermanentPublishFailureTimesOut covers a publish that never
+// lands: the launcher keeps the task parked (the session is worth keeping
+// while the API may recover) and the safety valve is what eventually
+// surfaces the failure.
+func TestPause_PermanentPublishFailureTimesOut(t *testing.T) {
+	signaler := &mockPauseSignaler{
+		publishErr:     errors.New("api server unreachable"),
+		resumeSequence: []bool{true},
+	}
+	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
+	require.Error(t, err)
+	require.True(t, IsDebugPauseTimeout(err))
+	require.GreaterOrEqual(t, len(signaler.publishes), 2, "publish must keep retrying until the safety valve")
+	require.True(t, signaler.clearCalled, "best-effort clear still runs on timeout")
 }
 
 // TestPause_PollErrorsDoNotAbortWait verifies that transient poll errors are
@@ -159,6 +222,30 @@ func TestPause_SafetyValveTimesOut(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, IsDebugPauseTimeout(err), "timeout must be identifiable via IsDebugPauseTimeout")
 	require.True(t, signaler.clearCalled, "barrier must still be cleared, best effort, after a timeout")
+}
+
+// TestPause_StalledPollIsBoundedBySafetyValve reproduces the hung-RPC hole:
+// a resume poll that never returns must still be cut off by MaxDuration -
+// the wait context covers in-flight RPCs, not just the gap between ticks.
+func TestPause_StalledPollIsBoundedBySafetyValve(t *testing.T) {
+	signaler := &stallingPauseSignaler{}
+	cfg := DebugPauseConfig{
+		Before:       true,
+		MaxDuration:  50 * time.Millisecond,
+		PollInterval: 5 * time.Millisecond,
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- Pause(context.Background(), signaler, DebugPauseBarrierBefore, cfg) }()
+
+	select {
+	case err := <-done:
+		require.Error(t, err)
+		require.True(t, IsDebugPauseTimeout(err), "a stalled RPC must surface as the safety-valve timeout")
+		require.True(t, signaler.clearCalled, "best-effort clear still runs after a stalled-RPC timeout")
+	case <-time.After(10 * time.Second):
+		t.Fatal("Pause did not return - a stalled poll escaped the safety valve")
+	}
 }
 
 // TestPause_ContextCancellationClearsBestEffort verifies that canceling the
