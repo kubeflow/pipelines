@@ -37,7 +37,7 @@ dependencies = [
   "six>=1.10",
   "PyYAML>=5.3,<7",
   "requests>=2.33.0,<3",
-  "tabulate>=0.8.6,<1",
+  "tabulate>=0.10.0,<1",
   # 2.6.0 removed HTTPResponse.getheader/getheaders used by the API client.
   "urllib3!=2.6.0",
 ]
