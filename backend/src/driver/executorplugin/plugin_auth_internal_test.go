@@ -362,6 +362,8 @@ users:
 	assert.Equal(t, "https://kubernetes.example", cfg.Host)
 	assert.Equal(t, "bootstrap-token", cfg.BearerToken)
 	assert.IsType(t, executorPluginWarningHandler{}, cfg.WarningHandlerWithContext)
+	assert.EqualValues(t, executorPluginClientQPS, cfg.QPS, "a single plugin process must not be throttled to client-go defaults")
+	assert.Equal(t, executorPluginClientBurst, cfg.Burst)
 	client, err := kubernetes.NewForConfig(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, client)

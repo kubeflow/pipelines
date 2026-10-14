@@ -39,6 +39,8 @@ const (
 	DefaultTokenPath                 = "/var/run/argo/token"
 	podNamespacePath                 = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 	legacyServiceAccountTokenWarning = "Use tokens from the TokenRequest API or manually created secret-based tokens instead of auto-generated secret-based tokens."
+	executorPluginClientQPS          = 100
+	executorPluginClientBurst        = 200
 )
 
 type executorPluginWarningHandler struct {
@@ -62,6 +64,11 @@ func executorPluginKubernetesConfig() (*rest.Config, error) {
 		return nil, err
 	}
 	restConfig.WarningHandlerWithContext = executorPluginWarningHandler{delegate: rest.WarningLogger{}}
+	// One plugin process drives every task of a workflow, and each invocation
+	// makes several API calls. client-go's 5 QPS default serialized 120
+	// concurrent drivers into 20-second waits per request in scale tests.
+	restConfig.QPS = executorPluginClientQPS
+	restConfig.Burst = executorPluginClientBurst
 	return restConfig, nil
 }
 
