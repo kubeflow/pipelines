@@ -10,6 +10,24 @@
 
 ## Breaking changes
 
+* **Python 3.10 is now the minimum for the KFP SDK and Kubernetes SDK
+  extension in 2.18.** Python 3.9 support ends with this release, following the
+  October 1, 2026 retirement date announced in
+  [#12383](https://github.com/kubeflow/pipelines/pull/12383). This is an explicit
+  release-2.18 compatibility decision in
+  [#14865](https://github.com/kubeflow/pipelines/pull/14865), enabling the fixed
+  Requests/urllib3 dependencies.
+* Upgrade Python 3.9 authoring environments, notebooks, CI submitters, and custom
+  component images that install the new SDK to Python 3.10 or later; rebuild
+  images and refresh dependency locks. Existing published packages and compiled
+  pipelines are not rewritten. Generic container components do not acquire a
+  Python requirement merely because KFP runs them.
+* This release keeps Python 3.10 compatibility; master separately requires
+  Python 3.11 or later under
+  [#14534](https://github.com/kubeflow/pipelines/issues/14534). Python 3.10 reaches
+  upstream end of life in October 2026, so Python 3.11 or later is the preferred
+  migration target.
+
 ## Deprecations
 
 ## Bug fixes and other changes
