@@ -190,6 +190,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
 
+- The readiness policy-conformance lane prefetches Go modules from its pinned
+  `policy-source` checkout before running tests. Downloads have three attempts,
+  each capped at 120 seconds, with 5- and 10-second backoffs. Exhaustion fails
+  the job; normal Go checksum verification remains enabled. Conformance runs
+  once after a successful prefetch, so test failures are never retried.
+
 - Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
   (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
