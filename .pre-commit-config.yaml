@@ -65,7 +65,7 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.13.2
+    rev: v2.14.0
     hooks:
       - id: golangci-lint
         name: golangci-lint
