@@ -225,9 +225,10 @@ synchronize the same record on every request or prevent other records recovering
    its configuration or RBAC and allow Kubernetes to restart it.
 4. Inspect `Recurring-run reconciliation will retry schedule` diagnostics and
    the inventory below. Verify next-tick execution, disabled state, preserved
-   progress, concurrency accounting, and duplicate prevention. Recover missing
-   persistence reports or other inconsistent records while unrelated schedules
-   continue; running pipeline tasks need not drain.
+   progress, concurrency accounting, and duplicate prevention. Use the
+   [reporting recovery guide](workflow-report-recovery.md) to recover missing
+   persistence reports or investigate inconsistent records while unrelated
+   schedules continue; running pipeline tasks need not drain.
 
 The automatic handoff does not discover separate installations or external
 processes sharing the database. Deployments with changed role identities or unmanaged writers need an

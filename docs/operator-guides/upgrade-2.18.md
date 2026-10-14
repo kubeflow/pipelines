@@ -189,10 +189,9 @@ Review these before rollout when the corresponding features are in use:
 ### Python environments installing the SDK
 
 Python **3.10 or newer** is the accepted minimum for the 2.18 KFP SDK and
-Kubernetes SDK extension, delivered by pending
-[#14865](https://github.com/kubeflow/pipelines/pull/14865). Confirm that the selected
-release includes that PR and inspect the published packages' `Requires-Python`;
-the policy decision does not mean the implementation is already merged.
+Kubernetes SDK extension, delivered by merged
+[#14865](https://github.com/kubeflow/pipelines/pull/14865). Inspect the published
+packages' `Requires-Python` when selecting an interpreter.
 
 A Python 3.9 notebook or CI submitter that installs the new SDK must move to a
 supported interpreter. The same applies to component images that install that

@@ -198,7 +198,7 @@ may report generic invalid-token errors. A server rollout does not update client
 ### Limits, old specifications and workload behavior
 
 The accepted 2.18 SDK/Kubernetes SDK extension minimum is Python **>=3.10**,
-with delivery pending [#14865](https://github.com/kubeflow/pipelines/pull/14865).
+delivered in [#14865](https://github.com/kubeflow/pipelines/pull/14865).
 Prefer Python >=3.11 for newly migrated environments. Check whether the selected
 candidate includes the change, then compare the SDK package's `Requires-Python` and dependency metadata against
 notebooks, CI submitters and component base images that install that package. A
