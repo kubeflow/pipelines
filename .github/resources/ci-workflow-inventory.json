@@ -354,13 +354,14 @@
     {
       "path": ".github/workflows/frontend.yml",
       "name": "Frontend Tests",
-      "header_sha256": "001bebc844b9ef685036c3c5c57405c278b0fe3e0699145d4bbd57bbb794645b",
+      "header_sha256": "22d115cd337bf657d136ce15908503e2cf6b7e1d094f1c93ceb46268fb379c96",
       "pull_request": {
         "branches": [
           "master"
         ],
         "paths": [
           "frontend/**",
+          "test/seaweedfs/artifact_authorization*",
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py",
           "api/v2alpha1/*.proto",
           "kubernetes_platform/proto/*.proto",
