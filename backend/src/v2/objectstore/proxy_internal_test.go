@@ -45,7 +45,7 @@ func TestS3UploadsUseInvocationProxy(t *testing.T) {
 	t.Setenv("AWS_REGION", "us-east-1")
 	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
 	t.Setenv("HTTP_PROXY", "http://unused-process-proxy.invalid")
-	// Only structured (session-info) providers honour the invocation proxy;
+	// Only structured (session-info) providers honor the invocation proxy;
 	// URL-configured providers use the process proxy environment.
 	var requests atomic.Int32
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

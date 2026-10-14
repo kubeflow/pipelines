@@ -17,8 +17,6 @@ package executorplugin
 import (
 	"context"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
-	"github.com/kubeflow/pipelines/backend/src/driver/driverlogs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -28,6 +26,8 @@ import (
 
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverlogs"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	runtimemlflow "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"

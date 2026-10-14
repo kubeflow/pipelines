@@ -56,7 +56,7 @@ func TestRuntimeConfigAndEnvVarsRespectRoles(t *testing.T) {
 				{Name: "dag", DAG: &wf.DAGTemplate{}},
 				{Name: "driver-plugin", Plugin: &wf.Plugin{Object: wf.Object{Value: []byte(pluginJSON)}}},
 			}}})
-			envWorkflow := util.NewWorkflow(workflow.Workflow.DeepCopy())
+			envWorkflow := util.NewWorkflow(workflow.DeepCopy())
 			updates := []corev1.EnvVar{{Name: "KEY", Value: "new"}, {Name: "ADDED", Value: "value"}}
 			require.NoError(t, envWorkflow.UpsertRuntimeEnvVars(updates, test.roles...))
 			require.NoError(t, workflow.UpsertRuntimeConfig(map[string]string{"KEY": "new", "ADDED": "value"}, test.roles...))
