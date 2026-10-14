@@ -14,6 +14,7 @@
 # limitations under the License.
 """Exercise runtime archive recovery without registry or GitHub access."""
 
+from contextlib import chdir
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,9 @@ import tempfile
 import textwrap
 import unittest
 
+import runtime_base_image_artifacts as runtime_artifacts
+from runtime_image_bundles import bundle_images
+from runtime_image_bundles import BUNDLES
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -30,6 +34,11 @@ PRODUCER = ROOT / '.github/workflows/runtime-base-images.yml'
 BUILD_SCRIPT = ROOT / '.github/resources/scripts/build-runtime-base-images.sh'
 SOURCE_SHA = 'current-source-sha'
 MODELCAR_IMAGE = 'registry.domain.local/modelcar:test'
+
+
+def expected_artifact_name():
+    with chdir(ROOT):
+        return runtime_artifacts.expected_artifact_name()
 
 
 def runtime_job_text():
@@ -45,6 +54,8 @@ def consumer_step(name):
 def producer_artifact(**overrides):
     artifact = {
         'id': 1,
+        'name': expected_artifact_name(),
+        'expires_at': '2099-01-01T00:00:00Z',
         'created_at': '2026-09-24T01:01:30Z',
         'expired': False,
         'workflow_run': {
@@ -57,6 +68,23 @@ def producer_artifact(**overrides):
     }
     artifact.update(overrides)
     return artifact
+
+
+def producer_bundles(**overrides):
+    return [
+        producer_artifact(
+            id=index + 1,
+            name=expected_artifact_name() + '-' + bundle,
+            **overrides) for index, bundle in enumerate(BUNDLES)
+    ]
+
+
+def expected_reference():
+    return {
+        'bundles': {
+            bundle: index + 1 for index, bundle in enumerate(BUNDLES)
+        }
+    }
 
 
 class FakeCommandsTestCase(unittest.TestCase):
@@ -89,9 +117,12 @@ class FakeCommandsTestCase(unittest.TestCase):
 
 class ProducerLookupRecoveryTest(FakeCommandsTestCase):
 
-    def run_lookup(self, artifacts, fail_api=False):
+    def run_lookup(self, artifacts, fail_api=False, payload_override=None):
         payload = self.directory / 'artifacts.json'
-        payload.write_text(json.dumps({'artifacts': artifacts}))
+        payload.write_text(
+            json.dumps([{
+                'artifacts': artifacts
+            }] if payload_override is None else payload_override))
         github_output = self.directory / 'github-output'
         github_output.touch()
         gh_log = self.directory / 'gh.log'
@@ -108,20 +139,15 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
             cwd=ROOT,
             env={
                 **self.environment,
-                'ARTIFACT_NAME':
-                    'runtime-base-images-older-release-fingerprint',
-                'ARTIFACT_PAYLOAD':
-                    str(payload),
-                'FAIL_API':
-                    str(fail_api).lower(),
-                'GH_LOG':
-                    str(gh_log),
-                'GITHUB_OUTPUT':
-                    str(github_output),
-                'GITHUB_REPOSITORY':
-                    'kubeflow/pipelines',
-                'SOURCE_SHA':
-                    SOURCE_SHA,
+                'ARTIFACT_NAME': expected_artifact_name(),
+                'ARTIFACT_PAYLOAD': str(payload),
+                'FAIL_API': str(fail_api).lower(),
+                'GH_LOG': str(gh_log),
+                'GITHUB_OUTPUT': str(github_output),
+                'GITHUB_REPOSITORY': 'kubeflow/pipelines',
+                'GITHUB_REPOSITORY_ID': '1',
+                'ARTIFACTS_PATH': str(self.directory / 'reference'),
+                'SOURCE_SHA': SOURCE_SHA,
             },
             capture_output=True,
             text=True,
@@ -132,48 +158,76 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
         )
 
     def test_trusted_hit_returns_producer_without_waiting(self):
-        result, output, requests = self.run_lookup([producer_artifact()])
+        result, output, requests = self.run_lookup(producer_bundles())
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, 'run-id=10\n')
-        self.assertEqual(len(requests), 1)
-        self.assertIn('name=runtime-base-images-older-release-fingerprint',
-                      requests[0])
+        self.assertEqual(output, 'shared=true\n')
+        self.assertEqual(
+            json.loads((self.directory /
+                        'reference/runtime-reference.json').read_text()),
+            expected_reference())
+        self.assertEqual(len(requests), len(BUNDLES))
+        for bundle, request in zip(BUNDLES, requests):
+            self.assertIn('name=' + expected_artifact_name() + '-' + bundle,
+                          request)
         self.assertEqual(self.sleeps(), [])
+
+    def test_missing_one_bundle_falls_back_without_partial_reference(self):
+        self.assert_bounded_miss(producer_bundles()[:-1])
+        self.assertFalse(
+            (self.directory / 'reference/runtime-reference.json').exists())
 
     def test_missing_generation_falls_back_after_bounded_wait(self):
         self.assert_bounded_miss([])
 
     def test_expired_master_generation_falls_back(self):
-        self.assert_bounded_miss([producer_artifact(expired=True)])
+        self.assert_bounded_miss(producer_bundles(expired=True))
 
     def test_unrelated_fork_cannot_supply_recovery_archive(self):
-        candidate = producer_artifact()
-        candidate['workflow_run']['head_repository_id'] = 2
-        self.assert_bounded_miss([candidate])
+        candidates = producer_bundles()
+        for candidate in candidates:
+            candidate['workflow_run']['head_repository_id'] = 2
+        self.assert_bounded_miss(candidates)
 
     def test_current_source_fork_producer_remains_eligible(self):
-        candidate = producer_artifact()
-        candidate['workflow_run'].update({
-            'head_repository_id': 2,
-            'head_sha': SOURCE_SHA,
-            'head_branch': 'feature',
-        })
-        result, output, requests = self.run_lookup([candidate])
+        candidates = producer_bundles()
+        for candidate in candidates:
+            candidate['workflow_run'].update({
+                'head_repository_id': 2,
+                'head_sha': SOURCE_SHA,
+                'head_branch': 'feature',
+            })
+        result, output, requests = self.run_lookup(candidates)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(output, 'run-id=10\n')
-        self.assertEqual(len(requests), 1)
+        self.assertEqual(output, 'shared=true\n')
+        self.assertEqual(
+            json.loads((self.directory /
+                        'reference/runtime-reference.json').read_text()),
+            expected_reference())
+        self.assertEqual(len(requests), len(BUNDLES))
 
     def test_artifact_api_failure_does_not_block_local_generation(self):
         self.assert_bounded_miss([], fail_api=True)
+
+    def test_malformed_metadata_falls_back_without_publishing_reference(self):
+        result, output, requests = self.run_lookup([],
+                                                   payload_override=[{
+                                                       'wrong': []
+                                                   }])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, '')
+        self.assertEqual(len(requests), 3 * len(BUNDLES))
+        self.assertEqual(self.sleeps(), ['10', '10'])
+        self.assertFalse(
+            (self.directory / 'reference/runtime-reference.json').exists())
 
     def assert_bounded_miss(self, artifacts, fail_api=False):
         result, output, requests = self.run_lookup(artifacts, fail_api)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, '')
-        self.assertEqual(len(requests), 3)
+        self.assertEqual(len(requests), 3 if fail_api else 3 * len(BUNDLES))
         self.assertEqual(self.sleeps(), ['10', '10'])
         self.assertIn('::warning::', result.stdout)
 
@@ -187,6 +241,7 @@ class RuntimeArchiveBuildTest(FakeCommandsTestCase):
         self.cache_directory = self.directory / 'runtime-base-images-cache'
         self.write_command(
             'docker', '''#!/usr/bin/env python3
+from contextlib import chdir
 import json
 import os
 from pathlib import Path
@@ -205,10 +260,10 @@ if arguments[0] == 'save':
     Path(arguments[arguments.index(flag) + 1]).write_bytes(b'new archive')
 ''')
 
-    def run_build(self, failed_command=''):
+    def run_build(self, failed_command='', bundles=False):
         result = subprocess.run(
             ['bash', str(BUILD_SCRIPT),
-             str(self.output_directory)],
+             str(self.output_directory)] + (['--bundles'] if bundles else []),
             cwd=ROOT,
             env={
                 **self.environment,
@@ -251,6 +306,29 @@ if arguments[0] == 'save':
         self.assertEqual(len(saves), 2)
         self.assertIn(MODELCAR_IMAGE, saves[1])
         self.assertEqual(self.sleeps(), [])
+
+    def test_bundle_build_partitions_images_and_saves_modelcar(self):
+        result, commands = self.run_build(bundles=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        saves = [command for command in commands if command[0] == 'save']
+        self.assertEqual(len(saves), len(BUNDLES))
+        for bundle, save in zip(BUNDLES, saves):
+            archive = self.output_directory / bundle / (bundle + '.tar')
+            self.assertEqual(archive.read_bytes(), b'new archive')
+            flag = '-o' if '-o' in save else '--output'
+            images = save[1:].copy()
+            index = images.index(flag)
+            del images[index:index + 2]
+            expected = [MODELCAR_IMAGE
+                       ] if bundle == 'modelcar' else bundle_images(bundle)
+            self.assertCountEqual(
+                images, [image.split('@', 1)[0] for image in expected])
+        pulls = [command[1] for command in commands if command[0] == 'pull']
+        inventory = [
+            image for bundle in BUNDLES for image in bundle_images(bundle)
+        ]
+        self.assertCountEqual(pulls, inventory)
+        self.assertEqual(len(pulls), len(set(pulls)))
 
     def test_pull_failure_stops_before_saving_or_building_modelcar(self):
         result, commands = self.run_build('pull')
@@ -331,7 +409,6 @@ if arguments[0] == 'save':
         (self.cache_directory / 'fixture.tar').write_text('stale cache residue')
         result, summary, outputs = self.run_recovery()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('cache download: failure', summary)
         self.assertIn('Rebuilding and verifying', summary)
         rebuilt = Path(outputs['path'])
         self.assertNotEqual(rebuilt, self.cache_directory)
@@ -387,39 +464,31 @@ if arguments[0] == 'save':
 
 class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
 
-    def test_missing_or_failed_download_rebuilds_before_upload(self):
-        job = runtime_job_text()
-        download = consumer_step('Download runtime base images from producer')
-        mirror = consumer_step('Configure Docker Hub mirror')
-        build = consumer_step('Build runtime base image archives')
-        upload = consumer_step('Upload artifact')
-        recovery = "if: steps.download-runtime-base-images.outcome != 'success'"
-
+    def test_shared_hit_publishes_reference_without_downloading_archive(self):
+        job = yaml.safe_load(
+            CONSUMER.read_text())['jobs']['runtime-base-images']
+        steps = job['steps']
+        self.assertFalse(
+            any('download-artifact' in step.get('uses', '') for step in steps))
+        lookup = consumer_step('Find runtime base image producer')
+        self.assertIn('--paginate --slurp', lookup)
+        self.assertIn('runtime-reference.json', lookup)
+        for name in ('Configure Docker Hub mirror',
+                     'Build runtime base image archives'):
+            step = next(step for step in steps if step.get('name') == name)
+            self.assertEqual(
+                step['if'],
+                "steps.runtime-base-images-producer.outputs.shared != 'true'")
+        upload = next(
+            step for step in steps if step.get('name') == 'Upload artifact')
+        self.assertNotIn('if', upload)
         self.assertIn(
-            "if: steps.runtime-base-images-producer.outputs.run-id != ''",
-            download)
-        self.assertIn('continue-on-error: true', download)
-        self.assertIn('uses: ./.github/actions/download-artifact-with-retry',
-                      download)
-        self.assertIn(recovery, build)
-        self.assertIn(recovery, mirror)
-        self.assertIn('id: build-runtime-base-images', build)
-        self.assertIn(
-            'path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}',
-            upload)
-        self.assertLess(job.index(download), job.index(mirror))
-        self.assertLess(job.index(mirror), job.index(build))
-        self.assertLess(job.index(build), job.index(upload))
-        self.assertNotIn('continue-on-error', build)
-        self.assertNotIn('if:', upload)
-        self.assertIn('name: ${{ env.ARTIFACT_NAME }}', upload)
-        self.assertIn('ARTIFACT_NAME: "runtime-base-images"', job)
-        self.assertIn('      actions: read\n      contents: read', job)
-        self.assertNotIn(': write', job)
-        self.assertNotIn('release-2.18', job)
-        self.assertIn('required-files: ${{ env.RUNTIME_IMAGE_FILES }}',
-                      download)
-        self.assertIn('REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}', build)
+            'steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH',
+            upload['with']['path'])
+        self.assertEqual(job['permissions'], {
+            'actions': 'read',
+            'contents': 'read'
+        })
 
 
 if __name__ == '__main__':

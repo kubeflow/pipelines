@@ -31,9 +31,14 @@ RUN apk add --no-cache git
 ENV GOPROXY=https://proxy.golang.org|direct
 RUN GO111MODULE=on go mod download
 
-COPY . .
+COPY ./backend/src ./backend/src
+COPY ./backend/api/v2beta1/go_client ./backend/api/v2beta1/go_client
+COPY ./api/v2alpha1/go ./api/v2alpha1/go
+COPY ./kubernetes_platform/go ./kubernetes_platform/go
 
-RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
+ARG GO_BUILD_CACHE_ID=kfp-go-build
+RUN --mount=type=cache,id=${GO_BUILD_CACHE_ID},target=/root/.cache/go-build,sharing=locked \
+    GO111MODULE=on GOCACHE=/root/.cache/go-build go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
 FROM alpine:3.21
 

@@ -20,6 +20,8 @@ import unittest
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 E2E_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/e2e-test.yml'
 DEPLOY_ACTION = REPOSITORY_ROOT / '.github/actions/deploy/action.yml'
+IMAGE_LOADER = (
+    REPOSITORY_ROOT / '.github/resources/scripts/load-ready-image-artifacts.sh')
 IMAGE_BUILDS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/image-builds.yml'
 RUNTIME_IMAGES_WORKFLOW = (
     REPOSITORY_ROOT / '.github/workflows/runtime-base-images.yml')
@@ -52,24 +54,34 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         self.assertIn(f'--file {MODELCAR_DOCKERFILE}', build_script)
         self.assertIn(f'--tag {MODELCAR_IMAGE}', build_script)
         self.assertIn(f'docker save {MODELCAR_IMAGE}', build_script)
-        self.assertIn('${artifacts_path}/modelcar.tar', build_script)
+        self.assertIn('$artifacts_path/modelcar.tar', build_script)
 
     def test_e2e_consumes_prebuilt_modelcar_and_fails_closed(self):
         workflow = E2E_WORKFLOW.read_text(encoding='utf-8')
         deploy_action = DEPLOY_ACTION.read_text(encoding='utf-8')
+        loader = IMAGE_LOADER.read_text(encoding='utf-8')
 
         self.assertEqual(workflow.count("load_modelcar_fixture: 'true'"), 3)
         self.assertNotIn('Build and upload the sample Modelcar image', workflow)
         self.assertNotIn(f'--tag {MODELCAR_IMAGE}', workflow)
 
-        self.assertIn("if: ${{ inputs.load_modelcar_fixture == 'true' }}",
-                      deploy_action)
-        self.assertIn('runtime-base-images/modelcar.tar', deploy_action)
-        self.assertIn('Modelcar fixture archive not found', deploy_action)
-        self.assertIn('retry 3 10 kind --name', deploy_action)
-        self.assertIn('load image-archive "${MODELCAR_IMAGE_ARCHIVE}"',
-                      deploy_action)
-        self.assertNotIn('docker build', deploy_action)
+        self.assertIn(
+            'LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}',
+            deploy_action)
+        self.assertIn(
+            './.github/resources/scripts/load-ready-image-artifacts.sh',
+            deploy_action)
+        self.assertIn(
+            'ci_artifact_files deploy-image-files "$LOAD_MODELCAR_FIXTURE"',
+            loader)
+        self.assertIn('bash "$script_directory/artifact-files.sh" verify',
+                      loader)
+        self.assertIn('if [[ "$LOAD_MODELCAR_FIXTURE" == true ]]; then', loader)
+        self.assertIn(
+            'retry 3 10 kind --name "$CLUSTER_NAME" load image-archive "$destination/modelcar.tar"',
+            loader)
+        for source in (deploy_action, loader):
+            self.assertNotIn('docker build', source)
 
     def test_modelcar_inputs_are_fingerprinted_and_forwarded(self):
         producer = RUNTIME_IMAGES_WORKFLOW.read_text(encoding='utf-8')

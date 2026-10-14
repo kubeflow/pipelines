@@ -2,6 +2,10 @@ name: "Download artifact with retry"
 description: "Download workflow artifacts and retry one failed or incomplete download"
 
 inputs:
+  artifact-ids:
+    description: 'Exact artifact IDs; leave name empty when provided'
+    required: false
+    default: ''
   name:
     description: "Name of the artifact to download; empty downloads all matching artifacts"
     required: false
@@ -60,6 +64,7 @@ runs:
       id: primary
       uses: actions/download-artifact@v8
       with:
+        artifact-ids: ${{ inputs.artifact-ids }}
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         pattern: ${{ inputs.pattern }}
@@ -103,6 +108,7 @@ runs:
       if: ${{ !cancelled() && steps.prepare-retry.outcome == 'success' }}
       uses: actions/download-artifact@v8
       with:
+        artifact-ids: ${{ inputs.artifact-ids }}
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         pattern: ${{ inputs.pattern }}

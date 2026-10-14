@@ -16,6 +16,10 @@ package resource
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -25,6 +29,8 @@ import (
 	"google.golang.org/grpc/codes"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type authorizationStatusSAR struct {
@@ -68,5 +74,31 @@ func TestIsAuthorized_EvaluationErrorsFailClosedForOrdinaryResources(t *testing.
 				assert.NotContains(t, err.Error(), "private-authorization-details")
 			})
 		}
+	}
+}
+
+func TestIsAuthorized_APFRetryExhaustionFailsClosed(t *testing.T) {
+	for _, audit := range []bool{false, true} {
+		configureWorkflowIdentityAuditTest(t, audit)
+		t.Setenv("KUBE_CLIENT_BACKOFF_BASE", "")
+		t.Setenv("KUBE_CLIENT_BACKOFF_DURATION", "")
+		var calls atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls.Add(1)
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_ = json.NewEncoder(w).Encode(metav1.Status{Status: "Failure", Reason: metav1.StatusReasonTooManyRequests, Code: 429})
+		}))
+		typed, err := kubernetes.NewForConfig(&rest.Config{Host: server.URL, QPS: -1})
+		require.NoError(t, err)
+		store, manager, _ := initWithExperiment(t)
+		manager.subjectAccessReviewClient = typed.AuthorizationV1().SubjectAccessReviews()
+		err = manager.IsAuthorized(multiUserContext(), &authorizationv1.ResourceAttributes{Namespace: "ns1", Verb: common.RbacResourceVerbCreate, Group: common.RbacPipelinesGroup, Resource: common.RbacResourceTypeRuns})
+		server.Close()
+		require.NoError(t, store.Close())
+		require.Error(t, err)
+		assert.True(t, util.IsUserErrorCodeMatch(err, codes.Internal), "audit=%v error=%v", audit, err)
+		assert.EqualValues(t, 11, calls.Load())
 	}
 }

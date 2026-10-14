@@ -129,7 +129,53 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                     contents.index(following_step),
                 )
 
-    def test_shell_wrapper_restarts_docker_only_when_config_changes(self):
+    def test_provider_managed_docker_requires_health_without_mutation(self):
+        for service in ('missing', 'inactive'):
+            for healthy in (True, False):
+                with self.subTest(service=service, healthy=healthy):
+                    with tempfile.TemporaryDirectory() as directory:
+                        root = Path(directory)
+                        binaries = root / 'bin'
+                        binaries.mkdir()
+                        (binaries / 'bash').symlink_to('/bin/bash')
+                        commands = {
+                            'docker':
+                                '#!/bin/bash\nexit %s\n' %
+                                (0 if healthy else 1),
+                            'sleep':
+                                '#!/bin/bash\nexit 0\n',
+                            'sudo':
+                                '#!/bin/bash\necho unexpected-sudo >&2\nexit 99\n',
+                        }
+                        if service == 'inactive':
+                            commands['systemctl'] = '#!/bin/bash\nexit 1\n'
+                        for name, content in commands.items():
+                            path = binaries / name
+                            path.write_text(content, encoding='utf-8')
+                            path.chmod(0o755)
+                        config = root / 'daemon.json'
+                        config.write_text(
+                            '{"provider": true}', encoding='utf-8')
+                        result = subprocess.run(
+                            ['/bin/bash',
+                             str(CONFIGURE_MIRROR_SCRIPT)],
+                            env={
+                                **os.environ, 'PATH': str(binaries),
+                                'DOCKER_DAEMON_CONFIG': str(config)
+                            },
+                            capture_output=True,
+                            text=True,
+                            check=False)
+                        self.assertEqual(result.returncode, 0 if healthy else 1,
+                                         result.stderr)
+                        self.assertEqual(
+                            config.read_text(encoding='utf-8'),
+                            '{"provider": true}')
+                        self.assertNotIn('unexpected-sudo', result.stderr)
+                        if healthy:
+                            self.assertIn('provider-managed', result.stdout)
+
+    def test_shell_wrapper_uses_system_python_and_restarts_only_on_change(self):
         binary_directory = Path(self.temp_directory.name) / 'bin'
         binary_directory.mkdir()
         command_log = Path(self.temp_directory.name) / 'commands.log'
@@ -140,8 +186,15 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                     'if [[ "$1" == "info" ]]; then\n'
                     '  echo "Registry Mirrors: ${DOCKER_HUB_MIRROR:-https://mirror.gcr.io}/"\n'
                     'fi\n'),
-                'sudo':
-                    '#!/usr/bin/env bash\nexec "$@"\n',
+                'python3': (
+                    '#!/usr/bin/env bash\n'
+                    'echo "unexpected PATH python3" >> "$COMMAND_LOG"\n'
+                    'echo "libpython3.11.so.1.0: cannot open shared object file" >&2\n'
+                    'exit 127\n'),
+                'sudo': ('#!/usr/bin/env bash\n'
+                         'echo "sudo $1" >> "$COMMAND_LOG"\n'
+                         'unset LD_LIBRARY_PATH\n'
+                         'exec "$@"\n'),
                 'systemctl': ('#!/usr/bin/env bash\n'
                               'echo "systemctl $*" >> "$COMMAND_LOG"\n'),
         }.items():
@@ -168,6 +221,15 @@ class DockerRegistryMirrorTest(unittest.TestCase):
         commands = command_log.read_text(encoding='utf-8').splitlines()
         self.assertEqual(commands.count('systemctl restart docker'), 1)
         self.assertEqual(commands.count('docker info'), 2)
+        self.assertNotIn('unexpected PATH python3', commands)
+        self.assertEqual(
+            commands.count('sudo /usr/bin/python3'),
+            2 if os.geteuid() != 0 else 0,
+        )
+        self.assertEqual(
+            commands.count('sudo systemctl'),
+            1 if os.geteuid() != 0 else 0,
+        )
 
 
 if __name__ == '__main__':

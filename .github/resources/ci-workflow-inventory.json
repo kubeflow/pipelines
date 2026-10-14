@@ -135,7 +135,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
+      "header_sha256": "214277bd434e2dd533523a0f9b80a0a3a1be7d85783e24d81f9335174c417028",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -202,7 +202,10 @@
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
-          "backend/Dockerfile",
+          "backend/Dockerfile*",
+          "backend/src/**",
+          "api/v2alpha1/go/**",
+          "kubernetes_platform/go/**",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",
@@ -407,7 +410,7 @@
     {
       "path": ".github/workflows/image-builds.yml",
       "name": "Build Images",
-      "header_sha256": "b17f9692bc07773917c49b6df66109a047d7222dcaeab8f08d1efcd75587c3f2",
+      "header_sha256": "e68407017b7075244cba2f8b9a6ba6c58c582cd10cca20a712bfdc57736a496a",
       "pull_request": null
     },
     {
@@ -653,11 +656,15 @@
     {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",
+      "header_sha256": "1e3c1a1299dd9df67de260c3a42acbd4389d8bf1539aada8f90670636e5ab424",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/image-builds.yml",
+          ".github/actions/create-cluster/**",
+          ".github/resources/scripts/runtime_prefetch*.py",
+          ".github/resources/scripts/load-ready-image-artifacts.sh",
+          ".github/resources/scripts/wait-for-image-artifacts.sh",
           ".github/resources/runtime-base-images.txt",
           ".github/resources/scripts/helper-functions.sh",
           ".github/resources/scripts/build-runtime-base-images.sh",
@@ -665,6 +672,7 @@
           ".github/resources/scripts/configure_docker_registry_mirror.py",
           ".github/resources/scripts/prune_runtime_base_image_caches.py",
           ".github/resources/scripts/runtime_base_image_artifacts.py",
+          ".github/resources/scripts/runtime_image_bundles.py",
           "test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile"
         ]
       }

@@ -183,9 +183,15 @@ kind() {
 
     def test_deploy_requires_archive_instead_of_fanout_pulls(self):
         action = (ROOT / '.github/actions/deploy/action.yml').read_text()
-        self.assertIn('verify_runtime_base_images_in_kind', action)
-        self.assertNotIn('load_runtime_base_images_into_kind', action)
-        self.assertNotIn('pulling images directly', action)
+        loader = (ROOT /
+                  '.github/resources/scripts/load-ready-image-artifacts.sh'
+                 ).read_text()
+        self.assertIn(
+            './.github/resources/scripts/load-ready-image-artifacts.sh', action)
+        self.assertIn('verify_runtime_base_images_in_kind', loader)
+        for source in (action, loader):
+            self.assertNotIn('load_runtime_base_images_into_kind', source)
+            self.assertNotIn('pulling images directly', source)
 
 
 if __name__ == '__main__':

@@ -16,17 +16,25 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/requestprofile"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 func TestTokenReviewAuthenticatorAuthenticated(t *testing.T) {
@@ -315,4 +323,34 @@ func TestTokenReviewAuthenticator_ensureAudienceFail(t *testing.T) {
 		[]string{"request-audience"},
 	)
 	assert.False(t, audienceEnsured)
+}
+
+func TestTokenReviewAuthenticatorAPFRetryExhaustionFailsClosed(t *testing.T) {
+	for _, profiling := range []string{"false", "true"} {
+		t.Run(profiling, func(t *testing.T) {
+			t.Setenv("KFP_RUNTIME_PROFILE_TIMINGS", profiling)
+			t.Setenv("KUBE_CLIENT_BACKOFF_BASE", "")
+			t.Setenv("KUBE_CLIENT_BACKOFF_DURATION", "")
+			var calls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Retry-After", "0")
+				w.WriteHeader(http.StatusTooManyRequests)
+				_ = json.NewEncoder(w).Encode(v1.Status{Status: "Failure", Reason: v1.StatusReasonTooManyRequests, Code: 429})
+			}))
+			defer server.Close()
+			config := &rest.Config{Host: server.URL, QPS: -1}
+			requestprofile.ConfigureKubernetes(config)
+			typed, err := kubernetes.NewForConfig(config)
+			require.NoError(t, err)
+			authenticator := NewTokenReviewAuthenticator(common.AuthorizationBearerTokenHeader, common.AuthorizationBearerTokenPrefix, []string{common.GetTokenReviewAudience()}, typed.AuthenticationV1().TokenReviews())
+			ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(common.AuthorizationBearerTokenHeader, common.AuthorizationBearerTokenPrefix+"test-only"))
+			identity, err := authenticator.GetUserIdentity(ctx)
+			require.Error(t, err)
+			assert.Empty(t, identity)
+			assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unauthenticated), "%v", err)
+			assert.EqualValues(t, 11, calls.Load())
+		})
+	}
 }
