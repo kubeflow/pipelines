@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
@@ -28,7 +27,8 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
-import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
@@ -82,7 +82,6 @@ const NODE_STATE_UNAVAILABLE = (
 
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
-  onLayerChange: (layers: string[]) => void;
   pipelineJobString?: string;
   runId?: string;
   element?: PipelineFlowElement | null;
@@ -92,7 +91,6 @@ interface RuntimeNodeDetailsV2Props {
 
 export function RuntimeNodeDetailsV2({
   layers,
-  onLayerChange,
   pipelineJobString,
   runId,
   element,
@@ -129,7 +127,6 @@ export function RuntimeNodeDetailsV2({
           element={element}
           execution={elementMlmdInfo?.execution}
           layers={layers}
-          onLayerChange={onLayerChange}
           namespace={namespace}
         />
       );
@@ -483,37 +480,20 @@ interface SubDAGNodeDetailProps {
   element: PipelineFlowElement;
   execution?: Execution;
   layers: string[];
-  onLayerChange: (layers: string[]) => void;
   namespace: string | undefined;
 }
 
 function SubDAGNodeDetail({
   element,
   execution,
-  layers,
-  onLayerChange,
+  layers: _layers,
   namespace,
 }: SubDAGNodeDetailProps) {
-  const taskKey = getTaskKeyFromNodeKey(element.id);
-  // const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
-  // if (!componentSpec) {
-  //   return NODE_INFO_UNKNOWN;
-  // }
-
-  const onSubDagOpenClick = () => {
-    onLayerChange([...layers, taskKey]);
-  };
-
   const [selectedTab, setSelectedTab] = useState(0);
 
   return (
-    <div>
+    <div className={commonCss.page}>
       <div className={commonCss.page}>
-        <div className={padding(20, 'blr')}>
-          <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Sub-DAG
-          </Button>
-        </div>
         <MD2Tabs
           tabs={['Input/Output', 'Task Details']}
           selectedTab={selectedTab}

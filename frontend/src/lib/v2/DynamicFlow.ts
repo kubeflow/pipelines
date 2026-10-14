@@ -31,9 +31,9 @@ import {
   isNode,
   getTaskNodeKey,
   NodeTypeNames,
-  PipelineFlowElement,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';

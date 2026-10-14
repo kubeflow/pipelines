@@ -17,19 +17,20 @@
 import { Meta, StoryObj } from '@storybook/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
+import { NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { NODE_TYPES } from 'src/components/graph/NodeTypes';
 import { Execution } from 'src/third_party/mlmd';
 
 interface WrappedExecutionNodeProps {
   id: string;
   label: string;
-  state: Execution.State;
+  state?: Execution.State;
 }
 
 function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
   const nodes = [
     {
-      id: id,
+      id,
       type: NodeTypeNames.EXECUTION,
       position: { x: 100, y: 100 },
       data: { label, state },
