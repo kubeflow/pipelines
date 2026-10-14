@@ -250,6 +250,17 @@ not serialize all schema changes. Background schedule adoption is a later step,
 not proof of a lock-free or zero-downtime database upgrade. Do not run DDL or mutate
 migration markers as part of this read-only assessment.
 
+For the recurring-run lookup index, verify the final candidate includes the pending
+online JobUUID-index change. Inspect the existing `JobUUID` type and
+`idx_run_details_job_uuid` definition without changing them. That helper preserves
+existing column types and valid indexes; fresh tables use `varchar(255)`. Missing
+indexes use MySQL `ALGORITHM=INPLACE, LOCK=NONE` with a 191-character prefix, or
+PostgreSQL `CREATE INDEX CONCURRENTLY`. Check startup diagnostics for advisory-lock
+contention, metadata-lock timeouts or build-deadline failures. It stops startup
+rather than falling back to a copying or write-blocking build. Account for startup
+duration, brief metadata locks and I/O; do not treat this one online operation as
+proof that every startup migration is online.
+
 Inspect actual retention settings; default zero disables automatic retention.
 If `RUNS_RETENTION_TIME` or `ARCHIVED_RUNS_RETENTION_TIME` is enabled or planned,
 inspect both `idx_run_gc_lifecycle` and `idx_run_gc_archived` definitions in the API

@@ -41,25 +41,41 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 
 ### Automatic startup schema and data changes
 
-Database initialization reconciles model tables, columns and indexes. For example,
-the 2.18 Run model declares `run_details.JobUUID` as `varchar(191)` and requests
-`idx_run_details_job_uuid` for recurring-run queries. Startup reconciles the
-existing schema with that model; it does not rebuild an already matching schema
-on every restart. The previous 2.17.2 model did not declare this length or index.
-This declaration is specific to `release-2.18`; current master does not carry the
-same Run-field tag. The startup path calls `AutoMigrate(model.AllModels()...)`,
-which includes `Run`. `JobUUID` is not in `LengthSpecs`: that list controls the
-separate legacy length preflight/shrink helper, not all GORM schema changes.
-Do not confuse this model-driven lookup index with the two manually provisioned
-GC indexes below. There is no `JobUUID`-specific length preflight in `LengthSpecs`;
-do not infer a guarantee for unsupported oversized stored identifiers. The pipeline-reference backfill also scans and updates
+Database initialization reconciles model tables, columns and indexes. The
+recurring-run lookup index, `idx_run_details_job_uuid`, has a separate startup
+helper that preserves existing `run_details.JobUUID` column types, including
+`varchar(191)`, `varchar(255)` and text. New tables use `varchar(255)`. It does not
+shrink existing identifiers to create the index, and retains an existing valid
+index instead of rebuilding it on each restart.
+
+**Release dependency:** this behavior requires [#14874](https://github.com/kubeflow/pipelines/pull/14874)
+to merge into `release-2.18`; verify the final release candidate
+includes it before relying on these guarantees.
+
+On MySQL the helper explicitly requests a 191-character prefix index with
+`ALGORITHM=INPLACE, LOCK=NONE`; on PostgreSQL it uses `CREATE INDEX CONCURRENTLY`.
+Creation runs synchronously before the new API process serves requests. A
+per-database advisory lock coordinates this helper across replicas: MySQL waits
+up to 10 seconds for it, while PostgreSQL tries without waiting. Metadata lock
+waits are bounded at 5 seconds and the index build has a 30-minute deadline.
+Failure stops that process's startup with an actionable error; the helper does
+not fall back to a copying or write-blocking index build. Inspect the error and
+database state before retrying. Online creation still consumes I/O and can take
+brief metadata locks; waiting metadata locks can delay writes until the timeout.
+An interrupted PostgreSQL concurrent build can leave an invalid index requiring
+inspection and repair before startup succeeds; the helper does not drop it
+automatically. This is not a zero-downtime guarantee.
+
+This lookup index is separate from the two operator-managed retention indexes
+below. Its advisory lock does not serialize other schema changes or backfills.
+The pipeline-reference backfill also scans and updates
 `run_details` and `jobs` to populate pipeline and version references. Its completion
 marker and updates share a transaction: interruption rolls back the claim, and
 competing replicas wait and skip completed work.
 
 That backfill coordination is not a database-wide migration lock. General schema
 migration is not serialized by the schedule writer handoff, which happens later.
-Index/column changes can rebuild or lock tables, and backfill updates can block
+Other index/column changes can rebuild or lock tables, and backfill updates can block
 concurrent writes. Do not infer an online or zero-downtime database upgrade from
 background schedule adoption or a successful small-cluster fixture.
 
