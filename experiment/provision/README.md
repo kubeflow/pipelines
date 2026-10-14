@@ -273,3 +273,17 @@ Downloader now supports per-image producer_run_id/producer_run_attempt and
 producer_workflow_path. HTTP error status is shown without stderr bodies or
 credentials. Sixteen offline tests pass, including retained exact-tree acceptance,
 wrong-tree rejection, cache-consumer rejection and sanitized404 diagnostics.
+
+### Deployment render repair verified
+
+Hosted smoke38495217147 completed image verification and cluster creation, then
+failed before creating KFP workloads. The candidate omitted the source helper's
+`--load-restrictor LoadRestrictionsNone`; multiuser/default references sibling
+patch `../pipeline-crd-rbac.yaml`, which kubectl Kustomize otherwise refuses.
+The corrected exact-merge6bea snapshot renders109objects successfully (including
+all10KFP Deployment/StatefulSet workloads). No cluster apply was performed locally.
+Seventeen offline tests pass, including the render flag and diagnostics regression.
+Command failures now print only executable, allowlisted operation, exit status
+and allowlisted error category. Raw stderr, resource bodies and credentials are
+still suppressed. This makes future smoke errors actionable without exposing
+secrets. Source reference: `.github/resources/scripts/render-profiled-manifests.sh`.

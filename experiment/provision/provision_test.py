@@ -32,6 +32,13 @@ class GuardTests(unittest.TestCase):
                     p.cleanup()
                 runner.assert_not_called()
 
+    def test_render_failure_exposes_only_safe_operation_and_category(self):
+        result = subprocess.CompletedProcess([], 1, stdout=b'private', stderr=b'security: file SECRET is not in or below PRIVATE')
+        with patch('subprocess.run', return_value=result):
+            with self.assertRaises(provision.CommandFailure) as error:
+                provision.call(['kubectl', '--kubeconfig', 'PRIVATE', 'kustomize', 'PRIVATE'])
+        self.assertEqual(str(error.exception), 'kubectl kustomize: exit=1, category=kustomize-load-restriction')
+
     def test_child_errors_do_not_expose_output(self):
         result = subprocess.CompletedProcess(['fake'], 1, stdout=b'secret-token', stderr=b'secret-token')
         with patch('subprocess.run', return_value=result):
@@ -161,6 +168,8 @@ class TransportReadinessTests(unittest.TestCase):
                 target = obj['kind'].lower() + '/' + obj['metadata']['name']
                 self.assertTrue(any(target in c.args and 'rollout' in c.args for c in k.call_args_list))
             iam.assert_called_once()
+            render = next(c for c in k.call_args_list if c.args[0] == 'kustomize')
+            self.assertEqual(render.args[1:3], ('--load-restrictor', 'LoadRestrictionsNone'))
 
 if __name__ == '__main__':
     unittest.main()

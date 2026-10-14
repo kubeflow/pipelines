@@ -23,15 +23,36 @@ COMPONENTS = ('apiserver', 'persistenceagent', 'scheduledworkflow', 'frontend', 
 FIXTURES = ('flip_coin', 'collected_parameters', 'if_else_with_oneof_artifacts')
 
 
+
+class CommandFailure(RuntimeError):
+    """Only allowlisted command/error categories, never child output."""
+    def __init__(self, args, status, stderr=b''):
+        executable = Path(args[0]).name
+        if executable not in ('kubectl', 'docker', 'kind', 'git', 'tar'):
+            executable = 'subprocess'
+        operation = next((a for a in args[1:] if a in ('kustomize', 'apply', 'wait', 'rollout', 'exec', 'load', 'inspect', 'create', 'get', 'archive')), 'command')
+        category = 'unclassified'
+        for pattern, label in ((b'not in or below', 'kustomize-load-restriction'),
+                               (b'no matches for kind', 'resource-kind-unavailable'),
+                               (b'Forbidden', 'authorization-denied'),
+                               (b'connection refused', 'connection-refused'),
+                               (b'no such file', 'missing-file'),
+                               (b'timed out', 'timeout')):
+            if pattern in stderr:
+                category = label
+                break
+        super().__init__(f'{executable} {operation}: exit={status}, category={category}')
+
+
 def call(args, data=None, timeout=300):
     # Never propagate child output/error into exception messages or console logs.
     try:
         result = subprocess.run(args, input=data, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
-        raise RuntimeError('bounded subprocess timed out') from None
+        raise CommandFailure(args, 'timeout') from None
     if result.returncode:
-        raise RuntimeError('subprocess failed; command output intentionally not logged')
+        raise CommandFailure(args, result.returncode, result.stderr)
     return result.stdout
 
 
@@ -201,7 +222,7 @@ class Provision:
         self.k('apply', '-f', str(self.snapshot / 'manifests/kustomize/third-party/metacontroller/base/crd.yaml'))
         self.k('wait', 'crd/compositecontrollers.metacontroller.k8s.io', '--for=condition=Established', '--timeout=60s')
         self.k('apply', '-k', f'https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref={UPSTREAM}')
-        rendered = self.k('kustomize', str(self.snapshot / '.github/resources/manifests/multiuser/default'))
+        rendered = self.k('kustomize', '--load-restrictor', 'LoadRestrictionsNone', str(self.snapshot / '.github/resources/manifests/multiuser/default'))
         objects = list(yaml.safe_load_all(rendered))
         replacements = {f'kind-registry:5000/{name}:latest': self.ref(name) for name in COMPONENTS}
         for obj in objects:
@@ -377,6 +398,9 @@ def main():
 if __name__ == '__main__':
     try:
         main()
+    except CommandFailure as error:
+        print('Provisioning command failed: ' + str(error), file=sys.stderr)
+        sys.exit(1)
     except Exception:
         print('Provisioning stopped; raw exception/child output suppressed to protect credentials. See stage ownership/created-ID records.', file=sys.stderr)
         sys.exit(1)
