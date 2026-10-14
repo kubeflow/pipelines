@@ -15,10 +15,13 @@
 package util
 
 import (
+	"flag"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMaxParameterBytes_Default(t *testing.T) {
@@ -137,6 +140,44 @@ func TestGetMaxMetricsFileBytes(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Setenv(MaxMetricsFileBytesEnvVar, testCase.envValue)
 			assert.Equal(t, testCase.expectValue, GetMaxMetricsFileBytes())
+		})
+	}
+}
+
+// Tests using this helper must remain sequential: glog and stderr are global.
+func captureSizeLimitLogs(t *testing.T, action func()) string {
+	t.Helper()
+	output, err := os.CreateTemp(t.TempDir(), "size-limit-log")
+	require.NoError(t, err)
+	defer output.Close()
+	originalStderr := os.Stderr
+	originalLogToStderr := flag.Lookup("logtostderr").Value.String()
+	require.NoError(t, flag.Set("logtostderr", "true"))
+	os.Stderr = output
+	defer func() {
+		os.Stderr = originalStderr
+		_ = flag.Set("logtostderr", originalLogToStderr)
+	}()
+	action()
+	data, err := os.ReadFile(output.Name())
+	require.NoError(t, err)
+	return string(data)
+}
+
+func TestMetricsSizeConfigurationDiagnostics(t *testing.T) {
+	for _, setting := range []string{"", "2048", "0", "-1", "private-value\nforged-log", "9223372036854775808"} {
+		t.Run(setting, func(t *testing.T) {
+			t.Setenv(MaxMetricsFileBytesEnvVar, setting)
+			logs := captureSizeLimitLogs(t, func() { GetMaxMetricsFileBytes() })
+			if setting == "" || setting == "2048" {
+				assert.Empty(t, logs)
+				return
+			}
+			assert.Contains(t, logs, "Invalid MAX_METRICS_FILE_BYTES")
+			assert.Contains(t, logs, "1048576-byte default")
+			assert.Contains(t, logs, "positive integer in bytes")
+			assert.NotContains(t, logs, "private-value")
+			assert.NotContains(t, logs, "forged-log")
 		})
 	}
 }

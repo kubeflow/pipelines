@@ -18,6 +18,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/golang/glog"
 	constants "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 )
 
@@ -96,6 +97,7 @@ func GetMaxMetricsFileBytes() int64 {
 		if value, err := strconv.ParseInt(envValue, 10, 64); err == nil && value > 0 {
 			return value
 		}
+		glog.Warningf("Invalid %s: expected a positive integer in bytes; using the %d-byte default. Set a positive byte limit or unset the variable.", MaxMetricsFileBytesEnvVar, defaultMaxMetricsFileBytes)
 	}
 	return defaultMaxMetricsFileBytes
 }

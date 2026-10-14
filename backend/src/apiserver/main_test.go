@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"math/big"
@@ -986,4 +987,41 @@ func TestInitConfigRejectsInvalidWorkflowIdentityMode(t *testing.T) {
 	err := initConfig()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), common.WorkflowIdentityMode)
+}
+
+// Tests using this helper must remain sequential: glog and stderr are global.
+func captureSizeLimitLogs(t *testing.T, action func()) string {
+	t.Helper()
+	output, err := os.CreateTemp(t.TempDir(), "size-limit-log")
+	require.NoError(t, err)
+	defer output.Close()
+	originalStderr := os.Stderr
+	originalLogToStderr := flag.Lookup("logtostderr").Value.String()
+	require.NoError(t, flag.Set("logtostderr", "true"))
+	os.Stderr = output
+	defer func() {
+		os.Stderr = originalStderr
+		_ = flag.Set("logtostderr", originalLogToStderr)
+	}()
+	action()
+	data, err := os.ReadFile(output.Name())
+	require.NoError(t, err)
+	return string(data)
+}
+
+func TestUpdateBodyLimitRejectionLogs(t *testing.T) {
+	t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "8")
+	for _, method := range []string{http.MethodPut, http.MethodPatch} {
+		t.Run(method, func(t *testing.T) {
+			handler := clearTagsMiddleware(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("oversized body reached downstream") }))
+			rec := httptest.NewRecorder()
+			logs := captureSizeLimitLogs(t, func() {
+				handler.ServeHTTP(rec, httptest.NewRequest(method, "/apis/v2beta1/pipelines/private-id", strings.NewReader("private-payload")))
+			})
+			assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
+			assert.Contains(t, logs, "size_limit_exceeded control=pipeline_update_body limit_bytes=8 setting=MAX_PIPELINE_UPDATE_BODY_BYTES")
+			assert.NotContains(t, logs, "private-payload")
+			assert.NotContains(t, logs, "private-id")
+		})
+	}
 }

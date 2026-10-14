@@ -213,10 +213,24 @@ jobs:
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Set up Docker Buildx
+        if: matrix.image != 'frontend'
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
+      - name: Build frontend with bounded recovery
+        if: matrix.image == 'frontend'
+        id: frontend-build
+        env:
+          FRONTEND_NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
+        run: |
+          python3 .github/resources/scripts/build_frontend_image.py \
+            --context . --dockerfile frontend/Dockerfile \
+            --tag "${REGISTRY}/frontend:${IMAGE_TAG}" \
+            --node-version "${FRONTEND_NODE_VERSION}" \
+            --output "${ARTIFACTS_PATH}/frontend.tar"
+
       - name: Build and save Docker image
+        if: matrix.image != 'frontend'
         uses: docker/build-push-action@v7
         id: save-image
         continue-on-error: true
@@ -255,7 +269,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
-        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        if: ${{ steps.frontend-build.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar

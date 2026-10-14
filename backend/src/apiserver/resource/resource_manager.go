@@ -1772,7 +1772,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if common.IsMultiUserMode() && r.options.ScheduleWritersReady != nil {
 		if err := r.options.ScheduleWritersReady(ctx); err != nil {
 			glog.Warningf("Recurring run creation is waiting for schedule writer handoff: %v", err)
-			return nil, util.NewUnavailableError("Recurring run creation was not applied because schedule writer handoff is in progress; retry after handoff completes")
+			return nil, util.NewScheduleHandoffInProgressError()
 		}
 	}
 	scheduledWorkflow, _, _, err := r.prepareJobWorkflow(ctx, job)
@@ -1934,7 +1934,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		if r.options.ScheduleWritersReady != nil {
 			if err := r.options.ScheduleWritersReady(ctx); err != nil {
 				glog.Warningf("Recurring run mode change is waiting for schedule writer handoff: %v", err)
-				return util.NewUnavailableError("Recurring run mode change was not applied because schedule writer handoff is in progress; its enabled state is unchanged. Retry after handoff completes")
+				return util.NewScheduleHandoffInProgressError()
 			}
 		}
 		return r.changeAdoptableJobMode(ctx, job, enable)

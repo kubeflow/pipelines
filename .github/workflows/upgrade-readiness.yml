@@ -65,5 +65,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - name: Download pinned policy dependencies
+        run: python3 tools/upgrade-readiness/download_policy_dependencies.py --backend-source policy-source
       - name: Compare predictions with backend policy
         run: python3 tools/upgrade-readiness/conformance.py --backend-source policy-source
