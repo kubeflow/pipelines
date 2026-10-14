@@ -126,6 +126,25 @@ retention does not remove indexes; existing valid indexes permit rollback to the
 previous collector. This mode and timeout apply only to retention indexes, not
 other startup migrations or the recurring-run lookup index.
 
+### Validate MySQL interruption and crash recovery
+
+Run the opt-in destructive fixture against a disposable database:
+
+```bash
+python3 test/retention-index-mysql-recovery.py
+```
+
+Requires Docker and Go. The harness creates its own isolated MySQL container;
+it never accepts an existing database endpoint or container. It populates
+262,144 rows with 1 KiB payloads, observes actual InnoDB index-build progress,
+and separately cancels a build and kills/restarts MySQL with the same data.
+It verifies automatic preparation retry/reuse without index-cleanup SQL,
+acknowledged data surviving restart, unchanged InnoDB table identity, and
+application read/write cycles completing while online builds are active.
+Database downtime itself interrupts writes; availability resumes after MySQL
+restarts. This fixture is not a 100 GB capacity or recovery-time guarantee.
+Use `--image mysql:8.4` to exercise another supported server version.
+
 ### Inspect and recover failed preparation
 
 Ordinary supported upgrades no longer require manual index SQL. Investigate
