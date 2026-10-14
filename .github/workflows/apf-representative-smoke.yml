@@ -1,4 +1,4 @@
-name: Isolated APF representative paired measurements
+name: Isolated APF image import diagnosis
 on:
   push:
     branches: ['codex/apf-representative-smoke-20261014']
@@ -8,7 +8,7 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,53 +36,17 @@ jobs:
           python harness/experiment/provision/download_images.py
           --manifest harness/experiment/inputs/discovery-manifest.json
           --output "$RUNNER_TEMP/apf-images"
-      - name: Prepare private configuration
+      - name: Diagnose exact API image import without workloads
         run: >-
-          python harness/experiment/coordinator/prepare_smoke.py
+          python harness/experiment/nextstage/diagnose_import.py
           --images "$RUNNER_TEMP/apf-images/image-inputs.json"
-          --fixtures harness/experiment/fixtures --source source
-          --suffix "${{ github.run_id }}-${{ github.run_attempt }}"
-          --output "$RUNNER_TEMP/apf-config.json"
-      - name: Provision owned disposable cluster and real tenant fixtures
-        run: >-
-          python harness/experiment/coordinator/provision_smoke.py
-          --config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
-          --provision harness/experiment/provision
-          --output "$RUNNER_TEMP/apf-smoke-evidence/provision"
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: source/go.mod
-      - name: Build experiment clients from pinned dependency module
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p harness/experiment/bin
-          cd source
-          go build -o ../harness/experiment/bin/workload ../harness/experiment/workload/main.go
-          go build -o ../harness/experiment/bin/observer ../harness/experiment/observer/main.go
-          go build -o ../harness/experiment/bin/scheduled ../harness/experiment/workload/scheduled/main.go
-      - name: Prepare bounded same-priority candidate and offered rates
-        run: >-
-          python harness/experiment/nextstage/prepare_pair.py
-          --provision-config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
-          --bundle harness/experiment --out "$RUNNER_TEMP/apf-pair-private"
-      - name: Measure 20 then negative one without accepting missing gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/apf-pair-evidence"
-          for index in 1 2; do
-            python harness/experiment/nextstage/coordinator.py arm \
-              --config "$RUNNER_TEMP/apf-pair-private/coordinator.json" \
-              --out "$RUNNER_TEMP/apf-pair-evidence/arm-$index" --index "$index"
-          done
-      - name: Upload bounded sanitized measurement evidence
+          --cluster "kfp-apf-diag-${{ github.run_id }}-${{ github.run_attempt }}"
+          --out "$RUNNER_TEMP/apf-image-diagnosis"
+      - name: Upload digest-only image evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: apf-pair-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/apf-smoke-evidence
-            ${{ runner.temp }}/apf-pair-evidence
-          if-no-files-found: warn
+          name: apf-image-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/apf-image-diagnosis
+          if-no-files-found: error
           retention-days: 7
