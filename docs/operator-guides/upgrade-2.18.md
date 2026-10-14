@@ -41,9 +41,10 @@ Review these before rollout when the corresponding features are in use:
 ## Artifact-root migration
 
 This applies to authenticated multi-user artifact previews and downloads, including
-requests through tenant proxies. Standalone mode is unchanged. In 2.18, a matching
-MLMD namespace is necessary evidence but no longer sufficient for an arbitrary
-object key: the key must also have the namespace prefix. The default is
+requests through tenant proxies. Standalone mode is unchanged. In 2.18, when MLMD records exist, every returned artifact must have matching
+namespace evidence, and the object key must also have the namespace prefix.
+When no artifact record exists, the default lookup policy permits a validated
+namespace-prefix fallback; `mlmd-only` denies it. MLMD lookup errors still deny access. The default is
 `private-artifacts/<namespace>/...`.
 
 Inspect representative existing artifact references, including old runs users still
@@ -60,7 +61,10 @@ open. Do not infer compatibility from new pipeline defaults alone:
   Verify historical and new reads before removing old copies.
 
 `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit` is a temporary 2.18 migration option,
-with `enforce` as the default. It permits only an absent prefix after successful
+with `enforce` as the default. The unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name
+was removed without an alias. The separate `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`
+controls lookup fallback, not audit/enforce; see the
+[control reference](server-config.md#artifact-ownership-controls-in-218). Audit permits only an absent prefix after successful
 MLMD lookup and matching namespace evidence for every returned artifact. It does
 not bypass user authorization, explicit namespace mismatches, unsafe paths, missing
 context evidence or MLMD failures. An unavailable MLMD service can therefore deny

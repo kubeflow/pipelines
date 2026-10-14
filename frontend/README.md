@@ -194,7 +194,8 @@ migration deadline before upgrading to 3.0. The 3.0 policy has no audit exceptio
 Audit relaxes only an absent namespace prefix after successful MLMD lookup and matching namespace
 evidence for every returned artifact. It does not relax user authorization, explicit namespace
 mismatches, unsafe paths, missing protobufs, MLMD errors/timeouts or missing context evidence.
-For objects absent from MLMD, `mlmd-then-prefix` retains the validated namespace-prefix fallback;
+The separate `ARTIFACT_NAMESPACE_OWNERSHIP_MODE` selects metadata lookup behavior.
+For objects absent from MLMD, its default `mlmd-then-prefix` retains the validated namespace-prefix fallback;
 `mlmd-only` still denies them. Neither mode permits unavailable ownership checks to fail open.
 
 Each permitted legacy read emits an `artifact_ownership_audit` warning with namespace, source,
@@ -207,3 +208,8 @@ objects and update their references. Metadata changes alone do not move storage 
 back to `enforce` and verify preview/download before upgrading. Do not disable authentication to
 restore custom-root access. MLMD outages now deny artifact reads in both modes, including reads of
 otherwise correctly prefixed objects; restoring MLMD restores those reads.
+
+The old unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name is not an alias and is no longer
+read. Use `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` for audit/enforce; do not put these values
+in `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`. See the
+[2.18 configuration reference](../docs/operator-guides/server-config.md#artifact-ownership-controls-in-218).

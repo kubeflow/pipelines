@@ -140,7 +140,11 @@ this ownership middleware. See [root migration](upgrade-2.18.md#artifact-root-mi
 
 Check every authenticated serving UI replica (including custom authenticated
 frontends) for
-`KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE`. Default enforcement is the target; temporary
+`KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE`. Flag the removed unreleased
+`ARTIFACT_OWNERSHIP_ENFORCEMENT` name: it has no alias and cannot enable audit.
+Inspect `ARTIFACT_NAMESPACE_OWNERSHIP_MODE` separately: it selects `mlmd-then-prefix`
+or `mlmd-only`, not audit/enforce. See the
+[control reference](server-config.md#artifact-ownership-controls-in-218). Default enforcement is the target; temporary
 audit only permits missing prefixes with successful matching MLMD evidence. Audit
 cannot resolve missing evidence, cross-namespace evidence, unsafe paths or MLMD
 outages. Audit counts mean permission to attempt retrieval, not successful reads.

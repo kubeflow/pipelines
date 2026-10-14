@@ -142,7 +142,7 @@ in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/bl
 
 For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact
 trusted origins; a permissive domain regex alone does not authorize a custom
-storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
+storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
 for ConfigMap, profile-proxy rollout, alias, and archived-log credential guidance.
 HTTP artifact bases use the separate setting described below.
 
@@ -249,7 +249,7 @@ HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
 wait for its rollout to finish. The controller watches enabled Namespace objects;
 restarting its webhook does not enqueue them. Wait for the next hourly resync or
 change an annotation on each affected Namespace, as shown in the
-[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
+[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
 Confirm each generated `ml-pipeline-ui-artifact` pod template contains the expected
 `HTTP_BASE_URL` before checking its rollout status, which could otherwise report
 the previous rollout's completion. This propagation does not change the shared
@@ -269,6 +269,36 @@ destination. Domain-regex rejection remains an additional restriction. Endpoint
 configuration does not bypass namespace authorization or artifact ownership
 checks. Artifact responses remain attachments, and HTTP archive bytes remain
 unextracted.
+
+### Artifact ownership controls in 2.18
+
+These are separate settings on the authenticated frontend, not interchangeable
+names for one mode. Standard manifests read them from `pipeline-install-config`;
+restart the frontend after changing that ConfigMap and keep serving replicas consistent.
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` | `enforce` | `audit` temporarily permits a missing namespace prefix only after successful matching MLMD evidence. Unknown values deny ownership validation. |
+| `ARTIFACT_NAMESPACE_OWNERSHIP_MODE` | `mlmd-then-prefix` | Controls the fallback when MLMD returns no artifact: `mlmd-then-prefix` checks the namespace prefix; `mlmd-only` denies that fallback. Neither value enables audit or bypasses MLMD failures. |
+| `ARTIFACT_NAMESPACE_KEY_PREFIX` | `private-artifacts` | Configures the leading object-key prefix in `<prefix>/<namespace>/...`. It does not insert a namespace, move objects or establish arbitrary bucket ownership. |
+
+The former unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name is no longer read;
+there is no compatibility alias. Replace it with
+`KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` before rolling out 2.18. Do not set
+`ARTIFACT_NAMESPACE_OWNERSHIP_MODE=audit`: that is the lookup policy, not the
+security migration control. Only `mlmd-then-prefix` enables its fallback.
+
+Audit retains authentication, namespace matching and safe-path checks. It is not
+complete remediation when downstream credentials are shared. Standard unauthenticated
+tenant proxies rely on the authenticated UI for this policy; copying the audit
+setting into those proxies does not enable it on the serving UI. See
+[artifact-root migration](upgrade-2.18.md#artifact-root-migration) for impact and
+return-to-enforcement steps.
+
+Master/3.0 uses the Artifact API instead of MLMD and has no artifact audit exception.
+Its lookup values are `artifact-then-prefix` (default) and `artifact-only`, with the
+old `mlmd-*` spellings accepted as lookup aliases. This does not make arbitrary
+legacy roots valid. These branch differences must not be used as 2.18 settings.
 
 ### TensorBoard proxy signing secret
 
