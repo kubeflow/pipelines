@@ -28,7 +28,7 @@ import (
 )
 
 func TestHandlerRejectsNilServiceContext(t *testing.T) {
-	handler, err := executorplugin.NewHandlerWithContext(nil, "unused", nil)
+	handler, err := executorplugin.NewHandlerWithContext(nil, "unused", nil) //nolint:staticcheck // SA1012: Verify that a nil service context is rejected.
 	require.ErrorContains(t, err, "provide a context tied to the service lifetime")
 	require.Nil(t, handler)
 }

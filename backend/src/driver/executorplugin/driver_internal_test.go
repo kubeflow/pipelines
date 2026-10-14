@@ -134,7 +134,7 @@ func TestDriveSetupAndExecution(t *testing.T) {
 					}
 					if kind == containerDriver {
 						assert.Equal(t, "test-image", options.Container.Image)
-						assert.Equal(t, "pull-secret", options.KubernetesExecutorConfig.ImagePullSecret[0].SecretName)
+						assert.Equal(t, "pull-secret", options.KubernetesExecutorConfig.ImagePullSecret[0].SecretName) //nolint:staticcheck // SA1019: Preserve coverage of legacy secretName request compatibility.
 						require.NotNil(t, options.DefaultRunAsNonRoot)
 						assert.False(t, *options.DefaultRunAsNonRoot)
 						require.NotNil(t, options.DefaultHostUsers)

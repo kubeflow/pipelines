@@ -86,18 +86,19 @@ func TestTasksetAttemptResolution(t *testing.T) {
 				tmpl.Plugin.Value = raw
 				taskset.Spec.Tasks["node-0"] = *tmpl
 			}
-			argo := argofake.NewSimpleClientset(taskset)
+			argo := argofake.NewSimpleClientset(taskset) //nolint:staticcheck // SA1019: Argo v4.1.2 does not generate the replacement NewClientset.
 			if mode == "read failure" {
 				argo.PrependReactor("get", "workflowtasksets", func(ktesting.Action) (bool, runtime.Object, error) { return true, nil, context.DeadlineExceeded })
 			}
 			key, err := tasksetAttemptResolver(fake.NewSimpleClientset(pod), argo, pod.Namespace, pod.Name)(context.Background(), *args)
-			if mode == "active" || mode == "canonical" {
+			switch mode {
+			case "active", "canonical":
 				require.NoError(t, err)
 				require.Equal(t, "workflow-uid/node-0", key)
-			} else if mode == "retry" {
+			case "retry":
 				require.NoError(t, err)
 				require.Equal(t, "workflow-uid/node-1", key)
-			} else {
+			default:
 				require.Error(t, err)
 				require.Empty(t, key)
 			}

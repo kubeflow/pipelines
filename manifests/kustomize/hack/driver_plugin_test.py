@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Validate embedded driver sidecars after Kustomize has rendered each variant."""
+"""Validate embedded driver sidecars after Kustomize has rendered each
+variant."""
 
 import base64
 import copy
@@ -22,7 +23,9 @@ import subprocess
 import tempfile
 import unittest
 
-from tensorboard_signing_key_test import render, resource, REPO_ROOT
+from tensorboard_signing_key_test import render
+from tensorboard_signing_key_test import REPO_ROOT
+from tensorboard_signing_key_test import resource
 
 
 class DriverPluginTest(unittest.TestCase):

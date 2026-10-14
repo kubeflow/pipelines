@@ -122,12 +122,13 @@ func TestExecutePluginSuccessAndFailurePreserveOutputs(t *testing.T) {
 			for _, output := range response.Node.Outputs.Parameters {
 				outputs[output.Name] = output.Value
 			}
-			if tc.execution == execution {
+			switch tc.execution {
+			case execution:
 				assert.Equal(t, map[string]string{"task-id": "task-id", "iteration-count": "3", "cached-decision": "false", "condition": "false", "pod-spec-patch": execution.PodSpecPatch}, outputs)
-			} else if tc.execution == nil {
+			case nil:
 				assert.Empty(t, outputs)
 				assert.Contains(t, recorder.Body.String(), `"parameters":[]`)
-			} else {
+			default:
 				assert.Equal(t, "task-id", outputs["task-id"])
 				assert.Contains(t, response.Node.Message, "failed to marshal ExecutorInput")
 			}

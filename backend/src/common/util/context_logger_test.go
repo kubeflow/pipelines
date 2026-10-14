@@ -85,7 +85,7 @@ func TestWithLogger_ExistingLogger(t *testing.T) {
 
 func TestWithLogger_NilContext(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "driver.log")
-	ctx, logFile, err := util.WithLogger(nil, path)
+	ctx, logFile, err := util.WithLogger(nil, path) //nolint:staticcheck // SA1012: Verify that a nil context is rejected without creating a log file.
 	require.ErrorContains(t, err, "provide a non-nil context")
 	assert.Nil(t, ctx)
 	assert.Nil(t, logFile)

@@ -10,9 +10,9 @@ This repository contains deployment resources for Kubeflow Pipelines (KFP) Stand
 - [oc] CLI tool installed
 - Cluster administrator access
 
-## Deploy KFP on Openshift 
+## Deploy KFP on Openshift
 
-Create the `kubeflow` Openshift Project: 
+Create the `kubeflow` Openshift Project:
 
 ```bash
 oc new-project kubeflow
@@ -26,7 +26,7 @@ cd manifests/kustomize/env/openshift/base
 oc -n kubeflow apply -k .
 ```
 
-Access the route via: 
+Access the route via:
 
 ```bash
 echo https://$(oc get routes -n kubeflow ml-pipeline-ui --template={{.spec.host}})

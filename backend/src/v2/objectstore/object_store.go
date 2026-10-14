@@ -439,7 +439,7 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if err != nil {
 		return nil, err
 	}
-	var base http.RoundTripper = gcp.DefaultTransport()
+	var base = gcp.DefaultTransport()
 	if transport != nil {
 		base = transport
 	}

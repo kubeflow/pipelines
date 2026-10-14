@@ -125,7 +125,7 @@ func TestS3InvocationProxyPreservesCustomCA(t *testing.T) {
 							}
 							upstream, err := net.Dial("tcp", r.Host)
 							if err != nil {
-								http.Error(w, err.Error(), 502)
+								http.Error(w, err.Error(), http.StatusBadGateway)
 								return
 							}
 							client, _, err := w.(http.Hijacker).Hijack()
