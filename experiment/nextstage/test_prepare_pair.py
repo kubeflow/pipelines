@@ -36,6 +36,21 @@ class RuntimeIdentityTests(unittest.TestCase):
             self.assertEqual(proof['config_digest'],expected)
             self.assertTrue(proof['manifest_chain'])
 
+    def test_duplicate_tag_descriptors_bind_but_distinct_images_remain_rejected(self):
+        expected='sha256:'+'a'*64
+        raw=json.dumps({'config':{'digest':expected}}).encode()
+        digest='sha256:'+hashlib.sha256(raw).hexdigest()
+        descriptor={'digest':digest,'platform':{'os':'linux','architecture':'amd64'}}
+        index=json.dumps({'manifests':[dict(descriptor,annotations={'tag':'latest'}),dict(descriptor,annotations={'tag':'ci'})]}).encode()
+        indexdigest='sha256:'+hashlib.sha256(index).hexdigest()
+        proof=bind_runtime_image(indexdigest,expected,{indexdigest:index,digest:raw}.__getitem__)
+        self.assertEqual(proof['manifest_chain'],[indexdigest,digest])
+        different=dict(descriptor,digest='sha256:'+'b'*64)
+        index=json.dumps({'manifests':[descriptor,different]}).encode()
+        indexdigest='sha256:'+hashlib.sha256(index).hexdigest()
+        with self.assertRaisesRegex(RuntimeError,'candidate_manifest_digests'):
+            bind_runtime_image(indexdigest,expected,lambda _:index)
+
     def test_wrong_config_and_forged_content_rejected(self):
         raw=json.dumps({'config':{'digest':'sha256:'+'b'*64}}).encode()
         digest='sha256:'+hashlib.sha256(raw).hexdigest()

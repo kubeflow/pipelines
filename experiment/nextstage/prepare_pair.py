@@ -13,7 +13,7 @@ def bind_runtime_image(image_id, expected, read_content):
         digest = digest[len('containerd://'):]
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
         raise RuntimeError('runtime image ID has no immutable digest')
-    proof = {'runtime_image_id': image_id, 'config_digest': expected, 'manifest_chain': []}
+    proof = {'runtime_image_id': image_id, 'runtime_digest': digest, 'config_digest': expected, 'manifest_chain': [], 'observed_config_digests': [], 'candidate_manifest_digests': []}
     if digest == expected:
         return proof
     for _ in range(2):
@@ -22,13 +22,23 @@ def bind_runtime_image(image_id, expected, read_content):
             raise RuntimeError('containerd manifest bytes do not match runtime digest')
         manifest = json.loads(raw)
         proof['manifest_chain'].append(digest)
-        if manifest.get('config', {}).get('digest') == expected:
+        observed_config = manifest.get('config', {}).get('digest')
+        if isinstance(observed_config, str) and re.fullmatch(r'sha256:[0-9a-f]{64}', observed_config):
+            proof['observed_config_digests'].append(observed_config)
+        if observed_config == expected:
             return proof
         candidates = [m for m in manifest.get('manifests', []) if m.get('platform', {}).get('os') == 'linux' and m.get('platform', {}).get('architecture') == 'amd64']
-        if len(candidates) != 1 or not re.fullmatch(r'sha256:[0-9a-f]{64}', candidates[0].get('digest', '')):
+        # Docker save can list the same manifest once per tag (latest/ci/local).
+        # Distinct descriptors are not distinct images when their digests match.
+        candidate_digests = sorted({m.get('digest', '') for m in candidates})
+        proof['candidate_manifest_digests'].append([d for d in candidate_digests if re.fullmatch(r'sha256:[0-9a-f]{64}', d)])
+        if len(candidate_digests) != 1 or not re.fullmatch(r'sha256:[0-9a-f]{64}', candidate_digests[0]):
             break
-        digest = candidates[0]['digest']
-    raise RuntimeError('runtime image does not bind to verified config digest')
+        digest = candidate_digests[0]
+    # Digest-only diagnostics survive hosted failure without leaking manifest
+    # annotations, credentials, labels or raw config contents.
+    diagnosis = {key: value for key, value in proof.items() if key != 'runtime_image_id'}
+    raise RuntimeError('runtime image does not bind to verified config digest: ' + json.dumps(diagnosis, sort_keys=True))
 
 
 def calibration_request(request, ca):
