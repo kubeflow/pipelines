@@ -6,7 +6,7 @@ docker.io/jetbrainsinfra/jq:latest@sha256:bf917fad410a1f44759400299e0557513c7f1f
 registry.access.redhat.com/ubi9/python-311:latest
 registry.access.redhat.com/ubi9/python-311:1-1779945715@sha256:a0bdb55576fc5b8d6704279307817828ef027e1065533ceba133fe9516003a6c
 docker.io/library/mysql:8.4
-quay.io/argoproj/workflow-controller:v3.7.18
-quay.io/argoproj/argoexec:v3.7.18
-quay.io/argoproj/workflow-controller:v4.1.2
-quay.io/argoproj/argoexec:v4.1.2
+quay.io/argoproj/workflow-controller:v4.0.13
+quay.io/argoproj/argoexec:v4.0.13
+quay.io/argoproj/workflow-controller:v4.1.5
+quay.io/argoproj/argoexec:v4.1.5
