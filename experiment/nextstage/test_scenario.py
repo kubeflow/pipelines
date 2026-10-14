@@ -1,11 +1,14 @@
 import unittest
 from scenario import pressure_proof,policy_digest,SCENARIO,STEPS
 class Scenario(unittest.TestCase):
- def rows(self,n=10,seats=1,queue=1):
-  return [{'kind':'snapshot','index':i,'missing':[],'ready':True,'live':True,'metrics':[{'name':'apiserver_flowcontrol_current_limit_seats','value':seats},{'name':'apiserver_flowcontrol_current_inqueue_requests','value':queue},{'name':'apiserver_flowcontrol_current_executing_seats','value':seats}]} for i in range(n)]
+ def rows(self,n=10,seats=4,queue=1):
+  return [{'kind':'snapshot','index':i,'missing':[],'ready':True,'live':True,'metrics':[{'name':'apiserver_flowcontrol_current_limit_seats','value':seats},{'name':'apiserver_flowcontrol_nominal_limit_seats','value':seats},{'name':'apiserver_flowcontrol_current_inqueue_requests','value':queue},{'name':'apiserver_flowcontrol_current_executing_seats','value':seats}]} for i in range(n)]
  def proof(self,r):return pressure_proof(r,{'classification_failures':0,'raw_http_attempts':20,'snapshot_count':34,'baseline_captured_before_start':True})
  def test_requires_ten_consecutive_queued_positive_samples(self):
   self.assertTrue(self.proof(self.rows())['proven']);self.assertFalse(self.proof(self.rows(9))['proven']);self.assertFalse(self.proof(self.rows(seats=0))['proven']);self.assertFalse(self.proof(self.rows(queue=0))['proven'])
+ def test_observed_wrong_nominal_capacity_blocks_selection(self):
+  rows=self.rows(12);rows[-1]['metrics'][1]['value']=5
+  self.assertFalse(self.proof(rows)['proven'])
  def test_gap_or_missing_fail(self):
   r=self.rows();r[5]['index']=30;self.assertFalse(self.proof(r)['proven']);r=self.rows();r[5]['missing']=['readyz'];self.assertFalse(self.proof(r)['proven'])
  def test_capacity_does_not_mean_saturation(self):self.assertFalse(self.proof(self.rows(queue=0))['proven'])
@@ -18,7 +21,7 @@ class Scenario(unittest.TestCase):
   for v in r[10:16]:v['ready']=False;v['missing']=['readyz']
   self.assertFalse(self.proof(r)['proven']);r=self.rows(20);r[19]['counter_reset']=True;self.assertFalse(self.proof(r)['proven'])
  def test_frozen_nonzero_bounded_scenario(self):
-  self.assertEqual(SCENARIO['apiserver_flags'],{'max-requests-inflight':10,'max-mutating-requests-inflight':10});self.assertFalse(SCENARIO['apf_policy_mutations']);self.assertEqual(STEPS[-1],(64,1000))
+  self.assertEqual(SCENARIO['apiserver_flags'],{'max-requests-inflight':10,'max-mutating-requests-inflight':10});self.assertTrue(SCENARIO['apf_policy_mutations']);self.assertFalse(SCENARIO['bootstrap_policy_mutations']);self.assertEqual(STEPS[-1],(64,1000))
  def test_parent_timeout_allows_terminal_request_drain_and_capture(self):
   import subprocess,tempfile
   from pathlib import Path

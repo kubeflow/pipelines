@@ -126,7 +126,7 @@ def constrained_flags(pods):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--provision-config',required=True);p.add_argument('--state',required=True);p.add_argument('--bundle',required=True);p.add_argument('--out',required=True);p.add_argument('--evidence-out',required=True);a=p.parse_args();os.umask(0o077)
     out=Path(a.out).resolve();out.mkdir(mode=0o700);c=load(a.provision_config);c['state']=a.state;owner=Owned(c);uid=owner.guard();ns='apf-competitor'
-    if c.get('scenario_id')!='constrained-stock-apf-bulk-list-v2':raise RuntimeError('wrong scenario identity')
+    if c.get('scenario_id')!='constrained-fixed-four-seat-bulk-list-v3':raise RuntimeError('wrong scenario identity')
     flags=constrained_flags(json.loads(owner.k('-n','kube-system','get','pods','-l','component=kube-apiserver','-o','json')))
     evidence=Path(a.evidence_out);evidence.mkdir(parents=True,exist_ok=True);save(evidence/'apiserver-live-flags.json',flags)
     save(evidence/'kind-config-used.json',load(Path(a.state)/'kind-config.json'))
@@ -149,7 +149,7 @@ def main():
         fresh=owner.k('-n',tenant['namespace'],'create','token',tenant['service_account'],'--audience=pipelines.kubeflow.org','--duration=3h').decode().strip()
         Path(tenant['token_file']).write_text(fresh)
     save(out/'workload.json',workload)
-    observer={'kubeconfig':owner.kubeconfig,'context':owner.context,'cluster_uid':uid,'namespace':ns,'configmap':'probe','token_file':str(tokenpath),'kfp_flow_uid':fsuid,'competitor_flow_uid':fsuid,'priority_uid':pluid,'rps':20,'max_inflight':64}
+    observer={'kubeconfig':owner.kubeconfig,'context':owner.context,'cluster_uid':uid,'namespace':ns,'configmap':'probe','token_file':str(tokenpath),'kfp_flow_uid':fsuid,'competitor_flow_uid':fsuid,'priority_uid':pluid,'rps':20,'max_inflight':64,'expected_seats':4}
     save(out/'observer.json',observer)
     bundle=Path(a.bundle).resolve();c.update(api_image='kfp-apf-local/apiserver:'+c['source_sha'],api_image_ids=['docker-pullable://kfp-apf-local/apiserver@'+c['images']['apiserver']['image_id'],c['images']['apiserver']['image_id']],workload_template=str(out/'workload.json'),observer_template=str(out/'observer.json'),workload_binary=str(bundle/'bin/workload'),observer_binary=str(bundle/'bin/observer'),scheduled_binary=str(bundle/'bin/scheduled'),fixture_evaluator=str(bundle/'fixtures/evaluate.py'),measurement_only=True)
     pods=json.loads(owner.k('-n','kubeflow','get','pods','-l','app=ml-pipeline','-o','json'))
@@ -173,6 +173,8 @@ def main():
             bindings.append(bind_actual_container(status,expected,inspect_container,inspect_image,content,lambda record:save(evidence_path,record)))
             actual.append(status['imageID'])
     if not actual:raise RuntimeError('no ready API container identity')
+    c['server_evidence_script']=str(bundle/'server-evidence/capture.py')
+    c['server_evidence_config']=str(out/'coordinator.json')
     c['api_image_ids']=sorted(set(actual))
     c['api_image_bindings']=bindings
     save(out/'runtime-image-bindings.json',bindings)

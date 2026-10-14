@@ -1,4 +1,4 @@
-name: Isolated bulk LIST constrained APF calibrated pair
+name: Isolated four-seat APF calibrated pair
 on:
   push:
     branches: ['codex/apf-representative-smoke-20261014']
@@ -49,7 +49,7 @@ jobs:
           import json,os
           from pathlib import Path
           p=Path(os.environ['RUNNER_TEMP'])/'apf-config.json'
-          c=json.loads(p.read_text());c['scenario_id']='constrained-stock-apf-bulk-list-v2'
+          c=json.loads(p.read_text());c['scenario_id']='constrained-fixed-four-seat-bulk-list-v3'
           p.write_text(json.dumps(c))
           PYCONFIG
       - name: Provision owned disposable cluster and real tenant fixtures
@@ -70,6 +70,12 @@ jobs:
           go build -o ../harness/experiment/bin/workload ../harness/experiment/workload/main.go
           go build -o ../harness/experiment/bin/observer ../harness/experiment/observer/main.go
           go build -o ../harness/experiment/bin/scheduled ../harness/experiment/workload/scheduled/main.go
+      - name: Create declared positive four-seat shared priority
+        run: >-
+          python harness/experiment/nextstage/prepare_policy.py
+          --config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
+          --stock-policies harness/experiment/nextstage/stock-policy-specs.json
+          --out "$RUNNER_TEMP/apf-pair-evidence/policy"
       - name: Prepare bounded same-priority candidate and offered rates
         run: >-
           python harness/experiment/nextstage/prepare_pair.py
@@ -95,7 +101,7 @@ jobs:
             --out "$RUNNER_TEMP/apf-pair-evidence/calibration" \
             --observer-binary "$GITHUB_WORKSPACE/harness/experiment/bin/observer" \
             --observer-template "$RUNNER_TEMP/apf-background-private/background-template.json" \
-            --stock-policies harness/experiment/nextstage/stock-policy-specs.json
+            --stock-policies "$RUNNER_TEMP/apf-pair-evidence/policy/expected-policies.json"
           cp "$RUNNER_TEMP/apf-background-private/classification.json" "$RUNNER_TEMP/apf-pair-evidence/background-classification.json"
           python - <<'PYCONFIG'
           import json,os
@@ -113,7 +119,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: apf-constrained-bulk-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          name: apf-fixed-four-v3-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/apf-smoke-evidence
             ${{ runner.temp }}/apf-pair-evidence

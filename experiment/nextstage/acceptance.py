@@ -5,9 +5,16 @@ def scheduled(rows, tenants):
     latest={row.get('tenant'):row for row in rows if 'complete' in row}
     return set(tenants)<=set(latest) and all(latest[t].get('complete') is True and latest[t].get('created') is True and latest[t].get('disabled') is True and latest[t].get('child_succeeded') is True for t in tenants)
 
+def container_healthy(row):
+    if row.get('reason')=='OOMKilled' or row.get('termination_reason')=='OOMKilled':return False
+    if row.get('state')=='running':return row.get('ready') is True and row.get('pod_phase')=='Running'
+    owners=row.get('controllers')
+    completed_job=isinstance(owners,list) and len(owners)==1 and owners[0].get('kind')=='Job' and owners[0].get('api_version')=='batch/v1' and bool(owners[0].get('uid'))
+    return completed_job and row.get('pod_phase')=='Succeeded' and row.get('state')=='terminated' and type(row.get('exit_code')) is int and row['exit_code']==0 and row.get('termination_reason')=='Completed'
+
 def health(before,after):
     if not before or set(before)!=set(after):return False
-    return all(before[k]['restart_count']==after[k]['restart_count'] and after[k]['ready'] and after[k].get('reason')!='OOMKilled' for k in before)
+    return all(before[k]['restart_count']==after[k]['restart_count'] and before[k].get('controllers')==after[k].get('controllers') and container_healthy(before[k]) and container_healthy(after[k]) for k in before)
 
 def classification(records,policies,priority_uid,required_paths):
     """Records must be actual sanitized transport observations, never configured IDs."""

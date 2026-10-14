@@ -30,6 +30,7 @@ import (
 )
 
 type config struct {
+	ExpectedSeats      int       `json:"expected_seats"`
 	BackgroundBulkList bool      `json:"background_bulk_list"`
 	PressureOnly       bool      `json:"pressure_only"`
 	Kubeconfig         string    `json:"kubeconfig"`
@@ -51,6 +52,9 @@ type config struct {
 }
 
 func (c config) validate() error {
+	if c.ExpectedSeats != 0 && c.ExpectedSeats != 4 {
+		return errors.New("only declared four-seat scenario allowed")
+	}
 	if c.BackgroundBulkList && c.Namespace != "apf-background" {
 		return errors.New("bulk LIST restricted to isolated background namespace")
 	}
@@ -412,7 +416,7 @@ func projectMetric(m metric, priority string) (metric, bool) {
 			return m, false
 		}
 		keep := false
-		for _, name := range []string{"apiserver_flowcontrol_current_inqueue_requests", "apiserver_flowcontrol_current_executing_seats", "apiserver_flowcontrol_current_limit_seats", "apiserver_flowcontrol_rejected_requests_total", "apiserver_flowcontrol_dispatched_requests_total", "apiserver_flowcontrol_request_wait_duration_seconds_bucket", "apiserver_flowcontrol_request_wait_duration_seconds_sum", "apiserver_flowcontrol_request_wait_duration_seconds_count"} {
+		for _, name := range []string{"apiserver_flowcontrol_current_inqueue_requests", "apiserver_flowcontrol_current_executing_seats", "apiserver_flowcontrol_current_limit_seats", "apiserver_flowcontrol_nominal_limit_seats", "apiserver_flowcontrol_rejected_requests_total", "apiserver_flowcontrol_dispatched_requests_total", "apiserver_flowcontrol_request_wait_duration_seconds_bucket", "apiserver_flowcontrol_request_wait_duration_seconds_sum", "apiserver_flowcontrol_request_wait_duration_seconds_count"} {
 			if m.Name == name {
 				keep = true
 				break
@@ -511,6 +515,24 @@ func fetch(ctx context.Context, client *http.Client, base, path string, limit in
 	}
 	return b, v.StatusCode, e
 }
+func fixedSeats(metrics []metric, priority string, expected int) bool {
+	for _, name := range []string{"apiserver_flowcontrol_current_limit_seats", "apiserver_flowcontrol_nominal_limit_seats"} {
+		count := 0
+		for _, m := range metrics {
+			if m.Name == name && m.Labels["priority_level"] == priority {
+				count++
+				if m.Value != float64(expected) {
+					return false
+				}
+			}
+		}
+		if count != 1 {
+			return false
+		}
+	}
+	return true
+}
+
 func collectSnapshot(ctx context.Context, c config, client *http.Client, host, priority string, i int, due time.Time, previous []metric) snapshot {
 	s := snapshot{Kind: "snapshot", At: time.Now().UTC(), Index: i, LagMS: float64(time.Since(due).Microseconds()) / 1000, Missing: []string{}}
 	// Health probes have their own bounded budgets and start with the scrape.
@@ -553,6 +575,9 @@ func collectSnapshot(ctx context.Context, c config, client *http.Client, host, p
 		}
 		if !s.PositiveSeats {
 			s.Missing = append(s.Missing, "matched_priority_positive_seats")
+		}
+		if c.ExpectedSeats != 0 && !fixedSeats(s.Metrics, priority, c.ExpectedSeats) {
+			s.Missing = append(s.Missing, "expected_nominal_and_current_seats")
 		}
 		s.Delta, s.CounterReset = deltas(previous, s.Metrics)
 		encoded, _ := json.Marshal([][]metric{s.Metrics, s.Delta})

@@ -331,7 +331,7 @@ def background_config(c, observer):
         raise RuntimeError('quiet competitor changed or pressure identity not distinct/shared')
     return dict(template,start_at=observer['start_at'],seconds=observer['seconds'],timeline_file=observer['timeline_file'],
                 kubeconfig=observer['kubeconfig'],context=observer['context'],cluster_uid=observer['cluster_uid'],
-                rps=rps,max_inflight=workers,pressure_only=True)
+                rps=rps,max_inflight=workers,pressure_only=True,expected_seats=4)
 
 
 def caller_budget(workload,quiet,background):
@@ -360,6 +360,15 @@ def verify_stock_policies(owner,c,directory,label):
     if actual!=expected:raise RuntimeError('stock APF policy specs changed after calibration')
 
 
+def capture_server_classification(c,directory,mode,start=None,end=None):
+    out=directory/'server-classification';out.mkdir(exist_ok=True)
+    argv=[sys.executable,c['server_evidence_script'],mode,'--coordinator-dir',str(Path(__file__).parent),'--config',c['server_evidence_config'],'--out',str(out)]
+    if mode=='finish':argv+=['--start',iso(start),'--end',iso(end)]
+    try:bounded(argv,timeout=120)
+    except Exception as error:
+        save(out/'classification.json',{'capture_failed':True,'failure_type':type(error).__name__,'actual_kfp_records_proven':False,'acceptance_complete':False})
+
+
 def arm(c, workload_template, observer_template, directory, index):
     directory.mkdir(mode=0o700)
     qps = ORDER[index]
@@ -367,6 +376,8 @@ def arm(c, workload_template, observer_template, directory, index):
     processes = []
     failure = None
     stage = 'switch'
+    classification_start=None
+    classification_end=None
     try:
         stage='policy-before'
         verify_stock_policies(owner,c,directory,'before')
@@ -376,6 +387,8 @@ def arm(c, workload_template, observer_template, directory, index):
         processes.append(forward)
         endpoint = f'http://127.0.0.1:{c["port"]}'
         endpoint_ready(endpoint, forward)
+        classification_start=utc()
+        capture_server_classification(c,directory,'begin')
         from integration import scheduled_stage, health_snapshot, collect_semantics
         from acceptance import health
         preflight = dict(workload_template, endpoint=endpoint, label=f'pair{index//2+1}-qps{qps}')
@@ -391,6 +404,7 @@ def arm(c, workload_template, observer_template, directory, index):
         # Assign the shared clock only after recurring preflight has completed.
         stage = 'shared-launch'
         start = utc() + dt.timedelta(seconds=45)
+        classification_start=start
         workload = dict(workload_template, endpoint=endpoint, start_at=iso(start), label=f'pair{index//2+1}-qps{qps}')
         observer = dict(observer_template, start_at=iso(start), seconds=total_seconds(workload),
                         kubeconfig=owner.kubeconfig, context=owner.context, cluster_uid=owner.guard(),
@@ -423,6 +437,7 @@ def arm(c, workload_template, observer_template, directory, index):
                       '--at',iso(start+dt.timedelta(seconds=130)), '--until',iso(start+dt.timedelta(seconds=300))])
         processes.append(auth)
         measurement_end = start + dt.timedelta(seconds=total_seconds(workload))
+        classification_end=measurement_end
         deadline = measurement_end + dt.timedelta(seconds=15)
         measurement_failed = False
         stage = 'measurement'
@@ -467,6 +482,8 @@ def arm(c, workload_template, observer_template, directory, index):
     finally:
         for process in reversed(processes):
             stop(process)
+        if classification_start is not None:
+            capture_server_classification(c,directory,'finish',classification_start,min(utc(),classification_end) if classification_end else utc())
         incomplete_acceptance(directory, c)
         capture_manifest(directory)
     if failure:

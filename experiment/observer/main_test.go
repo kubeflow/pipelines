@@ -653,3 +653,28 @@ func TestBulkListContinuationIsRecordedAsFailure(t *testing.T) {
 		t.Fatal("no list was exercised")
 	}
 }
+
+func TestExpectedFourSeatsRequiresBothActualGauges(t *testing.T) {
+	metrics := []metric{{Name: "apiserver_flowcontrol_current_limit_seats", Labels: map[string]string{"priority_level": "shared"}, Value: 4}, {Name: "apiserver_flowcontrol_nominal_limit_seats", Labels: map[string]string{"priority_level": "shared"}, Value: 4}}
+	if !fixedSeats(metrics, "shared", 4) {
+		t.Fatal("matching gauges rejected")
+	}
+	if fixedSeats(metrics[:1], "shared", 4) {
+		t.Fatal("missing nominal accepted")
+	}
+	metrics[0].Value = 5
+	if fixedSeats(metrics, "shared", 4) {
+		t.Fatal("borrowed/different capacity accepted")
+	}
+	metrics[0].Value = 0
+	if fixedSeats(metrics, "shared", 4) {
+		t.Fatal("zero capacity accepted")
+	}
+	metrics[0].Value = 4
+	if fixedSeats(metrics, "other", 4) {
+		t.Fatal("unrelated priority accepted")
+	}
+	if _, ok := projectMetric(metrics[1], "shared"); !ok {
+		t.Fatal("nominal gauge filtered away")
+	}
+}

@@ -23,8 +23,14 @@ def scheduled_stage(c,workload,directory,name):
     if not passed:raise RuntimeError('recurring lifecycle incomplete')
 
 HEALTH_TEMPLATE = ('{{range .items}}{{if or (eq .metadata.namespace "kube-system") (eq .metadata.namespace "kubeflow")}}'
-    '{{$uid := .metadata.uid}}{{range .status.containerStatuses}}'
+    '{{$pod := .}}{{$uid := .metadata.uid}}{{range .status.containerStatuses}}'
     '{"key":{{printf "%q" (printf "%s/%s" $uid .name)}},'
+    '"pod_phase":{{printf "%q" $pod.status.phase}},"controllers":['
+    '{{$sep := ""}}{{range $pod.metadata.ownerReferences}}{{if .controller}}{{$sep}}'
+    '{"api_version":{{printf "%q" .apiVersion}},"kind":{{printf "%q" .kind}},"uid":{{printf "%q" .uid}}}{{$sep = ","}}{{end}}{{end}}],'
+    '"state":{{if .state.running}}"running"{{else if .state.terminated}}"terminated"{{else}}"other"{{end}},'
+    '"exit_code":{{if .state.terminated}}{{.state.terminated.exitCode}}{{else}}null{{end}},'
+    '"termination_reason":{{if .state.terminated}}{{printf "%q" .state.terminated.reason}}{{else}}null{{end}},'
     '"restart_count":{{.restartCount}},"ready":{{.ready}},"reason":'
     '{{if .lastState.terminated}}{{printf "%q" .lastState.terminated.reason}}{{else}}null{{end}}}'
     '{{"\\n"}}{{end}}{{end}}{{end}}')

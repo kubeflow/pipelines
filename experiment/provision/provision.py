@@ -24,6 +24,25 @@ FIXTURES = ('flip_coin', 'collected_parameters', 'if_else_with_oneof_artifacts')
 
 
 
+def audit_configuration(state,cluster):
+    audit_policy=state/'audit-policy.json'
+    groups=['system:serviceaccounts:kubeflow']+['system:serviceaccounts:'+cluster+'-'+suffix for suffix in ('noisy','quiet1','quiet2','quiet3')]
+    policy={'apiVersion':'audit.k8s.io/v1','kind':'Policy','omitStages':['RequestReceived'],
+                       'rules':[{'level':'Metadata','userGroups':groups},{'level':'None'}]}
+    patch={'kind':'ClusterConfiguration','apiServer':{'extraArgs':[
+        {'name':'max-requests-inflight','value':'10'},{'name':'max-mutating-requests-inflight','value':'10'},
+        {'name':'audit-policy-file','value':'/etc/kubernetes/apf-audit-policy.json'},
+        {'name':'audit-log-path','value':'/var/log/kubernetes/audit.log'},
+        {'name':'audit-log-maxsize','value':'16'},{'name':'audit-log-maxbackup','value':'4'},
+        {'name':'logging-format','value':'json'},{'name':'v','value':'3'}],
+        'extraVolumes':[{'name':'apf-audit-policy','hostPath':'/etc/kubernetes/apf-audit-policy.json','mountPath':'/etc/kubernetes/apf-audit-policy.json','readOnly':True,'pathType':'File'},
+                        {'name':'apf-audit-log','hostPath':'/var/log/kubernetes','mountPath':'/var/log/kubernetes','readOnly':False,'pathType':'DirectoryOrCreate'}]}}
+    config={'kind':'Cluster','apiVersion':'kind.x-k8s.io/v1alpha4','nodes':[{'role':'control-plane',
+        'extraMounts':[{'hostPath':str(audit_policy.resolve()),'containerPath':'/etc/kubernetes/apf-audit-policy.json','readOnly':True}],
+        'kubeadmConfigPatches':[json.dumps(patch)]}]}
+    return policy,config
+
+
 class CommandFailure(RuntimeError):
     """Only allowlisted command/error categories, never child output."""
     def __init__(self, args, status, stderr=b''):
@@ -199,10 +218,12 @@ class Provision:
         call(['tar', '-xf', str(archive), '-C', str(self.snapshot)])
         archive.unlink()
         # Separate constrained scenario only: preserve all bootstrap APF policies.
-        if self.c.get('scenario_id')!='constrained-stock-apf-bulk-list-v2':
+        if self.c.get('scenario_id')!='constrained-fixed-four-seat-bulk-list-v3':
             raise RuntimeError('explicit constrained scenario identity required')
         kind_config=self.d/'kind-config.json'
-        save(kind_config, {'kind':'Cluster','apiVersion':'kind.x-k8s.io/v1alpha4','nodes':[{'role':'control-plane','kubeadmConfigPatches':['kind: ClusterConfiguration\napiServer:\n  extraArgs:\n    - name: max-requests-inflight\n      value: "10"\n    - name: max-mutating-requests-inflight\n      value: "10"\n']}]})
+        policy,config=audit_configuration(self.d,self.c['cluster'])
+        save(self.d/'audit-policy.json',policy)
+        save(kind_config,config)
         call(['kind', 'create', 'cluster', '--name', self.c['cluster'], '--image', self.c['node_image'],
               '--config',str(kind_config),'--kubeconfig', str(self.kubeconfig), '--wait', '180s'], timeout=300)
         uid = self.k('get', 'namespace', 'kube-system', '-o', 'jsonpath={.metadata.uid}').decode()
