@@ -365,6 +365,92 @@ describe('RecurringRunDetails', () => {
     expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
   });
 
+  it('keeps a rejected disable enabled and displays actionable feedback after bounded retries', async () => {
+    await renderRecurringRunDetails();
+    getJobSpy.mockClear();
+    vi.useFakeTimers();
+    disableRecurringRunSpy.mockImplementation(async () => {
+      throw new Response(
+        JSON.stringify({
+          code: 14,
+          details: [
+            {
+              '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+              domain: 'kubeflow.org',
+              reason: 'SCHEDULE_HANDOFF_IN_PROGRESS',
+            },
+          ],
+        }),
+        { status: 503 },
+      );
+    });
+    try {
+      const disableBtn =
+        getInstance().getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
+      await act(async () => {
+        const pending = disableBtn!.action();
+        await vi.advanceTimersByTimeAsync(15000);
+        await pending;
+      });
+      expect(disableRecurringRunSpy).toHaveBeenCalledTimes(5);
+      expect(getJobSpy).not.toHaveBeenCalled();
+      expect(fullTestJob.enabled).toBe(true);
+      expect(updateDialogSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          title: 'Failed to disable recurring run',
+          content: expect.stringContaining('an enabled schedule remains enabled and may still run'),
+        }),
+      );
+      expect(
+        updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.DISABLE_RECURRING_RUN].busy,
+      ).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('refreshes only after an explicitly rejected enable succeeds on retry', async () => {
+    fullTestJob.enabled = false;
+    await renderRecurringRunDetails();
+    getJobSpy.mockClear();
+    vi.useFakeTimers();
+    enableRecurringRunSpy.mockRejectedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: 14,
+          details: [
+            {
+              '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+              domain: 'kubeflow.org',
+              reason: 'SCHEDULE_HANDOFF_IN_PROGRESS',
+            },
+          ],
+        }),
+        { status: 503 },
+      ),
+    );
+    try {
+      const enableBtn =
+        getInstance().getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
+      await act(async () => {
+        const pending = enableBtn!.action();
+        await vi.advanceTimersByTimeAsync(999);
+        expect(getJobSpy).not.toHaveBeenCalled();
+        expect(fullTestJob.enabled).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        await pending;
+      });
+      expect(enableRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getJobSpy).toHaveBeenCalledTimes(1);
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+      expect(
+        updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.ENABLE_RECURRING_RUN].busy,
+      ).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows a delete button', async () => {
     await renderRecurringRunDetails();
     const deleteBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];

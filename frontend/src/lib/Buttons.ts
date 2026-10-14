@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { retryScheduleHandoff } from 'src/lib/ScheduleHandoff';
 import AddIcon from '@mui/icons-material/Add';
 import CollapseIcon from '@mui/icons-material/UnfoldLess';
 import ExpandIcon from '@mui/icons-material/UnfoldMore';
@@ -740,9 +741,11 @@ export default class Buttons {
       toolbarActions[buttonKey].busy = true;
       this._props.updateToolbar({ actions: toolbarActions });
       try {
-        await (enabled
-          ? Apis.recurringRunServiceApi.enableRecurringRun(id)
-          : Apis.recurringRunServiceApi.disableRecurringRun(id));
+        await retryScheduleHandoff(enabled ? 'enable' : 'disable', () =>
+          enabled
+            ? Apis.recurringRunServiceApi.enableRecurringRun(id)
+            : Apis.recurringRunServiceApi.disableRecurringRun(id),
+        );
         this._refresh();
       } catch (err) {
         const errorMessage = await errorToMessage(err);
