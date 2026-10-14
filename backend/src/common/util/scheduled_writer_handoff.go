@@ -15,6 +15,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"reflect"
+	"sort"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -22,8 +27,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 )
@@ -33,18 +40,105 @@ const scheduleWriterProtocol = "api-owned-v1"
 
 var scheduleWriterDeployments = []string{"ml-pipeline", "ml-pipeline-scheduledworkflow"}
 
+// KFP_SCHEDULE_WRITERS is trusted deployment configuration, shared by every
+// API/controller process. It must include all writers sharing this installation.
+const scheduleWritersEnv = "KFP_SCHEDULE_WRITERS"
+
+type scheduleWriterIdentity struct {
+	Role       string `json:"role"`
+	Deployment string `json:"deployment"`
+	App        string `json:"app"`
+	Container  string `json:"container"`
+}
+
+type scheduleWriterConfiguration []scheduleWriterIdentity
+
+func defaultScheduleWriters() scheduleWriterConfiguration {
+	return scheduleWriterConfiguration{
+		{Role: "api", Deployment: "ml-pipeline", App: "ml-pipeline", Container: "ml-pipeline-api-server"},
+		{Role: "controller", Deployment: "ml-pipeline-scheduledworkflow", App: "ml-pipeline-scheduledworkflow", Container: "ml-pipeline-scheduledworkflow"},
+	}
+}
+
+func configuredScheduleWriters() (scheduleWriterConfiguration, error) {
+	raw := os.Getenv(scheduleWritersEnv)
+	if raw == "" {
+		return defaultScheduleWriters(), nil
+	}
+	var config scheduleWriterConfiguration
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&config); err != nil {
+		return nil, apierrors.NewBadRequest(scheduleWritersEnv + ": supply a JSON array of role, deployment, app, and container identities: " + err.Error())
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return nil, apierrors.NewBadRequest(scheduleWritersEnv + ": supply exactly one JSON array")
+	}
+	roles, deployments, apps := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	for _, writer := range config {
+		if writer.Role != "api" && writer.Role != "controller" {
+			return nil, apierrors.NewBadRequest(scheduleWritersEnv + ": each role must be api or controller")
+		}
+		if len(validation.IsDNS1123Subdomain(writer.Deployment)) != 0 || writer.App == "" || len(validation.IsValidLabelValue(writer.App)) != 0 || len(validation.IsDNS1123Label(writer.Container)) != 0 {
+			return nil, apierrors.NewBadRequest(scheduleWritersEnv + ": deployment, app, and container must be nonempty valid Kubernetes names/label values")
+		}
+		if deployments[writer.Deployment] || apps[writer.App] {
+			return nil, apierrors.NewBadRequest(scheduleWritersEnv + ": deployment names and app labels must each be unique")
+		}
+		roles[writer.Role], deployments[writer.Deployment], apps[writer.App] = true, true, true
+	}
+	if !roles["api"] || !roles["controller"] {
+		return nil, apierrors.NewBadRequest(scheduleWritersEnv + ": include both api and controller writers; empty or partial writer sets are unsafe")
+	}
+	sort.Slice(config, func(i, j int) bool { return config[i].Deployment < config[j].Deployment })
+	return config, nil
+}
+
+func (config scheduleWriterConfiguration) identity(pod *corev1.Pod) (scheduleWriterIdentity, error) {
+	for _, writer := range config {
+		if pod.Labels["app"] == writer.App {
+			return writer, nil
+		}
+	}
+	return scheduleWriterIdentity{}, apierrors.NewBadRequest("schedule writer Pod has no configured app label; configure " + scheduleWritersEnv + " consistently on every writer")
+}
+
+// Custom peers must belong to their configured Deployment, not merely copy its
+// label. The intermediate ReplicaSet and both ownership UIDs must match.
+func verifyCustomScheduleWriterOwner(ctx context.Context, client kubernetes.Interface, namespace string, pod *corev1.Pod, deployment *appsv1.Deployment) error {
+	selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+	if err != nil || deployment.Spec.Selector == nil || selector.Empty() || !selector.Matches(labels.Set(pod.Labels)) {
+		return fmt.Errorf("schedule writer Pod %s does not match configured Deployment %s selector", pod.Name, deployment.Name)
+	}
+	owner := metav1.GetControllerOf(pod)
+	if owner == nil || owner.APIVersion != "apps/v1" || owner.Kind != "ReplicaSet" || owner.UID == "" {
+		return fmt.Errorf("schedule writer Pod %s must be controlled by its configured Deployment ReplicaSet", pod.Name)
+	}
+	replicaSet, err := client.AppsV1().ReplicaSets(namespace).Get(ctx, owner.Name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("get writer ReplicaSet %s; grant the writer get on apps/replicasets: %w", owner.Name, err)
+	}
+	parent := metav1.GetControllerOf(replicaSet)
+	if replicaSet.UID != owner.UID || parent == nil || parent.APIVersion != "apps/v1" || parent.Kind != "Deployment" || parent.UID == "" || parent.UID != deployment.UID || parent.Name != deployment.Name {
+		return fmt.Errorf("schedule writer Pod %s is not owned by configured Deployment %s", pod.Name, deployment.Name)
+	}
+	return nil
+}
+
 // scheduleWriterClaim binds registration to the currently running container.
 // An in-place Pod image change or a restarted container cannot inherit its
 // predecessor's registration, even though the Pod UID stays the same.
 func scheduleWriterClaim(pod *corev1.Pod) (string, error) {
-	containerName := pod.Labels["app"]
-	switch containerName {
-	case "ml-pipeline":
-		containerName = "ml-pipeline-api-server"
-	case "ml-pipeline-scheduledworkflow":
-	default:
-		return "", fmt.Errorf("pod is not a managed schedule writer")
+	config, err := configuredScheduleWriters()
+	if err != nil {
+		return "", err
 	}
+	writer, err := config.identity(pod)
+	if err != nil {
+		return "", err
+	}
+	containerName := writer.Container
 	if pod.UID == "" || pod.DeletionTimestamp != nil || pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
 		return "", fmt.Errorf("schedule writer Pod is not live")
 	}
@@ -63,7 +157,11 @@ func scheduleWriterClaim(pod *corev1.Pod) (string, error) {
 		if image == "" || status.ImageID == "" || status.ContainerID == "" || status.State.Running == nil {
 			return "", fmt.Errorf("schedule writer container is not running with an identified image and container")
 		}
-		identity, err := json.Marshal([]interface{}{scheduleWriterProtocol, string(pod.UID), image, status.ImageID, status.ContainerID, status.RestartCount})
+		claimParts := []interface{}{scheduleWriterProtocol, string(pod.UID), image, status.ImageID, status.ContainerID, status.RestartCount}
+		if !reflect.DeepEqual(config, defaultScheduleWriters()) {
+			claimParts = append(claimParts, config)
+		}
+		identity, err := json.Marshal(claimParts)
 		if err != nil {
 			return "", err
 		}
@@ -83,20 +181,21 @@ func RegisterManagedScheduleWriter(ctx context.Context, client kubernetes.Interf
 	if err != nil {
 		return fmt.Errorf("get schedule writer Pod: %w", err)
 	}
-	containerName := pod.Labels["app"]
-	switch containerName {
-	case "ml-pipeline":
-		containerName = "ml-pipeline-api-server"
-	case "ml-pipeline-scheduledworkflow":
-	default:
-		return apierrors.NewBadRequest("schedule writer Pod has no managed app label; apply the standard API/controller Deployment")
+	config, err := configuredScheduleWriters()
+	if err != nil {
+		return err
 	}
+	writer, err := config.identity(pod)
+	if err != nil {
+		return err
+	}
+	containerName := writer.Container
 	found := false
 	for _, container := range pod.Spec.Containers {
 		found = found || container.Name == containerName
 	}
 	if !found {
-		return apierrors.NewBadRequest("schedule writer Pod has no managed container; apply the standard API/controller Deployment")
+		return apierrors.NewBadRequest("schedule writer Pod has no configured container; correct KFP_SCHEDULE_WRITERS on every writer")
 	}
 	if pod.UID == "" || pod.ResourceVersion == "" || pod.DeletionTimestamp != nil {
 		return fmt.Errorf("schedule writer Pod is not a live identified Pod")
@@ -143,8 +242,15 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 	if namespace == "" {
 		return fmt.Errorf("managed schedule writer namespace is required")
 	}
-	deployments := make(map[string]*appsv1.Deployment, len(scheduleWriterDeployments))
-	for _, name := range scheduleWriterDeployments {
+	config, err := configuredScheduleWriters()
+	if err != nil {
+		return err
+	}
+	deployments := make(map[string]*appsv1.Deployment, len(config))
+	apps := make([]string, 0, len(config))
+	for _, writer := range config {
+		name := writer.Deployment
+		apps = append(apps, writer.App)
 		deployment, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			// Peer Deployments may be created after this Pod during installation.
@@ -164,7 +270,7 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 		}
 		deployments[name] = deployment
 	}
-	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "app in (ml-pipeline,ml-pipeline-scheduledworkflow)"})
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "app in (" + strings.Join(apps, ",") + ")"})
 	if err != nil {
 		return fmt.Errorf("list managed writer Pods: %w", err)
 	}
@@ -173,6 +279,15 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 		// Completed Pods cannot write and may remain until cluster garbage collection.
 		if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
 			continue
+		}
+		writer, err := config.identity(&pod)
+		if err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(config, defaultScheduleWriters()) {
+			if err := verifyCustomScheduleWriterOwner(ctx, client, namespace, &pod, deployments[writer.Deployment]); err != nil {
+				return err
+			}
 		}
 		ready := false
 		for _, condition := range pod.Status.Conditions {
@@ -185,11 +300,12 @@ func ManagedScheduleWritersReady(ctx context.Context, client kubernetes.Interfac
 		}
 		claim, err := scheduleWriterClaim(&pod)
 		if err != nil || pod.Annotations[scheduleWriterAnnotation] != claim {
-			return fmt.Errorf("managed writer Pod %s is incompatible or terminating; wait for its replacement and verify both managed writer Deployments use compatible images", pod.Name)
+			return fmt.Errorf("managed writer Pod %s is incompatible or terminating; wait for its replacement and verify all configured writer Deployments use compatible images and identical KFP_SCHEDULE_WRITERS", pod.Name)
 		}
-		counts[pod.Labels["app"]]++
+		counts[writer.Deployment]++
 	}
-	for _, name := range scheduleWriterDeployments {
+	for _, writer := range config {
+		name := writer.Deployment
 		previous := deployments[name]
 		current, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {

@@ -234,6 +234,46 @@ explicit plan covering every writer and the managed handoff configuration.
 Do not restore old writable APIs or controllers after adoption. The offline
 command below is available for controlled recovery, not ordinary startup.
 
+### Renamed managed Deployments
+
+Custom installations can set `KFP_SCHEDULE_WRITERS` to the same JSON array on
+**every API and ScheduledWorkflow controller process**. The default is the two
+standard writer Deployments; ordinary installations need no setting. For example:
+
+```yaml
+env:
+- name: KFP_SCHEDULE_WRITERS
+  value: >-
+    [{"role":"api","deployment":"custom-api","app":"custom-api","container":"api-server"},
+     {"role":"controller","deployment":"custom-scheduler","app":"custom-scheduler","container":"scheduler"}]
+```
+
+Each entry names a Deployment, its writer Pods' `app` label, and the writer
+container. Both `api` and `controller` roles are required. Deployment names and
+`app` labels must be unique; empty, malformed, or partial configurations fail
+closed. All resources must be in the installation namespace. Preserve the
+Downward API `POD_NAME` and `POD_NAMESPACE` fields and existing handoff permissions.
+For custom identities, also grant the API and controller `get` on `replicasets`
+in API group `apps` in that namespace. The handoff verifies the Pod's controller
+ReplicaSet and the ReplicaSet's Deployment owner UID, as well as the Deployment
+selector, rollout counts, Pod readiness, and running-container registration.
+
+The array must cover **every old and new writer**. If renaming during upgrade,
+keep an entry for each retiring Deployment and its old `app` label until its
+replicas are zero and all its writer Pods have terminated. Do not delete the
+retiring Deployment while it remains configured. Use additional entries with the
+same role for retiring Deployments. Apply the same complete configuration to all
+new processes before beginning handoff; do not change this inventory during
+handoff. A mismatched inventory cannot validate another process's registration.
+After all writers have completed handoff, removing retired entries requires a
+coordinated configuration rollout. Never reintroduce legacy writers afterwards.
+
+Configuration is trusted operator input, not tenant schedule data. It does not
+discover unlisted deployments, separate installations, or external processes
+sharing the database. Those writers still need explicit coordination. Custom
+controller readiness must not wait for the post-handoff HTTP listener. Renaming
+alone does not remove these constraints.
+
 ### Offline recovery (advanced)
 
 Only use `--adopt-legacy-recurring-runs` for a coordinated recovery that requires
