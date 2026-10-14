@@ -243,14 +243,14 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 	}
 }
 
-// TestFinalizeExecutionStripsDebugPauseProperties reproduces the stale-barrier
+// TestFinalizeExecutionClearsDebugPauseProperties reproduces the stale-barrier
 // bug: the launcher's in-memory task can still carry debug-pause custom
 // properties (published at a barrier whose best-effort ClearBarrier was lost
 // or overwritten), and the final batched update replaces StatusMetadata
-// wholesale - resurrecting the keys on a finished task. finalizeExecution
-// strips them from the final write, while leaving unrelated custom
-// properties intact.
-func TestFinalizeExecutionStripsDebugPauseProperties(t *testing.T) {
+// wholesale. finalizeExecution writes the keys in their cleared state on the
+// final update, while leaving unrelated custom properties intact.
+func TestFinalizeExecutionClearsDebugPauseProperties(t *testing.T) {
+	t.Setenv(envKFPDebugPauseBefore, "true")
 	baseAPI := kfpapi.NewMockAPI()
 	run := &apiv2beta1.Run{
 		RunId: "run",
@@ -296,9 +296,74 @@ func TestFinalizeExecutionStripsDebugPauseProperties(t *testing.T) {
 	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[task.GetTaskId()]
 	require.NotNil(t, flushedTask)
 	props := flushedTask.GetStatusMetadata().GetCustomProperties()
-	assert.NotContains(t, props, customPropDebugPauseBarrier, "finished task must not retain a pause barrier")
-	assert.NotContains(t, props, customPropDebugPauseResumeRequested, "finished task must not retain the resume flag")
-	assert.Equal(t, "keep-me", props["unrelated_property"].GetStringValue(), "unrelated custom properties must survive the strip")
+	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
+		"finished task's barrier must be explicitly cleared")
+	assert.Equal(t, "false", props[customPropDebugPauseResumeRequested].GetStringValue(),
+		"finished task's resume flag must be explicitly cleared")
+	assert.Equal(t, "keep-me", props["unrelated_property"].GetStringValue(), "unrelated custom properties must survive the clear")
+}
+
+// TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata covers the
+// hole in a purely in-memory strip: when the launcher's task snapshot has nil
+// StatusMetadata, deleting keys is a no-op and the final write's nil metadata
+// means "leave unchanged" to the task store - so a stale barrier persisted by
+// the API (e.g. via a lost ClearBarrier) would survive on a finished task.
+// The final update must carry the pause keys explicitly cleared instead.
+func TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata(t *testing.T) {
+	t.Setenv(envKFPDebugPauseBefore, "true")
+	baseAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{
+		RunId: "run",
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	baseAPI.AddRun(run)
+	// The persisted record already carries a stale barrier; the launcher's
+	// in-memory task has no StatusMetadata at all.
+	task := &apiv2beta1.PipelineTask{
+		TaskId: "task",
+		RunId:  run.GetRunId(),
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				customPropDebugPauseBarrier:         structpb.NewStringValue("before"),
+				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+			},
+		},
+	}
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task:  task,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	inMemoryTask := &apiv2beta1.PipelineTask{
+		TaskId: task.GetTaskId(),
+		RunId:  run.GetRunId(),
+		// StatusMetadata deliberately nil: the in-memory snapshot never saw
+		// the barrier state the record holds.
+	}
+	capturingAPI := &captureBulkUpdateAPI{API: baseAPI}
+	launcher := &LauncherV2{
+		options: LauncherV2Options{
+			Run:  run,
+			Task: inMemoryTask,
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), capturingAPI),
+		pipelineSpec:  &structpb.Struct{},
+		batchUpdater:  NewBatchUpdater(),
+	}
+
+	_ = launcher.finalizeExecution(context.Background(), nil)
+
+	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
+	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[inMemoryTask.GetTaskId()]
+	require.NotNil(t, flushedTask)
+	props := flushedTask.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
+		"nil in-memory metadata must still write an explicitly cleared barrier")
+	assert.Equal(t, "false", props[customPropDebugPauseResumeRequested].GetStringValue(),
+		"nil in-memory metadata must still write an explicitly cleared resume flag")
 }
 
 func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {

@@ -16,6 +16,7 @@ package component
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strconv"
 	"time"
@@ -259,8 +260,22 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 		return nil
 	}
 
-	if err := signaler.PublishBarrier(ctx, barrier); err != nil {
-		glog.Warningf("debug pause: failed to publish barrier %q, parking anyway: %v", barrier, err)
+	// Bound the entire parked wait - including in-flight publish and poll
+	// RPCs - by the safety-valve duration. A between-polls deadline check
+	// alone cannot fire while an RPC is stalled, so a hung call on the
+	// caller's context could otherwise keep the pod alive indefinitely.
+	waitCtx, waitCancel := context.WithTimeout(ctx, cfg.MaxDuration)
+	defer waitCancel()
+
+	// Publishing the barrier is what makes the pause visible and resumable,
+	// and it resets any stale resume flag - so a failed publish is retried
+	// on every poll tick, and resume signals are not honored until the
+	// barrier has actually been published.
+	published := false
+	if err := signaler.PublishBarrier(waitCtx, barrier); err != nil {
+		glog.Warningf("debug pause: failed to publish barrier %q, parking anyway and retrying: %v", barrier, err)
+	} else {
+		published = true
 	}
 
 	defer func() {
@@ -277,7 +292,6 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 
 	glog.Infof("debug pause: parked at barrier %q, polling every %s (max wait %s)", barrier, cfg.PollInterval, cfg.MaxDuration)
 
-	deadline := time.Now().Add(cfg.MaxDuration)
 	consecutivePollErrors := 0
 
 	ticker := time.NewTicker(cfg.PollInterval)
@@ -285,16 +299,25 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 
 	for {
 		select {
-		case <-ctx.Done():
-			glog.Warningf("debug pause: context canceled while parked at barrier %q: %v", barrier, ctx.Err())
-			return ctx.Err()
-
-		case <-ticker.C:
-			if time.Now().After(deadline) {
+		case <-waitCtx.Done():
+			if errors.Is(waitCtx.Err(), context.DeadlineExceeded) {
 				return newDebugPauseTimeoutError(barrier, cfg.MaxDuration)
 			}
+			glog.Warningf("debug pause: context canceled while parked at barrier %q: %v", barrier, waitCtx.Err())
+			return waitCtx.Err()
 
-			resumed, err := signaler.IsResumeRequested(ctx)
+		case <-ticker.C:
+			if !published {
+				if err := signaler.PublishBarrier(waitCtx, barrier); err != nil {
+					consecutivePollErrors++
+					logDebugPausePollError(barrier, consecutivePollErrors, err)
+					continue
+				}
+				published = true
+				glog.Infof("debug pause: barrier %q published after retry", barrier)
+			}
+
+			resumed, err := signaler.IsResumeRequested(waitCtx)
 			if err != nil {
 				consecutivePollErrors++
 				logDebugPausePollError(barrier, consecutivePollErrors, err)
@@ -364,16 +387,24 @@ func BarrierForError(cfg DebugPauseConfig, commandFailed bool) DebugPauseBarrier
 	return debugPauseBarrierNone
 }
 
-// stripDebugPauseProperties removes the debug-pause overlay keys from a
-// task's StatusMetadata custom properties. The launcher calls this on its
+// clearDebugPauseProperties returns a StatusMetadata with the debug-pause
+// overlay keys explicitly cleared (barrier "none", resume "false"),
+// preserving any other custom properties. The launcher applies this to its
 // in-memory task before the final status write (finalizeExecution): that
-// write replaces StatusMetadata wholesale, so whatever the in-memory copy
-// holds - including stale keys published before a best-effort ClearBarrier
-// that may have been lost or overwritten since - lands on the record.
-// Stripping here makes it impossible for pause markers to outlive the task.
-// Unrelated custom properties are preserved.
-func stripDebugPauseProperties(metadata *apiV2beta1.PipelineTask_StatusMetadata) {
+// write replaces StatusMetadata wholesale and a nil metadata means "leave
+// unchanged" to the task store - so the keys must be written cleared, not
+// merely deleted, or a stale barrier published before a lost best-effort
+// ClearBarrier would persist on a finished task.
+func clearDebugPauseProperties(metadata *apiV2beta1.PipelineTask_StatusMetadata) *apiV2beta1.PipelineTask_StatusMetadata {
+	if metadata == nil {
+		metadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+	}
 	props := metadata.GetCustomProperties()
-	delete(props, customPropDebugPauseBarrier)
-	delete(props, customPropDebugPauseResumeRequested)
+	if props == nil {
+		props = map[string]*structpb.Value{}
+	}
+	props[customPropDebugPauseBarrier] = structpb.NewStringValue(string(debugPauseBarrierNone))
+	props[customPropDebugPauseResumeRequested] = structpb.NewStringValue("false")
+	metadata.CustomProperties = props
+	return metadata
 }
