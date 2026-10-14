@@ -216,8 +216,7 @@ def get_inputs_for_all_groups(
             # arguments.
             is_pipeline_channel = isinstance(channel,
                                              pipeline_channel.PipelineChannel)
-            if is_pipeline_channel and getattr(channel, 'task_name',
-                                               None) is None:
+            if is_pipeline_channel:
                 for loop_group in name_to_for_loop_group.values():
                     loop_arg = loop_group.loop_argument
                     if loop_arg.full_name == channel.full_name:
@@ -348,8 +347,10 @@ def get_inputs_for_all_groups(
                             #   channel.name = 'loop-item-param-1-subvar-a'
                             loop_group = name_to_for_loop_group[group_name]
 
-                            if channels_to_add[
-                                    0].full_name in loop_group.loop_argument.full_name:
+                            if (channels_to_add[0].full_name
+                                    in loop_group.loop_argument.full_name or
+                                    loop_group.loop_argument.full_name
+                                    in channels_to_add[0].full_name):
                                 channels_to_add.popleft()
                                 if not channels_to_add:
                                     break

@@ -2475,6 +2475,398 @@ class TestTopologyValidation(unittest.TestCase):
             "Item: {{$.inputs.parameters['pipelinechannel--items-loop-item']}}",
         )
 
+    def test_parallelfor_with_string_interpolation_task_produced_in_exithandler(
+            self):
+
+        @dsl.component
+        def list_maker() -> List[str]:
+            return ['a', 'b']
+
+        @dsl.component
+        def exit_comp():
+            print('Running exit task!')
+
+        @dsl.pipeline
+        def my_pipeline():
+            producer = list_maker()
+            with dsl.ExitHandler(exit_comp()):
+                with dsl.ParallelFor(producer.output) as item:
+                    print_and_return(text=f'Item: {item}')
+
+        # 1. Root ExitHandler task passes producer.output parameter from upstream list_maker task
+        exit_handler_task_inputs = (
+            my_pipeline.pipeline_spec.root.dag.tasks['exit-handler-1'].inputs
+            .parameters)
+        self.assertIn('pipelinechannel--list-maker-Output',
+                      exit_handler_task_inputs)
+        self.assertEqual(
+            exit_handler_task_inputs['pipelinechannel--list-maker-Output']
+            .task_output_parameter.producer_task,
+            'list-maker',
+        )
+        self.assertEqual(
+            exit_handler_task_inputs['pipelinechannel--list-maker-Output']
+            .task_output_parameter.output_parameter_key,
+            'Output',
+        )
+        # Ensure it does not request nonexistent loop item from producer
+        self.assertNotIn('pipelinechannel--list-maker-Output-loop-item',
+                         exit_handler_task_inputs)
+
+        # 2. ExitHandler component declares items list without leaking loop-item
+        exit_handler_inputs = (
+            my_pipeline.pipeline_spec.components['comp-exit-handler-1']
+            .input_definitions.parameters)
+        self.assertIn('pipelinechannel--list-maker-Output', exit_handler_inputs)
+        self.assertEqual(
+            exit_handler_inputs['pipelinechannel--list-maker-Output']
+            .parameter_type,
+            type_utils.LIST,
+        )
+        self.assertNotIn('pipelinechannel--list-maker-Output-loop-item',
+                         exit_handler_inputs)
+
+        # 3. ParallelFor loop inside ExitHandler reads declared list input
+        for_loop_task = (
+            my_pipeline.pipeline_spec.components['comp-exit-handler-1'].dag
+            .tasks['for-loop-2'])
+        self.assertEqual(
+            for_loop_task.inputs.parameters[
+                'pipelinechannel--list-maker-Output'].component_input_parameter,
+            'pipelinechannel--list-maker-Output',
+        )
+        self.assertEqual(
+            for_loop_task.parameter_iterator.items.input_parameter,
+            'pipelinechannel--list-maker-Output',
+        )
+        self.assertEqual(
+            for_loop_task.parameter_iterator.item_input,
+            'pipelinechannel--list-maker-Output-loop-item',
+        )
+
+        # 4. Consumer task inside loop resolves injected input parameter to loop-item parameter
+        consumer_task = (
+            my_pipeline.pipeline_spec.components['comp-for-loop-2'].dag
+            .tasks['print-and-return'])
+        self.assertEqual(
+            consumer_task.inputs
+            .parameters['pipelinechannel--list-maker-Output-loop-item']
+            .component_input_parameter,
+            'pipelinechannel--list-maker-Output-loop-item',
+        )
+        self.assertEqual(
+            consumer_task.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "Item: {{$.inputs.parameters['pipelinechannel--list-maker-Output-loop-item']}}",
+        )
+
+    def test_parallelfor_with_string_interpolation_dictionary_fields(self):
+        # 1. Literal list of dicts with multiple interpolated fields
+        @dsl.pipeline
+        def literal_dict_pipeline():
+            with dsl.ParallelFor([{'a': 'val1', 'b': 'val2'}]) as item:
+                print_and_return(text=f'{item.a} and {item.b}')
+
+        for_loop_comp = (
+            literal_dict_pipeline.pipeline_spec.components['comp-for-loop-2'])
+        # Loop component declares only the whole item, not undeclared subvariables
+        self.assertEqual(
+            list(for_loop_comp.input_definitions.parameters.keys()),
+            ['pipelinechannel--loop-item-param-1'],
+        )
+
+        consumer_task = for_loop_comp.dag.tasks['print-and-return']
+        # Consumer task receives selectors for both fields from the declared item
+        subvar_a_input = (
+            consumer_task.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-a'])
+        subvar_b_input = (
+            consumer_task.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-b'])
+        self.assertEqual(subvar_a_input.component_input_parameter,
+                         'pipelinechannel--loop-item-param-1')
+        self.assertEqual(subvar_a_input.parameter_expression_selector,
+                         'parseJson(string_value)["a"]')
+        self.assertEqual(subvar_b_input.component_input_parameter,
+                         'pipelinechannel--loop-item-param-1')
+        self.assertEqual(subvar_b_input.parameter_expression_selector,
+                         'parseJson(string_value)["b"]')
+        self.assertEqual(
+            consumer_task.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "{{$.inputs.parameters['pipelinechannel--loop-item-param-1-subvar-a']}} and {{$.inputs.parameters['pipelinechannel--loop-item-param-1-subvar-b']}}",
+        )
+
+        # 2. Pipeline input list of dicts inside ExitHandler
+        @dsl.component
+        def exit_comp():
+            print('Running exit task!')
+
+        @dsl.pipeline
+        def pipeline_input_dict_pipeline(items: List[Dict]):
+            with dsl.ExitHandler(exit_comp()):
+                with dsl.ParallelFor(items) as item:
+                    print_and_return(text=f'Field: {item.a}')
+
+        exit_handler_inputs = (
+            pipeline_input_dict_pipeline.pipeline_spec
+            .components['comp-exit-handler-1'].input_definitions.parameters)
+        self.assertIn('pipelinechannel--items', exit_handler_inputs)
+        self.assertNotIn('pipelinechannel--items-loop-item',
+                         exit_handler_inputs)
+        self.assertNotIn('pipelinechannel--items-loop-item-subvar-a',
+                         exit_handler_inputs)
+
+        loop_comp_2 = (
+            pipeline_input_dict_pipeline.pipeline_spec
+            .components['comp-for-loop-2'])
+        self.assertIn('pipelinechannel--items-loop-item',
+                      loop_comp_2.input_definitions.parameters)
+        self.assertNotIn('pipelinechannel--items-loop-item-subvar-a',
+                         loop_comp_2.input_definitions.parameters)
+
+        consumer_2 = loop_comp_2.dag.tasks['print-and-return']
+        subvar_input_2 = (
+            consumer_2.inputs
+            .parameters['pipelinechannel--items-loop-item-subvar-a'])
+        self.assertEqual(subvar_input_2.component_input_parameter,
+                         'pipelinechannel--items-loop-item')
+        self.assertEqual(subvar_input_2.parameter_expression_selector,
+                         'parseJson(string_value)["a"]')
+        self.assertEqual(
+            consumer_2.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "Field: {{$.inputs.parameters['pipelinechannel--items-loop-item-subvar-a']}}",
+        )
+
+        # 3. Task output list of dicts
+        @dsl.component
+        def list_dict_maker() -> List[Dict]:
+            return [{'a': 'x', 'b': 'y'}]
+
+        @dsl.pipeline
+        def task_output_dict_pipeline():
+            producer = list_dict_maker()
+            with dsl.ParallelFor(producer.output) as item:
+                print_and_return(text=f'{item.a}')
+
+        producer_outputs = (
+            task_output_dict_pipeline.pipeline_spec
+            .components['comp-list-dict-maker'].output_definitions.parameters)
+        # Real producer only outputs 'Output'
+        self.assertEqual(list(producer_outputs.keys()), ['Output'])
+
+        loop_comp_3 = (
+            task_output_dict_pipeline.pipeline_spec
+            .components['comp-for-loop-1'])
+        self.assertIn('pipelinechannel--list-dict-maker-Output-loop-item',
+                      loop_comp_3.input_definitions.parameters)
+        self.assertNotIn(
+            'pipelinechannel--list-dict-maker-Output-loop-item-subvar-a',
+            loop_comp_3.input_definitions.parameters)
+
+        consumer_3 = loop_comp_3.dag.tasks['print-and-return']
+        subvar_input_3 = (
+            consumer_3.inputs.parameters[
+                'pipelinechannel--list-dict-maker-Output-loop-item-subvar-a'])
+        self.assertEqual(subvar_input_3.component_input_parameter,
+                         'pipelinechannel--list-dict-maker-Output-loop-item')
+        self.assertEqual(subvar_input_3.parameter_expression_selector,
+                         'parseJson(string_value)["a"]')
+
+        # 4. Enclosing Condition inside loop: scalar already exposed by ancestor
+        @dsl.pipeline
+        def if_inside_loop_pipeline(cond: bool = True):
+            with dsl.ParallelFor([{'a': 'val1', 'b': 'val2'}]) as item:
+                with dsl.If(cond == True):
+                    print_and_return(text=f'{item.a} and {item.b}')
+
+        loop_comp_4 = (
+            if_inside_loop_pipeline.pipeline_spec.components['comp-for-loop-2'])
+        # Loop component declares only the whole item and condition param
+        self.assertEqual(
+            set(loop_comp_4.input_definitions.parameters.keys()),
+            {'pipelinechannel--loop-item-param-1', 'pipelinechannel--cond'},
+        )
+
+        # Condition task in loop DAG selects the fields from loop-item
+        cond_task_4 = loop_comp_4.dag.tasks['condition-3']
+        subvar_a_cond_input = (
+            cond_task_4.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-a'])
+        subvar_b_cond_input = (
+            cond_task_4.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-b'])
+        self.assertEqual(subvar_a_cond_input.component_input_parameter,
+                         'pipelinechannel--loop-item-param-1')
+        self.assertEqual(subvar_a_cond_input.parameter_expression_selector,
+                         'parseJson(string_value)["a"]')
+        self.assertEqual(subvar_b_cond_input.component_input_parameter,
+                         'pipelinechannel--loop-item-param-1')
+        self.assertEqual(subvar_b_cond_input.parameter_expression_selector,
+                         'parseJson(string_value)["b"]')
+
+        # Condition component declares the exposed scalar subvars
+        cond_comp_4 = (
+            if_inside_loop_pipeline.pipeline_spec.components['comp-condition-3']
+        )
+        self.assertIn('pipelinechannel--loop-item-param-1-subvar-a',
+                      cond_comp_4.input_definitions.parameters)
+        self.assertIn('pipelinechannel--loop-item-param-1-subvar-b',
+                      cond_comp_4.input_definitions.parameters)
+
+        # Consumer task inside condition consumes exposed scalar directly without re-applying selector
+        consumer_4 = cond_comp_4.dag.tasks['print-and-return']
+        self.assertEqual(
+            consumer_4.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-a']
+            .component_input_parameter,
+            'pipelinechannel--loop-item-param-1-subvar-a',
+        )
+        self.assertEqual(
+            consumer_4.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-a']
+            .parameter_expression_selector,
+            '',
+        )
+        self.assertEqual(
+            consumer_4.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-b']
+            .component_input_parameter,
+            'pipelinechannel--loop-item-param-1-subvar-b',
+        )
+        self.assertEqual(
+            consumer_4.inputs
+            .parameters['pipelinechannel--loop-item-param-1-subvar-b']
+            .parameter_expression_selector,
+            '',
+        )
+        self.assertEqual(
+            consumer_4.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "{{$.inputs.parameters['pipelinechannel--loop-item-param-1-subvar-a']}} and {{$.inputs.parameters['pipelinechannel--loop-item-param-1-subvar-b']}}",
+        )
+
+        # 5. Task output list of dicts inside Condition
+        @dsl.pipeline
+        def task_output_dict_inside_condition_pipeline(cond: bool = True):
+            producer = list_dict_maker()
+            with dsl.If(cond == True):
+                with dsl.ParallelFor(producer.output) as item:
+                    print_and_return(text=f'{item.a}')
+
+        cond_comp_5 = (
+            task_output_dict_inside_condition_pipeline.pipeline_spec
+            .components['comp-condition-1'])
+        self.assertIn('pipelinechannel--list-dict-maker-Output',
+                      cond_comp_5.input_definitions.parameters)
+        self.assertNotIn('pipelinechannel--list-dict-maker-Output-loop-item',
+                         cond_comp_5.input_definitions.parameters)
+        self.assertNotIn(
+            'pipelinechannel--list-dict-maker-Output-loop-item-subvar-a',
+            cond_comp_5.input_definitions.parameters)
+
+        loop_comp_5 = (
+            task_output_dict_inside_condition_pipeline.pipeline_spec
+            .components['comp-for-loop-2'])
+        self.assertIn('pipelinechannel--list-dict-maker-Output-loop-item',
+                      loop_comp_5.input_definitions.parameters)
+        self.assertNotIn(
+            'pipelinechannel--list-dict-maker-Output-loop-item-subvar-a',
+            loop_comp_5.input_definitions.parameters)
+
+        consumer_5 = loop_comp_5.dag.tasks['print-and-return']
+        subvar_input_5 = (
+            consumer_5.inputs.parameters[
+                'pipelinechannel--list-dict-maker-Output-loop-item-subvar-a'])
+        self.assertEqual(subvar_input_5.component_input_parameter,
+                         'pipelinechannel--list-dict-maker-Output-loop-item')
+        self.assertEqual(subvar_input_5.parameter_expression_selector,
+                         'parseJson(string_value)["a"]')
+        self.assertEqual(
+            consumer_5.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "{{$.inputs.parameters['pipelinechannel--list-dict-maker-Output-loop-item-subvar-a']}}",
+        )
+
+    def test_parallelfor_with_string_interpolation_task_produced_in_condition(
+            self):
+
+        @dsl.component
+        def list_maker() -> List[str]:
+            return ['a', 'b']
+
+        @dsl.pipeline
+        def my_pipeline(cond: bool = True):
+            producer = list_maker()
+            with dsl.If(cond == True):
+                with dsl.ParallelFor(producer.output) as item:
+                    print_and_return(text=f'Item: {item}')
+
+        # 1. Condition task passes producer output parameter from upstream list_maker task
+        cond_task_inputs = (
+            my_pipeline.pipeline_spec.root.dag.tasks['condition-1'].inputs
+            .parameters)
+        self.assertIn('pipelinechannel--list-maker-Output', cond_task_inputs)
+        self.assertEqual(
+            cond_task_inputs['pipelinechannel--list-maker-Output']
+            .task_output_parameter.producer_task,
+            'list-maker',
+        )
+        self.assertEqual(
+            cond_task_inputs['pipelinechannel--list-maker-Output']
+            .task_output_parameter.output_parameter_key,
+            'Output',
+        )
+        self.assertNotIn('pipelinechannel--list-maker-Output-loop-item',
+                         cond_task_inputs)
+
+        # 2. Condition component declares list input without leaking loop-item
+        cond_inputs = (
+            my_pipeline.pipeline_spec.components['comp-condition-1']
+            .input_definitions.parameters)
+        self.assertIn('pipelinechannel--list-maker-Output', cond_inputs)
+        self.assertEqual(
+            cond_inputs['pipelinechannel--list-maker-Output'].parameter_type,
+            type_utils.LIST,
+        )
+        self.assertNotIn('pipelinechannel--list-maker-Output-loop-item',
+                         cond_inputs)
+
+        # 3. ParallelFor loop inside Condition reads declared list input
+        for_loop_task = (
+            my_pipeline.pipeline_spec.components['comp-condition-1'].dag
+            .tasks['for-loop-2'])
+        self.assertEqual(
+            for_loop_task.inputs.parameters[
+                'pipelinechannel--list-maker-Output'].component_input_parameter,
+            'pipelinechannel--list-maker-Output',
+        )
+        self.assertEqual(
+            for_loop_task.parameter_iterator.items.input_parameter,
+            'pipelinechannel--list-maker-Output',
+        )
+        self.assertEqual(
+            for_loop_task.parameter_iterator.item_input,
+            'pipelinechannel--list-maker-Output-loop-item',
+        )
+
+        # 4. Consumer task inside loop resolves injected input parameter to loop-item parameter
+        consumer_task = (
+            my_pipeline.pipeline_spec.components['comp-for-loop-2'].dag
+            .tasks['print-and-return'])
+        self.assertEqual(
+            consumer_task.inputs
+            .parameters['pipelinechannel--list-maker-Output-loop-item']
+            .component_input_parameter,
+            'pipelinechannel--list-maker-Output-loop-item',
+        )
+        self.assertEqual(
+            consumer_task.inputs.parameters['text'].runtime_value.constant
+            .string_value,
+            "Item: {{$.inputs.parameters['pipelinechannel--list-maker-Output-loop-item']}}",
+        )
+
 
 class TestYamlComments(unittest.TestCase):
 
