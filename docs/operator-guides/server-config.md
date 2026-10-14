@@ -274,10 +274,10 @@ unextracted.
 
 #### Standard manifests: automatic initialization
 
-With the complete default manifests, no manual key generation or Secret editing
-is required. Apply the release manifests and wait for the UI Deployment rollout;
-Kubernetes starts the UI once the signing key is available. The
-[2.18 upgrade checklist](upgrade-2.18.md#prepare-the-ui-signing-key) gives the
+The standard deployment initializes the signing key automatically during
+installation or upgrade. Kubernetes starts the UI once the key is available;
+no manual key generation or Secret editing is needed. The
+{ref}`2.18 UI signing-key guidance <prepare-the-ui-signing-key>` gives the
 normal upgrade steps and first-adoption impact. The custom configuration and
 recovery sections below are not additional steps for every installation.
 
@@ -301,7 +301,7 @@ only orders old and new UI pods. The non-optional `secretKeyRef` for
 briefly show `CreateContainerConfigError` while the Job populates the empty
 Secret; kubelet retries and starts the container when the key exists. This is
 expected and does not require an init container or Secret-read RBAC for the UI.
-Wait for the UI rollout before routing traffic. An existing valid shared key
+Kubernetes handles UI startup during the rollout. An existing valid shared key
 lets new UI pods start immediately, without waiting for the idempotent Job.
 
 #### Custom overlays and GitOps
@@ -385,8 +385,10 @@ proxy URLs are invalidated. Reapplying alone does not rerun a completed Job.
 
 #### Enabling rolling UI updates
 
-Adopt the shared key and enable rolling updates in two separate apply or GitOps
-sync phases. Keep the same shared-key revision throughout both phases.
+Rolling UI updates are an optional customization; the standard upgrade retains
+`Recreate`. If you choose to enable them, adopt the shared key and change the
+strategy in two separate apply or GitOps sync phases. Keep the same shared-key
+revision throughout both phases.
 
 First, remove any existing rolling-update overrides and apply the shared-key
 revision with `Recreate`. If `spec.strategy.rollingUpdate` was explicitly

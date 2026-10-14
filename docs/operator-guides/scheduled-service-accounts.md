@@ -128,8 +128,8 @@ The runner separately needs its normal pipeline execution permissions.
 ### Automatic adoption for existing multi-user installations
 
 The standard 2.18 managed rollout automatically adopts legacy database-stored
-schedules. Apply the complete release manifests; ordinary upgrades require no
-operator stop/migrate/restart sequence or migration Job. API listeners remain
+schedules as part of the normal deployment upgrade. No separate migration Job or
+manual sequencing of API/controller updates is needed. API listeners remain
 available while migration runs in the background, subject to normal deployment
 availability. The upgraded controller waits automatically for the managed
 API/controller rollout to finish and incompatible or terminating writer Pods to
@@ -489,7 +489,7 @@ The tests create and remove only their uniquely named databases/schemas. The tes
 roles need database/schema and trigger DDL privileges, plus access to MySQL
 `performance_schema.data_lock_waits`/`threads` or PostgreSQL session lock metadata.
 Without a DSN, that database's cases are skipped. These storage tests do not replace
-live schedule firing, coordinated rollout, or populated-cluster upgrade acceptance.
+live schedule firing, managed rollout, or populated-cluster upgrade acceptance.
 
 ## Scheduling regression test
 

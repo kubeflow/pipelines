@@ -1,12 +1,14 @@
 # RBAC and client migration for 2.18
 
-Start with the [2.18 upgrade checklist](upgrade-2.18.md) for rollout ordering,
-automatic legacy schedule adoption and UI startup. A separate
+The [2.18 upgrade guide](upgrade-2.18.md) explains automatic legacy schedule
+adoption and UI startup during the normal rollout. A separate
 {ref}`lookup compatibility warning <make-pipeline-lookup-namespaces-explicit>`
 applies to custom integrations using the pipeline-by-name API, not ordinary
 SDK/CLI usage.
 
-In multi-user deployments, review these permissions before upgrading to 2.18.
+The standard multi-user roles are updated by the release. If you maintain custom
+roles, compare their grants with the applicable operations below. Client calls
+that upload or reference private pipelines also need the scope described here.
 The current server exposes V2 APIs; these checks also apply to V1 callers on the 2.18 release branch. They do not currently have an audit/enforce
 switch: update the caller or its namespace-scoped role instead of disabling
 multi-user authorization. Existing experiment, run creation, and service-account
@@ -139,7 +141,8 @@ the log or TensorBoard permissions there unnecessarily.
 resource name, so adding `resourceNames` to the upload rule prevents it from
 matching. The private-reference check uses the parent pipeline name, not its UUID.
 
-## Verify before releasing the upgrade to users
+(verify-before-releasing-the-upgrade-to-users)=
+## Verify applicable permissions after the upgrade
 
 An administrator with impersonation permission can check the effective grants:
 
