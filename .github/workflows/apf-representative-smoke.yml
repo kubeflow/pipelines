@@ -1,0 +1,65 @@
+name: Isolated APF representative smoke
+on:
+  push:
+    branches: ['codex/apf-representative-smoke-*']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          ref: 6bea51e2003f9072a55068fb85e03cdb9391435d
+          path: source
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded smoke prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install PyYAML==6.0.2
+          curl --fail --silent --show-error --location --max-time 120 https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 -o "$RUNNER_TEMP/kind"
+          chmod +x "$RUNNER_TEMP/kind"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          kubectl version --client
+      - name: Download and verify exact image inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python harness/experiment/provision/download_images.py
+          --manifest harness/experiment/inputs/discovery-manifest.json
+          --output "$RUNNER_TEMP/apf-images"
+      - name: Prepare private configuration
+        run: >-
+          python harness/experiment/coordinator/prepare_smoke.py
+          --images "$RUNNER_TEMP/apf-images/image-inputs.json"
+          --fixtures harness/experiment/fixtures --source source
+          --suffix "${{ github.run_id }}-${{ github.run_attempt }}"
+          --output "$RUNNER_TEMP/apf-config.json"
+      - name: Provision owned disposable cluster and real tenant fixtures
+        run: >-
+          python harness/experiment/coordinator/provision_smoke.py
+          --config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
+          --provision harness/experiment/provision
+          --output "$RUNNER_TEMP/apf-smoke-evidence/provision"
+      - name: Run actual flip_coin with output assertions
+        run: >-
+          python harness/experiment/coordinator/smoke.py
+          --config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
+          --provision harness/experiment/provision --fixtures harness/experiment/fixtures
+          --output "$RUNNER_TEMP/apf-smoke-evidence/pipeline"
+      - name: Upload bounded sanitized smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apf-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/apf-smoke-evidence
+          if-no-files-found: warn
+          retention-days: 7

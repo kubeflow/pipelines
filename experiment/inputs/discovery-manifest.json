@@ -1,0 +1,74 @@
+{
+  "repository": "kubeflow/pipelines",
+  "run_id": 38489752122,
+  "run_attempt": 1,
+  "head_sha": "f6c500fa138bfc506856006ded58a211254531d5",
+  "source_sha": "6bea51e2003f9072a55068fb85e03cdb9391435d",
+  "base_sha": "22f322667d1749a188a88cf306258a66ec025c8b",
+  "source_tree": "2709cff301082e001a7201b4d15b57f277d0ec22",
+  "images": {
+    "apiserver": {
+      "artifact_id": 11860864003,
+      "artifact_digest": "sha256:871be014984847ae24ac23fd8586af4181509e3b20073936c73d25b335f1996d",
+      "producer_job_id": 115611889641,
+      "archive_member": "apiserver.tar",
+      "archive_sha256": "4fe387d814411a8fdedffda5f93491af301bd8fb525125e138acc60d81cf6f97",
+      "image_id": "sha256:dd258addbde2c15d13663c852ee6ed1637e88678fd5fb90accb11733d610b190",
+      "producer_mode": "fresh-build"
+    },
+    "persistenceagent": {
+      "artifact_id": 11860959104,
+      "artifact_digest": "sha256:a291f8da52f41b6779ce0dd207e3b82a6d6bbedddfb6ca2c85188ada34499b67",
+      "producer_job_id": 115611890015,
+      "archive_member": "persistenceagent.tar",
+      "archive_sha256": "ec875cdd2f7759de3d95c3395e2196cbf60beb5f449522c2ad50f2d572fbdcb2",
+      "image_id": "sha256:7640307c699d163f202e48ee4f2fb708feab8e1b3c3c784357a8caaac518f5b6",
+      "producer_mode": "fresh-build"
+    },
+    "scheduledworkflow": {
+      "artifact_id": 11861341657,
+      "artifact_digest": "sha256:a49fe09aac6f682334d4ca8159ff75536eb41892df77df757ed5b89fd68a6c12",
+      "producer_job_id": 115611889895,
+      "archive_member": "scheduledworkflow.tar",
+      "archive_sha256": "d837253ccf3fbfb858a7cbfbd17fafc76e343cc976d06998868f5195f776da21",
+      "image_id": "sha256:dfe0080bb7f9282b4cedaa75193477cfd721d87e3106ad822a0bf5ea39a7d26c",
+      "producer_mode": "fresh-build"
+    },
+    "frontend": {
+      "artifact_id": 11860923821,
+      "artifact_digest": "sha256:c92d13d21d131de4528cf7edad2b895895869c0161e48714a8f8433374d63ca8",
+      "producer_job_id": 115611889934,
+      "archive_member": "frontend.tar",
+      "archive_sha256": "a660413e241cc19d42e52487856996570947dd589ce0ab95a51c8295ac52a76e",
+      "image_id": "sha256:92c052cc1f7d8008b726f819a3089347bd7b6a2ae0e628fcfa0c998d7fbd1522",
+      "producer_mode": "fresh-build"
+    },
+    "viewer-crd-controller": {
+      "artifact_id": 11861106885,
+      "artifact_digest": "sha256:8354f44a7add1e594f4dd58e01a6b1a2faa3637d84364b05a723230fc21c2cf8",
+      "producer_job_id": 115611889967,
+      "archive_member": "viewer-crd-controller.tar",
+      "archive_sha256": "143953b9077597ccf13a991a26feed0f6a770b0be0436570d344787614731e26",
+      "image_id": "sha256:98602be17c8339810f91309dc45ea74ff06fb21bcf3491e774570513ddc3de58",
+      "producer_mode": "fresh-build"
+    },
+    "driver": {
+      "artifact_id": 11861680747,
+      "artifact_digest": "sha256:97f16a35da1da17016f61c9465b3088a58f7568d701696e1e31f2d6d13e8feb0",
+      "producer_job_id": 115611889904,
+      "archive_member": "driver.tar",
+      "archive_sha256": "53619f93db5a27e7e513911178dfc2cb060a81ba3738aa96725783267a98df54",
+      "image_id": "sha256:13b8b85a63cd54041b123acc71c0e6925ae393391e67c5b8d1382d4292df1bd7",
+      "producer_mode": "fresh-build"
+    },
+    "launcher": {
+      "artifact_id": 11860624354,
+      "artifact_digest": "sha256:380ec98fd85787c5a59ab1ca9407efe70db5a9151f3ee4002287d41ca2c144d8",
+      "producer_job_id": 115611890268,
+      "archive_member": "launcher.tar",
+      "archive_sha256": "70d0a74909653a1de7b040b9e9dd87614ff6e4372cd096080628f7b9f7c22f02",
+      "image_id": "sha256:c86f4250fe73e51c9d0a40c562e2f323ff48d4663faa633a86eddb28b8b5f476",
+      "producer_mode": "fresh-build"
+    }
+  }
+}

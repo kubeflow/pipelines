@@ -1,0 +1,45 @@
+{
+  "source_merge": "6bea51e2003f9072a55068fb85e03cdb9391435d",
+  "source_head": "f6c500fa138bfc506856006ded58a211254531d5",
+  "fixtures": [
+    {
+      "name": "flip_coin",
+      "path": "test_data/sdk_compiled_pipelines/valid/critical/flip_coin.yaml",
+      "source_sha256": "fe363f53c889326c59aa7c7e4fff94d13b8698a4f89e5e554f22fcdbe2ef237f",
+      "upload_sha256": "b234e6a16138d874d0d6995ae8a308cfbe932afafea29b17e6084ce138345bde",
+      "sdk_substitutions": 7,
+      "runtime_config": {
+        "parameters": {}
+      },
+      "pipeline_name": "conditional-execution-pipeline",
+      "sdk_source": "git+https://github.com/kubeflow/pipelines.git@6bea51e2003f9072a55068fb85e03cdb9391435d#subdirectory=sdk/python",
+      "base_image_override": null
+    },
+    {
+      "name": "collected_parameters",
+      "path": "test_data/sdk_compiled_pipelines/valid/critical/collected_parameters.yaml",
+      "source_sha256": "46546abb66a802562059aa0acc71d5941ff584cfaec21e90676cdd85f22ea5e2",
+      "upload_sha256": "28431fe07f3709a2c8b52f60003d9d0dbb8e8174928621d4ce360831e28e07a4",
+      "sdk_substitutions": 5,
+      "runtime_config": {
+        "parameters": {}
+      },
+      "pipeline_name": "collected-param-pipeline",
+      "sdk_source": "git+https://github.com/kubeflow/pipelines.git@6bea51e2003f9072a55068fb85e03cdb9391435d#subdirectory=sdk/python",
+      "base_image_override": null
+    },
+    {
+      "name": "if_else_with_oneof_artifacts",
+      "path": "test_data/sdk_compiled_pipelines/valid/critical/if_else_with_oneof_artifacts.yaml",
+      "source_sha256": "adc085c9f1f0abb6fbb741f853cb13b54bb910a6b2ccf51b29a12d93c8ab9284",
+      "upload_sha256": "0f07949b7f9db33ee09a44e60985fc86a8a75b77dcd8dfeb20bd34d32244b6a2",
+      "sdk_substitutions": 5,
+      "runtime_config": {
+        "parameters": {}
+      },
+      "pipeline_name": "outer-pipeline",
+      "sdk_source": "git+https://github.com/kubeflow/pipelines.git@6bea51e2003f9072a55068fb85e03cdb9391435d#subdirectory=sdk/python",
+      "base_image_override": null
+    }
+  ]
+}
