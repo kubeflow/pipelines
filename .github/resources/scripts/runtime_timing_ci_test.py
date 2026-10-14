@@ -142,7 +142,7 @@ class RuntimeTimingCITest(unittest.TestCase):
                 environment = {e['name']: e.get('value') for e in actual['env']}
                 self.assertEqual(
                     environment.get('CLIENTQPS'),
-                    '20' if tuned == 'true' else None)
+                    '-1' if tuned == 'true' else None)
                 self.assertEqual(
                     environment.get('CLIENTBURST'),
                     '40' if tuned == 'true' else None)

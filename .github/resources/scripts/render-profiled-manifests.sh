@@ -48,10 +48,10 @@ if [[ "${PROFILE_RUNTIME_TIMINGS:-false}" == true ]]; then
 EOF
 fi
 if [[ "${TUNE_KUBERNETES_CLIENT:-false}" == true ]]; then
-  # Existing API-server settings; retain a finite limiter and every auth check.
+  # Let Kubernetes APF throttle these CI clients; retain every auth check.
   cat >> "$profile_overlay/kustomization.yaml" <<EOF
                   - name: CLIENTQPS
-                    value: "20"
+                    value: "-1"
                   - name: CLIENTBURST
                     value: "40"
 EOF
