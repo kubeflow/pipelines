@@ -62,6 +62,13 @@ func handoffFixtures() ([]*appsv1.Deployment, []*corev1.Pod) {
 		}
 		pod.Annotations[scheduleWriterAnnotation] = claim
 	}
+	for i, pod := range pods {
+		deployment := deployments[i]
+		deployment.Spec.Selector = &metav1.LabelSelector{MatchLabels: map[string]string{"app": pod.Labels["app"]}}
+		deployment.Spec.Template = corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": pod.Labels["app"]}}, Spec: pod.Spec}
+		controller := true
+		pod.OwnerReferences = []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "ReplicaSet", Name: deployment.Name + "-rs", UID: types.UID(deployment.Name + "-rs"), Controller: &controller}}
+	}
 	return deployments, pods
 }
 
@@ -69,6 +76,8 @@ func handoffClient(deployments []*appsv1.Deployment, pods []*corev1.Pod) *fake.C
 	var objects []runtime.Object
 	for _, deployment := range deployments {
 		objects = append(objects, deployment)
+		controller := true
+		objects = append(objects, &appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: deployment.Name + "-rs", Namespace: deployment.Namespace, UID: types.UID(deployment.Name + "-rs"), OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "Deployment", Name: deployment.Name, UID: deployment.UID, Controller: &controller}}}})
 	}
 	for _, pod := range pods {
 		objects = append(objects, pod)

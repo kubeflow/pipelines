@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -127,7 +128,10 @@ func TestCustomScheduleWriterHandoff(t *testing.T) {
 			}
 			client := handoffClient(deployments, pods)
 			for _, rs := range replicasets {
-				_, err := client.AppsV1().ReplicaSets("kubeflow").Create(context.Background(), rs, metav1.CreateOptions{})
+				_, err := client.AppsV1().ReplicaSets("kubeflow").Update(context.Background(), rs, metav1.UpdateOptions{})
+				if apierrors.IsNotFound(err) {
+					_, err = client.AppsV1().ReplicaSets("kubeflow").Create(context.Background(), rs, metav1.CreateOptions{})
+				}
 				require.NoError(t, err)
 			}
 			err := ManagedScheduleWritersReady(context.Background(), client, "kubeflow")
