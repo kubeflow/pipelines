@@ -64,6 +64,50 @@ Both targets wait for cluster components to become ready with configurable timeo
 | `RUNS_GC_INDEX_BUILD_TIMEOUT` | Positive Go duration per retention-index build; defaults to `12h`, independent of the five-second metadata-lock wait |
 | `RUNS_GC_INDEX_PREPARE_ONLY` | Boolean, default `false`; prepare indexes without archiving/deleting runs, even if retention windows are configured |
 
+## Recurring-run lookup index
+
+API startup preserves the existing `run_details.JobUUID` column type and width,
+including `varchar(255)`, `varchar(191)` and text columns. Fresh installations use
+`varchar(255)`. It separately prepares `idx_run_details_job_uuid` for recurring-run
+concurrency queries; no operator-authored SQL is required for ordinary upgrades.
+
+MySQL adds a nonunique 191-character prefix index using explicit
+`ALGORITHM=INPLACE, LOCK=NONE`. Full identifiers remain stored unchanged, and
+queries compare the complete value. PostgreSQL uses `CREATE INDEX CONCURRENTLY`
+outside a transaction. Existing compatible indexes, including full-column
+indexes, are retained. This does not automate the optional retention indexes below.
+
+Preparation runs before the new API process serves traffic. A database-scoped
+advisory lock coordinates this index build across replicas. Metadata lock waits
+are limited to five seconds and each preparation attempt has a 30-minute deadline.
+MySQL waits up to ten seconds for another preparing replica; PostgreSQL reports
+that contention immediately. Failed acquisition/builds abort startup with a
+retryable operational error; the server never falls back to copying the table or
+an index-build algorithm that blocks concurrent writes. Resolve lock contention,
+permissions or unsupported online DDL and allow startup to retry. Inspect an
+invalid or incompatible same-named index before repairing it; startup never drops
+it automatically. Failed PostgreSQL concurrent builds can leave an invalid index.
+
+Online builds still consume I/O/disk and take brief metadata locks at their
+boundaries. A pending metadata lock can briefly delay writes until the five-second
+wait expires. Size startup probe budgets for the database and rehearse on
+representative data. These guarantees apply to this index preparation, not every
+schema change or startup data backfill.
+
+The backend CI MySQL lane exercises preservation, prefix equality, repeated and
+concurrent preparation, bounded metadata-lock failure/retry, and writes during a
+262,144-row index build. Run it against a disposable server with CREATE DATABASE
+and PROCESS privileges (each test creates and drops its own database):
+
+```bash
+KFP_RECURRING_MYSQL_TEST_DSN='root:password@tcp(127.0.0.1:3306)/?parseTime=true' \
+  go test ./backend/src/apiserver/client_manager -run TestJobUUIDMySQL -count=1 -v
+```
+
+An unchanged InnoDB table ID plus the explicit online algorithm guards against a
+table copy; concurrent successful writes verify the build allows DML. This fixture
+is regression coverage, not a capacity estimate for every installation.
+
 ## Run garbage collection database migration
 
 The API server automatically prepares `idx_run_gc_lifecycle` and

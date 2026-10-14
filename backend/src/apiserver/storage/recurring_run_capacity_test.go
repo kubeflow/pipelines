@@ -162,6 +162,9 @@ func TestRecurringRunActiveCountQueryDialects(t *testing.T) {
 func TestRecurringRunActiveCountUsesScheduleIndexes(t *testing.T) {
 	db, d := NewFakeDBOrFatal()
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	// Production startup prepares this index separately using online DDL.
+	_, indexErr := db.Exec("CREATE INDEX idx_run_details_job_uuid ON run_details (JobUUID)")
+	require.NoError(t, indexErr)
 	explain := func(builder sq.SelectBuilder) string {
 		t.Helper()
 		query, args, err := d.FinalizeSelect(builder)

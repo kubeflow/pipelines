@@ -61,11 +61,16 @@ Changelog
 
 #### Database migration
 
-API startup adds `idx_run_details_job_uuid` to `run_details` for recurring-run
-concurrency checks and bounds `JobUUID` to `varchar(191)`, matching the job ID
-column. Existing run associations are preserved. Allow time for this schema
-migration on large run tables; index creation or column conversion can rebuild
-or lock the table depending on the database version.
+API startup preserves the existing type and width of `run_details.JobUUID` and
+adds its recurring-run lookup index separately. MySQL explicitly requires
+`ALGORITHM=INPLACE, LOCK=NONE`; unsupported online DDL fails startup instead of
+falling back to a table copy. Existing valid indexes are retained. Index builds
+consume I/O and can briefly acquire metadata locks; lock waits are bounded.
+See [startup index preparation](docs/agents/development.md#recurring-run-lookup-index).
+
+Other startup schema changes and the pipeline-reference backfill remain
+synchronous and may delay readiness or block writes. The optional run-retention
+indexes are still operator-managed; they are separate from this lookup index.
 
 #### Scheduling migration details
 
