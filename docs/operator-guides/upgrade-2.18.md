@@ -36,7 +36,7 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 | --- | --- | --- |
 | 2.18 schema changes and reference backfill | Synchronously during API startup, before that process serves requests | Automatic, but may delay readiness or block database writes. Back up and assess representative upgrade duration and database capacity. |
 | 2.18 recurring-run adoption | In the background after API startup and managed writer handoff | No separate migration Job or blanket schedule recreation. Schedule mutations may be temporarily rejected; inconsistent records require investigation. |
-| Optional run-retention indexes | Background preparation when retention or prepare-only is enabled; requires #14877 | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; incompatible/invalid indexes still need diagnosis. Disabled retention with prepare-only off does no preparation. |
+| Optional run-retention indexes | Background preparation when retention or prepare-only is enabled; requires #14877 | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; conflicting definitions still need diagnosis. Disabled retention with prepare-only off does no preparation. |
 | 3.0 MLMD-to-native history/execution migration | Separate, not performed by the 2.18 startup path | Replacement-history import and schedule prerequisites do not establish a supported in-place upgrade or active-workload continuity. |
 
 ### Automatic startup schema and data changes
@@ -130,9 +130,13 @@ coordinated, with five-second metadata-lock waits and a configurable
 `RUNS_GC_INDEX_BUILD_TIMEOUT` (default `12h` per index attempt). The timeout cancels
 the client attempt; server cleanup may continue while ownership prevents overlap.
 Failures pause GC and retry with backoff, not a copying or blocking fallback.
-Conflicting/invisible indexes and invalid PostgreSQL concurrent indexes are left
-for inspection/repair. Online builds still consume resources and can briefly
-delay writes at metadata locks.
+Interrupted PostgreSQL builds with exact managed definitions recover automatically
+using concurrent drop/rebuild within the per-index deadline. Active DDL defers
+recovery; conflicting/invisible indexes remain intact for inspection. Before
+manual DDL on these managed indexes, stop preparation across all replicas; manual
+DDL does not automatically honor the preparer advisory lock. Online builds still
+consume resources and can briefly delay writes at metadata locks. This recovery
+applies to retention indexes, not the separate startup JobUUID lookup index.
 
 For large histories, set `RUNS_GC_INDEX_PREPARE_ONLY=true` consistently across all
 API replicas/installations sharing the database, with retention windows still

@@ -271,11 +271,17 @@ Check `RUNS_GC_INDEX_BUILD_TIMEOUT` (default `12h` per index attempt), resource
 headroom and consistent prepare-only settings across replicas. Do not execute DDL
 or activate retention as part of this assessment.
 
+For retention indexes, interrupted PostgreSQL builds matching the exact managed
+definition recover automatically. Active DDL defers recovery; conflicting index
+definitions need inspection. Do not run manual DDL alongside the preparer. This
+does not change the separate JobUUID startup-index recovery procedure.
+
 Flag configured retention that was paused by missing indexes: automation can now
 resume archival/deletion after preparation and a full GC interval. Recommend
 prepare-only staging for backlog review; it blocks collection in updated replicas
 but cannot pause an old leader before its rollout. Index creation and catch-up are
-separate workloads. Invalid/incompatible indexes still require diagnosis; do not
+separate workloads. Conflicting definitions or custom index storage settings still
+require diagnosis; do not
 turn those exceptions into a manual-SQL requirement for ordinary upgrades.
 
 Check persistence-agent scoped identity lookup and retained Workflow evidence for
