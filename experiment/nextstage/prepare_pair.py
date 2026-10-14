@@ -89,13 +89,16 @@ def bind_actual_container(status, expected, inspect_container, inspect_image, re
     # The actual container must identify the same immutable image or config.
     if actual_digest not in (pod_digest,expected):
         raise RuntimeError('container and pod immutable image identities differ')
-    # CRI ImageStatus takes its own image reference, never Kubernetes URI prefixes.
-    image=inspect_image(actual_digest)
+    # Container imageRef identifies an OCI index; CRI ImageStatus is indexed
+    # by config ID. Establish the cryptographic runtime chain first, then query
+    # its verified config ID (the successful import diagnostic exercises this).
+    proof=bind_runtime_image(pod_digest,expected,capture_content)
+    evidence.update(stage='inspect_verified_config',cri_lookup_digest=proof['config_digest']);emit(evidence)
+    image=inspect_image(proof['config_digest'])
     config=image.get('status',{}).get('id','')
     if re.fullmatch(r'sha256:[0-9a-f]{64}',config):evidence['cri_config_digest']=config
     emit(evidence)
     if config!=expected:raise RuntimeError('CRI selected config does not match verified config digest')
-    proof=bind_runtime_image(pod_digest,expected,capture_content)
     evidence['stage']='verified';emit(evidence)
     proof['cri_config_digest']=config
     return proof

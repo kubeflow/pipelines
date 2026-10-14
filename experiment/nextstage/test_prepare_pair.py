@@ -78,9 +78,10 @@ class RuntimeIdentityTests(unittest.TestCase):
             self.assertEqual(cid,'c'*64)
             return {'status':{'imageRef':image}}
         def inspect_image(ref):
+            self.assertEqual(ref,expected)  # CRI ImageStatus rejects the index ID.
             lookups.append(ref);return {'status':{'id':expected}}
         proof=bind_actual_container(status,expected,inspect_container,inspect_image,lambda _:raw,lambda r:records.append(json.loads(json.dumps(r))))
-        self.assertEqual(lookups,[image]);self.assertEqual(proof['cri_config_digest'],expected)
+        self.assertEqual(lookups,[expected]);self.assertEqual(proof['cri_config_digest'],expected)
         self.assertEqual(records[-1]['stage'],'verified')
         def fail(ref):raise RuntimeError('lookup failed')
         with self.assertRaisesRegex(RuntimeError,'lookup failed'):
@@ -89,6 +90,26 @@ class RuntimeIdentityTests(unittest.TestCase):
         self.assertEqual(records[-1]['content'][0]['config_digest'],expected)
         with self.assertRaisesRegex(RuntimeError,'identities differ'):
             bind_actual_container(status,expected,lambda _: {'status':{'imageRef':'sha256:'+'d'*64}},inspect_image,lambda _:raw,lambda _:None)
+
+    def test_platformless_actual_index_uses_verified_config_lookup(self):
+        expected='sha256:'+'a'*64
+        manifest=json.dumps({'config':{'digest':expected}}).encode()
+        manifest_id='sha256:'+hashlib.sha256(manifest).hexdigest()
+        index=json.dumps({'manifests':[{'digest':manifest_id}]}).encode()
+        index_id='sha256:'+hashlib.sha256(index).hexdigest()
+        blobs={index_id:index,manifest_id:manifest}
+        status={'imageID':index_id,'containerID':'containerd://'+'c'*64}
+        calls=[]
+        def image_status(key):
+            calls.append(key)
+            if key!=expected:raise RuntimeError('ImageStatus has no record for index')
+            return {'status':{'id':expected}}
+        proof=bind_actual_container(status,expected,lambda _: {'status':{'imageRef':index_id}},image_status,blobs.__getitem__,lambda _:None)
+        self.assertEqual(calls,[expected]);self.assertEqual(proof['manifest_chain'],[index_id,manifest_id])
+        calls.clear()
+        with self.assertRaisesRegex(RuntimeError,'does not bind'):
+            bind_actual_container(status,'sha256:'+'b'*64,lambda _: {'status':{'imageRef':index_id}},image_status,blobs.__getitem__,lambda _:None)
+        self.assertEqual(calls,[])  # Never bless an unrelated imported config.
 
     def test_wrong_config_and_forged_content_rejected(self):
         raw=json.dumps({'config':{'digest':'sha256:'+'b'*64}}).encode()

@@ -50,6 +50,14 @@ type Result struct {
 func call(parent context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(parent, 10*time.Second)
 }
+
+// The periodic controller schedules first at start+interval, not at start.
+// Anchor in the past so the first occurrence is 5s ahead and the second is
+// beyond the bounded end; do not rely on the controller catching up.
+func firstOccurrenceAnchor(now time.Time, budget time.Duration) time.Time {
+	return now.Add(-(budget + 60*time.Second) + 5*time.Second)
+}
+
 func stage(parent context.Context, endpoint, label string, t Tenant, token string, budget time.Duration, poll time.Duration, save func(Result) error) (result Result) {
 	result.Tenant = t.Name
 	record := func() bool {
@@ -79,7 +87,7 @@ func stage(parent context.Context, endpoint, label string, t Tenant, token strin
 	f := t.Fixtures[0]
 	now := time.Now().UTC()
 	// Interval exceeds the entire stage: at most one scheduled occurrence; end bounds ambiguous create too.
-	body := &rm.V2beta1RecurringRun{DisplayName: "apf-scheduled-" + label + "-" + t.Name, Namespace: t.Namespace, ExperimentID: t.ExperimentID, ServiceAccount: t.ServiceAccount, MaxConcurrency: 1, NoCatchup: true, Mode: rm.RecurringRunModeENABLE.Pointer(), PipelineVersionReference: &rm.V2beta1PipelineVersionReference{PipelineID: f.PipelineID, PipelineVersionID: f.VersionID}, Trigger: &rm.V2beta1Trigger{PeriodicSchedule: &rm.V2beta1PeriodicSchedule{StartTime: strfmt.DateTime(now), EndTime: strfmt.DateTime(now.Add(budget)), IntervalSecond: int64(budget.Seconds()) + 60}}}
+	body := &rm.V2beta1RecurringRun{DisplayName: "apf-scheduled-" + label + "-" + t.Name, Namespace: t.Namespace, ExperimentID: t.ExperimentID, ServiceAccount: t.ServiceAccount, MaxConcurrency: 1, NoCatchup: true, Mode: rm.RecurringRunModeENABLE.Pointer(), PipelineVersionReference: &rm.V2beta1PipelineVersionReference{PipelineID: f.PipelineID, PipelineVersionID: f.VersionID}, Trigger: &rm.V2beta1Trigger{PeriodicSchedule: &rm.V2beta1PeriodicSchedule{StartTime: strfmt.DateTime(firstOccurrenceAnchor(now, budget)), EndTime: strfmt.DateTime(now.Add(budget)), IntervalSecond: int64(budget.Seconds()) + 60}}}
 	if !record() {
 		return
 	}
