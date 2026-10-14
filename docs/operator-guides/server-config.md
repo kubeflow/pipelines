@@ -31,6 +31,10 @@ the desired windows and clear prepare-only when ready for catch-up. Invalid
 prepare-only/timeout values fail configuration validation.
 
 Build failures pause GC, not API availability, and retry with bounded backoff.
+Interrupted PostgreSQL builds with the exact managed index definition recover
+automatically using concurrent drop/rebuild. Active DDL defers recovery; conflicting
+definitions require inspection. Coordinate manual changes to managed indexes by
+stopping preparation across all replicas first.
 Online DDL can still consume substantial resources and briefly delay writes at
 metadata locks. Review the [preparation and recovery procedure](https://github.com/kubeflow/pipelines/blob/master/docs/agents/development.md#run-garbage-collection-database-migration)
 for capacity planning, PostgreSQL invalid-index recovery and staged activation.
