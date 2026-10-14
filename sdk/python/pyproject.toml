@@ -29,7 +29,7 @@ dependencies = [
   "docstring-parser>=0.7.3,<1",
   "google-auth>=2.61.0,<3",
   # Generated pipeline specs import google.rpc; 1.69.2 supports protobuf 6.
-  "googleapis-common-protos>=1.69.2",
+  "googleapis-common-protos>=1.75.5",
   "kubernetes>=8.0.0",
   "protobuf>=6.33.5",
   "certifi",
