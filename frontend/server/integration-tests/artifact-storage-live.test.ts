@@ -23,10 +23,7 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
   const content = '<html><script>throw new Error("inert")</script>existing artifact</html>';
   const archive = gzipSync(Buffer.from('existing compressed artifact bytes'));
   const logs = 'existing archived pod logs\n';
-  const specialKeys = [
-    'keys/literal%2Fname.txt',
-    'keys/space + unicode-é.txt',
-  ];
+  const specialKeys = ['keys/literal%2Fname.txt', 'keys/space + unicode-é.txt'];
   const paginatedKeys = Array.from(
     { length: 305 },
     (_, index) => `pagination/${String(index).padStart(3, '0')}.txt`,
