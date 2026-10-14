@@ -42,7 +42,6 @@ def load_churn_data(
 
     np.random.seed(random_state)
 
-    # Generate synthetic tabular user interaction and churn records
     tenure = np.random.randint(1, 72, size=num_samples)
     monthly_charges = np.random.uniform(18.0, 120.0, size=num_samples)
     total_charges = tenure * monthly_charges + np.random.normal(0, 10, size=num_samples)
@@ -67,12 +66,10 @@ def load_churn_data(
         'churn': churn,
     })
 
-    # Scale continuous features dynamically using StandardScaler
     continuous_cols = ['tenure', 'monthly_charges', 'total_charges', 'num_support_tickets']
     scaler = StandardScaler()
     df[continuous_cols] = scaler.fit_transform(df[continuous_cols])
 
-    # Stratified train/test split
     train_df, test_df = train_test_split(
         df,
         test_size=0.2,
@@ -101,8 +98,8 @@ def train_xgboost_model(
     Args:
         dataset_train: Input path to preprocessed training split dataset CSV.
         model: Serialized model artifact output path.
-        model_type: Classifier model family to train ('xgboost' or 'random_forest').
-        n_estimators: Number of estimators / boosting trees.
+        model_type: Classifier model family ('xgboost' or 'random_forest').
+        n_estimators: Number of boosting trees or forest estimators.
         max_depth: Maximum tree depth.
         learning_rate: Boosting learning rate.
     """
@@ -112,7 +109,7 @@ def train_xgboost_model(
     from sklearn.ensemble import RandomForestClassifier
 
     print(
-        f"Tracking tuning parameters: model_type={model_type}, "
+        f"Tracking parameters: model_type={model_type}, "
         f"n_estimators={n_estimators}, max_depth={max_depth}, "
         f"learning_rate={learning_rate}"
     )
@@ -140,7 +137,6 @@ def train_xgboost_model(
     joblib.dump(clf, model)
 
 
-# Provide alias for alternative naming convention
 train_xg_boost_model = train_xgboost_model
 
 
@@ -182,9 +178,6 @@ def evaluate_and_validate(
     metrics.log_metric('roc_auc', roc_auc)
     metrics.log_metric('precision', precision)
     metrics.log_metric('recall', recall)
-    metrics.log_metric('ROC-AUC', roc_auc)
-    metrics.log_metric('Precision', precision)
-    metrics.log_metric('Recall', recall)
 
     joblib.dump(clf, model_artifact)
 

@@ -278,6 +278,8 @@ def main():
             run_evidence = backend_stderr.strip() or "Backend connection refused or execution failed before completion."
             
             
+    pipeline_path = args.pipeline_file
+    output_dir = os.path.dirname(os.path.abspath(pipeline_path))
     yaml_exists = os.path.exists(expected_yaml)
     assertions = [
         {
@@ -322,6 +324,11 @@ def main():
     with open(grading_path, "w") as f:
         json.dump(grading_data, f, indent=2)
     print(f"[✓] Saved grading scorecard to {grading_path}")
+    if os.path.basename(output_dir) == "outputs":
+        parent_grading_path = os.path.join(os.path.dirname(output_dir), "grading.json")
+        with open(parent_grading_path, "w") as f:
+            json.dump(grading_data, f, indent=2)
+        print(f"[✓] Saved grading scorecard to {parent_grading_path}")
     
     if not is_success or (args.run_e2e and not backend_passed):
         sys.exit(1)
