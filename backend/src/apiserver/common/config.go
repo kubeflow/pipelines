@@ -67,6 +67,8 @@ const (
 	ArchivedRunsRetentionTime string = "ARCHIVED_RUNS_RETENTION_TIME"
 	RunsGCInterval            string = "RUNS_GC_INTERVAL"
 	RunsGCBatchSize           string = "RUNS_GC_BATCH_SIZE"
+	RunsGCIndexBuildTimeout   string = "RUNS_GC_INDEX_BUILD_TIMEOUT"
+	RunsGCIndexPrepareOnly    string = "RUNS_GC_INDEX_PREPARE_ONLY"
 )
 
 type PluginLimitsConfig struct {
@@ -344,6 +346,41 @@ func GetRunsGCInterval() time.Duration {
 		return 6 * time.Hour
 	}
 	return garbageCollectionInterval
+}
+
+// GetRunsGCIndexBuildTimeout bounds each index build, independently of
+// the short database metadata-lock timeout. Large tables may need hours.
+func GetRunsGCIndexBuildTimeout() (time.Duration, error) {
+	if !viper.IsSet(RunsGCIndexBuildTimeout) {
+		return 12 * time.Hour, nil
+	}
+	value := strings.TrimSpace(viper.GetString(RunsGCIndexBuildTimeout))
+	duration, err := time.ParseDuration(value)
+	if err != nil || duration <= 0 {
+		return 0, fmt.Errorf("%s must be a positive duration (for example 12h); got %q", RunsGCIndexBuildTimeout, value)
+	}
+	return duration, nil
+}
+
+// GetRunsGCIndexPrepareOnly is strict: a typo must never enable deletion.
+func GetRunsGCIndexPrepareOnly() (bool, error) {
+	if !viper.IsSet(RunsGCIndexPrepareOnly) {
+		return false, nil
+	}
+	value := strings.TrimSpace(viper.GetString(RunsGCIndexPrepareOnly))
+	prepareOnly, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean; got %q", RunsGCIndexPrepareOnly, value)
+	}
+	return prepareOnly, nil
+}
+
+func ValidateRunsGCIndexConfig() error {
+	if _, err := GetRunsGCIndexBuildTimeout(); err != nil {
+		return err
+	}
+	_, err := GetRunsGCIndexPrepareOnly()
+	return err
 }
 
 func GetRunsGCBatchSize() int {

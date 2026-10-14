@@ -24,6 +24,19 @@ Changelog
   upstream end of life in October 2026, so Python 3.11 or later is the preferred
   migration target.
 
+#### Run retention
+
+- **Run retention:** required indexes are now prepared automatically in the
+  background when retention is enabled; no ordinary manual SQL step is needed.
+  Previously configured retention that was paused by missing indexes can now
+  begin archiving/deleting after preparation and a full GC interval. Set
+  `RUNS_GC_INDEX_PREPARE_ONLY=true` consistently across API replicas to build
+  indexes without catch-up, then clear it when ready. Retention remains disabled
+  by default. `RUNS_GC_INDEX_BUILD_TIMEOUT` defaults to `12h` per index attempt;
+  metadata-lock waits stay bounded to five seconds. Builds consume database
+  resources and server cleanup may outlast cancellation. See
+  [retention configuration](docs/operator-guides/server-config.md#run-retention-and-index-preparation).
+
 #### Breaking changes for multi-user upgrades to 2.18
 
 - **Recreate existing recurring runs through the API:** pre-upgrade schedules
