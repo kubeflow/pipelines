@@ -25,7 +25,9 @@ Changelog
   indexes without catch-up, then clear it when ready. Retention remains disabled
   by default. `RUNS_GC_INDEX_BUILD_TIMEOUT` defaults to `12h` per index attempt;
   metadata-lock waits stay bounded to five seconds. Builds consume database
-  resources and server cleanup may outlast cancellation. See
+  resources and server cleanup may outlast cancellation. Interrupted PostgreSQL
+  builds with matching managed definitions recover automatically; conflicting
+  definitions still require inspection. See
   [retention configuration](docs/operator-guides/server-config.md#run-retention-and-index-preparation).
 - **Recurring-run security:** multi-user recurring runs created before API-owned
   scheduling state must be reviewed and recreated through the API. Otherwise they

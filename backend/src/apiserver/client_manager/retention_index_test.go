@@ -235,3 +235,78 @@ func TestRetentionIndexPreparationRejectsInvisibleIndex(t *testing.T) {
 	require.False(t, built)
 	require.ErrorContains(t, err, "was not dropped or replaced")
 }
+
+func retentionPostgresLockSteps() []retentionDBStep {
+	return []retentionDBStep{
+		{query: "pg_try_advisory_lock", values: []driver.Value{true}},
+		{query: "current_setting", values: []driver.Value{"0", "0"}},
+		{query: "set_config('lock_timeout', '5s'"},
+	}
+}
+
+func retentionPostgresCleanupSteps() []retentionDBStep {
+	return []retentionDBStep{
+		{query: "set_config('lock_timeout', $1"},
+		{query: "pg_advisory_unlock"},
+	}
+}
+
+func retentionPostgresReadyStep(spec garbageCollectorIndexSpec) retentionDBStep {
+	return retentionDBStep{query: "string_agg", values: []driver.Value{"public", "public", "run_details", spec.name, spec.columns, true, true, true}}
+}
+
+func TestRetentionPostgresPreparationRecoversInterruptedIndex(t *testing.T) {
+	first := garbageCollectorRequiredIndexes[0]
+	steps := append(retentionPostgresLockSteps(),
+		retentionDBStep{query: "string_agg"},
+		retentionDBStep{query: "SELECT EXISTS", values: []driver.Value{true}},
+		retentionDBStep{query: "idx.reloptions IS NULL AND idx.reltablespace = 0", values: []driver.Value{true, false}},
+		retentionDBStep{query: `DROP INDEX CONCURRENTLY "` + first.name + `"`},
+		retentionDBStep{query: garbageCollectorIndexDDL("pgx", first)},
+		retentionPostgresReadyStep(first),
+		retentionPostgresReadyStep(garbageCollectorRequiredIndexes[1]))
+	steps = append(steps, retentionPostgresCleanupSteps()...)
+	db, _ := retentionScriptDB(t, steps...)
+	built, err := prepareGarbageCollectorIndexes(context.Background(), db, sqldrv.NewDBDialect("pgx"), time.Hour)
+	require.NoError(t, err)
+	require.True(t, built)
+}
+
+func TestRetentionPostgresRecoveryRefusesUnsafeOrActiveIndexes(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		recoverable, active bool
+		want                string
+	}{
+		{"mismatched definition", false, false, "was not dropped or replaced"},
+		{"active external maintenance", true, true, "maintenance is active or waiting"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			steps := append(retentionPostgresLockSteps(),
+				retentionDBStep{query: "string_agg"},
+				retentionDBStep{query: "SELECT EXISTS", values: []driver.Value{true}},
+				retentionDBStep{query: "pg_get_indexdef", values: []driver.Value{tc.recoverable, tc.active}})
+			steps = append(steps, retentionPostgresCleanupSteps()...)
+			db, _ := retentionScriptDB(t, steps...)
+			built, err := prepareGarbageCollectorIndexes(context.Background(), db, sqldrv.NewDBDialect("pgx"), time.Hour)
+			require.ErrorContains(t, err, tc.want)
+			require.False(t, built)
+		})
+	}
+}
+
+func TestRetentionPostgresRecoveryCancellationStopsBeforeRebuild(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	steps := append(retentionPostgresLockSteps(),
+		retentionDBStep{query: "string_agg"},
+		retentionDBStep{query: "SELECT EXISTS", values: []driver.Value{true}},
+		retentionDBStep{query: "pg_get_indexdef", values: []driver.Value{true, false}},
+		retentionDBStep{query: "DROP INDEX CONCURRENTLY", err: context.Canceled, cancel: cancel})
+	steps = append(steps, retentionPostgresCleanupSteps()...)
+	db, _ := retentionScriptDB(t, steps...)
+	built, err := prepareGarbageCollectorIndexes(ctx, db, sqldrv.NewDBDialect("pgx"), time.Hour)
+	require.ErrorContains(t, err, "concurrent cleanup")
+	require.ErrorIs(t, err, context.Canceled)
+	require.False(t, built)
+}
