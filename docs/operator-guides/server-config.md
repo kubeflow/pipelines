@@ -527,6 +527,26 @@ lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the hi
 limit: object-store specifications may no longer be readable for subsequent execution. This
 setting does not add a new size check to the existing direct database-spec read path.
 
+### Legacy metrics file limit
+
+`MAX_METRICS_FILE_BYTES` bounds each uncompressed legacy V1 metrics file. Its default
+is 1048576 bytes (1 MiB); set a positive decimal integer on the process collecting
+legacy workflow metrics, normally the persistence agent. The collector also bounds
+the archive response and traversal. This is independent of the API's pipeline-size
+settings and does not configure native V2 metrics collection.
+
+Unset values use the default. Invalid, zero or negative values fall back to the
+default with a warning, rather than preventing startup. Review memory/concurrency
+before raising the limit, persist the setting in your deployment configuration and
+roll out the collector. There is no audit or unlimited mode.
+
+An oversized or malformed metrics file can leave an otherwise completed task without
+metrics. Review the collector's limit error, reduce the file or deliberately raise
+`MAX_METRICS_FILE_BYTES` for future collection. Completed-node permanent failures
+are not automatically replayed when the setting changes; verify a new execution
+rather than assuming old metrics will be recovered. The pre-existing metric-count
+and single-file archive rules still apply.
+
 ### Legacy V1 cache security mode
 
 On the cache-server deployment, `KFP_SECURITY_LEGACY_CACHE_MODE` accepts `enforce`

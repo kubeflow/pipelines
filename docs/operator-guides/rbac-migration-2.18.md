@@ -144,23 +144,56 @@ matching. The private-reference check uses the parent pipeline name, not its UUI
 (verify-before-releasing-the-upgrade-to-users)=
 ## Verify applicable permissions after the upgrade
 
-An administrator with impersonation permission can check the effective grants:
+An administrator allowed to create SubjectAccessReviews can inspect the exact
+attributes KFP sends. KFP's `pipelines` and `runs` authorization resources are
+virtual: Kubernetes discovery does not necessarily expose them as objects.
+`kubectl auth can-i <verb> resource.group` can resolve an undiscovered resource
+without the intended group and give a misleading answer. Use an explicit review:
 
-```bash
-kubectl auth can-i create pipelines.pipelines.kubeflow.org -n team-a --as=user@example.com
-kubectl auth can-i create pipelines.pipelines.kubeflow.org -n kubeflow --as=user@example.com
-kubectl auth can-i get pipelines.pipelines.kubeflow.org -n team-a --as=user@example.com
-kubectl auth can-i readLog runs.pipelines.kubeflow.org -n team-a --as=user@example.com
-kubectl auth can-i get viewers.kubeflow.org -n team-a --as=user@example.com
-kubectl auth can-i create viewers.kubeflow.org -n team-a --as=user@example.com
-kubectl auth can-i delete viewers.kubeflow.org -n team-a --as=user@example.com
+```yaml
+apiVersion: authorization.k8s.io/v1
+kind: SubjectAccessReview
+spec:
+  user: user@example.com
+  groups:
+  - system:authenticated
+  resourceAttributes:
+    group: pipelines.kubeflow.org
+    version: v1beta1
+    resource: pipelines
+    verb: create
+    namespace: team-a
 ```
 
-Replace `kubeflow` with the actual installation namespace. Include the effective
-impersonated groups when testing group-based bindings. A normal profile contributor
-should get **no** for shared publication unless deliberately granted it. Kubernetes
-may warn about KFP's custom resources/verbs; these are SubjectAccessReview
-attributes and do not all represent Kubernetes objects.
+Save this as `kfp-access-review.yaml`, replace the user and groups with the effective
+identity used by the KFP request, and submit the non-persisted authorization probe:
+
+```bash
+kubectl create -f kfp-access-review.yaml -o yaml
+```
+
+Inspect `status.allowed`, `status.denied`, `status.reason` and
+`status.evaluationError`. An evaluation error is inconclusive, not evidence that
+broader grants are needed. Do not assume impersonation or an identity header
+supplies the same groups as the production authentication path. For a service
+account, use `system:serviceaccount:<namespace>:<name>` and its effective groups.
+
+Repeat with these `resourceAttributes`, keeping the caller identity and
+`version: v1beta1` unchanged:
+
+| Operation | group | resource | verb | namespace | name |
+| --- | --- | --- | --- | --- | --- |
+| Private upload | `pipelines.kubeflow.org` | `pipelines` | `create` | Owning profile | Omit |
+| Shared upload | `pipelines.kubeflow.org` | `pipelines` | `create` | Actual API `POD_NAMESPACE` | Omit |
+| Private reference | `pipelines.kubeflow.org` | `pipelines` | `get` | Owning profile | Parent pipeline name, not UUID |
+| Logs | `pipelines.kubeflow.org` | `runs` | `readLog` | Run namespace | Persisted run `K8SName` (omit if empty) |
+| Inspect TensorBoard | `kubeflow.org` | `viewers` | `get` | Viewer namespace | Omit |
+| Manage TensorBoard | `kubeflow.org` | `viewers` | `create` or `delete` | Viewer namespace | Omit |
+
+Use the release implementation's exact name attributes when checking a
+`resourceNames`-restricted role. A normal profile contributor should be denied
+shared publication unless deliberately granted it. These probes inspect the
+installed RBAC; before rollout, evaluate the intended target roles as well.
 
 Then test with real SDK/UI credentials:
 

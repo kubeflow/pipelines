@@ -11,6 +11,9 @@ handles eligible legacy schedule adoption and UI signing-key initialization
 automatically. No separate migration Job, manual sequencing of API/controller
 updates, or closure of user access is needed for a standard managed upgrade.
 Normal deployment availability still depends on replica counts and rollout settings.
+For a resource-by-resource assessment, use the
+[agent cluster-impact assessment guide](upgrade-2.18-agent-assessment.md). It is an
+optional review procedure, not an additional upgrade prerequisite.
 
 ## What happens during a normal upgrade
 
@@ -28,10 +31,62 @@ Review these before rollout when the corresponding features are in use:
 | --- | --- |
 | Service-account and workflow-identity policy | Inventory custom runner, template, and plugin identities and test their scoped grants. Both controls default to `enforce`; temporary `audit` modes restore the associated exposure and are planned for removal in 3.0. Keep modes consistent across API replicas. See [service-account migration](scheduled-service-accounts.md#temporary-audit-mode-for-migration) and [workflow-identity audit scope](server-config.md#audit-mode-for-rollout). Audit does not bypass schedule adoption or the independent [RBAC/client changes](rbac-migration-2.18.md). |
 | Legacy V1/raw-Argo cache | For a 2.17.2 upgrade, apply the standard rolling update normally; no manual cache-server shutdown or submission pause is required. Wait for every old cache-server process to terminate before treating enforcement as fully active. Cache reuse can decrease during overlap. Default enforcement stops reusing historical entries of unknown ownership: extra computation occurs when steps next execute and miss the cache, not as a startup rebuild. Native V2 caching is unaffected. See [cache rollout and temporary audit mode](https://github.com/kubeflow/pipelines/blob/release-2.18/backend/src/cache/README.md#namespace-isolation-and-upgrades). |
+| Multi-user artifact roots | Matching MLMD ownership alone no longer permits arbitrary object roots. Existing keys must include the namespace path component; configure a matching existing prefix or migrate objects and references. See [artifact-root migration](#artifact-root-migration). |
 | Custom artifact storage | Configure exact trusted S3 origins and the HTTP artifact base where applicable; a permissive domain regex alone is insufficient for custom S3 origins. Propagate configuration to existing profile proxies and verify artifacts and archived logs in those profiles. See [endpoint configuration](server-config.md#artifact-storage-endpoint-allowlist) and [HTTP/profile migration](server-config.md#http-artifact-migration-for-218). |
-| Pipeline size ceilings | Check uploads, extracted specifications, and update bodies against their separate 32 MiB defaults. Supported overrides are bounded at 128 MiB; size memory and the entire request path before raising them. There is no audit/unlimited mode. See [settings and actionable errors](server-config.md#pipeline-size-limits). |
+| Pipeline size ceilings | Check uploads, extracted specifications (including existing object-store specifications used by later executions), and update bodies against their separate 32 MiB defaults. Supported overrides are bounded at 128 MiB; size memory and the entire request path before raising them. There is no audit/unlimited mode. See [settings and actionable errors](server-config.md#pipeline-size-limits). |
+| Legacy metrics files | V1 metrics collection bounds each metrics file at 1 MiB by default. Check `MAX_METRICS_FILE_BYTES` on the collector; an oversized file can leave metrics missing from an otherwise completed task. This is not the native V2 metrics path. See [legacy metrics limits](server-config.md#legacy-metrics-file-limit). |
 | Persisted run ownership and reporting | For an additional inventory or to investigate legacy ownership, use the optional read-only `--include-ownership` scan. Preserve Workflows until terminal status is recorded in KFP; investigate missing or inconsistent ownership without editing stored identities. See [reporting recovery](workflow-report-recovery.md). |
 | Saved pagination tokens | Plan to restart affected listings after the API rollout. The updated UI retries once; SDK/custom clients must handle `PAGINATION_RESTART_REQUIRED` and discard or reconcile earlier traversal results before restarting. Updating the server does not update installed clients. See [pagination recovery](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/pagination-recovery.md). |
+
+## Artifact-root migration
+
+This applies to authenticated multi-user artifact previews and downloads, including
+requests through tenant proxies. Standalone mode is unchanged. In 2.18, a matching
+MLMD namespace is necessary evidence but no longer sufficient for an arbitrary
+object key: the key must also have the namespace prefix. The default is
+`private-artifacts/<namespace>/...`.
+
+Inspect representative existing artifact references, including old runs users still
+open. Do not infer compatibility from new pipeline defaults alone:
+
+- If keys already start with `private-artifacts/<namespace>/`, no root migration is
+  needed. Verify real preview/download with the owning user's credentials.
+- If keys consistently use another prefix followed by `/<namespace>/`, configure
+  `ARTIFACT_NAMESPACE_KEY_PREFIX` to that prefix and verify the effective value on
+  each authenticated serving UI replica. The setting does not insert a missing namespace component.
+- For arbitrary legacy roots, configure namespace-prefixed roots for new runs,
+  copy/move only authorized historical objects, and update their references using
+  your storage/metadata migration process. Changing metadata does not move objects.
+  Verify historical and new reads before removing old copies.
+
+`KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit` is a temporary 2.18 migration option,
+with `enforce` as the default. It permits only an absent prefix after successful
+MLMD lookup and matching namespace evidence for every returned artifact. It does
+not bypass user authorization, explicit namespace mismatches, unsafe paths, missing
+context evidence or MLMD failures. An unavailable MLMD service can therefore deny
+reads even when the key is correctly prefixed. Restore the service; do not disable
+authentication to recover reads.
+
+Audit is not complete security remediation: matching metadata can still reference
+another tenant's object when downstream credentials are shared. Use it only after
+independently verifying storage and proxy/network isolation, with a migration
+owner and deadline. Keep the mode consistent across authenticated serving replicas, monitor
+`artifact_ownership_audit` events, and return to `enforce` after verifying migrated
+reads. An audit event is permission to attempt retrieval, not proof of a successful
+download. This exception is absent from the 3.0 policy. See the
+[artifact ownership details](https://github.com/kubeflow/pipelines/blob/release-2.18/frontend/README.md#artifact-ownership-migration-in-218).
+
+Endpoint trust, credentials and object ownership are separate checks. Updating
+`ALLOWED_ARTIFACT_ENDPOINTS` or `HTTP_BASE_URL` does not migrate object paths.
+After changing environment-based storage settings, restart the UI and profile
+controller as applicable. Existing profile proxies need a namespace reconciliation;
+a controller restart alone does not enqueue them. Wait for the hourly resync or
+annotate each affected namespace, then verify the new proxy pod template **before**
+checking its rollout status. Follow the
+[custom-store rollout procedure](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
+For HTTP artifacts and archived logs, also verify that the shared UI has the
+required network access and appropriate credentials; tenant-proxy access alone
+does not establish either. Test an archived log after the original Pod is gone.
 
 ## Multi-user scheduling during the upgrade
 
@@ -49,6 +104,13 @@ accepted intent during the wait. Run operations, reads, reporting, and deletion
 remain available. Existing legacy schedules retain old behavior until handoff,
 while the new controller waits. This is an automatic scheduling-write pause, not
 an operator-managed outage.
+
+The server identifies this pre-mutation rejection with gRPC `Unavailable` (code
+14), HTTP 503, and `google.rpc.ErrorInfo` reason `SCHEDULE_HANDOFF_IN_PROGRESS`
+in domain `kubeflow.org`. The updated UI and Python SDK retry only this complete
+condition, up to five attempts with 1, 2, 4 and 8 second delays. They stop on other
+errors and surface exhaustion; older installed clients still need explicit retry.
+Updating server images does not upgrade the SDK installed in users' environments.
 
 An explicit handoff rejection means the operation was not applied: a rejected
 **disable leaves the schedule enabled**. Retry with bounded exponential backoff,
@@ -123,9 +185,13 @@ schedule does not stop its runs.
 The automatic handoff covers the standard `ml-pipeline` and
 `ml-pipeline-scheduledworkflow` Deployments and their labeled Pods in the
 installation namespace. It does not discover separate installations or external
-writers sharing the database. Custom overlays must retain the handoff configuration
-and permissions and account for every writer; renamed or unmanaged deployments
-need a migration plan that accounts for those writers. When maintaining your own
+writers sharing the database. For renamed managed Deployments, configure the same
+`KFP_SCHEDULE_WRITERS` identity inventory on every API/controller process and grant
+the documented namespace-scoped ReplicaSet reads and reads of each configured
+Deployment (update stock Role `resourceNames` restrictions). Include retiring writer identities
+when renaming during upgrade; never omit an old writer to make handoff pass. See
+[renamed managed Deployments](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/scheduled-service-accounts.md#renamed-managed-deployments).
+Unmanaged writers still need a migration plan covering every writer. When maintaining your own
 deployment resources, incorporate the release changes to API/controller RBAC,
 `--multiUser=true`, controller pipeline-read permissions and the removal of direct
 controller `workflows/create`. Retain `POD_NAME` and `POD_NAMESPACE` from the
@@ -250,7 +316,8 @@ Use your installation namespace if different. First adoption briefly interrupts
 the UI and invalidates old TensorBoard proxy URLs; reopen TensorBoard from the UI
 after the rollout. The default `Recreate` strategy handles this first adoption.
 Subsequent restarts reuse the key; ordinary manifest reapplication does not rotate
-it. Include the signing Secret in your normal backups.
+it. `Recreate` remains the default for later UI updates too, so those updates still
+interrupt the UI unless you opt into rolling updates after shared-key adoption. Include the signing Secret in your normal backups.
 
 A brief `CreateContainerConfigError` while the initializer creates the key is
 expected and clears automatically. If startup remains blocked, follow

@@ -7,6 +7,7 @@ Documentation for operators deploying and configuring Kubeflow Pipelines.
 
 installation
 upgrade-2.18
+upgrade-2.18-agent-assessment
 server-config
 scheduled-service-accounts
 multi-user
