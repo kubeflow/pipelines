@@ -61,6 +61,16 @@ Changelog
 
 #### Database migration
 
+Unlike earlier index-related column reductions, this change **does not narrow
+`JobUUID` from `varchar(255)` to `varchar(191)`**. The 191-character convention
+worked around older InnoDB's 767-byte index-key limit with `utf8mb4`; it is not a
+general limit on modern databases. Modern InnoDB with `DYNAMIC` row format and the
+default 16 KiB page size supports 3,072-byte index keys, enough for this 255-character
+column. Narrowing an existing column would require a table copy and block writes,
+so we preserve its existing width. The new MySQL index uses a 191-character
+**prefix**, which also accommodates historical text columns and older row formats;
+this does not truncate stored values or change full-value comparisons.
+
 API startup preserves the existing type and width of `run_details.JobUUID` and
 adds its recurring-run lookup index separately. MySQL explicitly requires
 `ALGORITHM=INPLACE, LOCK=NONE`; unsupported online DDL fails startup instead of
