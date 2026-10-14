@@ -82,6 +82,11 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
 
+- Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
+  privileged standard-library-only helper. Do not select a setup-python runtime
+  from `PATH` or preserve loader environment variables through `sudo`: tool-cache
+  interpreters may require shared-library paths that privilege elevation removes.
+
 - Prebuilt pipeline-spec generation (`make -C api python` / `golang`) reuses a locally available generator image. On a cold Docker cache it explicitly pulls through `docker-pull-with-retry.sh` (three attempts, 20-second delays), then runs with `--pull=never`. Pull exhaustion stops generation; generator failures are not retried. Source-built generation remains unchanged.
 
 - Contributor Report treats `FORBIDDEN` errors on individual comment-history nodes as an unavailable PR-comment metric, because that history spans repositories with independent access policies. It reports `Unavailable (GitHub access restrictions)` rather than a partial count, while retaining the other verified metrics. Other GraphQL errors and membership lookup failures still fail the job. Report fixes must land on `master` before a fresh `pull_request_target` event can use them; rerunning an old execution retains its trusted workflow revision.
@@ -117,3 +122,18 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
+- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
+  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+  gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
+  When advancing this pin, review and render all four consumed paths, including
+  the profile controller; the pin selects more than Istio images.
+
+- Docker mirror setup only modifies and restarts an active local systemd Docker
+  service. Containerized/provider-managed runners without that service retain
+  their daemon configuration; the helper still requires `docker info` to succeed.
+  Configure daemon mirrors in the runner provider when local service management
+  is unavailable. BuildKit mirror configuration remains independent.
+- The deploy action provisions GitHub CLI when absent on Linux runners, using a
+  pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
+  installations remain in use. Image-artifact polling fails immediately when
+  invoked without `gh`; missing runner dependencies are not publication delays.

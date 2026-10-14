@@ -25,12 +25,22 @@ if [[ ! -d "$C_DIR" ]]; then
 fi
 source "${C_DIR}/helper-functions.sh"
 
+# Containerized runners may expose Docker without a local systemd service.
+# Their daemon configuration belongs to the runner provider.
+if ! command -v systemctl >/dev/null 2>&1 || ! systemctl is-active --quiet docker; then
+  retry 10 2 docker info
+  echo "Docker has no active local systemd service; retaining provider-managed registry configuration."
+  exit 0
+fi
+
 privilege_command=()
 if [[ "${EUID}" -ne 0 ]]; then
   privilege_command=(sudo)
 fi
 
-configuration_status=$("${privilege_command[@]}" python3 \
+# Use the Ubuntu system interpreter: setup-python runtimes may need
+# LD_LIBRARY_PATH, which sudo deliberately removes. This helper is stdlib-only.
+configuration_status=$("${privilege_command[@]}" /usr/bin/python3 \
   "${C_DIR}/configure_docker_registry_mirror.py" \
   --config "$DOCKER_DAEMON_CONFIG" \
   --mirror "$DOCKER_HUB_MIRROR")
