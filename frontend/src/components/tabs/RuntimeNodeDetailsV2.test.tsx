@@ -871,5 +871,49 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(screen.getByText(/paused after running for debugging/)).toBeInTheDocument();
       expect(screen.getByText('Resume')).toBeEnabled();
     });
+
+    it('re-enables the Resume button when a different task is selected at the same barrier', async () => {
+      const updateSpy = vi
+        .spyOn(Apis.runServiceApiV2, 'task_2')
+        .mockResolvedValue({ task_id: TEST_TASK_ID });
+
+      const view = (taskId: string) => (
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            onLayerChange={() => {}}
+            runId={TEST_RUN_ID}
+            element={executionElement}
+            elementRuntimeInfo={{
+              task: createTask({
+                task_id: taskId,
+                state: PipelineTaskTaskState.RUNNING,
+                status_metadata: {
+                  custom_properties: { debug_pause_barrier: 'before' } as {
+                    [key: string]: object;
+                  },
+                },
+              }),
+            }}
+            namespace={TEST_NAMESPACE}
+          />
+        </CommonTestWrapper>
+      );
+
+      // Task A is resumed at the "before" barrier.
+      const { rerender } = render(view('task-a'));
+      fireEvent.click(screen.getByText('Resume'));
+      await screen.findByRole('button', { name: 'Details' });
+      expect(screen.getByText('Resume')).toBeDisabled();
+
+      // Selecting task B, also paused at "before", must not inherit A's
+      // successful mutation state - B's Resume was never clicked.
+      rerender(view('task-b'));
+
+      expect(screen.getByText(/paused before running for debugging/)).toBeInTheDocument();
+      expect(screen.getByText('Resume')).toBeEnabled();
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy).not.toHaveBeenCalledWith(TEST_RUN_ID, 'task-b', expect.anything());
+    });
   });
 });
