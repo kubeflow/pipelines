@@ -100,7 +100,7 @@ test(
 
 for (const kind of ['pipeline', 'run']) {
   test(
-    `${kind} graph retains its 8px gap and expansion choices across reloads`,
+    `${kind} graph is flush with tabs and retains expansion choices across reloads`,
     { timeout: 30000 },
     async () => {
       const browser = await chromium.launch({
@@ -177,12 +177,8 @@ for (const kind of ['pipeline', 'run']) {
           const tabsBottom = await page
             .getByRole('button', { name: 'Graph', exact: true })
             .evaluate((button) => button.parentElement.getBoundingClientRect().bottom);
-          assert.equal(
-            canvas.y - tabsBottom,
-            8,
-            'Graph starts exactly 8px below the existing tab divider',
-          );
-          const strip = PNG.sync.read(
+          assert.equal(canvas.y - tabsBottom, 0, 'Graph starts directly below the tab divider');
+          const canvasTop = PNG.sync.read(
             await page.screenshot({
               clip: {
                 x: canvas.x + 1,
@@ -193,8 +189,8 @@ for (const kind of ['pipeline', 'run']) {
             }),
           );
           assert.ok(
-            strip.data.every((channel) => channel === 255),
-            'The entire strip is opaque white',
+            canvasTop.data.some((channel) => channel !== 255),
+            'The canvas starts without an opaque white strip',
           );
           assert.ok(
             canvas.height > 0 && canvas.y + canvas.height <= height,
