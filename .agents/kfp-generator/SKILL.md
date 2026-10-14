@@ -20,7 +20,7 @@ Generate KFP v2 pipelines that match this repo's SDK, samples, and conventions.
 
 | Request type | Where to write |
 |---|---|
-| New repo sample | `samples/core/<name>/<name>.py` |
+| New repo sample | `kfp-generator_workspace/iteration_1/<name>.py` |
 | One-off / user pipeline | Path the user specifies, or current working directory |
 | Tutorial / notebook | `samples/tutorials/` |
 
@@ -134,7 +134,7 @@ After generating a `.py` pipeline, run the skill evaluation script to validate c
 
 ### 1. Static Compilation Verification
 ```bash
-python skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py
+python kfp-generator/scripts/eval_output.py path/to/pipeline.py
 ```
 
 The script:
@@ -147,11 +147,11 @@ The script:
 When a live KFP backend cluster is running (e.g., via `make -C backend kind-cluster-agnostic`), execute the pipeline on the real backend to capture evidence of success:
 
 ```bash
-python skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py --run --host http://localhost:8080
+python kfp-generator/scripts/eval_output.py path/to/pipeline.py --run --host http://localhost:8080
 ```
 
 The `--run` step:
-- Passes the decorated pipeline function (`pipeline_func`) to `client.create_run_from_pipeline_func()` to submit a real run to the KFP backend API.
+- Passes the decorated pipeline function (`pipeline_file`) to `client.create_run_from_pipeline_package()` to submit a real run to the KFP backend API.
 - Waits for task container execution on the cluster via `client.wait_for_run_completion()`.
 - Captures final status evidence using `client.get_run(run_id)` to verify that the run state transitioned to `SUCCEEDED`.
 
@@ -162,7 +162,7 @@ To evaluate the overall output quality of this skill across the standardized tes
 
 ```bash
 # Run the full benchmark evaluation suite for iteration 1:
-python .agents/skills/kfp-generator/main.py --suite --iteration 1
+python .agents/kfp-generator/main.py --suite --iteration 1
 ```
 
 This runs the eval suite defined in `evals/evals.json`, creates the workspace under `workspaces/iteration-1/`, executes assertion grading across `with_skill` vs `without_skill` configurations, and generates `benchmark.json` with aggregate metrics (pass rate, duration, tokens, delta) and `feedback.json` for human review.
