@@ -24,6 +24,32 @@ class Auth(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             out=Path(d)/'probe.json'
             with patch('auth_probe.list_names',return_value=set()),patch('auth_probe.call',side_effect=OSError):
-                with self.assertRaises(OSError):probe(self.setup_input(d),{'a':'a','b':'b'},out,'during')
-            self.assertFalse(load(out)[0]['complete'])
+                with self.assertRaises(RuntimeError):probe(self.setup_input(d),{'a':'a','b':'b'},out,'during')
+            row=load(out)[0]
+            self.assertFalse(row['complete'])
+            self.assertEqual(row['write_outcome'],'unknown')
+            self.assertEqual(row['owner_reconciliation'],'absent_in_two_observations')
+            self.assertTrue(row['requires_accepted_run_reconciliation'])
+            self.assertNotIn('write_status',row)
+    def test_unknown_write_owner_reconciliation_failure_preserved(self):
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d)/'probe.json'
+            with patch('auth_probe.list_names',side_effect=[set(),TimeoutError('secret')]),patch('auth_probe.call',side_effect=TimeoutError('secret')) as call,patch('auth_probe.time.sleep'):
+                with self.assertRaises(RuntimeError):probe(self.setup_input(d),{'a':'a','b':'b'},out,'during')
+            row=load(out)[0]
+            self.assertEqual(call.call_count,1)
+            self.assertEqual(row['owner_reconciliation'],'incomplete')
+            self.assertNotIn('secret',out.read_text())
+            self.assertFalse(row['complete'])
+    def test_unknown_write_owner_observes_name_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d)/'probe.json'
+            def names(*args):
+                return {load(out)[0]['probe_name']} if out.exists() else set()
+            with patch('auth_probe.list_names',side_effect=names),patch('auth_probe.call',side_effect=TimeoutError) as call,patch('auth_probe.time.sleep'):
+                with self.assertRaises(RuntimeError):probe(self.setup_input(d),{'a':'a','b':'b'},out,'during')
+            row=load(out)[0]
+            self.assertEqual(call.call_count,1)
+            self.assertEqual(row['owner_reconciliation'],'named_run_observed')
+            self.assertFalse(row['complete'])
 if __name__=='__main__':unittest.main()

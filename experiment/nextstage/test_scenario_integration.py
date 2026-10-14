@@ -30,13 +30,15 @@ class Wrapper(unittest.TestCase):
   from unittest.mock import patch
   with tempfile.TemporaryDirectory() as d:
    calls=[]
+   config=Path(d)/'config.json';calibration=Path(d)/'calibration.json'
+   save(config,{'background_calibration':str(calibration)});save(calibration,{'selected':{'workers':64,'offered_rps':1000,'proven':True},'measurements_authorized_by_calibration':True})
    def fake_run(argv,**kwargs):
     self.assertNotIn('timeout',kwargs);calls.append(argv)
     dest=Path(argv[argv.index('--out')+1]);dest.mkdir()
     save(dest/'process-results.json',{'completed_timeline':True,'auth_during_exit':0,'background_exit':0})
     save(dest/'health-result.json',{'passed':False})
     return subprocess.CompletedProcess(argv,0)
-   with patch.object(sys,'argv',['run_pair.py','--config','unused','--out',d]),patch('subprocess.run',fake_run):
+   with patch.object(sys,'argv',['run_pair.py','--config',str(config),'--out',d]),patch('subprocess.run',fake_run):
     with self.assertRaises(SystemExit) as e:runpy.run_path(str(Path(__file__).parent/'run_pair.py'),run_name='__main__')
    self.assertEqual(e.exception.code,1);self.assertEqual(len(calls),1)
 
@@ -48,8 +50,10 @@ class Wrapper(unittest.TestCase):
    def fake_run(argv,**kwargs):
     dest=Path(argv[argv.index('--out')+1]);dest.mkdir()
     return subprocess.CompletedProcess(argv,0)
-   # A complete first arm may continue, but missing second-arm health must fail.
+   # The sole diagnostic arm still fails when its post-load health is missing.
    def fake_load(path,*args):
+    if str(path)=='unused':return {'background_calibration':'calibration'}
+    if str(path)=='calibration':return {'selected':{'workers':64,'offered_rps':1000,'proven':True},'measurements_authorized_by_calibration':True}
     if 'arm-2' in str(path):raise OSError('missing capture')
     if path.name=='process-results.json':return {'completed_timeline':True,'auth_during_exit':0,'background_exit':0}
     if path.name=='results.json':return {'runs':{'a':[{'state':'SUCCEEDED'}]}}
@@ -66,6 +70,6 @@ class Wrapper(unittest.TestCase):
    with patch.object(sys,'argv',['run_pair.py','--config','unused','--out',d]),patch('subprocess.run',fake_run),patch.object(coordinator,'load',fake_load),patch('builtins.open',fake_open),patch('gzip.open',lambda *a,**kw:io.StringIO(json.dumps({'kind':'snapshot','index':0,'ready':True,'live':True})+'\n')):
     with self.assertRaises(SystemExit) as e:runpy.run_path(str(Path(__file__).parent/'run_pair.py'),run_name='__main__')
    self.assertEqual(e.exception.code,1)
-   self.assertEqual(len(json.loads((Path(d)/'pair-process-results.json').read_text())['arms']),2)
+   self.assertEqual(len(json.loads((Path(d)/'pair-process-results.json').read_text())['arms']),1)
 
 if __name__=='__main__':unittest.main()

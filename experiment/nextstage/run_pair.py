@@ -29,7 +29,10 @@ def safe_next_arm(directory):
     except (OSError,ValueError,KeyError,TypeError,EOFError):return False
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--out',required=True);a=p.parse_args();out=Path(a.out);out.mkdir(parents=True,exist_ok=True);outcomes=[]
- for index in (1,2):
+ calibration=load(load(a.config)['background_calibration']); selected=calibration.get('selected') or {}
+ if selected.get('workers')!=64 or selected.get('offered_rps')!=1000 or selected.get('proven') is not True or calibration.get('measurements_authorized_by_calibration') is not True:raise SystemExit('Diagnostic requires proven frozen64worker/1000RPS pressure')
+ save(out/'diagnostic-continuation.json',{'prior_run_id':38525574937,'prior_head':'65c1e6fce','preserved_completed_arm':1,'run_indices':[2],'fresh_cluster':True,'order_confound':True,'attempt_limit':1,'note':'Negative-only diagnostic; prior20arm preserved, no complete paired/default acceptance claim.'})
+ for index in (2,):
   dest=out/f'arm-{index}'
   if dest.exists():raise SystemExit('Arm directory already exists; no rerun or overwrite')
   save(out/f'arm-{index}-dispatch.json',{'index':index,'qps':20 if index==1 else -1,'scenario':'constrained-fixed-four-seat-bulk-list-v3'})
@@ -43,4 +46,4 @@ if __name__=='__main__':
   record={'index':index,'returncode':result.returncode,'safe_next_arm':safe_next_arm(dest)};outcomes.append(record);save(out/f'arm-{index}-outcome.json',record)
   if not record['safe_next_arm']:break
  save(out/'pair-process-results.json',{'arms':outcomes,'acceptance_complete':False,'default_change_supported':False})
- raise SystemExit(0 if len(outcomes)==2 and all(v['returncode']==0 and v['safe_next_arm'] for v in outcomes) else 1)
+ raise SystemExit(0 if len(outcomes)==1 and all(v['returncode']==0 and v['safe_next_arm'] for v in outcomes) else 1)

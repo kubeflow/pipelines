@@ -3,7 +3,7 @@ import argparse,datetime as dt,hashlib,json,subprocess,time
 from pathlib import Path
 SOURCE='6bea51e2003f9072a55068fb85e03cdb9391435d'
 NODE='kindest/node@sha256:21c46cf61fd45873f89e6a1bfcba4b7904dffa84c2bec88aeeca9a0409af4725'
-STEPS=((1,16),(4,64),(16,256),(64,1000))
+STEPS=((64,1000),) # Diagnostic revalidates only the previously frozen pressure; no reselection.
 #5s lead +33s timeline +12s observer context tail +10s durable output margin.
 CALIBRATION_OBSERVER_TIMEOUT_SECONDS=60
 SCENARIO={'name':'constrained-fixed-four-seat-bulk-list-v3','source':SOURCE,'node_image':NODE,'apiserver_flags':{'max-requests-inflight':10,'max-mutating-requests-inflight':10},'apf_policy_mutations':True,'bootstrap_policy_mutations':False,'new_priority':{'nominalConcurrencyShares':60,'lendablePercent':0,'borrowingLimitPercent':0},'expected_shared_seats':4,'calibration_steps':[{'workers':w,'offered_rps':r} for w,r in STEPS],'measurement_client_qps':[20,-1],'burst':40,'minimum_observed_shared_seats':1,'saturation_consecutive_samples':10,'calibration_seconds_per_step':33,'pipeline_variant':'two-active-per-tenant-total-eight-v1','caller_budget':{'kfp_reads':64,'background':64,'quiet_kubernetes':64,'pipeline_lifecycle_serial_per_tenant':4},'background_pressure_phases':['sustained','burst1','burst2','burst3'],'background_max_offers':210000,'background_list':{'configmaps':1024,'payload_bytes_each':1024,'namespace_list_limit':2048,'named_get_update_unchanged':True},'acceptance_complete':False}

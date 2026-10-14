@@ -93,7 +93,7 @@ jobs:
         run: |
           cp "$RUNNER_TEMP/apf-background-private/bulk-seed.json" "$RUNNER_TEMP/apf-pair-evidence/background-bulk-seed.json"
           cp "$RUNNER_TEMP/apf-background-private/classification.json" "$RUNNER_TEMP/apf-pair-evidence/background-classification.json"
-      - name: Bounded calibration and frozen pressure selection
+      - name: Revalidate frozen64worker1000RPS pressure only
         shell: bash
         run: |
           set -euo pipefail
@@ -110,7 +110,7 @@ jobs:
           c=json.loads(p.read_text());c['background_calibration']=str(root/'apf-pair-evidence/calibration/frozen-calibration.json');c['background_template']=str(root/'apf-background-private/background-template.json')
           p.write_text(json.dumps(c))
           PYCONFIG
-      - name: Measure new constrained 20 and negative-one pair
+      - name: Measure negative-only diagnostic continuation
         run: >-
           python harness/experiment/nextstage/run_pair.py
           --config "$RUNNER_TEMP/apf-pair-private/coordinator.json"

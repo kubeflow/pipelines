@@ -26,5 +26,5 @@ class CompletedCapture(unittest.TestCase):
  def test_mismatching_timeline_rejected(self):
   save(self.p/'workload/results.json',{'timeline':[]});self.assertFalse(self.ready())
  def test_workflow_runs_only_remaining_arm(self):
-  workflow=(Path(__file__).parent/'hosted-pair.yml').read_text();self.assertIn('for index in 2; do',workflow);self.assertNotIn('for index in 1 2;',workflow)
+  wrapper=(Path(__file__).parent/'run_pair.py').read_text();self.assertIn('for index in (2,):',wrapper);self.assertNotIn('for index in (1,2):',wrapper)
 if __name__=='__main__':unittest.main()

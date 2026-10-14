@@ -39,7 +39,31 @@ def probe(workload,targets,out,phase):
         body={'display_name':name,'namespace':target['namespace'],'experiment_id':target['experiment_id'],'service_account':target['service_account'],'pipeline_version_reference':{'pipeline_id':fixture['pipeline_id'],'pipeline_version_id':fixture['version_id']}}
         row={'started_at':iso(utc()),'phase':phase,'actor':actor['name'],'target':target['name'],'probe_name':name,'write_dispatched':True,'complete':False}
         rows.append(row);save(output,rows) # durable dispatch before possibly accepted write
-        status,data=call(endpoint,'/apis/v2beta1/runs',atoken,body)
+        try:
+            status,data=call(endpoint,'/apis/v2beta1/runs',atoken,body)
+        except Exception as error:
+            # A transport or decode failure is not a denial. Never resend this POST.
+            row['write_outcome']='unknown'
+            row['write_error_type']=type(error).__name__
+            row['write_failed_at']=iso(utc())
+            row['requires_accepted_run_reconciliation']=True
+            save(output,rows)
+            row['owner_absence_observations']=[]
+            try:
+                for delay in (0,2):
+                    time.sleep(delay)
+                    names=list_names(endpoint,target,ttoken)
+                    row['owner_absence_observations'].append(name not in names)
+                    save(output,rows)
+                row['owner_reconciliation']='absent_in_two_observations' if all(row['owner_absence_observations']) else 'named_run_observed'
+            except Exception as reconcile_error:
+                row['owner_reconciliation']='incomplete'
+                row['owner_reconciliation_error_type']=type(reconcile_error).__name__
+            row['reconciliation_finished_at']=iso(utc())
+            # Even two absent listings do not establish the POST's HTTP outcome,
+            # nor rule out a request still executing after client disconnection.
+            save(output,rows)
+            raise RuntimeError('authorization write outcome unknown; no retry') from None
         row['write_status']=status
         if data and data.get('run_id'):row['unexpected_accepted_run_id']=data['run_id']
         save(output,rows)
