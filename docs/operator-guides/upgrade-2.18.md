@@ -42,8 +42,17 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 ### Automatic startup schema and data changes
 
 Database initialization reconciles model tables, columns and indexes. For example,
-`run_details.JobUUID` becomes `varchar(191)` with `idx_run_details_job_uuid` for
-recurring-run queries. The pipeline-reference backfill also scans and updates
+the 2.18 Run model declares `run_details.JobUUID` as `varchar(191)` and requests
+`idx_run_details_job_uuid` for recurring-run queries. Startup reconciles the
+existing schema with that model; it does not rebuild an already matching schema
+on every restart. The previous 2.17.2 model did not declare this length or index.
+This declaration is specific to `release-2.18`; current master does not carry the
+same Run-field tag. The startup path calls `AutoMigrate(model.AllModels()...)`,
+which includes `Run`. `JobUUID` is not in `LengthSpecs`: that list controls the
+separate legacy length preflight/shrink helper, not all GORM schema changes.
+Do not confuse this model-driven lookup index with the two manually provisioned
+GC indexes below. There is no `JobUUID`-specific length preflight in `LengthSpecs`;
+do not infer a guarantee for unsupported oversized stored identifiers. The pipeline-reference backfill also scans and updates
 `run_details` and `jobs` to populate pipeline and version references. Its completion
 marker and updates share a transaction: interruption rolls back the claim, and
 competing replicas wait and skip completed work.
