@@ -131,11 +131,20 @@ other startup migrations or the recurring-run lookup index.
 Ordinary supported upgrades no longer require manual index SQL. Investigate
 permissions, disk capacity, lock contention and engine online-DDL support when
 preparation fails. Increasing the build timeout cannot resolve the separate
-five-second lock wait. An invalid or incompatible same-named index is left intact
-for inspection, not silently dropped. A canceled PostgreSQL concurrent build can
-leave an invalid index; repair it deliberately before the automatic retry can
-succeed. Coordinate exceptional manual repair with all preparers (disable
-retention and prepare-only across them and let active work stop).
+five-second lock wait. A canceled PostgreSQL concurrent build can leave an invalid
+index. The preparer automatically drops and rebuilds an abandoned index only when
+it matches the exact managed retention-index definition. Both operations use
+`CONCURRENTLY`, share the per-index build deadline, and keep GC paused. Active DDL
+causes preparation to defer; conflicting definitions, custom storage options and
+nondefault tablespaces remain intact for inspection. A configured nondefault
+`default_tablespace` can therefore require coordinated manual recovery.
+
+The names `idx_run_gc_lifecycle` and `idx_run_gc_archived` are managed by the
+preparer. API preparers coordinate with a schema-scoped advisory lock. Manual DDL
+does not automatically honor that lock, and an activity check cannot exclude an
+administrator starting DDL immediately afterward. Before manually changing these
+indexes, disable retention and prepare-only across all preparers and let active
+work stop. Do not run uncoordinated manual index builds alongside automation.
 
 The SQL below is for inspection and coordinated recovery, not a prerequisite for
 normal enablement. Never retry failed online DDL with a blocking/copying algorithm.
@@ -169,9 +178,9 @@ ALTER TABLE run_details ADD INDEX idx_run_gc_archived (StorageState, ArchivedAtI
 ```
 
 If a same-named index has different columns, remove it in a coordinated
-maintenance operation before applying the command above. A failed PostgreSQL
-concurrent build can leave an invalid index; remove only that invalid index with
-`DROP INDEX CONCURRENTLY public.idx_run_gc_lifecycle` before retrying. For
+maintenance operation before applying the command above. Ordinary interrupted
+PostgreSQL builds with matching definitions recover automatically; manual repair
+is reserved for conflicting definitions or persistent database failures. For
 MySQL, use `SHOW INDEX FROM run_details` first and run the `ALTER TABLE` only
 when the exact index is absent.
 
