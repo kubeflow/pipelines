@@ -38,8 +38,9 @@ def retry_schedule_handoff(request: Callable[[], _Result]) -> _Result:
     """Retry only a server guarantee that no schedule mutation was applied.
 
     Five attempts wait 1, 2, 4, and 8 seconds between explicit handoff
-    rejections. Generic outages and transport failures are never replayed:
-    creation may already have succeeded. Preserve the final API exception.
+    rejections. Generic outages and transport failures are never
+    replayed: creation may already have succeeded. Preserve the final
+    API exception.
     """
     for attempt in range(5):
         try:
