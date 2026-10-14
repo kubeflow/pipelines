@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Button } from '@mui/material';
 import {
   ComponentSpec,
   ParameterType_ParameterTypeEnum,
@@ -28,8 +27,8 @@ import {
   getTaskKeyFromNodeKey,
   isArtifactNode,
   isTaskNode,
-  PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
 
@@ -44,16 +43,10 @@ const NODE_INFO_UNKNOWN = (
 interface StaticNodeDetailsV2Props {
   templateString: string;
   layers: string[];
-  onLayerChange: (layers: string[]) => void;
   element: PipelineFlowElement | null;
 }
 
-export function StaticNodeDetailsV2({
-  templateString,
-  layers,
-  onLayerChange,
-  element,
-}: StaticNodeDetailsV2Props) {
+export function StaticNodeDetailsV2({ templateString, layers, element }: StaticNodeDetailsV2Props) {
   if (!element) {
     return NODE_INFO_UNKNOWN;
   }
@@ -71,7 +64,6 @@ export function StaticNodeDetailsV2({
             pipelineSpec={pipelineSpec}
             element={element}
             layers={layers}
-            onLayerChange={onLayerChange}
           />
         );
       } else if (isArtifactNode(element.id)) {
@@ -90,32 +82,19 @@ interface TaskNodeDetailProps {
   pipelineSpec: PipelineSpec;
   element: PipelineFlowElement;
   layers: string[];
-  onLayerChange: (layers: string[]) => void;
 }
 
-function TaskNodeDetail({
-  templateString,
-  pipelineSpec,
-  element,
-  layers,
-  onLayerChange,
-}: TaskNodeDetailProps) {
+function TaskNodeDetail({ templateString, pipelineSpec, element, layers }: TaskNodeDetailProps) {
   const taskKey = getTaskKeyFromNodeKey(element.id);
   const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
   if (!componentSpec) {
     return NODE_INFO_UNKNOWN;
   }
 
-  const onSubDagOpenClick = () => {
-    onLayerChange([...layers, taskKey]);
-  };
-
   const inputArtifacts = getInputArtifacts(componentSpec);
   const inputParameters = getInputParameters(componentSpec);
   const outputArtifacts = getOutputArtifacts(componentSpec);
   const outputParameters = getOutputParameters(componentSpec);
-
-  const componentDag = componentSpec.dag;
 
   const container = WorkflowUtils.getContainer(componentSpec, templateString);
   const args = container?.args;
@@ -124,13 +103,6 @@ function TaskNodeDetail({
 
   return (
     <div>
-      {componentDag && (
-        <div>
-          <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Sub-DAG
-          </Button>
-        </div>
-      )}
       {inputArtifacts && (
         <div>
           <DetailsTable title='Input Artifacts' fields={inputArtifacts} />

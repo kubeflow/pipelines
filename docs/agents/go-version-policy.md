@@ -20,6 +20,7 @@ The managed Go builder images are the single builder `FROM` instructions in:
 
 - `backend/Dockerfile`
 - `backend/Dockerfile.cacheserver`
+- `backend/src/cache/deployer/Dockerfile`
 - `backend/Dockerfile.conformance`
 - `backend/Dockerfile.driver`
 - `backend/Dockerfile.launcher`

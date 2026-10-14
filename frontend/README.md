@@ -184,7 +184,7 @@ Multi-user frontend previews and downloads enforce namespace-prefixed object key
 Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
 to direct and proxied MinIO, S3, GCS and HTTP(S) retrieval. Standalone mode is unchanged.
 
-Operators with legacy custom roots can temporarily set `ARTIFACT_OWNERSHIP_ENFORCEMENT=audit`
+Operators with legacy custom roots can temporarily set `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit`
 in the `pipeline-install-config` ConfigMap and restart the frontend deployment. The default is
 `enforce`; unknown values deny access. Audit is a **2.18 migration option, not a security fix**:
 matching metadata can refer to another tenant's object when downstream credentials are shared.

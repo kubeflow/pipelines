@@ -6,6 +6,15 @@ Use the complete update command for both Dependabot proposals and manual upgrade
 
 ## Planned KFP 3.0 support boundary
 
+The release-2.18 branch retains Argo 3.7.18 compatibility coverage and uses
+Argo 4.1.5 as its default runtime. Upgrade the controller, executor, manifests,
+CLI, and Go client together; preserve both API and end-to-end CI lanes.
+
+[Upstream maintains the two most recent minor releases](https://argo-workflows.readthedocs.io/en/latest/releases/),
+currently 4.0 and 4.1. Retaining 3.7 here is a KFP 2.x compatibility commitment,
+not a claim that upstream still provides routine 3.7 maintenance or security fixes.
+Operators should prefer the maintained 4.1 runtime.
+
 Argo Workflows 3.x remains supported for KFP 2.x, but is deprecated and will not be supported by
 Kubeflow Pipelines 3.0. Before the KFP 3.0 release, replace the 3.x compatibility lane with the
 oldest supported 4.x release, update the public compatibility matrix and operator upgrade
@@ -18,7 +27,7 @@ CI matrices. Track this work in
 From the repository root, select an exact stable tag:
 
 ```bash
-ARGO_TAG=v4.1.2
+ARGO_TAG=v4.1.5
 make -C third_party/argo update ARGO_VERSION="${ARGO_TAG}"
 ```
 

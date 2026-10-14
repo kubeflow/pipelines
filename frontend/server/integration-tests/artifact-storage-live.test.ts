@@ -9,6 +9,7 @@ import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { gzipSync } from 'node:zlib';
 import { Client } from 'minio';
+import { listObjectsUnderPrefix } from '../minio-helper.js';
 import requests from 'supertest';
 import type { UIServer } from '../app.js';
 import { commonSetup } from './test-helper.js';
@@ -22,6 +23,11 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
   const content = '<html><script>throw new Error("inert")</script>existing artifact</html>';
   const archive = gzipSync(Buffer.from('existing compressed artifact bytes'));
   const logs = 'existing archived pod logs\n';
+  const specialKeys = ['keys/literal%2Fname.txt', 'keys/space + unicode-é.txt'];
+  const paginatedKeys = Array.from(
+    { length: 305 },
+    (_, index) => `pagination/${String(index).padStart(3, '0')}.txt`,
+  );
   const port = Number(process.env.KFP_LIVE_S3_PORT || 8333);
   const origin = `http://127.0.0.1:${port}`;
   const alias = `http://localhost:${port}`;
@@ -118,6 +124,16 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
     await client.putObject(bucket, 'existing.html', content);
     await client.putObject(bucket, 'existing.gz', archive);
     await client.putObject(bucket, 'pod.log', logs);
+    const fixtures = [
+      ...specialKeys.map((key) => [key, `content for ${key}`]),
+      ...paginatedKeys.map((key) => [key, key]),
+    ];
+    // Bound concurrent writes while seeding enough objects for multiple listing pages.
+    for (let start = 0; start < fixtures.length; start += 20) {
+      await Promise.all(
+        fixtures.slice(start, start + 20).map(([key, body]) => client.putObject(bucket, key, body)),
+      );
+    }
     http = createServer((req, res) => {
       calls.push(req.url || '');
       if (req.url === '/reports/redirect') {
@@ -138,7 +154,7 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
     workflow('stock-archive', origin);
     workflow('alias-archive', alias);
     workflow('untrusted-archive', httpOrigin);
-  }, 60000);
+  }, 120000);
   afterAll(async () => {
     await Promise.all(apps.map((app) => app.close()));
     if (http)
@@ -165,6 +181,36 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
       .expect(200);
     attachment(response);
     expect(response.body).toEqual(archive);
+  });
+  it.each(specialKeys)('preserves the exact S3 object key %s', async (key) => {
+    const response = await ui()
+      .get('/artifacts/get')
+      .query({ source: 'minio', bucket, key, download: 'true' })
+      .buffer(true)
+      .parse(parseBytes)
+      .expect(200);
+    expect(Buffer.from(response.body).toString()).toBe(`content for ${key}`);
+  });
+  it.each(['missing-object.txt', 'empty-prefix/'])(
+    'returns 404 for missing object or empty prefix %s',
+    async (key) => {
+      await ui().get('/artifacts/get').query({ source: 'minio', bucket, key }).expect(404);
+    },
+  );
+  it('lists every object across real SeaweedFS continuation pages', async () => {
+    const client = new Client({
+      endPoint: '127.0.0.1',
+      port,
+      useSSL: false,
+      region: 'us-east-1',
+      accessKey: 'fixture',
+      secretKey: 'fixture-secret',
+    });
+    const objects: Array<{ name: string; size: number }> = [];
+    for await (const object of listObjectsUnderPrefix(client, bucket, 'pagination/')) {
+      objects.push(object);
+    }
+    expect(objects).toEqual(paginatedKeys.map((name) => ({ name, size: Buffer.byteLength(name) })));
   });
   it('reads custom S3 configuration using the actual configured credentials', async () => {
     const response = await ui()

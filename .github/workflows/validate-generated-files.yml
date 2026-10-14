@@ -90,7 +90,7 @@ jobs:
       - name: Set up Python
         uses: ./.github/actions/setup-python-pip-cache
         with:
-          python-version: 3.9
+          python-version: "3.10"
           cache-scope: validate-generated-files
           cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 

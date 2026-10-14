@@ -12,23 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Execution, Artifact } from 'src/third_party/mlmd';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { Artifact, Execution } from 'src/third_party/mlmd';
 
-// Being used as the base interace for Node and Edge in Reactflow.
+export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
+export type FlowElementState = Execution.State | V2beta1RuntimeState;
+
+// Being used as the base interface for Node and Edge in ReactFlow.
 export type FlowElementDataBase = {
   label: string;
   mlmdId?: number;
   [key: string]: any;
 };
 
-export type SubDagFlowElementData = FlowElementDataBase & {
+export type SubDagTaskData = FlowElementDataBase & {
+  groupKind?: SubDagKind;
+  expectedTaskCount?: number;
+  state?: FlowElementState;
+};
+
+export type SubDagFlowElementData = SubDagTaskData & {
   // Callback action if a SubDag expand button is clicked.
   expand: (nodeKey: string) => void;
-  state?: Execution.State;
 };
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
-  state?: Execution.State;
+  state?: FlowElementState;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {

@@ -4,7 +4,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 10
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.10"
   USER_NAMESPACE: "kubeflow-user-example-com"
   CA_CERT_PATH: ""
   AWS_ACCESS_KEY_ID: 'minio'
@@ -90,7 +90,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.18", "v4.1.2" ]
+        argo_version: [ "v3.7.18", "v4.1.5" ]
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.

@@ -28,7 +28,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import (Callable, Dict, Iterable, List, Optional, Sequence, Set,
+                    Tuple)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
@@ -43,6 +44,8 @@ class DockerPin:
 MANAGED_DOCKERFILES = (
     DockerPin(Path('backend/Dockerfile'), '-bookworm', 'builder'),
     DockerPin(Path('backend/Dockerfile.cacheserver'), '-alpine', 'builder'),
+    DockerPin(
+        Path('backend/src/cache/deployer/Dockerfile'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.conformance'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.driver'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.launcher'), '-alpine', 'builder'),

@@ -14,7 +14,7 @@
 
 FROM envoyproxy/envoy:v1.39.1
 
-RUN apt-get update -y && \
+RUN apt-get update -y && apt-get upgrade -y && \
   apt-get install --no-install-recommends -y -q gettext openssl
 
 

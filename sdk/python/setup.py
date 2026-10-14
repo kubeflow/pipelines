@@ -61,8 +61,6 @@ notebooks = [
     "nbclient>=0.10,<1",
     "ipykernel>=6,<7",
     "jupyter_client>=7,<9",
-    # 2.22.0 uses Python 3.10 union syntax but permits Python 3.9.
-    'fastjsonschema<2.22; python_version < "3.10"',
 ]
 
 setuptools.setup(
@@ -96,7 +94,6 @@ setuptools.setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
@@ -107,7 +104,7 @@ setuptools.setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.9.0',
+    python_requires='>=3.10.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [
