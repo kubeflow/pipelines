@@ -282,12 +282,22 @@ def incomplete_acceptance(directory, c):
           'note': 'Exploratory measurements only; inspect each arm acceptance.json and baseline semantic failures.'})
 
 
+def safe_failure_reason(error):
+    # Only fixed local error categories; arbitrary server strings remain excluded.
+    message=str(error)
+    if message in ('bounded command output limit','bounded command deadline','empty projected container health','duplicate health container identity','invalid projected container health'):
+        return message
+    if re.fullmatch(r'command failed with exit -?[0-9]{1,3}',message):return message
+    return 'detail_suppressed'
+
+
 def arm(c, workload_template, observer_template, directory, index):
     directory.mkdir(mode=0o700)
     qps = ORDER[index]
     owner = Owned(c)
     processes = []
     failure = None
+    stage = 'switch'
     try:
         owner.switch(qps, directory)
         forward = owner.forward()
@@ -297,13 +307,17 @@ def arm(c, workload_template, observer_template, directory, index):
         from integration import scheduled_stage, health_snapshot, collect_semantics
         from acceptance import health
         preflight = dict(workload_template, endpoint=endpoint, label=f'pair{index//2+1}-qps{qps}')
+        stage = 'scheduled-before'
         scheduled_stage(c, preflight, directory, 'scheduled-before')
         from auth_probe import probe, targets_from
         targets=targets_from(directory/'scheduled-before.jsonl',preflight['tenants'])
+        stage = 'auth-before'
         probe(preflight,targets,directory/'auth-before.json','before')
+        stage = 'health-before'
         baseline_health = health_snapshot(owner)
         save(directory/'health-before.json', baseline_health)
         # Assign the shared clock only after recurring preflight has completed.
+        stage = 'shared-launch'
         start = utc() + dt.timedelta(seconds=45)
         workload = dict(workload_template, endpoint=endpoint, start_at=iso(start), label=f'pair{index//2+1}-qps{qps}')
         observer = dict(observer_template, start_at=iso(start), seconds=total_seconds(workload),
@@ -328,6 +342,7 @@ def arm(c, workload_template, observer_template, directory, index):
                       '--at',iso(start+dt.timedelta(seconds=130)), '--until',iso(start+dt.timedelta(seconds=300))])
         processes.append(auth)
         deadline = start + dt.timedelta(seconds=total_seconds(workload)+15)
+        stage = 'measurement'
         while utc() < deadline:
             if forward.poll() is not None:
                 raise RuntimeError('port-forward died during measurement')
@@ -340,16 +355,20 @@ def arm(c, workload_template, observer_template, directory, index):
         else:
             raise RuntimeError('full timeline/drain watchdog expired')
         save(directory/'process-results.json', {'workload_exit':work.returncode,'observer_exit':watch.returncode,'qps':qps})
+        stage = 'auth-after'
         probe(workload,targets,directory/'auth-after.json','after')
+        stage = 'health-after'
         final_health = health_snapshot(owner)
         save(directory/'health-after.json', final_health)
         save(directory/'health-result.json', {'passed':health(baseline_health, final_health), 'direct_etcd_metrics_complete':False})
+        stage = 'semantic-capture'
         collect_semantics(c, workload, directory)
+        stage = 'scheduled-after'
         scheduled_stage(c, workload, directory, 'scheduled-after')
     except BaseException as error:
         failure = type(error).__name__
         # Only safe operation stage/type, never child stdout, tokens or raw API errors.
-        save(directory/'interrupted.json', {'failure_type':failure,'at':iso(utc()),'requires_accepted_run_reconciliation':True})
+        save(directory/'interrupted.json', {'failure_type':failure,'stage':stage,'bounded_reason':safe_failure_reason(error),'at':iso(utc()),'requires_accepted_run_reconciliation':True})
     finally:
         for process in reversed(processes):
             stop(process)

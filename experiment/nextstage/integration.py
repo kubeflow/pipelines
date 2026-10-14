@@ -22,12 +22,24 @@ def scheduled_stage(c,workload,directory,name):
     save(directory/(name+'-result.json'),{'passed':passed,'outside_measurement_window':True})
     if not passed:raise RuntimeError('recurring lifecycle incomplete')
 
+HEALTH_TEMPLATE = ('{{range .items}}{{if or (eq .metadata.namespace "kube-system") (eq .metadata.namespace "kubeflow")}}'
+    '{{$uid := .metadata.uid}}{{range .status.containerStatuses}}'
+    '{"key":{{printf "%q" (printf "%s/%s" $uid .name)}},'
+    '"restart_count":{{.restartCount}},"ready":{{.ready}},"reason":'
+    '{{if .lastState.terminated}}{{printf "%q" .lastState.terminated.reason}}{{else}}null{{end}}}'
+    '{{"\\n"}}{{end}}{{end}}{{end}}')
+
 def health_snapshot(owner):
-    pods=json.loads(owner.k('get','pods','-A','-o','json',timeout=30));result={}
-    for p in pods['items']:
-        if p['metadata']['namespace'] not in ('kube-system','kubeflow'):continue
-        for container in p.get('status',{}).get('containerStatuses',[]):
-            result[p['metadata']['uid']+'/'+container['name']]={'restart_count':container['restartCount'],'ready':container['ready'],'reason':container.get('lastState',{}).get('terminated',{}).get('reason')}
+    # kubectl projects before stdout capture: Pod args/env/spec never enter evidence.
+    data=owner.k('get','pods','-A','-o','go-template','--template='+HEALTH_TEMPLATE,timeout=30)
+    result={}
+    for line in data.decode().splitlines():
+        if not line.strip():continue
+        row=json.loads(line);key=row.pop('key')
+        if key in result:raise RuntimeError('duplicate health container identity')
+        if not isinstance(row['ready'],bool) or not isinstance(row['restart_count'],int):raise RuntimeError('invalid projected container health')
+        result[key]=row
+    if not result:raise RuntimeError('empty projected container health')
     return result
 
 def collect_semantics(c,workload,directory):
