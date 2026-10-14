@@ -8,6 +8,8 @@ Read the guide relevant to the files or task you are changing:
 - [Architecture and runtime](docs/agents/architecture.md)
 - [Development and deployment](docs/agents/development.md)
 - [Testing and formatting](docs/agents/testing.md)
+- [Nonblocking database changes](docs/agents/database-migrations.md) before changing
+  models, indexes, migrations, startup SQL or backfills
 - [Generated code and APIs](docs/agents/generation.md)
 - [Frontend](docs/agents/frontend.md)
 - [CI and workflows](docs/agents/ci.md)
