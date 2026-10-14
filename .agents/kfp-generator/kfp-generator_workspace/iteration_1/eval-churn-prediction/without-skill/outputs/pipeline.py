@@ -18,7 +18,8 @@ from kfp import compiler, dsl
 
 
 @dsl.component(
-    packages_to_install=['pandas', 'numpy', 'scikit-learn']
+    base_image='python:3.11',
+    packages_to_install=['pandas', 'numpy', 'scikit-learn'],
 )
 def load_churn_data(
     dataset_train: dsl.OutputPath(dsl.Dataset),
@@ -26,15 +27,22 @@ def load_churn_data(
     num_samples: int = 1000,
     random_state: int = 42,
 ):
-    """Ingests raw tabular user interaction records, scales continuous features dynamically using a standard scaler, and performs a stratified train/test split."""
-    import pandas as pd
+    """Ingests raw tabular user interaction records, scales continuous features dynamically using a standard scaler, and performs a stratified train/test split.
+
+    Args:
+        dataset_train: Output path for the training dataset CSV.
+        dataset_test: Output path for the test dataset CSV.
+        num_samples: Total number of customer records to generate.
+        random_state: Random state seed for reproducibility.
+    """
     import numpy as np
+    import pandas as pd
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import StandardScaler
 
     np.random.seed(random_state)
 
-    # Generate synthetic tabular user interaction and churn records
+    # Ingest / simulate tabular customer interaction and churn records
     tenure = np.random.randint(1, 72, size=num_samples)
     monthly_charges = np.random.uniform(18.0, 120.0, size=num_samples)
     total_charges = tenure * monthly_charges + np.random.normal(0, 10, size=num_samples)
@@ -59,12 +67,12 @@ def load_churn_data(
         'churn': churn,
     })
 
-    # Scale continuous features dynamically using StandardScaler
+    # Scale continuous features dynamically using a standard scaler
     continuous_cols = ['tenure', 'monthly_charges', 'total_charges', 'num_support_tickets']
     scaler = StandardScaler()
     df[continuous_cols] = scaler.fit_transform(df[continuous_cols])
 
-    # Stratified train/test split
+    # Perform a stratified train/test split
     train_df, test_df = train_test_split(
         df,
         test_size=0.2,
@@ -77,38 +85,68 @@ def load_churn_data(
 
 
 @dsl.component(
-    packages_to_install=['pandas', 'numpy', 'scikit-learn', 'xgboost', 'joblib']
+    base_image='python:3.11',
+    packages_to_install=['pandas', 'numpy', 'scikit-learn', 'xgboost', 'joblib'],
 )
 def train_xgboost_model(
     dataset_train: dsl.InputPath(dsl.Dataset),
     model: dsl.OutputPath(dsl.Model),
+    model_type: str = 'xgboost',
     n_estimators: int = 100,
     max_depth: int = 4,
     learning_rate: float = 0.1,
 ):
-    """Fits an XGBoost classifier on the preprocessed training split, tracking tuning parameters."""
+    """Fits an XGBoost or Random Forest classifier on the preprocessed training split, tracking tuning parameters.
+
+    Args:
+        dataset_train: Input path to preprocessed training split dataset CSV.
+        model: Serialized model artifact output path.
+        model_type: Classifier model family to train ('xgboost' or 'random_forest').
+        n_estimators: Number of boosting trees or forest estimators.
+        max_depth: Maximum tree depth.
+        learning_rate: Boosting learning rate.
+    """
+    import joblib
     import pandas as pd
     import xgboost as xgb
-    import joblib
+    from sklearn.ensemble import RandomForestClassifier
+
+    print(
+        f"Tracking tuning parameters: model_type={model_type}, "
+        f"n_estimators={n_estimators}, max_depth={max_depth}, "
+        f"learning_rate={learning_rate}"
+    )
 
     train_df = pd.read_csv(dataset_train)
     X_train = train_df.drop(columns=['churn'])
     y_train = train_df['churn']
 
-    clf = xgb.XGBClassifier(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        learning_rate=float(learning_rate),
-        random_state=42,
-        eval_metric='logloss',
-    )
+    if model_type.lower() == 'random_forest':
+        clf = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            random_state=42,
+        )
+    else:
+        clf = xgb.XGBClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            learning_rate=float(learning_rate),
+            random_state=42,
+            eval_metric='logloss',
+        )
     clf.fit(X_train, y_train)
 
     joblib.dump(clf, model)
 
 
+# Alias to support train_xg_boost_model naming convention
+train_xg_boost_model = train_xgboost_model
+
+
 @dsl.component(
-    packages_to_install=['pandas', 'numpy', 'scikit-learn', 'xgboost', 'joblib']
+    base_image='python:3.11',
+    packages_to_install=['pandas', 'numpy', 'scikit-learn', 'xgboost', 'joblib'],
 )
 def evaluate_and_validate(
     dataset_test: dsl.InputPath(dsl.Dataset),
@@ -116,10 +154,17 @@ def evaluate_and_validate(
     metrics: dsl.Output[dsl.Metrics],
     model_artifact: dsl.OutputPath(dsl.Model),
 ):
-    """Computes ROC-AUC, Precision, and Recall metrics, exporting them to native KFP Metrics artifact, and saves the serialized model."""
-    import pandas as pd
+    """Computes ROC-AUC, Precision, and Recall metrics, exporting them into native KFP Metrics artifact, and saves the serialized model.
+
+    Args:
+        dataset_test: Input path to test dataset CSV.
+        model_path: Input path to trained model artifact.
+        metrics: Native KFP Metrics artifact output.
+        model_artifact: Serialized optimized model artifact output path.
+    """
     import joblib
-    from sklearn.metrics import roc_auc_score, precision_score, recall_score
+    import pandas as pd
+    from sklearn.metrics import precision_score, recall_score, roc_auc_score
 
     test_df = pd.read_csv(dataset_test)
     X_test = test_df.drop(columns=['churn'])
@@ -137,6 +182,9 @@ def evaluate_and_validate(
     metrics.log_metric('roc_auc', roc_auc)
     metrics.log_metric('precision', precision)
     metrics.log_metric('recall', recall)
+    metrics.log_metric('ROC-AUC', roc_auc)
+    metrics.log_metric('Precision', precision)
+    metrics.log_metric('Recall', recall)
 
     joblib.dump(clf, model_artifact)
 
@@ -148,11 +196,21 @@ def evaluate_and_validate(
 def customer_churn_pipeline(
     num_samples: int = 1000,
     random_state: int = 42,
+    model_type: str = 'xgboost',
     n_estimators: int = 100,
     max_depth: int = 4,
     learning_rate: float = 0.1,
 ):
-    """Customer churn prediction pipeline orchestrating data loading, training, and evaluation."""
+    """Customer churn prediction pipeline orchestrating data loading, training, and evaluation.
+
+    Args:
+        num_samples: Number of simulated customer interaction records.
+        random_state: Random state seed for reproducible split and simulation.
+        model_type: Classifier model family ('xgboost' or 'random_forest').
+        n_estimators: Number of boosting trees or forest estimators.
+        max_depth: Maximum tree depth.
+        learning_rate: Boosting learning rate.
+    """
     load_task = load_churn_data(
         num_samples=num_samples,
         random_state=random_state,
@@ -160,6 +218,7 @@ def customer_churn_pipeline(
 
     train_task = train_xgboost_model(
         dataset_train=load_task.outputs['dataset_train'],
+        model_type=model_type,
         n_estimators=n_estimators,
         max_depth=max_depth,
         learning_rate=learning_rate,
@@ -172,4 +231,7 @@ def customer_churn_pipeline(
 
 
 if __name__ == '__main__':
-    compiler.Compiler().compile(customer_churn_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(
+        pipeline_func=customer_churn_pipeline,
+        package_path=__file__ + '.yaml',
+    )
