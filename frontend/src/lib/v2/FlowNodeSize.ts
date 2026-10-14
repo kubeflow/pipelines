@@ -13,14 +13,15 @@ export function getFlowNodeSize(
   node: Pick<Node<FlowElementDataBase>, 'type' | 'data'>,
   nodeScale = 1,
 ): { width: number; height: number } {
+  const hasState = node.data.state !== undefined;
   if (node.type === NodeTypeNames.SUB_DAG) {
     return {
-      width: (node.data.state ? SUB_DAG_STATUS_CARD_WIDTH : 288) * nodeScale,
+      width: (hasState ? SUB_DAG_STATUS_CARD_WIDTH : 288) * nodeScale,
       height: NODE_CARD_HEIGHT * nodeScale,
     };
   }
   return {
-    width: (node.type === NodeTypeNames.ARTIFACT ? 240 : node.data.state ? 256 : 224) * nodeScale,
+    width: (node.type === NodeTypeNames.ARTIFACT ? 240 : hasState ? 256 : 224) * nodeScale,
     height: NODE_CARD_HEIGHT * nodeScale,
   };
 }
