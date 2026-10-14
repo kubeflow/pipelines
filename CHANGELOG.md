@@ -88,8 +88,9 @@ consume I/O and can briefly acquire metadata locks; lock waits are bounded.
 See [startup index preparation](docs/agents/development.md#recurring-run-lookup-index).
 
 Other startup schema changes and the pipeline-reference backfill remain
-synchronous and may delay readiness or block writes. The optional run-retention
-indexes are still operator-managed; they are separate from this lookup index.
+synchronous and may delay readiness or block writes. Retention-index
+preparation is separate from this lookup index; background automation and staged
+activation are covered by [#14877](https://github.com/kubeflow/pipelines/pull/14877).
 
 #### Scheduling migration details
 

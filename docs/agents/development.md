@@ -75,7 +75,7 @@ MySQL adds a nonunique 191-character prefix index using explicit
 `ALGORITHM=INPLACE, LOCK=NONE`. Full identifiers remain stored unchanged, and
 queries compare the complete value. PostgreSQL uses `CREATE INDEX CONCURRENTLY`
 outside a transaction. Existing compatible indexes, including full-column
-indexes, are retained. This does not automate the optional retention indexes below.
+indexes, are retained. This lookup-index helper is independent of retention-index preparation below.
 
 Preparation runs before the new API process serves traffic. A database-scoped
 advisory lock coordinates this index build across replicas. Metadata lock waits
