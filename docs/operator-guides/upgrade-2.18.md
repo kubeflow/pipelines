@@ -36,7 +36,7 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 | --- | --- | --- |
 | 2.18 schema changes and reference backfill | Synchronously during API startup, before that process serves requests | Automatic, but may delay readiness or block database writes. Back up and assess representative upgrade duration and database capacity. |
 | 2.18 recurring-run adoption | In the background after API startup and managed writer handoff | No separate migration Job or blanket schedule recreation. Schedule mutations may be temporarily rejected; inconsistent records require investigation. |
-| Optional run-retention indexes | Applied by the operator when using retention | Not created automatically. Missing or incompatible indexes pause run GC; normal retention-disabled upgrades do not require this step. |
+| Optional run-retention indexes | Background preparation when retention or prepare-only is enabled; requires #14877 | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; incompatible/invalid indexes still need diagnosis. Disabled retention with prepare-only off does no preparation. |
 | 3.0 MLMD-to-native history/execution migration | Separate, not performed by the 2.18 startup path | Replacement-history import and schedule prerequisites do not establish a supported in-place upgrade or active-workload continuity. |
 
 ### Automatic startup schema and data changes
@@ -89,7 +89,7 @@ An interrupted PostgreSQL concurrent build can leave an invalid index requiring
 inspection and repair before startup succeeds; the helper does not drop it
 automatically. This is not a zero-downtime guarantee.
 
-This lookup index is separate from the two operator-managed retention indexes
+This lookup index is separate from the two background-prepared retention indexes
 below. Its advisory lock does not serialize other schema changes or backfills.
 The pipeline-reference backfill also scans and updates
 `run_details` and `jobs` to populate pipeline and version references. Its completion
@@ -109,20 +109,44 @@ and database diagnostics for blocked initialization; do not delete migration mar
 or edit stored references to force progress. These automatic changes do not require
 an operator-authored SQL migration for an ordinary supported upgrade.
 
-### Conditional manual preparation for run retention
+### Automatic retention index preparation
 
-`RUNS_RETENTION_TIME` and `ARCHIVED_RUNS_RETENTION_TIME` default to disabled. If either
-is enabled or will be enabled, verify both required indexes in the API database:
+**Release dependency:** this behavior requires
+[#14877](https://github.com/kubeflow/pipelines/pull/14877), the backport of
+[#14876](https://github.com/kubeflow/pipelines/pull/14876). Earlier candidates only
+validate these indexes and require operator creation; verify the release includes
+the automation before relying on it.
+
+`RUNS_RETENTION_TIME` and `ARCHIVED_RUNS_RETENTION_TIME` remain disabled by default.
+When either is configured, the GC leader prepares both indexes sequentially in the
+background, without delaying API startup:
 
 - `idx_run_gc_lifecycle (StorageState, FinishedAtInSec)`
 - `idx_run_gc_archived (StorageState, ArchivedAtInSec)`
 
-The API validates these indexes but does not create them. Apply the
-[documented online index migration](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#run-garbage-collection-database-migration),
-checking existing definitions and engine-specific constraints first. Missing or
-incompatible indexes pause GC; the collector rechecks every tick and can resume
-without an API restart once both are valid. Treat this as conditional preparation
-for retention, not a requirement to enable retention or run manual SQL for every upgrade.
+MySQL requires `ALGORITHM=INPLACE, LOCK=NONE`; PostgreSQL uses concurrent creation.
+Existing valid, optimizer-visible indexes are reused. Builds are database/schema
+coordinated, with five-second metadata-lock waits and a configurable
+`RUNS_GC_INDEX_BUILD_TIMEOUT` (default `12h` per index attempt). The timeout cancels
+the client attempt; server cleanup may continue while ownership prevents overlap.
+Failures pause GC and retry with backoff, not a copying or blocking fallback.
+Conflicting/invisible indexes and invalid PostgreSQL concurrent indexes are left
+for inspection/repair. Online builds still consume resources and can briefly
+delay writes at metadata locks.
+
+For large histories, set `RUNS_GC_INDEX_PREPARE_ONLY=true` consistently across all
+API replicas/installations sharing the database, with retention windows still
+disabled. This builds indexes without archiving/deleting. Verify preparation and
+database load, then set the desired windows and clear prepare-only when ready for
+catch-up. Old leaders do not obey another replica's new setting; finish the rollout
+before relying on the mode. A new leader, completed build or recovery waits a full
+`RUNS_GC_INTERVAL` before collecting. Catch-up remains a separate batched workload.
+
+**If retention was already configured but paused because indexes were missing,
+this change can automatically resume archival/deletion after preparation and the
+interval.** Use prepare-only to inspect that backlog first. With both retention
+windows disabled and prepare-only off, no indexes are built and no GC runs. See
+[preparation and recovery details](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#run-garbage-collection-database-migration).
 
 ### Separate 3.0 migration boundary
 

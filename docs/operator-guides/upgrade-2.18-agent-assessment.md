@@ -262,13 +262,21 @@ duration, brief metadata locks and I/O; do not treat this one online operation a
 proof that every startup migration is online.
 
 Inspect actual retention settings; default zero disables automatic retention.
-If `RUNS_RETENTION_TIME` or `ARCHIVED_RUNS_RETENTION_TIME` is enabled or planned,
-inspect both `idx_run_gc_lifecycle` and `idx_run_gc_archived` definitions in the API
-database. The API only validates these indexes; their online creation is an
-operator-applied migration. Missing/incompatible indexes pause GC, which rechecks
-every tick without requiring an API restart. Report this conditional action without
-turning it into a universal upgrade requirement or inventing a new deletion risk
-from unchanged disabled defaults.
+Verify whether the candidate includes [#14877](https://github.com/kubeflow/pipelines/pull/14877)
+before describing index preparation as automatic. With that change, retention or
+`RUNS_GC_INDEX_PREPARE_ONLY=true` starts background preparation; both off does no
+work. Inspect `idx_run_gc_lifecycle` and `idx_run_gc_archived`, including MySQL
+visibility and PostgreSQL validity, plus preparation/timeout/retry diagnostics.
+Check `RUNS_GC_INDEX_BUILD_TIMEOUT` (default `12h` per index attempt), resource
+headroom and consistent prepare-only settings across replicas. Do not execute DDL
+or activate retention as part of this assessment.
+
+Flag configured retention that was paused by missing indexes: automation can now
+resume archival/deletion after preparation and a full GC interval. Recommend
+prepare-only staging for backlog review; it blocks collection in updated replicas
+but cannot pause an old leader before its rollout. Index creation and catch-up are
+separate workloads. Invalid/incompatible indexes still require diagnosis; do not
+turn those exceptions into a manual-SQL requirement for ordinary upgrades.
 
 Check persistence-agent scoped identity lookup and retained Workflow evidence for
 active runs. Follow [reporting recovery](workflow-report-recovery.md) for inconsistent
