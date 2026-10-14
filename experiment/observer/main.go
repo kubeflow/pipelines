@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -277,6 +278,146 @@ func parseMetrics(b []byte) ([]metric, map[string]bool) {
 	}
 	return out, found
 }
+
+// Metrics are filtered while reading: unrelated families never enter retained
+// evidence. Network, line and retained-byte limits fail closed independently.
+const metricsNetworkLimit int64 = 32 << 20
+const metricsRetainedLimit = 48 << 10
+
+type metricsFetch struct {
+	Status        int    `json:"status"`
+	Bytes         int64  `json:"bytes"`
+	RetainedBytes int    `json:"retained_bytes"`
+	Reason        string `json:"reason"`
+	DeadlineMS    int    `json:"deadline_ms"`
+}
+
+func fetchMetrics(ctx context.Context, client *http.Client, host string, priority ...string) ([]metric, map[string]bool, metricsFetch) {
+	d := metricsFetch{DeadlineMS: 900}
+	req, err := http.NewRequestWithContext(ctx, "GET", strings.TrimRight(host, "/")+"/metrics", nil)
+	if err != nil {
+		d.Reason = "request"
+		return nil, nil, d
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		d.Reason = "transport"
+		if ctx.Err() != nil {
+			d.Reason = "deadline_or_cancel"
+		}
+		return nil, nil, d
+	}
+	defer resp.Body.Close()
+	d.Status = resp.StatusCode
+	if resp.StatusCode != http.StatusOK {
+		d.Reason = "http_status"
+		return nil, nil, d
+	}
+	reader := &io.LimitedReader{R: resp.Body, N: metricsNetworkLimit + 1}
+	scan := bufio.NewScanner(reader)
+	scan.Buffer(make([]byte, 4096), 64<<10)
+	totals := map[string]metric{}
+	selectedPriority := ""
+	if len(priority) > 0 {
+		selectedPriority = priority[0]
+	}
+	for scan.Scan() {
+		line := scan.Text()
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		name := line
+		if end := strings.IndexAny(name, "{ \t"); end >= 0 {
+			name = name[:end]
+		}
+		if !wantedMetric(name) {
+			continue
+		}
+		if metricLine.FindStringSubmatch(line) == nil {
+			d.Reason = "malformed_selected_metric"
+			break
+		}
+		parsed, _ := parseMetrics([]byte(line))
+		if len(parsed) != 1 {
+			d.Reason = "malformed_selected_metric"
+			break
+		}
+		m, keep := projectMetric(parsed[0], selectedPriority)
+		if !keep {
+			continue
+		}
+		key := metricID(m)
+		old := totals[key]
+		m.Value += old.Value
+		totals[key] = m
+		if len(totals) > 256 {
+			d.Reason = "retained_series_bound"
+			break
+		}
+	}
+	d.Bytes = metricsNetworkLimit + 1 - reader.N
+
+	if d.Bytes > metricsNetworkLimit {
+		d.Reason = "network_bound"
+	}
+	if scan.Err() != nil && d.Reason == "" {
+		d.Reason = "read_or_line_bound"
+		if ctx.Err() != nil {
+			d.Reason = "deadline_or_cancel"
+		}
+	}
+	if d.Reason != "" {
+		return nil, nil, d
+	}
+	out := make([]metric, 0, len(totals))
+	found := map[string]bool{}
+	for _, m := range totals {
+		out = append(out, m)
+		found[m.Name] = true
+	}
+	sort.Slice(out, func(i, j int) bool { return metricID(out[i]) < metricID(out[j]) })
+	encoded, _ := json.Marshal(out)
+	d.RetainedBytes = len(encoded)
+	if d.RetainedBytes > metricsRetainedLimit/2 {
+		d.Reason = "retained_bound"
+		return nil, nil, d
+	}
+	d.Reason = "ok"
+	return out, found, d
+}
+
+// APF measurements retain exact labels for the selected shared priority.
+// API request counters aggregate by verb/status, latency histograms by bucket,
+// and process/etcd health by family/bucket. These projections are stable across
+// snapshots; they intentionally cannot attribute global latency to a resource.
+func projectMetric(m metric, priority string) (metric, bool) {
+	if strings.HasPrefix(m.Name, "apiserver_flowcontrol_") {
+		if priority != "" && m.Labels["priority_level"] != priority {
+			return m, false
+		}
+		keep := false
+		for _, name := range []string{"apiserver_flowcontrol_current_inqueue_requests", "apiserver_flowcontrol_current_executing_seats", "apiserver_flowcontrol_current_limit_seats", "apiserver_flowcontrol_rejected_requests_total", "apiserver_flowcontrol_dispatched_requests_total", "apiserver_flowcontrol_request_wait_duration_seconds_bucket", "apiserver_flowcontrol_request_wait_duration_seconds_sum", "apiserver_flowcontrol_request_wait_duration_seconds_count"} {
+			if m.Name == name {
+				keep = true
+				break
+			}
+		}
+		return m, keep
+	}
+	labels := map[string]string{}
+	if value, ok := m.Labels["le"]; ok {
+		labels["le"] = value
+	}
+	if m.Name == "apiserver_request_total" {
+		for _, key := range []string{"verb", "code"} {
+			if value, ok := m.Labels[key]; ok {
+				labels[key] = value
+			}
+		}
+	}
+	m.Labels = labels
+	return m, true
+}
 func metricID(m metric) string {
 	keys := []string{}
 	for k := range m.Labels {
@@ -322,19 +463,20 @@ func deltas(previous, current []metric) ([]metric, bool) {
 }
 
 type snapshot struct {
-	Kind            string    `json:"kind"`
-	At              time.Time `json:"at"`
-	Index           int       `json:"index"`
-	LagMS           float64   `json:"lag_ms"`
-	Ready           bool      `json:"ready"`
-	Live            bool      `json:"live"`
-	Metrics         []metric  `json:"metrics"`
-	Delta           []metric  `json:"delta"`
-	Missing         []string  `json:"missing"`
-	UnknownCounters []string  `json:"unknown_counters"`
-	Phase           string    `json:"phase"`
-	CounterReset    bool      `json:"counter_reset"`
-	PositiveSeats   bool      `json:"positive_seats"`
+	MetricsFetch    metricsFetch `json:"metrics_fetch"`
+	Kind            string       `json:"kind"`
+	At              time.Time    `json:"at"`
+	Index           int          `json:"index"`
+	LagMS           float64      `json:"lag_ms"`
+	Ready           bool         `json:"ready"`
+	Live            bool         `json:"live"`
+	Metrics         []metric     `json:"metrics"`
+	Delta           []metric     `json:"delta"`
+	Missing         []string     `json:"missing"`
+	UnknownCounters []string     `json:"unknown_counters"`
+	Phase           string       `json:"phase"`
+	CounterReset    bool         `json:"counter_reset"`
+	PositiveSeats   bool         `json:"positive_seats"`
 }
 
 func fetch(ctx context.Context, client *http.Client, base, path string, limit int64) ([]byte, int, error) {
@@ -356,12 +498,12 @@ func fetch(ctx context.Context, client *http.Client, base, path string, limit in
 func collectSnapshot(ctx context.Context, c config, client *http.Client, host, priority string, i int, due time.Time, previous []metric) snapshot {
 	s := snapshot{Kind: "snapshot", At: time.Now().UTC(), Index: i, LagMS: float64(time.Since(due).Microseconds()) / 1000, Missing: []string{}}
 	call, stop := context.WithTimeout(ctx, 900*time.Millisecond)
-	b, status, e := fetch(call, client, host, "/metrics", 4<<20)
-	if e != nil || status != 200 {
+	metrics, found, diagnostic := fetchMetrics(call, client, host, priority)
+	s.MetricsFetch = diagnostic
+	if diagnostic.Reason != "ok" {
 		s.Missing = append(s.Missing, "metrics_fetch")
 	} else {
-		var found map[string]bool
-		s.Metrics, found = parseMetrics(b)
+		s.Metrics = metrics
 		for _, required := range []string{"apiserver_flowcontrol_current_inqueue_requests", "apiserver_flowcontrol_current_executing_seats", "apiserver_flowcontrol_current_limit_seats", "apiserver_request_total", "process_cpu_seconds_total", "process_resident_memory_bytes"} {
 			if !found[required] {
 				s.Missing = append(s.Missing, required)
@@ -381,9 +523,15 @@ func collectSnapshot(ctx context.Context, c config, client *http.Client, host, p
 			s.Missing = append(s.Missing, "matched_priority_positive_seats")
 		}
 		s.Delta, s.CounterReset = deltas(previous, s.Metrics)
+		encoded, _ := json.Marshal([][]metric{s.Metrics, s.Delta})
+		if len(encoded) > metricsRetainedLimit {
+			s.Missing = append(s.Missing, "retained_snapshot_bound")
+			s.Metrics = nil
+			s.Delta = nil
+		}
 
 	}
-	_, status, e = fetch(call, client, host, "/readyz", 4096)
+	_, status, e := fetch(call, client, host, "/readyz", 4096)
 	s.Ready = e == nil && status == 200
 	if !s.Ready {
 		s.Missing = append(s.Missing, "readyz")

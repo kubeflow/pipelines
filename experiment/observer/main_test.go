@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -385,5 +386,99 @@ func TestContextConfigJSONContract(t *testing.T) {
 	}
 	if _, exists := fields["Context"]; exists {
 		t.Fatal("fallback exported-field key leaked")
+	}
+}
+
+func TestStreamingMetricsLargerThanLegacyBound(t *testing.T) {
+	body := strings.Repeat("unrelated_metric{resource=\"irrelevant\"} 1\n", 150000) + "process_cpu_seconds_total 12\napiserver_flowcontrol_current_limit_seats{priority_level=\"shared\"} 4\n"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, body) }))
+	defer server.Close()
+	got, found, d := fetchMetrics(context.Background(), server.Client(), server.URL)
+	if d.Reason != "ok" || d.Bytes <= 4<<20 || len(got) != 2 || !found["apiserver_flowcontrol_current_limit_seats"] || d.RetainedBytes > 512 {
+		t.Fatalf("unexpected %+v metrics=%d", d, len(got))
+	}
+}
+func TestStreamingMetricsFailsClosed(t *testing.T) {
+	cases := []struct {
+		name, body, reason string
+		status             int
+	}{
+		{"malformed", "process_cpu_seconds_total not-a-number\n", "malformed_selected_metric", 200},
+		{"line-bound", strings.Repeat("x", 65537), "read_or_line_bound", 200},
+		{"network-bound", strings.Repeat("irrelevant 1\n", 3000000), "network_bound", 200},
+
+		{"denied", "secret body", "http_status", 403},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(tc.status); io.WriteString(w, tc.body) }))
+			defer server.Close()
+			got, _, d := fetchMetrics(context.Background(), server.Client(), server.URL)
+			if d.Reason != tc.reason || len(got) != 0 || d.Status != tc.status {
+				t.Fatalf("unexpected %+v", d)
+			}
+		})
+	}
+}
+func TestStreamingMetricsTransportTruncation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "999")
+		io.WriteString(w, "process_cpu_seconds_total 1\n")
+	}))
+	defer server.Close()
+	got, _, d := fetchMetrics(context.Background(), server.Client(), server.URL)
+	if d.Reason != "read_or_line_bound" || len(got) != 0 {
+		t.Fatalf("truncated capture accepted %+v", d)
+	}
+}
+
+func TestProjectionStableHistogramsDeltasAndBounds(t *testing.T) {
+	build := func(n int) string {
+		var b strings.Builder
+		for i := 0; i < 1000; i++ {
+			fmt.Fprintf(&b, "apiserver_request_duration_seconds_bucket{resource=\"r%d\",verb=\"GET\",le=\"0.1\"} %d\n", i, n)
+			fmt.Fprintf(&b, "apiserver_request_total{resource=\"r%d\",verb=\"GET\",code=\"200\"} %d\n", i, n)
+		}
+		b.WriteString("apiserver_flowcontrol_current_limit_seats{priority_level=\"other\"} 100\napiserver_flowcontrol_current_limit_seats{priority_level=\"shared\"} 3\n")
+		return b.String()
+	}
+	var body = build(1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, body) }))
+	defer server.Close()
+	before, _, d := fetchMetrics(context.Background(), server.Client(), server.URL, "shared")
+	if d.Reason != "ok" || len(before) != 3 {
+		t.Fatalf("projection failed %+v count%d", d, len(before))
+	}
+	body = build(2)
+	after, _, d := fetchMetrics(context.Background(), server.Client(), server.URL, "shared")
+	changes, reset := deltas(before, after)
+	if d.Reason != "ok" || reset || len(changes) != 2 || changes[0].Value != 1000 || changes[1].Value != 1000 {
+		t.Fatalf("delta mismatch %+v reset%v", changes, reset)
+	}
+	_, reset = deltas(after, before)
+	if !reset {
+		t.Fatal("aggregate reset lost")
+	}
+	if _, ok := changes[0].Labels["le"]; !ok {
+		t.Fatal("histogram boundary lost")
+	}
+	encoded, _ := json.Marshal([][]metric{after, changes})
+	if len(encoded) > metricsRetainedLimit {
+		t.Fatal("snapshot retention bound exceeded")
+	}
+	// 1232 baseline/timeline snapshots cap metric payload at58MiB, leaving
+	// >69MiB of the128MiB sink for bounded competitor and snapshot metadata.
+	if int64(1232*metricsRetainedLimit) > 59<<20 {
+		t.Fatal("timeline metric budget exceeded")
+	}
+}
+func TestMetricsDeadlineIsSanitized(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+	defer server.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	_, _, d := fetchMetrics(ctx, server.Client(), server.URL)
+	if d.Reason != "deadline_or_cancel" {
+		t.Fatalf("unsafe/incorrect reason %+v", d)
 	}
 }
