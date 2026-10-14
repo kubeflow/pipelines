@@ -72,7 +72,7 @@ describe.each(['enforce', 'audit'])('MLMD request failures in %s mode', (mode) =
     'strict-empty-prefix',
   ])('%s', async (scenario) => {
     vi.resetModules();
-    vi.stubEnv('ARTIFACT_OWNERSHIP_ENFORCEMENT', mode);
+    vi.stubEnv('KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE', mode);
     vi.stubEnv(
       'ARTIFACT_NAMESPACE_OWNERSHIP_MODE',
       scenario === 'strict-empty-prefix' ? 'mlmd-only' : 'mlmd-then-prefix',
@@ -101,5 +101,33 @@ describe.each(['enforce', 'audit'])('MLMD request failures in %s mode', (mode) =
     );
     if (mode === 'audit' && scenario === 'custom-match')
       expect(result.reason).toBe('audit-custom-root');
+  });
+});
+
+describe('artifact ownership mode configuration', () => {
+  it.each([
+    [undefined, false],
+    ['enforce', false],
+    ['audit', true],
+    [' AUDIT ', true],
+    ['invalid', false],
+  ] as const)('uses the standardized setting %s', async (mode, permitsCustomRoot) => {
+    vi.resetModules();
+    vi.stubEnv('KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE', mode);
+    fixture.missing = false;
+    fixture.noArtifacts = false;
+    fixture.noContexts = false;
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(new Uint8Array([0, 0, 0, 0, 0]))),
+    );
+    const { validateArtifactNamespace } = await import('./mlmd-validator.js');
+    const result = await validateArtifactNamespace(
+      'http://mlmd',
+      's3://bucket/custom/model',
+      'team-a',
+    );
+    expect(result.valid).toBe(permitsCustomRoot);
   });
 });

@@ -204,7 +204,7 @@ proxies is insufficient. Redirect destinations containing queries or fragments
 are rejected, including redirects to query-signed download URLs. Use the supported
 HTTP header authentication configuration instead.
 
-The temporary `ARTIFACT_OWNERSHIP_ENFORCEMENT=audit` setting still permits an
+The temporary `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit` setting still permits an
 initial custom-root read with matching MLMD evidence. That evidence does not
 authorize another object chosen by an HTTP redirect: custom-root redirects are
 denied unless the destination is the identical URL. Use the final artifact URL
