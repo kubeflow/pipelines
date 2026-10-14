@@ -134,9 +134,36 @@ is not supported by the forward-upgrade handoff.
 Inspect representative historical **and newly produced** artifact references using
 the owning user's view. Classify object paths without exporting complete URIs:
 namespace-prefixed, custom-prefix-plus-namespace, arbitrary legacy root, or unknown.
-Compare with `ARTIFACT_NAMESPACE_KEY_PREFIX`; matching MLMD evidence alone no longer
-authorizes an arbitrary root in multi-user mode. Standalone mode is unaffected by
+First inspect `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` on every shared-UI
+replica and verify the deployed image contains the proposed
+[storage authorization backport](https://github.com/kubeflow/pipelines/pull/14884). An unrecognized environment
+variable on an old image is not activation. For default `key-prefix`, compare with
+`ARTIFACT_NAMESPACE_KEY_PREFIX`; matching MLMD evidence alone no longer authorizes
+an arbitrary root in multi-user mode. Standalone mode is unaffected by
 this ownership middleware. See [root migration](upgrade-2.18.md#artifact-root-migration).
+
+For `storage`, assess effective object-store permissions and proxy isolation rather
+than requiring namespace-shaped paths or MLMD records. Identify the storage
+identity actually used by each namespace service, including workload identity,
+Secret-backed and environment credentials. In 2.18 storage mode, credentials must
+be injected into the namespace service environment or workload identity; browser
+provider/Secret selectors are discarded. Do not assume master's trusted launcher
+resolver exists in the backport. Do not print credentials. Check own
+historical-root and intended shared-root reads/listings, then deny another tenant's
+private reads/listings. Distinct Secret names are not evidence of restricted
+credentials. Existing SeaweedFS Secrets are reused; inspect actual IAM policies.
+
+Verify `ENABLE_AUTHZ=true` and `ARTIFACTS_SERVICE_PROXY_ENABLED=true` on the shared
+UI, the reconciled proxy NetworkPolicy, the correct installation namespace and an
+enforcing CNI. Check additive policies and custom service routes. With authorized
+test identities, deny direct cross-tenant proxy access and namespace swaps. Stop
+or isolate a disposable proxy to prove a failure cannot use shared UI credentials.
+If a live check is not permitted, report that boundary as unverified. The policy
+resource alone is not a successful isolation test. Do not copy storage mode into
+the unauthenticated namespace proxy. The setting covers object-store artifact
+reads, not HTTP artifacts or archived logs. No MLMD/native record may grant bytes
+that the namespace storage identity cannot read. See
+[activation sequence](upgrade-2.18.md#preserve-existing-roots-with-storage-enforcement).
 
 Check every authenticated serving UI replica (including custom authenticated
 frontends) for
@@ -144,8 +171,8 @@ frontends) for
 `ARTIFACT_OWNERSHIP_ENFORCEMENT` name: it has no alias and cannot enable audit.
 Inspect `ARTIFACT_NAMESPACE_OWNERSHIP_MODE` separately: it selects `mlmd-then-prefix`
 or `mlmd-only`, not audit/enforce. See the
-[control reference](server-config.md#artifact-ownership-controls-in-218). Default enforcement is the target; temporary
-audit only permits missing prefixes with successful matching MLMD evidence. Audit
+[control reference](server-config.md#artifact-ownership-controls-in-218). These controls describe the default prefix policy; storage mode is separately
+enforced and needs no audit. Temporary audit only permits missing prefixes with successful matching MLMD evidence. Audit
 cannot resolve missing evidence, cross-namespace evidence, unsafe paths or MLMD
 outages. Audit counts mean permission to attempt retrieval, not successful reads.
 If audit is proposed, require independent downstream storage/network isolation,
@@ -299,8 +326,10 @@ TaskService authorization remediation as a retained security limitation.
 
 The 3.0 MLMD-to-native transition is separate. Replacement-history import does not
 migrate active workloads, seed cache reuse or move artifact objects. Preserved
-namespace-less URIs still fail native artifact-root enforcement after metadata
-import. Do not report successful import or table creation as complete upgrade or
+namespace-less URIs still fail the default native prefix policy after metadata
+import. The proposed master storage mode can preserve their access through scoped
+credentials, independently of MLMD; require fresh storage and proxy isolation
+acceptance in the replacement installation. Do not report successful import or table creation as complete upgrade or
 artifact-access acceptance.
 
 ## 4. Produce a report that supports decisions
