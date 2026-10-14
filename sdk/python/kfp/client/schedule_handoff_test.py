@@ -82,7 +82,8 @@ class ScheduleHandoffTest(unittest.TestCase):
         for error in (TimeoutError('outcome unknown'),
                       kfp_server_api.ApiException(status=503)):
             for prior_handoff in (False, True):
-                with self.subTest(error=error, prior=prior_handoff):
+                with self.subTest(
+                        error=type(error).__name__, prior=prior_handoff):
                     sleep.reset_mock()
                     sequence = ([handoff_error()] if prior_handoff else [])
                     request = mock.Mock(side_effect=sequence + [error])
