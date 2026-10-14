@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -107,6 +108,9 @@ type invocationClients struct {
 type clientFactory struct {
 	agent   agentLoader
 	manager func(*client_manager.Options) (driverClientManager, error)
+	// tokens shares one run-bound token source across invocations; nil mints
+	// a fresh source, and therefore a fresh TokenRequest, per invocation.
+	tokens *tokenSourceCache
 }
 
 func inClusterClientFactory(agent agentLoader) clientFactory {
@@ -115,7 +119,33 @@ func inClusterClientFactory(agent agentLoader) clientFactory {
 		manager: func(opts *client_manager.Options) (driverClientManager, error) {
 			return client_manager.NewClientManager(opts)
 		},
+		tokens: &tokenSourceCache{sources: map[string]apiclient.TokenSource{}},
 	}
+}
+
+// tokenSourceCache keys token sources by service account, audience and Pod
+// UID. Every task of a workflow shares all three, so one TokenRequest serves
+// the whole agent process and the source refreshes itself before expiry.
+type tokenSourceCache struct {
+	mu      sync.Mutex
+	sources map[string]apiclient.TokenSource
+}
+
+func (c *tokenSourceCache) get(key string, create func() (apiclient.TokenSource, error)) (apiclient.TokenSource, error) {
+	if c == nil {
+		return create()
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if source, ok := c.sources[key]; ok {
+		return source, nil
+	}
+	source, err := create()
+	if err != nil {
+		return nil, err
+	}
+	c.sources[key] = source
+	return source, nil
 }
 
 func executorPluginIdentity(namespacePath string) (namespace, podName string, err error) {
@@ -142,7 +172,7 @@ func (f clientFactory) newDriverClientManager(ctx context.Context, args driverap
 	if err := agent.validateRequest(args); err != nil {
 		return nil, err
 	}
-	apiConfig, err := driverAPIClientConfig(agent, args)
+	apiConfig, err := driverAPIClientConfig(agent, args, f.tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +194,7 @@ func (f clientFactory) newDriverClientManager(ctx context.Context, args driverap
 }
 
 // driverAPIClientConfig binds the KFP API token to the agent Pod's run.
-func driverAPIClientConfig(agent *agentClients, args driverapi.DriverPluginArgs) (*apiclient.Config, error) {
+func driverAPIClientConfig(agent *agentClients, args driverapi.DriverPluginArgs, tokens *tokenSourceCache) (*apiclient.Config, error) {
 	audience := args.KFPTokenAudience
 	if audience == "" {
 		audience = common.DefaultTokenReviewAudience + common.TokenAudienceRunPrefix + args.RunID
@@ -174,8 +204,10 @@ func driverAPIClientConfig(agent *agentClients, args driverapi.DriverPluginArgs)
 		return nil, fmt.Errorf("KFP token audience %q is not bound to the agent Pod's run; use <KFP audience>/runs/<run ID>", audience)
 	}
 	pod := agent.pod
-	source, err := apiclient.NewServiceAccountTokenSource(agent.kube.CoreV1().ServiceAccounts(pod.Namespace),
-		pod.Spec.ServiceAccountName, audience, pod.Name, string(pod.UID))
+	source, err := tokens.get(pod.Spec.ServiceAccountName+"\x00"+audience+"\x00"+string(pod.UID), func() (apiclient.TokenSource, error) {
+		return apiclient.NewServiceAccountTokenSource(agent.kube.CoreV1().ServiceAccounts(pod.Namespace),
+			pod.Spec.ServiceAccountName, audience, pod.Name, string(pod.UID))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure run-bound token source; check the agent Pod service account and UID: %w", err)
 	}

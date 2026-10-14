@@ -56,18 +56,20 @@ const (
 )
 
 type driverRunner struct {
-	newClients   func(context.Context, driverapi.DriverPluginArgs, string) (*invocationClients, error)
-	execute      func(context.Context, drivercommon.Options, client_manager.ClientManagerInterface) (*driver.Execution, error)
-	uploadLogs   func(context.Context, *driverlogs.ArtifactContext, kubernetes.Interface) error
-	logDirectory string
+	newClients      func(context.Context, driverapi.DriverPluginArgs, string) (*invocationClients, error)
+	execute         func(context.Context, drivercommon.Options, client_manager.ClientManagerInterface) (*driver.Execution, error)
+	uploadLogs      func(context.Context, *driverlogs.ArtifactContext, kubernetes.Interface) error
+	logDirectory    string
+	launcherConfigs *launcherConfigCache
 }
 
 func newDriverRunner(agent agentLoader) *driverRunner {
 	return &driverRunner{
-		newClients:   inClusterClientFactory(agent).newDriverClientManager,
-		execute:      executeDriver,
-		uploadLogs:   driverlogs.Uploader{OpenBucket: objectstore.OpenBucket, UploadBlob: objectstore.UploadBlob}.Upload,
-		logDirectory: driverLogDirectory,
+		newClients:      inClusterClientFactory(agent).newDriverClientManager,
+		execute:         executeDriver,
+		uploadLogs:      driverlogs.Uploader{OpenBucket: objectstore.OpenBucket, UploadBlob: objectstore.UploadBlob}.Upload,
+		logDirectory:    driverLogDirectory,
+		launcherConfigs: newLauncherConfigCache(),
 	}
 }
 
@@ -250,10 +252,11 @@ func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArg
 		MLPipelineTLSEnabled: args.MlPipelineTLSEnabled, CaCertPath: caCertPath,
 		PipelineJobCreateTimeUTC: createTime, PipelineJobScheduleTimeUTC: scheduleTime,
 		PluginDispatcher: pluginDispatcher, ProxyConfig: invocation.proxyConfig,
+		LauncherConfig: r.launcherConfigs.loader(clientManager.K8sClient()),
 	}
 
 	if publishLogs {
-		r.prepareLogStorage(ctx, args, namespace, run, clientManager.K8sClient(), invocation)
+		r.prepareLogStorage(ctx, args, namespace, run, options.LauncherConfig, invocation)
 	}
 	switch args.DriverType {
 	case driverapi.RootDAGDriver:
@@ -279,12 +282,12 @@ func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArg
 
 // prepareLogStorage resolves the same root and session as the native runtime
 // for the log upload. Log storage failures remain nonfatal to task execution.
-func (r *driverRunner) prepareLogStorage(ctx context.Context, args driverapi.DriverPluginArgs, namespace string, run *go_client.Run, k8sClient kubernetes.Interface, invocation *driverInvocation) {
-	pipelineRoot, err := config.GetPipelineRootWithPipelineRunContext(ctx, args.PipelineName, namespace, k8sClient, run)
+func (r *driverRunner) prepareLogStorage(ctx context.Context, args driverapi.DriverPluginArgs, namespace string, run *go_client.Run, load config.LauncherConfigLoader, invocation *driverInvocation) {
+	pipelineRoot, err := config.PipelineRootForRun(ctx, args.PipelineName, namespace, run, load)
 	var storeSessionInfo string
 	if err == nil {
 		var launcherConfig *config.Config
-		launcherConfig, err = config.LoadLauncherConfig(ctx, k8sClient, namespace)
+		launcherConfig, err = load(ctx, namespace)
 		if err == nil {
 			var session objectstore.SessionInfo
 			session, err = launcherConfig.GetStoreSessionInfo(pipelineRoot)

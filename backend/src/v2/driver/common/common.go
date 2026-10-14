@@ -25,8 +25,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/types/known/structpb"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -88,6 +90,9 @@ type Options struct {
 	PluginDispatcher           plugins.TaskPluginDispatcher
 	// ProxyConfig supplies this invocation's workload proxy env; nil adds none.
 	ProxyConfig proxy.Config
+	// LauncherConfig resolves the kfp-launcher config; nil reads the cluster on
+	// every call. Long-lived drivers supply a cache bounded to one workflow.
+	LauncherConfig config.LauncherConfigLoader `json:"-"`
 	// OutputPathPrefix aligns this invocation's outputs and uploaded driver log.
 	OutputPathPrefix string
 }
@@ -224,4 +229,12 @@ func extractParameterName(s string) (string, bool) {
 // isPipelineChannel checks if a parameter name follows the "pipelinechannel--" prefix convention
 func isPipelineChannel(name string) bool {
 	return strings.HasPrefix(name, "pipelinechannel--")
+}
+
+// LauncherConfigLoader returns the configured loader, or a per-call cluster read.
+func (o *Options) LauncherConfigLoader(k8sClient kubernetes.Interface) config.LauncherConfigLoader {
+	if o.LauncherConfig != nil {
+		return o.LauncherConfig
+	}
+	return config.ClusterLauncherConfigLoader(k8sClient)
 }

@@ -245,12 +245,12 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 
 	// Determine the pipeline root and provision outputs before generating the
 	// cache fingerprint so the fingerprint reflects the actual output contract.
-	pipelineRoot, driverErr := config.GetPipelineRootWithPipelineRunContext(
+	pipelineRoot, driverErr := config.PipelineRootForRun(
 		ctx,
 		opts.PipelineName,
 		opts.Namespace,
-		clientManager.K8sClient(),
-		opts.Run)
+		opts.Run,
+		opts.LauncherConfigLoader(clientManager.K8sClient()))
 	if driverErr != nil {
 		return execution, fmt.Errorf("failed to get pipeline root: %w", driverErr)
 	}

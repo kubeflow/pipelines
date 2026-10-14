@@ -98,7 +98,7 @@ func TestDriverAPIClientConfigUsesAgentServiceAccount(t *testing.T) {
 			agent, err := loadAgent(context.Background(), client, nil, pod.Namespace, pod.Name)
 			require.NoError(t, err)
 			require.NoError(t, agent.validateRequest(args))
-			cfg, err := driverAPIClientConfig(agent, args)
+			cfg, err := driverAPIClientConfig(agent, args, nil)
 			require.NoError(t, err)
 			assert.Equal(t, "ml-pipeline:8887", cfg.Endpoint)
 			require.NotNil(t, cfg.TokenSource)
@@ -140,7 +140,7 @@ func TestDriverAPIClientConfigRejectsUnboundRequests(t *testing.T) {
 				err = agent.validateRequest(args)
 			}
 			if err == nil {
-				cfg, err = driverAPIClientConfig(agent, args)
+				cfg, err = driverAPIClientConfig(agent, args, nil)
 			}
 			require.Error(t, err)
 			assert.Nil(t, cfg)
@@ -367,4 +367,29 @@ users:
 	client, err := kubernetes.NewForConfig(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, client)
+}
+
+func TestNewDriverClientManagerSharesRunTokenSource(t *testing.T) {
+	pod := agentPodForAuth()
+	factory := inClusterClientFactory(func(ctx context.Context) (*agentClients, error) {
+		return loadAgent(ctx, fake.NewSimpleClientset(pod), nil, pod.Namespace, pod.Name)
+	})
+	var sources []apiclient.TokenSource
+	factory.manager = func(options *client_manager.Options) (driverClientManager, error) {
+		sources = append(sources, options.APIClientConfig.TokenSource)
+		return &invocationManager{}, nil
+	}
+	args := driverArgsForAuth()
+	for range 3 {
+		_, err := factory.newDriverClientManager(context.Background(), args, "")
+		require.NoError(t, err)
+	}
+	other := args
+	other.KFPTokenAudience = "custom.kfp.example/runs/run-id"
+	_, err := factory.newDriverClientManager(context.Background(), other, "")
+	require.NoError(t, err)
+	require.Len(t, sources, 4)
+	assert.Same(t, sources[0], sources[1])
+	assert.Same(t, sources[0], sources[2])
+	assert.NotSame(t, sources[0], sources[3], "a different audience needs its own token")
 }
