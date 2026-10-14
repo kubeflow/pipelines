@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { retryScheduleHandoff } from 'src/lib/ScheduleHandoff';
 import * as React from 'react';
 import BusyButton from 'src/atoms/BusyButton';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
@@ -170,9 +171,11 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
   protected async _setEnabledState(id: string, enabled: boolean): Promise<void> {
     try {
-      await (enabled
-        ? Apis.recurringRunServiceApi.enableRecurringRun(id)
-        : Apis.recurringRunServiceApi.disableRecurringRun(id));
+      await retryScheduleHandoff(enabled ? 'enable' : 'disable', () =>
+        enabled
+          ? Apis.recurringRunServiceApi.enableRecurringRun(id)
+          : Apis.recurringRunServiceApi.disableRecurringRun(id),
+      );
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       this.props.updateDialog({

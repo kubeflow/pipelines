@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { retryScheduleHandoff } from 'src/lib/ScheduleHandoff';
 import {
   Button,
   Dialog,
@@ -408,7 +409,10 @@ function NewRunV2(props: NewRunV2Props) {
   });
   const newRecurringRunMutation = useMutation({
     mutationFn: (recurringRun: V2beta1RecurringRun) => {
-      return Apis.recurringRunServiceApi.createRecurringRun(recurringRun);
+      const submittedRecurringRun = structuredClone(recurringRun);
+      return retryScheduleHandoff('create', () =>
+        Apis.recurringRunServiceApi.createRecurringRun(submittedRecurringRun),
+      );
     },
   });
 
