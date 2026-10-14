@@ -142,36 +142,47 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(readFileSpy).toHaveBeenCalledTimes(2);
     });
 
-    it('retrieves the driver_logs_uri artifact with the namespace only after opening the tab', async () => {
-      const readFileSpy = vi
-        .spyOn(Apis, 'readFile')
-        .mockResolvedValue('driver initialization\nfinished');
-      const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('executor output');
-      renderTask(createSystemLogsTask());
+    it.each([PipelineTaskTaskState.SUCCEEDED, PipelineTaskTaskState.FAILED])(
+      'retrieves driver logs for a %s task only after opening the tab',
+      async (state) => {
+        const readFileSpy = vi
+          .spyOn(Apis, 'readFile')
+          .mockResolvedValue('driver initialization\nfinished');
+        const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('executor output');
+        renderTask(
+          createSystemLogsTask(driverLogUri, {
+            state,
+            status_metadata: {
+              message: state === PipelineTaskTaskState.FAILED ? 'executor failed' : undefined,
+              custom_properties: { driver_logs_uri: driverLogUri as unknown as object },
+            },
+          }),
+        );
 
-      expect(readFileSpy).not.toHaveBeenCalled();
-      fireEvent.click(screen.getByRole('button', { name: 'Task Details', exact: true }));
-      expect(readFileSpy).not.toHaveBeenCalled();
-      fireEvent.click(screen.getByRole('button', { name: 'Logs', exact: true }));
-      expect(await screen.findByText('executor output')).toBeVisible();
-      expect(readFileSpy).not.toHaveBeenCalled();
+        expect(readFileSpy).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Task Details', exact: true }));
+        expect(readFileSpy).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Logs', exact: true }));
+        expect(await screen.findByText('executor output')).toBeVisible();
+        expect(readFileSpy).not.toHaveBeenCalled();
 
-      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+        fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
 
-      expect(await screen.findByText('driver initialization')).toBeVisible();
-      expect(screen.getByText('finished')).toBeVisible();
-      expect(screen.queryByText('executor output')).not.toBeInTheDocument();
-      expect(readFileSpy).toHaveBeenCalledExactlyOnceWith({
-        path: {
-          bucket: 'pipeline-root',
-          key: 'driver-logs.txt',
-          keyEncoding: 'storage',
-          source: 's3',
-        },
-        namespace: TEST_NAMESPACE,
-      });
-      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-    });
+        expect(await screen.findByText('driver initialization')).toBeVisible();
+        expect(screen.getByText('finished')).toBeVisible();
+        expect(screen.queryByText('executor output')).not.toBeInTheDocument();
+        expect(readFileSpy).toHaveBeenCalledExactlyOnceWith({
+          path: {
+            bucket: 'pipeline-root',
+            key: 'driver-logs.txt',
+            keyEncoding: 'storage',
+            source: 's3',
+          },
+          namespace: TEST_NAMESPACE,
+        });
+        expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it.each([
       ['missing', undefined],

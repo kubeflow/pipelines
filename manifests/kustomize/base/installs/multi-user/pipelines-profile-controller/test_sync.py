@@ -1,13 +1,16 @@
 import base64
+import copy
 import json
 import os
 import runpy
 import threading
+from pathlib import Path
 from unittest import mock
 
 import pytest
 import requests
 import sync
+import yaml
 from sync import get_settings_from_env
 from sync import server_factory
 
@@ -268,6 +271,47 @@ def test_sync_copies_driver_agent_ca_into_profile(start_sync_server, tmp_path):
     result = post_sync(server, PARENT,
                        observed_attachments(ready=True, ca=True))
     assert_profile_resources(result, None, ca_cert_path.read_bytes())
+
+
+def test_ca_rotation_reconciles_without_changing_other_secrets(
+        start_sync_server, tmp_path):
+    controller = yaml.safe_load(
+        Path(sync.__file__).with_name("decorator-controller.yaml").read_text())
+    secret_rules = [
+        rule for rule in controller["spec"]["attachments"]
+        if rule["resource"] == "secrets"
+    ]
+    assert len(secret_rules) == 1
+    assert secret_rules[0]["updateStrategy"]["method"] == "InPlace"
+
+    ca_cert_path = tmp_path / "ca.crt"
+    ca_cert_path.write_bytes(b"original CA")
+    server = start_ca_server(start_sync_server, ca_cert_path)
+    result = post_sync(server, PARENT, observed_attachments(ready=True))
+    observed = observed_attachments(ready=True)
+    for resource in result["attachments"]:
+        if resource["kind"] == "Secret":
+            name = resource["metadata"]["name"]
+            observed["Secret.v1"][f"{NAMESPACE}/{name}"] = resource
+    # Token controllers and operators may populate or customize these Secrets.
+    for secret in observed["Secret.v1"].values():
+        if secret["metadata"]["name"] != sync.DRIVER_AGENT_CA_SECRET_NAME:
+            secret["data"] = {"token": "existing-token", "ca.crt": "existing-ca"}
+            secret["metadata"]["annotations"] = {"custom": "preserve-me"}
+    before = copy.deepcopy(observed)
+
+    ca_cert_path.write_bytes(b"rotated CA")
+    result = post_sync(server, PARENT, observed)
+    assert_profile_resources(result, None, b"rotated CA")
+    for secret in result["attachments"]:
+        if secret["kind"] != "Secret":
+            continue
+        previous = before["Secret.v1"][f"{NAMESPACE}/{secret['metadata']['name']}"]
+        if secret["metadata"]["name"] == sync.DRIVER_AGENT_CA_SECRET_NAME:
+            assert secret["data"] != previous["data"]
+        else:
+            assert secret == previous
+    assert observed == before
 
 
 @pytest.mark.parametrize("state", ["missing", "empty"])

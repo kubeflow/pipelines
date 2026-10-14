@@ -106,10 +106,7 @@ func OpenBucket(
 		return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 	}
 
-	// Use gocloud's URL opener for the remaining cases, including query-string based S3 URLs.
-	// URL-configured providers use the process proxy environment (HTTP_PROXY/HTTPS_PROXY/NO_PROXY
-	// on the driver-plugin sidecar), not the invocation proxy carried by ctx.
-	return blob.OpenBucket(ctx, bucketURL)
+	return openBucketURL(ctx, bucketURL)
 }
 
 // invocationTransport clones rather than changes the process-wide HTTP transport.

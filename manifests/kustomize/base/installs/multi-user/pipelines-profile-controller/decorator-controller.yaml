@@ -14,7 +14,7 @@ spec:
   - apiVersion: v1
     resource: secrets
     updateStrategy:
-      method: OnDelete
+      method: InPlace
   - apiVersion: v1
     resource: configmaps
     updateStrategy:

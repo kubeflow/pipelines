@@ -29,11 +29,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/require"
+	"gocloud.dev/blob"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -45,8 +48,6 @@ func TestS3UploadsUseInvocationProxy(t *testing.T) {
 	t.Setenv("AWS_REGION", "us-east-1")
 	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
 	t.Setenv("HTTP_PROXY", "http://unused-process-proxy.invalid")
-	// Only structured (session-info) providers honor the invocation proxy;
-	// URL-configured providers use the process proxy environment.
 	var requests atomic.Int32
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
@@ -71,13 +72,22 @@ func TestS3UploadsUseInvocationProxy(t *testing.T) {
 	session := &SessionInfo{Provider: "s3", Params: map[string]string{
 		S3ParamFromEnv: "true", S3ParamEndpoint: "storage.invalid", S3ParamDisableSSL: "true", S3ParamForcePathStyle: "true", S3ParamRegion: "us-east-1",
 	}}
-	bucket, err := OpenBucket(ctx, fake.NewClientset(), "ns", cfg, session)
-	require.NoError(t, err)
-	defer bucket.Close()
-	path := filepath.Join(t.TempDir(), "log")
-	require.NoError(t, os.WriteFile(path, []byte("driver logs"), 0600))
-	require.NoError(t, UploadBlob(ctx, bucket, path, "log"))
-	require.EqualValues(t, 1, requests.Load())
+	for _, scheme := range []string{"structured", "s3", "minio"} {
+		t.Run(scheme, func(t *testing.T) {
+			if scheme != "structured" {
+				cfg, err = ParseBucketPathToConfig(scheme + "://bucket/prefix?endpoint=http://storage.invalid&region=us-east-1&s3ForcePathStyle=true&request_checksum_calculation=when_required")
+				require.NoError(t, err)
+			}
+			requests.Store(0)
+			bucket, err := OpenBucket(ctx, fake.NewClientset(), "ns", cfg, session)
+			require.NoError(t, err)
+			defer bucket.Close()
+			path := filepath.Join(t.TempDir(), "log")
+			require.NoError(t, os.WriteFile(path, []byte("driver logs"), 0600))
+			require.NoError(t, UploadBlob(ctx, bucket, path, "log"))
+			require.EqualValues(t, 1, requests.Load())
+		})
+	}
 }
 
 func TestS3InvocationProxyPreservesCustomCA(t *testing.T) {
@@ -137,15 +147,174 @@ func TestS3InvocationProxyPreservesCustomCA(t *testing.T) {
 				cfg, err := ParseBucketPathToConfig("s3://bucket/prefix")
 				require.NoError(t, err)
 				session := &SessionInfo{Provider: "s3", Params: map[string]string{"fromEnv": "true", "endpoint": origin.URL, "region": "us-east-1", "forcePathStyle": "true"}}
-				bucket, err := OpenBucket(ctx, fake.NewClientset(), "ns", cfg, session)
-				require.NoError(t, err)
-				defer bucket.Close()
-				require.NoError(t, bucket.WriteAll(ctx, "log", []byte("logs"), nil))
-				require.EqualValues(t, 1, uploads.Load())
-				require.Equal(t, proxied, tunnels.Load() > 0)
+				for _, configuredByURL := range []bool{false, true} {
+					t.Run(fmt.Sprintf("url=%t", configuredByURL), func(t *testing.T) {
+						if configuredByURL {
+							cfg, err = ParseBucketPathToConfig("s3://bucket/prefix?endpoint=" + url.QueryEscape(origin.URL) + "&region=us-east-1&use_path_style=true")
+							require.NoError(t, err)
+						}
+						uploads.Store(0)
+						bucket, err := OpenBucket(ctx, fake.NewClientset(), "ns", cfg, session)
+						require.NoError(t, err)
+						defer bucket.Close()
+						require.NoError(t, bucket.WriteAll(ctx, "log", []byte("logs"), nil))
+						require.EqualValues(t, 1, uploads.Load())
+						require.Equal(t, proxied, tunnels.Load() > 0)
+					})
+				}
 			})
 		}
 	}
+}
+
+func TestS3URLInvocationOptions(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "test-access")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
+	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	var assumedRoles atomic.Int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if r.Method == http.MethodPost && strings.Contains(string(body), "Action=AssumeRole") {
+			assumedRoles.Add(1)
+			w.Header().Set("Content-Type", "text/xml")
+			fmt.Fprint(w, `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>assumed-key</AccessKeyId><SecretAccessKey>assumed-secret</SecretAccessKey><SessionToken>assumed-token</SessionToken><Expiration>2099-01-01T00:00:00Z</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`)
+			return
+		}
+		if r.URL.Path != "/bucket/prefix/log" {
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+		if r.Header.Get("X-Amz-Server-Side-Encryption") != "aws:kms" || r.Header.Get("X-Amz-Server-Side-Encryption-Aws-Kms-Key-Id") != "test-key" {
+			t.Error("URL encryption options were lost")
+		}
+		if auth := r.Header.Get("Authorization"); auth != "" && !strings.Contains(auth, "assumed-key") {
+			t.Errorf("expected assumed-role credentials, got %s", auth)
+		}
+		w.Header().Set("ETag", `"test-etag"`)
+	}))
+	defer proxy.Close()
+	proxyURL, err := url.Parse(proxy.URL)
+	require.NoError(t, err)
+	ctx := util.WithHTTPProxy(context.Background(), http.ProxyURL(proxyURL))
+	for _, credentials := range []string{"anonymous=true", "role=arn:aws:iam::123456789012:role/test"} {
+		config, err := ParseBucketPathToConfig("s3://bucket/prefix?region=us-east-1&endpoint=http://storage.invalid&use_path_style=true&ssetype=aws:kms&kmskeyid=test-key&" + credentials)
+		require.NoError(t, err)
+		bucket, err := OpenBucket(ctx, fake.NewClientset(), "ns", config, nil)
+		require.NoError(t, err)
+		require.NoError(t, bucket.WriteAll(ctx, "log", []byte("logs"), nil))
+		require.NoError(t, bucket.Close())
+	}
+	require.EqualValues(t, 1, assumedRoles.Load())
+	for _, query := range []string{"unknown=true", "use_path_style=invalid", "ssetype=invalid", "role=invalid"} {
+		config, err := ParseBucketPathToConfig("s3://bucket/prefix?" + query)
+		require.NoError(t, err)
+		_, err = OpenBucket(ctx, fake.NewClientset(), "ns", config, nil)
+		require.Error(t, err, query)
+	}
+}
+
+func TestURLConfiguredStoresIsolateInvocationProxies(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "test-access")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
+	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	for _, provider := range []string{"s3", "gs", "gs-anonymous"} {
+		t.Run(provider, func(t *testing.T) {
+			var directRequests atomic.Int32
+			respond := func(w http.ResponseWriter, r *http.Request) {
+				_, _ = io.Copy(io.Discard, r.Body)
+				w.Header().Set("ETag", `"test-etag"`)
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, `{"bucket":"bucket","name":"prefix/log","size":"4"}`)
+			}
+			origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				directRequests.Add(1)
+				respond(w, r)
+			}))
+			defer origin.Close()
+			var proxyRequests [2]atomic.Int32
+			contexts := []context.Context{}
+			for i := range proxyRequests {
+				proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					proxyRequests[i].Add(1)
+					respond(w, r)
+				}))
+				defer proxy.Close()
+				proxyURL, err := url.Parse(proxy.URL)
+				require.NoError(t, err)
+				contexts = append(contexts, util.WithHTTPProxy(context.Background(), http.ProxyURL(proxyURL)))
+			}
+			contexts = append(contexts, util.WithHTTPProxy(context.Background(), nil))
+			root := "s3://bucket/prefix?region=us-east-1&use_path_style=true&endpoint=" + url.QueryEscape(origin.URL)
+			var session *SessionInfo
+			if provider != "s3" {
+				t.Setenv("STORAGE_EMULATOR_HOST", origin.Listener.Addr().String())
+				root = "gs://bucket/prefix"
+				if provider == "gs-anonymous" {
+					root += "?anonymous=true"
+				}
+				session = &SessionInfo{Provider: "gs", Params: map[string]string{"fromEnv": "true"}}
+			}
+			config, err := ParseBucketPathToConfig(root)
+			require.NoError(t, err)
+			// Open all clients before using any to catch shared-client mutation.
+			buckets := make([]*blob.Bucket, len(contexts))
+			for i, ctx := range contexts {
+				buckets[i], err = OpenBucket(ctx, fake.NewClientset(), "ns", config, session)
+				require.NoError(t, err)
+				defer buckets[i].Close()
+			}
+			for i, ctx := range contexts {
+				require.NoError(t, buckets[i].WriteAll(ctx, "log", []byte("logs"), nil))
+			}
+			require.EqualValues(t, 1, directRequests.Load())
+			for i := range proxyRequests {
+				require.EqualValues(t, 1, proxyRequests[i].Load())
+			}
+		})
+	}
+}
+
+func TestGCSFromEnvCredentialsUseInvocationProxy(t *testing.T) {
+	t.Setenv("STORAGE_EMULATOR_HOST", "")
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	raw, err := json.Marshal(map[string]string{
+		"type": "service_account", "client_email": "test@example.invalid",
+		"private_key": string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})),
+		"token_uri":   "http://tokens.invalid/token",
+	})
+	require.NoError(t, err)
+	credentials := filepath.Join(t.TempDir(), "credentials.json")
+	require.NoError(t, os.WriteFile(credentials, raw, 0600))
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", credentials)
+	var tokens, tunnels atomic.Int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == "tokens.invalid" {
+			tokens.Add(1)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"access_token":"test-token","token_type":"Bearer","expires_in":3600}`)
+			return
+		}
+		if r.Method == http.MethodConnect && r.Host == "storage.googleapis.com:443" {
+			tunnels.Add(1)
+		} else {
+			t.Errorf("unexpected proxy request: %s %s", r.Method, r.Host)
+		}
+		// Stop at the proxy rather than contacting the real GCS service.
+		http.Error(w, "test proxy stops TLS tunnel", http.StatusForbidden)
+	}))
+	defer proxy.Close()
+	proxyURL, err := url.Parse(proxy.URL)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(util.WithHTTPProxy(context.Background(), http.ProxyURL(proxyURL)), time.Second)
+	defer cancel()
+	config, err := ParseBucketPathToConfig("gs://bucket/prefix")
+	require.NoError(t, err)
+	bucket, err := OpenBucket(ctx, fake.NewClientset(), "ns", config, &SessionInfo{Provider: "gs", Params: map[string]string{"fromEnv": "true"}})
+	require.NoError(t, err)
+	defer bucket.Close()
+	require.Error(t, bucket.WriteAll(ctx, "log", []byte("logs"), nil))
+	require.EqualValues(t, 1, tokens.Load())
+	require.Positive(t, tunnels.Load())
 }
 
 func TestGCSCredentialsAndDataUseInvocationProxy(t *testing.T) {

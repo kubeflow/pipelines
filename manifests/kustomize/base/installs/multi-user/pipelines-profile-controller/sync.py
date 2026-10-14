@@ -736,6 +736,16 @@ def server_factory(frontend_image,
                         },
                     })
 
+            # Only the CA rotates in place; retain observed credentials and
+            # service-account tokens, including controller-populated fields.
+            for index, resource in enumerate(desired_resources):
+                name = resource["metadata"]["name"]
+                if (resource["kind"] == "Secret" and
+                        name != DRIVER_AGENT_CA_SECRET_NAME):
+                    existing = attachments["Secret.v1"].get(f"{namespace}/{name}")
+                    if existing:
+                        desired_resources[index] = existing
+
             return {"status": desired_status, "attachments": desired_resources}
 
         def do_GET(self):

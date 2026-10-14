@@ -105,6 +105,7 @@ func (api *finalizationFailureAPI) UpdateStatuses(
 func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 	tests := []struct {
 		name               string
+		executionErr       error
 		updateTasksBulkErr error
 		updateTaskErr      error
 		getRunErr          error
@@ -114,6 +115,19 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 		// after a finalization failure that still managed to force a FAILED update.
 		expectNotSucceeded bool
 	}{
+		{
+			name:               "executor failure",
+			executionErr:       errors.New("executor failed"),
+			expectedErrors:     []string{"executor failed"},
+			expectNotSucceeded: true,
+		},
+		{
+			name:               "executor and batch flush failure",
+			executionErr:       errors.New("executor failed"),
+			updateTasksBulkErr: errors.New("flush failed"),
+			expectedErrors:     []string{"executor failed", "flush failed"},
+			expectNotSucceeded: true,
+		},
 		{
 			name:               "batch flush",
 			updateTasksBulkErr: errors.New("flush failed"),
@@ -154,6 +168,12 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 				TaskId: "task",
 				RunId:  run.GetRunId(),
 				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+				StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+					CustomProperties: map[string]*structpb.Value{
+						"driver_logs_uri": structpb.NewStringValue("s3://pipeline-root/driver-logs.txt"),
+						"unrelated":       structpb.NewBoolValue(true),
+					},
+				},
 			}
 			_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
 				Task:  task,
@@ -178,7 +198,7 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 				batchUpdater:  NewBatchUpdater(),
 			}
 
-			err = launcher.finalizeExecution(context.Background(), nil)
+			err = launcher.finalizeExecution(context.Background(), test.executionErr)
 
 			require.Error(t, err)
 			for _, expectedError := range test.expectedErrors {
@@ -192,6 +212,17 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 				require.NoError(t, getErr)
 				assert.NotEqual(t, apiv2beta1.PipelineTask_SUCCEEDED, persistedTask.GetState())
 				assert.Equal(t, apiv2beta1.PipelineTask_FAILED, persistedTask.GetState())
+				assert.NotEmpty(t, persistedTask.GetStatusMetadata().GetMessage())
+				// Check the API JSON fields consumed by the System Logs lookup.
+				encoded, marshalErr := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(persistedTask)
+				require.NoError(t, marshalErr)
+				var response map[string]interface{}
+				require.NoError(t, json.Unmarshal(encoded, &response))
+				metadata := response["status_metadata"].(map[string]interface{})
+				assert.Equal(t, map[string]interface{}{
+					"driver_logs_uri": "s3://pipeline-root/driver-logs.txt",
+					"unrelated":       true,
+				}, metadata["custom_properties"])
 			}
 		})
 	}
