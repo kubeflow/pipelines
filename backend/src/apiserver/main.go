@@ -205,6 +205,9 @@ func main() {
 	if _, err := common.GetPipelineSizeLimits(); err != nil {
 		glog.Fatalf("Failed to initialize pipeline size limits: %v", err)
 	}
+	if err := common.ValidateRunsGCIndexConfig(); err != nil {
+		glog.Fatalf("Failed to initialize run GC index configuration: %v", err)
+	}
 	// check ExecutionType Settings if presents
 	if viper.IsSet(executionTypeEnv) {
 		util.SetExecutionType(util.ExecutionType(common.GetStringConfig(executionTypeEnv)))
@@ -321,15 +324,16 @@ func main() {
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 
-	// Start run GC when a retention window is configured. The collector
-	// re-validates the required database index on every tick and skips
-	// collection until the operator has applied the index migration.
-	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+	// Prepare indexes in the elected background worker, independently of API
+	// readiness. Prepare-only allows staging indexes before enabling retention.
+	prepareOnly, _ := common.GetRunsGCIndexPrepareOnly() // validated above
+	if prepareOnly || common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
 		runGC := gc.NewRunGarbageCollector(
 			clientManager.RunStore(),
 			clientManager.KubernetesCoreClient().GetClientSet(),
 			common.GetPodNamespace(),
 			clientManager.GarbageCollectorIndexChecker(),
+			clientManager.GarbageCollectorIndexPreparer(),
 		)
 		wg.Add(1)
 		go func() {

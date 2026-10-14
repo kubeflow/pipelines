@@ -421,9 +421,8 @@ func (status garbageCollectorIndexStatus) isReady(spec garbageCollectorIndexSpec
 }
 
 // validateGarbageCollectorIndexes only reads database catalog metadata. Index
-// creation is an explicit operator migration so API-server startup never runs
-// heavyweight DDL from every replica. All required indexes must be present
-// and usable.
+// preparation runs separately from startup and collection. All required indexes
+// must be present and usable before retention can process runs.
 func validateGarbageCollectorIndexes(db *gorm.DB, dialect sqldrv.DBDialect) (bool, error) {
 	for _, spec := range garbageCollectorRequiredIndexes {
 		ready, err := validateGarbageCollectorIndex(db, dialect, spec)
@@ -477,7 +476,7 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect sqldrv.DBDialect, spec g
 			SELECT DATABASE(), TABLE_SCHEMA, TABLE_NAME, INDEX_NAME,
 			       GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ','),
 			       TRUE, TRUE,
-			       SUM(SUB_PART IS NULL AND INDEX_TYPE = 'BTREE') = COUNT(*)
+			       SUM(SUB_PART IS NULL AND INDEX_TYPE = 'BTREE' AND IS_VISIBLE = 'YES') = COUNT(*)
 			FROM information_schema.STATISTICS
 			WHERE TABLE_SCHEMA = DATABASE()
 			  AND TABLE_NAME = ?
@@ -582,8 +581,8 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	}
 	if (common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) && !gcIndexChecker() {
 		glog.Warning("Run GC paused: idx_run_gc_lifecycle and/or idx_run_gc_archived is missing or incompatible. " +
-			"Apply the online index migration in docs/agents/development.md; " +
-			"GC re-checks the index on every collection tick and starts automatically once it is ready.")
+			"The background index preparer will create missing indexes online; " +
+			"GC remains paused until preparation succeeds. See docs/agents/development.md for recovery guidance.")
 	}
 
 	newdb, err := db.DB()
@@ -1318,8 +1317,8 @@ var expressionIndexes = []expressionIndexSpec{
 // and unique) exist. Only runs on PostgreSQL (pgx); other dialects are
 // no-ops.
 //
-// Unlike the run GC indexes (garbageCollectorRequiredIndexes), which are left
-// to an explicit operator migration because run_details can be a very large,
+// Unlike the run GC indexes (garbageCollectorRequiredIndexes), which are built
+// separately in the background because run_details can be a very large,
 // high-write table, these indexes track the number of pipelines/experiments,
 // not run history. Building them automatically on every startup is cheap, so
 // a best-effort self-heal here (see ensureExpressionIndex) is an acceptable

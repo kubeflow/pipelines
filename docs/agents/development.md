@@ -61,13 +61,84 @@ Both targets wait for cluster components to become ready with configurable timeo
 | `ARCHIVED_RUNS_RETENTION_TIME` | Auto-delete archived runs this Go duration after they were archived (e.g., `2160h`); pre-upgrade archived rows fall back to completion time; empty disables |
 | `RUNS_GC_INTERVAL` | Poll interval for the run garbage collector; defaults to `6h` |
 | `RUNS_GC_BATCH_SIZE` | Maximum rows per GC batch; defaults to `100` |
+| `RUNS_GC_INDEX_BUILD_TIMEOUT` | Positive Go duration per retention-index build; defaults to `12h`, independent of the five-second metadata-lock wait |
+| `RUNS_GC_INDEX_PREPARE_ONLY` | Boolean, default `false`; prepare indexes without archiving/deleting runs, even if retention windows are configured |
 
 ## Run garbage collection database migration
 
-Before enabling either retention setting, create the two required indexes
-once using the same database and schema as the API server. The API server only
-validates the indexes (at startup and on every collection tick); it does not
-run heavyweight DDL from every replica.
+The API server automatically prepares `idx_run_gc_lifecycle` and
+`idx_run_gc_archived` in the background when either retention window is enabled.
+With retention disabled and `RUNS_GC_INDEX_PREPARE_ONLY=false`, it does not build
+these indexes. API startup and readiness do not wait for retention-index creation. If retention
+was already configured but paused due to missing indexes, this change can resume
+archival/deletion automatically after preparation and the collection interval.
+Use prepare-only mode to inspect the existing backlog before allowing catch-up.
+
+The elected GC leader prepares indexes sequentially, also taking a database/schema
+advisory lock so other installations sharing that database cannot race the build.
+Existing valid, optimizer-visible indexes are reused. MySQL explicitly requires
+`ALGORITHM=INPLACE, LOCK=NONE`; PostgreSQL uses `CREATE INDEX CONCURRENTLY` outside
+a transaction. There is no column narrowing, table-copy fallback or automatic
+replacement of an incompatible index. Metadata-lock waits are bounded to five
+seconds. Online builds still consume I/O, CPU and disk, and pending metadata locks
+can briefly delay application writes.
+
+`RUNS_GC_INDEX_BUILD_TIMEOUT` defaults to `12h` **per index**; use a positive Go
+duration such as `24h` for a rehearsed large-table build. It does not increase the
+metadata-lock wait. Invalid values fail configuration validation. Cancellation or
+leadership loss cancels the client request. Database cleanup is not instantaneous:
+MySQL can retain the operation and session advisory lock after client cancellation;
+other preparers defer until that session releases ownership. The configured timeout
+bounds the client attempt, not server-side rollback/cleanup duration. Failures leave GC paused and retry with
+exponential backoff and jitter (about one minute initially, capped at fifteen
+minutes). API traffic continues; no archive/delete operation runs in preparation.
+
+After successful preparation, a newly elected leader waits a full
+`RUNS_GC_INTERVAL` before its first collection. Creating a missing index or recovering
+from a failed preparation also restarts that wait. Thus a long build cannot cause
+an overdue ticker to launch catch-up immediately. Both indexes are checked before
+collection; unusable indexes pause retention.
+
+### Prepare first, enable retention later
+
+For a large table, rehearse against a populated snapshot on comparable hardware
+with concurrent traffic. Size disk headroom for the new indexes, temporary files
+and concurrent-change logs; measure latency and replica lag. A build timeout is
+not an I/O throttle or an estimate of build duration.
+
+1. Set `RUNS_GC_INDEX_PREPARE_ONLY=true` on **all API replicas**. Retention windows
+   can stay disabled while indexes are prepared. A true value prevents this
+   version from archiving or deleting even when windows are configured. Invalid
+   boolean values fail validation instead of enabling collection.
+2. Wait for both `Prepared retention index ...` logs (or verify existing valid
+   definitions), and the preparation-completed message. Inspect database load and
+   any retry diagnostics. Preparation uses the existing GC leader-election RBAC.
+3. When ready for retention catch-up, configure the desired windows and set
+   `RUNS_GC_INDEX_PREPARE_ONLY=false` consistently. The new leader still waits one
+   full collection interval. Catch-up is a separate workload: it drains eligible
+   runs in bounded batches and can take substantial time on old history.
+
+A rolling change to prepare-only cannot stop an old leader that has not received
+that configuration or does not implement it. Start with retention disabled for
+first adoption, and finish the configuration rollout before relying on the mode.
+Keep the mode consistent across installations sharing the database. Disabling
+retention does not remove indexes; existing valid indexes permit rollback to the
+previous collector. This mode and timeout apply only to retention indexes, not
+other startup migrations or the recurring-run lookup index.
+
+### Inspect and recover failed preparation
+
+Ordinary supported upgrades no longer require manual index SQL. Investigate
+permissions, disk capacity, lock contention and engine online-DDL support when
+preparation fails. Increasing the build timeout cannot resolve the separate
+five-second lock wait. An invalid or incompatible same-named index is left intact
+for inspection, not silently dropped. A canceled PostgreSQL concurrent build can
+leave an invalid index; repair it deliberately before the automatic retry can
+succeed. Coordinate exceptional manual repair with all preparers (disable
+retention and prepare-only across them and let active work stop).
+
+The SQL below is for inspection and coordinated recovery, not a prerequisite for
+normal enablement. Never retry failed online DDL with a blocking/copying algorithm.
 
 For PostgreSQL, inspect the existing index first. Replace `public` if the API
 server's current schema is different:
