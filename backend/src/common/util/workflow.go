@@ -19,6 +19,7 @@ import (
 	"context"
 	stdjson "encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -824,24 +825,19 @@ func (w *Workflow) UpsertRuntimeConfig(runtimeConfig map[string]string, roles ..
 	if len(runtimeConfig) == 0 || len(w.Spec.Templates) == 0 {
 		return nil
 	}
-	roleSet := make(map[ExecutionRuntimeRole]bool, len(roles))
-	for _, r := range roles {
-		roleSet[r] = true
-	}
 	envList := make([]corev1.EnvVar, 0, len(runtimeConfig))
 	for k, v := range runtimeConfig {
 		envList = append(envList, corev1.EnvVar{Name: k, Value: v})
 	}
+	if err := w.UpsertRuntimeEnvVars(envList, roles...); err != nil {
+		return err
+	}
+	if !slices.Contains(roles, ExecutionRuntimeRoleDriver) {
+		return nil
+	}
 	for i := range w.Spec.Templates {
 		tmpl := &w.Spec.Templates[i]
-		if tmpl.Container != nil {
-			role := tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole]
-			if role == "" || !roleSet[ExecutionRuntimeRole(role)] {
-				continue
-			}
-			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envList)
-		}
-		if tmpl.Plugin != nil && roleSet[ExecutionRuntimeRoleDriver] {
+		if tmpl.Plugin != nil {
 			if err := upsertRuntimeArgs(tmpl, runtimeConfig); err != nil {
 				return err
 			}
