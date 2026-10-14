@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from prepare_pair import bind_runtime_image,bind_cri_runtime,calibration_request
+from prepare_pair import bind_runtime_image,bind_cri_runtime,bind_actual_container,calibration_request
 from unittest.mock import patch
 import urllib.request
 from coordinator import NoRedirect
@@ -67,6 +67,28 @@ class RuntimeIdentityTests(unittest.TestCase):
         wrongdigest='sha256:'+hashlib.sha256(wrong).hexdigest()
         with self.assertRaisesRegex(RuntimeError,'does not bind'):
             bind_cri_runtime(wrongdigest,expected,lambda image:{'status':{'id':expected}},lambda _:wrong)
+
+    def test_actual_container_normalizes_cri_lookup_and_retains_diagnostics(self):
+        expected='sha256:'+'a'*64
+        raw=json.dumps({'config':{'digest':expected}}).encode()
+        image='sha256:'+hashlib.sha256(raw).hexdigest()
+        status={'imageID':'docker-pullable://example/image@'+image,'containerID':'containerd://'+'c'*64}
+        records=[];lookups=[]
+        def inspect_container(cid):
+            self.assertEqual(cid,'c'*64)
+            return {'status':{'imageRef':image}}
+        def inspect_image(ref):
+            lookups.append(ref);return {'status':{'id':expected}}
+        proof=bind_actual_container(status,expected,inspect_container,inspect_image,lambda _:raw,lambda r:records.append(json.loads(json.dumps(r))))
+        self.assertEqual(lookups,[image]);self.assertEqual(proof['cri_config_digest'],expected)
+        self.assertEqual(records[-1]['stage'],'verified')
+        def fail(ref):raise RuntimeError('lookup failed')
+        with self.assertRaisesRegex(RuntimeError,'lookup failed'):
+            bind_actual_container(status,expected,inspect_container,fail,lambda _:raw,lambda r:records.append(json.loads(json.dumps(r))))
+        self.assertEqual(records[-1]['cri_container_image_digest'],image)
+        self.assertEqual(records[-1]['content'][0]['config_digest'],expected)
+        with self.assertRaisesRegex(RuntimeError,'identities differ'):
+            bind_actual_container(status,expected,lambda _: {'status':{'imageRef':'sha256:'+'d'*64}},inspect_image,lambda _:raw,lambda _:None)
 
     def test_wrong_config_and_forged_content_rejected(self):
         raw=json.dumps({'config':{'digest':'sha256:'+'b'*64}}).encode()

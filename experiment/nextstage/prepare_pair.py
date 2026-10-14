@@ -52,13 +52,62 @@ def bind_cri_runtime(image_id, expected, inspect_image, read_content):
     return proof
 
 
+def immutable_digest(value):
+    value=value.rsplit('@',1)[-1]
+    for prefix in ('containerd://','docker-pullable://','docker://'):
+        if value.startswith(prefix): value=value[len(prefix):]
+    if not re.fullmatch(r'sha256:[0-9a-f]{64}',value):
+        raise RuntimeError('runtime reference lacks immutable digest')
+    return value
+
+
+def bind_actual_container(status, expected, inspect_container, inspect_image, read_content, emit):
+    pod_digest=immutable_digest(status['imageID'])
+    container_id=status.get('containerID','')
+    if not re.fullmatch(r'containerd://[0-9a-f]{64}',container_id):
+        raise RuntimeError('unsupported container runtime identity')
+    cid=container_id.removeprefix('containerd://')
+    evidence={'pod_image_digest':pod_digest,'container_id':cid,'expected_config_digest':expected,'content':[],'stage':'inspect_container'}
+    emit(evidence)
+    def capture_content(d):
+        raw=read_content(d)
+        if len(raw)>4<<20 or 'sha256:'+hashlib.sha256(raw).hexdigest()!=d:
+            raise RuntimeError('containerd content digest mismatch')
+        obj=json.loads(raw)
+        descriptor={'digest':d,'kind':'index' if 'manifests' in obj else 'config' if 'rootfs' in obj else 'manifest'}
+        cfg=obj.get('config',{})
+        if isinstance(cfg,dict) and re.fullmatch(r'sha256:[0-9a-f]{64}',cfg.get('digest','')):descriptor['config_digest']=cfg['digest']
+        descriptor['children']=[{'digest':m.get('digest'),'platform':{k:m.get('platform',{}).get(k) for k in ('os','architecture')}} for m in obj.get('manifests',[])[:8] if re.fullmatch(r'sha256:[0-9a-f]{64}',m.get('digest',''))]
+        evidence['content'].append(descriptor);emit(evidence)
+        return raw
+    # Capture the pod's exact content chain before any CRI lookup can fail.
+    capture_content(pod_digest)
+    container=inspect_container(cid).get('status',{})
+    actual_ref=container.get('imageRef','')
+    actual_digest=immutable_digest(actual_ref)
+    evidence.update(cri_container_image_digest=actual_digest,stage='inspect_image');emit(evidence)
+    # The actual container must identify the same immutable image or config.
+    if actual_digest not in (pod_digest,expected):
+        raise RuntimeError('container and pod immutable image identities differ')
+    # CRI ImageStatus takes its own image reference, never Kubernetes URI prefixes.
+    image=inspect_image(actual_digest)
+    config=image.get('status',{}).get('id','')
+    if re.fullmatch(r'sha256:[0-9a-f]{64}',config):evidence['cri_config_digest']=config
+    emit(evidence)
+    if config!=expected:raise RuntimeError('CRI selected config does not match verified config digest')
+    proof=bind_runtime_image(pod_digest,expected,capture_content)
+    evidence['stage']='verified';emit(evidence)
+    proof['cri_config_digest']=config
+    return proof
+
+
 def calibration_request(request, ca):
     opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ca), NoRedirect())
     return opener.open(request, timeout=10)
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--provision-config',required=True);p.add_argument('--state',required=True);p.add_argument('--bundle',required=True);p.add_argument('--out',required=True);a=p.parse_args();os.umask(0o077)
+    p=argparse.ArgumentParser();p.add_argument('--provision-config',required=True);p.add_argument('--state',required=True);p.add_argument('--bundle',required=True);p.add_argument('--out',required=True);p.add_argument('--evidence-out',required=True);a=p.parse_args();os.umask(0o077)
     out=Path(a.out).resolve();out.mkdir(mode=0o700);c=load(a.provision_config);c['state']=a.state;owner=Owned(c);uid=owner.guard();ns='apf-competitor'
     objects=[{'apiVersion':'v1','kind':'Namespace','metadata':{'name':ns}}, {'apiVersion':'v1','kind':'ServiceAccount','metadata':{'name':'probe','namespace':ns}}, {'apiVersion':'v1','kind':'ConfigMap','metadata':{'name':'probe','namespace':ns},'data':{'fixed':'x'*1024}}, {'apiVersion':'rbac.authorization.k8s.io/v1','kind':'Role','metadata':{'name':'probe','namespace':ns},'rules':[{'apiGroups':[''],'resources':['configmaps'],'verbs':['get','list','update']}]}, {'apiVersion':'rbac.authorization.k8s.io/v1','kind':'RoleBinding','metadata':{'name':'probe','namespace':ns},'subjects':[{'kind':'ServiceAccount','name':'probe','namespace':ns}],'roleRef':{'apiGroup':'rbac.authorization.k8s.io','kind':'Role','name':'probe'}}]
     manifest=out/'competitor-resources.json';save(manifest,{'apiVersion':'v1','kind':'List','items':objects});owner.k('apply','-f',str(manifest))
@@ -96,7 +145,11 @@ def main():
                 return bounded(['docker','exec',node,'ctr','--namespace','k8s.io','content','get',digest],timeout=15,limit=4<<20)
             def inspect_image(image_id):
                 return json.loads(bounded(['docker','exec',node,'crictl','inspecti',image_id],timeout=15,limit=4<<20))
-            bindings.append(bind_cri_runtime(status['imageID'],expected,inspect_image,content))
+            def inspect_container(container_id):
+                return json.loads(bounded(['docker','exec',node,'crictl','inspect',container_id],timeout=15,limit=4<<20))
+            evidence_path=Path(a.evidence_out)/('runtime-'+pod['metadata']['uid']+'.json')
+            evidence_path.parent.mkdir(parents=True,exist_ok=True)
+            bindings.append(bind_actual_container(status,expected,inspect_container,inspect_image,content,lambda record:save(evidence_path,record)))
             actual.append(status['imageID'])
     if not actual:raise RuntimeError('no ready API container identity')
     c['api_image_ids']=sorted(set(actual))

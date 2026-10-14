@@ -66,6 +66,7 @@ jobs:
           python harness/experiment/nextstage/prepare_pair.py
           --provision-config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
           --bundle harness/experiment --out "$RUNNER_TEMP/apf-pair-private"
+          --evidence-out "$RUNNER_TEMP/apf-pair-evidence/preparation"
       - name: Measure 20 then negative one without accepting missing gates
         shell: bash
         run: |
