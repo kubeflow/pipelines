@@ -82,6 +82,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+
       - name: Install Kustomize
         env:
           KUSTOMIZE_VERSION: '5.8.1'
