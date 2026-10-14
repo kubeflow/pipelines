@@ -16,7 +16,7 @@ def bind_runtime_image(image_id, expected, read_content):
     proof = {'runtime_image_id': image_id, 'runtime_digest': digest, 'config_digest': expected, 'manifest_chain': [], 'observed_config_digests': [], 'candidate_manifest_digests': []}
     if digest == expected:
         return proof
-    for _ in range(2):
+    for _ in range(3):
         raw = read_content(digest)
         if len(raw) > 4 << 20 or 'sha256:' + hashlib.sha256(raw).hexdigest() != digest:
             raise RuntimeError('containerd manifest bytes do not match runtime digest')
@@ -27,7 +27,9 @@ def bind_runtime_image(image_id, expected, read_content):
             proof['observed_config_digests'].append(observed_config)
         if observed_config == expected:
             return proof
-        candidates = [m for m in manifest.get('manifests', []) if m.get('platform', {}).get('os') == 'linux' and m.get('platform', {}).get('architecture') == 'amd64']
+        candidates = [m for m in manifest.get('manifests', []) if not m.get('platform') or (m['platform'].get('os') == 'linux' and m['platform'].get('architecture') == 'amd64')]
+        # An omitted platform does not weaken identity: the child chain must
+        # still bind the exact verified amd64 config, and CRI must agree.
         # Docker save can list the same manifest once per tag (latest/ci/local).
         # Distinct descriptors are not distinct images when their digests match.
         candidate_digests = sorted({m.get('digest', '') for m in candidates})
@@ -39,6 +41,15 @@ def bind_runtime_image(image_id, expected, read_content):
     # annotations, credentials, labels or raw config contents.
     diagnosis = {key: value for key, value in proof.items() if key != 'runtime_image_id'}
     raise RuntimeError('runtime image does not bind to verified config digest: ' + json.dumps(diagnosis, sort_keys=True))
+
+
+def bind_cri_runtime(image_id, expected, inspect_image, read_content):
+    cri = inspect_image(image_id)
+    if cri.get('status', {}).get('id') != expected:
+        raise RuntimeError('CRI selected config does not match verified config digest')
+    proof = bind_runtime_image(image_id, expected, read_content)
+    proof['cri_config_digest'] = expected
+    return proof
 
 
 def calibration_request(request, ca):
@@ -83,7 +94,9 @@ def main():
                 raise RuntimeError('runtime image inspection requires owned Kind control-plane node')
             def content(digest):
                 return bounded(['docker','exec',node,'ctr','--namespace','k8s.io','content','get',digest],timeout=15,limit=4<<20)
-            bindings.append(bind_runtime_image(status['imageID'],expected,content))
+            def inspect_image(image_id):
+                return json.loads(bounded(['docker','exec',node,'crictl','inspecti',image_id],timeout=15,limit=4<<20))
+            bindings.append(bind_cri_runtime(status['imageID'],expected,inspect_image,content))
             actual.append(status['imageID'])
     if not actual:raise RuntimeError('no ready API container identity')
     c['api_image_ids']=sorted(set(actual))

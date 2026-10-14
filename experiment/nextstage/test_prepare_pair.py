@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from prepare_pair import bind_runtime_image,calibration_request
+from prepare_pair import bind_runtime_image,bind_cri_runtime,calibration_request
 from unittest.mock import patch
 import urllib.request
 from coordinator import NoRedirect
@@ -50,6 +50,23 @@ class RuntimeIdentityTests(unittest.TestCase):
         indexdigest='sha256:'+hashlib.sha256(index).hexdigest()
         with self.assertRaisesRegex(RuntimeError,'candidate_manifest_digests'):
             bind_runtime_image(indexdigest,expected,lambda _:index)
+
+    def test_platformless_index_requires_exact_chain_and_cri_config(self):
+        expected='sha256:'+'a'*64
+        raw=json.dumps({'config':{'digest':expected}}).encode()
+        digest='sha256:'+hashlib.sha256(raw).hexdigest()
+        index=json.dumps({'manifests':[{'digest':digest}]}).encode()
+        indexdigest='sha256:'+hashlib.sha256(index).hexdigest()
+        blobs={indexdigest:index,digest:raw}
+        proof=bind_cri_runtime(indexdigest,expected,lambda image:{'status':{'id':expected}},blobs.__getitem__)
+        self.assertEqual(proof['cri_config_digest'],expected)
+        self.assertEqual(proof['manifest_chain'],[indexdigest,digest])
+        with self.assertRaisesRegex(RuntimeError,'CRI selected config'):
+            bind_cri_runtime(indexdigest,expected,lambda image:{'status':{'id':'sha256:'+'b'*64}},blobs.__getitem__)
+        wrong=json.dumps({'config':{'digest':'sha256:'+'b'*64}}).encode()
+        wrongdigest='sha256:'+hashlib.sha256(wrong).hexdigest()
+        with self.assertRaisesRegex(RuntimeError,'does not bind'):
+            bind_cri_runtime(wrongdigest,expected,lambda image:{'status':{'id':expected}},lambda _:wrong)
 
     def test_wrong_config_and_forged_content_rejected(self):
         raw=json.dumps({'config':{'digest':'sha256:'+'b'*64}}).encode()
