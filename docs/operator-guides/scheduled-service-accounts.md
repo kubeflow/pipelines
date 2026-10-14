@@ -253,6 +253,9 @@ container. Both `api` and `controller` roles are required. Deployment names and
 `app` labels must be unique; empty, malformed, or partial configurations fail
 closed. All resources must be in the installation namespace. Preserve the
 Downward API `POD_NAME` and `POD_NAMESPACE` fields and existing handoff permissions.
+Update the handoff Role's `deployments` `resourceNames` to include every configured
+Deployment name, including retiring writers; the stock Role names only the two
+standard Deployments. Bind it to the actual API and controller service accounts.
 For custom identities, also grant the API and controller `get` on `replicasets`
 in API group `apps` in that namespace. The handoff verifies the Pod's controller
 ReplicaSet and the ReplicaSet's Deployment owner UID, as well as the Deployment
