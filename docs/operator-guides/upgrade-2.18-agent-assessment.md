@@ -182,6 +182,13 @@ may report generic invalid-token errors. A server rollout does not update client
 
 ### Limits, old specifications and workload behavior
 
+Check the selected SDK package's `Requires-Python` and dependency metadata against
+notebooks, CI submitters and component base images that install that package. A
+server image rollout does not upgrade those environments. Track pending dependency
+PRs separately until selected; a proposed Python minimum is not evidence of a
+landed release requirement. Distinguish SDK host requirements from user containers
+that do not install the SDK.
+
 Compare actual byte sizes with target `MAX_PIPELINE_UPLOAD_BYTES`,
 `MAX_PIPELINE_SPEC_BYTES` and `MAX_PIPELINE_UPDATE_BODY_BYTES` (32 MiB defaults,
 bounded overrides up to 128 MiB). Inspect **existing object-store specifications**

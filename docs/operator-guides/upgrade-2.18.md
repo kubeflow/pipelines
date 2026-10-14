@@ -99,7 +99,8 @@ updates yourself or recreate eligible schedules.
 
 While the managed writer handoff is pending, the upgraded API returns retryable
 `Unavailable` for schedule creation and enable/disable requests before changing
-SQL or Kubernetes state. Retry them after the rollout; they are not queued as
+the schedule's SQL or Kubernetes state. A create request may already have created
+its default experiment before reaching this schedule guard. Retry them after the rollout; they are not queued as
 accepted intent during the wait. Run operations, reads, reporting, and deletion
 remain available. Existing legacy schedules retain old behavior until handoff,
 while the new controller waits. This is an automatic scheduling-write pause, not
