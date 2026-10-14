@@ -1,6 +1,6 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:589.0.0-alpine@sha256:cfbfeb8b32f93d1dd8ab1471c5ed059494f0f0371880e382176931fa05aff831
 
-RUN apk add --update \
+RUN apk upgrade --no-cache && apk add --no-cache \
     curl \
     jq \
     openssl

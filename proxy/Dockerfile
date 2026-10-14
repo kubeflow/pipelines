@@ -16,7 +16,9 @@
 FROM gcr.io/inverting-proxy/agent@sha256:432f609b1e98793723807f62a0a5b900deec491322a73330a9c844210fe70385
 
 # We need --allow-releaseinfo-change, because of https://github.com/kubeflow/pipelines/issues/6311#issuecomment-899224137.
-RUN apt update --allow-releaseinfo-change && apt-get install -y curl jq python3-venv
+RUN apt-get update --allow-releaseinfo-change && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends curl jq python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 ENV VIRTUAL_ENV=/opt/proxy-venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 COPY requirements.txt .
@@ -27,11 +29,14 @@ RUN python3 -m venv "${VIRTUAL_ENV}" \
     && "${VIRTUAL_ENV}/bin/python3" -c "import requests"
 
 # Install gcloud SDK (pinned)
-ARG GCLOUD_VERSION=557.0.0
+ARG GCLOUD_VERSION=589.0.0
+ARG GCLOUD_SHA256=f865da648f6fdae2015abb5b32eaa0eb10520e88f0ca735cfb33795868c8d26f
 RUN curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" > /tmp/google-cloud-sdk.tar.gz
+RUN echo "${GCLOUD_SHA256}  /tmp/google-cloud-sdk.tar.gz" | sha256sum -c -
 RUN mkdir -p /usr/local/gcloud
 RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
-RUN /usr/local/gcloud/google-cloud-sdk/install.sh
+RUN /usr/local/gcloud/google-cloud-sdk/install.sh --quiet \
+    && rm /tmp/google-cloud-sdk.tar.gz
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 # Install kubectl

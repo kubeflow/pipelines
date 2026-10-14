@@ -31,6 +31,9 @@ RUN mkdir -p ./server/dist && \
 
 FROM node:${NODE_VERSION}-${BASE_IMAGE}
 
+RUN if command -v apk >/dev/null; then apk upgrade --no-cache; \
+    else apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*; fi
+
 COPY --from=build ./src/frontend/package.json /tmp/frontend-package.json
 RUN npm install --global "$(node -p 'require("/tmp/frontend-package.json").packageManager')" && \
     rm /tmp/frontend-package.json

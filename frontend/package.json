@@ -5,7 +5,7 @@
   "private": true,
   "packageManager": "npm@11.17.0",
   "engines": {
-    "node": "24.14.0"
+    "node": "24.21.0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -180,7 +180,13 @@
     },
     "nth-check": "2.0.1",
     "terser": "5.14.2",
-    "micromatch": ">=4.0.8"
+    "micromatch": ">=4.0.8",
+    "tailwindcss": {
+      "postcss-selector-parser": "^7.1.6",
+      "postcss-nested": {
+        "postcss-selector-parser": "^7.1.6"
+      }
+    }
   },
   "homepage": "./",
   "browserslist": {
