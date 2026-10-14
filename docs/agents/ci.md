@@ -191,6 +191,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   is unavailable. BuildKit mirror configuration remains independent.
 - Frontend image builds use `build_frontend_image.py`: each of two attempts has an eight-minute deadline covering builder setup and build/export. A failed attempt records bounded BuildKit process/log diagnostics, removes its builder, and retries once with a fresh builder and no cache. Cancellation stops the build and cleans up without retrying. Only a successful nonempty export is renamed for artifact upload. The overall 30-minute job guard remains; other image builds retain their existing recovery path. This addresses installs/build finalization that stall without exiting, which bypass command-exit retries.
 
+- The readiness policy-conformance lane prefetches Go modules from its pinned
+  `policy-source` checkout before running tests. Downloads have three attempts,
+  each capped at 120 seconds, with 5- and 10-second backoffs. Exhaustion fails
+  the job; normal Go checksum verification remains enabled. Conformance runs
+  once after a successful prefetch, so test failures are never retried.
+
 - Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
   (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
