@@ -15,6 +15,10 @@ def request(endpoint, path, token, body=None):
     if len(data)>8<<20: raise RuntimeError('response size bound')
     return json.loads(data)
 
+def full_run(endpoint,run_id,token):
+    # DEFAULT deliberately omits tasks; output assertions require the FULL view.
+    return request(endpoint,'/apis/v2beta1/runs/'+run_id+'?view=FULL',token)
+
 def run(args):
     out=Path(args.output);out.mkdir(mode=0o700,parents=True,exist_ok=False)
     spec=importlib.util.spec_from_file_location('provision',Path(args.provision)/'provision.py');p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
@@ -34,7 +38,7 @@ def run(args):
         deadline=time.monotonic()+900;terminal_deadline=None
         while time.monotonic()<deadline:
             if forward.poll() is not None:raise RuntimeError('forward exited')
-            raw=request(endpoint,'/apis/v2beta1/runs/'+rid,token)
+            raw=full_run(endpoint,rid,token)
             save(out/'run.json',raw)
             if raw.get('state') in ('FAILED','CANCELED'):raise RuntimeError('pipeline failed')
             if raw.get('state')=='SUCCEEDED':

@@ -4,6 +4,11 @@ from unittest.mock import patch,MagicMock
 import smoke
 from coordinator import capture_manifest,load
 class SmokeTests(unittest.TestCase):
+    def test_full_view_required_for_task_output_evidence(self):
+        with patch.object(smoke,'request',return_value={'tasks':[{'type':'RUNTIME'}]}) as request:
+            self.assertTrue(smoke.full_run('http://127.0.0.1','r','private')['tasks'])
+            request.assert_called_once_with('http://127.0.0.1','/apis/v2beta1/runs/r?view=FULL','private')
+
     def test_post_once_and_bounds(self):
         response=MagicMock();response.read.return_value=b'{"run_id":"safe"}'
         response.__enter__.return_value=response
