@@ -119,9 +119,8 @@ class V2DeploymentContractTest(unittest.TestCase):
         multi_user = next(
             step for step in workflow['jobs']['api-test-multi-user']['steps']
             if step['name'] == 'Configure Input Variables')
-        self.assertIn(
-            'TEST_LABEL="($TEST_LABEL) || LegacyAPICompatibility"',
-            multi_user['run'])
+        self.assertIn('TEST_LABEL="($TEST_LABEL) || LegacyAPICompatibility"',
+                      multi_user['run'])
         specs = (
             ROOT /
             'backend/test/v2/api/legacy_compatibility_api_test.go').read_text()

@@ -150,19 +150,19 @@ for (const kind of ['pipeline', 'run']) {
           pipeline_spec: pipelineSpec,
         };
         await routeProductionBundle(page, {
-          '/apis/v2beta1/pipelines/graph-spacing': {
+          '/apis/v2/pipelines/graph-spacing': {
             pipeline_id: 'graph-spacing',
             display_name: 'Graph spacing',
           },
-          '/apis/v2beta1/pipelines/graph-spacing/versions/version': version,
-          '/apis/v2beta1/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
-          '/apis/v2beta1/runs/graph-spacing': {
+          '/apis/v2/pipelines/graph-spacing/versions/version': version,
+          '/apis/v2/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
+          '/apis/v2/runs/graph-spacing': {
             run_id: 'graph-spacing',
             display_name: 'Graph spacing',
             state: 'SUCCEEDED',
             pipeline_spec: pipelineSpec,
           },
-          '/apis/v2beta1/runs/graph-spacing/tasks': { tasks: [] },
+          '/apis/v2/runs/graph-spacing/tasks': { tasks: [] },
         });
         const route =
           kind === 'pipeline'
