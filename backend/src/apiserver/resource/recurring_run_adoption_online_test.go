@@ -20,6 +20,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -229,6 +230,16 @@ func TestOnlineScheduleMutationsWaitForWriterHandoff(t *testing.T) {
 				require.Error(t, err)
 				status := util.ToGRPCStatus(err)
 				require.Equal(t, codes.Unavailable, status.Code())
+				found := false
+				for _, detail := range status.Details() {
+					if info, ok := detail.(*errdetails.ErrorInfo); ok {
+						require.Equal(t, "SCHEDULE_HANDOFF_IN_PROGRESS", info.Reason)
+						require.Equal(t, "kubeflow.org", info.Domain)
+						found = true
+					}
+				}
+				require.True(t, found)
+
 				require.Equal(t, err.(*util.UserError).ExternalMessage(), status.Message())
 				require.Contains(t, status.Message(), "was not applied")
 				require.Contains(t, status.Message(), "handoff")

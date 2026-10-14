@@ -196,6 +196,15 @@ func NewPaginationRestartRequiredError() *UserError {
 	return err
 }
 
+// NewScheduleHandoffInProgressError marks a schedule request rejected before any
+// schedule mutation. Clients may retry this condition, never arbitrary Unavailable errors.
+func NewScheduleHandoffInProgressError() *UserError {
+	const message = "Recurring run request was not applied because schedule writer handoff is in progress; retry after handoff completes. Existing schedules retain their enabled state."
+	err := newUserError(errors.New(message), message, codes.Unavailable)
+	err.errorInfo = &errdetails.ErrorInfo{Reason: "SCHEDULE_HANDOFF_IN_PROGRESS", Domain: "kubeflow.org"}
+	return err
+}
+
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
 	message := fmt.Sprintf(messageFormat, a...)
 	return newUserError(errors.Errorf("Invalid input error: %v", message), message, codes.InvalidArgument)
