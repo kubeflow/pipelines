@@ -67,12 +67,12 @@ jobs:
           --provision-config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
           --bundle harness/experiment --out "$RUNNER_TEMP/apf-pair-private"
           --evidence-out "$RUNNER_TEMP/apf-pair-evidence/preparation"
-      - name: Measure 20 then negative one without accepting missing gates
+      - name: Measure only remaining negative-one arm; preserve completed20 evidence
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/apf-pair-evidence"
-          for index in 1 2; do
+          for index in 2; do
             python harness/experiment/nextstage/coordinator.py arm \
               --config "$RUNNER_TEMP/apf-pair-private/coordinator.json" \
               --out "$RUNNER_TEMP/apf-pair-evidence/arm-$index" --index "$index"

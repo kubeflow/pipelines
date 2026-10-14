@@ -285,10 +285,29 @@ def incomplete_acceptance(directory, c):
 def safe_failure_reason(error):
     # Only fixed local error categories; arbitrary server strings remain excluded.
     message=str(error)
-    if message in ('bounded command output limit','bounded command deadline','empty projected container health','duplicate health container identity','invalid projected container health'):
+    if message in ('bounded command output limit','bounded command deadline','empty projected container health','duplicate health container identity','invalid projected container health','completed measurement has nonzero child exit'):
         return message
     if re.fullmatch(r'command failed with exit -?[0-9]{1,3}',message):return message
     return 'detail_suppressed'
+
+
+def completed_measurement_capture(directory, workload, end, now):
+    """Only completed durable timelines permit diagnostics after a child failure."""
+    if now < end:
+        return False
+    try:
+        result=load(directory/'workload'/'results.json',32<<20)
+        summary=load(directory/'observer'/'summary.json',32<<20)
+        timeline=load(directory/'workload'/'timeline.json')
+        if result.get('timeline') != timeline or not timeline or stamp(timeline[-1]['end']) != end:
+            return False
+        if summary.get('snapshot_count') != total_seconds(workload)+1 or summary.get('timeline_sha256') != digest(directory/'workload'/'timeline.json'):
+            return False
+        ended={r.get('tenant') for r in read_events(directory/'workload'/'events.jsonl')
+               if r.get('operation')=='phase_end' and r.get('phase')==timeline[-1]['name']}
+        return {t['name'] for t in workload['tenants']} <= ended
+    except (OSError,ValueError,KeyError,TypeError):
+        return False
 
 
 def arm(c, workload_template, observer_template, directory, index):
@@ -341,20 +360,27 @@ def arm(c, workload_template, observer_template, directory, index):
                       '--out',str(directory/'auth-during.json'),'--phase','during',
                       '--at',iso(start+dt.timedelta(seconds=130)), '--until',iso(start+dt.timedelta(seconds=300))])
         processes.append(auth)
-        deadline = start + dt.timedelta(seconds=total_seconds(workload)+15)
+        measurement_end = start + dt.timedelta(seconds=total_seconds(workload))
+        deadline = measurement_end + dt.timedelta(seconds=15)
+        measurement_failed = False
         stage = 'measurement'
         while utc() < deadline:
             if forward.poll() is not None:
                 raise RuntimeError('port-forward died during measurement')
             codes = [work.poll(), watch.poll(), auth.poll()]
             if any(x is not None and x != 0 for x in codes):
-                raise RuntimeError('workload/observer peer failure; both canceled')
-            if all(x == 0 for x in codes):
+                save(directory/'process-results.json', {'workload_exit':codes[0],'observer_exit':codes[1],'auth_during_exit':codes[2],'qps':qps})
+                if not completed_measurement_capture(directory,workload,measurement_end,utc()):
+                    raise RuntimeError('workload/observer peer failure; both canceled')
+                measurement_failed = True
+                if all(x is not None for x in codes):
+                    break
+            elif all(x == 0 for x in codes):
                 break
             time.sleep(.1)
         else:
             raise RuntimeError('full timeline/drain watchdog expired')
-        save(directory/'process-results.json', {'workload_exit':work.returncode,'observer_exit':watch.returncode,'qps':qps})
+        save(directory/'process-results.json', {'workload_exit':work.returncode,'observer_exit':watch.returncode,'auth_during_exit':auth.returncode,'qps':qps,'completed_timeline':True,'measurement_failed':measurement_failed})
         stage = 'auth-after'
         probe(workload,targets,directory/'auth-after.json','after')
         stage = 'health-after'
@@ -365,6 +391,9 @@ def arm(c, workload_template, observer_template, directory, index):
         collect_semantics(c, workload, directory)
         stage = 'scheduled-after'
         scheduled_stage(c, workload, directory, 'scheduled-after')
+        if measurement_failed:
+            stage = 'completed-measurement-failed'
+            raise RuntimeError('completed measurement has nonzero child exit')
     except BaseException as error:
         failure = type(error).__name__
         # Only safe operation stage/type, never child stdout, tokens or raw API errors.
