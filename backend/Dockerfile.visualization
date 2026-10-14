@@ -29,7 +29,8 @@ WORKDIR /src
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
 RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
-  && python3 -m pip install -r requirements.txt --no-cache-dir
+  && python3 -m pip install -r requirements.txt --no-cache-dir \
+  && python3 -m pip uninstall --yes pip
 
 COPY backend/src/apiserver/visualization /src
 
