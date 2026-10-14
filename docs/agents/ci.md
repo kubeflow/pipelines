@@ -195,3 +195,9 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   each capped at 120 seconds, with 5- and 10-second backoffs. Exhaustion fails
   the job; normal Go checksum verification remains enabled. Conformance runs
   once after a successful prefetch, so test failures are never retried.
+
+- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
+  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+  gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
+  When advancing this pin, review and render all four consumed paths, including
+  the profile controller; the pin selects more than Istio images.
