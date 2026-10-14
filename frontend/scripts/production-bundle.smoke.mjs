@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
+import { PNG } from 'pngjs';
 
 async function routeProductionBundle(page, responses = {}) {
   await page.route('**/*', async (route) => {
@@ -96,6 +97,128 @@ test(
     }
   },
 );
+
+for (const kind of ['pipeline', 'run']) {
+  test(
+    `${kind} graph retains its 8px gap and expansion choices across reloads`,
+    { timeout: 30000 },
+    async () => {
+      const browser = await chromium.launch({
+        channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+      });
+      try {
+        const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+        const pipelineSpec = {
+          pipelineInfo: { name: 'graph-spacing' },
+          root: {
+            dag: {
+              tasks: {
+                ...Object.fromEntries(
+                  Array.from({ length: 25 }, (_, index) => [
+                    `group-${index}`,
+                    {
+                      taskInfo: { name: `Group ${index}` },
+                      componentRef: { name: 'group' },
+                      dependentTasks: index ? [`group-${index - 1}`] : [],
+                    },
+                  ]),
+                ),
+              },
+            },
+          },
+          components: {
+            step: { executorLabel: 'exec-step' },
+            group: {
+              dag: {
+                tasks: {
+                  step: {
+                    taskInfo: { name: 'Example task' },
+                    componentRef: { name: 'step' },
+                  },
+                },
+              },
+            },
+          },
+          deploymentSpec: {
+            executors: { 'exec-step': { container: { image: 'unused-test-image' } } },
+          },
+        };
+        const version = {
+          pipeline_id: 'graph-spacing',
+          pipeline_version_id: 'version',
+          display_name: 'v1',
+          pipeline_spec: pipelineSpec,
+        };
+        await routeProductionBundle(page, {
+          '/apis/v2beta1/pipelines/graph-spacing': {
+            pipeline_id: 'graph-spacing',
+            display_name: 'Graph spacing',
+          },
+          '/apis/v2beta1/pipelines/graph-spacing/versions/version': version,
+          '/apis/v2beta1/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
+          '/apis/v2beta1/runs/graph-spacing': {
+            run_id: 'graph-spacing',
+            display_name: 'Graph spacing',
+            state: 'SUCCEEDED',
+            pipeline_spec: pipelineSpec,
+          },
+          '/apis/v2beta1/runs/graph-spacing/tasks': { tasks: [] },
+        });
+        const route =
+          kind === 'pipeline'
+            ? '/pipelines/details/graph-spacing/version/version'
+            : '/runs/details/graph-spacing';
+        await page.goto(`http://kfp.test/#${route}`);
+        await page.getByText('Example task', { exact: true }).first().waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 10);
+        for (const height of [900, 500]) {
+          await page.setViewportSize({ width: 1440, height });
+          const canvas = await page.getByTestId('DagCanvas').boundingBox();
+          const tabsBottom = await page
+            .getByRole('button', { name: 'Graph', exact: true })
+            .evaluate((button) => button.parentElement.getBoundingClientRect().bottom);
+          assert.equal(
+            canvas.y - tabsBottom,
+            8,
+            'Graph starts exactly 8px below the existing tab divider',
+          );
+          const strip = PNG.sync.read(
+            await page.screenshot({
+              clip: {
+                x: canvas.x + 1,
+                y: tabsBottom,
+                width: Math.floor(canvas.width) - 2,
+                height: 8,
+              },
+            }),
+          );
+          assert.ok(
+            strip.data.every((channel) => channel === 255),
+            'The entire strip is opaque white',
+          );
+          assert.ok(
+            canvas.height > 0 && canvas.y + canvas.height <= height,
+            'Canvas still fits the viewport',
+          );
+        }
+        await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
+        await page.reload();
+        await page.getByRole('button', { name: 'Expand Group 0', exact: true }).waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 0);
+        await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+        await page.reload();
+        await page.getByRole('button', { name: 'Collapse Group 24', exact: true }).waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 25);
+        await page.getByRole('button', { name: 'Collapse Group 24', exact: true }).click();
+        await page.reload();
+        await page.getByRole('button', { name: 'Expand Group 24', exact: true }).waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 24);
+      } finally {
+        await browser.close();
+      }
+    },
+  );
+}
 
 test(
   'Timeline keeps task details visible when scrolling long charts',

@@ -27,9 +27,9 @@ dependencies = [
   "click>=8.1.8",
   "click-option-group>=0.5.7",
   "docstring-parser>=0.7.3,<1",
-  "google-auth>=1.6.1,<3",
+  "google-auth>=2.61.0,<3",
   # Generated pipeline specs import google.rpc; 1.69.2 supports protobuf 6.
-  "googleapis-common-protos>=1.69.2",
+  "googleapis-common-protos>=1.75.5",
   "kubernetes>=8.0.0",
   "protobuf>=6.33.5",
   "certifi",
@@ -37,7 +37,7 @@ dependencies = [
   "six>=1.10",
   "PyYAML>=5.3,<7",
   "requests>=2.33.0,<3",
-  "tabulate>=0.8.6,<1",
+  "tabulate>=0.10.0,<1",
   # 2.6.0 removed HTTPResponse.getheader/getheaders used by the API client.
   "urllib3!=2.6.0",
 ]

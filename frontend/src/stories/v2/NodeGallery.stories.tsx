@@ -24,7 +24,9 @@ import {
   FlowElementDataBase,
 } from 'src/components/graph/Constants';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
-import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
+import { NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { NODE_TYPES } from 'src/components/graph/NodeTypes';
+import { GROUP_NODE_TYPE } from 'src/lib/v2/GroupedFlow';
 
 const nodes = [
   {
@@ -125,10 +127,13 @@ const nodes = [
   },
   {
     id: '201',
-    type: NodeTypeNames.SUB_DAG,
+    type: GROUP_NODE_TYPE,
     position: { x: 700, y: 72 },
+    style: { width: 288, height: 48 },
     data: {
       label: 'Sub-DAG node',
+      collapsed: true,
+      expand: () => {},
     } as FlowElementDataBase,
   },
 ];
