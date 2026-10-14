@@ -678,3 +678,149 @@ func TestExpectedFourSeatsRequiresBothActualGauges(t *testing.T) {
 		t.Fatal("nominal gauge filtered away")
 	}
 }
+
+func TestProjectedParserMatchesExistingMetricsAndLabels(t *testing.T) {
+	lines := []string{
+		"apiserver_request_total{verb=\"GET\",\tcode=\"200\"} 2",
+		`apiserver_request_total{verb="GET",code="200",resource="pods",group="",version="v1",scope="namespace",component="apiserver",dry_run="",contentType="application/json"} 42`,
+		`apiserver_request_duration_seconds_bucket{verb="LIST",resource="configmaps",le="0.5",scope="namespace",component="apiserver"} 25`,
+		`apiserver_flowcontrol_current_executing_seats{priority_level="shared",flow_schema="fixed"} 4`,
+		`apiserver_flowcontrol_rejected_requests_total{priority_level="other",flow_schema="other",reason="queue-full"} 1`,
+		`process_cpu_seconds_total 1.5`,
+	}
+	for _, line := range lines {
+		old, _ := parseMetrics([]byte(line))
+		expected, keep := projectMetric(old[0], "shared")
+		actual, gotKeep, valid := parseProjectedMetric(line, "shared")
+		a, _ := json.Marshal(actual)
+		b, _ := json.Marshal(expected)
+		if !valid || gotKeep != keep || string(a) != string(b) {
+			t.Fatalf("projection differs: %s vs %s keep%v/%v", a, b, gotKeep, keep)
+		}
+	}
+	if _, _, valid := parseProjectedMetric("apiserver_request_total malformed", "shared"); valid {
+		t.Fatal("malformed accepted")
+	}
+}
+func BenchmarkMetricsProjection(b *testing.B) {
+	line := `apiserver_request_duration_seconds_bucket{verb="LIST",dry_run="",group="",version="v1",resource="configmaps",subresource="",scope="namespace",component="apiserver",le="0.5"} 42`
+	lines := strings.Split(strings.Repeat(line+"\n", 26000), "\n")
+	b.Run("original", func(b *testing.B) {
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			for _, line := range lines {
+				if line == "" {
+					continue
+				}
+				if metricLine.FindStringSubmatch(line) == nil {
+					b.Fatal("invalid")
+				}
+				p, _ := parseMetrics([]byte(line))
+				projectMetric(p[0], "shared")
+			}
+		}
+	})
+	b.Run("single_parse", func(b *testing.B) {
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			for _, line := range lines {
+				if line == "" {
+					continue
+				}
+				if _, _, valid := parseProjectedMetric(line, "shared"); !valid {
+					b.Fatal("invalid")
+				}
+			}
+		}
+	})
+}
+
+func TestProjectedLabelsEscapesAndMalformedSyntax(t *testing.T) {
+	lines := []string{
+		`apiserver_request_total{verb="GET",code="200",resource="commas,in,value",unused="quote\"inside",group=""} 2`,
+		`apiserver_request_total{verb="G\\ET",code="200",unused="line\nfeed"} 2`,
+		`apiserver_request_total{verb="GET",code="201",code="200"} 2`,
+		`apiserver_flowcontrol_current_limit_seats{priority_level="shared",flow_schema="a,b"} 4`,
+	}
+	for _, line := range lines {
+		old, _ := parseMetrics([]byte(line))
+		expected, keep := projectMetric(old[0], "shared")
+		actual, got, valid := parseProjectedMetric(line, "shared")
+		a, _ := json.Marshal(actual)
+		b, _ := json.Marshal(expected)
+		if !valid || got != keep || string(a) != string(b) {
+			t.Fatalf("legacy projection changed: %s / %s", a, b)
+		}
+	}
+	for _, line := range []string{"apiserver_request_total malformed", "apiserver_request_total{verb=\"GET\"} not-a-number", "apiserver_request_total{verb=\"GET\" 2"} {
+		if _, _, valid := parseProjectedMetric(line, "shared"); valid {
+			t.Fatal("malformed selected line accepted", line)
+		}
+	}
+
+}
+
+type metricsTestTransport func(*http.Request) (*http.Response, error)
+
+func (f metricsTestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+type cancelMetricsReader struct {
+	reader io.Reader
+	cancel context.CancelFunc
+}
+
+func (r cancelMetricsReader) Read(b []byte) (int, error) {
+	n, e := r.reader.Read(b)
+	r.cancel()
+	return n, e
+}
+func TestBufferedMetricParsingHonorsCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client := &http.Client{Transport: metricsTestTransport(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(cancelMetricsReader{strings.NewReader("process_cpu_seconds_total 1\n"), cancel})}, nil
+	})}
+	metrics, _, diagnostic := fetchMetrics(ctx, client, "http://test")
+	if diagnostic.Reason != "deadline_or_cancel" || len(metrics) != 0 || diagnostic.ElapsedMS < 0 {
+		t.Fatalf("canceled buffered metrics accepted: %+v", diagnostic)
+	}
+}
+
+func TestFetchProjectionPreservesAggregatesAndCounterDeltas(t *testing.T) {
+	lines := []string{}
+	for i := 0; i < 128; i++ {
+		lines = append(lines, fmt.Sprintf(`apiserver_request_total{verb="GET",code="200",resource="resource%d",scope="namespace"} %d`, i, i+1))
+		lines = append(lines, fmt.Sprintf(`apiserver_request_duration_seconds_bucket{verb="LIST",resource="resource%d",le="0.5"} %d`, i, i+2))
+	}
+	lines = append(lines, `apiserver_flowcontrol_rejected_requests_total{priority_level="shared",flow_schema="one",reason="queue-full"} 4`, `apiserver_flowcontrol_rejected_requests_total{priority_level="other",flow_schema="two",reason="queue-full"} 100`)
+	body := strings.Join(lines, "\n") + "\n"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, body) }))
+	defer server.Close()
+	got, _, diag := fetchMetrics(context.Background(), server.Client(), server.URL, "shared")
+	if diag.Reason != "ok" || diag.ElapsedMS <= 0 || diag.ParseMS <= 0 {
+		t.Fatal(diag)
+	}
+	old, _ := parseMetrics([]byte(body))
+	want := []metric{}
+	for _, m := range old {
+		if p, keep := projectMetric(m, "shared"); keep {
+			want = append(want, p)
+		}
+	}
+	// Delta from empty baseline performs identical aggregation by projected labels.
+	expected, _ := deltas(nil, want)
+	actual, _ := deltas(nil, got)
+	e, _ := json.Marshal(expected)
+	a, _ := json.Marshal(actual)
+	if string(e) != string(a) {
+		t.Fatalf("aggregates differ: %s / %s", e, a)
+	}
+	previous := []metric{{Name: "apiserver_request_total", Labels: map[string]string{"verb": "GET", "code": "200"}, Value: 10}}
+	expected, er := deltas(previous, want)
+	actual, ar := deltas(previous, got)
+	e, _ = json.Marshal(expected)
+	a, _ = json.Marshal(actual)
+	if er != ar || string(e) != string(a) {
+		t.Fatal("counter delta/reset semantics changed")
+	}
+}

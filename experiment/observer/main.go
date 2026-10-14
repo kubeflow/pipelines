@@ -87,7 +87,12 @@ type sink struct {
 }
 
 func (s *sink) emit(v any) {
+	lockStart := time.Now()
 	s.mu.Lock()
+	if row, ok := v.(snapshot); ok {
+		row.SinkWaitMS = float64(time.Since(lockStart).Microseconds()) / 1000
+		v = row
+	}
 	defer s.mu.Unlock()
 	if s.err != nil {
 		return
@@ -305,15 +310,26 @@ const metricsNetworkLimit int64 = 32 << 20
 const metricsRetainedLimit = 48 << 10
 
 type metricsFetch struct {
-	Status        int    `json:"status"`
-	Bytes         int64  `json:"bytes"`
-	RetainedBytes int    `json:"retained_bytes"`
-	Reason        string `json:"reason"`
-	DeadlineMS    int    `json:"deadline_ms"`
+	ElapsedMS     float64 `json:"elapsed_ms"`
+	ParseMS       float64 `json:"parse_ms"`
+	Status        int     `json:"status"`
+	Bytes         int64   `json:"bytes"`
+	RetainedBytes int     `json:"retained_bytes"`
+	Reason        string  `json:"reason"`
+	DeadlineMS    int     `json:"deadline_ms"`
 }
 
-func fetchMetrics(ctx context.Context, client *http.Client, host string, priority ...string) ([]metric, map[string]bool, metricsFetch) {
-	d := metricsFetch{DeadlineMS: 900}
+func fetchMetrics(ctx context.Context, client *http.Client, host string, priority ...string) (result []metric, resultFound map[string]bool, d metricsFetch) {
+	started := time.Now()
+	d = metricsFetch{DeadlineMS: 900}
+	defer func() {
+		d.ElapsedMS = float64(time.Since(started).Microseconds()) / 1000
+		if ctx.Err() != nil && d.Reason == "ok" {
+			d.Reason = "deadline_or_cancel"
+			result = nil
+			resultFound = nil
+		}
+	}()
 	req, err := http.NewRequestWithContext(ctx, "GET", strings.TrimRight(host, "/")+"/metrics", nil)
 	if err != nil {
 		d.Reason = "request"
@@ -342,6 +358,10 @@ func fetchMetrics(ctx context.Context, client *http.Client, host string, priorit
 		selectedPriority = priority[0]
 	}
 	for scan.Scan() {
+		if ctx.Err() != nil {
+			d.Reason = "deadline_or_cancel"
+			break
+		}
 		line := scan.Text()
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -353,16 +373,13 @@ func fetchMetrics(ctx context.Context, client *http.Client, host string, priorit
 		if !wantedMetric(name) {
 			continue
 		}
-		if metricLine.FindStringSubmatch(line) == nil {
+		parseStart := time.Now()
+		m, keep, valid := parseProjectedMetric(line, selectedPriority)
+		d.ParseMS += float64(time.Since(parseStart).Nanoseconds()) / 1e6
+		if !valid {
 			d.Reason = "malformed_selected_metric"
 			break
 		}
-		parsed, _ := parseMetrics([]byte(line))
-		if len(parsed) != 1 {
-			d.Reason = "malformed_selected_metric"
-			break
-		}
-		m, keep := projectMetric(parsed[0], selectedPriority)
 		if !keep {
 			continue
 		}
@@ -438,6 +455,46 @@ func projectMetric(m metric, priority string) (metric, bool) {
 	m.Labels = labels
 	return m, true
 }
+
+// Match only retained global labels; APF labels and selected-line validation
+// keep their original behavior, including omission of escaped label values.
+var projectedGlobalLabels = regexp.MustCompile(`(?:^|,)[ \t]*(le|verb|code)="([^"\\]*)"`)
+var projectedHistogramLabels = regexp.MustCompile(`(?:^|,)[ \t]*(le)="([^"\\]*)"`)
+
+func parseProjectedMetric(line, priority string) (metric, bool, bool) {
+	parts := metricLine.FindStringSubmatch(line)
+	if parts == nil || !wantedMetric(parts[1]) {
+		return metric{}, false, false
+	}
+	value, err := strconv.ParseFloat(parts[3], 64)
+	raw := strings.TrimSpace(parts[2])
+	if err != nil {
+		return metric{}, false, false
+	}
+	if strings.HasPrefix(parts[1], "apiserver_flowcontrol_") {
+		labels := map[string]string{}
+		for _, l := range metricLabel.FindAllStringSubmatch(raw, -1) {
+			switch l[1] {
+			case "priority_level", "flow_schema", "reason", "execute", "le", "code", "verb", "resource", "subresource", "group", "version", "scope", "request_kind", "type", "operation", "component", "dry_run", "contentType", "cluster", "endpoint":
+				labels[l[1]] = l[2]
+			}
+		}
+		projected, keep := projectMetric(metric{parts[1], labels, value}, priority)
+		return projected, keep, true
+	}
+	labels := map[string]string{}
+	matcher := projectedHistogramLabels
+	if parts[1] == "apiserver_request_total" {
+		matcher = projectedGlobalLabels
+	}
+	for _, l := range matcher.FindAllStringSubmatch(raw, -1) {
+		if l[1] == "le" || parts[1] == "apiserver_request_total" {
+			labels[l[1]] = l[2]
+		}
+	}
+	return metric{parts[1], labels, value}, true, true
+}
+
 func metricID(m metric) string {
 	keys := []string{}
 	for k := range m.Labels {
@@ -483,6 +540,9 @@ func deltas(previous, current []metric) ([]metric, bool) {
 }
 
 type snapshot struct {
+	CollectMS       float64      `json:"collect_ms"`
+	SinkWaitMS      float64      `json:"sink_wait_ms"`
+	PreviousEmitMS  float64      `json:"previous_emit_ms"`
 	MetricsFetch    metricsFetch `json:"metrics_fetch"`
 	Kind            string       `json:"kind"`
 	At              time.Time    `json:"at"`
@@ -534,6 +594,7 @@ func fixedSeats(metrics []metric, priority string, expected int) bool {
 }
 
 func collectSnapshot(ctx context.Context, c config, client *http.Client, host, priority string, i int, due time.Time, previous []metric) snapshot {
+	collectStart := time.Now()
 	s := snapshot{Kind: "snapshot", At: time.Now().UTC(), Index: i, LagMS: float64(time.Since(due).Microseconds()) / 1000, Missing: []string{}}
 	// Health probes have their own bounded budgets and start with the scrape.
 	// A large metrics response must not consume the readiness probe's deadline.
@@ -607,18 +668,23 @@ func collectSnapshot(ctx context.Context, c config, client *http.Client, host, p
 		s.Missing = append(s.Missing, "sampling_lag")
 	}
 	s.Phase = phaseAt(c.windows, due)
+	s.CollectMS = float64(time.Since(collectStart).Microseconds()) / 1000
 	return s
 }
 func observe(ctx context.Context, c config, client *http.Client, host, priority string, out *sink) []snapshot {
 	all := []snapshot{}
 	previous := c.baseline
+	previousEmit := 0.0
 	for i := 0; i <= c.Seconds; i++ {
 		due := c.StartAt.Add(time.Duration(i) * time.Second)
 		if !waitUntil(ctx, due) {
 			break
 		}
 		v := collectSnapshot(ctx, c, client, host, priority, i, due, previous)
+		v.PreviousEmitMS = previousEmit
+		emitStart := time.Now()
 		out.emit(v)
+		previousEmit = float64(time.Since(emitStart).Microseconds()) / 1000
 		if out.captureError() != nil {
 			break
 		}
