@@ -2,17 +2,17 @@ import base64
 import copy
 import json
 import os
+from pathlib import Path
 import runpy
 import threading
-from pathlib import Path
 from unittest import mock
 
 import pytest
 import requests
 import sync
-import yaml
 from sync import get_settings_from_env
 from sync import server_factory
+import yaml
 
 KFP_VERSION = "x.y.z"
 NAMESPACE = "myName"
@@ -296,7 +296,10 @@ def test_ca_rotation_reconciles_without_changing_other_secrets(
     # Token controllers and operators may populate or customize these Secrets.
     for secret in observed["Secret.v1"].values():
         if secret["metadata"]["name"] != sync.DRIVER_AGENT_CA_SECRET_NAME:
-            secret["data"] = {"token": "existing-token", "ca.crt": "existing-ca"}
+            secret["data"] = {
+                "token": "existing-token",
+                "ca.crt": "existing-ca"
+            }
             secret["metadata"]["annotations"] = {"custom": "preserve-me"}
     before = copy.deepcopy(observed)
 
@@ -306,7 +309,8 @@ def test_ca_rotation_reconciles_without_changing_other_secrets(
     for secret in result["attachments"]:
         if secret["kind"] != "Secret":
             continue
-        previous = before["Secret.v1"][f"{NAMESPACE}/{secret['metadata']['name']}"]
+        previous = before["Secret.v1"][
+            f"{NAMESPACE}/{secret['metadata']['name']}"]
         if secret["metadata"]["name"] == sync.DRIVER_AGENT_CA_SECRET_NAME:
             assert secret["data"] != previous["data"]
         else:

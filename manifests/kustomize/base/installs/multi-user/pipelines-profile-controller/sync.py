@@ -742,7 +742,8 @@ def server_factory(frontend_image,
                 name = resource["metadata"]["name"]
                 if (resource["kind"] == "Secret" and
                         name != DRIVER_AGENT_CA_SECRET_NAME):
-                    existing = attachments["Secret.v1"].get(f"{namespace}/{name}")
+                    existing = attachments["Secret.v1"].get(
+                        f"{namespace}/{name}")
                     if existing:
                         desired_resources[index] = existing
 
