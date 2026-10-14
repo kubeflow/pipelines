@@ -184,6 +184,69 @@ Review these before rollout when the corresponding features are in use:
 | Persisted run ownership and reporting | For an additional inventory or to investigate legacy ownership, use the optional read-only `--include-ownership` scan. Preserve Workflows until terminal status is recorded in KFP; investigate missing or inconsistent ownership without editing stored identities. See [reporting recovery](workflow-report-recovery.md). |
 | Saved pagination tokens | Plan to restart affected listings after the API rollout. The updated UI retries once; SDK/custom clients must handle `PAGINATION_RESTART_REQUIRED` and discard or reconcile earlier traversal results before restarting. Updating the server does not update installed clients. See [pagination recovery](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/pagination-recovery.md). |
 
+## SDK and custom-client migration
+
+### Python environments installing the SDK
+
+Python **3.10 or newer** is the accepted minimum for the 2.18 KFP SDK and
+Kubernetes SDK extension, delivered by pending
+[#14865](https://github.com/kubeflow/pipelines/pull/14865). Confirm that the selected
+release includes that PR and inspect the published packages' `Requires-Python`;
+the policy decision does not mean the implementation is already merged.
+
+A Python 3.9 notebook or CI submitter that installs the new SDK must move to a
+supported interpreter. The same applies to component images that install that
+SDK. Prefer Python 3.11 or newer for new environments. Rebuild affected images,
+refresh dependency locks, and test compilation and submission before rollout.
+Upgrading the server does not update those interpreters or installed packages.
+Previously published packages and compiled pipelines are not rewritten; generic
+container components that do not install the SDK acquire no Python requirement.
+
+### Private pip mirrors
+
+Newly compiled lightweight components and component-image builds no longer infer
+pip trusted hosts from `pip_index_urls`. For example, an installation using an
+HTTP mirror or a private CA may previously have succeeded because the compiler
+added `--trusted-host`; after recompilation, installation can fail.
+
+Prefer HTTPS with the mirror's CA installed in the component image. Where bypassing
+that verification is intentional, set the component's explicit options:
+
+```python
+pip_index_urls=["https://mirror.example/simple"],
+pip_trusted_hosts=["mirror.example"],
+```
+
+Use bare hostnames for `pip_trusted_hosts`, not URLs. An omitted value or `None`
+means no trusted hosts. Test installation in the actual component environment;
+the notebook's CA configuration does not establish the container's trust.
+Already compiled installation commands are not changed by a server upgrade.
+
+### Embedded artifact links
+
+Embedded artifacts must package self-contained content. A directory containing a
+link such as `weights.bin -> ../shared/weights.bin` can now fail compilation when
+the target escapes the embedded tree. Copy the authorized file into the tree
+before compiling. Replace directory symlinks with real directories and repair
+or remove dangling links. In-tree file symlinks remain supported and are
+archived as regular files; not all symlinks are forbidden.
+
+### Download and rendering integrations
+
+Artifact and pod-log download routes return `Content-Disposition: attachment`.
+An integration that embeds a raw HTML/SVG download URL in a browser may now get a
+download instead of an inline page. Use supported built-in previews or download
+and render content in an appropriately isolated viewer; do not remove the
+attachment protection to restore embedding. The UI's former View All link is
+removed, while built-in previews remain available.
+
+S3-compatible download paths preserve original archive bytes. A custom consumer
+that previously received decompressed content for `results.tar.gz` must now
+recognize and decompress the archive explicitly. Test a known archive and compare
+its downloaded bytes with the stored object. Do not blindly decompress every
+response or infer archive type solely from a filename. These changes apply when
+users or integrations next retrieve content, including historical artifacts.
+
 ## Artifact-root migration
 
 This applies to authenticated multi-user artifact previews and downloads, including

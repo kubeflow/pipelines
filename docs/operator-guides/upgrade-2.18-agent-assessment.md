@@ -197,7 +197,10 @@ may report generic invalid-token errors. A server rollout does not update client
 
 ### Limits, old specifications and workload behavior
 
-Check the selected SDK package's `Requires-Python` and dependency metadata against
+The accepted 2.18 SDK/Kubernetes SDK extension minimum is Python **>=3.10**,
+with delivery pending [#14865](https://github.com/kubeflow/pipelines/pull/14865).
+Prefer Python >=3.11 for newly migrated environments. Check whether the selected
+candidate includes the change, then compare the SDK package's `Requires-Python` and dependency metadata against
 notebooks, CI submitters and component base images that install that package. A
 server image rollout does not upgrade those environments. Track pending dependency
 PRs separately until selected; a proposed Python minimum is not evidence of a
@@ -218,6 +221,11 @@ For legacy V1 metrics collection, inspect file sizes and
 metrics can leave a completed task without reported metrics. Changing the limit does
 not automatically replay a completed node's permanent collection failure. Native V2
 metrics are a different path; pre-existing count/one-file rules are not new 2.18 breaks.
+
+Use the [SDK and custom-client migration examples](upgrade-2.18.md#sdk-and-custom-client-migration)
+for private mirrors, embedded links, attachment rendering and archive consumers.
+Inspect download consumers expecting inline HTML/SVG or automatically decompressed
+S3 archives; verify actual response headers and bytes with authorized sample reads.
 
 Where used, inspect newly compiled lightweight components relying on pip trusted-host
 behavior, embedded artifact symlinks, retry of archived runs, and literal scheduling
