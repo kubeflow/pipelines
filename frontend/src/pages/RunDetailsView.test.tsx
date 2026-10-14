@@ -358,7 +358,7 @@ describe('RunDetailsV2', () => {
     vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks: loopTasks });
     render(
       <CommonTestWrapper>
-        <RunDetailsV2
+        <RunDetailsView
           {...generateProps()}
           parsedPipelineSpec={loopSpec}
           pipeline_job={JSON.stringify(PipelineSpec.toJSON(loopSpec))}
@@ -391,7 +391,7 @@ describe('RunDetailsV2', () => {
     vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks });
     render(
       <CommonTestWrapper>
-        <RunDetailsV2
+        <RunDetailsView
           {...generateProps()}
           location={{ pathname: `/runs/details/${RUN_ID}`, search: '?task=train-1' } as any}
           parsedPipelineSpec={loopSpec}
@@ -440,7 +440,7 @@ describe('RunDetailsV2', () => {
     });
     render(
       <CommonTestWrapper>
-        <RunDetailsV2
+        <RunDetailsView
           {...generateProps()}
           location={{ pathname: `/runs/details/${RUN_ID}`, search: '?task=outer-train' } as any}
           parsedPipelineSpec={spec}

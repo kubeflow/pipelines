@@ -285,7 +285,7 @@ async function geometry(page, expectedCount) {
           return {
             id: element.dataset.id,
             type: [...element.classList].find((name) =>
-              /^react-flow__node-(EXECUTION|ARTIFACT|SUB_DAG)$/.test(name),
+              /^react-flow__node-(EXECUTION|ARTIFACT|SUB_DAG|subDagGroup)$/.test(name),
             ),
             x: matrix.m41,
             y: matrix.m42,
@@ -359,7 +359,10 @@ async function graphControlTargets(page) {
     })),
   }));
   assert.ok(targets.attribution.height >= 24 && targets.attribution.width >= 24);
-  assert.equal(targets.controls.length, 4);
+  assert.deepEqual(
+    targets.controls.map(({ label }) => label),
+    ['Expand all', 'Collapse all', 'Zoom in', 'Zoom out', 'Fit view', 'Unlock graph'],
+  );
   for (const { label, box } of targets.controls) {
     assert.ok(box.height >= 30 && box.width >= 30, `${label} retains its 30px target`);
     assert.ok(
@@ -469,7 +472,12 @@ test('200-task graph preserves full paginated data, geometry and zoom/pan/select
     );
     assert.deepEqual(
       original.edges.map(({ id, connection }) => ({ id, connection })),
-      data.expectedEdges,
+      data.expectedEdges
+        .map(({ connection }) => {
+          const [, source, target] = /^Edge from (.+) to (.+)$/.exec(connection);
+          return { id: JSON.stringify(['root', source, target]), connection };
+        })
+        .sort((a, b) => a.id.localeCompare(b.id)),
     );
     assert.deepEqual(
       requests
@@ -502,7 +510,7 @@ test('200-task graph preserves full paginated data, geometry and zoom/pan/select
     for (let i = 0; i < 3; i++) {
       const previous = await viewport(page),
         start = performance.now();
-      await page.getByRole('button', { name: 'Zoom Out', exact: true }).click();
+      await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
       await changedViewport(page, previous);
       timings.zoomMs.push(performance.now() - start);
     }
@@ -533,7 +541,7 @@ test('200-task graph preserves full paginated data, geometry and zoom/pan/select
       timings.panMs.push(performance.now() - start);
     }
     sameGeometry(original, await geometry(page, 201));
-    await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+    await page.getByRole('button', { name: 'Fit view', exact: true }).click();
     await page.getByRole('button', { name: /^Theme: / }).click();
     await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click();
     await page.waitForFunction(() => {
@@ -568,47 +576,48 @@ test('200-task graph preserves full paginated data, geometry and zoom/pan/select
   });
 });
 
-test('nested loop task links preserve iteration identities and hierarchy navigation', async () => {
+test('nested loop links preserve iteration identity within expanded inline groups', async () => {
   await withFixture(nestedFixture(), async (page, requests) => {
+    const scoped = (iteration, task) =>
+      JSON.stringify(['root', 'group', 'loop', `loop.${iteration}`, 'body', `task.${task}`]);
+    const node = (id) => page.locator(`.react-flow__node[data-id=${JSON.stringify(id)}]`);
     await page.goto(`${origin}/#/runs/details/${runId}?task=train-1&view=graph`);
-    await page.locator('.react-flow__node[data-id="task.train"].selected').waitFor();
+    await node(scoped(1, 'train')).and(page.locator('.selected')).waitFor();
     await page.getByRole('tab', { name: 'Task Details', exact: true }).click();
     await page.getByText('train-1', { exact: true }).waitFor();
-    const original = await geometry(page, 2);
-    assert.deepEqual(
-      original.nodes.map(({ id }) => id),
-      ['task.train', 'task.validate'],
-    );
+    const original = await geometry(page, 10);
+    for (const iteration of [0, 1]) {
+      for (const task of ['train', 'validate'])
+        assert.ok(original.nodes.some(({ id }) => id === scoped(iteration, task)));
+    }
     await capture(page, 'nested-loop-body', original, {});
-    await selectTask(page, 'train-0', 'task.train');
+    await page.evaluate(() => {
+      location.hash = location.hash.replace('train-1', 'train-0');
+    });
+    await node(scoped(0, 'train')).and(page.locator('.selected')).waitFor();
     await page.getByText('train-0', { exact: true }).waitFor();
-    sameGeometry(original, await geometry(page, 2));
+    sameGeometry(original, await geometry(page, 10));
     await page.goBack();
     await page.getByText('train-1', { exact: true }).waitFor();
-    await page.getByRole('button', { name: 'loop', exact: true }).click();
-    const iterations = await geometry(page, 2);
-    assert.deepEqual(
-      iterations.nodes.map(({ id }) => id),
-      ['task.loop.0', 'task.loop.1'],
-    );
-    await capture(page, 'nested-loop-iterations', iterations, {});
-    for (const nodeId of ['task.loop.1', 'task.body']) {
-      const expand = page
-        .locator(`.react-flow__node[data-id="${nodeId}"]`)
-        .getByTestId('expand-button');
-      // ReactFlow briefly hides new nodes while measuring them; keyboard focus
-      // must wait until the native button is visible and can accept it.
-      await expand.waitFor({ state: 'visible' });
-      await expand.focus();
-      assert.equal(await expand.evaluate((element) => element === document.activeElement), true);
-      await expand.press('Enter');
-    }
-    sameGeometry(original, await geometry(page, 2));
-    await page.getByRole('button', { name: 'root', exact: true }).click();
+    await page.getByRole('button', { name: 'close', exact: true }).click();
+    const iteration = node(JSON.stringify(['root', 'group', 'loop', 'task.loop.1']));
+    const collapse = iteration.getByRole('button', { name: /^Collapse/ });
+    await collapse.focus();
+    await collapse.press('Enter');
+    assert.equal(await node(scoped(1, 'train')).count(), 0);
+    assert.equal(await node(scoped(0, 'train')).count(), 1);
+    const expand = iteration.getByRole('button', { name: /^Expand/ });
+    await expand.focus();
+    assert.equal(await expand.evaluate((element) => element === document.activeElement), true);
+    await expand.press('Enter');
+    sameGeometry(original, await geometry(page, 10));
+    await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
     assert.deepEqual(
       (await geometry(page, 1)).nodes.map(({ id }) => id),
       ['task.group'],
     );
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+    sameGeometry(original, await geometry(page, 10));
     assert.equal(requests.filter(({ path }) => path.endsWith('/tasks')).length, 1);
   });
 });
@@ -662,7 +671,12 @@ if (process.env.KFP_SCALING_SAMPLES) {
           );
           assert.deepEqual(
             initial.edges.map(({ id, connection }) => ({ id, connection })),
-            data.expectedEdges,
+            data.expectedEdges
+              .map(({ connection }) => {
+                const [, source, target] = /^Edge from (.+) to (.+)$/.exec(connection);
+                return { id: JSON.stringify(['root', source, target]), connection };
+              })
+              .sort((a, b) => a.id.localeCompare(b.id)),
           );
           assert.ok(initial.nodes.every(({ width, height }) => width === 200 && height === 56));
           const graphReadyMs = performance.now() - started;
@@ -697,7 +711,7 @@ if (process.env.KFP_SCALING_SAMPLES) {
           await settledViewport(page);
           const beforeFit = await viewport(page);
           const fitStarted = performance.now();
-          await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+          await page.getByRole('button', { name: 'Fit view', exact: true }).click();
           await changedViewport(page, beforeFit);
           await settledViewport(page);
           const fitSettledMs = performance.now() - fitStarted;

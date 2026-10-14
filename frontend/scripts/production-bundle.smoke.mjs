@@ -255,7 +255,7 @@ for (const kind of ['pipeline', 'run']) {
           await page.setViewportSize({ width: 1440, height });
           const canvas = await page.getByTestId('DagCanvas').boundingBox();
           const tabsBottom = await page
-            .getByRole('button', { name: 'Graph', exact: true })
+            .getByRole('tab', { name: 'Graph', exact: true })
             .evaluate((button) => button.parentElement.getBoundingClientRect().bottom);
           assert.equal(canvas.y - tabsBottom, 0, 'Graph starts directly below the tab divider');
           const canvasTop = PNG.sync.read(
@@ -272,10 +272,25 @@ for (const kind of ['pipeline', 'run']) {
             canvasTop.data.some((channel) => channel !== 255),
             'The canvas starts without an opaque white strip',
           );
+          assert.ok(canvas.height > 0, 'Canvas retains a usable height');
           assert.ok(
-            canvas.height > 0 && canvas.y + canvas.height <= height,
-            'Canvas still fits the viewport',
+            await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+            'Graph does not introduce horizontal page overflow',
           );
+          // The modern run summary intentionally scrolls on short viewports.
+          // The graph and its controls must remain reachable within that layout.
+          const collapseControl = page.getByRole('button', { name: 'Collapse all', exact: true });
+          await collapseControl.scrollIntoViewIfNeeded();
+          const controlBox = await collapseControl.boundingBox();
+          assert.ok(
+            controlBox && controlBox.y >= 0 && controlBox.y + controlBox.height <= height,
+            'Graph controls remain reachable by scrolling',
+          );
+          await collapseControl.click();
+          await page.getByRole('button', { name: 'Expand Group 0', exact: true }).waitFor();
+          await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+          assert.equal(await page.getByText('Example task', { exact: true }).count(), 25);
+          await page.getByRole('tab', { name: 'Graph', exact: true }).scrollIntoViewIfNeeded();
         }
         await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
         await page.reload();

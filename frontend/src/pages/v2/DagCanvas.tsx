@@ -185,12 +185,19 @@ function DagCanvasView({
   );
   const edges = useMemo(() => {
     const states = new Map(nodes.map((node) => [node.id, node.data.state]));
-    return grouped.edges.map((edge) => ({ ...edge,
+    return grouped.edges.map((edge) => ({
+      ...edge,
       className: `${edge.className || ''} kfp-graph-edge-${getTaskStatus(states.get(edge.target)).tone}`,
       style: { ...edge.style, strokeWidth: 1.5 },
     }));
   }, [grouped.edges, nodes]);
-  const visibleStates = [...new Set(nodes.map(node => node.data.state as PipelineTaskTaskState | undefined).filter((state): state is PipelineTaskTaskState => state !== undefined))];
+  const visibleStates = [
+    ...new Set(
+      nodes
+        .map((node) => node.data.state as PipelineTaskTaskState | undefined)
+        .filter((state): state is PipelineTaskTaskState => state !== undefined),
+    ),
+  ];
 
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
@@ -334,12 +341,21 @@ function DagCanvasView({
             onCollapseAll={collapseAll}
           />
           <Background gap={22} size={1} />
-          {visibleStates.length > 0 && <Panel position='bottom-right' className='kfp-graph-legend'>
-            <ul aria-label='Task states in this graph'>{visibleStates.map(state => {
-              const status = getTaskStatus(state);
-              return <li key={state} data-tone={status.tone}><span className='kfp-graph-state-dot' aria-hidden='true' />{status.label}</li>;
-            })}</ul>
-          </Panel>}
+          {visibleStates.length > 0 && (
+            <Panel position='bottom-right' className='kfp-graph-legend'>
+              <ul aria-label='Task states in this graph'>
+                {visibleStates.map((state) => {
+                  const status = getTaskStatus(state);
+                  return (
+                    <li key={state} data-tone={status.tone}>
+                      <span className='kfp-graph-state-dot' aria-hidden='true' />
+                      {status.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          )}
         </ReactFlow>
       </ReactFlowProvider>
     </div>

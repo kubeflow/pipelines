@@ -669,7 +669,9 @@ export function RunDetailsView(props: RunDetailsViewProps) {
                 layers={layers}
                 elements={dynamicFlowElements}
                 graphId={`run:${runId}`}
-                getSubDagElements={selectedNodeState?.navigationError ? undefined : getSubDagElements}
+                getSubDagElements={
+                  selectedNodeState?.navigationError ? undefined : getSubDagElements
+                }
                 selectedElement={activeSelection}
                 focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
                 onElementClick={onElementSelection}

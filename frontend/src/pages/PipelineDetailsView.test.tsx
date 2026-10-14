@@ -194,7 +194,7 @@ describe('PipelineDetailsV2', () => {
   it('shows the nested component details without navigating into its sub-DAG', async () => {
     render(
       <CommonTestWrapper>
-        <PipelineDetailsV2
+        <PipelineDetailsView
           templateString={JSON.stringify(PipelineSpec.toJSON(nestedArtifactSpec))}
           pipelineFlowElements={convertFlowElements(nestedArtifactSpec)}
           pipeline={null}

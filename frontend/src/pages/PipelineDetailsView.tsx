@@ -22,7 +22,11 @@ import { InspectionPanel } from 'src/components/inspection/InspectionPanel';
 import { StaticNodeDetails } from 'src/components/tabs/StaticNodeDetails';
 import { convertSubDagToFlowElements, getNodeName } from 'src/lib/v2/StaticFlow';
 import { tryConvertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import type { LayerElementsResolver, LayerFlowElement, PipelineFlowElement } from 'src/lib/v2/FlowTypes';
+import type {
+  LayerElementsResolver,
+  LayerFlowElement,
+  PipelineFlowElement,
+} from 'src/lib/v2/FlowTypes';
 
 import 'src/components/pipelines/Pipelines.css';
 import DagCanvas from './v2/DagCanvas';
@@ -72,7 +76,10 @@ function PipelineDetailsView({
             <DagCanvas
               layers={layers}
               elements={pipelineFlowElements}
-              graphId={selectedVersion?.pipeline_version_id && `pipeline-version:${selectedVersion.pipeline_version_id}`}
+              graphId={
+                selectedVersion?.pipeline_version_id &&
+                `pipeline-version:${selectedVersion.pipeline_version_id}`
+              }
               getSubDagElements={pipelineSpec ? getSubDagElements : undefined}
               selectedElement={selection}
               onElementClick={(_event, selection) => setSelection(selection)}

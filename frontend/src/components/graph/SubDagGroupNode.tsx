@@ -74,7 +74,10 @@ export default function SubDagGroupNode({
           )}
         </div>
         {!collapsed && (data.expansionError || data.empty) && (
-          <div style={{ padding: 12, fontSize: 12, color: 'var(--muted-foreground)' }} title={data.expansionError}>
+          <div
+            style={{ padding: 12, fontSize: 12, color: 'var(--muted-foreground)' }}
+            title={data.expansionError}
+          >
             {data.expansionError
               ? 'Unable to display sub-DAG. Open its details to inspect the spec.'
               : 'No tasks in this scope'}

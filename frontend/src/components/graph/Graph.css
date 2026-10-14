@@ -279,13 +279,50 @@
 }
 
 .kfp-graph-locked .react-flow__edge,
-.kfp-graph-locked .react-flow__edge * { pointer-events: none; }
-.kfp-subdag-box { width: 100%; height: 100%; outline: 1px solid var(--border-strong); border-radius: 10px; background: color-mix(in srgb, var(--primary-soft) 28%, transparent); overflow: hidden; }
-.kfp-subdag-box[data-selected='true'], .kfp-subdag-box:focus-within { outline: 2px solid var(--primary); }
-.kfp-subdag-header { display: flex; align-items: stretch; background: var(--card); color: var(--foreground); }
-.kfp-subdag-status { display: flex; align-items: center; padding: 0 10px; }
-.kfp-subdag-box[data-tone='succeeded'] { --kfp-node-state-color: var(--status-succeeded); }
-.kfp-subdag-box[data-tone='failed'] { --kfp-node-state-color: var(--status-failed); }
-.kfp-subdag-box[data-tone='running'] { --kfp-node-state-color: var(--status-running); }
-.kfp-subdag-box { --kfp-node-state-color: var(--status-neutral); }
-.kfp-graph-tooltip { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--foreground); box-shadow: var(--shadow-card); font-size: 12px; }
+.kfp-graph-locked .react-flow__edge * {
+  pointer-events: none;
+}
+.kfp-subdag-box {
+  width: 100%;
+  height: 100%;
+  outline: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary-soft) 28%, transparent);
+  overflow: hidden;
+}
+.kfp-subdag-box[data-selected='true'],
+.kfp-subdag-box:focus-within {
+  outline: 2px solid var(--primary);
+}
+.kfp-subdag-header {
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  color: var(--foreground);
+}
+.kfp-subdag-status {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+.kfp-subdag-box[data-tone='succeeded'] {
+  --kfp-node-state-color: var(--status-succeeded);
+}
+.kfp-subdag-box[data-tone='failed'] {
+  --kfp-node-state-color: var(--status-failed);
+}
+.kfp-subdag-box[data-tone='running'] {
+  --kfp-node-state-color: var(--status-running);
+}
+.kfp-subdag-box {
+  --kfp-node-state-color: var(--status-neutral);
+}
+.kfp-graph-tooltip {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-card);
+  font-size: 12px;
+}

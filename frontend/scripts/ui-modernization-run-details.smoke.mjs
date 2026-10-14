@@ -355,11 +355,16 @@ async function withFixture(options, exercise) {
   }
 }
 
-const node = (page, name) => page.locator(`.react-flow__node[data-id="task.${name}"]`);
+const node = (page, name) => {
+  const id = ['prepare', 'group'].includes(name)
+    ? `task.${name}`
+    : JSON.stringify(['root', 'group', `task.${name}`]);
+  return page.locator(`.react-flow__node[data-id=${JSON.stringify(id)}]`);
+};
 const tab = (page, name) =>
   page.getByRole('button', { name, exact: true }).or(page.getByRole('tab', { name, exact: true }));
 async function selected(page, name) {
-  await page.locator(`.react-flow__node[data-id="task.${name}"].selected`).waitFor();
+  await node(page, name).and(page.locator('.selected')).waitFor();
 }
 async function openTask(page, taskName = 'train', extra = '') {
   await page.goto(`${origin}/#/runs/details/${runId}?task=task-${taskName}${extra}`);
@@ -591,7 +596,7 @@ test('Run Details preserves nested task links, history, copied URLs, and graph g
     // Closing the inspector replaces controlled node objects. Actual measured
     // dimensions and edge handles must survive each selection/close rerender.
     for (const taskName of ['train', 'preprocess']) {
-      await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+      await page.getByRole('button', { name: 'Fit view', exact: true }).click();
       await node(page, taskName).getByRole('button').click();
       await selected(page, taskName);
       sameGraph(original, await graph(page));
@@ -993,7 +998,7 @@ test('Run Details inspector restores desktop focus and traps keyboard focus on n
     await desktopReturnTarget.dispose();
     await page.setViewportSize({ width: 600, height: 900 });
     // Bring the task into the resized canvas before testing keyboard activation.
-    await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+    await page.getByRole('button', { name: 'Fit view', exact: true }).click();
     await trigger.focus();
     await page.keyboard.press('Enter');
     await inspector.waitFor();

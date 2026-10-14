@@ -1,10 +1,18 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ButtonHTMLAttributes } from 'react';
+import { ButtonHTMLAttributes, useId } from 'react';
 import { ControlButton, Panel, useReactFlow, useStore } from '@xyflow/react';
 import { Tooltip } from '@base-ui/react/tooltip';
-import { Plus as AddIcon, Minus as RemoveIcon, Scan as CropFreeIcon, Lock as LockIcon, LockOpen as LockOpenIcon, ChevronsUpDown as UnfoldMoreIcon, ChevronsDownUp as UnfoldLessIcon } from 'lucide-react';
+import {
+  Plus as AddIcon,
+  Minus as RemoveIcon,
+  Scan as CropFreeIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
+  ChevronsUpDown as UnfoldMoreIcon,
+  ChevronsDownUp as UnfoldLessIcon,
+} from 'lucide-react';
 
 type PaletteButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'> & {
   label: string;
@@ -12,12 +20,14 @@ type PaletteButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>
 };
 
 function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps) {
+  const tooltipId = useId();
   return (
     <Tooltip.Root disableHoverablePopup>
       <Tooltip.Trigger render={<span style={{ display: 'flex' }} />} delay={500}>
         <ControlButton
           {...props}
           aria-label={label}
+          aria-describedby={tooltipId}
           style={{
             borderBottom:
               '1px solid var(--xy-controls-button-border-color, var(--xy-controls-button-border-color-default))',
@@ -26,7 +36,9 @@ function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps)
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Positioner side='right' sideOffset={6}>
-          <Tooltip.Popup className='kfp-graph-tooltip'>{tooltip}</Tooltip.Popup>
+          <Tooltip.Popup role='tooltip' id={tooltipId} className='kfp-graph-tooltip'>
+            {tooltip}
+          </Tooltip.Popup>
         </Tooltip.Positioner>
       </Tooltip.Portal>
     </Tooltip.Root>

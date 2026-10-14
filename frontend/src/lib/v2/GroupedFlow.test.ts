@@ -81,7 +81,7 @@ describe('buildGroupedFlow', () => {
       const parent = graph.nodes.find((node) => node.id === group.parentId)!;
       expect(group.data.collapsed).toBe(true);
       expect(group.extent).toEqual([
-        [24, GROUP_HEADER_HEIGHT * nodeScale + 24],
+        [24, GROUP_HEADER_HEIGHT + 24],
         [parent.width! - 24, parent.height! - 24],
       ]);
       expect(parent.extent).toBeUndefined();
