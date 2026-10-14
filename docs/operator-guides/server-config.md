@@ -138,6 +138,16 @@ When deploying frontend server called `ml-pipeline-ui`, you can pass various env
 variables to customize the server behavior for your namespace. Some examples are shown
 in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/pipeline/ml-pipeline-ui-deployment.yaml#L32-L50).
 
+### Artifact authorization boundary
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` defaults to `key-prefix`.
+Set it to `storage` only on the authenticated shared UI after verifying restricted
+namespace storage identities and isolated artifact proxies. This enforced mode
+preserves existing object roots without an MLMD lookup. It requires
+`ENABLE_AUTHZ=true` and `ARTIFACTS_SERVICE_PROXY_ENABLED=true`; invalid modes or
+missing prerequisites fail configuration validation. HTTP artifacts and archived
+logs retain their separate policies. See [configuration and rollout](artifact-authorization.md).
+
 ### Artifact storage endpoint allowlist
 
 For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact

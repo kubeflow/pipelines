@@ -494,3 +494,93 @@ def test_healthz_responds_during_slow_sync(start_sync_server):
         finally:
             release_sync.set()
             post.join(timeout=10)
+
+
+@pytest.mark.parametrize("install_namespace", ["kubeflow", "custom-install"])
+@pytest.mark.parametrize("sidecar_disabled", [False, True])
+def test_artifact_network_policy_binds_shared_ui_identity(
+        start_sync_server, install_namespace, sidecar_disabled):
+    server = start_sync_server(
+        frontend_image="image",
+        frontend_tag="tag",
+        disable_istio_sidecar=sidecar_disabled,
+        artifacts_proxy_enabled="true",
+        artifact_retention_days=-1,
+        controller_port=0,
+        kfp_namespace=install_namespace)
+    secret = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "metadata": {
+            "name": "mlpipeline-minio-artifact",
+            "namespace": "myName"
+        }
+    }
+    attachments = {
+        "Secret.v1": {
+            "myName/mlpipeline-minio-artifact": secret
+        },
+        "ConfigMap.v1": {
+            "launcher": {},
+            "repository": {},
+            "metadata": {}
+        },
+        "Deployment.apps/v1": {
+            "artifact": {}
+        },
+        "Service.v1": {
+            "artifact": {}
+        },
+    }
+    result = post_sync(server, PARENT, attachments)
+    assert result["status"] == {"kubeflow-pipelines-ready": "False"}
+    policy = next(item for item in result["attachments"]
+                  if item["kind"] == "NetworkPolicy")
+    assert policy["metadata"] == {
+        "name": "ml-pipeline-ui-artifact",
+        "namespace": "myName"
+    }
+    assert policy["spec"] == {
+        "podSelector": {
+            "matchLabels": {
+                "app": "ml-pipeline-ui-artifact"
+            }
+        },
+        "policyTypes": ["Ingress"],
+        "ingress": [{
+            "from": [{
+                "namespaceSelector": {
+                    "matchLabels": {
+                        "kubernetes.io/metadata.name": install_namespace
+                    }
+                },
+                "podSelector": {
+                    "matchLabels": {
+                        "app": "ml-pipeline-ui"
+                    }
+                },
+            }],
+            "ports": [{
+                "protocol": "TCP",
+                "port": 3000
+            }],
+        }],
+    }
+    attachments["NetworkPolicy.networking.k8s.io/v1"] = {"artifact": policy}
+    assert post_sync(server, PARENT, attachments)["status"] == {
+        "kubeflow-pipelines-ready": "True"
+    }
+
+
+def test_kfp_namespace_setting_override():
+    with mock.patch.dict(os.environ, {"KFP_VERSION": KFP_VERSION}, clear=True):
+        assert get_settings_from_env()["kfp_namespace"] == "kubeflow"
+    with mock.patch.dict(
+            os.environ, {
+                "KFP_VERSION": KFP_VERSION,
+                "KFP_NAMESPACE": "custom"
+            },
+            clear=True):
+        assert get_settings_from_env()["kfp_namespace"] == "custom"
+        assert get_settings_from_env(
+            kfp_namespace="other")["kfp_namespace"] == "other"

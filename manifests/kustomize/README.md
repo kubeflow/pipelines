@@ -92,12 +92,15 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials. Authenticated
+Allowlisting does not grant bucket access or configure credentials. Under default
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, authenticated
 multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
 operator-configured namespace prefix), including through tenant proxies. Configuring
 an endpoint or proxy does not make an existing custom-root object belong to a
-namespace. See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership)
-for migrating those object paths.
+namespace. With restricted namespace credentials, use storage authorization to
+preserve existing roots. Reconcile the generated proxy ingress policy and verify
+actual storage/network isolation before activation. See
+[authorization choices and rollout](../../docs/operator-guides/artifact-authorization.md).
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
 providers require namespace-isolated artifact proxies. Set

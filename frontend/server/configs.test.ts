@@ -24,6 +24,44 @@ describe('loadConfigs', () => {
     expect(() => loadConfigs(argv, {})).toThrowError();
   });
 
+  it('defaults to key-prefix artifact authorization', () => {
+    expect(loadConfigs(['node', 'server.js', os.tmpdir()], {}).artifacts.authorizationMode).toBe(
+      'key-prefix',
+    );
+  });
+
+  it.each(['audit', 'legacy', 'store', ''])(
+    'rejects unknown artifact authorization mode %j',
+    (mode) => {
+      expect(() =>
+        loadConfigs(['node', 'server.js', os.tmpdir()], {
+          KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE: mode,
+        }),
+      ).toThrow('KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE must be "key-prefix" or "storage"');
+    },
+  );
+
+  it.each([{}, { ENABLE_AUTHZ: 'true' }, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' }])(
+    'rejects storage authorization without both namespace authorization and proxy: %j',
+    (env) => {
+      expect(() =>
+        loadConfigs(['node', 'server.js', os.tmpdir()], {
+          ...env,
+          KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE: 'storage',
+        }),
+      ).toThrow('requires ENABLE_AUTHZ=true and ARTIFACTS_SERVICE_PROXY_ENABLED=true');
+    },
+  );
+
+  it('loads explicit storage authorization with its required namespace proxy', () => {
+    const configs = loadConfigs(['node', 'server.js', os.tmpdir()], {
+      KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE: 'storage',
+      ENABLE_AUTHZ: 'true',
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    expect(configs.artifacts.authorizationMode).toBe('storage');
+  });
+
   it('default port should be 3000', () => {
     const tmpdir = os.tmpdir();
     const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {});

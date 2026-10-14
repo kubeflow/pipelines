@@ -114,7 +114,8 @@ def get_settings_from_env(controller_port=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None,
-                          http_base_url=None):
+                          http_base_url=None,
+                          kfp_namespace=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -156,6 +157,9 @@ def get_settings_from_env(controller_port=None,
         cluster_domain or \
         os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
 
+    settings["kfp_namespace"] = \
+        kfp_namespace or os.environ.get("KFP_NAMESPACE", "kubeflow")
+
     settings["object_store_host"] = \
         object_store_host or \
         os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
@@ -185,7 +189,8 @@ def server_factory(frontend_image,
                    object_store_host="seaweedfs",
                    url="",
                    controller_port=8080,
-                   http_base_url=""):
+                   http_base_url="",
+                   kfp_namespace="kubeflow"):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
@@ -380,6 +385,10 @@ def server_factory(frontend_image,
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     len(attachments["Service.v1"]) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
+                    len(
+                        attachments.get("NetworkPolicy.networking.k8s.io/v1",
+                                        {})) ==
+                    (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
             }
 
@@ -454,6 +463,44 @@ def server_factory(frontend_image,
             # Add artifact fetcher related resources if enabled
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
+                    {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "kind": "NetworkPolicy",
+                        "metadata": {
+                            "name": "ml-pipeline-ui-artifact",
+                            "namespace": namespace,
+                        },
+                        "spec": {
+                            "podSelector": {
+                                "matchLabels": {
+                                    "app": "ml-pipeline-ui-artifact"
+                                }
+                            },
+                            "policyTypes": ["Ingress"],
+                            # Both selectors must match: a tenant must not gain access by
+                            # labeling its own pod as the shared UI. Other NetworkPolicies
+                            # are additive and must not grant cross-tenant proxy access.
+                            "ingress": [{
+                                "from": [{
+                                    "namespaceSelector": {
+                                        "matchLabels": {
+                                            "kubernetes.io/metadata.name":
+                                                kfp_namespace
+                                        }
+                                    },
+                                    "podSelector": {
+                                        "matchLabels": {
+                                            "app": "ml-pipeline-ui"
+                                        }
+                                    },
+                                }],
+                                "ports": [{
+                                    "protocol": "TCP",
+                                    "port": 3000
+                                }],
+                            }],
+                        },
+                    },
                     {
                         "apiVersion": "apps/v1",
                         "kind": "Deployment",

@@ -179,7 +179,8 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Artifact ownership migration in 2.18
 
-Multi-user frontend previews and downloads enforce namespace-prefixed object keys by default:
+With the default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, multi-user
+frontend previews and downloads enforce namespace-prefixed object keys:
 `private-artifacts/<namespace>/...` (or `ARTIFACT_NAMESPACE_KEY_PREFIX/<namespace>/...`).
 Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
 to direct and proxied MinIO, S3, GCS and HTTP(S) retrieval. Standalone mode is unchanged.
@@ -202,8 +203,19 @@ route category and reason. Count these events in your log system to track migrat
 URIs, query strings and credentials are not included in the audit event. Audit also emits a startup
 warning. An event records permission to proceed, not proof that the downstream download succeeded.
 
-Configure new pipeline roots with namespace-prefixed paths, then move/copy authorized existing
+For shared-credential deployments retaining prefix enforcement, configure new pipeline
+roots with namespace-prefixed paths, then move/copy authorized existing
 objects and update their references. Metadata changes alone do not move storage objects. Switch
 back to `enforce` and verify preview/download before upgrading. Do not disable authentication to
-restore custom-root access. MLMD outages now deny artifact reads in both modes, including reads of
+restore custom-root access. Under the prefix policy, MLMD outages deny artifact reads in both enforce/audit modes, including reads of
 otherwise correctly prefixed objects; restoring MLMD restores those reads.
+
+## Storage-authoritative artifact access
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` uses each namespace artifact
+service's restricted storage identity after user/namespace authorization. Existing
+roots need no prescribed prefix or MLMD record. This is enforcement, not audit.
+In 2.18, configure credentials and endpoints in the namespace service environment
+or workload identity; browser provider/Secret selectors are discarded. Verify
+proxy ingress isolation before activation. See the
+[prerequisites, scope and rollout guide](../docs/operator-guides/artifact-authorization.md).

@@ -205,3 +205,5 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the profile controller; the pin selects more than Istio images.
 
 - The shared deploy action provisions GitHub CLI before image artifact polling. It reuses an installed CLI or downloads a checksum-pinned Linux AMD64/ARM64 release into runner temporary storage and exports its path for later steps. Missing CLI prerequisites fail immediately instead of consuming the artifact wait window.
+
+- Frontend Tests runs `test/seaweedfs/artifact_authorization_test.sh` against disposable SeaweedFS 4.34 with real profile-controller policies and historical-root grants. The test covers production artifact handlers and object-store read/list isolation; API namespace authorization is a fixture. It does not prove CNI enforcement. Verify generated proxy ingress policy and actual denial on the installation before activating storage authorization.

@@ -2,6 +2,19 @@ Changelog
 
 ## Unreleased
 
+### Artifact authorization
+
+- Deployments with restricted namespace storage credentials can select
+  `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated shared UI
+  to retain historical object roots without moving bytes or requiring MLMD records.
+  This is enforced authorization, not audit. Default `key-prefix` behavior remains
+  for shared credentials. Before activation, reconcile proxy ingress policies and
+  verify actual storage/network isolation. Direct proxy consumers must use the
+  authenticated shared UI. In 2.18, storage mode uses namespace-service environment
+  or workload-identity credentials; browser provider/Secret selectors are discarded.
+  HTTP artifacts and archived logs retain separate policies. See the
+  [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
+
 ### Upgrade notes
 
 #### Python support in 2.18
