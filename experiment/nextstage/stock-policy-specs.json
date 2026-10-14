@@ -1,0 +1,747 @@
+{
+  "flowschemas": {
+    "items": [
+      {
+        "metadata": {
+          "name": "catch-all"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "catch-all"
+          },
+          "matchingPrecedence": 10000,
+          "distinguisherMethod": {
+            "type": "ByUser"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:unauthenticated"
+                  }
+                },
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:authenticated"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "exempt"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "exempt"
+          },
+          "matchingPrecedence": 1,
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:masters"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "global-default"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "global-default"
+          },
+          "matchingPrecedence": 9900,
+          "distinguisherMethod": {
+            "type": "ByUser"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:unauthenticated"
+                  }
+                },
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:authenticated"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "kube-controller-manager"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "workload-high"
+          },
+          "matchingPrecedence": 800,
+          "distinguisherMethod": {
+            "type": "ByNamespace"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "User",
+                  "user": {
+                    "name": "system:kube-controller-manager"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "kube-scheduler"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "workload-high"
+          },
+          "matchingPrecedence": 800,
+          "distinguisherMethod": {
+            "type": "ByNamespace"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "User",
+                  "user": {
+                    "name": "system:kube-scheduler"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "kube-system-service-accounts"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "workload-high"
+          },
+          "matchingPrecedence": 900,
+          "distinguisherMethod": {
+            "type": "ByNamespace"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "ServiceAccount",
+                  "serviceAccount": {
+                    "namespace": "kube-system",
+                    "name": "*"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "probes"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "exempt"
+          },
+          "matchingPrecedence": 2,
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:unauthenticated"
+                  }
+                },
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:authenticated"
+                  }
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "get"
+                  ],
+                  "nonResourceURLs": [
+                    "/healthz",
+                    "/readyz",
+                    "/livez"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "service-accounts"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "workload-low"
+          },
+          "matchingPrecedence": 9000,
+          "distinguisherMethod": {
+            "type": "ByUser"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:serviceaccounts"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "system-leader-election"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "leader-election"
+          },
+          "matchingPrecedence": 100,
+          "distinguisherMethod": {
+            "type": "ByUser"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "User",
+                  "user": {
+                    "name": "system:kube-controller-manager"
+                  }
+                },
+                {
+                  "kind": "User",
+                  "user": {
+                    "name": "system:kube-scheduler"
+                  }
+                },
+                {
+                  "kind": "ServiceAccount",
+                  "serviceAccount": {
+                    "namespace": "kube-system",
+                    "name": "*"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "get",
+                    "create",
+                    "update"
+                  ],
+                  "apiGroups": [
+                    "coordination.k8s.io"
+                  ],
+                  "resources": [
+                    "leases"
+                  ],
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "system-node-high"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "node-high"
+          },
+          "matchingPrecedence": 400,
+          "distinguisherMethod": {
+            "type": "ByUser"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:nodes"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    ""
+                  ],
+                  "resources": [
+                    "nodes",
+                    "nodes/status"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                },
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "coordination.k8s.io"
+                  ],
+                  "resources": [
+                    "leases"
+                  ],
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "name": "system-nodes"
+        },
+        "spec": {
+          "priorityLevelConfiguration": {
+            "name": "system"
+          },
+          "matchingPrecedence": 500,
+          "distinguisherMethod": {
+            "type": "ByUser"
+          },
+          "rules": [
+            {
+              "subjects": [
+                {
+                  "kind": "Group",
+                  "group": {
+                    "name": "system:nodes"
+                  }
+                }
+              ],
+              "resourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "apiGroups": [
+                    "*"
+                  ],
+                  "resources": [
+                    "*"
+                  ],
+                  "clusterScope": true,
+                  "namespaces": [
+                    "*"
+                  ]
+                }
+              ],
+              "nonResourceRules": [
+                {
+                  "verbs": [
+                    "*"
+                  ],
+                  "nonResourceURLs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "priorities": {
+    "items": [
+      {
+        "metadata": {
+          "name": "catch-all"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 5,
+            "limitResponse": {
+              "type": "Reject"
+            },
+            "lendablePercent": 0
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "exempt"
+        },
+        "spec": {
+          "type": "Exempt",
+          "exempt": {
+            "nominalConcurrencyShares": 0,
+            "lendablePercent": 0
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "global-default"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 20,
+            "limitResponse": {
+              "type": "Queue",
+              "queuing": {
+                "queues": 128,
+                "handSize": 6,
+                "queueLengthLimit": 50
+              }
+            },
+            "lendablePercent": 50
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "leader-election"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 10,
+            "limitResponse": {
+              "type": "Queue",
+              "queuing": {
+                "queues": 16,
+                "handSize": 4,
+                "queueLengthLimit": 50
+              }
+            },
+            "lendablePercent": 0
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "node-high"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 40,
+            "limitResponse": {
+              "type": "Queue",
+              "queuing": {
+                "queues": 64,
+                "handSize": 6,
+                "queueLengthLimit": 50
+              }
+            },
+            "lendablePercent": 25
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "system"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 30,
+            "limitResponse": {
+              "type": "Queue",
+              "queuing": {
+                "queues": 64,
+                "handSize": 6,
+                "queueLengthLimit": 50
+              }
+            },
+            "lendablePercent": 33
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "workload-high"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 40,
+            "limitResponse": {
+              "type": "Queue",
+              "queuing": {
+                "queues": 128,
+                "handSize": 6,
+                "queueLengthLimit": 50
+              }
+            },
+            "lendablePercent": 50
+          }
+        }
+      },
+      {
+        "metadata": {
+          "name": "workload-low"
+        },
+        "spec": {
+          "type": "Limited",
+          "limited": {
+            "nominalConcurrencyShares": 100,
+            "limitResponse": {
+              "type": "Queue",
+              "queuing": {
+                "queues": 128,
+                "handSize": 6,
+                "queueLengthLimit": 50
+              }
+            },
+            "lendablePercent": 90
+          }
+        }
+      }
+    ]
+  }
+}

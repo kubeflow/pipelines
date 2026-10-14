@@ -482,3 +482,99 @@ func TestMetricsDeadlineIsSanitized(t *testing.T) {
 		t.Fatalf("unsafe/incorrect reason %+v", d)
 	}
 }
+
+func TestHealthProbesDoNotWaitForMetrics(t *testing.T) {
+	var completed atomic.Int32
+	both := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/metrics" {
+			select {
+			case <-both:
+				fmt.Fprintln(w, "process_cpu_seconds_total 1")
+			case <-r.Context().Done():
+				return
+			}
+			return
+		}
+		if completed.Add(1) == 2 {
+			close(both)
+		}
+		w.WriteHeader(200)
+	}))
+	defer server.Close()
+	s := collectSnapshot(context.Background(), config{}, server.Client(), server.URL, "shared", 0, time.Now(), nil)
+	if !s.Ready || !s.Live || s.MetricsFetch.Reason != "ok" {
+		t.Fatalf("health serialized behind metrics: %+v", s)
+	}
+}
+func TestIndependentHealthFailureRemainsMissing(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/readyz" {
+			w.WriteHeader(503)
+			return
+		}
+		fmt.Fprintln(w, "process_cpu_seconds_total 1")
+	}))
+	defer server.Close()
+	s := collectSnapshot(context.Background(), config{}, server.Client(), server.URL, "shared", 0, time.Now(), nil)
+	if s.Ready || !s.Live {
+		t.Fatalf("health failure concealed: %+v", s)
+	}
+	found := false
+	for _, name := range s.Missing {
+		if name == "readyz" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("readiness failure not retained")
+	}
+}
+
+func TestPressureOnlyFixedOffersAndRecoverySilence(t *testing.T) {
+	start := time.Now()
+	c := config{PressureOnly: true, StartAt: start, RPS: 1000, Seconds: 1230}
+	at := start
+	for _, p := range []struct {
+		name    string
+		seconds int
+	}{{"normal", 120}, {"sustained", 180}, {"burst1", 10}, {"rest1", 30}, {"burst2", 10}, {"rest2", 30}, {"burst3", 10}, {"recovery", 120}, {"after_load", 60}, {"drain", 600}, {"after_drain", 60}} {
+		end := at.Add(time.Duration(p.seconds) * time.Second)
+		c.windows = append(c.windows, window{Name: p.name, Start: at, End: end})
+		at = end
+	}
+	counts := map[string]int{}
+	for id := 0; ; id++ {
+		due, ok := offerAt(c, id)
+		if !ok {
+			if id != 210000 {
+				t.Fatal("wrong fixed total", id)
+			}
+			break
+		}
+		phase := phaseAt(c.windows, due)
+		if !pressurePhase(phase) {
+			t.Fatal("pressure leaked outside selected windows", phase)
+		}
+		counts[phase]++
+	}
+	if counts["sustained"] != 180000 || counts["burst1"] != 10000 || counts["burst2"] != 10000 || counts["burst3"] != 10000 {
+		t.Fatal(counts)
+	}
+}
+func TestPressureCompressedBound(t *testing.T) {
+	w := &cappedCompressedWriter{writer: io.Discard, bytes: 128 << 20}
+	if _, err := w.Write([]byte("x")); err == nil {
+		t.Fatal("compressed bound ignored")
+	}
+}
+func TestNormalOfferBudgetUnchanged(t *testing.T) {
+	c := config{StartAt: time.Now(), Seconds: 1230, RPS: 20}
+	_, ok := offerAt(c, 24600)
+	if ok {
+		t.Fatal("normal interval exceeded")
+	}
+	if _, ok := offerAt(c, 24599); !ok {
+		t.Fatal("normal final offer omitted")
+	}
+}

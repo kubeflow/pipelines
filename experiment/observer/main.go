@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,6 +30,7 @@ import (
 )
 
 type config struct {
+	PressureOnly      bool      `json:"pressure_only"`
 	Kubeconfig        string    `json:"kubeconfig"`
 	Context           string    `json:"context"`
 	ClusterUID        string    `json:"cluster_uid"`
@@ -56,21 +59,23 @@ func (c config) validate() error {
 	if c.StartAt.IsZero() || c.TimelineFile == "" {
 		return errors.New("explicit shared start_at and timeline_file required")
 	}
-	if float64(c.Seconds)*c.RPS > 90000 {
+	if !c.PressureOnly && float64(c.Seconds)*c.RPS > 90000 {
 		return errors.New("offer count exceeds90000")
 	}
 	return nil
 }
 
 type sink struct {
-	mu     sync.Mutex
-	file   *os.File
-	err    error
-	cancel context.CancelFunc
-	bytes  int64
-	events int
-	writer io.Writer
-	syncer func() error
+	maxBytes  int64
+	maxEvents int
+	mu        sync.Mutex
+	file      *os.File
+	err       error
+	cancel    context.CancelFunc
+	bytes     int64
+	events    int
+	writer    io.Writer
+	syncer    func() error
 }
 
 func (s *sink) emit(v any) {
@@ -82,8 +87,15 @@ func (s *sink) emit(v any) {
 	b, err := json.Marshal(v)
 	s.err = err
 	if s.err == nil {
-		if s.events >= 100000 || s.bytes+int64(len(b))+1 > 128<<20 {
-			s.err = errors.New("event output exceeds128MiB")
+		maxEvents, maxBytes := s.maxEvents, s.maxBytes
+		if maxEvents == 0 {
+			maxEvents = 100000
+		}
+		if maxBytes == 0 {
+			maxBytes = 128 << 20
+		}
+		if s.events >= maxEvents || s.bytes+int64(len(b))+1 > maxBytes {
+			s.err = errors.New("event output bound exceeded")
 		} else {
 			var n int
 			w := s.writer
@@ -497,7 +509,23 @@ func fetch(ctx context.Context, client *http.Client, base, path string, limit in
 }
 func collectSnapshot(ctx context.Context, c config, client *http.Client, host, priority string, i int, due time.Time, previous []metric) snapshot {
 	s := snapshot{Kind: "snapshot", At: time.Now().UTC(), Index: i, LagMS: float64(time.Since(due).Microseconds()) / 1000, Missing: []string{}}
+	// Health probes have their own bounded budgets and start with the scrape.
+	// A large metrics response must not consume the readiness probe's deadline.
+	type healthResult struct {
+		path string
+		ok   bool
+	}
+	health := make(chan healthResult, 2)
+	for _, path := range []string{"/readyz", "/livez"} {
+		go func(path string) {
+			probe, cancel := context.WithTimeout(ctx, 900*time.Millisecond)
+			defer cancel()
+			_, status, err := fetch(probe, client, host, path, 4096)
+			health <- healthResult{path: path, ok: err == nil && status == 200}
+		}(path)
+	}
 	call, stop := context.WithTimeout(ctx, 900*time.Millisecond)
+	defer stop()
 	metrics, found, diagnostic := fetchMetrics(call, client, host, priority)
 	s.MetricsFetch = diagnostic
 	if diagnostic.Reason != "ok" {
@@ -531,17 +559,21 @@ func collectSnapshot(ctx context.Context, c config, client *http.Client, host, p
 		}
 
 	}
-	_, status, e := fetch(call, client, host, "/readyz", 4096)
-	s.Ready = e == nil && status == 200
+	for i := 0; i < 2; i++ {
+		result := <-health
+		switch result.path {
+		case "/readyz":
+			s.Ready = result.ok
+		case "/livez":
+			s.Live = result.ok
+		}
+	}
 	if !s.Ready {
 		s.Missing = append(s.Missing, "readyz")
 	}
-	_, status, e = fetch(call, client, host, "/livez", 4096)
-	s.Live = e == nil && status == 200
 	if !s.Live {
 		s.Missing = append(s.Missing, "livez")
 	}
-	stop()
 	if s.LagMS > 250 {
 		s.Missing = append(s.Missing, "sampling_lag")
 	}
@@ -596,6 +628,43 @@ type logical struct {
 	Outcome   string    `json:"outcome"`
 }
 
+func pressurePhase(name string) bool {
+	return name == "sustained" || name == "burst1" || name == "burst2" || name == "burst3"
+}
+func offerAt(c config, id int) (time.Time, bool) {
+	if !c.PressureOnly {
+		due := c.StartAt.Add(time.Duration(float64(id) * float64(time.Second) / c.RPS))
+		return due, id < 90000 && due.Before(c.StartAt.Add(time.Duration(c.Seconds)*time.Second))
+	}
+	if id >= 210000 {
+		return time.Time{}, false
+	}
+	for _, w := range c.windows {
+		if !pressurePhase(w.Name) {
+			continue
+		}
+		n := int(math.Ceil(w.End.Sub(w.Start).Seconds() * c.RPS))
+		if id < n {
+			return w.Start.Add(time.Duration(float64(id) * float64(time.Second) / c.RPS)), true
+		}
+		id -= n
+	}
+	return time.Time{}, false
+}
+
+type cappedCompressedWriter struct {
+	writer io.Writer
+	bytes  int64
+}
+
+func (w *cappedCompressedWriter) Write(b []byte) (int, error) {
+	if w.bytes+int64(len(b)) > 128<<20 {
+		return 0, errors.New("compressed output bound exceeded")
+	}
+	n, e := w.writer.Write(b)
+	w.bytes += int64(n)
+	return n, e
+}
 func compete(ctx context.Context, c config, client kubernetes.Interface, out *sink) []logical {
 	results := []logical{}
 	var mu sync.Mutex
@@ -603,10 +672,9 @@ func compete(ctx context.Context, c config, client kubernetes.Interface, out *si
 	updateSlot := make(chan struct{}, 1)
 	var wg sync.WaitGroup
 	interval := time.Duration(float64(time.Second) / c.RPS)
-	deadline := c.StartAt.Add(time.Duration(c.Seconds) * time.Second)
 	for id := 0; ; id++ {
-		due := c.StartAt.Add(time.Duration(float64(id) * float64(time.Second) / c.RPS))
-		if id >= 90000 || !due.Before(deadline) || !waitUntil(ctx, due) {
+		due, ok := offerAt(c, id)
+		if !ok || !waitUntil(ctx, due) {
 			break
 		}
 		op := []string{"get", "list", "update"}[id%3]
@@ -706,6 +774,20 @@ func run(c config, output string) error {
 	if e != nil {
 		return e
 	}
+	if c.PressureOnly {
+		seconds := 0.0
+		for _, w := range windows {
+			if pressurePhase(w.Name) {
+				if w.Kind != "load" {
+					return errors.New("pressure only permitted in load windows")
+				}
+				seconds += w.End.Sub(w.Start).Seconds()
+			}
+		}
+		if seconds <= 0 || seconds > 210 || math.Ceil(seconds*c.RPS) > 210000 {
+			return errors.New("pressure offer budget exceeded")
+		}
+	}
 	c.windows = windows
 	raw, e := clientcmd.LoadFromFile(c.Kubeconfig)
 	if e != nil {
@@ -770,12 +852,36 @@ func run(c config, output string) error {
 	if e = os.Mkdir(output, 0700); e != nil {
 		return errors.New("output must be new")
 	}
-	f, e := os.OpenFile(filepath.Join(output, "events.jsonl"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	eventName := "events.jsonl"
+	if c.PressureOnly {
+		eventName = "events.jsonl.gz"
+	}
+	f, e := os.OpenFile(filepath.Join(output, eventName), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
 		return e
 	}
 	defer f.Close()
 	out := &sink{file: f, cancel: cancel}
+	closeCapture := func() error { return nil }
+	if c.PressureOnly {
+		compressed := gzip.NewWriter(&cappedCompressedWriter{writer: f})
+		out.writer = compressed
+		out.maxEvents = 1000000
+		out.maxBytes = 512 << 20
+		out.syncer = func() error {
+			if e := compressed.Flush(); e != nil {
+				return e
+			}
+			return f.Sync()
+		}
+		closeCapture = func() error {
+			if e := compressed.Close(); e != nil {
+				return e
+			}
+			return f.Sync()
+		}
+		defer closeCapture()
+	}
 	write := func(name string, v any) error {
 		b, e := json.MarshalIndent(v, "", "  ")
 		if e != nil {
@@ -857,6 +963,9 @@ func run(c config, output string) error {
 	stopSync()
 	<-syncDone
 	finalSyncErr := out.sync()
+	if closeErr := closeCapture(); finalSyncErr == nil {
+		finalSyncErr = closeErr
+	}
 	missing := []string{}
 	if len(snapshots) != c.Seconds+1 {
 		missing = append(missing, "snapshot_count")
@@ -880,6 +989,20 @@ func run(c config, output string) error {
 		missing = append(missing, "event_write")
 	}
 	summary := map[string]any{"observation_complete": len(missing) == 0, "representative_acceptance_complete": false, "missing": missing, "logical": logicalResults, "snapshot_count": len(snapshots), "timeline_sha256": timelineHash, "baseline_captured_before_start": true, "unknown_counter_samples": unknownCounterSamples, "counter_baselines_complete": len(baseline.UnknownCounters) == 0 && unknownCounterSamples == 0, "raw_http_attempts": tr.attempts, "raw_429": tr.retries429, "classification_failures": tr.missing, "priority_uid": c.PriorityUID, "priority_name": priority, "kfp_live_classification_verified": false, "integration_missing": []string{"live_kfp_header_evidence", "etcd_direct_metrics_if_not_exposed", "apiserver_etcd_container_restart_oom_evidence", "paired_threshold_evaluation"}, "note": "KFP flow identity is externally supplied; this observer verifies policy mapping and competitor headers only"}
+	if c.PressureOnly {
+		outcomes := map[string]map[string]int{}
+		for _, r := range logicalResults {
+			if outcomes[r.Phase] == nil {
+				outcomes[r.Phase] = map[string]int{}
+			}
+			outcomes[r.Phase][r.Outcome]++
+		}
+		delete(summary, "logical")
+		summary["pressure_only"] = true
+		summary["logical_outcomes_by_phase"] = outcomes
+		summary["raw_events_file"] = "events.jsonl.gz"
+		summary["offered_total"] = len(logicalResults)
+	}
 	if e = write("summary.json", summary); e != nil {
 		return e
 	}

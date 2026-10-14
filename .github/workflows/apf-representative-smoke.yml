@@ -1,4 +1,4 @@
-name: Isolated APF representative paired measurements
+name: Isolated constrained APF calibrated pair
 on:
   push:
     branches: ['codex/apf-representative-smoke-20261014']
@@ -43,6 +43,15 @@ jobs:
           --fixtures harness/experiment/fixtures --source source
           --suffix "${{ github.run_id }}-${{ github.run_attempt }}"
           --output "$RUNNER_TEMP/apf-config.json"
+      - name: Mark distinct constrained scenario
+        run: |
+          python - <<'PYCONFIG'
+          import json,os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'apf-config.json'
+          c=json.loads(p.read_text());c['scenario_id']='constrained-stock-apf-positive-seats-v1'
+          p.write_text(json.dumps(c))
+          PYCONFIG
       - name: Provision owned disposable cluster and real tenant fixtures
         run: >-
           python harness/experiment/coordinator/provision_smoke.py
@@ -67,21 +76,40 @@ jobs:
           --provision-config "$RUNNER_TEMP/apf-config.json" --state "$RUNNER_TEMP/apf-state"
           --bundle harness/experiment --out "$RUNNER_TEMP/apf-pair-private"
           --evidence-out "$RUNNER_TEMP/apf-pair-evidence/preparation"
-      - name: Measure only remaining negative-one arm; preserve completed20 evidence
+      - name: Prepare independent same-priority background identity
+        run: >-
+          python harness/experiment/nextstage/prepare_background.py
+          --coordinator-dir harness/experiment/nextstage
+          --config "$RUNNER_TEMP/apf-pair-private/coordinator.json"
+          --quiet-template "$RUNNER_TEMP/apf-pair-private/observer.json"
+          --out "$RUNNER_TEMP/apf-background-private"
+      - name: Bounded calibration and frozen pressure selection
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/apf-pair-evidence"
-          for index in 2; do
-            python harness/experiment/nextstage/coordinator.py arm \
-              --config "$RUNNER_TEMP/apf-pair-private/coordinator.json" \
-              --out "$RUNNER_TEMP/apf-pair-evidence/arm-$index" --index "$index"
-          done
+          python harness/experiment/nextstage/scenario.py \
+            --out "$RUNNER_TEMP/apf-pair-evidence/calibration" \
+            --observer-binary "$GITHUB_WORKSPACE/harness/experiment/bin/observer" \
+            --observer-template "$RUNNER_TEMP/apf-background-private/background-template.json" \
+            --stock-policies harness/experiment/nextstage/stock-policy-specs.json
+          cp "$RUNNER_TEMP/apf-background-private/classification.json" "$RUNNER_TEMP/apf-pair-evidence/background-classification.json"
+          python - <<'PYCONFIG'
+          import json,os
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP']);p=root/'apf-pair-private/coordinator.json'
+          c=json.loads(p.read_text());c['background_calibration']=str(root/'apf-pair-evidence/calibration/frozen-calibration.json');c['background_template']=str(root/'apf-background-private/background-template.json')
+          p.write_text(json.dumps(c))
+          PYCONFIG
+      - name: Measure new constrained 20 and negative-one pair
+        run: >-
+          python harness/experiment/nextstage/run_pair.py
+          --config "$RUNNER_TEMP/apf-pair-private/coordinator.json"
+          --out "$RUNNER_TEMP/apf-pair-evidence"
       - name: Upload bounded sanitized measurement evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: apf-pair-${{ github.run_id }}-${{ github.run_attempt }}
+          name: apf-constrained-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/apf-smoke-evidence
             ${{ runner.temp }}/apf-pair-evidence

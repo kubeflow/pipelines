@@ -109,9 +109,27 @@ def calibration_request(request, ca):
     return opener.open(request, timeout=10)
 
 
+def constrained_flags(pods):
+    found=[]
+    for pod in pods.get('items',[]):
+        for container in pod.get('spec',{}).get('containers',[]):
+            if container.get('name')!='kube-apiserver':continue
+            flags={}
+            for argument in container.get('command',[])+container.get('args',[]):
+                for key in ('max-requests-inflight','max-mutating-requests-inflight'):
+                    if argument.startswith('--'+key+'='):flags[key]=argument.split('=',1)[1]
+            if flags!={'max-requests-inflight':'10','max-mutating-requests-inflight':'10'}:raise RuntimeError('actual apiserver constrained flags differ')
+            found.append({'pod_uid':pod['metadata']['uid'],'flags':flags})
+    if len(found)!=1:raise RuntimeError('exactly one owned apiserver required')
+    return found[0]
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--provision-config',required=True);p.add_argument('--state',required=True);p.add_argument('--bundle',required=True);p.add_argument('--out',required=True);p.add_argument('--evidence-out',required=True);a=p.parse_args();os.umask(0o077)
     out=Path(a.out).resolve();out.mkdir(mode=0o700);c=load(a.provision_config);c['state']=a.state;owner=Owned(c);uid=owner.guard();ns='apf-competitor'
+    if c.get('scenario_id')!='constrained-stock-apf-positive-seats-v1':raise RuntimeError('wrong scenario identity')
+    flags=constrained_flags(json.loads(owner.k('-n','kube-system','get','pods','-l','component=kube-apiserver','-o','json')))
+    evidence=Path(a.evidence_out);evidence.mkdir(parents=True,exist_ok=True);save(evidence/'apiserver-live-flags.json',flags)
+    save(evidence/'kind-config-used.json',load(Path(a.state)/'kind-config.json'))
     objects=[{'apiVersion':'v1','kind':'Namespace','metadata':{'name':ns}}, {'apiVersion':'v1','kind':'ServiceAccount','metadata':{'name':'probe','namespace':ns}}, {'apiVersion':'v1','kind':'ConfigMap','metadata':{'name':'probe','namespace':ns},'data':{'fixed':'x'*1024}}, {'apiVersion':'rbac.authorization.k8s.io/v1','kind':'Role','metadata':{'name':'probe','namespace':ns},'rules':[{'apiGroups':[''],'resources':['configmaps'],'verbs':['get','list','update']}]}, {'apiVersion':'rbac.authorization.k8s.io/v1','kind':'RoleBinding','metadata':{'name':'probe','namespace':ns},'subjects':[{'kind':'ServiceAccount','name':'probe','namespace':ns}],'roleRef':{'apiGroup':'rbac.authorization.k8s.io','kind':'Role','name':'probe'}}]
     manifest=out/'competitor-resources.json';save(manifest,{'apiVersion':'v1','kind':'List','items':objects});owner.k('apply','-f',str(manifest))
     token=owner.k('-n',ns,'create','token','probe','--duration=3h').decode().strip();tokenpath=out/'competitor.token';tokenpath.write_text(token);tokenpath.chmod(0o600)
@@ -125,7 +143,7 @@ def main():
     if pl['spec']['type']!='Limited' or fs['spec']['priorityLevelConfiguration']['name']!=pl['metadata']['name']:raise RuntimeError('competitor is not observed Limited priority')
     save(out/'classification-calibration.json',{'competitor_flow_uid':fsuid,'priority_uid':pluid,'actual_competitor_headers':True,'actual_kfp_classification_verified':False,'kfp_mapping_assumption':'serviceaccount bootstrap policy; must independently verify actual KFP audit observations'})
     # KFP identity is a serviceaccount; this candidate UID is not proof of actual KFP classification.
-    workload=load(Path(a.state)/'workload-config-skeleton.json');workload.update(probe_seconds=60,drain_seconds=600,max_inflight_per_tenant=16)
+    workload=load(Path(a.state)/'workload-config-skeleton.json');workload.update(probe_seconds=60,drain_seconds=600,max_inflight_per_tenant=16,max_active_per_tenant=2)
     workload['phases']=[{'name':name,'seconds':seconds,'quiet_rps':2,'noisy_rps':rate} for name,seconds,rate in [('normal',120,2),('sustained',180,100),('burst1',10,300),('rest1',30,2),('burst2',10,300),('rest2',30,2),('burst3',10,300),('recovery',120,2)]]
     for tenant in workload['tenants']:
         fresh=owner.k('-n',tenant['namespace'],'create','token',tenant['service_account'],'--audience=pipelines.kubeflow.org','--duration=3h').decode().strip()

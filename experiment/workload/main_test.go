@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -478,5 +479,70 @@ func TestSyncFailureCancelsTraffic(t *testing.T) {
 	r.add(Event{})
 	if len(r.events) != before {
 		t.Fatal("capture grew after sync failure")
+	}
+}
+
+func TestTwoActiveFixtureCycleAndDrainCannotHideOlderRun(t *testing.T) {
+	var creates int
+	var firstDone bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "POST" {
+			creates++
+			json.NewEncoder(w).Encode(map[string]any{"run_id": fmt.Sprint(creates), "state": "PENDING"})
+			return
+		}
+		state := "RUNNING"
+		if strings.HasSuffix(r.URL.Path, "/1") && firstDone {
+			state = "SUCCEEDED"
+		}
+		json.NewEncoder(w).Encode(map[string]any{"run_id": strings.TrimPrefix(r.URL.Path, "/apis/v2beta1/runs/"), "state": state})
+	}))
+	defer server.Close()
+	c := testConfig(t, server.URL)
+	c.MaxActivePerTenant = 2
+	c.Tenants[0].Fixtures = []Fixture{{Name: "flip", PipelineID: "p", VersionID: "v1"}, {Name: "collected", PipelineID: "p", VersionID: "v2"}, {Name: "oneof", PipelineID: "p", VersionID: "v3"}}
+	tenant, err := makeTenant(c, c.Tenants[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.CreateTemp(t.TempDir(), "events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	rec := &Recorder{f: f, cancel: func() {}}
+	tenant.pipelines(context.Background(), c, rec, "normal", true)
+	tenant.pipelines(context.Background(), c, rec, "normal", true)
+	tenant.pipelines(context.Background(), c, rec, "normal", true)
+	if creates != 2 || activeRuns(tenant) != 2 {
+		t.Fatal("active cap exceeded")
+	}
+	firstDone = true
+	tenant.pipelines(context.Background(), c, rec, "pressure", true)
+	if creates != 3 || tenant.runs[2].Fixture != "oneof" || activeRuns(tenant) != 2 {
+		t.Fatal("third fixture did not cycle into freed slot")
+	}
+	tenant.runs[2].State = "SUCCEEDED"
+	if activeRuns(tenant) != 1 {
+		t.Fatal("older running fixture hidden by newest terminal fixture")
+	}
+	tenant.pipelines(context.Background(), c, rec, "drain", false)
+	if creates != 3 {
+		t.Fatal("drain submitted new work")
+	}
+}
+func TestActivePipelineBounds(t *testing.T) {
+	c := testConfig(t, "http://127.0.0.1")
+	c.MaxActivePerTenant = 3
+	if validate(c) == nil {
+		t.Fatal("unsafe active cap accepted")
+	}
+	c.MaxActivePerTenant = 2
+	if validate(c) != nil {
+		t.Fatal("bounded variant rejected")
+	}
+	if activeLimit(Config{}) != 1 {
+		t.Fatal("default changed")
 	}
 }

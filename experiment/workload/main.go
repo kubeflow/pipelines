@@ -61,6 +61,7 @@ type Phase struct {
 	NoisyRPS float64 `json:"noisy_rps"`
 }
 type Config struct {
+	MaxActivePerTenant   int            `json:"max_active_per_tenant"`
 	StartAt              time.Time      `json:"start_at"`
 	ProbeSeconds         int            `json:"probe_seconds"`
 	Endpoint             string         `json:"endpoint"`
@@ -237,6 +238,9 @@ func outcome(err error) (string, int) {
 	return "transport_error", 0
 }
 func validate(c Config) error {
+	if c.MaxActivePerTenant < 0 || c.MaxActivePerTenant > 2 || c.MaxActivePerTenant*len(c.Tenants) > 8 {
+		return errors.New("active pipeline cap exceeds two per tenant/eight total")
+	}
 	if c.StartAt.IsZero() || !c.StartAt.After(time.Now()) || time.Until(c.StartAt) > time.Minute {
 		return errors.New("start_at must be a future RFC3339 timestamp within one minute")
 	}
@@ -358,10 +362,28 @@ func offers(ctx context.Context, c Config, t *Tenant, r *Recorder, p Phase, rate
 	}
 }
 
-// One active pipeline per tenant, cycling immutable fixture versions.
+// One active pipeline by default; the separate constrained scenario opts into two.
+func activeLimit(c Config) int {
+	if c.MaxActivePerTenant == 0 {
+		return 1
+	}
+	return c.MaxActivePerTenant
+}
+func activeRuns(t *Tenant) int {
+	n := 0
+	for _, r := range t.runs {
+		if !terminal(r.State) {
+			n++
+		}
+	}
+	return n
+}
 func (t *Tenant) pipelines(ctx context.Context, c Config, r *Recorder, phase string, submit bool) {
-	if len(t.runs) > 0 && !terminal(t.runs[len(t.runs)-1].State) {
-		rr := &t.runs[len(t.runs)-1]
+	for i := range t.runs {
+		rr := &t.runs[i]
+		if terminal(rr.State) {
+			continue
+		}
 		call, cancel := requestContext(ctx, c)
 		start := time.Now()
 		resp, err := t.api.RunService.RunServiceGetRunContext(call, &params.RunServiceGetRunParams{RunID: rr.ID}, t.auth)
@@ -371,9 +393,9 @@ func (t *Tenant) pipelines(ctx context.Context, c Config, r *Recorder, phase str
 			rr.State = string(*resp.Payload.State)
 		}
 		r.add(Event{Phase: phase, Tenant: t.cfg.Name, Operation: "poll_pipeline", Outcome: res, HTTPCode: code, RunID: rr.ID, Fixture: rr.Fixture, State: rr.State, ElapsedMS: float64(time.Since(start).Microseconds()) / 1000})
-		if !terminal(rr.State) {
-			return
-		}
+	}
+	if activeRuns(t) >= activeLimit(c) {
+		return
 	}
 	if !submit || t.ambiguous || ctx.Err() != nil {
 		return
@@ -645,7 +667,7 @@ func execute(ctx context.Context, c Config, out string, cleanup bool) error {
 				all := true
 				for _, t := range tenants {
 					t.pipelines(stageCtx, c, r, w.Name, false)
-					if len(t.runs) > 0 && !terminal(t.runs[len(t.runs)-1].State) {
+					if activeRuns(t) > 0 {
 						all = false
 					}
 				}
