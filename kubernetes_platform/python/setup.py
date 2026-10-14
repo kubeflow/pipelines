@@ -20,6 +20,7 @@ import setuptools
 
 NAME = 'kfp-kubernetes'
 
+
 def get_requirements(requirements_file: str) -> List[str]:
     """Read requirements from requirements.in."""
 
@@ -29,6 +30,7 @@ def get_requirements(requirements_file: str) -> List[str]:
     lines = [line.strip() for line in lines]
     lines = [line for line in lines if not line.startswith('#') and line]
     return lines
+
 
 def find_version(*file_path_parts: str) -> str:
     """Get version from kfp.__init__.__version__."""
