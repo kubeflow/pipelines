@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
@@ -53,7 +52,8 @@ import {
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
-import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 
 export const LOGS_DETAILS = 'logs_details';
@@ -79,7 +79,6 @@ const NODE_STATE_UNAVAILABLE = (
 
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
-  onLayerChange: (layers: string[]) => void;
   pipelineJobString?: string;
   runId?: string;
   element?: PipelineFlowElement | null;
@@ -90,7 +89,6 @@ interface RuntimeNodeDetailsV2Props {
 
 export function RuntimeNodeDetailsV2({
   layers,
-  onLayerChange,
   pipelineJobString,
   runId,
   element,
@@ -126,13 +124,7 @@ export function RuntimeNodeDetailsV2({
   }
   if (element.type === NodeTypeNames.SUB_DAG) {
     return (
-      <SubDAGNodeDetail
-        element={element}
-        task={elementRuntimeInfo?.task}
-        layers={layers}
-        onLayerChange={onLayerChange}
-        namespace={namespace}
-      />
+      <SubDAGNodeDetail element={element} task={elementRuntimeInfo?.task} namespace={namespace} />
     );
   }
   return NODE_INFO_UNKNOWN;
@@ -606,27 +598,13 @@ function ArtifactInfo({
 interface SubDAGNodeDetailProps {
   element: PipelineFlowElement;
   task?: V2beta1PipelineTask;
-  layers: string[];
-  onLayerChange: (layers: string[]) => void;
   namespace?: string;
 }
 
-function SubDAGNodeDetail({
-  element,
-  task,
-  layers,
-  onLayerChange,
-  namespace,
-}: SubDAGNodeDetailProps) {
+function SubDAGNodeDetail({ element, task, namespace }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
-  const taskKey = getTaskKeyFromNodeKey(element.id);
   return (
     <div className={commonCss.page}>
-      <div className={padding(20, 'blr')}>
-        <Button variant='contained' onClick={() => onLayerChange([...layers, taskKey])}>
-          Open Sub-DAG
-        </Button>
-      </div>
       <MD2Tabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}

@@ -81,7 +81,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={executionElement}
           elementRuntimeInfo={{ task }}
@@ -225,7 +224,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={executionElement}
           elementRuntimeInfo={{
@@ -266,7 +264,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={{ ...executionElement, id: 'task.train', data: { label: 'train' } }}
           elementRuntimeInfo={{
@@ -445,7 +442,6 @@ describe('RuntimeNodeDetailsV2', () => {
           elementRuntimeInfo={{ task }}
           layers={layers}
           namespace={TEST_NAMESPACE}
-          onLayerChange={() => {}}
           pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
         />
@@ -608,7 +604,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           element={artifactElement}
           elementRuntimeInfo={{
             task: createTask(),
@@ -641,7 +636,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           element={artifactElement}
           elementRuntimeInfo={{
             task: createTask(),
@@ -679,7 +673,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           element={artifactElement}
           elementRuntimeInfo={{
             task: createTask({ state }),
@@ -736,7 +729,6 @@ describe('RuntimeNodeDetailsV2', () => {
           }}
           layers={['root']}
           namespace={TEST_NAMESPACE}
-          onLayerChange={() => {}}
           sourceFinished={sourceFinished}
         />
       </CommonTestWrapper>

@@ -21,6 +21,9 @@ import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { nestedArtifactSpec } from 'src/data/test/groupedFlow';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
+import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {
@@ -59,6 +62,7 @@ describe('PipelineDetailsV2', () => {
   };
 
   beforeEach(() => {
+    localStorage.clear();
     mockResizeObserver();
   });
 
@@ -67,9 +71,6 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function (layers: string[]): void {
-            return;
-          }}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
@@ -87,9 +88,6 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function (layers: string[]): void {
-            return;
-          }}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
@@ -107,9 +105,6 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function (layers: string[]): void {
-            return;
-          }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
@@ -128,9 +123,6 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function (layers: string[]): void {
-            return;
-          }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
@@ -154,9 +146,6 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function (layers: string[]): void {
-            return;
-          }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
@@ -189,7 +178,6 @@ describe('PipelineDetailsV2', () => {
               type: 'EXECUTION',
             },
           ]}
-          setSubDagLayers={(layers) => {}}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
@@ -201,6 +189,28 @@ describe('PipelineDetailsV2', () => {
     );
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
     screen.getByText('flip-coin-op');
+  });
+
+  it('shows the nested component details without navigating into its sub-DAG', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          templateString={JSON.stringify(PipelineSpec.toJSON(nestedArtifactSpec))}
+          pipelineFlowElements={convertFlowElements(nestedArtifactSpec)}
+          pipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={async () => {}}
+        />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByText('Train model'));
+    await screen.findByText('Output Artifacts');
+    expect(screen.getByRole('button', { name: 'Collapse Training pipeline' })).toBeInTheDocument();
+    expect(screen.queryByText('Layers')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Training pipeline'));
+    expect(screen.queryByRole('button', { name: 'Open Sub-DAG' })).not.toBeInTheDocument();
+    expect(screen.getByText('Deploy model')).toBeInTheDocument();
   });
 
   it('Show Side panel when select node', async () => {
@@ -218,7 +228,6 @@ describe('PipelineDetailsV2', () => {
               type: 'EXECUTION',
             },
           ]}
-          setSubDagLayers={(layers) => {}}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
