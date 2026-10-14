@@ -48,12 +48,12 @@ if [[ "${PROFILE_RUNTIME_TIMINGS:-false}" == true ]]; then
 EOF
 fi
 if [[ "${TUNE_KUBERNETES_CLIENT:-false}" == true ]]; then
-  # Let Kubernetes APF throttle these CI clients; retain every auth check.
+  # Measure the existing production defaults; retain every auth check.
   cat >> "$profile_overlay/kustomization.yaml" <<EOF
                   - name: CLIENTQPS
-                    value: "-1"
+                    value: "5"
                   - name: CLIENTBURST
-                    value: "40"
+                    value: "10"
 EOF
 fi
 kubectl kustomize --load-restrictor LoadRestrictionsNone "$profile_overlay"

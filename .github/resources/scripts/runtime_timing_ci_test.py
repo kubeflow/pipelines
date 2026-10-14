@@ -142,10 +142,10 @@ class RuntimeTimingCITest(unittest.TestCase):
                 environment = {e['name']: e.get('value') for e in actual['env']}
                 self.assertEqual(
                     environment.get('CLIENTQPS'),
-                    '-1' if tuned == 'true' else None)
+                    '5' if tuned == 'true' else None)
                 self.assertEqual(
                     environment.get('CLIENTBURST'),
-                    '40' if tuned == 'true' else None)
+                    '10' if tuned == 'true' else None)
                 self.assertEqual(actual['image'], 'same')
             self.assertEqual(
                 yaml.safe_load((root / 'deployment.yaml').read_text()),
