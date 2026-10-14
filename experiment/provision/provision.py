@@ -66,14 +66,14 @@ def verify_image(image):
     commit = json.loads(Path(image['source_commit_metadata']).read_text())
     steps = {step['name']: step.get('conclusion') for step in job['steps']}
     if (run.get('head_sha') != HEAD
-            or run.get('path') not in ('.github/workflows/api-server-tests.yml', '.github/workflows/e2e-test.yml')
+            or not re.fullmatch(r'\.github/workflows/[a-zA-Z0-9_-]+\.ya?ml', run.get('path', ''))
             or run.get('repository', {}).get('full_name') != 'kubeflow/pipelines'
             or artifact.get('workflow_run', {}).get('id') != run.get('id')
             or artifact.get('workflow_run', {}).get('head_sha') != HEAD
             or artifact.get('expired') is not False
             or job.get('run_id') != run.get('id') or job.get('conclusion') != 'success'
             or f"image-build ({image['component']}," not in job.get('name', '')
-            or artifact.get('name') != image['component']
+            or artifact.get('name') not in (image['component'], f"ci-image-artifact-v2-{image['component']}-amd64-{commit.get('tree', {}).get('sha')}")
             or commit.get('sha') != SOURCE
             or HEAD not in [parent['sha'] for parent in commit.get('parents', [])]
             or f'image-builds.yml@refs/pull/14818/merge ({SOURCE})' not in log

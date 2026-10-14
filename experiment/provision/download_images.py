@@ -20,12 +20,14 @@ def fetch(endpoint, destination):
     with partial.open('wb') as out:
         try:
             result = subprocess.run(['gh', 'api', '--allow-escape-sequences', endpoint],
-                                    stdout=out, stderr=subprocess.DEVNULL,
+                                    stdout=out, stderr=subprocess.PIPE,
                                     timeout=240, check=False)
         except subprocess.TimeoutExpired:
             raise RuntimeError('GitHub download timed out: ' + destination.name) from None
     if result.returncode:
-        raise RuntimeError('GitHub download failed: ' + destination.name)
+        status = re.search(rb'HTTP (\d{3})', result.stderr or b'')
+        suffix = ' (HTTP ' + status[1].decode() + ')' if status else ''
+        raise RuntimeError('GitHub download failed: ' + destination.name + suffix)
     partial.replace(destination)
 
 
@@ -61,6 +63,17 @@ def download(manifest_path, output):
         raise RuntimeError('run attempt mismatch')
     inputs = {}
     for name, item in manifest['images'].items():
+        producer_run = item.get('producer_run_id', manifest['run_id'])
+        producer_attempt = item.get('producer_run_attempt', manifest['run_attempt'])
+        if type(producer_run) is not int or type(producer_attempt) is not int or producer_run <= 0 or producer_attempt <= 0:
+            raise RuntimeError('invalid producer run identity: ' + name)
+        image_run_file = output / f'run-{producer_run}-attempt-{producer_attempt}.json'
+        if not image_run_file.exists():
+            fetch(f'{repo}/actions/runs/{producer_run}/attempts/{producer_attempt}', image_run_file)
+        image_run = json.loads(image_run_file.read_text())
+        if (image_run.get('id') != producer_run or image_run.get('run_attempt') != producer_attempt
+                or (item.get('producer_workflow_path') and image_run.get('path') != item['producer_workflow_path'])):
+            raise RuntimeError('producer run/attempt mismatch: ' + name)
         metadata, job, log = (output / (name + suffix) for suffix in ('-artifact.json', '-job.json', '.log'))
         zipped, archive = output / (name + '.zip'), output / item['archive_member']
         fetch(f"{repo}/actions/artifacts/{item['artifact_id']}", metadata)
@@ -69,7 +82,7 @@ def download(manifest_path, output):
             raise RuntimeError('artifact ID/digest changed: ' + name)
         fetch(f"{repo}/actions/jobs/{item['producer_job_id']}", job)
         job_data = json.loads(job.read_text())
-        if job_data.get('id') != item['producer_job_id'] or job_data.get('run_attempt') != manifest['run_attempt']:
+        if job_data.get('id') != item['producer_job_id'] or job_data.get('run_attempt') != producer_attempt:
             raise RuntimeError('producer job ID/attempt mismatch: ' + name)
         fetch(f"{repo}/actions/jobs/{item['producer_job_id']}/logs", log)
         fetch(f"{repo}/actions/artifacts/{item['artifact_id']}/zip", zipped)
@@ -77,7 +90,7 @@ def download(manifest_path, output):
                  'archive': str(archive), 'archive_sha256': item['archive_sha256'],
                  'image_id': item['image_id'], 'artifact_zip': str(zipped),
                  'archive_member': item['archive_member'], 'artifact_metadata': str(metadata),
-                 'producer_run_metadata': str(run_file), 'producer_job_metadata': str(job),
+                 'producer_run_metadata': str(image_run_file), 'producer_job_metadata': str(job),
                  'producer_job_log': str(log), 'source_commit_metadata': str(commit_file)}
         provision.verify_image(image)
         # Stream a single verified member to a fixed filename, never extractall.

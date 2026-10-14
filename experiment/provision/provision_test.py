@@ -95,6 +95,31 @@ class ProvenanceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'producer metadata'):
                 provision.verify_image(image)
 
+    def test_retained_archive_requires_exact_build_tree_and_fresh_producer(self):
+        with tempfile.TemporaryDirectory() as d:
+            image = self.make_image(d)
+            commit_path = Path(image['source_commit_metadata'])
+            commit = json.loads(commit_path.read_text())
+            commit['tree'] = {'sha': 'a' * 40}
+            provision.save(commit_path, commit)
+            artifact_path = Path(image['artifact_metadata'])
+            artifact = json.loads(artifact_path.read_text())
+            artifact['name'] = 'ci-image-artifact-v2-apiserver-amd64-' + 'a' * 40
+            provision.save(artifact_path, artifact)
+            provision.verify_image(image)
+            artifact['name'] = 'ci-image-artifact-v2-apiserver-amd64-' + 'b' * 40
+            provision.save(artifact_path, artifact)
+            with self.assertRaisesRegex(RuntimeError, 'producer metadata'):
+                provision.verify_image(image)
+            artifact['name'] = 'ci-image-artifact-v2-apiserver-amd64-' + 'a' * 40
+            provision.save(artifact_path, artifact)
+            job_path = Path(image['producer_job_metadata'])
+            job = json.loads(job_path.read_text())
+            job['steps'].append({'name': 'Validate retained image', 'conclusion': 'success'})
+            provision.save(job_path, job)
+            with self.assertRaisesRegex(RuntimeError, 'fresh build producer'):
+                provision.verify_image(image)
+
 
 class TransportReadinessTests(unittest.TestCase):
     def test_all_redirect_codes_refuse_bearer_forwarding(self):
