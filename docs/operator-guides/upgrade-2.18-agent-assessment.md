@@ -241,16 +241,34 @@ not cluster size alone. Native V2 MLMD cache is separate. Standard rolling cache
 updates are supported, but isolation is not fully effective while old writers remain.
 Audit-to-enforce can produce another cold transition.
 
-Inspect database size/engine and maintenance tolerance for automatic index/column
-migration on `run_details`; large tables may rebuild or lock. This does not imply a
-manual SQL migration is required. Check persistence-agent scoped identity lookup and
-retained Workflow evidence for active runs. Follow [reporting recovery](workflow-report-recovery.md)
-for missing/inconsistent ownership; a UID alone cannot recover lost terminal results.
+Distinguish the [database migration paths](upgrade-2.18.md#database-migration-paths).
+Schema changes and the pipeline-reference backfill run synchronously before the new
+API process serves requests. Inspect engine/version, `run_details`/`jobs` sizes,
+backup/recovery readiness and evidence of migration/lock duration. Large-table DDL
+and updates can block writes; the backfill's transactional completion marker does
+not serialize all schema changes. Background schedule adoption is a later step,
+not proof of a lock-free or zero-downtime database upgrade. Do not run DDL or mutate
+migration markers as part of this read-only assessment.
 
 Inspect actual retention settings; default zero disables automatic retention.
-Do not invent a new deletion risk from an unchanged default. Record the deferred
-TaskService authorization remediation as a retained security limitation, not a
-resolved advisory or a new migration procedure. The 3.0 MLMD removal is separate.
+If `RUNS_RETENTION_TIME` or `ARCHIVED_RUNS_RETENTION_TIME` is enabled or planned,
+inspect both `idx_run_gc_lifecycle` and `idx_run_gc_archived` definitions in the API
+database. The API only validates these indexes; their online creation is an
+operator-applied migration. Missing/incompatible indexes pause GC, which rechecks
+every tick without requiring an API restart. Report this conditional action without
+turning it into a universal upgrade requirement or inventing a new deletion risk
+from unchanged disabled defaults.
+
+Check persistence-agent scoped identity lookup and retained Workflow evidence for
+active runs. Follow [reporting recovery](workflow-report-recovery.md) for inconsistent
+ownership; a UID alone cannot recover lost terminal results. Record deferred
+TaskService authorization remediation as a retained security limitation.
+
+The 3.0 MLMD-to-native transition is separate. Replacement-history import does not
+migrate active workloads, seed cache reuse or move artifact objects. Preserved
+namespace-less URIs still fail native artifact-root enforcement after metadata
+import. Do not report successful import or table creation as complete upgrade or
+artifact-access acceptance.
 
 ## 4. Produce a report that supports decisions
 

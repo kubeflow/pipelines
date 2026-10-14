@@ -9,8 +9,11 @@ testing is complete.
 KFP 2.18 uses the normal installation upgrade process. The managed rollout
 handles eligible legacy schedule adoption and UI signing-key initialization
 automatically. No separate migration Job, manual sequencing of API/controller
-updates, or closure of user access is needed for a standard managed upgrade.
-Normal deployment availability still depends on replica counts and rollout settings.
+updates is required for schedule adoption in a standard managed upgrade.
+This is not a zero-downtime guarantee: database schema changes and data backfills
+run synchronously before the new API process serves requests. Availability depends
+on database size/engine, lock duration, replica counts and rollout settings.
+See [database migration paths](#database-migration-paths) before planning rollout.
 For a resource-by-resource assessment, use the
 [agent cluster-impact assessment guide](upgrade-2.18-agent-assessment.md). It is an
 optional review procedure, not an additional upgrade prerequisite.
@@ -19,9 +22,76 @@ optional review procedure, not an additional upgrade prerequisite.
 
 | Area | Automatic behavior | What to expect |
 | --- | --- | --- |
+| Database schema and reference backfill | Each new API process completes startup database initialization before serving requests; a transactional marker prevents repeating the completed reference backfill. | Large-table DDL or updates can delay startup and block writes. Automatic does not mean background or lock-free. See [database migration paths](#database-migration-paths). |
 | Legacy multi-user schedules | The API adopts eligible database-stored definitions and retained progress, preserving enabled/disabled state. The controller handles the writer handoff automatically. | Schedule creation and enable/disable requests can temporarily return retryable `Unavailable`. Individual records with inconsistent state need investigation. See [schedule adoption](#standard-managed-installations-automatic-schedule-adoption). |
 | API, controller, and RBAC | The release configuration routes multi-user scheduled executions through the API under the controller's identity. | If you use custom execution accounts or custom roles, check their scoped permissions. Standard deployment wiring is supplied by the release. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
 | UI signing key | The initializer creates or reuses a persistent signing key; Kubernetes starts the UI when it is available. | First adoption briefly interrupts the UI and invalidates old TensorBoard URLs; reopen TensorBoard after the rollout. Existing valid keys are preserved. See [UI signing-key behavior](#prepare-the-ui-signing-key). |
+
+## Database migration paths
+
+The following operations have different timing and operator requirements. KFP 2.18
+retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversion.
+
+| Path | When it runs | Operator impact |
+| --- | --- | --- |
+| 2.18 schema changes and reference backfill | Synchronously during API startup, before that process serves requests | Automatic, but may delay readiness or block database writes. Back up and assess representative upgrade duration and database capacity. |
+| 2.18 recurring-run adoption | In the background after API startup and managed writer handoff | No separate migration Job or blanket schedule recreation. Schedule mutations may be temporarily rejected; inconsistent records require investigation. |
+| Optional run-retention indexes | Applied by the operator when using retention | Not created automatically. Missing or incompatible indexes pause run GC; normal retention-disabled upgrades do not require this step. |
+| 3.0 MLMD-to-native history/execution migration | Separate, not performed by the 2.18 startup path | Replacement-history import and schedule prerequisites do not establish a supported in-place upgrade or active-workload continuity. |
+
+### Automatic startup schema and data changes
+
+Database initialization reconciles model tables, columns and indexes. For example,
+`run_details.JobUUID` becomes `varchar(191)` with `idx_run_details_job_uuid` for
+recurring-run queries. The pipeline-reference backfill also scans and updates
+`run_details` and `jobs` to populate pipeline and version references. Its completion
+marker and updates share a transaction: interruption rolls back the claim, and
+competing replicas wait and skip completed work.
+
+That backfill coordination is not a database-wide migration lock. General schema
+migration is not serialized by the schedule writer handoff, which happens later.
+Index/column changes can rebuild or lock tables, and backfill updates can block
+concurrent writes. Do not infer an online or zero-downtime database upgrade from
+background schedule adoption or a successful small-cluster fixture.
+
+Retain a restorable database backup. Assess table sizes, database engine/version,
+permissions, capacity and migration/lock duration in a representative rehearsal.
+Plan availability and startup/probe budgets from that evidence. Inspect API startup
+and database diagnostics for blocked initialization; do not delete migration markers
+or edit stored references to force progress. These automatic changes do not require
+an operator-authored SQL migration for an ordinary supported upgrade.
+
+### Conditional manual preparation for run retention
+
+`RUNS_RETENTION_TIME` and `ARCHIVED_RUNS_RETENTION_TIME` default to disabled. If either
+is enabled or will be enabled, verify both required indexes in the API database:
+
+- `idx_run_gc_lifecycle (StorageState, FinishedAtInSec)`
+- `idx_run_gc_archived (StorageState, ArchivedAtInSec)`
+
+The API validates these indexes but does not create them. Apply the
+[documented online index migration](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#run-garbage-collection-database-migration),
+checking existing definitions and engine-specific constraints first. Missing or
+incompatible indexes pause GC; the collector rechecks every tick and can resume
+without an API restart once both are valid. Treat this as conditional preparation
+for retention, not a requirement to enable retention or run manual SQL for every upgrade.
+
+### Separate 3.0 migration boundary
+
+[The 3.0 migration tracker](https://github.com/kubeflow/pipelines/issues/14029)
+tracks historical-data migration and execution continuity. The proposed
+[2.18-to-native importer](https://github.com/kubeflow/pipelines/pull/14729) targets a
+replacement installation: it imports definitions and completed history, keeps
+artifact URIs, does not copy object bytes, leaves imported schedules disabled and
+does not make imported history executable or eligible for cache reuse. The separate
+[scheduling prerequisite](https://github.com/kubeflow/pipelines/pull/14769) does not
+complete the wider migration contract.
+
+Metadata import alone does not restore arbitrary-root artifact downloads: native
+ownership enforcement still requires a valid namespace-prefixed path. Object-root
+migration or another explicitly supported ownership mechanism is a separate
+requirement. Neither successful table creation nor a successful history import
+certifies an in-place 3.0 upgrade.
 
 ## Check applicable compatibility changes
 
