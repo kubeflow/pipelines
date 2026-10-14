@@ -52,6 +52,20 @@ index instead of rebuilding it on each restart.
 to merge into `release-2.18`; verify the final release candidate
 includes it before relying on these guarantees.
 
+Unlike earlier index-related column reductions, this change **does not narrow
+`JobUUID` from `varchar(255)` to `varchar(191)`**. The 191-character convention
+worked around older InnoDB's 767-byte index-key limit with `utf8mb4`; it is not a
+general limit on modern databases. Modern InnoDB with `DYNAMIC` row format and the
+default 16 KiB page size supports 3,072-byte index keys, enough for this 255-character
+column. Narrowing an existing column would require a table copy and block writes,
+so we preserve its existing width. The new MySQL index uses a 191-character
+**prefix**, which also accommodates historical text columns and older row formats;
+this does not truncate stored values or change full-value comparisons.
+
+See the [MySQL index limits](https://dev.mysql.com/doc/refman/8.0/en/create-index.html)
+for row-format and character-set distinctions; older row formats can retain the
+smaller limit even on a modern server.
+
 On MySQL the helper explicitly requests a 191-character prefix index with
 `ALGORITHM=INPLACE, LOCK=NONE`; on PostgreSQL it uses `CREATE INDEX CONCURRENTLY`.
 Creation runs synchronously before the new API process serves requests. A
