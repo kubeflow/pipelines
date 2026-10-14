@@ -190,7 +190,7 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                         'NAMESPACE': inputs['namespace'],
                     })
 
-    def test_automatic_runs_combine_cache_and_shard_filters(self):
+    def test_automatic_runs_combine_shards_with_legacy_compatibility(self):
         # Populated dispatch inputs must have no effect on an automatic run.
         inputs = {
             'number_of_parallel_tests': '7',
@@ -204,8 +204,9 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                     actual, {
                         'NUMBER_OF_NODES': '2',
                         'TEST_LABEL':
-                            f"({BASE_FILTERS[row['cache_enabled']]}) && "
-                            f"{SHARD_FILTERS[row['test_shard']]}",
+                            f"(({BASE_FILTERS[row['cache_enabled']]}) && "
+                            f"{SHARD_FILTERS[row['test_shard']]}) || "
+                            "LegacyAPICompatibility",
                         'NAMESPACE': 'kubeflow',
                     })
         test_inputs = next(step for step in self.job['steps']

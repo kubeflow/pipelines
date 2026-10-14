@@ -26,6 +26,7 @@ Name | Type | Description | Notes
 **pipeline_reference** | [**V2PipelineVersionReference**](V2PipelineVersionReference.md) |  | [optional] 
 **task_count** | **int** |  | [optional] 
 **tasks** | [**list[V2PipelineTask]**](V2PipelineTask.md) |  | [optional] 
+**namespace** | **str** | Optional input field. Namespace this run belongs to. Derived from the parent experiment when experiment_id is set. In multi-user mode with experiment_id omitted, this selects the namespace whose default experiment the run is placed in. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

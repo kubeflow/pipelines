@@ -228,6 +228,15 @@ export interface V2Run {
    * @memberof V2Run
    */
   tasks?: Array<V2PipelineTask>;
+  /**
+   * Optional input field. Namespace this run belongs to. Derived from the
+   * parent experiment when experiment_id is set. In multi-user mode with
+   * experiment_id omitted, this selects the namespace whose default
+   * experiment the run is placed in.
+   * @type {string}
+   * @memberof V2Run
+   */
+  namespace?: string;
 }
 
 /**
@@ -286,6 +295,7 @@ export function V2RunFromJSONTyped(json: any, ignoreDiscriminator: boolean): V2R
     task_count: json['task_count'] == null ? undefined : json['task_count'],
     tasks:
       json['tasks'] == null ? undefined : (json['tasks'] as Array<any>).map(V2PipelineTaskFromJSON),
+    namespace: json['namespace'] == null ? undefined : json['namespace'],
   };
 }
 
@@ -334,5 +344,6 @@ export function V2RunToJSONTyped(value?: V2Run | null, ignoreDiscriminator: bool
     task_count: value['task_count'],
     tasks:
       value['tasks'] == null ? undefined : (value['tasks'] as Array<any>).map(V2PipelineTaskToJSON),
+    namespace: value['namespace'],
   };
 }

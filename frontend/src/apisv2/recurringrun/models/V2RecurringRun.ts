@@ -163,11 +163,12 @@ export interface V2RecurringRun {
   no_catchup?: boolean;
   /**
    * TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.
-   * Output only. Namespace this recurring run belongs to. Derived from the parent experiment.
+   * Optional input field. Namespace this recurring run belongs to. Derived
+   * from the parent experiment when experiment_id is set.
    * @type {string}
    * @memberof V2RecurringRun
    */
-  readonly namespace?: string;
+  namespace?: string;
   /**
    * ID of the parent experiment this recurring run belongs to.
    * @type {string}
@@ -234,7 +235,7 @@ export function V2RecurringRunToJSON(json: any): V2RecurringRun {
 }
 
 export function V2RecurringRunToJSONTyped(
-  value?: Omit<V2RecurringRun, 'namespace'> | null,
+  value?: V2RecurringRun | null,
   ignoreDiscriminator: boolean = false,
 ): any {
   if (value == null) {
@@ -262,6 +263,7 @@ export function V2RecurringRunToJSONTyped(
     status: V2RecurringRunStatusToJSON(value['status']),
     error: GoogleRpcStatusToJSON(value['error']),
     no_catchup: value['no_catchup'],
+    namespace: value['namespace'],
     experiment_id: value['experiment_id'],
     plugins_input: value['plugins_input'],
   };

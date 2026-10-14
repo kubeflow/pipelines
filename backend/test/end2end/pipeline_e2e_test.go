@@ -141,7 +141,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 		run := testutil.GetPipelineRun(runClient, &runID)
 		AddReportEntry("120-node DAG run", run)
-		Expect(run.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED.Pointer()),
+		Expect(run.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED.Pointer()),
 			"120-node DAG did not succeed; run ID: %s", runID)
 
 		expectedNames := make([]string, 120)

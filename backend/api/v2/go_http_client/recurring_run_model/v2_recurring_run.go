@@ -44,8 +44,8 @@ type V2RecurringRun struct {
 	Mode *RecurringRunMode `json:"mode,omitempty"`
 
 	// TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.
-	// Output only. Namespace this recurring run belongs to. Derived from the parent experiment.
-	// Read Only: true
+	// Optional input field. Namespace this recurring run belongs to. Derived
+	// from the parent experiment when experiment_id is set.
 	Namespace string `json:"namespace,omitempty"`
 
 	// Optional input field. Whether the recurring run should catch up if behind schedule.
@@ -303,10 +303,6 @@ func (m *V2RecurringRun) ContextValidate(ctx context.Context, formats strfmt.Reg
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateNamespace(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.contextValidatePipelineVersionReference(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -374,15 +370,6 @@ func (m *V2RecurringRun) contextValidateMode(ctx context.Context, formats strfmt
 
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *V2RecurringRun) contextValidateNamespace(ctx context.Context, formats strfmt.Registry) error {
-
-	if err := validate.ReadOnly(ctx, "namespace", "body", m.Namespace); err != nil {
-		return err
 	}
 
 	return nil

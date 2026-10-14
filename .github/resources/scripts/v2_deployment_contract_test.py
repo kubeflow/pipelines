@@ -120,7 +120,7 @@ class V2DeploymentContractTest(unittest.TestCase):
             step for step in workflow['jobs']['api-test-multi-user']['steps']
             if step['name'] == 'Configure Input Variables')
         self.assertIn(
-            'TEST_LABEL="$AUTOMATIC_TEST_LABEL || LegacyAPICompatibility"',
+            'TEST_LABEL="($TEST_LABEL) || LegacyAPICompatibility"',
             multi_user['run'])
         specs = (
             ROOT /
