@@ -36,6 +36,7 @@ import (
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -873,29 +874,20 @@ func (w *Workflow) UpsertRuntimeEnvVars(envVars []corev1.EnvVar, roles ...Execut
 }
 
 func upsertRuntimeArgs(tmpl *workflowapi.Template, runtimeArgs map[string]string) error {
-	var pluginConfig map[string]interface{}
-	if err := stdjson.Unmarshal(tmpl.Plugin.Value, &pluginConfig); err != nil {
-		return fmt.Errorf("failed to unmarshal plugin config for template %q: %w", tmpl.Name, err)
+	plugin, owned, err := driverapi.DecodePluginConfig(tmpl.Plugin.Value)
+	if err != nil {
+		return fmt.Errorf("template %q: %w", tmpl.Name, err)
 	}
-	ownedConfig, owned := pluginConfig["driver-plugin"]
 	if !owned {
 		return nil
 	}
-	driverPlugin, ok := ownedConfig.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("failed to unmarshal executor plugin config for template %q: no driver plugin config", tmpl.Name)
-	}
-	args, ok := driverPlugin["args"].(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("failed to extract args for template %q: no driver plugin config", tmpl.Name)
-	}
 	existingRuntimeArgs := make(map[string]string)
-	if existing, ok := args["runtime_args"].(string); ok && existing != "" {
+	if existing, ok := plugin.Args["runtime_args"].(string); ok && existing != "" {
 		if err := stdjson.Unmarshal([]byte(existing), &existingRuntimeArgs); err != nil {
-			return fmt.Errorf("failed to unmarshal runtime args for template %q: %w", tmpl.Name, err)
+			return fmt.Errorf("template %q has invalid runtime_args; recompile the pipeline: %w", tmpl.Name, err)
 		}
 	}
-	if existingRuntimeArgs == nil {
+	if existingRuntimeArgs == nil { // a JSON "null" string unmarshals to a nil map
 		existingRuntimeArgs = make(map[string]string)
 	}
 	for key, value := range runtimeArgs {
@@ -905,10 +897,11 @@ func upsertRuntimeArgs(tmpl *workflowapi.Template, runtimeArgs map[string]string
 	if err != nil {
 		return fmt.Errorf("failed to marshal runtime args for template %q: %w", tmpl.Name, err)
 	}
-	args["runtime_args"] = string(runtimeArgsValue)
-	value, err := stdjson.Marshal(pluginConfig)
+	plugin.Args["runtime_args"] = string(runtimeArgsValue)
+	// An Argo template carries exactly one plugin, so re-encoding only ours is lossless.
+	value, err := driverapi.EncodePluginValue(plugin.Args)
 	if err != nil {
-		return fmt.Errorf("failed to marshal plugin config for template %q: %w", tmpl.Name, err)
+		return fmt.Errorf("template %q: %w", tmpl.Name, err)
 	}
 	tmpl.Plugin.Value = value
 	return nil

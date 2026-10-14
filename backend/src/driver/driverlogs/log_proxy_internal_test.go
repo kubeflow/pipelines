@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executorplugin
+package driverlogs
 
 import (
 	"context"
@@ -58,8 +58,8 @@ func TestProductionLogUploaderUsesInvocationProxy(t *testing.T) {
 		"fromEnv": "true", "endpoint": "storage.invalid", "region": "us-east-1", "forcePathStyle": "true", "disableSSL": "true",
 	}})
 	require.NoError(t, err)
-	uploader := logUploader{openBucket: objectstore.OpenBucket, uploadBlob: objectstore.UploadBlob}
-	require.NoError(t, uploader.uploadDriverLogArtifact(ctx, &driverLogArtifactContext{
+	uploader := Uploader{OpenBucket: objectstore.OpenBucket, UploadBlob: objectstore.UploadBlob}
+	require.NoError(t, uploader.Upload(ctx, &ArtifactContext{
 		LocalPath: path, PipelineRoot: "s3://bucket", Namespace: "ns", LogID: "test", StoreSessionInfo: string(session),
 	}, fake.NewClientset()))
 	require.EqualValues(t, 1, uploads.Load())

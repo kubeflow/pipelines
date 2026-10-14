@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executorplugin
+package driverinputs
 
 import (
 	"context"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"testing"
 	"time"
 
@@ -41,13 +42,13 @@ func runtimeValueConstant(value string) *pipelinespec.TaskInputsSpec_InputParame
 func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 	tests := []struct {
 		name       string
-		driverType string
+		driverType driverapi.DriverType
 		taskSpec   *pipelinespec.PipelineTaskSpec
-		want       pipelineJobTimePlaceholderUsage
+		want       PlaceholderUsage
 	}{
 		{
 			name:       "root dag skips placeholder lookup",
-			driverType: rootDAG,
+			driverType: driverapi.RootDAGDriver,
 			taskSpec: &pipelinespec.PipelineTaskSpec{
 				Inputs: &pipelinespec.TaskInputsSpec{
 					Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
@@ -59,11 +60,11 @@ func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 		},
 		{
 			name:       "nil task spec has no placeholder usage",
-			driverType: dagDriver,
+			driverType: driverapi.DAGDriver,
 		},
 		{
 			name:       "tracks create and schedule placeholder usage from task inputs",
-			driverType: containerDriver,
+			driverType: driverapi.ContainerDriver,
 			taskSpec: &pipelinespec.PipelineTaskSpec{
 				Inputs: &pipelinespec.TaskInputsSpec{
 					Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
@@ -78,7 +79,7 @@ func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 					},
 				},
 			},
-			want: pipelineJobTimePlaceholderUsage{
+			want: PlaceholderUsage{
 				needsCreateTime:   true,
 				needsScheduleTime: true,
 			},
@@ -90,7 +91,7 @@ func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
 			assert.Equal(
 				t,
 				tc.want,
-				getPipelineJobTimePlaceholderUsage(tc.driverType, tc.taskSpec),
+				PipelineJobTimePlaceholderUsage(tc.driverType, tc.taskSpec),
 			)
 		})
 	}
@@ -167,7 +168,7 @@ func TestResolvePipelineJobTimes(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			actualCreateTimeUTC, actualScheduleTimeUTC, err := resolvePipelineJobTimes(
+			actualCreateTimeUTC, actualScheduleTimeUTC, err := ResolvePipelineJobTimes(
 				tc.createTimeUTC,
 				tc.scheduleTimeEpochSeconds,
 				tc.workflowMeta,
@@ -188,7 +189,7 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 
 	tests := []struct {
 		name                     string
-		placeholderUsage         pipelineJobTimePlaceholderUsage
+		placeholderUsage         PlaceholderUsage
 		createTimeUTC            string
 		scheduleTimeEpochSeconds string
 		getterResult             *metav1.ObjectMeta
@@ -203,19 +204,19 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 		},
 		{
 			name:             "skips lookup when Run already provides create time",
-			placeholderUsage: pipelineJobTimePlaceholderUsage{needsCreateTime: true},
+			placeholderUsage: PlaceholderUsage{needsCreateTime: true},
 			createTimeUTC:    "2026-01-02T03:04:05Z",
 			wantGetterCalls:  0,
 		},
 		{
 			name:                     "skips lookup when Run already provides schedule time",
-			placeholderUsage:         pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			placeholderUsage:         PlaceholderUsage{needsScheduleTime: true},
 			scheduleTimeEpochSeconds: "1767225600",
 			wantGetterCalls:          0,
 		},
 		{
 			name:             "returns workflow metadata when schedule time needs lookup",
-			placeholderUsage: pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			placeholderUsage: PlaceholderUsage{needsScheduleTime: true},
 			createTimeUTC:    "2026-01-02T03:04:05Z",
 			getterResult:     workflowMeta,
 			wantMetadata:     workflowMeta,
@@ -223,21 +224,21 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 		},
 		{
 			name:             "falls back when only schedule-time lookup fails",
-			placeholderUsage: pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			placeholderUsage: PlaceholderUsage{needsScheduleTime: true},
 			createTimeUTC:    "2026-01-02T03:04:05Z",
 			getterErr:        lookupErr,
 			wantGetterCalls:  1,
 		},
 		{
 			name:             "fails when create time still needs lookup",
-			placeholderUsage: pipelineJobTimePlaceholderUsage{needsCreateTime: true},
+			placeholderUsage: PlaceholderUsage{needsCreateTime: true},
 			getterErr:        lookupErr,
 			wantErr:          true,
 			wantGetterCalls:  1,
 		},
 		{
 			name:             "fails when schedule time needs lookup without create time fallback",
-			placeholderUsage: pipelineJobTimePlaceholderUsage{needsScheduleTime: true},
+			placeholderUsage: PlaceholderUsage{needsScheduleTime: true},
 			getterErr:        lookupErr,
 			wantErr:          true,
 			wantGetterCalls:  1,
@@ -247,7 +248,7 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			getterCalls := 0
-			actualMetadata, err := getWorkflowMetadataForPipelineJobTimes(
+			actualMetadata, err := WorkflowMetadataForPipelineJobTimes(
 				context.Background(),
 				"kubeflow",
 				"workflow-name",

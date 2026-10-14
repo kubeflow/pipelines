@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executorplugin
+// Package driverlogs publishes a driver invocation's log file as a run artifact.
+package driverlogs
 
 import (
 	"context"
@@ -31,12 +32,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type logUploader struct {
-	openBucket func(context.Context, kubernetes.Interface, string, *objectstore.Config, *objectstore.SessionInfo) (*blob.Bucket, error)
-	uploadBlob func(context.Context, *blob.Bucket, string, string) error
+// Uploader stores driver logs through object-store hooks, which tests replace.
+type Uploader struct {
+	OpenBucket func(context.Context, kubernetes.Interface, string, *objectstore.Config, *objectstore.SessionInfo) (*blob.Bucket, error)
+	UploadBlob func(context.Context, *blob.Bucket, string, string) error
 }
 
-type driverLogArtifactContext struct {
+// ArtifactContext carries what one invocation needs to publish its log.
+// URI and Registered are filled in by the upload.
+type ArtifactContext struct {
 	Execution        *driver.Execution
 	Task             string
 	LocalPath        string
@@ -47,40 +51,49 @@ type driverLogArtifactContext struct {
 	LogID            string
 	RunID            string
 	KFPAPI           kfpapi.API
+	// URI is the uploaded log's location; empty until the upload succeeds.
+	URI string
+	// Registered reports whether URI was linked to the task for the UI.
+	Registered bool
 }
 
-func (u logUploader) uploadDriverLogArtifact(ctx context.Context, logContext *driverLogArtifactContext, k8sClient kubernetes.Interface) error {
+// Upload stores the log and, when the execution has a task, links it for the UI.
+func (u Uploader) Upload(ctx context.Context, logContext *ArtifactContext, k8sClient kubernetes.Interface) error {
 	if logContext == nil {
 		return fmt.Errorf("driver log context is missing; initialize it before publishing logs")
 	}
-	if logContext.PipelineRoot != "" {
-		var session objectstore.SessionInfo
-		if err := json.Unmarshal([]byte(logContext.StoreSessionInfo), &session); err != nil {
-			return fmt.Errorf("failed to get session info from store: %w", err)
-		}
-		bucketConfig, err := objectstore.ParseBucketPathToConfig(logContext.PipelineRoot)
-		if err != nil {
-			return fmt.Errorf("failed to parse bucket config: %w", err)
-		}
-		bucket, err := u.openBucket(ctx, k8sClient, logContext.Namespace, bucketConfig, &session)
-		if err != nil {
-			return fmt.Errorf("failed to open bucket: %w", err)
-		}
-		defer bucket.Close()
-		key := fmt.Sprintf("driver/%s-logs", logContext.LogID)
-		if logContext.Execution != nil && logContext.OutputPathPrefix != "" {
-			key = fmt.Sprintf("%s/%s/driver-logs", logContext.Task, logContext.OutputPathPrefix)
-		}
-		glog.Infof("Uploading log key: %s ...", key)
-		err = u.uploadBlob(ctx, bucket, logContext.LocalPath, key)
-		if err != nil {
-			return fmt.Errorf("failed to upload log: %w", err)
-		}
-		if logContext.Execution != nil && logContext.Execution.TaskID != "" && logContext.KFPAPI != nil {
-			uri := util.GenerateOutputURI(logContext.PipelineRoot, []string{key}, false)
-			return registerDriverLog(ctx, logContext.KFPAPI, logContext.RunID, logContext.Execution.TaskID, logContext.Namespace, uri, logContext.StoreSessionInfo)
-		}
+	if logContext.PipelineRoot == "" {
+		return nil
 	}
+	var session objectstore.SessionInfo
+	if err := json.Unmarshal([]byte(logContext.StoreSessionInfo), &session); err != nil {
+		return fmt.Errorf("failed to parse store session info for driver logs; check the kfp-launcher providers config: %w", err)
+	}
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(logContext.PipelineRoot)
+	if err != nil {
+		return fmt.Errorf("failed to parse pipeline root %q as a bucket config; use a <scheme>://bucket/path root: %w", logContext.PipelineRoot, err)
+	}
+	bucket, err := u.OpenBucket(ctx, k8sClient, logContext.Namespace, bucketConfig, &session)
+	if err != nil {
+		return fmt.Errorf("failed to open bucket for driver logs; check the object store credentials: %w", err)
+	}
+	defer bucket.Close()
+	key := fmt.Sprintf("driver/%s-logs", logContext.LogID)
+	if logContext.Execution != nil && logContext.OutputPathPrefix != "" {
+		key = fmt.Sprintf("%s/%s/driver-logs", logContext.Task, logContext.OutputPathPrefix)
+	}
+	glog.Infof("Uploading log key: %s ...", key)
+	if err := u.UploadBlob(ctx, bucket, logContext.LocalPath, key); err != nil {
+		return fmt.Errorf("failed to upload driver log %q; check the object store write permissions: %w", key, err)
+	}
+	logContext.URI = util.GenerateOutputURI(logContext.PipelineRoot, []string{key}, false)
+	if logContext.Execution == nil || logContext.Execution.TaskID == "" || logContext.KFPAPI == nil {
+		return nil
+	}
+	if err := registerDriverLog(ctx, logContext.KFPAPI, logContext.RunID, logContext.Execution.TaskID, logContext.Namespace, logContext.URI, logContext.StoreSessionInfo); err != nil {
+		return err
+	}
+	logContext.Registered = true
 	return nil
 }
 
@@ -89,7 +102,7 @@ func (u logUploader) uploadDriverLogArtifact(ctx context.Context, logContext *dr
 func registerDriverLog(ctx context.Context, api kfpapi.API, runID, taskID, namespace, uri, session string) error {
 	task, err := api.GetTask(ctx, &go_client.GetTaskRequest{RunId: runID, TaskId: taskID})
 	if err != nil {
-		return fmt.Errorf("failed to read task for driver log: %w", err)
+		return fmt.Errorf("failed to read task %q for driver log; check the KFP API connection: %w", taskID, err)
 	}
 	request := &go_client.CreateArtifactRequest{
 		RunId: runID, TaskId: taskID, ProducerKey: "driver-logs", ReuseIfExists: true,
@@ -118,7 +131,7 @@ func registerDriverLog(ctx context.Context, api kfpapi.API, runID, taskID, names
 		Task: &go_client.PipelineTask{RunId: runID, TaskId: taskID, StatusMetadata: metadata},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to register driver log: %w", err)
+		return fmt.Errorf("failed to register driver log on task %q; check task update permissions: %w", taskID, err)
 	}
 	return nil
 }

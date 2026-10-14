@@ -1,8 +1,9 @@
-package executorplugin
+package driverinputs
 
 import (
 	"context"
 	"errors"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -54,7 +55,7 @@ func TestResolveDriverSpecsFromScopePath(t *testing.T) {
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root", "task-1")
-	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecsFromScopePath(scopePath, containerDriver)
+	componentSpec, taskSpec, containerSpec, err := ResolveSpecsFromScopePath(scopePath, driverapi.ContainerDriver)
 	require.NoError(t, err)
 
 	require.NotNil(t, componentSpec)
@@ -79,7 +80,7 @@ func TestResolveDriverSpecsForRootDAG(t *testing.T) {
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root")
-	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecsFromScopePath(scopePath, rootDAG)
+	componentSpec, taskSpec, containerSpec, err := ResolveSpecsFromScopePath(scopePath, driverapi.RootDAGDriver)
 	require.NoError(t, err)
 
 	require.NotNil(t, componentSpec)
@@ -115,7 +116,7 @@ func TestResolveDriverSpecs_ErrorsOnMalformedDeploymentSpec(t *testing.T) {
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root", "task-1")
-	_, _, _, err := resolveDriverSpecsFromScopePath(scopePath, containerDriver)
+	_, _, _, err := ResolveSpecsFromScopePath(scopePath, driverapi.ContainerDriver)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal deployment spec")
 }
@@ -128,9 +129,9 @@ func TestResolveDriverSpecs_RejectsRootDriverOnNonDagComponent(t *testing.T) {
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root")
-	_, _, _, err := resolveDriverSpecsFromScopePath(scopePath, rootDAG)
+	_, _, _, err := ResolveSpecsFromScopePath(scopePath, driverapi.RootDAGDriver)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "root driver requires a DAG root component")
+	assert.Contains(t, err.Error(), "ROOT_DAG driver requires a DAG component")
 }
 
 func TestResolveDriverSpecs_RejectsContainerDriverOnWrongExecutorKind(t *testing.T) {
@@ -165,7 +166,7 @@ func TestResolveDriverSpecs_RejectsContainerDriverOnWrongExecutorKind(t *testing
 	}
 
 	scopePath := mustBuildScopePath(t, spec, "root", "task-1")
-	_, _, _, err := resolveDriverSpecsFromScopePath(scopePath, containerDriver)
+	_, _, _, err := ResolveSpecsFromScopePath(scopePath, driverapi.ContainerDriver)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does not contain a container spec")
 }
@@ -222,20 +223,20 @@ func TestBuildScopePathUsesRequestDriverType(t *testing.T) {
 
 	for _, tc := range []struct {
 		name       string
-		driverType string
+		driverType driverapi.DriverType
 		parentTask *go_client.PipelineTask
 		taskName   string
 		wantPath   string
 	}{
-		{name: "root", driverType: rootDAG, wantPath: "root"},
-		{name: "dag", driverType: dagDriver, parentTask: &go_client.PipelineTask{ScopePath: "root"}, taskName: "group", wantPath: "root.group"},
-		{name: "container", driverType: containerDriver, parentTask: &go_client.PipelineTask{ScopePath: "root.group"}, taskName: "leaf", wantPath: "root.group.leaf"},
+		{name: "root", driverType: driverapi.RootDAGDriver, wantPath: "root"},
+		{name: "dag", driverType: driverapi.DAGDriver, parentTask: &go_client.PipelineTask{ScopePath: "root"}, taskName: "group", wantPath: "root.group"},
+		{name: "container", driverType: driverapi.ContainerDriver, parentTask: &go_client.PipelineTask{ScopePath: "root.group"}, taskName: "leaf", wantPath: "root.group.leaf"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			api := scopePathAPI{t: t, run: run, spec: spec}
 
-			path, err := buildScopePath(context.Background(), run, tc.parentTask, tc.taskName, tc.driverType, api)
+			path, err := BuildScopePath(context.Background(), run, tc.parentTask, tc.taskName, tc.driverType, api)
 
 			require.NoError(t, err)
 			require.NotNil(t, path)
@@ -248,7 +249,7 @@ func TestBuildScopePathPropagatesRunSpecLookupFailure(t *testing.T) {
 	run := &go_client.Run{RunId: "run-id"}
 	api := scopePathAPI{t: t, run: run, err: assert.AnError}
 
-	path, err := buildScopePath(context.Background(), run, nil, "", rootDAG, api)
+	path, err := BuildScopePath(context.Background(), run, nil, "", driverapi.RootDAGDriver, api)
 
 	assert.Nil(t, path)
 	assert.ErrorIs(t, err, assert.AnError)
@@ -256,30 +257,6 @@ func TestBuildScopePathPropagatesRunSpecLookupFailure(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
-}
-
-func TestResolveNamespace(t *testing.T) {
-	t.Run("uses explicit request namespace", func(t *testing.T) {
-		t.Setenv("NAMESPACE", "kubeflow")
-		t.Setenv("POD_NAMESPACE", "ignored")
-
-		got, err := resolveNamespace("request-namespace")
-		if err != nil {
-			t.Fatalf("resolveNamespace() error = %v", err)
-		}
-		if got != "request-namespace" {
-			t.Fatalf("resolveNamespace() = %q, want %q", got, "request-namespace")
-		}
-	})
-
-	t.Run("does not infer missing request namespace from environment", func(t *testing.T) {
-		t.Setenv("NAMESPACE", "kubeflow")
-
-		got, err := resolveNamespace("")
-		if err == nil {
-			t.Fatalf("resolveNamespace() = %q, want error", got)
-		}
-	})
 }
 
 func TestParseExecConfigJSON(t *testing.T) {
@@ -313,7 +290,7 @@ func TestParseExecConfigJSON(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Logf("Running test case: %s", tc.name)
-		cfg, err := parseExecConfigJSON(tc.input)
+		cfg, err := ParseKubernetesExecutorConfig(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
 	}
@@ -322,10 +299,10 @@ func TestParseExecConfigJSON(t *testing.T) {
 func TestParseExecConfigJsonErrorDoesNotIncludeConfigContent(t *testing.T) {
 	kubernetesConfig := `"mlflow-secret"`
 
-	_, err := parseExecConfigJSON(&kubernetesConfig)
+	_, err := ParseKubernetesExecutorConfig(&kubernetesConfig)
 
 	require.Error(t, err)
-	assert.Equal(t, "failed to unmarshal Kubernetes config", err.Error())
+	assert.Equal(t, "failed to unmarshal Kubernetes config; provide valid KubernetesExecutorConfig JSON", err.Error())
 	assert.NotContains(t, err.Error(), "mlflow-secret")
 	assert.NotNil(t, errors.Unwrap(err))
 }
@@ -345,7 +322,7 @@ func TestParseOptionalBoolFlag(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseOptionalBoolFlag("--default_host_users", tc.value)
+			got, err := ParseOptionalBool("--default_host_users", tc.value)
 			if tc.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, got)

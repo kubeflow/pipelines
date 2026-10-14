@@ -23,28 +23,6 @@ import (
 	"time"
 )
 
-type drainingHandler struct {
-	http.Handler
-	execution *handler
-}
-
-func (h *drainingHandler) drain(ctx context.Context) error {
-	h.execution.mu.Lock()
-	done := make([]<-chan struct{}, 0, len(h.execution.calls))
-	for _, call := range h.execution.calls {
-		done = append(done, call.done)
-	}
-	h.execution.mu.Unlock()
-	for _, finished := range done {
-		select {
-		case <-finished:
-		case <-ctx.Done():
-			return fmt.Errorf("driver execution cleanup did not finish before shutdown deadline: %w", ctx.Err())
-		}
-	}
-	return nil
-}
-
 // Serve runs the authenticated driver endpoint until ctx is canceled or serving
 // fails, then waits up to ten seconds for HTTP and detached execution cleanup.
 func Serve(ctx context.Context, address, tokenPath string) error {
@@ -53,7 +31,7 @@ func Serve(ctx context.Context, address, tokenPath string) error {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	handler, err := NewHandlerWithContext(ctx, tokenPath, nil)
+	handler, err := NewHandler(ctx, tokenPath, nil)
 	if err != nil {
 		return err
 	}
@@ -61,10 +39,12 @@ func Serve(ctx context.Context, address, tokenPath string) error {
 	if err != nil {
 		return fmt.Errorf("cannot listen on %q; choose an available driver port: %w", address, err)
 	}
-	return serveHTTP(ctx, cancel, listener, handler, 10*time.Second)
+	return serveHTTP(ctx, cancel, listener, handler, handler.Drain, 10*time.Second)
 }
 
-func serveHTTP(ctx context.Context, cancel context.CancelFunc, listener net.Listener, handler http.Handler, grace time.Duration) error {
+// serveHTTP serves handler until ctx ends, then shuts down and runs drain, if
+// any, within the same grace period.
+func serveHTTP(ctx context.Context, cancel context.CancelFunc, listener net.Listener, handler http.Handler, drain func(context.Context) error, grace time.Duration) error {
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/template.execute", handler)
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
@@ -88,8 +68,8 @@ func serveHTTP(ctx context.Context, cancel context.CancelFunc, listener net.List
 		serveErr = <-served
 	}
 	var drainErr error
-	if drainer, ok := handler.(interface{ drain(context.Context) error }); ok {
-		drainErr = drainer.drain(shutdownCtx)
+	if drain != nil {
+		drainErr = drain(shutdownCtx)
 	}
 	if errors.Is(serveErr, http.ErrServerClosed) {
 		serveErr = nil

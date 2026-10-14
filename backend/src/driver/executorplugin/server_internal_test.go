@@ -49,7 +49,7 @@ func TestServerDrainsDetachedExecution(t *testing.T) {
 				grace = 30 * time.Millisecond
 			}
 			stopped := make(chan error, 1)
-			go func() { stopped <- serveHTTP(ctx, cancel, listener, h, grace) }()
+			go func() { stopped <- serveHTTP(ctx, cancel, listener, h, h.Drain, grace) }()
 			req := authenticatedRequest(http.MethodPost, requestBody(t, "CONTAINER"))
 			req.URL.Scheme = "http"
 			req.URL.Host = listener.Addr().String()
@@ -90,7 +90,7 @@ func TestServerWaitsForHTTPShutdown(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	stopped := make(chan error, 1)
-	go func() { stopped <- serveHTTP(ctx, cancel, listener, h, time.Second) }()
+	go func() { stopped <- serveHTTP(ctx, cancel, listener, h, nil, time.Second) }()
 	requestDone := make(chan error, 1)
 	go func() {
 		response, err := http.Get("http://" + listener.Addr().String() + "/api/v1/template.execute")

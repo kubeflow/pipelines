@@ -24,6 +24,8 @@ import {
   V2beta1PipelineTask,
 } from 'src/apisv2beta1/run';
 import {
+  getDriverLogsInfo,
+  getDriverLogUri,
   getTaskDetailsFields,
   getLogsInfo,
   LOGS_BANNER_ADDITIONAL_INFO,
@@ -113,6 +115,32 @@ describe('RuntimeNodeDetailsV2', () => {
         ...overrides,
       });
     }
+
+    it('derives the driver log URI only from a non-empty string property', () => {
+      expect(getDriverLogUri(createSystemLogsTask())).toBe(driverLogUri);
+      expect(getDriverLogUri(createSystemLogsTask(''))).toBeUndefined();
+      expect(getDriverLogUri(createSystemLogsTask(42))).toBeUndefined();
+      expect(getDriverLogUri(createTask())).toBeUndefined();
+      expect(getDriverLogUri(undefined)).toBeUndefined();
+    });
+
+    it('reports system logs with the same keys as pod logs', async () => {
+      const readFileSpy = vi
+        .spyOn(Apis, 'readFile')
+        .mockResolvedValueOnce('driver logs')
+        .mockRejectedValueOnce(new Error('storage temporarily unavailable'));
+
+      expect(await getDriverLogsInfo(driverLogUri, TEST_NAMESPACE)).toEqual(
+        new Map([[LOGS_DETAILS, 'driver logs']]),
+      );
+      expect(await getDriverLogsInfo(driverLogUri, TEST_NAMESPACE)).toEqual(
+        new Map([
+          [LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.'],
+          [LOGS_BANNER_ADDITIONAL_INFO, 'Error response: storage temporarily unavailable'],
+        ]),
+      );
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+    });
 
     it('retrieves the driver_logs_uri artifact with the namespace only after opening the tab', async () => {
       const readFileSpy = vi

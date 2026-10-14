@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executorplugin
+package driverlogs
 
 import (
 	"context"
@@ -49,20 +49,20 @@ func TestUploadDriverLogArtifact(t *testing.T) {
 			api := &logMetadataAPI{task: &gc.PipelineTask{}}
 			path := filepath.Join(t.TempDir(), "driver.log")
 			require.NoError(t, os.WriteFile(path, []byte("driver log"), 0600))
-			log := &driverLogArtifactContext{
+			log := &ArtifactContext{
 				Execution: tc.execution, Task: "task", OutputPathPrefix: tc.prefix, LocalPath: path, LogID: "log-id",
 				Namespace: "ns", PipelineRoot: "s3://bucket/root", StoreSessionInfo: `{"provider":"s3"}`, RunID: "run-id", KFPAPI: api,
 			}
 			bucket := memblob.OpenBucket(nil)
-			uploader := logUploader{
-				openBucket: func(_ context.Context, gotClient kubernetes.Interface, namespace string, cfg *objectstore.Config, session *objectstore.SessionInfo) (*blob.Bucket, error) {
+			uploader := Uploader{
+				OpenBucket: func(_ context.Context, gotClient kubernetes.Interface, namespace string, cfg *objectstore.Config, session *objectstore.SessionInfo) (*blob.Bucket, error) {
 					assert.Same(t, client, gotClient)
 					assert.Equal(t, "ns", namespace)
 					assert.Equal(t, "bucket", cfg.BucketName)
 					assert.Equal(t, "s3", session.Provider)
 					return bucket, nil
 				},
-				uploadBlob: func(ctx context.Context, bucket *blob.Bucket, path, key string) error {
+				UploadBlob: func(ctx context.Context, bucket *blob.Bucket, path, key string) error {
 					assert.Equal(t, tc.key, key)
 					require.NoError(t, objectstore.UploadBlob(ctx, bucket, path, key))
 					contents, err := bucket.ReadAll(ctx, key)
@@ -71,7 +71,7 @@ func TestUploadDriverLogArtifact(t *testing.T) {
 					return nil
 				},
 			}
-			require.NoError(t, uploader.uploadDriverLogArtifact(ctx, log, client))
+			require.NoError(t, uploader.Upload(ctx, log, client))
 			if tc.register {
 				require.NotNil(t, api.update)
 				assert.Equal(t, "run-id", api.update.RunId)
@@ -90,35 +90,35 @@ func TestUploadDriverLogArtifact(t *testing.T) {
 func TestUploadDriverLogArtifactErrors(t *testing.T) {
 	for _, tc := range []struct {
 		name, message string
-		mutate        func(*driverLogArtifactContext, *logMetadataAPI, *logUploader)
+		mutate        func(*ArtifactContext, *logMetadataAPI, *Uploader)
 		cause         error
 	}{
-		{"session", "session info", func(log *driverLogArtifactContext, _ *logMetadataAPI, _ *logUploader) { log.StoreSessionInfo = "{" }, nil},
-		{"bucket config", "bucket config", func(log *driverLogArtifactContext, _ *logMetadataAPI, _ *logUploader) { log.PipelineRoot = "invalid" }, nil},
-		{"open", "open bucket", func(_ *driverLogArtifactContext, _ *logMetadataAPI, u *logUploader) {
-			u.openBucket = func(context.Context, kubernetes.Interface, string, *objectstore.Config, *objectstore.SessionInfo) (*blob.Bucket, error) {
+		{"session", "session info", func(log *ArtifactContext, _ *logMetadataAPI, _ *Uploader) { log.StoreSessionInfo = "{" }, nil},
+		{"bucket config", "bucket config", func(log *ArtifactContext, _ *logMetadataAPI, _ *Uploader) { log.PipelineRoot = "invalid" }, nil},
+		{"open", "open bucket", func(_ *ArtifactContext, _ *logMetadataAPI, u *Uploader) {
+			u.OpenBucket = func(context.Context, kubernetes.Interface, string, *objectstore.Config, *objectstore.SessionInfo) (*blob.Bucket, error) {
 				return nil, assert.AnError
 			}
 		}, assert.AnError},
-		{"upload", "upload log", func(_ *driverLogArtifactContext, _ *logMetadataAPI, u *logUploader) {
-			u.uploadBlob = func(context.Context, *blob.Bucket, string, string) error { return assert.AnError }
+		{"upload", "upload driver log", func(_ *ArtifactContext, _ *logMetadataAPI, u *Uploader) {
+			u.UploadBlob = func(context.Context, *blob.Bucket, string, string) error { return assert.AnError }
 		}, assert.AnError},
-		{"get task", "read task", func(_ *driverLogArtifactContext, api *logMetadataAPI, _ *logUploader) { api.getErr = assert.AnError }, assert.AnError},
-		{"update task", "register driver log", func(_ *driverLogArtifactContext, api *logMetadataAPI, _ *logUploader) { api.updateErr = assert.AnError }, assert.AnError},
+		{"get task", "read task", func(_ *ArtifactContext, api *logMetadataAPI, _ *Uploader) { api.getErr = assert.AnError }, assert.AnError},
+		{"update task", "register driver log", func(_ *ArtifactContext, api *logMetadataAPI, _ *Uploader) { api.updateErr = assert.AnError }, assert.AnError},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			api := &logMetadataAPI{task: &gc.PipelineTask{}}
-			log := &driverLogArtifactContext{PipelineRoot: "s3://bucket", StoreSessionInfo: "{}", Execution: &driver.Execution{TaskID: "task-id"}, KFPAPI: api}
+			log := &ArtifactContext{PipelineRoot: "s3://bucket", StoreSessionInfo: "{}", Execution: &driver.Execution{TaskID: "task-id"}, KFPAPI: api}
 			var bucket *blob.Bucket
-			uploader := logUploader{
-				openBucket: func(context.Context, kubernetes.Interface, string, *objectstore.Config, *objectstore.SessionInfo) (*blob.Bucket, error) {
+			uploader := Uploader{
+				OpenBucket: func(context.Context, kubernetes.Interface, string, *objectstore.Config, *objectstore.SessionInfo) (*blob.Bucket, error) {
 					bucket = memblob.OpenBucket(nil)
 					return bucket, nil
 				},
-				uploadBlob: func(context.Context, *blob.Bucket, string, string) error { return nil },
+				UploadBlob: func(context.Context, *blob.Bucket, string, string) error { return nil },
 			}
 			tc.mutate(log, api, &uploader)
-			err := uploader.uploadDriverLogArtifact(context.Background(), log, fake.NewSimpleClientset())
+			err := uploader.Upload(context.Background(), log, fake.NewSimpleClientset())
 			require.ErrorContains(t, err, tc.message)
 			if tc.cause != nil {
 				assert.ErrorIs(t, err, tc.cause)
@@ -132,7 +132,7 @@ func TestUploadDriverLogArtifactErrors(t *testing.T) {
 			}
 		})
 	}
-	uploader := logUploader{} // neither case may touch object storage
-	require.Error(t, uploader.uploadDriverLogArtifact(context.Background(), nil, nil))
-	require.NoError(t, uploader.uploadDriverLogArtifact(context.Background(), &driverLogArtifactContext{}, nil))
+	uploader := Uploader{} // neither case may touch object storage
+	require.Error(t, uploader.Upload(context.Background(), nil, nil))
+	require.NoError(t, uploader.Upload(context.Background(), &ArtifactContext{}, nil))
 }

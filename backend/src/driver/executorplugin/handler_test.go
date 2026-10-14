@@ -28,7 +28,7 @@ import (
 )
 
 func TestHandlerRejectsNilServiceContext(t *testing.T) {
-	handler, err := executorplugin.NewHandlerWithContext(nil, "unused", nil) //nolint:staticcheck // SA1012: Verify that a nil service context is rejected.
+	handler, err := executorplugin.NewHandler(nil, "unused", nil) //nolint:staticcheck // SA1012: Verify that a nil service context is rejected.
 	require.ErrorContains(t, err, "provide a context tied to the service lifetime")
 	require.Nil(t, handler)
 }
@@ -36,7 +36,7 @@ func TestHandlerRejectsNilServiceContext(t *testing.T) {
 func TestHandlerAllowsUnownedTemplatesWithoutClusterAccess(t *testing.T) {
 	tokenPath := filepath.Join(t.TempDir(), "token")
 	require.NoError(t, os.WriteFile(tokenPath, []byte("test-token"), 0600))
-	handler, err := executorplugin.NewHandlerWithContext(context.Background(), tokenPath, nil)
+	handler, err := executorplugin.NewHandler(context.Background(), tokenPath, nil)
 	require.NoError(t, err)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/template.execute", strings.NewReader(`{"template":{"plugin":{"another-plugin":{}}}}`))
 	request.Header.Set("Authorization", "Bearer test-token")

@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,18 +33,22 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const (
-	unsetProxyArgValue = "unset"
-	rootDAG            = "ROOT_DAG"
-	dagDriver          = "DAG"
-	containerDriver    = "CONTAINER"
-)
-
 // DriverExecutor executes one validated driver request, including its resource lifecycle.
 // An execution returned with an error may still contain outputs needed by Argo.
 type DriverExecutor func(context.Context, driverapi.DriverPluginArgs) (*driver.Execution, error)
 
-type handler struct {
+const invocationTimeout = 30 * time.Minute
+
+// Handler serves authenticated template.execute requests. Driver work outlives
+// the HTTP request, so Drain lets a shutting-down server wait for it.
+type Handler struct {
+	authenticated http.Handler
+	service       *driverService
+}
+
+// driverService runs at most one driver execution per taskset attempt and
+// replays its result to Argo's repeated polls.
+type driverService struct {
 	execute DriverExecutor
 	resolve attemptResolver
 	ctx     context.Context
@@ -56,36 +61,52 @@ type driverCall struct {
 	response driverapi.DriverResponse
 }
 
-const invocationTimeout = 30 * time.Minute
-
-// NewHandler loads the Argo bearer token and constructs the template.execute handler.
-// A nil executor uses the in-cluster KFP driver runtime.
-func NewHandler(tokenPath string, execute DriverExecutor) (http.Handler, error) {
-	return NewHandlerWithContext(context.Background(), tokenPath, execute)
-}
-
-// NewHandlerWithContext binds driver work to the service lifetime, not an RPC timeout.
-// Results are retained for this agent process; restarting it loses replay protection.
-func NewHandlerWithContext(ctx context.Context, tokenPath string, execute DriverExecutor) (http.Handler, error) {
+// NewHandler loads the Argo bearer token and binds driver work to ctx, the
+// service lifetime. Results are retained for this agent process; restarting it
+// loses replay protection. A nil executor uses the in-cluster KFP driver runtime.
+func NewHandler(ctx context.Context, tokenPath string, execute DriverExecutor) (*Handler, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("driver service context is nil; provide a context tied to the service lifetime")
 	}
-	return newHandlerWithResolver(ctx, tokenPath, execute, inClusterAttemptResolver())
+	agent := cachedAgent(inClusterAgent)
+	if execute == nil {
+		execute = newDriverRunner(agent).drive
+	}
+	return newHandlerWithResolver(ctx, tokenPath, execute, tasksetAttemptResolver(agent, watchedTaskset(ctx)))
 }
 
-func newHandlerWithResolver(ctx context.Context, tokenPath string, execute DriverExecutor, resolve attemptResolver) (http.Handler, error) {
-	if execute == nil {
-		execute = newDriverRunner().drive
-	}
-	h := &handler{execute: execute, resolve: resolve, ctx: ctx, calls: make(map[string]*driverCall)}
-	authenticated, err := authenticatedPluginHandler(tokenPath, http.HandlerFunc(h.executePlugin))
+func newHandlerWithResolver(ctx context.Context, tokenPath string, execute DriverExecutor, resolve attemptResolver) (*Handler, error) {
+	service := &driverService{execute: execute, resolve: resolve, ctx: ctx, calls: make(map[string]*driverCall)}
+	authenticated, err := authenticatedPluginHandler(tokenPath, http.HandlerFunc(service.executePlugin))
 	if err != nil {
 		return nil, err
 	}
-	return &drainingHandler{Handler: authenticated, execution: h}, nil
+	return &Handler{authenticated: authenticated, service: service}, nil
 }
 
-func (h *handler) executePlugin(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.authenticated.ServeHTTP(w, r)
+}
+
+// Drain waits for detached driver executions to finish or ctx to expire.
+func (h *Handler) Drain(ctx context.Context) error {
+	h.service.mu.Lock()
+	done := make([]<-chan struct{}, 0, len(h.service.calls))
+	for _, call := range h.service.calls {
+		done = append(done, call.done)
+	}
+	h.service.mu.Unlock()
+	for _, finished := range done {
+		select {
+		case <-finished:
+		case <-ctx.Done():
+			return fmt.Errorf("driver execution cleanup did not finish before shutdown deadline: %w", ctx.Err())
+		}
+	}
+	return nil
+}
+
+func (s *driverService) executePlugin(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if err := r.Body.Close(); err != nil {
 			glog.Errorf("Error closing request body: %v", err)
@@ -110,27 +131,27 @@ func (h *handler) executePlugin(w http.ResponseWriter, r *http.Request) {
 	}
 	// Resolve on every poll: an intentional Argo retry has a new taskset node ID.
 	lookupCtx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	attempt, err := h.resolve(lookupCtx, *args)
+	attempt, err := s.resolve(lookupCtx, *args)
 	cancel()
-	if err != nil || h.ctx.Err() != nil {
-		glog.Warningf("Cannot resolve active driver attempt: %v (service: %v)", err, h.ctx.Err())
+	if err != nil || s.ctx.Err() != nil {
+		glog.Warningf("Cannot resolve active driver attempt: %v (service: %v)", err, s.ctx.Err())
 		http.Error(w, "cannot resolve active driver attempt; retry after taskset reconciliation", http.StatusServiceUnavailable)
 		return
 	}
 	key := fmt.Sprintf("%s/%x", attempt, argsDigest(*args))
-	h.mu.Lock()
-	if h.ctx.Err() != nil {
-		h.mu.Unlock()
+	s.mu.Lock()
+	if s.ctx.Err() != nil {
+		s.mu.Unlock()
 		http.Error(w, "driver service is shutting down", http.StatusServiceUnavailable)
 		return
 	}
-	call := h.calls[key]
+	call := s.calls[key]
 	if call == nil {
 		call = &driverCall{done: make(chan struct{})}
-		h.calls[key] = call
-		go h.run(call, *args)
+		s.calls[key] = call
+		go s.run(call, *args)
 	}
-	h.mu.Unlock()
+	s.mu.Unlock()
 	timer := time.NewTimer(50 * time.Millisecond)
 	defer timer.Stop()
 	select {
@@ -147,8 +168,8 @@ func argsDigest(args driverapi.DriverPluginArgs) [32]byte {
 	return sha256.Sum256(encoded)
 }
 
-func (h *handler) run(call *driverCall, args driverapi.DriverPluginArgs) {
-	ctx, cancel := context.WithTimeout(h.ctx, invocationTimeout)
+func (s *driverService) run(call *driverCall, args driverapi.DriverPluginArgs) {
+	ctx, cancel := context.WithTimeout(s.ctx, invocationTimeout)
 	defer cancel()
 	defer close(call.done)
 	defer func() {
@@ -156,12 +177,16 @@ func (h *handler) run(call *driverCall, args driverapi.DriverPluginArgs) {
 			call.response = driverapi.DriverResponse{Node: driverapi.Node{Phase: "Failed", Message: fmt.Sprintf("unable to drive execution: panic: %v", recovered)}}
 		}
 	}()
-	execution, err := h.execute(ctx, args)
+	execution, err := s.execute(ctx, args)
 	if err == nil {
 		err = ctx.Err()
 	}
-	outputs := extractOutputParameters(execution, args.Type)
-	if err == nil && execution != nil && execution.ExecutorInput != nil {
+	if err == nil && execution == nil {
+		// Argo would otherwise run the task with empty outputs and no pod patch.
+		err = errors.New("driver returned no execution result; report this driver bug with the run ID")
+	}
+	outputs := extractOutputParameters(execution, args.DriverType)
+	if err == nil && execution.ExecutorInput != nil {
 		if _, marshalErr := protojson.Marshal(execution.ExecutorInput); marshalErr != nil {
 			err = fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", marshalErr)
 		}
@@ -173,104 +198,40 @@ func (h *handler) run(call *driverCall, args driverapi.DriverPluginArgs) {
 	}
 }
 
+// rawDriverRequest is the part of Argo's ExecuteTemplateArgs the plugin reads.
+type rawDriverRequest struct {
+	Template *struct {
+		Plugin json.RawMessage `json:"plugin"`
+	} `json:"template"`
+}
+
+// parseDriverRequestArgs returns nil args for templates owned by another plugin.
 func parseDriverRequestArgs(r *http.Request) (*driverapi.DriverPluginArgs, error) {
-	bodyBytes, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read driver request body: %w", err)
+		return nil, fmt.Errorf("failed to read driver request body; resend the request: %w", err)
 	}
-	var body rawDriverRequest
-	if err := json.Unmarshal(bodyBytes, &body); err != nil {
-		return nil, fmt.Errorf("failed to parse driver request body: %w", err)
+	var request rawDriverRequest
+	if err := json.Unmarshal(body, &request); err != nil {
+		return nil, fmt.Errorf("driver request body is not valid JSON; send Argo ExecuteTemplateArgs: %w", err)
 	}
-	switch {
-	case body.Template == nil:
-		return nil, fmt.Errorf("driver request body.Template is empty")
-	case body.Template.Plugin == nil:
-		return nil, fmt.Errorf("driver request body.Template.Plugin is empty")
+	if request.Template == nil {
+		return nil, fmt.Errorf("driver request has no template; send Argo ExecuteTemplateArgs with template.plugin")
 	}
-	config, owned := body.Template.Plugin["driver-plugin"]
+	if len(request.Template.Plugin) == 0 || string(request.Template.Plugin) == "null" {
+		return nil, fmt.Errorf("driver request template has no plugin; send Argo ExecuteTemplateArgs with template.plugin")
+	}
+	args, owned, err := driverapi.ParseDriverPluginArgs(request.Template.Plugin)
+	if err != nil {
+		return nil, err
+	}
 	if !owned {
 		return nil, nil
 	}
-	var container *rawDriverPluginContainer
-	if err := json.Unmarshal(config, &container); err != nil || container == nil {
-		return nil, fmt.Errorf("driver request body.Template.Plugin.DriverPlugin must be an object")
-	}
-	if len(container.Args) == 0 || string(container.Args) == "null" {
-		return nil, fmt.Errorf("driver request body.Template.Plugin.Args is empty")
-	}
-	var args driverapi.DriverPluginArgs
-	if err := json.Unmarshal(container.Args, &args); err != nil {
-		return nil, fmt.Errorf("failed to parse driver request args: %w", err)
-	}
-	var argFields map[string]json.RawMessage
-	if err := json.Unmarshal(container.Args, &argFields); err != nil {
-		return nil, fmt.Errorf("failed to parse driver request args as object: %w", err)
-	}
-	if err := validate(args, argFields); err != nil {
-		return nil, err
-	}
-	return &args, nil
+	return args, nil
 }
 
-type rawDriverRequest struct {
-	Template *rawDriverTemplate `json:"template"`
-}
-
-type rawDriverTemplate struct {
-	Plugin map[string]json.RawMessage `json:"plugin"`
-}
-
-type rawDriverPluginContainer struct {
-	Args json.RawMessage `json:"args"`
-}
-
-var commonRequiredDriverArgFields = []string{
-	"type", "pipeline_name", "run_id", "run_name", "run_display_name",
-	"parent_task_id", "task_name", "namespace", "iteration_index",
-	"ml_pipeline_server_address", "ml_pipeline_server_port", "log_level", "publish_logs",
-	"cache_disabled", "ml_pipeline_tls_enabled", "http_proxy", "https_proxy", "no_proxy",
-}
-
-func requiredDriverArgFields(driverType string) ([]string, error) {
-	required := append([]string{}, commonRequiredDriverArgFields...)
-	switch driverType {
-	case rootDAG:
-		required = append(required, "runtime_config")
-	case dagDriver:
-	case containerDriver:
-		required = append(required, "kubernetes_config")
-	default:
-		return nil, fmt.Errorf("unknown driver type %q, must be one of %s, %s, %s", driverType, rootDAG, dagDriver, containerDriver)
-	}
-	return required, nil
-}
-
-func validate(args driverapi.DriverPluginArgs, argFields map[string]json.RawMessage) error {
-	switch {
-	case args.Type == "":
-		return fmt.Errorf("argument type must be specified")
-	case args.HTTPProxy == unsetProxyArgValue:
-		return fmt.Errorf("argument http_proxy is required but can be an empty value")
-	case args.HTTPSProxy == unsetProxyArgValue:
-		return fmt.Errorf("argument https_proxy is required but can be an empty value")
-	case args.NoProxy == unsetProxyArgValue:
-		return fmt.Errorf("argument no_proxy is required but can be an empty value")
-	}
-	required, err := requiredDriverArgFields(args.Type)
-	if err != nil {
-		return err
-	}
-	for _, name := range required {
-		if _, ok := argFields[name]; !ok {
-			return fmt.Errorf("--%s is required for %s but was not provided", name, args.Type)
-		}
-	}
-	_, err = parseLogLevel(args.LogLevel)
-	return err
-}
-
-func extractOutputParameters(execution *driver.Execution, driverType string) []driverapi.Parameter {
+func extractOutputParameters(execution *driver.Execution, driverType driverapi.DriverType) []driverapi.Parameter {
 	if execution == nil {
 		return []driverapi.Parameter{}
 	}
@@ -286,7 +247,7 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []d
 			Name:  "iteration-count",
 			Value: fmt.Sprint(*execution.IterationCount),
 		})
-	} else if driverType == rootDAG || driverType == dagDriver {
+	} else if driverType.IsDAG() {
 		outputs = append(outputs, driverapi.Parameter{
 			Name:  "iteration-count",
 			Value: "0",
@@ -298,29 +259,12 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []d
 			Value: strconv.FormatBool(*execution.Cached),
 		})
 	}
+	condition := "nil" // nil is a valid value for Condition
 	if execution.Condition != nil {
-		outputs = append(outputs, driverapi.Parameter{
-			Name:  "condition",
-			Value: strconv.FormatBool(*execution.Condition),
-		})
-	} else if driverType == dagDriver || driverType == rootDAG || driverType == containerDriver {
-		// nil is a valid value for Condition
-		outputs = append(outputs, driverapi.Parameter{
-			Name:  "condition",
-			Value: "nil",
-		})
+		condition = strconv.FormatBool(*execution.Condition)
 	}
-	if execution.PodSpecPatch != "" {
-		outputs = append(outputs, driverapi.Parameter{
-			Name:  "pod-spec-patch",
-			Value: execution.PodSpecPatch,
-		})
-	} else {
-		outputs = append(outputs, driverapi.Parameter{
-			Name:  "pod-spec-patch",
-			Value: "",
-		})
-	}
+	outputs = append(outputs, driverapi.Parameter{Name: "condition", Value: condition})
+	outputs = append(outputs, driverapi.Parameter{Name: "pod-spec-patch", Value: execution.PodSpecPatch})
 	return outputs
 }
 

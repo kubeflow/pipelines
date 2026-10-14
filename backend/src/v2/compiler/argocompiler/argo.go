@@ -182,7 +182,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
-					util.V2ComponentKey:                  "true",
+					util.V2ComponentKey: "true",
+					// Argo's agent pod, which hosts the driver plugin, has no template, so
+					// the API server's per-template Istio opt-out does not reach it.
 					util.AnnotationKeyIstioSidecarInject: util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{

@@ -125,7 +125,10 @@ trust, but no longer mount certificates into the driver. Before upgrading an
 existing custom-CA TLS installation, configure agent trust separately: Argo only
 mounts `Secret/argo-workflows-agent-ca-certificates` from the **workflow's
 namespace**. Copy the approved CA bundle into its `ca.crt` key in every workflow
-namespace, including profile namespaces, and keep it synchronized on rotation.
+namespace and keep it synchronized on rotation. In multi-user installations the
+pipelines profile controller copies the `ca.crt` key of that Secret from the
+`kubeflow` namespace into every pipelines-enabled profile namespace and follows
+rotation, so only the `kubeflow` copy has to be maintained.
 Do not copy the API server's private key. The existing TLS driver sidecar patch
 mounts that Secret at `/kfp/certs` and sets `CA_CERT_PATH=/kfp/certs/ca.crt`.
 

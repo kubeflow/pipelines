@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executorplugin
+// Package driverinputs resolves what a driver invocation needs from the run:
+// component, task and container specs, the scope path, and pipeline job times.
+package driverinputs
 
 import (
 	"context"
@@ -22,45 +24,39 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 )
 
-// parseOptionalBoolFlag parses an optional boolean request argument.
+// ParseOptionalBool parses an optional boolean request argument.
 // Empty value means unset (nil). Invalid values return an error.
-func parseOptionalBoolFlag(flagName, value string) (*bool, error) {
+func ParseOptionalBool(flagName, value string) (*bool, error) {
 	if value == "" {
 		return nil, nil
 	}
 	v, err := strconv.ParseBool(value)
 	if err != nil {
-		return nil, fmt.Errorf("invalid %s value %q: %w", flagName, value, err)
+		return nil, fmt.Errorf("invalid %s value %q; use true or false: %w", flagName, value, err)
 	}
 	return &v, nil
 }
 
-func resolveNamespace(explicitNamespace string) (string, error) {
-	if explicitNamespace == "" {
-		return "", fmt.Errorf("argument --namespace must be specified")
-	}
-	return explicitNamespace, nil
-}
-
-// buildScopePath builds a ScopePath from the run, parentTask and taskName.
-func buildScopePath(
+// BuildScopePath builds a ScopePath from the run, parentTask and taskName.
+func BuildScopePath(
 	ctx context.Context,
 	run *go_client.Run,
 	parentTask *go_client.PipelineTask,
 	taskName string,
-	driverType string,
+	driverType driverapi.DriverType,
 	kfpAPI kfpapi.API) (*util.ScopePath, error) {
 	pipelineSpecStruct, err := kfpAPI.FetchPipelineSpecFromRun(ctx, run)
 	if err != nil {
 		return nil, err
 	}
 	var scopePath util.ScopePath
-	if driverType == rootDAG {
+	if driverType == driverapi.RootDAGDriver {
 		scopePath, err = util.NewScopePathFromStruct(pipelineSpecStruct)
 		if err != nil {
 			return nil, err
@@ -71,7 +67,7 @@ func buildScopePath(
 		}
 	} else {
 		if taskName == "" {
-			return nil, fmt.Errorf("task name must be specified for non-root drivers")
+			return nil, fmt.Errorf("task name is empty for a %s driver; set task_name to the task being driven", driverType)
 		}
 		scopePath, err = util.ScopePathFromStringPathWithNewTask(
 			pipelineSpecStruct,
@@ -97,24 +93,26 @@ func unavailableSpec(message string) error {
 	return specSourceUnavailableError{message: message}
 }
 
-func resolveDriverSpecsFromScopePath(
+// ResolveSpecsFromScopePath returns the component, task and container specs the
+// driver type needs; the task spec is nil for the root DAG.
+func ResolveSpecsFromScopePath(
 	scopePath *util.ScopePath,
-	driverType string,
+	driverType driverapi.DriverType,
 ) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
 	if scopePath == nil || scopePath.GetLast() == nil {
-		return nil, nil, nil, unavailableSpec("scope path is empty")
+		return nil, nil, nil, unavailableSpec("scope path is empty; check that the parent task's scope path is set")
 	}
 
 	componentSpec := scopePath.GetLast().GetComponentSpec()
 	if componentSpec == nil {
-		return nil, nil, nil, unavailableSpec("component spec not found")
+		return nil, nil, nil, unavailableSpec("component spec not found in the pipeline spec; check the task's componentRef")
 	}
 
 	var taskSpec *pipelinespec.PipelineTaskSpec
-	if driverType != rootDAG {
+	if driverType != driverapi.RootDAGDriver {
 		taskSpec = scopePath.GetLast().GetTaskSpec()
 		if taskSpec == nil {
-			return nil, nil, nil, unavailableSpec("task spec not found")
+			return nil, nil, nil, unavailableSpec("task spec not found in the parent DAG; check the task name")
 		}
 	}
 
@@ -123,7 +121,7 @@ func resolveDriverSpecsFromScopePath(
 	}
 
 	var containerSpec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-	if driverType == containerDriver {
+	if driverType == driverapi.ContainerDriver {
 		var err error
 		containerSpec, err = loadContainerSpec(componentSpec, scopePath.GetPipelineSpec())
 		if err != nil {
@@ -134,22 +132,15 @@ func resolveDriverSpecsFromScopePath(
 	return componentSpec, taskSpec, containerSpec, nil
 }
 
-func validateDriverComponentKinds(driverType string, componentSpec *pipelinespec.ComponentSpec) error {
-	switch driverType {
-	case rootDAG:
-		if componentSpec.GetDag() == nil {
-			return fmt.Errorf("root driver requires a DAG root component")
-		}
-	case dagDriver:
-		if componentSpec.GetDag() == nil {
-			return fmt.Errorf("dag driver requires a DAG component")
-		}
-	case containerDriver:
-		if componentSpec.GetExecutorLabel() == "" {
-			return fmt.Errorf("container driver requires an executor-label component")
-		}
-	default:
-		return fmt.Errorf("unknown driver type %q", driverType)
+func validateDriverComponentKinds(driverType driverapi.DriverType, componentSpec *pipelinespec.ComponentSpec) error {
+	if err := driverType.Validate(); err != nil {
+		return err
+	}
+	if driverType.IsDAG() && componentSpec.GetDag() == nil {
+		return fmt.Errorf("%s driver requires a DAG component; check that the task's component is a DAG", driverType)
+	}
+	if !driverType.IsDAG() && componentSpec.GetExecutorLabel() == "" {
+		return fmt.Errorf("%s driver requires a component with an executor label; check that the task's component is a container", driverType)
 	}
 	return nil
 }
@@ -159,38 +150,39 @@ func loadContainerSpec(
 	pipelineSpec *pipelinespec.PipelineSpec,
 ) (*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
 	if componentSpec == nil {
-		return nil, unavailableSpec("component spec is nil")
+		return nil, unavailableSpec("component spec is nil; check the task's componentRef")
 	}
 	if pipelineSpec == nil {
-		return nil, unavailableSpec("pipeline spec is nil")
+		return nil, unavailableSpec("pipeline spec is nil; check that the run has a pipeline spec")
 	}
 
 	executorLabel := componentSpec.GetExecutorLabel()
 	if executorLabel == "" {
-		return nil, fmt.Errorf("component executor label is empty")
+		return nil, fmt.Errorf("component executor label is empty; check the component's executorLabel")
 	}
 
 	if pipelineSpec.GetDeploymentSpec() == nil {
-		return nil, unavailableSpec("pipeline deployment spec is missing")
+		return nil, unavailableSpec("pipeline deployment spec is missing; recompile the pipeline")
 	}
 
 	deploymentConfig, err := compiler.GetDeploymentConfig(pipelineSpec)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal deployment spec: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal deployment spec; recompile the pipeline: %w", err)
 	}
 
 	executor, ok := deploymentConfig.GetExecutors()[executorLabel]
 	if !ok || executor == nil {
-		return nil, unavailableSpec(fmt.Sprintf("container executor %q not found in deployment spec", executorLabel))
+		return nil, unavailableSpec(fmt.Sprintf("container executor %q not found in deployment spec; check the component's executorLabel", executorLabel))
 	}
 	containerSpec := executor.GetContainer()
 	if containerSpec == nil {
-		return nil, fmt.Errorf("executor %q does not contain a container spec", executorLabel)
+		return nil, fmt.Errorf("executor %q does not contain a container spec; check the deployment spec", executorLabel)
 	}
 	return containerSpec, nil
 }
 
-func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
+// ParseKubernetesExecutorConfig decodes the optional kubernetes_config argument.
+func ParseKubernetesExecutorConfig(k8sExecConfigJSON *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
 	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
 	if *k8sExecConfigJSON != "" {
 		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
@@ -205,5 +197,7 @@ func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.Kuberne
 // decoding cause for callers that inspect the error chain.
 type kubernetesConfigParseError struct{ cause error }
 
-func (e kubernetesConfigParseError) Error() string { return "failed to unmarshal Kubernetes config" }
+func (e kubernetesConfigParseError) Error() string {
+	return "failed to unmarshal Kubernetes config; provide valid KubernetesExecutorConfig JSON"
+}
 func (e kubernetesConfigParseError) Unwrap() error { return e.cause }

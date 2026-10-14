@@ -20,10 +20,11 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import textwrap
 import time
 import urllib.error
 import urllib.request
+
+import yaml
 
 CI_IMAGES = {
     "kfp-api-server": "apiserver",
@@ -100,15 +101,21 @@ def load_images(archives, cluster, refs):
 def driver_plugin_patch(reference):
     """Replace the embedded executor-plugin image without duplicating its
     spec."""
-    manifest = DRIVER_PLUGIN_MANIFEST.read_text()
-    marker = "  sidecar.container: |\n"
-    if manifest.count(marker) != 1:
-        raise ValueError("Driver plugin ConfigMap has an unexpected format")
-    sidecar = textwrap.dedent(manifest.split(marker, 1)[1])
-    sidecar, count = re.subn(
-        r"(?m)^(\s*image:\s*)\S+\s*$", rf"\g<1>{reference}", sidecar, count=1)
-    if count != 1:
-        raise ValueError("Driver plugin image was not found")
+    manifest = yaml.safe_load(DRIVER_PLUGIN_MANIFEST.read_text())
+    data = manifest.get("data") if isinstance(manifest, dict) else None
+    embedded = data.get("sidecar.container") if isinstance(data, dict) else None
+    if not isinstance(embedded, str):
+        raise ValueError(
+            f"{DRIVER_PLUGIN_MANIFEST} has no data.sidecar.container string; "
+            "point DRIVER_PLUGIN_MANIFEST at the executor-plugin ConfigMap")
+    # Argo's sidecar.container is one container spec, not a list of containers.
+    sidecar = yaml.safe_load(embedded)
+    if not isinstance(sidecar, dict) or not isinstance(
+            sidecar.get("image"), str):
+        raise ValueError(
+            f"{DRIVER_PLUGIN_MANIFEST} sidecar.container has no image field; "
+            "restore the driver-plugin container image in the ConfigMap")
+    sidecar["image"] = reference
     return {
         "apiVersion": "v1",
         "kind": "ConfigMap",
@@ -116,7 +123,7 @@ def driver_plugin_patch(reference):
             "name": "ml-pipeline-driver-agent"
         },
         "data": {
-            "sidecar.container": sidecar
+            "sidecar.container": yaml.safe_dump(sidecar, sort_keys=False)
         },
     }
 

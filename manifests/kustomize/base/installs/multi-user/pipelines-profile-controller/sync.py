@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 import json
 import os
+from pathlib import Path
 
 try:
     import botocore.session
@@ -30,6 +31,9 @@ except ModuleNotFoundError as error:
 
 S3_BUCKET_NAME = 'mlpipeline'
 HEALTHZ_PATH = '/healthz'
+# Argo mounts this Secret from the workflow's namespace into every agent Pod,
+# so TLS installations need a copy of the kubeflow-namespace CA per profile.
+DRIVER_AGENT_CA_SECRET_NAME = 'argo-workflows-agent-ca-certificates'
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -126,7 +130,8 @@ def get_settings_from_env(controller_port=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None,
-                          http_base_url=None):
+                          http_base_url=None,
+                          driver_agent_ca_cert_path=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -175,6 +180,10 @@ def get_settings_from_env(controller_port=None,
         object_store_host or \
         os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
 
+    settings["driver_agent_ca_cert_path"] = \
+        driver_agent_ca_cert_path if driver_agent_ca_cert_path is not None \
+            else os.environ.get("DRIVER_AGENT_CA_CERT_PATH", "")
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -201,7 +210,8 @@ def server_factory(frontend_image,
                    allowed_gcs_universe_domains="googleapis.com",
                    url="",
                    controller_port=8080,
-                   http_base_url=""):
+                   http_base_url="",
+                   driver_agent_ca_cert_path=""):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
@@ -330,6 +340,32 @@ def server_factory(frontend_image,
                 },
             ]
 
+        def driver_agent_ca_secret(self, namespace):
+            """Copy of the driver-agent CA for this namespace, or None when the
+            controller is not configured with one (non-TLS installations)."""
+            if not driver_agent_ca_cert_path:
+                return None
+            # Read on every sync rather than once at startup: the file comes
+            # from an optional Secret volume, so it may appear after this
+            # controller starts (cert-manager issuance) and changes on rotation.
+            try:
+                ca_cert = Path(driver_agent_ca_cert_path).read_bytes()
+            except FileNotFoundError:
+                return None
+            if not ca_cert:
+                return None
+            return {
+                "apiVersion": "v1",
+                "kind": "Secret",
+                "metadata": {
+                    "name": DRIVER_AGENT_CA_SECRET_NAME,
+                    "namespace": namespace,
+                },
+                "data": {
+                    "ca.crt": base64.b64encode(ca_cert).decode("utf-8"),
+                },
+            }
+
         def ensure_bucket_list_policy(self, bucket_name):
             """Bucket-wide ListBucket isolation, keyed on ${aws:username}.
 
@@ -446,10 +482,13 @@ def server_factory(frontend_image,
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
 
+            driver_agent_ca_secret = self.driver_agent_ca_secret(namespace)
+
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 3 and
+                    len(attachments["Secret.v1"])
+                    == (4 if driver_agent_ca_secret else 3) and
                     len(attachments["ConfigMap.v1"]) == 2 and
                     len(attachments["Deployment.apps/v1"]) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
@@ -519,6 +558,8 @@ def server_factory(frontend_image,
             executor_plugin_resources = self.executor_plugin_resources(
                 namespace)
             desired_resources.extend(executor_plugin_resources)
+            if driver_agent_ca_secret:
+                desired_resources.append(driver_agent_ca_secret)
 
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([

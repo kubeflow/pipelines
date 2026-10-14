@@ -89,7 +89,7 @@ func TestExecutePluginSuccessAndFailurePreserveOutputs(t *testing.T) {
 		{"success", execution, nil, "Succeeded"},
 		{"failure preserves outputs", execution, assert.AnError, "Failed"},
 		{"failure without execution", nil, assert.AnError, "Failed"},
-		{"nil execution success", nil, nil, "Succeeded"},
+		{"nil execution is a driver bug", nil, nil, "Failed"},
 		{"executor input serialization failure", &driver.Execution{
 			TaskID: "task-id", ExecutorInput: &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{
 				ParameterValues: map[string]*structpb.Value{"invalid": {Kind: &structpb.Value_StringValue{StringValue: string([]byte{0xff})}}},
@@ -101,7 +101,7 @@ func TestExecutePluginSuccessAndFailurePreserveOutputs(t *testing.T) {
 			handler := newHandler(t, func(ctx context.Context, args driverapi.DriverPluginArgs) (*driver.Execution, error) {
 				calls++
 				assert.NotNil(t, ctx)
-				assert.Equal(t, "CONTAINER", args.Type)
+				assert.Equal(t, driverapi.ContainerDriver, args.DriverType)
 				assert.Equal(t, "value", args.RuntimeArgs["setting"])
 				return tc.execution, tc.err
 			})
@@ -179,14 +179,14 @@ func TestExecutePluginRejectsMalformedAndMethodRequests(t *testing.T) {
 		readErr                     error
 	}{
 		{"method", http.MethodGet, valid, "Method not allowed", http.StatusMethodNotAllowed, nil},
-		{"empty", http.MethodPost, "", "failed to parse driver request body", http.StatusBadRequest, nil},
-		{"malformed", http.MethodPost, "{", "failed to parse driver request body", http.StatusBadRequest, nil},
-		{"missing template", http.MethodPost, `{}`, "Template is empty", http.StatusBadRequest, nil},
-		{"missing plugin", http.MethodPost, `{"template":{}}`, "Plugin is empty", http.StatusBadRequest, nil},
-		{"null driver", http.MethodPost, `{"template":{"plugin":{"driver-plugin":null}}}`, "DriverPlugin must be an object", http.StatusBadRequest, nil},
-		{"missing args", http.MethodPost, `{"template":{"plugin":{"driver-plugin":{}}}}`, "Args is empty", http.StatusBadRequest, nil},
-		{"null args", http.MethodPost, `{"template":{"plugin":{"driver-plugin":{"args":null}}}}`, "Args is empty", http.StatusBadRequest, nil},
-		{"array args", http.MethodPost, `{"template":{"plugin":{"driver-plugin":{"args":[]}}}}`, "failed to parse driver request args", http.StatusBadRequest, nil},
+		{"empty", http.MethodPost, "", "not valid JSON", http.StatusBadRequest, nil},
+		{"malformed", http.MethodPost, "{", "not valid JSON", http.StatusBadRequest, nil},
+		{"missing template", http.MethodPost, `{}`, "has no template", http.StatusBadRequest, nil},
+		{"missing plugin", http.MethodPost, `{"template":{}}`, "template has no plugin", http.StatusBadRequest, nil},
+		{"null driver", http.MethodPost, `{"template":{"plugin":{"driver-plugin":null}}}`, "must be an object with an args object", http.StatusBadRequest, nil},
+		{"missing args", http.MethodPost, `{"template":{"plugin":{"driver-plugin":{}}}}`, "has no args", http.StatusBadRequest, nil},
+		{"null args", http.MethodPost, `{"template":{"plugin":{"driver-plugin":{"args":null}}}}`, "has no args", http.StatusBadRequest, nil},
+		{"array args", http.MethodPost, `{"template":{"plugin":{"driver-plugin":{"args":[]}}}}`, "must be an object with an args object", http.StatusBadRequest, nil},
 		{"missing required field", http.MethodPost, strings.Replace(valid, `"http_proxy":"",`, "", 1), "http_proxy", http.StatusBadRequest, nil},
 		{"unset proxy", http.MethodPost, strings.Replace(valid, `"http_proxy":""`, `"http_proxy":"unset"`, 1), "http_proxy", http.StatusBadRequest, nil},
 		{"unknown driver", http.MethodPost, strings.Replace(valid, "CONTAINER", "UNKNOWN", 1), "unknown driver type", http.StatusBadRequest, nil},
@@ -228,9 +228,9 @@ func TestNewHandlerAuthentication(t *testing.T) {
 		})
 	}
 	tokenPath := filepath.Join(t.TempDir(), "token")
-	_, err := NewHandler(tokenPath, nil)
+	_, err := NewHandler(context.Background(), tokenPath, nil)
 	require.ErrorIs(t, err, os.ErrNotExist)
 	require.NoError(t, os.WriteFile(tokenPath, []byte(" \n"), 0600))
-	_, err = NewHandler(tokenPath, nil)
+	_, err = NewHandler(context.Background(), tokenPath, nil)
 	require.ErrorContains(t, err, "token is empty")
 }

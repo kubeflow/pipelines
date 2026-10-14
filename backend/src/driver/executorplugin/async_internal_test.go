@@ -39,7 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-func asyncHandler(t *testing.T, ctx context.Context, run DriverExecutor, resolve attemptResolver) http.Handler {
+func asyncHandler(t *testing.T, ctx context.Context, run DriverExecutor, resolve attemptResolver) *Handler {
 	t.Helper()
 	token := filepath.Join(t.TempDir(), "token")
 	require.NoError(t, os.WriteFile(token, []byte("agent-token"), 0600))

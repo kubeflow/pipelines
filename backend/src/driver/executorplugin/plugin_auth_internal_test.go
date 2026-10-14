@@ -25,9 +25,11 @@ import (
 	"testing"
 	"time"
 
+	workflowclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,9 +95,11 @@ func TestDriverAPIClientConfigUsesAgentServiceAccount(t *testing.T) {
 				}}, nil
 			})
 
-			cfg, actualPod, err := driverAPIClientConfig(context.Background(), client, pod.Namespace, pod.Name, args)
+			agent, err := loadAgent(context.Background(), client, nil, pod.Namespace, pod.Name)
 			require.NoError(t, err)
-			assert.Equal(t, pod, actualPod)
+			require.NoError(t, agent.validateRequest(args))
+			cfg, err := driverAPIClientConfig(agent, args)
+			require.NoError(t, err)
 			assert.Equal(t, "ml-pipeline:8887", cfg.Endpoint)
 			require.NotNil(t, cfg.TokenSource)
 			token, err := cfg.TokenSource.Token(context.Background())
@@ -130,7 +134,14 @@ func TestDriverAPIClientConfigRejectsUnboundRequests(t *testing.T) {
 			pod, args := agentPodForAuth(), driverArgsForAuth()
 			tt.mutate(pod, &args)
 			client := fake.NewSimpleClientset(pod)
-			cfg, _, err := driverAPIClientConfig(context.Background(), client, pod.Namespace, pod.Name, args)
+			var cfg *apiclient.Config
+			agent, err := loadAgent(context.Background(), client, nil, pod.Namespace, pod.Name)
+			if err == nil {
+				err = agent.validateRequest(args)
+			}
+			if err == nil {
+				cfg, err = driverAPIClientConfig(agent, args)
+			}
 			require.Error(t, err)
 			assert.Nil(t, cfg)
 			for _, action := range client.Actions() {
@@ -138,12 +149,6 @@ func TestDriverAPIClientConfigRejectsUnboundRequests(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestDriverAPIClientConfigFailsWhenPodCannotBeRead(t *testing.T) {
-	cfg, _, err := driverAPIClientConfig(context.Background(), fake.NewSimpleClientset(), "run-namespace", "missing-pod", driverArgsForAuth())
-	require.ErrorContains(t, err, "failed to get executor plugin Pod")
-	assert.Nil(t, cfg)
 }
 
 type authenticatedRunServer struct {
@@ -202,10 +207,9 @@ func TestDriverAuthenticatesFirstKFPRPCWithRunServiceAccount(t *testing.T) {
 	args := driverArgsForAuth()
 	args.MlPipelineServerAddress, args.MlPipelineServerPort, err = net.SplitHostPort(listener.Addr().String())
 	require.NoError(t, err)
-	factory := inClusterClientFactory()
-	factory.identity = func() (string, string, error) { return pod.Namespace, pod.Name, nil }
-	factory.kubernetesConfig = func() (*rest.Config, error) { return &rest.Config{}, nil }
-	factory.kubernetesClient = func(*rest.Config) (kubernetes.Interface, error) { return k8sClient, nil }
+	factory := inClusterClientFactory(func(ctx context.Context) (*agentClients, error) {
+		return loadAgent(ctx, k8sClient, nil, pod.Namespace, pod.Name)
+	})
 	clients, err := factory.newDriverClientManager(ctx, args, "")
 	require.NoError(t, err)
 	manager := clients.manager
@@ -253,14 +257,11 @@ func TestNewDriverClientManagerConfiguration(t *testing.T) {
 	}))
 	defer server.Close()
 	restConfig := &rest.Config{Host: server.URL, BearerToken: "bootstrap-token"}
-	factory := inClusterClientFactory()
-	factory.identity = func() (string, string, error) { return pod.Namespace, pod.Name, nil }
-	configCalls := 0
-	factory.kubernetesConfig = func() (*rest.Config, error) { configCalls++; return restConfig, nil }
-	factory.kubernetesClient = func(config *rest.Config) (kubernetes.Interface, error) {
-		assert.Same(t, restConfig, config)
-		return k8sClient, nil
-	}
+	argo, err := workflowclient.NewForConfig(restConfig)
+	require.NoError(t, err)
+	factory := inClusterClientFactory(func(ctx context.Context) (*agentClients, error) {
+		return loadAgent(ctx, k8sClient, argo, pod.Namespace, pod.Name)
+	})
 	factory.manager = func(options *client_manager.Options) (driverClientManager, error) {
 		assert.True(t, options.MLPipelineTLSEnabled)
 		assert.Equal(t, "/ca/cert", options.CaCertPath)
@@ -279,7 +280,6 @@ func TestNewDriverClientManagerConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "workflow", metadata.Name)
 	assert.Equal(t, 1, metadataCalls)
-	assert.Equal(t, 1, configCalls, "reuse invocation REST configuration for workflow metadata")
 }
 
 func TestNewDriverClientManagerFailures(t *testing.T) {
@@ -289,34 +289,32 @@ func TestNewDriverClientManagerFailures(t *testing.T) {
 		cause         error
 	}{
 		{"identity", "identity failure", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
-			f.identity = func() (string, string, error) { return "", "", fmt.Errorf("identity failure: %w", assert.AnError) }
+			f.agent = func(context.Context) (*agentClients, error) {
+				return nil, fmt.Errorf("identity failure: %w", assert.AnError)
+			}
 		}, assert.AnError},
-		{"config", "load executor plugin Kubernetes config", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
-			f.kubernetesConfig = func() (*rest.Config, error) { return nil, assert.AnError }
-		}, assert.AnError},
-		{"client", "initialize executor plugin Kubernetes client", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
-			f.kubernetesClient = func(*rest.Config) (kubernetes.Interface, error) { return nil, assert.AnError }
-		}, assert.AnError},
-		{"namespace", "namespace does not match", func(_ *clientFactory, args *driverapi.DriverPluginArgs) { args.Namespace = "other" }, nil},
+		{"namespace", "does not match the agent Pod namespace", func(_ *clientFactory, args *driverapi.DriverPluginArgs) { args.Namespace = "other" }, nil},
 		{"pod", "failed to get executor plugin Pod", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
-			f.kubernetesClient = func(*rest.Config) (kubernetes.Interface, error) { return fake.NewSimpleClientset(), nil }
+			f.agent = func(ctx context.Context) (*agentClients, error) {
+				return loadAgent(ctx, fake.NewSimpleClientset(), nil, "run-namespace", "workflow-agent")
+			}
 		}, nil},
-		{"run binding", "run ID does not match", func(_ *clientFactory, args *driverapi.DriverPluginArgs) { args.RunID = "other" }, nil},
+		{"run binding", "does not match the agent Pod's", func(_ *clientFactory, args *driverapi.DriverPluginArgs) { args.RunID = "other" }, nil},
 		{"manager", "check the KFP endpoint and TLS settings", func(f *clientFactory, _ *driverapi.DriverPluginArgs) {
 			f.manager = func(*client_manager.Options) (driverClientManager, error) { return nil, assert.AnError }
 		}, assert.AnError},
 		{"TLS CA file", "initialize driver API client", func(f *clientFactory, args *driverapi.DriverPluginArgs) {
 			args.MlPipelineTLSEnabled = true
-			f.manager = inClusterClientFactory().manager
+			f.manager = inClusterClientFactory(nil).manager
 		}, os.ErrNotExist},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			pod := agentPodForAuth()
 			args := driverArgsForAuth()
 			factory := clientFactory{
-				identity:         func() (string, string, error) { return pod.Namespace, pod.Name, nil },
-				kubernetesConfig: func() (*rest.Config, error) { return &rest.Config{}, nil },
-				kubernetesClient: func(*rest.Config) (kubernetes.Interface, error) { return fake.NewSimpleClientset(pod), nil },
+				agent: func(ctx context.Context) (*agentClients, error) {
+					return loadAgent(ctx, fake.NewSimpleClientset(pod), nil, pod.Namespace, pod.Name)
+				},
 				manager: func(*client_manager.Options) (driverClientManager, error) {
 					t.Fatal("failed identity must not construct an API client")
 					return nil, nil
@@ -364,7 +362,7 @@ users:
 	assert.Equal(t, "https://kubernetes.example", cfg.Host)
 	assert.Equal(t, "bootstrap-token", cfg.BearerToken)
 	assert.IsType(t, executorPluginWarningHandler{}, cfg.WarningHandlerWithContext)
-	client, err := inClusterClientFactory().kubernetesClient(cfg)
+	client, err := kubernetes.NewForConfig(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 }

@@ -59,10 +59,11 @@ import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
-export const SYS_LOGS_DETAILS = 'sys_log_details';
-export const SYS_LOGS_BANNER_MESSAGE = 'sys_logs_banner_message';
-export const SYS_LOGS_BANNER_ADDITIONAL_INFO = 'sys_logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
+
+const SYSTEM_LOGS_UNAVAILABLE: ReadonlyMap<string, string> = new Map([
+  [LOGS_BANNER_MESSAGE, 'System logs are not available yet.'],
+]);
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -207,8 +208,7 @@ function TaskNodeDetail({
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
-  const driverLogUriProperty = task?.status_metadata?.custom_properties?.driver_logs_uri;
-  const driverLogUri = typeof driverLogUriProperty === 'string' ? driverLogUriProperty : undefined;
+  const driverLogUri = getDriverLogUri(task);
   const { data: driverLogsInfo, refetch: refetchDriverLogs } = useQuery({
     queryKey: queryKeys.driverLogs(
       task?.task_id,
@@ -217,11 +217,11 @@ function TaskNodeDetail({
       driverLogUri,
       sourceFinished,
     ),
-    queryFn: async (): Promise<Map<string, string>> => {
-      if (!task) {
-        throw new Error('No task is found.');
+    queryFn: () => {
+      if (!driverLogUri) {
+        throw new Error('No driver log URI is found.');
       }
-      return getDriverLogsInfo(task, namespace);
+      return getDriverLogsInfo(driverLogUri, namespace);
     },
     enabled: !!task && !!driverLogUri && selectedTab === 3,
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
@@ -233,11 +233,7 @@ function TaskNodeDetail({
     (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
-  const sysLogDetails = driverLogsInfo?.get(SYS_LOGS_DETAILS);
-  const sysLogsBannerMessage = driverLogUri
-    ? driverLogsInfo?.get(SYS_LOGS_BANNER_MESSAGE)
-    : 'System logs are not available yet.';
-  const sysLogsBannerAdditionalInfo = driverLogsInfo?.get(SYS_LOGS_BANNER_ADDITIONAL_INFO);
+  const systemLogsInfo = driverLogUri ? driverLogsInfo : SYSTEM_LOGS_UNAVAILABLE;
 
   return (
     <div className={commonCss.page}>
@@ -265,38 +261,21 @@ function TaskNodeDetail({
           </div>
         )}
         {selectedTab === 2 && (
-          <div className={commonCss.page}>
-            {logsBannerMessage && (
-              <Banner
-                message={logsBannerMessage}
-                additionalInfo={logsBannerAdditionalInfo}
-                mode={logsDetails ? 'info' : 'error'}
-              />
-            )}
-            {logsDetails && (
-              <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
-                <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
-              </div>
-            )}
-          </div>
+          <LogsTabPanel
+            details={logsDetails || undefined}
+            bannerMessage={logsBannerMessage}
+            bannerAdditionalInfo={logsBannerAdditionalInfo}
+            bannerMode={logsDetails ? 'info' : 'error'}
+          />
         )}
-        {/* System Logs tab */}
         {selectedTab === 3 && (
-          <div className={commonCss.page}>
-            {sysLogsBannerMessage && (
-              <Banner
-                message={sysLogsBannerMessage}
-                additionalInfo={sysLogsBannerAdditionalInfo}
-                mode={driverLogUri ? 'error' : 'info'}
-                refresh={driverLogUri ? () => void refetchDriverLogs() : undefined}
-              />
-            )}
-            {!sysLogsBannerMessage && sysLogDetails !== undefined && (
-              <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
-                <LogViewer logLines={sysLogDetails.split(/[\r\n]+/)} />
-              </div>
-            )}
-          </div>
+          <LogsTabPanel
+            details={systemLogsInfo?.get(LOGS_DETAILS)}
+            bannerMessage={systemLogsInfo?.get(LOGS_BANNER_MESSAGE)}
+            bannerAdditionalInfo={systemLogsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO)}
+            bannerMode={driverLogUri ? 'error' : 'info'}
+            onRefresh={driverLogUri ? () => void refetchDriverLogs() : undefined}
+          />
         )}
       </div>
     </div>
@@ -475,24 +454,58 @@ function TaskVolumeMountsDetails({
   return <DetailsTable title='Volume Mounts' fields={fields} />;
 }
 
-async function getDriverLogsInfo(
-  task: V2beta1PipelineTask,
+interface LogsTabPanelProps {
+  details?: string;
+  bannerMessage?: string;
+  bannerAdditionalInfo?: string;
+  bannerMode: 'info' | 'error';
+  onRefresh?: () => void;
+}
+
+function LogsTabPanel({
+  details,
+  bannerMessage,
+  bannerAdditionalInfo,
+  bannerMode,
+  onRefresh,
+}: LogsTabPanelProps) {
+  return (
+    <div className={commonCss.page}>
+      {bannerMessage && (
+        <Banner
+          message={bannerMessage}
+          additionalInfo={bannerAdditionalInfo}
+          mode={bannerMode}
+          refresh={onRefresh}
+        />
+      )}
+      {details !== undefined && (
+        <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
+          <LogViewer logLines={details.split(/[\r\n]+/)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Location of the driver (system) log artifact recorded by the centralized driver, if any. */
+export function getDriverLogUri(task?: V2beta1PipelineTask): string | undefined {
+  const driverLogUri = task?.status_metadata?.custom_properties?.driver_logs_uri;
+  return typeof driverLogUri === 'string' && driverLogUri ? driverLogUri : undefined;
+}
+
+// Uses the same keys as getLogsInfo so both log tabs render through LogsTabPanel.
+export async function getDriverLogsInfo(
+  driverLogUri: string,
   namespace?: string,
 ): Promise<Map<string, string>> {
   const logsInfo = new Map<string, string>();
-  const driverLogUri = task.status_metadata?.custom_properties?.driver_logs_uri;
-
   try {
-    if (typeof driverLogUri === 'string' && driverLogUri) {
-      const logsDetails = await readArtifactFile({ uri: driverLogUri }, namespace);
-      logsInfo.set(SYS_LOGS_DETAILS, logsDetails);
-    }
-  } catch (artifactErr) {
-    const errMsg = await errorToMessage(artifactErr);
-    logsInfo.set(SYS_LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.');
-    logsInfo.set(SYS_LOGS_BANNER_ADDITIONAL_INFO, 'Error response: ' + errMsg);
+    logsInfo.set(LOGS_DETAILS, await readArtifactFile({ uri: driverLogUri }, namespace));
+  } catch (error) {
+    logsInfo.set(LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.');
+    logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, `Error response: ${await errorToMessage(error)}`);
   }
-
   return logsInfo;
 }
 

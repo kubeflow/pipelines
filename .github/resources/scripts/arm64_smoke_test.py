@@ -186,6 +186,36 @@ class InventoryTests(unittest.TestCase):
             viewer["spec"]["template"]["spec"]["containers"][0]
             ["imagePullPolicy"], "IfNotPresent")
 
+    def test_driver_plugin_patch_replaces_only_the_image(self):
+        base = yaml.safe_load(
+            yaml.safe_load(smoke.DRIVER_PLUGIN_MANIFEST.read_text())["data"]
+            ["sidecar.container"])
+        patch = smoke.driver_plugin_patch("kind-registry:5000/driver:ci")
+        self.assertEqual(patch["metadata"],
+                         {"name": "ml-pipeline-driver-agent"})
+        self.assertEqual(list(patch["data"]), ["sidecar.container"])
+        sidecar = yaml.safe_load(patch["data"]["sidecar.container"])
+        self.assertEqual(sidecar["image"], "kind-registry:5000/driver:ci")
+        self.assertEqual({**base, "image": sidecar["image"]}, sidecar)
+        self.assertNotEqual(base["image"], sidecar["image"])
+        self.assertEqual(list(sidecar), list(base))
+
+    def test_driver_plugin_patch_rejects_unexpected_manifests(self):
+        sidecar = "name: driver-plugin\nimage: ghcr.io/kubeflow/kfp-driver:1\n"
+        for message, manifest in (
+            ("no data.sidecar.container", "kind: ConfigMap\n"),
+            ("no data.sidecar.container", "data:\n  other: value\n"),
+            ("no data.sidecar.container", "data:\n  sidecar.container: [1]\n"),
+            ("no image field", "data:\n  sidecar.container: |\n    name: x\n"),
+            ("no image field", "data:\n  sidecar.container: |\n    - " +
+             sidecar.replace("\n", "\n      ") + "\n"),
+        ):
+            with self.subTest(manifest=manifest):
+                path = mock.Mock(read_text=mock.Mock(return_value=manifest))
+                with mock.patch.object(smoke, "DRIVER_PLUGIN_MANIFEST", path):
+                    with self.assertRaisesRegex(ValueError, message):
+                        smoke.driver_plugin_patch("image:ci")
+
     @unittest.skipUnless(
         shutil.which("kubectl"),
         "kubectl is needed to render the stock overlay")

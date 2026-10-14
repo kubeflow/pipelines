@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
@@ -35,8 +36,6 @@ import (
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 )
-
-type driverPlugin map[string]map[string]map[string]interface{}
 
 // LoadPipelineSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)
 func LoadPipelineSpecsFromIR(pipelineIRFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
@@ -91,29 +90,24 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
-// ConfigurePluginSettings - Add/Remove cache_disabled args in the driver-plugin
+// ConfigurePluginSettings sets cache_disabled in every driver-plugin template.
+// remove=true yields the cache-enabled golden form.
 func ConfigurePluginSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
 	configuredWorkflow := workflow.DeepCopy()
 	for i, template := range configuredWorkflow.Spec.Templates {
-		if template.Plugin != nil {
-			var pluginMap driverPlugin
-			if err := json.Unmarshal(template.Plugin.Value, &pluginMap); err == nil {
-				if driverPlugin, ok := pluginMap["driver-plugin"]; ok {
-					if args, ok := driverPlugin["args"]; ok {
-						if remove {
-							args["cache_disabled"] = false
-						} else {
-							args["cache_disabled"] = true
-						}
-					}
-				}
-				jsonPlugin, err := json.Marshal(pluginMap)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to marshal plugin map")
-				configuredWorkflow.Spec.Templates[i].Plugin.Value = jsonPlugin
-			}
+		if template.Plugin == nil {
+			continue
 		}
+		plugin, owned, err := driverapi.DecodePluginConfig(template.Plugin.Value)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to decode plugin config for template %q", template.Name)
+		if !owned {
+			continue
+		}
+		plugin.Args["cache_disabled"] = !remove
+		value, err := driverapi.EncodePluginValue(plugin.Args)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to encode plugin config for template %q", template.Name)
+		configuredWorkflow.Spec.Templates[i].Plugin.Value = value
 	}
-
 	return configuredWorkflow
 }
 

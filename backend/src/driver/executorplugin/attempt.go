@@ -16,114 +16,82 @@ package executorplugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"strings"
-	"sync"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	workflowclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/types"
 )
 
+// attemptResolver identifies the active taskset attempt a request belongs to,
+// as "<workflow UID>/<taskset node ID>".
 type attemptResolver func(context.Context, driverapi.DriverPluginArgs) (string, error)
 
-func inClusterAttemptResolver() attemptResolver {
-	var mu sync.Mutex
-	var resolver attemptResolver
+func tasksetAttemptResolver(agent agentLoader, taskset tasksetSource) attemptResolver {
 	return func(ctx context.Context, args driverapi.DriverPluginArgs) (string, error) {
-		mu.Lock()
-		if resolver == nil {
-			// Retry bootstrap failures; only reuse successfully configured clients.
-			namespace, pod, err := executorPluginIdentity(podNamespacePath)
-			if err != nil {
-				mu.Unlock()
-				return "", err
-			}
-			cfg, err := executorPluginKubernetesConfig()
-			if err != nil {
-				mu.Unlock()
-				return "", err
-			}
-			kube, err := kubernetes.NewForConfig(cfg)
-			if err != nil {
-				mu.Unlock()
-				return "", err
-			}
-			argo, err := workflowclient.NewForConfig(cfg)
-			if err != nil {
-				mu.Unlock()
-				return "", err
-			}
-			resolver = tasksetAttemptResolver(kube, argo, namespace, pod)
-		}
-		resolve := resolver
-		mu.Unlock()
-		return resolve(ctx, args)
-	}
-}
-
-func tasksetAttemptResolver(kube kubernetes.Interface, argo workflowclient.Interface, namespace, podName string) attemptResolver {
-	return func(ctx context.Context, args driverapi.DriverPluginArgs) (string, error) {
-		pod, err := validatedAgentPod(ctx, kube, namespace, podName, args)
+		clients, err := agent(ctx)
 		if err != nil {
 			return "", err
 		}
-		owner := metav1.GetControllerOf(pod)
-		if owner.UID == "" {
-			return "", fmt.Errorf("agent Workflow owner UID is empty")
+		if err := clients.validateRequest(args); err != nil {
+			return "", err
 		}
-		taskset, err := argo.ArgoprojV1alpha1().WorkflowTaskSets(namespace).Get(ctx, args.RunName, metav1.GetOptions{})
+		owner := clients.workflow
+		current, err := taskset(ctx, clients)
 		if err != nil {
 			return "", err
 		}
-		if taskset.Namespace != namespace || taskset.Name != owner.Name {
-			return "", fmt.Errorf("taskset identity does not match agent Workflow")
+		if current.Namespace != clients.pod.Namespace || current.Name != owner.Name {
+			return "", fmt.Errorf("WorkflowTaskSet %s/%s does not belong to agent Workflow %s/%s; report this driver bug", current.Namespace, current.Name, clients.pod.Namespace, owner.Name)
 		}
-		owned := false
-		for _, ref := range taskset.OwnerReferences {
-			if ref.APIVersion == owner.APIVersion && ref.Kind == owner.Kind && ref.Name == owner.Name && ref.UID == owner.UID {
-				owned = true
-			}
+		if !ownedByWorkflow(current, owner.UID) {
+			return "", fmt.Errorf("WorkflowTaskSet %s/%s is not owned by agent Workflow UID %s; wait for Argo to recreate it", current.Namespace, current.Name, owner.UID)
 		}
-		if !owned {
-			return "", fmt.Errorf("taskset owner does not match agent Workflow UID")
-		}
-		var match string
-		for id, tmpl := range taskset.Spec.Tasks {
-			if tmpl.Plugin == nil {
-				continue
-			}
-			encoded, err := json.Marshal(map[string]any{"template": tmpl})
-			if err != nil {
-				return "", err
-			}
-			request, err := http.NewRequestWithContext(ctx, http.MethodPost, "/", strings.NewReader(string(encoded)))
-			if err != nil {
-				return "", err
-			}
-			candidate, err := parseDriverRequestArgs(request)
-			if err != nil {
-				return "", fmt.Errorf("invalid taskset driver template: %w", err)
-			}
-			if candidate == nil || argsDigest(*candidate) != argsDigest(args) {
-				continue
-			}
-			phase := taskset.Status.Nodes[id].Phase
-			if phase == workflowapi.NodeSucceeded || phase == workflowapi.NodeFailed || phase == workflowapi.NodeError || phase == workflowapi.NodeSkipped || phase == workflowapi.NodeOmitted {
-				continue
-			}
-			if match != "" || id == "" {
-				return "", fmt.Errorf("ambiguous active driver taskset match")
-			}
-			match = id
-		}
-		if match == "" {
-			return "", fmt.Errorf("no active driver taskset match")
+		match, err := activeAttempt(current, args)
+		if err != nil {
+			return "", err
 		}
 		return string(owner.UID) + "/" + match, nil
 	}
+}
+
+func ownedByWorkflow(taskset *workflowapi.WorkflowTaskSet, workflowUID types.UID) bool {
+	for _, ref := range taskset.OwnerReferences {
+		if ref.Kind == "Workflow" && ref.UID == workflowUID {
+			return true
+		}
+	}
+	return false
+}
+
+// activeAttempt finds the single unfinished taskset node whose driver-plugin
+// args match the request. A retried node has a new ID while the old one stays
+// in a terminal phase.
+func activeAttempt(taskset *workflowapi.WorkflowTaskSet, args driverapi.DriverPluginArgs) (string, error) {
+	want := argsDigest(args)
+	var match string
+	for id, tmpl := range taskset.Spec.Tasks {
+		if tmpl.Plugin == nil {
+			continue
+		}
+		candidate, owned, err := driverapi.ParseDriverPluginArgs(tmpl.Plugin.Value)
+		if err != nil {
+			return "", fmt.Errorf("WorkflowTaskSet node %q has an invalid driver template; recompile the pipeline with a current API server: %w", id, err)
+		}
+		if !owned || argsDigest(*candidate) != want {
+			continue
+		}
+		switch taskset.Status.Nodes[id].Phase {
+		case workflowapi.NodeSucceeded, workflowapi.NodeFailed, workflowapi.NodeError, workflowapi.NodeSkipped, workflowapi.NodeOmitted:
+			continue
+		}
+		if match != "" || id == "" {
+			return "", fmt.Errorf("WorkflowTaskSet %s/%s has more than one active node for task %q; wait for Argo to reconcile", taskset.Namespace, taskset.Name, args.TaskName)
+		}
+		match = id
+	}
+	if match == "" {
+		return "", fmt.Errorf("WorkflowTaskSet %s/%s has no active node for task %q; retry after Argo adds the task", taskset.Namespace, taskset.Name, args.TaskName)
+	}
+	return match, nil
 }

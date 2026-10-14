@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executorplugin
+package driverinputs
 
 import (
 	"context"
@@ -20,12 +20,12 @@ import (
 	"strconv"
 	"time"
 
-	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
+	workflowclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -33,34 +33,34 @@ const (
 	pipelineJobScheduleTimeUTCPlaceholder = "{{$.pipeline_job_schedule_time_utc}}"
 )
 
-func getCurrentWorkflowMetadata(ctx context.Context, restConfig *rest.Config, namespace string, workflowName string) (*metav1.ObjectMeta, error) {
+// CurrentWorkflowMetadata reads the owning Workflow when the run lacks times.
+func CurrentWorkflowMetadata(ctx context.Context, argo workflowclient.Interface, namespace string, workflowName string) (*metav1.ObjectMeta, error) {
 	if workflowName == "" {
 		return nil, fmt.Errorf("workflow name is empty; set run_name to the owning Workflow name")
 	}
-	argoClient, err := argoclient.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize argo client for workflow metadata; check the Kubernetes API endpoint and TLS settings: %w", err)
-	}
-	workflow, err := argoClient.ArgoprojV1alpha1().Workflows(namespace).Get(ctx, workflowName, metav1.GetOptions{})
+	workflow, err := argo.ArgoprojV1alpha1().Workflows(namespace).Get(ctx, workflowName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve workflow %q; check that it exists and the plugin service account has workflows/get permission: %w", workflowName, err)
 	}
 	return &workflow.ObjectMeta, nil
 }
 
-type workflowMetadataGetter func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error)
+// WorkflowMetadataGetter abstracts the Workflow read for tests.
+type WorkflowMetadataGetter func(ctx context.Context, namespace string, workflowName string) (*metav1.ObjectMeta, error)
 
-type pipelineJobTimePlaceholderUsage struct {
+// PlaceholderUsage records which pipeline job time placeholders a task uses.
+type PlaceholderUsage struct {
 	needsCreateTime   bool
 	needsScheduleTime bool
 }
 
-func getPipelineJobTimePlaceholderUsage(
-	driverType string,
+// PipelineJobTimePlaceholderUsage scans a task's constant inputs for time placeholders.
+func PipelineJobTimePlaceholderUsage(
+	driverType driverapi.DriverType,
 	taskSpec *pipelinespec.PipelineTaskSpec,
-) pipelineJobTimePlaceholderUsage {
-	usage := pipelineJobTimePlaceholderUsage{}
-	if driverType == rootDAG || taskSpec == nil {
+) PlaceholderUsage {
+	usage := PlaceholderUsage{}
+	if driverType == driverapi.RootDAGDriver || taskSpec == nil {
 		return usage
 	}
 	for _, inputParamSpec := range taskSpec.GetInputs().GetParameters() {
@@ -85,14 +85,16 @@ func getPipelineJobTimePlaceholderUsage(
 	return usage
 }
 
-func getWorkflowMetadataForPipelineJobTimes(
+// WorkflowMetadataForPipelineJobTimes reads the Workflow only when a used
+// placeholder cannot be filled from the run.
+func WorkflowMetadataForPipelineJobTimes(
 	ctx context.Context,
 	namespace string,
 	workflowName string,
-	placeholderUsage pipelineJobTimePlaceholderUsage,
+	placeholderUsage PlaceholderUsage,
 	createTimeUTC string,
 	scheduleTimeEpochSeconds string,
-	getMetadata workflowMetadataGetter,
+	getMetadata WorkflowMetadataGetter,
 ) (*metav1.ObjectMeta, error) {
 	needsCreateTimeMetadata := placeholderUsage.needsCreateTime && createTimeUTC == ""
 	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime && scheduleTimeEpochSeconds == ""
@@ -136,7 +138,9 @@ func resolvePipelineJobScheduleTimeUTCFromWorkflow(
 	return time.Unix(scheduledEpochSeconds, 0).UTC().Format(time.RFC3339)
 }
 
-func resolvePipelineJobTimes(
+// ResolvePipelineJobTimes returns RFC3339 create and schedule times, falling
+// back to Workflow metadata.
+func ResolvePipelineJobTimes(
 	createTimeUTC string,
 	scheduleTimeEpochSeconds string,
 	workflowMeta *metav1.ObjectMeta,
@@ -149,7 +153,7 @@ func resolvePipelineJobTimes(
 	}
 	scheduleTimeEpoch, err := strconv.ParseInt(scheduleTimeEpochSeconds, 10, 64)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid pipeline job schedule time epoch seconds %q: %w", scheduleTimeEpochSeconds, err)
+		return "", "", fmt.Errorf("invalid pipeline job schedule time epoch seconds %q; check the run's scheduled_at: %w", scheduleTimeEpochSeconds, err)
 	}
 	return createTimeUTC, time.Unix(scheduleTimeEpoch, 0).UTC().Format(time.RFC3339), nil
 }

@@ -15,12 +15,12 @@
 package argocompiler
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 )
 
@@ -55,16 +55,9 @@ func (c *workflowCompiler) driverPluginArgs(driverType string) map[string]interf
 // Create the Argo Workflow executor plugin template with parameters.
 // See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
 func driverPlugin(params map[string]interface{}) (*wfapi.Plugin, error) {
-	pluginConfig := map[string]interface{}{
-		"driver-plugin": map[string]interface{}{
-			"args": params,
-		},
-	}
-	jsonConfig, err := json.Marshal(pluginConfig)
+	value, err := driverapi.EncodePluginValue(params)
 	if err != nil {
-		return nil, fmt.Errorf("driver plugin creation error: marshaling plugin config to JSON failed: %w", err)
+		return nil, fmt.Errorf("driver plugin creation error: %w", err)
 	}
-	return &wfapi.Plugin{Object: wfapi.Object{
-		Value: jsonConfig,
-	}}, nil
+	return &wfapi.Plugin{Object: wfapi.Object{Value: value}}, nil
 }

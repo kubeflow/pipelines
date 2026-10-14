@@ -152,8 +152,13 @@ rules:
     verbs: ["create"]
     # Read workflow identity and schedule metadata with the plugin's own token.
   - apiGroups: ["argoproj.io"]
-    resources: ["workflows", "workflowtasksets"]
+    resources: ["workflows"]
     verbs: ["get"]
+    # The plugin watches its own Workflow's taskset to resolve retried attempts
+    # instead of reading it on every Argo poll.
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtasksets"]
+    verbs: ["get", "list", "watch"]
     # the driver may need permissions to create and delete PVCs
     # see test_data/sdk_compiled_pipelines/valid/pipeline_with_volume.py for example
   - apiGroups: [ "" ]

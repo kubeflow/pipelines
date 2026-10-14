@@ -25,12 +25,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverinputs"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -68,11 +68,11 @@ func executorPluginKubernetesConfig() (*rest.Config, error) {
 func authenticatedPluginHandler(tokenPath string, next http.Handler) (http.Handler, error) {
 	token, err := os.ReadFile(tokenPath)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read executor plugin authentication token: check the Argo token mount: %w", err)
+		return nil, fmt.Errorf("cannot read executor plugin authentication token; check the Argo token mount: %w", err)
 	}
 	expectedToken := strings.TrimSpace(string(token))
 	if expectedToken == "" {
-		return nil, fmt.Errorf("executor plugin authentication token is empty: check the Argo token mount")
+		return nil, fmt.Errorf("executor plugin authentication token is empty; check the Argo token mount")
 	}
 	expectedHeader := []byte("Bearer " + expectedToken)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,23 +92,19 @@ type driverClientManager interface {
 type invocationClients struct {
 	manager          driverClientManager
 	pod              *corev1.Pod
-	workflowMetadata workflowMetadataGetter
+	workflowMetadata driverinputs.WorkflowMetadataGetter
 }
 
-// clientFactory isolates in-cluster identity and client construction, without
-// changing process-wide state for concurrent invocations.
+// clientFactory builds per-invocation KFP API clients on top of the shared
+// agent identity, without changing process-wide state.
 type clientFactory struct {
-	identity         func() (namespace, podName string, err error)
-	kubernetesConfig func() (*rest.Config, error)
-	kubernetesClient func(*rest.Config) (kubernetes.Interface, error)
-	manager          func(*client_manager.Options) (driverClientManager, error)
+	agent   agentLoader
+	manager func(*client_manager.Options) (driverClientManager, error)
 }
 
-func inClusterClientFactory() clientFactory {
+func inClusterClientFactory(agent agentLoader) clientFactory {
 	return clientFactory{
-		identity:         func() (string, string, error) { return executorPluginIdentity(podNamespacePath) },
-		kubernetesConfig: executorPluginKubernetesConfig,
-		kubernetesClient: func(cfg *rest.Config) (kubernetes.Interface, error) { return kubernetes.NewForConfig(cfg) },
+		agent: agent,
 		manager: func(opts *client_manager.Options) (driverClientManager, error) {
 			return client_manager.NewClientManager(opts)
 		},
@@ -118,33 +114,28 @@ func inClusterClientFactory() clientFactory {
 func executorPluginIdentity(namespacePath string) (namespace, podName string, err error) {
 	namespaceBytes, err := os.ReadFile(namespacePath)
 	if err != nil {
-		return "", "", fmt.Errorf("cannot read executor plugin namespace: check the service account mount: %w", err)
+		return "", "", fmt.Errorf("cannot read executor plugin namespace; check the service account mount: %w", err)
 	}
 	namespace = strings.TrimSpace(string(namespaceBytes))
 	if namespace == "" {
-		return "", "", fmt.Errorf("executor plugin namespace is empty: check the service account mount")
+		return "", "", fmt.Errorf("executor plugin namespace is empty; check the service account mount")
 	}
 	podName, err = config.InPodName()
 	if err != nil {
-		return "", "", fmt.Errorf("cannot determine executor plugin Pod name: check the KFP_POD_NAME environment variable: %w", err)
+		return "", "", fmt.Errorf("cannot determine executor plugin Pod name; check the KFP_POD_NAME environment variable: %w", err)
 	}
 	return namespace, podName, nil
 }
 
 func (f clientFactory) newDriverClientManager(ctx context.Context, args driverapi.DriverPluginArgs, caCertPath string) (*invocationClients, error) {
-	podNamespace, podName, err := f.identity()
+	agent, err := f.agent(ctx)
 	if err != nil {
 		return nil, err
 	}
-	restConfig, err := f.kubernetesConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load executor plugin Kubernetes config: check the service account mount: %w", err)
+	if err := agent.validateRequest(args); err != nil {
+		return nil, err
 	}
-	k8sClient, err := f.kubernetesClient(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize executor plugin Kubernetes client: %w", err)
-	}
-	apiConfig, pod, err := driverAPIClientConfig(ctx, k8sClient, podNamespace, podName, args)
+	apiConfig, err := driverAPIClientConfig(agent, args)
 	if err != nil {
 		return nil, err
 	}
@@ -152,59 +143,38 @@ func (f clientFactory) newDriverClientManager(ctx context.Context, args driverap
 		MLPipelineTLSEnabled: args.MlPipelineTLSEnabled,
 		CaCertPath:           caCertPath,
 		APIClientConfig:      apiConfig,
-		K8sClient:            k8sClient,
+		K8sClient:            agent.kube,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize driver API client: check the KFP endpoint and TLS settings: %w", err)
+		return nil, fmt.Errorf("failed to initialize driver API client; check the KFP endpoint and TLS settings: %w", err)
 	}
 	return &invocationClients{
-		manager: manager, pod: pod,
+		manager: manager, pod: agent.pod,
 		workflowMetadata: func(ctx context.Context, namespace, workflowName string) (*metav1.ObjectMeta, error) {
-			return getCurrentWorkflowMetadata(ctx, restConfig, namespace, workflowName)
+			return driverinputs.CurrentWorkflowMetadata(ctx, agent.argo, namespace, workflowName)
 		},
 	}, nil
 }
 
-func validatedAgentPod(ctx context.Context, k8sClient kubernetes.Interface, podNamespace, podName string, args driverapi.DriverPluginArgs) (*corev1.Pod, error) {
-	if podNamespace == "" || podName == "" || args.Namespace != podNamespace {
-		return nil, fmt.Errorf("driver request namespace does not match its agent Pod: use the workflow namespace")
-	}
-	pod, err := k8sClient.CoreV1().Pods(podNamespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get executor plugin Pod: check the plugin service account's pods/get permission: %w", err)
-	}
-	// Request fields select work, but cannot select the identity used to mint tokens.
-	if args.RunID == "" || pod.Labels[util.LabelKeyWorkflowRunId] != args.RunID {
-		return nil, fmt.Errorf("driver request run ID does not match its agent Pod: use the Pod's pipeline/runid")
-	}
-	owner := metav1.GetControllerOf(pod)
-	if owner == nil || owner.APIVersion != "argoproj.io/v1alpha1" || owner.Kind != "Workflow" || owner.Name != args.RunName {
-		return nil, fmt.Errorf("driver request workflow does not own its agent Pod: use the owning workflow name")
-	}
-	return pod, nil
-}
-
-func driverAPIClientConfig(ctx context.Context, k8sClient kubernetes.Interface, podNamespace, podName string, args driverapi.DriverPluginArgs) (*apiclient.Config, *corev1.Pod, error) {
-	pod, err := validatedAgentPod(ctx, k8sClient, podNamespace, podName, args)
-	if err != nil {
-		return nil, nil, err
-	}
+// driverAPIClientConfig binds the KFP API token to the agent Pod's run.
+func driverAPIClientConfig(agent *agentClients, args driverapi.DriverPluginArgs) (*apiclient.Config, error) {
 	audience := args.KFPTokenAudience
 	if audience == "" {
 		audience = common.DefaultTokenReviewAudience + common.TokenAudienceRunPrefix + args.RunID
 	}
 	runSuffix := common.TokenAudienceRunPrefix + args.RunID
 	if !strings.HasSuffix(audience, runSuffix) || audience == runSuffix {
-		return nil, nil, fmt.Errorf("KFP token audience is not bound to the agent Pod's run: use <KFP audience>/runs/<run ID>")
+		return nil, fmt.Errorf("KFP token audience %q is not bound to the agent Pod's run; use <KFP audience>/runs/<run ID>", audience)
 	}
-	source, err := apiclient.NewServiceAccountTokenSource(k8sClient.CoreV1().ServiceAccounts(podNamespace),
+	pod := agent.pod
+	source, err := apiclient.NewServiceAccountTokenSource(agent.kube.CoreV1().ServiceAccounts(pod.Namespace),
 		pod.Spec.ServiceAccountName, audience, pod.Name, string(pod.UID))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to configure run-bound token source: check the agent Pod service account and UID: %w", err)
+		return nil, fmt.Errorf("failed to configure run-bound token source; check the agent Pod service account and UID: %w", err)
 	}
 	apiConfig := apiClientConfig(args)
 	apiConfig.TokenSource = source
-	return apiConfig, pod, nil
+	return apiConfig, nil
 }
 
 // apiClientConfig builds settings for this invocation without changing process env.

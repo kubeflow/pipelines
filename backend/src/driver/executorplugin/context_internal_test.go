@@ -17,6 +17,8 @@ package executorplugin
 import (
 	"context"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverlogs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -47,7 +49,7 @@ func TestInvocationProxyAndVerbosityAreLocal(t *testing.T) {
 			_, _ = fmt.Fprintf(w, `{"run":{"info":{"run_id":"%s"}}}`, level)
 		}))
 		defer proxy.Close()
-		runner, args, _, _ := invocationFixture(t, containerDriver)
+		runner, args, _, _ := invocationFixture(t, driverapi.ContainerDriver)
 		args.HTTPProxy = proxy.URL
 		args.LogLevel = level
 		runner.execute = func(ctx context.Context, _ drivercommon.Options, _ client_manager.ClientManagerInterface) (*driver.Execution, error) {
@@ -61,7 +63,7 @@ func TestInvocationProxyAndVerbosityAreLocal(t *testing.T) {
 			assert.Equal(t, level, id)
 			return &driver.Execution{TaskID: id}, err
 		}
-		runner.uploadLogs = func(_ context.Context, log *driverLogArtifactContext, _ kubernetes.Interface) error {
+		runner.uploadLogs = func(_ context.Context, log *driverlogs.ArtifactContext, _ kubernetes.Interface) error {
 			data, err := os.ReadFile(log.LocalPath)
 			assert.NoError(t, err)
 			assert.Contains(t, string(data), "ordinary-driver-diagnostic")
@@ -77,7 +79,7 @@ func TestInvocationProxyAndVerbosityAreLocal(t *testing.T) {
 func TestInvocationProxyDirectAndNoProxy(t *testing.T) {
 	t.Setenv("HTTP_PROXY", "http://process-proxy.invalid")
 	for _, noProxy := range []string{"", "mlflow.internal"} {
-		runner, args, _, _ := invocationFixture(t, containerDriver)
+		runner, args, _, _ := invocationFixture(t, driverapi.ContainerDriver)
 		args.NoProxy = noProxy
 		if noProxy != "" {
 			args.HTTPProxy = "http://request-proxy.invalid"
@@ -91,7 +93,7 @@ func TestInvocationProxyDirectAndNoProxy(t *testing.T) {
 			assert.Nil(t, selected)
 			return &driver.Execution{}, nil
 		}
-		runner.uploadLogs = func(context.Context, *driverLogArtifactContext, kubernetes.Interface) error { return nil }
+		runner.uploadLogs = func(context.Context, *driverlogs.ArtifactContext, kubernetes.Interface) error { return nil }
 		_, err := runner.drive(context.Background(), args)
 		require.NoError(t, err)
 	}
@@ -99,7 +101,7 @@ func TestInvocationProxyDirectAndNoProxy(t *testing.T) {
 
 func TestInvalidInvocationVerbosity(t *testing.T) {
 	for _, level := range []string{"", "-1", "verbose"} {
-		runner, args, _, _ := invocationFixture(t, containerDriver)
+		runner, args, _, _ := invocationFixture(t, driverapi.ContainerDriver)
 		args.LogLevel = level
 		_, err := runner.drive(context.Background(), args)
 		require.ErrorContains(t, err, "nonnegative integer")

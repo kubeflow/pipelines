@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import runpy
@@ -86,7 +87,7 @@ def test_botocore_import_preserves_other_missing_modules(missing_module):
     assert raised.value is error
 
 
-def observed_attachments(proxy_enabled=False, ready=False):
+def observed_attachments(proxy_enabled=False, ready=False, ca=False):
     secrets = {
         f"{NAMESPACE}/mlpipeline-minio-artifact": EXISTING_SECRET,
     }
@@ -96,6 +97,8 @@ def observed_attachments(proxy_enabled=False, ready=False):
                 {},
             f"{NAMESPACE}/default-editor.service-account-token": {},
         })
+    if ready and ca:
+        secrets[f"{NAMESPACE}/{sync.DRIVER_AGENT_CA_SECRET_NAME}"] = {}
     return {
         "Secret.v1": secrets,
         "ConfigMap.v1": {
@@ -156,7 +159,7 @@ def post_sync(server, parent, attachments):
     return response.json()
 
 
-def assert_profile_resources(result, expected_image):
+def assert_profile_resources(result, expected_image, ca_cert=None):
     resources = result["attachments"]
     identities = {(item["kind"], item["metadata"]["name"]) for item in resources
                  }
@@ -179,6 +182,15 @@ def assert_profile_resources(result, expected_image):
             item for item in resources if item["kind"] == "Deployment")
         assert deployment["spec"]["template"]["spec"]["containers"][0][
             "image"] == expected_image
+    if ca_cert is not None:
+        expected.add(("Secret", sync.DRIVER_AGENT_CA_SECRET_NAME))
+        secret = next(
+            item for item in resources
+            if item["metadata"]["name"] == sync.DRIVER_AGENT_CA_SECRET_NAME)
+        assert secret["metadata"]["namespace"] == NAMESPACE
+        assert secret["data"] == {
+            "ca.crt": base64.b64encode(ca_cert).decode("utf-8")
+        }
     # No Python visualization Deployment, Service, or Istio resources are desired.
     assert identities == expected
     assert len(resources) == len(expected)
@@ -222,6 +234,68 @@ def test_sync_server_with_direct_settings(start_sync_server):
     result = post_sync(server, PARENT, observed_attachments(True, True))
     assert result["status"] == {"kubeflow-pipelines-ready": "True"}
     assert_profile_resources(result, "direct-image:direct-tag")
+
+
+def start_ca_server(start_sync_server, ca_cert_path):
+    return start_sync_server(
+        frontend_image="image",
+        frontend_tag="tag",
+        disable_istio_sidecar=False,
+        artifacts_proxy_enabled="false",
+        artifact_retention_days=-1,
+        controller_port=0,
+        driver_agent_ca_cert_path=str(ca_cert_path),
+    )
+
+
+def test_sync_copies_driver_agent_ca_into_profile(start_sync_server, tmp_path):
+    ca_cert_path = tmp_path / "ca.crt"
+    ca_cert_path.write_bytes(b"-----BEGIN CERTIFICATE-----\nfirst\n")
+    server = start_ca_server(start_sync_server, ca_cert_path)
+
+    result = post_sync(server, PARENT, observed_attachments(ready=True))
+    # The copy is not observed yet, so the profile is not ready.
+    assert result["status"] == {"kubeflow-pipelines-ready": "False"}
+    assert_profile_resources(result, None, ca_cert_path.read_bytes())
+
+    result = post_sync(server, PARENT,
+                       observed_attachments(ready=True, ca=True))
+    assert result["status"] == {"kubeflow-pipelines-ready": "True"}
+    assert_profile_resources(result, None, ca_cert_path.read_bytes())
+
+    # Rotation: the next sync carries the current CA without a restart.
+    ca_cert_path.write_bytes(b"-----BEGIN CERTIFICATE-----\nrotated\n")
+    result = post_sync(server, PARENT,
+                       observed_attachments(ready=True, ca=True))
+    assert_profile_resources(result, None, ca_cert_path.read_bytes())
+
+
+@pytest.mark.parametrize("state", ["missing", "empty"])
+def test_sync_without_driver_agent_ca_is_unchanged(start_sync_server, tmp_path,
+                                                   state):
+    ca_cert_path = tmp_path / "ca.crt"
+    if state == "empty":
+        ca_cert_path.write_bytes(b"")
+    server = start_ca_server(start_sync_server, ca_cert_path)
+
+    result = post_sync(server, PARENT, observed_attachments(ready=True))
+    assert result["status"] == {"kubeflow-pipelines-ready": "True"}
+    assert_profile_resources(result, None)
+
+
+def test_driver_agent_ca_cert_path_default_and_override():
+    with mock.patch.dict(os.environ, ENV_BASE, clear=True):
+        assert get_settings_from_env()["driver_agent_ca_cert_path"] == ""
+    with mock.patch.dict(
+            os.environ, {
+                **ENV_BASE, "DRIVER_AGENT_CA_CERT_PATH":
+                    "/etc/kfp/driver-agent-ca/ca.crt"
+            },
+            clear=True):
+        assert get_settings_from_env()["driver_agent_ca_cert_path"] == \
+            "/etc/kfp/driver-agent-ca/ca.crt"
+        assert get_settings_from_env(
+            driver_agent_ca_cert_path="")["driver_agent_ca_cert_path"] == ""
 
 
 @pytest.mark.parametrize("sync_server", [ENV_BASE], indirect=True)

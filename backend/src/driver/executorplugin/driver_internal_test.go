@@ -19,12 +19,14 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverlogs"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
@@ -74,7 +76,7 @@ func (m *invocationManager) Close() error {
 	return nil
 }
 
-func invocationFixture(t *testing.T, kind string) (*driverRunner, driverapi.DriverPluginArgs, *invocationAPI, *invocationManager) {
+func invocationFixture(t *testing.T, kind driverapi.DriverType) (*driverRunner, driverapi.DriverPluginArgs, *invocationAPI, *invocationManager) {
 	t.Helper()
 	spec := &structpb.Struct{}
 	require.NoError(t, protojson.Unmarshal([]byte(`{
@@ -85,16 +87,16 @@ func invocationFixture(t *testing.T, kind string) (*driverRunner, driverapi.Driv
 	api := &invocationAPI{run: &gc.Run{RunId: "run-id", RuntimeConfig: &gc.RuntimeConfig{PipelineRoot: "s3://bucket/root"}}, spec: spec}
 	manager := &invocationManager{api: api, k8s: fake.NewSimpleClientset()}
 	args := driverapi.DriverPluginArgs{
-		Type: kind, Namespace: "ns", PipelineName: "pipeline", RunID: "run-id", RunName: "workflow", IterationIndex: "-1", LogLevel: "1",
+		DriverType: kind, Namespace: "ns", PipelineName: "pipeline", RunID: "run-id", RunName: "workflow", IterationIndex: "-1", LogLevel: "1", PublishLogs: "true",
 	}
-	if kind != rootDAG {
+	if kind != driverapi.RootDAGDriver {
 		args.ParentTaskID = "parent"
 		args.TaskName = "task"
 	}
-	if kind == dagDriver {
+	if kind == driverapi.DAGDriver {
 		args.TaskName = "group"
 	}
-	runner := newDriverRunner()
+	runner := newDriverRunner(nil)
 	runner.logDirectory = t.TempDir()
 	runner.newClients = func(context.Context, driverapi.DriverPluginArgs, string) (*invocationClients, error) {
 		return &invocationClients{manager: manager, pod: &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "agent", UID: "agent-uid"}},
@@ -108,9 +110,9 @@ func invocationFixture(t *testing.T, kind string) (*driverRunner, driverapi.Driv
 }
 
 func TestDriveSetupAndExecution(t *testing.T) {
-	for _, kind := range []string{rootDAG, dagDriver, containerDriver} {
+	for _, kind := range []driverapi.DriverType{driverapi.RootDAGDriver, driverapi.DAGDriver, driverapi.ContainerDriver} {
 		for _, executionErr := range []error{nil, assert.AnError} {
-			t.Run(kind+"/"+map[bool]string{true: "failure", false: "success"}[executionErr != nil], func(t *testing.T) {
+			t.Run(string(kind)+"/"+map[bool]string{true: "failure", false: "success"}[executionErr != nil], func(t *testing.T) {
 				runner, args, _, manager := invocationFixture(t, kind)
 				t.Setenv(caCertPathEnvVar, "/cert/path")
 				args.RuntimeConfig = `{"parameterValues":{"input":"value"}}`
@@ -122,17 +124,17 @@ func TestDriveSetupAndExecution(t *testing.T) {
 				runner.execute = func(ctx context.Context, options drivercommon.Options, clients client_manager.ClientManagerInterface) (*driver.Execution, error) {
 					events = append(events, "execute")
 					assert.Same(t, manager, clients)
-					assert.Equal(t, kind, options.DriverType)
+					assert.Equal(t, string(kind), options.DriverType)
 					assert.Equal(t, "agent", options.PodName)
 					assert.Equal(t, "agent-uid", options.PodUID)
 					assert.Equal(t, -1, options.IterationIndex)
 					assert.Equal(t, "/cert/path", options.CaCertPath)
 					assert.NotNil(t, options.Component)
-					if kind == rootDAG {
+					if kind == driverapi.RootDAGDriver {
 						require.NotNil(t, options.RuntimeConfig)
 						assert.Equal(t, "value", options.RuntimeConfig.ParameterValues["input"].GetStringValue())
 					}
-					if kind == containerDriver {
+					if kind == driverapi.ContainerDriver {
 						assert.Equal(t, "test-image", options.Container.Image)
 						assert.Equal(t, "pull-secret", options.KubernetesExecutorConfig.ImagePullSecret[0].SecretName) //nolint:staticcheck // SA1019: Preserve coverage of legacy secretName request compatibility.
 						require.NotNil(t, options.DefaultRunAsNonRoot)
@@ -144,7 +146,7 @@ func TestDriveSetupAndExecution(t *testing.T) {
 					util.GetLoggerFrom(ctx).Info("execution log line")
 					return execution, executionErr
 				}
-				runner.uploadLogs = func(ctx context.Context, log *driverLogArtifactContext, client kubernetes.Interface) error {
+				runner.uploadLogs = func(ctx context.Context, log *driverlogs.ArtifactContext, client kubernetes.Interface) error {
 					events = append(events, "upload")
 					assert.Same(t, manager.k8s, client)
 					assert.Same(t, manager.api, log.KFPAPI)
@@ -189,7 +191,7 @@ func TestDriveSetupFailuresCleanUp(t *testing.T) {
 		clientsCreated, upload bool
 		cause                  error
 	}{
-		{"namespace", "namespace", func(_ *driverRunner, args *driverapi.DriverPluginArgs, _ *invocationAPI) { args.Namespace = "" }, false, false, nil},
+		{"publish logs", "publish_logs", func(_ *driverRunner, args *driverapi.DriverPluginArgs, _ *invocationAPI) { args.PublishLogs = "maybe" }, false, false, nil},
 		{"iteration", "iteration index", func(_ *driverRunner, args *driverapi.DriverPluginArgs, _ *invocationAPI) {
 			args.IterationIndex = "invalid"
 		}, false, false, nil},
@@ -216,14 +218,14 @@ func TestDriveSetupFailuresCleanUp(t *testing.T) {
 		}, true, true, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			runner, args, api, manager := invocationFixture(t, containerDriver)
+			runner, args, api, manager := invocationFixture(t, driverapi.ContainerDriver)
 			closed, uploaded := false, false
 			manager.close = func() error { closed = true; return nil }
 			runner.execute = func(context.Context, drivercommon.Options, client_manager.ClientManagerInterface) (*driver.Execution, error) {
 				t.Fatal("must not execute after setup failure")
 				return nil, nil
 			}
-			runner.uploadLogs = func(_ context.Context, log *driverLogArtifactContext, _ kubernetes.Interface) error {
+			runner.uploadLogs = func(_ context.Context, log *driverlogs.ArtifactContext, _ kubernetes.Interface) error {
 				uploaded = true
 				assert.Nil(t, log.Execution)
 				return nil
@@ -248,7 +250,7 @@ func TestDriveSetupFailuresCleanUp(t *testing.T) {
 }
 
 func TestDriveLoggerCreationFailure(t *testing.T) {
-	runner := newDriverRunner()
+	runner := newDriverRunner(nil)
 	runner.logDirectory = filepath.Join(t.TempDir(), "missing")
 	runner.newClients = func(context.Context, driverapi.DriverPluginArgs, string) (*invocationClients, error) {
 		t.Fatal("no client setup without logger")
@@ -263,7 +265,7 @@ func TestDriveLoggerCreationFailure(t *testing.T) {
 func TestDriveLogStorageSetupFailureIsBestEffort(t *testing.T) {
 	for _, mode := range []string{"pipeline root", "launcher config", "session"} {
 		t.Run(mode, func(t *testing.T) {
-			runner, args, api, manager := invocationFixture(t, rootDAG)
+			runner, args, api, manager := invocationFixture(t, driverapi.RootDAGDriver)
 			if mode == "pipeline root" {
 				api.run.RuntimeConfig = nil
 			}
@@ -277,7 +279,7 @@ func TestDriveLogStorageSetupFailureIsBestEffort(t *testing.T) {
 			runner.execute = func(context.Context, drivercommon.Options, client_manager.ClientManagerInterface) (*driver.Execution, error) {
 				return &driver.Execution{TaskID: "task"}, nil
 			}
-			runner.uploadLogs = func(context.Context, *driverLogArtifactContext, kubernetes.Interface) error {
+			runner.uploadLogs = func(context.Context, *driverlogs.ArtifactContext, kubernetes.Interface) error {
 				t.Fatal("storage setup failed")
 				return nil
 			}
@@ -302,7 +304,7 @@ func TestPublishAndCloseOrderingAndFailures(t *testing.T) {
 			manager := &invocationManager{k8s: fake.NewSimpleClientset()}
 			invocation := &driverInvocation{
 				clients:    &invocationClients{manager: manager},
-				logContext: driverLogArtifactContext{PipelineRoot: "s3://bucket", LocalPath: path},
+				logContext: driverlogs.ArtifactContext{PipelineRoot: "s3://bucket", LocalPath: path},
 				logCloser: closeFunc(func() error {
 					events = append(events, "close log")
 					require.NoError(t, file.Close())
@@ -321,7 +323,7 @@ func TestPublishAndCloseOrderingAndFailures(t *testing.T) {
 				}
 				return assert.AnError
 			}
-			invocation.publishAndClose(context.Background(), func(ctx context.Context, log *driverLogArtifactContext, _ kubernetes.Interface) error {
+			invocation.publishAndClose(context.Background(), func(ctx context.Context, log *driverlogs.ArtifactContext, _ kubernetes.Interface) error {
 				publicationContext = ctx
 				events = append(events, "upload")
 				_, err := file.WriteString("too late")
@@ -346,4 +348,66 @@ func TestPluginDispatcherWithoutRuntimeArgsReturnsNonNil(t *testing.T) {
 	// With no plugins enabled in unit tests, this should be a usable no-op dispatcher.
 	_, err = dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
 	assert.NoError(t, err)
+}
+
+func TestDriveSkipsLogStorageWhenPublishLogsDisabled(t *testing.T) {
+	runner, args, _, manager := invocationFixture(t, driverapi.ContainerDriver)
+	args.PublishLogs = "false"
+	manager.k8s.(*fake.Clientset).PrependReactor("get", "configmaps", func(k8stesting.Action) (bool, runtime.Object, error) {
+		t.Error("log storage must not be resolved when publish_logs is false")
+		return true, nil, assert.AnError
+	})
+	runner.execute = func(context.Context, drivercommon.Options, client_manager.ClientManagerInterface) (*driver.Execution, error) {
+		return &driver.Execution{TaskID: "task"}, nil
+	}
+	runner.uploadLogs = func(context.Context, *driverlogs.ArtifactContext, kubernetes.Interface) error {
+		t.Error("driver logs must not be uploaded when publish_logs is false")
+		return nil
+	}
+	execution, err := runner.drive(context.Background(), args)
+	require.NoError(t, err)
+	assert.Equal(t, "task", execution.TaskID)
+	files, err := os.ReadDir(runner.logDirectory)
+	require.NoError(t, err)
+	assert.Empty(t, files, "local log is still removed")
+}
+
+func TestDriveFailureLinksUnregisteredLogs(t *testing.T) {
+	for _, registered := range []bool{false, true} {
+		t.Run(map[bool]string{false: "log linked in failure", true: "log already on task"}[registered], func(t *testing.T) {
+			runner, args, _, _ := invocationFixture(t, driverapi.ContainerDriver)
+			runner.execute = func(context.Context, drivercommon.Options, client_manager.ClientManagerInterface) (*driver.Execution, error) {
+				return nil, assert.AnError
+			}
+			runner.uploadLogs = func(_ context.Context, log *driverlogs.ArtifactContext, _ kubernetes.Interface) error {
+				log.URI = "s3://bucket/root/driver/log-id-logs"
+				log.Registered = registered
+				return nil
+			}
+			_, err := runner.drive(context.Background(), args)
+			require.ErrorIs(t, err, assert.AnError)
+			assert.Equal(t, !registered, strings.Contains(err.Error(), "(driver logs: s3://bucket/root/driver/log-id-logs)"))
+		})
+	}
+}
+
+func TestPublishAndCloseOutlivesCanceledInvocation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "log")
+	require.NoError(t, os.WriteFile(path, nil, 0600))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	uploaded := false
+	invocation := &driverInvocation{
+		clients:    &invocationClients{manager: &invocationManager{k8s: fake.NewSimpleClientset()}},
+		logContext: driverlogs.ArtifactContext{PipelineRoot: "s3://bucket", LocalPath: path},
+	}
+	invocation.publishAndClose(ctx, func(uploadCtx context.Context, _ *driverlogs.ArtifactContext, _ kubernetes.Interface) error {
+		uploaded = true
+		assert.NoError(t, uploadCtx.Err(), "timed-out drivers still publish their logs")
+		deadline, ok := uploadCtx.Deadline()
+		assert.True(t, ok)
+		assert.WithinDuration(t, time.Now().Add(driverLogPublicationTimeout), deadline, time.Second)
+		return nil
+	})
+	assert.True(t, uploaded)
 }

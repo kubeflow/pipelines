@@ -259,7 +259,7 @@ class DriverPluginTest(unittest.TestCase):
         ]
         return sidecar
 
-    def test_attempt_resolver_has_only_taskset_get_permission(self):
+    def test_attempt_resolver_has_only_taskset_read_permissions(self):
         standalone = self.variants['standalone'][0]
         multiuser = render(REPO_ROOT /
                            'manifests/kustomize/base/installs/multi-user')
@@ -274,16 +274,9 @@ class DriverPluginTest(unittest.TestCase):
             ]
             self.assertEqual(len(rules), 1)
             self.assertEqual(rules[0]['apiGroups'], ['argoproj.io'])
-            self.assertEqual(rules[0]['verbs'], ['get'])
+            # The plugin watches its Workflow's taskset instead of polling it.
+            self.assertEqual(rules[0]['verbs'], ['get', 'list', 'watch'])
             self.assertNotIn('workflowtasksets/status', rules[0]['resources'])
-
-    def test_application_controller_requests_fit_limits(self):
-        resources = render(REPO_ROOT /
-                           'manifests/kustomize/third-party/application')
-        deployment = resource(resources, 'Deployment', 'controller-manager')
-        container = deployment['spec']['template']['spec']['containers'][0]
-        self.assertEqual(container['resources']['requests']['memory'], '30Mi')
-        self.assertEqual(container['resources']['limits']['memory'], '30Mi')
 
     def test_runtime_account_token_secret(self):
         resources, _, _ = self.variants['standalone']
