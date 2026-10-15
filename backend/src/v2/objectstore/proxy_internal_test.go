@@ -171,14 +171,24 @@ func TestS3URLInvocationOptions(t *testing.T) {
 	t.Setenv("AWS_ACCESS_KEY_ID", "test-access")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
 	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	// The URL's endpoint= applies to storage only; STS keeps its own endpoint.
+	t.Setenv("AWS_ENDPOINT_URL_STS", "http://sts.invalid")
 	var assumedRoles atomic.Int32
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		if r.Method == http.MethodPost && strings.Contains(string(body), "Action=AssumeRole") {
 			assumedRoles.Add(1)
+			if r.URL.Host != "sts.invalid" {
+				t.Errorf("AssumeRole sent to %s, want the STS endpoint", r.URL.Host)
+				http.Error(w, "InvalidAction", http.StatusBadRequest)
+				return
+			}
 			w.Header().Set("Content-Type", "text/xml")
 			fmt.Fprint(w, `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>assumed-key</AccessKeyId><SecretAccessKey>assumed-secret</SecretAccessKey><SessionToken>assumed-token</SessionToken><Expiration>2099-01-01T00:00:00Z</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`)
 			return
+		}
+		if r.URL.Host != "storage.invalid" {
+			t.Errorf("object request sent to %s, want the storage endpoint", r.URL.Host)
 		}
 		if r.URL.Path != "/bucket/prefix/log" {
 			t.Errorf("unexpected path %s", r.URL.Path)

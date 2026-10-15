@@ -133,7 +133,19 @@ func (invocationS3URLOpener) OpenBucketURL(ctx context.Context, u *url.URL) (*bl
 		return nil, err
 	}
 	if role != "" {
-		config.Credentials = stscreds.NewAssumeRoleProvider(sts.NewFromConfig(config), role)
+		// The URL's endpoint= names the storage service, so STS must resolve
+		// its own endpoint as the Go CDK opener does, while still using the
+		// invocation HTTP client.
+		stsConfig, err := awsconfig.LoadDefaultConfig(ctx, func(options *awsconfig.LoadOptions) error {
+			*options = *loadOptions
+			options.HTTPClient = client
+			options.EndpointResolverWithOptions = nil
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		config.Credentials = stscreds.NewAssumeRoleProvider(sts.NewFromConfig(stsConfig), role)
 	}
 	bucketOptions.RequestChecksumCalculation = config.RequestChecksumCalculation
 	clientS3 := s3.NewFromConfig(config, func(options *s3.Options) {
