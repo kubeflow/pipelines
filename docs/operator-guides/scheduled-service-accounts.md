@@ -217,8 +217,9 @@ synchronize the same record on every request or prevent other records recovering
    environment (`POD_NAME` and `POD_NAMESPACE` from the Kubernetes downward API)
    and permissions to inspect Deployments and register Pods.
 3. Inspect API/controller logs if scheduling waits. The handoff requires the
-   standard `ml-pipeline` and `ml-pipeline-scheduledworkflow` Deployments in the
-   installation namespace to finish replacing old Pods. Resolve stuck rollouts,
+   discovered API/controller Deployments in the installation namespace to finish
+   replacing old Pods. Discovery uses the existing role labels and container names,
+   so renamed Deployments need no additional configuration. Resolve stuck rollouts,
    terminating or incompatible Pods, and missing handoff permissions. The
    controller exits on invalid Pod identity or denied handoff permissions; correct
    its configuration or RBAC and allow Kubernetes to restart it.
@@ -229,10 +230,80 @@ synchronize the same record on every request or prevent other records recovering
    continue; running pipeline tasks need not drain.
 
 The automatic handoff does not discover separate installations or external
-processes sharing the database. Customized or renamed deployments need an
-explicit plan covering every writer and the managed handoff configuration.
+processes sharing the database. Deployments with changed role identities or unmanaged writers need an
+explicit inventory covering every writer and the managed handoff configuration.
 Do not restore old writable APIs or controllers after adoption. The offline
 command below is available for controlled recovery, not ordinary startup.
+
+### Renamed managed Deployments
+
+Deployment renaming alone needs no extra configuration. The handoff discovers
+Deployments in the installation namespace from their existing Pod-template
+identities: `app: ml-pipeline` with container `ml-pipeline-api-server`, and
+`app: ml-pipeline-scheduledworkflow` with container
+`ml-pipeline-scheduledworkflow`. It inventories Deployments even when they have
+zero replicas or no registered Pods. Both roles must exist; missing peers wait for
+installation or rollout. All matching Deployments are included, so old and new
+Deployments sharing a role during a rename are checked together.
+
+The Pod inventory includes every recognizable writer: matching configured/standard
+role labels or writer container names. A changed `app` label does not hide a
+terminating old Pod with a known container name. Each candidate Pod must match its
+Deployment selector and prove its Pod → ReplicaSet → Deployment owner UIDs. The handoff still checks rollout counts, readiness,
+terminating/legacy Pods, and running-container registration. It discovers the
+Deployment inventory again before accepting handoff, retrying when it changed.
+The stock namespace-scoped handoff Role supplies Pod registration, Deployment
+`get`/`list`, and ReplicaSet `get` permissions; retain these in custom overlays and
+bind them to the actual API/controller service accounts. No new write permission
+or cluster-wide discovery permission is required.
+
+Inconsistent recognizable identities (for example, a standard role label but a
+changed container name) fail closed with a diagnostic. Discovery also treats
+standard Deployment names, labels/selectors, and writer container names as clues
+that an old writer must not be silently omitted. Correct inconsistent wiring or
+use the explicit configuration below when deliberately changing role identities.
+
+#### Explicit identity configuration
+
+For changed `app` labels or container names, set `KFP_SCHEDULE_WRITERS` to the same
+JSON array on **every API and ScheduledWorkflow controller process**. For example:
+
+```yaml
+env:
+- name: KFP_SCHEDULE_WRITERS
+  value: >-
+    [{"role":"api","deployment":"custom-api","app":"custom-api","container":"api-server"},
+     {"role":"controller","deployment":"custom-scheduler","app":"custom-scheduler","container":"scheduler"}]
+```
+
+Each entry names a Deployment, its writer Pods' `app` label, and the writer
+container. Both `api` and `controller` roles are required. Deployment names must
+be unique. Entries may share an `app` label only when role and container agree;
+ownership selects the actual Deployment. Empty, malformed, conflicting or partial
+configurations fail closed. All resources must be in the installation namespace.
+Preserve the Downward API `POD_NAME` and `POD_NAMESPACE` fields and the complete
+handoff Role described above.
+
+The explicit array replaces discovery and must cover **every old and new writer**.
+If changing identities during upgrade, retain an entry for each retiring Deployment
+until its replicas are zero and all its writer Pods have terminated. Do not delete
+a retiring Deployment while it remains configured. Apply the same complete
+configuration to all new processes before beginning handoff; do not change this
+inventory during handoff. A mismatched inventory cannot validate another process's
+registration. After all writers have completed handoff, removing retired entries
+requires a coordinated configuration rollout. Never reintroduce legacy writers.
+
+Configuration is trusted operator input, not tenant schedule data. Discovery cannot
+identify a writer with entirely changed names, labels, selectors and container
+identities, separate installations, or external processes sharing the database.
+Those writers need explicit inventory or coordination. Do not replace both the
+`app` label and container identity in place while old writer Pods are running.
+Coordinate a full old-writer drain or use separately inventoried retiring
+Deployments; one configuration entry
+cannot describe two different Pod identities for a single Deployment. Do not assume discovering
+both standard roles proves there are no other writers. Custom controller readiness
+must not wait for the post-handoff HTTP listener. Renaming alone does not remove
+these constraints.
 
 ### Offline recovery (advanced)
 
