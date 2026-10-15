@@ -1,0 +1,201 @@
+.kfp-viewer-table {
+  width: 100%;
+  min-width: 0;
+  color: var(--foreground);
+}
+.kfp-viewer-table-scroll {
+  overflow: auto;
+  border-radius: var(--kfp-radius);
+}
+.kfp-viewer-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.kfp-viewer-table th {
+  padding: 4px 8px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  text-align: left;
+  font-weight: 600;
+}
+.kfp-viewer-table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.kfp-viewer-table-sort svg {
+  width: 14px;
+  height: 14px;
+}
+.kfp-viewer-table-data td {
+  padding: 6px 8px;
+  border-right-width: 1px;
+  border-right-style: solid;
+  border-right-color: var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.kfp-viewer-table-data td:first-child {
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: var(--border);
+}
+.kfp-viewer-table-unlabelled .kfp-viewer-table-data:first-child td {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--border);
+}
+.kfp-viewer-table-data:hover {
+  background: var(--muted);
+}
+.kfp-viewer-table-compact table {
+  font-size: 12px;
+}
+.kfp-viewer-table-compact .kfp-viewer-table-data td {
+  padding: 4px 5px;
+}
+.kfp-viewer-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-viewer-table-pagination label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kfp-viewer-select {
+  min-height: 36px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--kfp-radius);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+.kfp-viewer-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kfp-viewer-select:focus-visible,
+.kfp-viewer-table-sort:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.kfp-html-viewer {
+  display: block;
+  box-sizing: border-box;
+  flex-grow: 1;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--kfp-radius);
+  background: white;
+}
+.kfp-tensorboard-viewer {
+  display: grid;
+  gap: 16px;
+  color: var(--foreground);
+}
+.kfp-tensorboard-viewer p {
+  margin: 0;
+}
+.kfp-tensorboard-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.kfp-tensorboard-image {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  font-size: 13px;
+}
+.kfp-tensorboard-image > span {
+  font-weight: 600;
+}
+.kfp-markdown-viewer {
+  min-width: 0;
+  color: var(--foreground);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.kfp-markdown-viewer :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1em 0 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.kfp-markdown-viewer h1 {
+  font-size: 24px;
+}
+.kfp-markdown-viewer h2 {
+  font-size: 20px;
+}
+.kfp-markdown-viewer h3 {
+  font-size: 16px;
+}
+.kfp-markdown-viewer :is(h1, h2) {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+.kfp-markdown-viewer :is(p, ul, ol, blockquote) {
+  margin: 12px 0;
+}
+.kfp-markdown-viewer :is(ul, ol) {
+  padding-left: 24px;
+}
+.kfp-markdown-viewer ul {
+  list-style: disc;
+}
+.kfp-markdown-viewer ol {
+  list-style: decimal;
+}
+.kfp-markdown-viewer :is(code, pre) {
+  background: var(--muted);
+  border-radius: var(--kfp-radius);
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+}
+.kfp-markdown-viewer code {
+  padding: 2px 4px;
+}
+.kfp-markdown-viewer pre {
+  overflow: auto;
+  border: 1px solid var(--border);
+  margin: 12px 0;
+  padding: 12px;
+}
+.kfp-markdown-viewer pre code {
+  padding: 0;
+}
+.kfp-markdown-viewer blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 16px;
+  color: var(--muted-foreground);
+}
+.kfp-markdown-viewer img {
+  max-width: 100%;
+  height: auto;
+}
+.kfp-markdown-viewer table {
+  display: block;
+  overflow: auto;
+  border-collapse: collapse;
+}
+.kfp-markdown-viewer :is(th, td) {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+}

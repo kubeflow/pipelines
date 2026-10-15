@@ -2,8 +2,8 @@
 
 exports[`GettingStarted page > initially renders documentation 1`] = `
 <div>
-  <div
-    class="page_f1flacxk f9qqjqd kfp-start-page"
+  <article
+    class="kfp-secondary-page kfp-start-page"
   >
     <div>
       <h2
@@ -15,7 +15,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
         <li>
           Kubeflow Pipelines 
           <a
-            class="link_f1fk43bf"
+            class="kfp-external-link"
             href="https://www.kubeflow.org/docs/pipelines/sdk/v2/"
             rel="noopener"
             target="_blank"
@@ -41,7 +41,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
       <ul>
         <li>
           <a
-            class="link_f1fk43bf"
+            class="kfp-external-link"
             href="#/pipelines"
           >
             Data passing in Python components
@@ -50,7 +50,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
             <li>
               Shows how to pass data between Python components. 
               <a
-                class="link_f1fk43bf"
+                class="kfp-external-link"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
                 rel="noopener"
                 target="_blank"
@@ -62,7 +62,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
         </li>
         <li>
           <a
-            class="link_f1fk43bf"
+            class="kfp-external-link"
             href="#/pipelines"
           >
             DSL - Control structures
@@ -71,7 +71,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
             <li>
               Shows how to use conditional execution and exit handlers. 
               <a
-                class="link_f1fk43bf"
+                class="kfp-external-link"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
                 rel="noopener"
                 target="_blank"
@@ -85,7 +85,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
       <p>
         Want to learn more? 
         <a
-          class="link_f1fk43bf"
+          class="kfp-external-link"
           href="https://www.kubeflow.org/docs/pipelines/tutorials/"
           rel="noopener"
           target="_blank"
@@ -94,7 +94,7 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
         </a>
       </p>
     </div>
-  </div>
+  </article>
 </div>
 `;
 

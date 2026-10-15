@@ -32,10 +32,11 @@ import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { PlotType } from 'src/components/viewers/Viewer';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
-import EnhancedArtifactDetails, { ArtifactDetailsPage } from 'src/pages/ArtifactDetails';
+import ArtifactDetailsWithContext, { ArtifactDetailsPage } from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 
@@ -76,14 +77,16 @@ describe('ArtifactDetails', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialPath]}>
-          <Routes>
-            <Route
-              path={`${RoutePage.ARTIFACT_DETAILS}/*`}
-              element={<EnhancedArtifactDetails {...generateProps()} />}
-            />
-          </Routes>
-        </MemoryRouter>
+        <ThemeProvider defaultTheme='light'>
+          <MemoryRouter initialEntries={[initialPath]}>
+            <Routes>
+              <Route
+                path={`${RoutePage.ARTIFACT_DETAILS}/*`}
+                element={<ArtifactDetailsWithContext {...generateProps()} />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
       </QueryClientProvider>,
     );
     return { ...view, queryClient };
@@ -94,20 +97,29 @@ describe('ArtifactDetails', () => {
     const pageRef = React.createRef<ArtifactDetailsPage>();
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/artifacts/${TEST_ARTIFACT_ID}`]}>
-          <Routes>
-            <Route
-              path={`${RoutePage.ARTIFACT_DETAILS}/*`}
-              element={<ArtifactDetailsPage {...generateProps()} ref={pageRef} />}
-            />
-          </Routes>
-        </MemoryRouter>
+        <ThemeProvider defaultTheme='light'>
+          <MemoryRouter initialEntries={[`/artifacts/${TEST_ARTIFACT_ID}`]}>
+            <Routes>
+              <Route
+                path={`${RoutePage.ARTIFACT_DETAILS}/*`}
+                element={<ArtifactDetailsPage {...generateProps()} ref={pageRef} />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
       </QueryClientProvider>,
     );
     return { ...view, pageRef };
   }
 
+  afterEach(() => vi.unstubAllGlobals());
   beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
     localStorage.clear();
     vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue({ run_id: 'run-1' });
     vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: [] });
@@ -801,8 +813,9 @@ describe('ArtifactDetails', () => {
     renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
     await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1));
 
-    fireEvent.mouseDown(screen.getByRole('combobox'));
-    fireEvent.click(await screen.findByRole('option', { name: '20' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), {
+      target: { value: '20' },
+    });
     await screen.findByText('Consumed as newer-page-size');
 
     await act(async () => {
@@ -872,7 +885,7 @@ describe('ArtifactDetails', () => {
       const navigate = useNavigate();
       const params = useParams();
       return (
-        <EnhancedArtifactDetails
+        <ArtifactDetailsWithContext
           {...generateProps()}
           location={location}
           navigate={navigate}
@@ -887,7 +900,9 @@ describe('ArtifactDetails', () => {
     );
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ThemeProvider defaultTheme='light'>
+          <RouterProvider router={router} />
+        </ThemeProvider>
       </QueryClientProvider>,
     );
     try {

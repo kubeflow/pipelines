@@ -24,12 +24,11 @@ import { ResponseError, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline'
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link } from 'react-router';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
+import { RoutePageFactory, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
-import { commonCss } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
-import { statusToIcon } from './StatusV2';
-import { Tooltip } from '@mui/material';
+import { RunsTable } from 'src/components/tables/RunsTable';
+import { RunStatus } from 'src/components/runs/RunStatus';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -68,6 +67,7 @@ export type RunListProps = MaskProps &
     hideExperimentColumn?: boolean;
     noFilterBox?: boolean;
     onError: (message: string, error: Error) => void;
+    onLoadSuccess?: () => void;
     onSelectionChange?: (selectedRunIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
@@ -76,6 +76,7 @@ export type RunListProps = MaskProps &
 
 interface RunListState {
   runs: DisplayRun[];
+  loadError: boolean;
 }
 
 function _pipelineVersionKey(pipelineId: string, pipelineVersionId: string): string {
@@ -84,6 +85,7 @@ function _pipelineVersionKey(pipelineId: string, pipelineVersionId: string): str
 
 class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _isMounted = true;
+  private _loadGeneration = 0;
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -91,6 +93,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     this.state = {
       runs: [],
+      loadError: false,
     };
   }
 
@@ -99,14 +102,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1.5,
-        label: 'Run name',
+        label: 'Run',
         sortKey: RunSortKeys.NAME,
       },
       { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
+      { customRenderer: this._pipelineVersionCustomRenderer, label: 'Pipeline version', flex: 1 },
       { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._pipelineVersionCustomRenderer, label: 'Pipeline Version', flex: 1 },
       { customRenderer: this._recurringRunCustomRenderer, label: 'Recurring Run', flex: 0.5 },
-      { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
+      { label: 'Started', flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
 
     if (!this.props.hideExperimentColumn) {
@@ -124,8 +127,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         otherFields: [
           r.run!.display_name,
           r.run.state,
-          getRunDurationV2(r.run),
           r.pipelineVersion,
+          getRunDurationV2(r.run),
           r.recurringRun,
           formatDateString(r.run.created_at),
         ] as any,
@@ -137,20 +140,30 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     });
 
     return (
-      <div>
+      <div className='kfp-runs-table-view'>
         <CustomTable
+          renderTable={(table) => (
+            <RunsTable
+              table={table}
+              reservedRowCount={this.props.runIdListMask?.length}
+              onOpenRun={(id) => this.props.navigate(RoutePageFactory.runDetails(id))}
+            />
+          )}
           columns={columns}
           rows={rows}
           selectedIds={this.props.selectedIds}
           initialSortColumn={RunSortKeys.CREATED_AT}
           ref={this._tableRef}
-          filterLabel='Filter runs'
+          filterLabel='Filter runs by name'
           updateSelection={this.props.onSelectionChange}
           reload={this._loadRuns.bind(this)}
           disablePaging={this.props.disablePaging}
           disableSorting={this.props.disableSorting}
           disableSelection={this.props.disableSelection}
           noFilterBox={this.props.noFilterBox}
+          errorMessage={
+            this.state.loadError ? 'Runs could not be loaded. Use Refresh to try again.' : undefined
+          }
           emptyMessage={
             `No` +
             `${
@@ -178,6 +191,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   public componentWillUnmount(): void {
     this._isMounted = false;
+    this._loadGeneration++;
   }
 
   public async refresh(): Promise<void> {
@@ -190,18 +204,21 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+      <div className='kfp-runs-name'>
         <Link
-          className={commonCss.link}
           data-testid='run-name-link'
           data-run-id={props.id}
           data-run-name={props.value || ''}
-          onClick={(e) => e.stopPropagation()}
-          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+          title={props.value || props.id}
+          onClick={(event) => event.stopPropagation()}
+          to={RoutePageFactory.runDetails(props.id)}
         >
-          {props.value}
+          {props.value || props.id}
         </Link>
-      </Tooltip>
+        <span className='kfp-runs-id' title={props.id}>
+          {props.id}
+        </span>
+      </div>
     );
   };
 
@@ -220,31 +237,29 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       ? urlParser.build({ [QUERY_PARAMS.fromRecurringRunId]: props.value.recurringRunId })
       : urlParser.build({ [QUERY_PARAMS.fromRunId]: props.id });
     const url = props.value.usePlaceholder
-      ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
-        search
+      ? RoutePageFactory.pipelineDetails('') + search
       : props.value.versionId
-        ? RoutePage.PIPELINE_DETAILS.replace(
-            ':' + RouteParams.pipelineId,
+        ? RoutePageFactory.pipelineVersionDetails(
             props.value.pipelineId || '',
-          ).replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
-        : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
-            ':' + RouteParams.pipelineId,
-            props.value.pipelineId || '',
-          );
+            props.value.versionId,
+          )
+        : RoutePageFactory.pipelineDetails(props.value.pipelineId || '');
     if (props.value.usePlaceholder) {
       return (
-        <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
+        <Link className='kfp-runs-resource-link' onClick={(e) => e.stopPropagation()} to={url}>
           [View pipeline]
         </Link>
       );
     } else {
-      // Display name could be too long, so we show the full content in tooltip on hover.
       return (
-        <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
-          <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
-            {props.value.displayName}
-          </Link>
-        </Tooltip>
+        <Link
+          className='kfp-runs-resource-link'
+          title={props.value.displayName || ''}
+          onClick={(event) => event.stopPropagation()}
+          to={url}
+        >
+          {props.value.displayName}
+        </Link>
       );
     }
   };
@@ -256,12 +271,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
-    const url = RoutePage.RECURRING_RUN_DETAILS.replace(
-      ':' + RouteParams.recurringRunId,
-      props.value.id || '',
-    );
+    const url = RoutePageFactory.recurringRunDetails(props.value.id);
     return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
+      <Link className='kfp-runs-resource-link' onClick={(e) => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
       </Link>
     );
@@ -276,9 +288,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
     return (
       <Link
-        className={commonCss.link}
+        className='kfp-runs-resource-link'
         onClick={(e) => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
+        to={RoutePageFactory.experimentDetails(props.value.id)}
       >
         {props.value.displayName}
       </Link>
@@ -288,10 +300,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RuntimeState>> = (
     props: CustomRendererProps<V2beta1RuntimeState>,
   ) => {
-    return statusToIcon(props.value);
+    return <RunStatus state={props.value} />;
   };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
+    const generation = ++this._loadGeneration;
+    // Experiment metadata is independent of the run response. Start both reads together.
+    const experiments = this._loadExperiments();
     let displayRuns: DisplayRun[];
     let nextPageToken = '';
 
@@ -356,17 +371,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
-        this.props.onError('Error: failed to fetch runs.', error);
+        if (this._isMounted && generation === this._loadGeneration) {
+          this.setStateSafe({ loadError: true });
+          this.props.onError('Error: failed to fetch runs.', error);
+        }
         // No point in continuing if we couldn't retrieve any runs.
         return '';
       }
     }
 
-    await this._setColumns(displayRuns);
+    if (!this._isMounted || generation !== this._loadGeneration) return '';
+    await this._setColumns(displayRuns, experiments);
 
-    this.setStateSafe({
-      runs: displayRuns,
-    });
+    if (this._isMounted && generation === this._loadGeneration) {
+      this.setStateSafe({ runs: displayRuns, loadError: false });
+      this.props.onLoadSuccess?.();
+    }
     return nextPageToken;
   }
 
@@ -376,29 +396,35 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
   }
 
-  private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    let experimentsResponse: V2beta1ListExperimentsResponse;
-    let experimentsGetError: string;
+  private async _loadExperiments(): Promise<{
+    response?: V2beta1ListExperimentsResponse;
+    error?: string;
+  }> {
+    if (this.props.hideExperimentColumn) return {};
     try {
-      if (!this.props.namespaceMask) {
-        // Single-user mode.
-        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments();
-      } else {
-        // Multi-user mode.
-        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          this.props.namespaceMask,
-        );
-      }
+      const response = !this.props.namespaceMask
+        ? await Apis.experimentServiceApiV2.listExperiments()
+        : await Apis.experimentServiceApiV2.listExperiments(
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            this.props.namespaceMask,
+          );
+      return { response };
     } catch (error) {
-      experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
+      // Resolve failures here even if the concurrent run request fails or becomes stale.
+      return { error: 'Failed to get associated experiment: ' + (await errorToMessage(error)) };
     }
+  }
 
-    const { pipelineVersionsByKey, errorsByKey } =
-      await this._getReferencedPipelineVersions(displayRuns);
+  private async _setColumns(
+    displayRuns: DisplayRun[],
+    experiments: ReturnType<RunList['_loadExperiments']>,
+  ): Promise<DisplayRun[]> {
+    const [{ response: experimentsResponse, error: experimentsGetError }, versions] =
+      await Promise.all([experiments, this._getReferencedPipelineVersions(displayRuns)]);
+    const { pipelineVersionsByKey, errorsByKey } = versions;
 
     return Promise.all(
       displayRuns.map(async (displayRun) => {

@@ -5,7 +5,6 @@
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getContrastRatio } from '@mui/material/styles';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import RunTimeline, { RunTimelineProps } from './RunTimeline';
 
@@ -62,19 +61,20 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Semantic token contrast in both themes is covered by modernization.test.ts.
 it.each([
-  'SUCCEEDED',
-  'RUNNING',
-  'FAILED',
-  'CACHED',
-  'SKIPPED',
-  'RUNTIME_STATE_UNSPECIFIED',
-  undefined,
-] as const)('renders %s status text with at least 4.5:1 contrast on white', (state) => {
-  setup({ tasks: [task('Contrast check', 0, 10, { state })] });
+  ['SUCCEEDED', '--status-succeeded'],
+  ['RUNNING', '--status-running'],
+  ['FAILED', '--status-failed'],
+  ['CACHED', '--status-neutral'],
+  ['SKIPPED', '--status-neutral'],
+  ['RUNTIME_STATE_UNSPECIFIED', '--status-neutral'],
+  [undefined, '--status-neutral'],
+] as const)('renders %s status using the shared theme color', (state, token) => {
+  setup({ tasks: [task('Theme check', 0, 10, { state })] });
   const inspector = screen.getByRole('complementary', { name: 'Selected task' });
   const status = inspector.querySelector('dl .rt-status') as HTMLElement;
-  expect(getContrastRatio(getComputedStyle(status).color, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+  expect(status.style.color).toBe(`var(${token})`);
 });
 
 it('renders components chronologically and preserves selection across refreshes', async () => {

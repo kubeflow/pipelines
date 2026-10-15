@@ -9,7 +9,7 @@
 // limitations under the License.
 
 import * as React from 'react';
-import { Box } from '@mui/material';
+import './NativeArtifactLineage.css';
 
 interface Edge {
   id: string;
@@ -86,22 +86,8 @@ export default function NativeLineageCanvas({ children }: { children: React.Reac
   }, []);
 
   return (
-    <Box
-      role='region'
-      aria-label='Lineage graph'
-      tabIndex={0}
-      sx={{
-        overflowX: 'auto',
-        background: '#f5f7fa',
-        borderTop: '1px solid #e1e6ec',
-        borderBottom: '1px solid #e1e6ec',
-        '&:focus-visible': { outline: '2px solid #1a73e8', outlineOffset: -2 },
-      }}
-    >
-      <Box
-        ref={ref}
-        sx={{ position: 'relative', minWidth: 1000, minHeight: 420, p: '24px 28px 40px' }}
-      >
+    <div role='region' aria-label='Lineage graph' tabIndex={0} className='kfp-lineage-canvas'>
+      <div ref={ref} className='kfp-lineage-canvas-inner'>
         <svg
           aria-hidden='true'
           style={{
@@ -115,7 +101,7 @@ export default function NativeLineageCanvas({ children }: { children: React.Reac
         >
           <defs>
             <marker id={marker} markerWidth='6' markerHeight='6' refX='5' refY='3' orient='auto'>
-              <path d='M0,0 L6,3 L0,6' fill='#90a4b8' />
+              <path d='M0,0 L6,3 L0,6' fill='var(--muted-foreground)' />
             </marker>
           </defs>
           {edges.map((edge) => (
@@ -125,17 +111,17 @@ export default function NativeLineageCanvas({ children }: { children: React.Reac
                 data-to={edge.to}
                 d={`M${edge.x1},${edge.y1} C${(edge.x1 + edge.x2) / 2},${edge.y1} ${(edge.x1 + edge.x2) / 2},${edge.y2} ${edge.x2},${edge.y2}`}
                 fill='none'
-                stroke='#90a4b8'
+                stroke='var(--muted-foreground)'
                 strokeWidth='1.5'
                 markerEnd={`url(#${marker})`}
               />
-              <circle cx={edge.x1} cy={edge.y1} r='3' fill='#7891a8' />
+              <circle cx={edge.x1} cy={edge.y1} r='3' fill='var(--muted-foreground)' />
             </g>
           ))}
         </svg>
-        <Box sx={{ position: 'relative' }}>{children}</Box>
-      </Box>
-    </Box>
+        <div style={{ position: 'relative' }}>{children}</div>
+      </div>
+    </div>
   );
 }
 

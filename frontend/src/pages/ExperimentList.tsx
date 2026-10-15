@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import CustomTable, {
   Column,
@@ -34,14 +35,13 @@ import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
 import { Link } from 'react-router';
 import { Page, PageProps } from './Page';
-import { RoutePage, RouteParams } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { RoutePageFactory } from 'src/components/Router';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { statusToIcon } from './StatusV2';
+import { RecentRunHealth } from 'src/components/runs/RecentRunHealth';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { Tooltip } from '@mui/material';
+import 'src/components/runs/ExperimentWorkflows.css';
 
 interface DisplayExperiment extends V2beta1Experiment {
   last5Runs?: V2beta1Run[];
@@ -103,7 +103,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       {
         customRenderer: this._last5RunsCustomRenderer,
         flex: 1,
-        label: 'Last 5 runs',
+        label: 'Recent runs · up to 5',
         sortKey: ExperimentSortKeys.LAST_RUN_CREATED_AT,
       },
     ];
@@ -116,14 +116,22 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         otherFields: [
           exp.display_name!,
           exp.description!,
-          exp.expandState === ExpandState.EXPANDED ? [] : exp.last5Runs,
+          exp.expandState === ExpandState.EXPANDED ? undefined : exp.last5Runs,
         ],
       };
     });
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-workflow-page'>
         <CustomTable
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label='Experiments'
+              singular='experiment'
+              plural='experiments'
+            />
+          )}
           columns={columns}
           rows={rows}
           ref={this._tableRef}
@@ -150,33 +158,24 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
-        <Link
-          className={commonCss.link}
-          data-testid='experiment-name-link'
-          data-experiment-id={props.id}
-          data-experiment-name={props.value || ''}
-          onClick={(e) => e.stopPropagation()}
-          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
-        >
-          {props.value}
-        </Link>
-      </Tooltip>
+      <Link
+        className='kfp-workflow-link'
+        title={props.value || ''}
+        data-testid='experiment-name-link'
+        data-experiment-id={props.id}
+        data-experiment-name={props.value || ''}
+        onClick={(e) => e.stopPropagation()}
+        to={RoutePageFactory.experimentDetails(props.id)}
+      >
+        {props.value}
+      </Link>
     );
   };
 
   public _last5RunsCustomRenderer: React.FC<CustomRendererProps<V2beta1Run[]>> = (
     props: CustomRendererProps<V2beta1Run[]>,
   ) => {
-    return (
-      <div className={commonCss.flex}>
-        {(props.value || []).map((run, i) => (
-          <span key={i} style={{ margin: '0 1px' }}>
-            {statusToIcon(run.state, run.created_at)}
-          </span>
-        ))}
-      </div>
-    );
+    return props.value ? <RecentRunHealth runs={props.value} /> : null;
   };
 
   private async _reload(request: ListRequest): Promise<string> {
@@ -292,9 +291,9 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 }
 
-const EnhancedExperimentList: React.FC<PageProps> = (props) => {
+const ExperimentListWithContext: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
   return <ExperimentList key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedExperimentList;
+export default ExperimentListWithContext;

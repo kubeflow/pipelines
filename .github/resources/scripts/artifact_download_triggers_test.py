@@ -70,8 +70,26 @@ console.log(JSON.stringify(inventory.workflows.filter(workflow =>
                                             text=True,
                                             cwd=ROOT)
                     triggered = set(json.loads(result.stdout))
+                    # Master-only qualification must not be required on release PRs.
+                    branch_script = f"""
+const gate = require({json.dumps(str(MODULE))});
+const {{inventory}} = gate.loadLocalInventory(process.cwd());
+console.log(JSON.stringify(inventory.workflows.filter(workflow =>
+  workflow.pull_request !== null && gate.applicable(
+    Object.fromEntries(Object.entries(workflow.pull_request).filter(
+      ([key]) => key !== 'paths' && key !== 'paths-ignore')),
+    {json.dumps(branch)}, []))
+  .map(workflow => workflow.path)));
+"""
+                    eligible = subprocess.run(['node'],
+                                              input=branch_script,
+                                              check=True,
+                                              capture_output=True,
+                                              text=True,
+                                              cwd=ROOT)
+                    required = consumers & set(json.loads(eligible.stdout))
                     self.assertTrue(
-                        consumers.issubset(triggered), consumers - triggered)
+                        required.issubset(triggered), required - triggered)
 
 
 if __name__ == '__main__':

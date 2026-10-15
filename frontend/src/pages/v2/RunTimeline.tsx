@@ -4,9 +4,10 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { useEffect, useState } from 'react';
-import { Alert, Button, CircularProgress, Tooltip } from '@mui/material';
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
-import { hasFinishedV2 } from 'src/lib/StatusUtils';
+import { Alert } from 'src/components/ui/alert';
+import { Button } from 'src/components/ui/button';
+import { PipelineTaskTaskState, V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { getTaskStatus, getTaskTimelineTone, hasFinishedV2 } from 'src/lib/StatusUtils';
 import { formatDateString } from 'src/lib/Utils';
 import {
   formatTaskElapsed,
@@ -17,24 +18,13 @@ import {
 } from 'src/lib/v2/RunTaskTiming';
 import './RunTimeline.css';
 
-const NEUTRAL_STATE_COLOR = '#637087';
-const STATE_COLORS: Record<string, string> = {
-  SUCCEEDED: '#24864b',
-  RUNNING: '#1a73e8',
-  FAILED: '#c43a35',
-  CACHED: '#8152b8',
-  SKIPPED: NEUTRAL_STATE_COLOR,
-};
 function timeLabel(ms?: number): string {
   return ms === undefined ? 'Not recorded' : formatDateString(new Date(ms));
 }
-function Status({ state }: { state?: string }) {
-  const label =
-    state && state !== 'RUNTIME_STATE_UNSPECIFIED'
-      ? state[0] + state.slice(1).toLowerCase()
-      : 'Unknown';
+function Status({ state }: { state?: PipelineTaskTaskState }) {
+  const label = state === undefined ? 'Unknown' : getTaskStatus(state).label;
   return (
-    <span className='rt-status' style={{ color: STATE_COLORS[state || ''] || NEUTRAL_STATE_COLOR }}>
+    <span className='rt-status' style={{ color: `var(--status-${getTaskTimelineTone(state)})` }}>
       {label}
     </span>
   );
@@ -73,16 +63,18 @@ export default function RunTimeline({ run, tasks, loading, error, onOpenTask }: 
   return (
     <section className='run-timeline' aria-label='Run timeline'>
       {error && (
-        <Alert severity='warning' className='rt-refresh-warning'>
+        <Alert variant='warning' className='rt-refresh-warning'>
           Unable to refresh component tasks.{' '}
           {tasks.length ? 'Showing the last available snapshot. ' : ''}Refresh the page to try
           again.
         </Alert>
       )}
       {loading ? (
-        <CircularProgress aria-label='Loading component tasks' />
+        <div role='status' aria-label='Loading component tasks'>
+          Loading component tasks…
+        </div>
       ) : !timing.rows.length ? (
-        <Alert severity='info'>
+        <Alert variant='info'>
           No component task data yet. Tasks appear as the pipeline progresses.
         </Alert>
       ) : (
@@ -137,19 +129,19 @@ function TaskInspector({
         )}
       </dl>
       {row.retried && (
-        <Alert severity='warning'>
+        <Alert variant='warning'>
           This task span includes retries and waiting between attempts.
         </Alert>
       )}
       {row.task.state === 'CACHED' && (
-        <Alert severity='info'>
+        <Alert variant='info'>
           {row.retried
             ? 'The latest attempt was a cache hit; elapsed time also includes earlier attempts.'
             : 'Cache hit. This span is cache-resolution overhead, not component computation.'}
         </Alert>
       )}
       {row.elapsed === undefined && (
-        <Alert severity='info'>Insufficient timestamps. No duration has been inferred.</Alert>
+        <Alert variant='info'>Insufficient timestamps. No duration has been inferred.</Alert>
       )}
       <h3>State history</h3>
       <ol className='rt-history'>
@@ -163,8 +155,8 @@ function TaskInspector({
       </ol>
       {!row.task.state_history?.length && <p>No state transitions recorded.</p>}
       <Button
-        size='small'
-        variant='outlined'
+        size='sm'
+        variant='secondary'
         disabled={!row.task.task_id}
         onClick={() => onOpenTask(row.task.task_id!)}
       >
@@ -222,9 +214,9 @@ function TimelineChart({
                   <small title='Loop iteration'>[{row.iteration}]</small>
                 )}
                 {row.retried && (
-                  <Tooltip title='Span includes retries'>
+                  <span title='Span includes retries'>
                     <span aria-label='Retried task'>↻</span>
-                  </Tooltip>
+                  </span>
                 )}
               </div>
               <div className='rt-track' role='cell'>
@@ -236,7 +228,7 @@ function TimelineChart({
                     style={{
                       left: `${left}%`,
                       width: `${width}%`,
-                      backgroundColor: STATE_COLORS[row.task.state || ''] || NEUTRAL_STATE_COLOR,
+                      backgroundColor: `var(--status-${getTaskTimelineTone(row.task.state)})`,
                     }}
                   />
                 ) : (

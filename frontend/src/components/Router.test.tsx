@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   createMemoryRouter,
   HashRouter,
@@ -24,21 +25,56 @@ import {
 } from 'react-router';
 import { NavigationProps } from 'src/lib/Navigation';
 import { NavigationErrorBoundary } from 'src/atoms/NavigationErrorBoundary';
-import { useEffect, useState } from 'react';
+import { lazy, useEffect, useState } from 'react';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage, RoutePageFactory } from './Router';
-import { Page } from '../pages/Page';
-import { ToolbarProps } from './Toolbar';
+import { Page, PageProps } from '../pages/Page';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
 
-vi.mock('src/pages/RunDetailsRouter', () => ({
+vi.mock('src/pages/RunDetailsPage', () => ({
   default: () => <div>Run details</div>,
 }));
 
-vi.mock('src/pages/AllRunsAndArchive', () => ({
+vi.mock('src/pages/RunsPage', () => ({
   default: () => <div>Runs page</div>,
-  AllRunsAndArchiveTab: { RUNS: 0, ARCHIVE: 1 },
+  RunsPageTab: { RUNS: 0, ARCHIVE: 1 },
+}));
+
+vi.mock('src/pages/CreateRunPage', () => ({
+  default: ({ location }: NavigationProps) => <div>New run query: {location.search}</div>,
+}));
+
+vi.mock('src/pages/CreateExperimentPage', () => ({
+  default: () => (
+    <label>
+      Experiment name
+      <input />
+    </label>
+  ),
 }));
 
 describe('Router', () => {
+  const originalFlags = { ...KFP_FLAGS };
+
+  beforeEach(() => {
+    localStorage.clear();
+    Object.assign(KFP_FLAGS, originalFlags);
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+
+  afterEach(() => {
+    Object.assign(KFP_FLAGS, originalFlags);
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
   it('initial render', () => {
     const renderResult = render(
       <MemoryRouter initialEntries={['/does-not-exist']}>
@@ -46,8 +82,31 @@ describe('Router', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText('404')).toBeVisible();
-    expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Pipelines' })).toHaveAttribute('id', 'pipelinesBtn');
+    expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute('id', 'runsBtn');
+    expect(screen.getByText('/does-not-exist', { selector: 'code' })).toBeVisible();
     expect(renderResult.asFragment()).toMatchSnapshot();
+  });
+
+  it('opens deferred creation and transfer routes without losing shell or query state', async () => {
+    const router = createMemoryRouter([{ path: '*', element: <Router /> }], {
+      initialEntries: ['/runs'],
+    });
+    render(<RouterProvider router={router} />);
+    const runsLink = screen.getByRole('link', { name: 'Runs', exact: true });
+    await act(() => router.navigate('/runs/new?pipelineId=pipeline-1&experimentId=experiment-1'));
+    expect(
+      await screen.findByText('New run query: ?pipelineId=pipeline-1&experimentId=experiment-1'),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Runs', exact: true })).toBe(runsLink);
+    await act(() => router.navigate(RoutePage.NEW_EXPERIMENT));
+    expect(await screen.findByLabelText('Experiment name')).toBeVisible();
+    await act(() => router.navigate(RoutePage.METADATA_TRANSFER));
+    expect(await screen.findByText('Export / Import', { selector: 'h1' })).toBeVisible();
+    await act(() => router.navigate('/runs'));
+    expect(screen.getByText('Runs page')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Runs', exact: true })).toBe(runsLink);
   });
 
   it('updates the not-found pathname and recovers when navigating to a known route', async () => {
@@ -55,15 +114,26 @@ describe('Router', () => {
       initialEntries: ['/does-not-exist?view=graph'],
     });
     render(<RouterProvider router={router} />);
-    expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
+    expect(screen.getByText('/does-not-exist', { selector: 'code' })).toBeVisible();
 
     await act(() => router.navigate('/another-missing-page'));
-    expect(screen.getByText('Page Not Found: /another-missing-page')).toBeVisible();
-    expect(screen.queryByText('Page Not Found: /does-not-exist')).not.toBeInTheDocument();
+    expect(screen.getByText('/another-missing-page', { selector: 'code' })).toBeVisible();
+    expect(screen.queryByText('/does-not-exist', { selector: 'code' })).not.toBeInTheDocument();
 
     await act(() => router.navigate('/runs'));
     expect(screen.getByText('Runs page')).toBeVisible();
     expect(screen.queryByText('404')).not.toBeInTheDocument();
+  });
+
+  it('does not create an empty breadcrumb before a page supplies navigation metadata', () => {
+    render(
+      <MemoryRouter initialEntries={['/unconfigured']}>
+        <Router configs={[{ path: '/unconfigured', Component: () => <p>Choose a pipeline</p> }]} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Choose a pipeline')).toBeVisible();
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumbs' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back', exact: true })).not.toBeInTheDocument();
   });
 
   it('does not share state between pages', async () => {
@@ -100,7 +170,8 @@ describe('Router', () => {
     act(() => {
       router.navigate('/pear');
     });
-    await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
+    await waitFor(() => expect(screen.queryByTestId('page-title')).not.toBeInTheDocument());
+    expect(screen.getByText('pear')).toBeVisible();
   });
 
   it('preserves Run Details state when only the query changes', async () => {
@@ -158,6 +229,15 @@ describe('Router', () => {
   it('builds native task links without putting task IDs in the path', () => {
     expect(RoutePageFactory.runDetailsTask('run-1', 'task/iteration 1')).toBe(
       '/runs/details/run-1?task=task%2Fiteration+1',
+    );
+  });
+
+  it('encodes raw run IDs exactly once for direct and task links', () => {
+    expect(RoutePageFactory.runDetails('run/one%2F space')).toBe(
+      '/runs/details/run%2Fone%252F%20space',
+    );
+    expect(RoutePageFactory.runDetailsTask('run/one%2F space', 'task/iteration 1')).toBe(
+      '/runs/details/run%2Fone%252F%20space?task=task%2Fiteration+1',
     );
   });
 
@@ -335,6 +415,47 @@ describe('Router', () => {
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('second');
   });
 
+  it('keeps navigation available while a route loads and recovers from a rejected chunk', async () => {
+    let rejectChunk!: (reason: Error) => void;
+    const DeferredPage = lazy(
+      () =>
+        new Promise<{ default: () => React.JSX.Element }>((_, reject) => {
+          rejectChunk = reject;
+        }),
+    );
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: (
+            <NavigationErrorBoundary>
+              <Router
+                configs={[
+                  { path: '/deferred', Component: DeferredPage },
+                  { path: '/ready', Component: () => <p>Ready page</p> },
+                ]}
+              />
+            </NavigationErrorBoundary>
+          ),
+        },
+      ],
+      { initialEntries: ['/deferred'] },
+    );
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      render(<RouterProvider router={router} />);
+      expect(screen.getByRole('status')).toHaveTextContent('Loading page…');
+      expect(screen.getByRole('link', { name: 'Runs', exact: true })).toBeVisible();
+      await act(async () => rejectChunk(new Error('Chunk unavailable')));
+      expect(await screen.findByText('Something went wrong.')).toBeVisible();
+      await act(() => router.navigate('/ready'));
+      expect(screen.getByText('Ready page')).toBeVisible();
+      expect(screen.queryByText('Something went wrong.')).not.toBeInTheDocument();
+    } finally {
+      consoleSpy.mockRestore();
+    }
+  });
+
   it('recovers a captured render error after navigation', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const ErrorPage = () => {
@@ -386,4 +507,199 @@ describe('Router', () => {
     expect(router.state.location.hash).toBe('#node');
     expect(router.state.location.state).toEqual({ from: 'runs' });
   });
+
+  it.each([
+    ['/pipelines/details/id/version/version', 'Pipelines'],
+    ['/shared/pipelines', 'Pipelines'],
+    ['/experiments/details/id', 'Experiments'],
+    ['/archive/experiments', 'Experiments'],
+    ['/runs/new', 'Runs'],
+    ['/runs/details/id', 'Runs'],
+    ['/compare', 'Runs'],
+    ['/archive/runs', 'Runs'],
+    ['/recurringruns', 'Recurring runs'],
+    ['/recurringrun/details/id', 'Recurring runs'],
+    ['/artifacts/123', 'Artifacts'],
+  ])('keeps the %s destination in the %s navigation group', (path, label) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
+          <Router configs={[{ path, Component: () => <div>Route content</div> }]} />
+        </BuildInfoContext.Provider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('Route content')).toBeInTheDocument();
+  });
+
+  it.each([
+    [undefined, RoutePage.PIPELINES, 'Pipelines landing'],
+    [Deployments.MARKETPLACE, RoutePage.START, 'Getting Started landing'],
+  ])('retains the default route for deployment %s', async (deployment, expectedPath, title) => {
+    KFP_FLAGS.DEPLOYMENT = deployment;
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: (
+            <Router
+              configs={[
+                { path: RoutePage.PIPELINES, Component: () => <div>Pipelines landing</div> },
+                { path: RoutePage.START, Component: () => <div>Getting Started landing</div> },
+              ]}
+            />
+          ),
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByText(title)).toBeVisible();
+    expect(router.state.location.pathname).toBe(expectedPath);
+    if (deployment === Deployments.MARKETPLACE) {
+      expect(screen.getByRole('link', { name: 'Getting Started' })).toHaveAttribute(
+        'href',
+        RoutePage.START,
+      );
+    } else {
+      expect(screen.queryByRole('link', { name: 'Getting Started' })).not.toBeInTheDocument();
+    }
+  });
+
+  it('keeps shared pipelines gated by the existing multi-user metadata', () => {
+    const configs = [
+      { path: RoutePage.PIPELINES_SHARED, Component: () => <div>Shared pipelines page</div> },
+    ];
+    const shell = (multiUser: boolean) => (
+      <MemoryRouter initialEntries={[RoutePage.PIPELINES_SHARED]}>
+        <BuildInfoContext.Provider value={{ apiServerMultiUser: multiUser }}>
+          <Router configs={configs} />
+        </BuildInfoContext.Provider>
+      </MemoryRouter>
+    );
+    const view = render(shell(false));
+    expect(screen.queryByText('Shared pipelines page')).not.toBeInTheDocument();
+    expect(screen.getByText('404')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    view.rerender(shell(true));
+    expect(screen.getByText('Shared pipelines page')).toBeVisible();
+  });
+
+  it('preserves shell preferences and page chrome through resource and secondary routes', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: (
+            <Router
+              configs={[
+                { path: RoutePage.RUNS, Component: () => <div>Modern runs content</div> },
+                { path: RoutePage.RUN_DETAILS, Component: () => <div>Modern run details</div> },
+                { path: RoutePage.PIPELINES, Component: () => <div>Modern pipelines content</div> },
+                {
+                  path: RoutePage.START,
+                  Component: () => <div>Modern getting started content</div>,
+                },
+              ]}
+            />
+          ),
+        },
+      ],
+      { initialEntries: [RoutePage.RUNS] },
+    );
+    render(<RouterProvider router={router} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Theme: / }));
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Dark' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    expect(screen.getByText('Modern runs content').closest('.kfp-modern-page')).not.toBeNull();
+    await act(() => router.navigate('/runs/details/run-1?task=task-1'));
+    expect(screen.getByText('Modern run details').closest('.kfp-modern-page')).not.toBeNull();
+    expect(router.state.location.search).toBe('?task=task-1');
+    await act(() => router.navigate(RoutePage.PIPELINES));
+    expect(screen.getByText('Modern pipelines content').closest('.kfp-modern-page')).not.toBeNull();
+    await act(() => router.navigate(RoutePage.START));
+    expect(
+      screen.getByText('Modern getting started content').closest('.kfp-modern-page'),
+    ).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Theme: Dark' })).toBeVisible();
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-collapsed', 'true');
+  });
+
+  it.each([RoutePage.RUNS, RoutePage.RUN_DETAILS])(
+    'keeps confirmation actions and close callbacks under the owner of %s',
+    async (path) => {
+      const action = vi.fn();
+      const onClose = vi.fn();
+      const PromptPage = ({ updateDialog }: PageProps) => (
+        <button
+          onClick={() =>
+            updateDialog({
+              title: 'Confirm selection',
+              content: 'Apply this action to the selected runs?',
+              buttons: [{ text: 'Confirm action', onClick: action }],
+              onClose,
+            })
+          }
+        >
+          Open confirmation
+        </button>
+      );
+      render(
+        <MemoryRouter
+          initialEntries={[path === RoutePage.RUN_DETAILS ? '/runs/details/run-1' : path]}
+        >
+          <Router configs={[{ path, Component: PromptPage }]} />
+        </MemoryRouter>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Open confirmation' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm action' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(action).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('keeps embedded Runs content and theme selection when the host hides the rail', () => {
+    KFP_FLAGS.DEPLOYMENT = Deployments.KUBEFLOW;
+    KFP_FLAGS.HIDE_SIDENAV = true;
+    render(
+      <MemoryRouter initialEntries={[RoutePage.RUNS]}>
+        <Router
+          configs={[{ path: RoutePage.RUNS, Component: () => <div>Embedded runs content</div> }]}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    expect(screen.getByText('Embedded runs content')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toBeInTheDocument();
+  });
+});
+
+it('encodes pipeline and experiment identifiers in shared detail routes', () => {
+  expect(RoutePageFactory.pipelineDetails('pipeline/one%2F space')).toBe(
+    '/pipelines/details/pipeline%2Fone%252F%20space',
+  );
+  expect(RoutePageFactory.experimentDetails('experiment/one%2F space')).toBe(
+    '/experiments/details/experiment%2Fone%252F%20space',
+  );
+});
+
+describe('artifact route IDs', () => {
+  it.each([
+    [42, '/artifacts/42'],
+    ['folder/item', '/artifacts/folder%2Fitem'],
+    ['100% ready?#', '/artifacts/100%25%20ready%3F%23'],
+    ['literal%2Ftext', '/artifacts/literal%252Ftext'],
+  ])('encodes the raw artifact ID %s once', (id, expected) => {
+    expect(RoutePageFactory.artifactDetails(id)).toBe(expected);
+  });
+});
+
+it('encodes recurring-run and version identifiers without route-template query markers', () => {
+  expect(RoutePageFactory.recurringRunDetails('schedule/100%')).toBe(
+    '/recurringrun/details/schedule%2F100%25',
+  );
+  expect(RoutePageFactory.pipelineVersionDetails('pipeline/100%', 'version/100%')).toBe(
+    '/pipelines/details/pipeline%2F100%25/version/version%2F100%25',
+  );
 });

@@ -45,7 +45,7 @@ export function buildGroupedFlow(
   } = {},
 ): GroupedFlow {
   const { expanded = new Set<string>(), expansionMode = 'default', nodeScale = 1 } = options;
-  const headerHeight = GROUP_HEADER_HEIGHT * nodeScale;
+  const headerHeight = GROUP_HEADER_HEIGHT;
   type Layer = {
     elements: PipelineFlowElement[];
     layers: string[];
@@ -131,7 +131,7 @@ export function buildGroupedFlow(
       } else if (expansionError) {
         height += 72;
       } else if (expansionDeferred) {
-        width = Math.max(width, SUB_DAG_STATUS_CARD_WIDTH * nodeScale);
+        width = Math.max(width, SUB_DAG_STATUS_CARD_WIDTH);
       }
       return {
         ...element,

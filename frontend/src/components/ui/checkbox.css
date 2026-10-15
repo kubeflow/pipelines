@@ -1,0 +1,27 @@
+.kfp-theme .kfp-checkbox {
+  display: inline-flex;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border: 1.5px solid var(--muted-foreground);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--primary-foreground);
+  cursor: pointer;
+}
+.kfp-theme .kfp-checkbox:is([data-checked], [data-indeterminate]) {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.kfp-theme .kfp-checkbox[data-disabled] {
+  cursor: default;
+  opacity: 0.5;
+}
+.kfp-theme .kfp-checkbox-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

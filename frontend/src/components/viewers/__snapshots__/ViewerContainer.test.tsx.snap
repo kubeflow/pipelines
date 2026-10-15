@@ -3,13 +3,13 @@
 exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 root_fpvit0b"
+    class="kfp-confusion-matrix"
   >
     <table>
       <tbody>
         <tr>
           <td
-            class="yAxisLabel_fnlll25"
+            class="kfp-confusion-y-axis-label"
           >
             y
           </td>
@@ -17,18 +17,18 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <td>
             <div
-              class="ylabel_f1bjr6qr"
+              class="kfp-confusion-ylabel "
               style="line-height: 79px; min-width: 79px;"
             >
               label
             </div>
           </td>
           <td
-            class="cell_fkzbx8g"
-            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            class="kfp-confusion-cell"
+            style="background-color: color-mix(in srgb, var(--primary, #2563d9) 25%, var(--card, #fff)); color: var(--foreground, #15171e); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
           >
             <div
-              class="overlay_fecblze"
+              class="kfp-confusion-overlay"
               style="opacity: 0;"
             />
             1
@@ -37,7 +37,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <th />
           <th
-            class="xlabel_f1fd2jjv"
+            class="kfp-confusion-xlabel"
             scope="col"
           >
             <div
@@ -51,7 +51,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <td />
           <td
-            class="xAxisLabel_f1kt7c7r"
+            class="kfp-confusion-x-axis-label"
             colspan="1"
           >
             x
@@ -60,65 +60,65 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
       </tbody>
     </table>
     <div
-      class="legend_f1s6jfx9"
+      class="kfp-confusion-legend"
       style="height: 59.25px;"
     >
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 0px;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           1
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 100%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 80%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 60%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 40%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 20%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
@@ -131,7 +131,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
 exports[`ViewerContainer > renders a viewer of type MARKDOWN 1`] = `
 <DocumentFragment>
   <div
-    class="markdown-viewer"
+    class="markdown-viewer kfp-markdown-viewer"
   >
     <h1
       id="title"
@@ -602,7 +602,7 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
               class="recharts-reference-line-line"
               fill="none"
               fill-opacity="1"
-              stroke="#ddd"
+              stroke="var(--border-strong, #d3d6df)"
               stroke-dasharray="4 4"
               stroke-width="1"
               x1="92"
@@ -1282,8 +1282,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1306,8 +1306,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1330,8 +1330,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1354,8 +1354,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1378,8 +1378,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1402,8 +1402,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1426,8 +1426,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1450,8 +1450,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1474,8 +1474,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1498,8 +1498,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1522,8 +1522,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1546,8 +1546,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1570,8 +1570,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1594,8 +1594,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1618,8 +1618,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1642,8 +1642,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1666,8 +1666,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1690,8 +1690,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1714,8 +1714,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1738,8 +1738,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1760,8 +1760,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#202124"
-            font-size="13"
+            fill="var(--foreground, #15171e)"
+            font-size="12"
             font-weight="500"
             offset="0"
             text-anchor="middle"
@@ -1783,8 +1783,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1807,8 +1807,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1831,8 +1831,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1855,8 +1855,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1879,8 +1879,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1903,8 +1903,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1927,8 +1927,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1951,8 +1951,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1975,8 +1975,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1999,8 +1999,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -2021,8 +2021,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#202124"
-            font-size="13"
+            fill="var(--foreground, #15171e)"
+            font-size="12"
             font-weight="500"
             offset="14"
             text-anchor="start"
@@ -2041,7 +2041,7 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
       </svg>
     </div>
     <div
-      class="flex_f16jawj4"
+      class="kfp-roc-flex"
     />
   </div>
 </DocumentFragment>
@@ -2050,170 +2050,159 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
 exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
-    style="width: 100%;"
+    class="kfp-viewer-table "
   >
-    <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
-      style="display: block; overflow: auto;"
-    >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        >
-          <th
-            aria-sort="ascending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              col
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            cell
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
-          style="height: 270px;"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
-            colspan="6"
-          />
-        </tr>
-      </tbody>
-    </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      aria-label="Table output"
+      class="kfp-viewer-table-scroll"
+      role="region"
+      tabindex="0"
     >
-      <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      <table
+        aria-label="Table output"
       >
-        <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
-        />
-        <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="react-use-id-0"
+        <thead>
+          <tr>
+            <th
+              aria-sort="ascending"
+              scope="col"
+            >
+              <button
+                aria-label="col"
+                class="kfp-viewer-table-sort"
+              >
+                col
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m5 12 7-7 7 7"
+                  />
+                  <path
+                    d="M12 19V5"
+                  />
+                </svg>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              cell
+            </td>
+          </tr>
+          <tr
+            style="height: 270px;"
+          >
+            <td
+              colspan="1"
+            />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="kfp-viewer-table-pagination"
+    >
+      <label>
+        Rows per page
+        <select
+          class="kfp-viewer-select"
         >
-          Rows per page:
-        </p>
-        <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
-        >
-          <div
-            aria-controls="react-use-id-2"
-            aria-expanded="false"
-            aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="react-use-id-1"
-            role="combobox"
-            tabindex="0"
+          <option
+            value="10"
           >
             10
-          </div>
-          <input
-            aria-hidden="true"
-            aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-            tabindex="-1"
-            value="10"
+          </option>
+          <option
+            value="25"
+          >
+            25
+          </option>
+          <option
+            value="50"
+          >
+            50
+          </option>
+          <option
+            value="100"
+          >
+            100
+          </option>
+        </select>
+      </label>
+      <span
+        aria-live="polite"
+      >
+        1–1 of 1
+      </span>
+      <button
+        aria-label="Go to previous page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-left"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m15 18-6-6 6-6"
           />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-            data-testid="ArrowDropDownIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
-        </div>
-        <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        </svg>
+      </button>
+      <button
+        aria-label="Go to next page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-right"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          1–1 of 1
-        </p>
-        <div
-          class="MuiTablePagination-actions"
-        >
-          <button
-            aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to previous page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowLeftIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </button>
-          <button
-            aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to next page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowRightIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <path
+            d="m9 18 6-6-6-6"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>
@@ -2221,87 +2210,122 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
 
 exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
 <DocumentFragment>
-  <div>
-    <div>
-      <div
-        class="f104cl0n"
+  <div
+    class="kfp-tensorboard-viewer"
+  >
+    <label
+      class="kfp-tensorboard-image"
+      for="viewer-tb-image-select"
+    >
+      <span>
+        TF Image
+      </span>
+      <select
+        class="kfp-viewer-select"
+        disabled=""
+        id="viewer-tb-image-select"
       >
-        <div
-          class="MuiFormControl-root formControl_f59g3c5 css-1nrlq1o-MuiFormControl-root"
+        <optgroup
+          label="TensorFlow 1.x"
         >
-          <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
-            data-shrink="true"
-            for="viewer-tb-image-select"
+          <option
+            value="tensorflow/tensorflow:1.7.1"
           >
-            TF Image
-          </label>
-          <div
-            class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
+            TensorFlow 1.7.1
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.8.0"
           >
-            <div
-              aria-controls="react-use-id-0"
-              aria-expanded="false"
-              aria-haspopup="listbox"
-              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              role="combobox"
-              tabindex="0"
-            >
-              TensorFlow 2.2.2
-            </div>
-            <input
-              aria-hidden="true"
-              aria-invalid="false"
-              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-              id="viewer-tb-image-select"
-              tabindex="-1"
-              value="tensorflow/tensorflow:2.2.2"
-            />
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-              data-testid="ArrowDropDownIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M7 10l5 5 5-5z"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div>
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 rootBusy_fronhm5 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-          disabled=""
-          tabindex="-1"
-          type="button"
+            TensorFlow 1.8.0
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.9.0"
+          >
+            TensorFlow 1.9.0
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.10.1"
+          >
+            TensorFlow 1.10.1
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.11.0"
+          >
+            TensorFlow 1.11.0
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.12.3"
+          >
+            TensorFlow 1.12.3
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.13.2"
+          >
+            TensorFlow 1.13.2
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.14.0"
+          >
+            TensorFlow 1.14.0
+          </option>
+          <option
+            value="tensorflow/tensorflow:1.15.5"
+          >
+            TensorFlow 1.15.5
+          </option>
+        </optgroup>
+        <optgroup
+          label="TensorFlow 2.x"
         >
-          <span>
-            Start Tensorboard
-          </span>
-          <span
-            class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner_fiqr0h3 spinnerBusy_f1wemlvb css-18lrjg1-MuiCircularProgress-root"
-            role="progressbar"
-            style="width: 15px; height: 15px;"
+          <option
+            value="tensorflow/tensorflow:2.0.4"
           >
-            <svg
-              class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
-              viewBox="22 22 44 44"
-            >
-              <circle
-                class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
-                cx="44"
-                cy="44"
-                fill="none"
-                r="20.2"
-                stroke-width="3.6"
-              />
-            </svg>
-          </span>
-        </button>
-      </div>
+            TensorFlow 2.0.4
+          </option>
+          <option
+            value="tensorflow/tensorflow:2.1.2"
+          >
+            TensorFlow 2.1.2
+          </option>
+          <option
+            value="tensorflow/tensorflow:2.2.2"
+          >
+            TensorFlow 2.2.2
+          </option>
+        </optgroup>
+      </select>
+    </label>
+    <div>
+      <button
+        aria-busy="true"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3 kfp-busy-button"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <span>
+          Start Tensorboard
+        </span>
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-loader-circle lucide-loader-2 kfp-atom-spinner"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M21 12a9 9 0 1 1-6.219-8.56"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>
@@ -2310,10 +2334,12 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
 exports[`ViewerContainer > renders a viewer of type WEB_APP 1`] = `
 <DocumentFragment>
   <iframe
-    class="iframe_f1rwn2in"
+    class="kfp-html-viewer"
     sandbox="allow-scripts"
     src="about:blank"
     srcdoc="<div>test</div>"
+    style="min-height: 600px;"
+    title="HTML report"
   />
 </DocumentFragment>
 `;

@@ -15,20 +15,21 @@
  */
 
 import * as React from 'react';
-import { Tooltip } from '@mui/material';
 import { Link } from 'react-router';
 import { ArtifactLink } from 'src/components/ArtifactLink';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import { RoutePageFactory } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { getArtifactTypeName } from 'src/lib/v2/RuntimeArtifactUtils';
 import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
 import { Page, PageProps } from 'src/pages/Page';
-import { classes } from 'typestyle';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
+import { Button } from 'src/components/ui/button';
+import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import './Artifacts.css';
 
 interface ArtifactListProps {
   namespace?: string;
@@ -36,12 +37,23 @@ interface ArtifactListProps {
 
 interface ArtifactListState {
   rows: Row[];
+  selectedType: number;
 }
 
 interface ArtifactUriCell {
   namespace?: string;
   uri: string;
 }
+
+// Numeric values are the ArtifactType wire values in backend/api/v2beta1/artifact.proto.
+// The list service filters its integer Type column; totals are not fetched for these choices.
+const TYPE_FILTERS = [
+  { label: 'All', values: [] },
+  { label: 'Model', values: [2] },
+  { label: 'Dataset', values: [3] },
+  { label: 'Metrics', values: [6, 7, 8] },
+  { label: 'HTML', values: [4] },
+];
 
 const COLUMNS: Column[] = [
   { customRenderer: artifactNameRenderer, flex: 2, label: 'Name', sortKey: 'name' },
@@ -58,7 +70,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private lastSuccessfulRequestKey?: string;
   private pageTokenTracker = new PageTokenTracker();
 
-  public state: ArtifactListState = { rows: [] };
+  public state: ArtifactListState = { rows: [], selectedType: 0 };
 
   public getInitialToolbarState(): ToolbarProps {
     return {
@@ -70,8 +82,47 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-artifact-list'>
+        <div className='kfp-artifact-type-filters' role='group' aria-label='Artifact types'>
+          {TYPE_FILTERS.map((type, index) => (
+            <Button
+              key={type.label}
+              variant='ghost'
+              size='sm'
+              aria-pressed={this.state.selectedType === index}
+              onClick={() => {
+                if (this.state.selectedType === index) return;
+                this.activeReloadGeneration++;
+                this.setState({ selectedType: index, rows: [] });
+              }}
+            >
+              {type.label}
+            </Button>
+          ))}
+        </div>
         <CustomTable
+          filterPredicates={
+            TYPE_FILTERS[this.state.selectedType].values.length
+              ? [
+                  {
+                    key: 'type',
+                    operation: V2beta1PredicateOperation.IN,
+                    int_values: { values: TYPE_FILTERS[this.state.selectedType].values },
+                  },
+                ]
+              : []
+          }
+          filterLabel='Filter artifacts by name'
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              onOpenRow={(id) => this.props.navigate(RoutePageFactory.artifactDetails(id))}
+              label='Artifacts'
+              singular='artifact'
+              plural='artifacts'
+              minWidth={920}
+            />
+          )}
           ref={this.tableRef}
           columns={COLUMNS}
           rows={this.state.rows}
@@ -171,6 +222,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private getPaginationContext(request: ListRequest) {
     return {
       filter: request.filter || '',
+      type: this.state.selectedType,
       namespace: this.props.namespace || '',
       pageSize: request.pageSize || 0,
       sortBy: request.sortBy || '',
@@ -182,7 +234,7 @@ function artifactNameRenderer({ id, value }: CustomRendererProps<string>) {
   return (
     <Link
       onClick={(event) => event.stopPropagation()}
-      className={commonCss.link}
+      className='kfp-artifact-link'
       style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}
       title={value}
       to={RoutePageFactory.artifactDetails(id)}
@@ -195,16 +247,16 @@ function artifactNameRenderer({ id, value }: CustomRendererProps<string>) {
 function artifactIdRenderer({ id, value = '' }: CustomRendererProps<string>) {
   const shortId = value.length > 16 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value;
   return (
-    <Tooltip title={value}>
+    <span title={value}>
       <Link
         aria-label={`Artifact ID ${value}`}
-        className={commonCss.link}
+        className='kfp-artifact-link'
         onClick={(event) => event.stopPropagation()}
         to={RoutePageFactory.artifactDetails(id)}
       >
         {shortId}
       </Link>
-    </Tooltip>
+    </span>
   );
 }
 
@@ -212,20 +264,18 @@ function wrappedTextRenderer({ value }: CustomRendererProps<string>) {
   return <span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{value}</span>;
 }
 
-function artifactTypeRenderer({ value }: CustomRendererProps<string>) {
+function artifactTypeRenderer({ value = '' }: CustomRendererProps<string>) {
+  const kind = value.includes('Dataset')
+    ? 'dataset'
+    : value.includes('Model')
+      ? 'model'
+      : value.includes('Metric')
+        ? 'metric'
+        : 'other';
   return (
-    <Tooltip title={value}>
-      <span
-        style={{
-          display: 'block',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {value}
-      </span>
-    </Tooltip>
+    <span title={value} className='kfp-artifact-type' data-kind={kind}>
+      {value}
+    </span>
   );
 }
 
@@ -243,12 +293,16 @@ function artifactDateRenderer({ value }: CustomRendererProps<Date | string | und
 }
 
 function artifactUriRenderer({ value }: CustomRendererProps<ArtifactUriCell>) {
-  return <ArtifactLink artifactUri={value?.uri || ''} namespace={value?.namespace} />;
+  return (
+    <span className='kfp-artifact-uri' title={value?.uri}>
+      <ArtifactLink artifactUri={value?.uri || ''} namespace={value?.namespace} />
+    </span>
+  );
 }
 
-const EnhancedArtifactList = (props: PageProps) => {
+const ArtifactListWithContext = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
   return <ArtifactList key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedArtifactList;
+export default ArtifactListWithContext;

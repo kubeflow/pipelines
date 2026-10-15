@@ -19,6 +19,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import { UIConfigs } from './configs.js';
+import { createPrecompressedStaticApp } from './static-assets.js';
 import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
@@ -370,6 +371,9 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.get, '/index.html', indexHtmlHandler);
 
   /** Static resource (i.e. react app) */
+  const precompressedAssets = createPrecompressedStaticApp(options.server.staticDir);
+  app.use(basePath, precompressedAssets);
+  app.use(precompressedAssets);
   app.use(basePath, StaticHandler(options.server.staticDir));
   app.use(StaticHandler(options.server.staticDir));
 

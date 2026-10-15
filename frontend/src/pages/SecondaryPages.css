@@ -1,0 +1,113 @@
+.kfp-theme .kfp-secondary-page {
+  min-width: 0;
+  margin: 0 32px 32px;
+  padding: 24px;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.kfp-secondary-page h1 {
+  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 600;
+}
+.kfp-start-page {
+  max-width: 900px;
+}
+.kfp-start-page li {
+  margin: 10px 0 10px 24px;
+}
+.kfp-start-page p {
+  margin: 12px 0;
+}
+.kfp-start-page h2 {
+  margin: 24px 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.kfp-start-page h2:first-child {
+  margin-top: 0;
+}
+.kfp-start-page h3 {
+  margin: 20px 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.kfp-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+.kfp-feature-table-scroll {
+  overflow-x: auto;
+}
+.kfp-feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.kfp-feature-table th,
+.kfp-feature-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.kfp-feature-table thead {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.kfp-feature-table th {
+  font-weight: 600;
+}
+.kfp-feature-table td:last-child {
+  width: 80px;
+}
+.kfp-theme .kfp-not-found {
+  margin: 48px auto;
+  width: min(600px, calc(100% - 32px));
+  text-align: center;
+}
+.kfp-not-found-code {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 64px;
+  font-weight: 600;
+}
+.kfp-not-found code {
+  overflow-wrap: anywhere;
+}
+.kfp-not-found button {
+  margin-top: 16px;
+}
+.kfp-page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  color: var(--muted-foreground);
+}
+.kfp-secondary-spinner {
+  width: 20px;
+  height: 20px;
+  animation: kfp-secondary-spin 1s linear infinite;
+}
+@keyframes kfp-secondary-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kfp-secondary-spinner {
+    animation: none;
+  }
+}
+@media (max-width: 599px) {
+  .kfp-theme .kfp-secondary-page {
+    margin: 0 16px 16px;
+    padding: 16px;
+  }
+}

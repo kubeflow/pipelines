@@ -13,13 +13,9 @@
 // limitations under the License.
 
 import * as React from 'react';
-import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
-import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
+import { Alert } from 'src/components/ui/alert';
+import { Button } from 'src/components/ui/button';
+import { TextField } from 'src/components/ui/text-field';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import {
@@ -129,81 +125,75 @@ export function MetadataTransferForm({
   }
   const summary = result || preview;
   return (
-    <Stack spacing={3} sx={{ maxWidth: 960, p: 3 }}>
-      <Typography variant='body1'>
+    <div
+      className='kfp-inspection-scroll'
+      style={{ maxWidth: 960, padding: 24, display: 'grid', gap: 24 }}
+    >
+      <p>
         Move pipeline metadata between installations. Namespace:{' '}
         <strong>{namespace || 'Installation default'}</strong>
-      </Typography>
-      <Alert severity='info'>
+      </p>
+      <Alert variant='info'>
         Archives include experiments, pipeline definitions and versions, completed run history, and
         recurring runs. Artifact files and logs are not copied; their existing storage locations
         must remain accessible. Imported recurring runs have scheduling and catchup disabled. You
         can edit them after import.
       </Alert>
       {disabled && (
-        <Alert severity='warning'>Select a namespace before exporting or importing.</Alert>
+        <Alert variant='warning'>Select a namespace before exporting or importing.</Alert>
       )}
-      {error && <Alert severity='error'>{error}</Alert>}
-      <Paper variant='outlined' sx={{ p: 3 }}>
-        <Stack spacing={2}>
-          <Typography component='h2' variant='h6'>
-            Export metadata
-          </Typography>
-          <Typography variant='body2'>
+      {error && <Alert variant='error'>{error}</Alert>}
+      <section className='kfp-inspection-details-card' style={{ padding: 24 }}>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <h2>Export metadata</h2>
+          <p>
             Export the full experiment and pipeline catalog, including empty experiments, and all
             recurring runs. Active runs are excluded. Optional times limit completed run history
             only. Narrow the time range to export busy periods in smaller batches.
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             <TextField
               label='Completed from (UTC)'
               type='datetime-local'
-              inputProps={{ step: 1 }}
-              sx={{ minWidth: 280 }}
+              step={1}
+              style={{ minWidth: 280 }}
               value={after}
               disabled={locked}
-              InputLabelProps={{ shrink: true }}
               onChange={(event) => setAfter(event.target.value)}
             />
             <TextField
               label='Completed before (UTC)'
               type='datetime-local'
-              inputProps={{ step: 1 }}
-              sx={{ minWidth: 280 }}
+              step={1}
+              style={{ minWidth: 280 }}
               value={before}
               disabled={locked}
-              InputLabelProps={{ shrink: true }}
               onChange={(event) => setBefore(event.target.value)}
             />
-          </Stack>
-          <Box>
-            <Button variant='contained' disabled={locked} onClick={() => void exportArchive()}>
+          </div>
+          <div>
+            <Button variant='default' disabled={locked} onClick={() => void exportArchive()}>
               {busy === 'export' ? 'Exporting…' : 'Download archive'}
             </Button>
-          </Box>
-          {downloaded && <Alert severity='success'>Archive download started.</Alert>}
-        </Stack>
-      </Paper>
-      <Paper variant='outlined' sx={{ p: 3 }}>
-        <Stack spacing={2}>
-          <Typography component='h2' variant='h6'>
-            Import metadata
-          </Typography>
-          <Typography variant='body2'>
+          </div>
+          {downloaded && <Alert variant='info'>Archive download started.</Alert>}
+        </div>
+      </section>
+      <section className='kfp-inspection-details-card' style={{ padding: 24 }}>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <h2>Import metadata</h2>
+          <p>
             Choose an archive from the same Pipelines generation and namespace. Validate it before
             importing into this installation. Existing records are never overwritten.
-          </Typography>
-          <Box>
-            <Typography component='label' htmlFor='metadata-archive' variant='body2'>
-              Metadata archive (JSON, up to 256 MiB)
-            </Typography>
-            <Box
-              component='input'
+          </p>
+          <div>
+            <label htmlFor='metadata-archive'>Metadata archive (JSON, up to 256 MiB)</label>
+            <input
               id='metadata-archive'
               type='file'
               accept='.json,application/json'
               disabled={locked}
-              sx={{ display: 'block', mt: 1 }}
+              style={{ display: 'block', marginTop: 8 }}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 invalidate();
                 const selected = event.target.files?.[0];
@@ -213,47 +203,37 @@ export function MetadataTransferForm({
                 } else setFile(selected);
               }}
             />
-          </Box>
+          </div>
           <TextField
             label='Imported name prefix'
             value={prefix}
             disabled={locked}
-            helperText='Applied to imported experiment and pipeline names to avoid name conflicts.'
+            hint='Applied to imported experiment and pipeline names to avoid name conflicts.'
             onChange={(event) => {
               setPrefix(event.target.value);
               invalidate();
             }}
           />
-          <Stack direction='row' spacing={2}>
+          <div style={{ display: 'flex', gap: 16 }}>
             <Button
-              variant='outlined'
+              variant='secondary'
               disabled={locked || !file}
               onClick={() => void importArchive(true)}
             >
               {busy === 'validate' ? 'Validating…' : 'Validate archive'}
             </Button>
             <Button
-              variant='contained'
+              variant='default'
               disabled={locked || !preview}
               onClick={() => void importArchive(false)}
             >
               {busy === 'import' ? 'Importing…' : 'Import metadata'}
             </Button>
-          </Stack>
+          </div>
           {summary && (
-            <Box role='status'>
-              <Typography variant='subtitle1'>
-                {result ? 'Import complete' : 'Archive validated. Ready to import.'}
-              </Typography>
-              <Box
-                component='dl'
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 1,
-                  '& dt, & dd': { m: 0 },
-                }}
-              >
+            <div role='status' aria-label='Import result'>
+              <p>{result ? 'Import complete' : 'Archive validated. Ready to import.'}</p>
+              <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {Object.entries({
                   Experiments: summary.counts.experiments,
                   Pipelines: summary.counts.pipelines,
@@ -262,25 +242,25 @@ export function MetadataTransferForm({
                   'Recurring runs': summary.counts.schedules,
                 }).map(([label, count]) => (
                   <React.Fragment key={label}>
-                    <Typography component='dt'>{label}</Typography>
-                    <Typography component='dd'>{count}</Typography>
+                    <dt>{label}</dt>
+                    <dd>{count}</dd>
                   </React.Fragment>
                 ))}
-              </Box>
-              <Typography variant='body2'>
+              </dl>
+              <p>
                 {summary.imported} {result ? 'imported' : 'to import'}; {summary.skipped} already
                 imported.
-              </Typography>
+              </p>
               {summary.warnings.map((warning, index) => (
-                <Alert severity='warning' key={`${index}-${warning}`} sx={{ mt: 1 }}>
+                <Alert variant='warning' key={`${index}-${warning}`} className='mt-2'>
                   {warning}
                 </Alert>
               ))}
-            </Box>
+            </div>
           )}
-        </Stack>
-      </Paper>
-    </Stack>
+        </div>
+      </section>
+    </div>
   );
 }
 

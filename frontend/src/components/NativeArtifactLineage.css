@@ -1,0 +1,177 @@
+.kfp-theme .kfp-native-lineage {
+  min-width: 0;
+  color: var(--foreground);
+}
+.kfp-theme .kfp-lineage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0;
+}
+.kfp-theme .kfp-lineage-history,
+.kfp-theme .kfp-lineage-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.kfp-theme .kfp-lineage-history-item {
+  max-width: 220px;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.kfp-theme .kfp-lineage-history-item[aria-current] {
+  color: var(--foreground);
+  font-weight: 600;
+  cursor: default;
+}
+.kfp-theme .kfp-lineage-history-item span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kfp-theme .kfp-lineage-status {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-theme .kfp-lineage-artifact {
+  display: block;
+  width: 100%;
+  min-height: 108px;
+  padding: 0;
+  text-align: left;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+}
+.kfp-theme .kfp-lineage-artifact[aria-current] {
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  cursor: default;
+}
+.kfp-theme .kfp-lineage-artifact:hover {
+  border-color: var(--primary);
+}
+.kfp-theme .kfp-native-lineage :is(button, a):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.kfp-theme .kfp-lineage-kind {
+  display: block;
+  padding: 10px 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kfp-theme .kfp-lineage-artifact-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-lineage-artifact-name::before {
+  content: '';
+  flex: 0 0 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+}
+.kfp-theme .kfp-lineage-branch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 48px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+.kfp-theme .kfp-lineage-task {
+  min-height: 108px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--primary-soft);
+}
+.kfp-theme .kfp-lineage-task-name {
+  min-height: 52px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-lineage-task-name a {
+  color: var(--foreground);
+}
+.kfp-theme .kfp-lineage-port {
+  margin: 6px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.kfp-theme .kfp-lineage-adjacent {
+  margin-bottom: 20px;
+}
+.kfp-theme .kfp-lineage-columns {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: 48px;
+  align-items: start;
+}
+.kfp-theme .kfp-lineage-column-labels {
+  margin-bottom: 24px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.kfp-theme .kfp-lineage-column-labels [data-selected] {
+  color: var(--primary);
+}
+.kfp-theme .kfp-lineage-unknown {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+}
+.kfp-theme .kfp-lineage-help {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-theme .kfp-lineage-canvas {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+}
+.kfp-theme .kfp-lineage-canvas:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.kfp-theme .kfp-lineage-canvas-inner {
+  position: relative;
+  min-width: 1000px;
+  min-height: 420px;
+  padding: 24px 28px 40px;
+}

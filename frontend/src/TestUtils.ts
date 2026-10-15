@@ -23,7 +23,7 @@ import { QueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { Location, useLocation } from 'react-router';
 import { beforeEach, expect, MockInstance } from 'vitest';
-import { ToolbarActionConfig } from './components/Toolbar';
+import { ToolbarActionConfig } from 'src/lib/PageChromeTypes';
 import { Feature } from './features';
 import { logger } from './lib/Utils';
 import { Page, PageProps } from './pages/Page';

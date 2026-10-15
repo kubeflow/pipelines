@@ -20,7 +20,7 @@ import ArtifactPreview, {
   ArtifactPreviewValue,
 } from 'src/components/ArtifactPreview';
 import { RoutePageFactory } from 'src/components/Router';
-import { commonCss } from 'src/Css';
+import './inspection/RunInspection.css';
 import {
   flattenArtifactGroups,
   getArtifactDisplayName,
@@ -33,17 +33,24 @@ type RuntimeArtifactRowValue = ArtifactPreviewValue | { text: string; artifactId
 
 export function RuntimeArtifactValue({
   value,
+  namespacePending = false,
   ...props
-}: Omit<ArtifactPreviewProps, 'value'> & { value?: RuntimeArtifactRowValue }) {
+}: Omit<ArtifactPreviewProps, 'value'> & {
+  value?: RuntimeArtifactRowValue;
+  namespacePending?: boolean;
+}) {
   if (value !== null && typeof value === 'object' && 'text' in value) {
     return value.artifactId ? (
-      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(value.artifactId)}>
+      <Link className='kfp-inspection-link' to={RoutePageFactory.artifactDetails(value.artifactId)}>
         {value.text}
       </Link>
     ) : (
       <>{value.text}</>
     );
   }
+  // Keep artifact labels and scalar values visible while withholding storage reads and
+  // download links until Run Details has resolved the experiment namespace.
+  if (namespacePending) return <span role='status'>Loading experiment namespace…</span>;
   return <ArtifactPreview value={value} {...props} />;
 }
 
@@ -52,7 +59,10 @@ export function buildRuntimeArtifactRows(groups: InputOutputsIOArtifact[] | unde
   for (const { artifact, artifactKey, group, index } of flattenArtifactGroups(groups)) {
     const displayName = getArtifactDisplayName(artifact, artifactKey, index, group.artifacts);
     const label = artifact.artifact_id ? (
-      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifact.artifact_id)}>
+      <Link
+        className='kfp-inspection-link'
+        to={RoutePageFactory.artifactDetails(artifact.artifact_id)}
+      >
         {displayName}
       </Link>
     ) : (

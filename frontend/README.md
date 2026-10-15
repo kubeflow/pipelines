@@ -4,13 +4,18 @@ This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 
 ## Current Stack
 
-- React 19 with TypeScript on Vite 7
-- MUI v5 with Emotion
+- React 19 with TypeScript on Vite 8
+- Tailwind CSS 4 with Base UI
 - TanStack Query v5
 - React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests
 - Vitest for frontend server tests
 - Storybook 10 for component development
+
+## Browser support
+
+See the [browser support policy](docs/browser-support.md) for supported channels,
+release qualification, and the distinction between product support and compiler targets.
 
 ## Quick Start Development
 

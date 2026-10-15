@@ -17,7 +17,7 @@
 import { render } from '@testing-library/react';
 import ViewerContainer from './ViewerContainer';
 import { PlotType } from './Viewer';
-import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
+import { stableSnapshotFragment } from 'src/testUtils/snapshot';
 
 describe('ViewerContainer', () => {
   const sampleConfigs: Record<PlotType, any> = {
@@ -61,7 +61,7 @@ describe('ViewerContainer', () => {
     return it('renders a viewer of type ' + type, isROC ? { timeout: 10000 } : {}, () => {
       const plotType = PlotType[type as keyof typeof PlotType];
       const { asFragment } = render(<ViewerContainer configs={[sampleConfigs[plotType]]} />);
-      expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+      expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
     });
   });
 });

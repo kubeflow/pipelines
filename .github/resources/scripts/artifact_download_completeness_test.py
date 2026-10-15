@@ -20,6 +20,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from artifact_workflow_test_support import evaluate
 from artifact_workflow_test_support import render
@@ -50,6 +51,7 @@ class CompositeAction:
         self.path = path
         self.attempts = attempts
         self.downloads = []
+        self.download_output_path = None
         self.steps = {}
         self.failed = False
         self.cancelled = False
@@ -116,7 +118,9 @@ class CompositeAction:
                 destination.mkdir(parents=True, exist_ok=True)
                 outcome = attempt(destination, download_inputs)
                 if outcome == 'success':
-                    outputs['download-path'] = os.path.abspath(destination)
+                    outputs['download-path'] = (
+                        self.download_output_path or
+                        os.path.abspath(destination))
             else:
                 if step['shell'] != 'bash':
                     raise AssertionError(f'Unexpected shell: {step}')
@@ -196,6 +200,30 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(runner.downloads, ['primary'])
         output = runner.action['outputs']['download-path']['value']
         self.assertEqual(runner.render(output), str(self.path))
+
+    def test_windows_native_action_output_validates_complete_download(self):
+        tools = Path(self.directory.name) / 'bin'
+        tools.mkdir()
+        converter = tools / 'cygpath'
+        converter.write_text('#!/bin/sh\n'
+                             '[ "$1" = "-u" ] && [ "$2" = "--" ] && '
+                             '[ "$3" = "$CYGPATH_INPUT" ] || exit 9\n'
+                             'printf "%s\\n" "$CYGPATH_TARGET"\n')
+        converter.chmod(0o755)
+        runner = CompositeAction(self.path, [download(files=self.complete)],
+                                 self.required)
+        runner.download_output_path = r'D:\a\pipelines\downloads'
+        with mock.patch.dict(
+                os.environ, {
+                    'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                    'CYGPATH_TARGET': str(self.path),
+                    'CYGPATH_INPUT': runner.download_output_path,
+                }):
+            result = runner.run()
+        self.assertEqual(result, 'success', runner.log)
+        self.assertEqual(runner.downloads, ['primary'])
+        self.assertEqual(runner.steps['verify-primary']['outputs']['complete'],
+                         'true')
 
     def test_download_defaults_resolve_the_github_context(self):
         received = []
@@ -463,6 +491,124 @@ class RequiredFilesSafetyTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0,
                                  result.stdout + result.stderr)
                 self.assertTrue((self.path / 'new/nested').is_dir())
+
+    def test_native_windows_download_output_uses_actual_destination(self):
+        tools = self.path / 'bin'
+        tools.mkdir()
+        converter = tools / 'cygpath'
+        converter.write_text('#!/bin/sh\nprintf "%s\\n" "$CYGPATH_TARGET"\n')
+        converter.chmod(0o755)
+        target = self.path / 'download'
+        target.mkdir()
+        with mock.patch.dict(
+                os.environ, {
+                    'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                    'CYGPATH_TARGET': str(target),
+                }):
+            for destination in (r'D:\a\_temp\download', 'D:/a/_temp/download'):
+                with self.subTest(destination=destination):
+                    archive = target / 'archive.tar'
+                    archive.write_text('complete')
+                    result = self.run_helper('verify', 'archive.tar',
+                                             destination)
+                    self.assertEqual(result.returncode, 0,
+                                     result.stdout + result.stderr)
+                    result = self.run_helper('prepare', 'archive.tar',
+                                             destination)
+                    self.assertEqual(result.returncode, 0,
+                                     result.stdout + result.stderr)
+                    self.assertFalse(archive.exists())
+
+    def test_normalized_windows_destinations_keep_symlink_and_traversal_guards(
+            self):
+        tools = self.path / 'bin'
+        tools.mkdir()
+        converter = tools / 'cygpath'
+        converter.write_text('#!/bin/sh\nprintf "%s\\n" "$CYGPATH_TARGET"\n')
+        converter.chmod(0o755)
+        outside = self.path / 'outside'
+        outside.mkdir()
+        sentinel = outside / 'archive.tar'
+        sentinel.write_text('keep')
+        link = self.path / 'link'
+        link.symlink_to(outside, target_is_directory=True)
+        for target in (str(link), str(self.path / 'missing/../outside')):
+            with mock.patch.dict(
+                    os.environ, {
+                        'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                        'CYGPATH_TARGET': target,
+                    }):
+                for mode in ('prepare', 'verify', 'check'):
+                    result = self.run_helper(mode, 'archive.tar',
+                                             r'D:\a\download')
+                    self.assertEqual(result.returncode, 2,
+                                     result.stdout + result.stderr)
+                    self.assertEqual(sentinel.read_text(), 'keep')
+                    self.assertFalse((self.path / 'missing').exists())
+
+    def test_windows_parent_traversal_is_rejected_before_normalization(self):
+        tools = self.path / 'bin'
+        tools.mkdir()
+        converter = tools / 'cygpath'
+        converter.write_text(
+            '#!/bin/sh\ntouch "$CONVERSION_MARKER"\nprintf "%s\\n" "$CYGPATH_TARGET"\n'
+        )
+        converter.chmod(0o755)
+        outside = self.path / 'outside'
+        outside.mkdir()
+        sentinel = outside / 'archive.tar'
+        sentinel.write_text('keep')
+        marker = self.path / 'converted'
+        with mock.patch.dict(
+                os.environ, {
+                    'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                    'CYGPATH_TARGET': str(outside),
+                    'CONVERSION_MARKER': str(marker),
+                }):
+            for destination in (r'D:\allowed\..\outside',
+                                'D:/allowed/../outside'):
+                for mode in ('prepare', 'verify', 'check'):
+                    result = self.run_helper(mode, 'archive.tar', destination)
+                    self.assertEqual(result.returncode, 2,
+                                     result.stdout + result.stderr)
+                    self.assertFalse(marker.exists())
+                    self.assertEqual(sentinel.read_text(), 'keep')
+
+    def test_windows_conversion_failure_preserves_existing_files(self):
+        tools = self.path / 'bin'
+        tools.mkdir()
+        converter = tools / 'cygpath'
+        converter.write_text('#!/bin/sh\nexit 7\n')
+        converter.chmod(0o755)
+        sentinel = self.path / 'archive.tar'
+        sentinel.write_text('keep')
+        with mock.patch.dict(os.environ, {
+                'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+        }):
+            result = self.run_helper('prepare', 'archive.tar', r'D:\a\download')
+        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+        self.assertEqual(sentinel.read_text(), 'keep')
+
+    def test_unset_destination_fails_before_touching_files(self):
+        sentinel = self.path / 'archive.tar'
+        sentinel.write_text('keep')
+        environment = dict(os.environ, REQUIRED_FILES='archive.tar')
+        environment.pop('DOWNLOAD_PATH', None)
+        for mode in ('prepare', 'verify', 'check'):
+            with self.subTest(mode=mode):
+                result = subprocess.run(
+                    ['bash', str(ARTIFACT_FILES), mode],
+                    env=environment,
+                    cwd=self.path,
+                    capture_output=True,
+                    text=True,
+                    check=False)
+                self.assertEqual(result.returncode, 2,
+                                 result.stdout + result.stderr)
+                self.assertIn('absolute or workspace-relative destination',
+                              result.stdout)
+                self.assertNotIn('unbound variable', result.stderr)
+                self.assertEqual(sentinel.read_text(), 'keep')
 
     def test_empty_or_parent_traversal_destination_is_rejected(self):
         for destination in ('', '../outside', 'new/../outside'):

@@ -16,13 +16,13 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@xyflow/react')>()),
   MiniMap: () => null,
   Background: () => null,
-  ReactFlow: ({ onInit, children }: ReactFlowProps) => {
+  ReactFlow: ({ onInit, children, nodesFocusable }: ReactFlowProps) => {
     useEffect(() => {
       onInit?.(viewport as unknown as ReactFlowInstance);
     }, [onInit]);
     return (
       <div>
-        <button>Node</button>
+        <button data-focusable={String(nodesFocusable)}>Node</button>
         <input aria-label='Input' />
         <textarea aria-label='Textarea' />
         <select aria-label='Select'>
@@ -110,4 +110,14 @@ it('ignores modified keys, unrelated keys, and keyboard input outside the graph'
     fireEvent.keyDown(screen.getByLabelText('Outside graph'), { key });
   expect(viewport.setViewport).not.toHaveBeenCalled();
   expect(viewport.fitView).not.toHaveBeenCalled();
+});
+
+it('enables keyboard node movement only while unlocked', () => {
+  render(canvas());
+  const node = screen.getByRole('button', { name: 'Node' });
+  expect(node).toHaveAttribute('data-focusable', 'false');
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
+  expect(node).toHaveAttribute('data-focusable', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Lock graph' }));
+  expect(node).toHaveAttribute('data-focusable', 'false');
 });

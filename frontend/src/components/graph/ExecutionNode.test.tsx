@@ -16,7 +16,9 @@
 
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
+import ExecutionNode from './ExecutionNode';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
@@ -40,7 +42,9 @@ describe('ExecutionNode', () => {
       />,
     );
     expect(screen.getByText('completed-step')).toBeInTheDocument();
-    expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'completed-step' })).toHaveAccessibleDescription(
+      'Succeeded',
+    );
   });
 
   it('renders with RUNNING state and correct icon', () => {
@@ -51,7 +55,9 @@ describe('ExecutionNode', () => {
       />,
     );
     expect(screen.getByText('running-step')).toBeInTheDocument();
-    expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'running-step' })).toHaveAccessibleDescription(
+      'Running',
+    );
   });
 
   it('renders with FAILED state and correct icon', () => {
@@ -62,7 +68,9 @@ describe('ExecutionNode', () => {
       />,
     );
     expect(screen.getByText('failed-step')).toBeInTheDocument();
-    expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'failed-step' })).toHaveAccessibleDescription(
+      'Failed',
+    );
   });
 
   it('sets the title attribute', () => {
@@ -96,42 +104,39 @@ describe('ExecutionNode', () => {
   });
 });
 
-describe('getIcon', () => {
-  it('returns null for undefined state', () => {
-    expect(getIcon(undefined)).toBeNull();
-  });
-
+describe('task state presentation', () => {
   it.each([
-    ['SUCCEEDED', PipelineTaskTaskState.SUCCEEDED, 'CheckCircleIcon', 'bg-mui-green-50'],
-    ['RUNNING', PipelineTaskTaskState.RUNNING, 'RefreshIcon', 'bg-mui-green-50'],
-    ['FAILED', PipelineTaskTaskState.FAILED, 'ErrorIcon', 'bg-mui-red-50'],
-    ['SKIPPED', PipelineTaskTaskState.SKIPPED, 'StopCircleIcon', 'bg-mui-grey-200'],
-    ['CACHED', PipelineTaskTaskState.CACHED, 'CloudDownloadIcon', 'bg-mui-green-50'],
-    [
-      'UNSPECIFIED',
-      PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
-      'MoreHorizIcon',
-      'bg-mui-grey-200',
-    ],
-  ] as const)(
-    'returns the correct icon for %s state',
-    (_label, state, iconTestId, backgroundClass) => {
-      render(getIcon(state)!);
-      const stateIcon = screen.getByTestId(iconTestId);
-      expect(stateIcon).toBeInTheDocument();
-      expect(stateIcon.parentElement).toHaveClass(backgroundClass);
-    },
-  );
-});
-
-describe('getExecutionIcon', () => {
-  it('returns a default ListAlt icon for undefined state', () => {
-    render(getExecutionIcon(undefined));
-    expect(screen.getByTestId('execution-icon-default')).toBeInTheDocument();
+    [PipelineTaskTaskState.SUCCEEDED, 'Succeeded'],
+    [PipelineTaskTaskState.RUNNING, 'Running'],
+    [PipelineTaskTaskState.FAILED, 'Failed'],
+    [PipelineTaskTaskState.SKIPPED, 'Skipped'],
+    [PipelineTaskTaskState.CACHED, 'Cached'],
+    [PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED, 'Unknown'],
+    [undefined, 'Task'],
+  ] as const)('announces %s without depending on color', (state, label) => {
+    render(
+      <ReactFlowProvider>
+        <ExecutionNode id='task' data={{ label: 'Train', state }} />
+      </ReactFlowProvider>,
+    );
+    expect(screen.getByRole('button', { name: 'Train' })).toHaveAccessibleDescription(label);
+    expect(screen.getByRole('button', { name: 'Train' })).toHaveStyle({
+      width: '200px',
+      height: '56px',
+    });
   });
 
-  it('returns an active ListAlt icon for defined state', () => {
-    render(getExecutionIcon(PipelineTaskTaskState.RUNNING));
-    expect(screen.getByTestId('execution-icon-active')).toBeInTheDocument();
+  it('activates task inspection using the keyboard', async () => {
+    const inspect = vi.fn();
+    render(
+      <ReactFlowProvider>
+        <div onClick={inspect}>
+          <ExecutionNode id='task' data={{ label: 'Train' }} />
+        </div>
+      </ReactFlowProvider>,
+    );
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
+    expect(inspect).toHaveBeenCalledTimes(1);
   });
 });

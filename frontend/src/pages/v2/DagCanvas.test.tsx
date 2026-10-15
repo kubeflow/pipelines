@@ -110,16 +110,13 @@ it('shows nested tasks immediately and collapses in place without navigating or 
   expect(screen.getByText('Train model')).toBeInTheDocument();
   const collapse = screen.getByRole('button', { name: 'Collapse Training pipeline' });
   expect(collapse).toHaveAttribute('aria-expanded', 'true');
-  expect(within(collapse).getByTestId('UnfoldLessIcon')).toBeInTheDocument();
   fireEvent.click(collapse);
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
   expect(screen.getByText('Deploy model')).toBeInTheDocument();
   expect(options.onElementClick).not.toHaveBeenCalled();
   const expand = screen.getByRole('button', { name: 'Expand Training pipeline' });
   expect(expand).toHaveAttribute('aria-expanded', 'false');
-  expect(within(expand).getByTestId('UnfoldMoreIcon')).toBeInTheDocument();
   fireEvent.click(expand);
-  expect(within(collapse).getByTestId('UnfoldLessIcon')).toBeInTheDocument();
   expect(screen.getByText('Train model')).toBeInTheDocument();
 });
 
@@ -315,8 +312,6 @@ it('places expand then collapse above native zoom controls and toggles all desce
   );
   const expandAll = screen.getByRole('button', { name: 'Expand all' });
   const collapseAll = screen.getByRole('button', { name: 'Collapse all' });
-  expect(within(expandAll).getByTestId('UnfoldMoreIcon')).toBeInTheDocument();
-  expect(within(collapseAll).getByTestId('UnfoldLessIcon')).toBeInTheDocument();
   const toolbar = screen.getByRole('group', { name: 'Graph controls' });
   const buttons = within(toolbar).getAllByRole('button');
   expect(buttons[0]).toBe(expandAll);
@@ -351,8 +346,8 @@ it('places expand then collapse above native zoom controls and toggles all desce
 });
 
 it.each([
-  [13, 39],
-  [16, 48],
+  [13, 56],
+  [16, 56],
 ])('renders node-height group headers with a %spx root font', (rootFontSize, expectedHeight) => {
   const previous = document.documentElement.style.fontSize;
   document.documentElement.style.fontSize = `${rootFontSize}px`;

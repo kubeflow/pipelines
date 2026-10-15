@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
+import ExperimentListWithContext, { ExperimentList } from './ExperimentList';
 import TestUtils from 'src/TestUtils';
 import * as Utils from 'src/lib/Utils';
 import { logger } from 'src/lib/Utils';
@@ -55,7 +55,6 @@ const LIST_EXPERIMENT_DEFAULTS = [
 const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFAULTS.slice(0, 4);
 
 describe('ExperimentList', () => {
-  let renderResult: ReturnType<typeof render> | null = null;
   let experimentListRef: React.RefObject<ExperimentList> | null = null;
 
   let updateBannerSpy: ReturnType<typeof vi.fn>;
@@ -113,7 +112,7 @@ describe('ExperimentList', () => {
   ): Promise<PageProps> {
     experimentListRef = React.createRef<ExperimentList>();
     const props = { ...generateProps(), ...propsPatch } as PageProps;
-    renderResult = render(
+    render(
       <MemoryRouter>
         <ExperimentList ref={experimentListRef} {...props} />
       </MemoryRouter>,
@@ -487,9 +486,7 @@ describe('ExperimentList', () => {
       id: 'experiment-id',
       value: 'experiment name',
     } as any);
-    const { getByTestId, asFragment, unmount } = render(
-      <MemoryRouter>{nameRenderer}</MemoryRouter>,
-    );
+    const { getByTestId, unmount } = render(<MemoryRouter>{nameRenderer}</MemoryRouter>);
     const link = getByTestId('experiment-name-link');
     expect(link).toHaveAttribute('data-experiment-id', 'experiment-id');
     expect(link).toHaveAttribute('data-experiment-name', 'experiment name');
@@ -512,7 +509,11 @@ describe('ExperimentList', () => {
       ],
     } as any);
     const { unmount } = render(<div>{statusRenderer}</div>);
-    expect(screen.getAllByTestId('node-status-sign')).toHaveLength(5);
+    expect(
+      screen.getByRole('img', {
+        name: 'Last 5 runs: SUCCEEDED, PENDING, FAILED, RUNTIME_STATE_UNSPECIFIED, SUCCEEDED',
+      }),
+    ).toBeVisible();
     unmount();
   });
 
@@ -520,7 +521,7 @@ describe('ExperimentList', () => {
     it('defaults to no namespace', async () => {
       render(
         <MemoryRouter>
-          <EnhancedExperimentList {...generateProps()} />
+          <ExperimentListWithContext {...generateProps()} />
         </MemoryRouter>,
       );
       await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalled());
@@ -531,7 +532,7 @@ describe('ExperimentList', () => {
       render(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -546,7 +547,7 @@ describe('ExperimentList', () => {
       const { rerender } = render(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns-1'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -559,7 +560,7 @@ describe('ExperimentList', () => {
       rerender(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns-2'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -575,7 +576,7 @@ describe('ExperimentList', () => {
       const { rerender } = render(
         <MemoryRouter>
           <NamespaceContext.Provider value={undefined}>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -584,7 +585,7 @@ describe('ExperimentList', () => {
       rerender(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );

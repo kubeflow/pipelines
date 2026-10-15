@@ -71,42 +71,57 @@ it.each([
   ['Zoom out', 'Zoom out'],
   ['Fit view', 'Fit graph to view (F)'],
   ['Lock graph', 'Lock nodes to pan with dragging and arrow keys'],
-])('shows the %s tooltip after 500ms, not sooner', (label, tooltip) => {
+])('shows the %s tooltip after 500ms, not sooner', async (label, tooltip) => {
   render(<GraphControls {...props()} />);
   const button = screen.getByRole('button', { name: label });
   expect(button).not.toHaveAttribute('title');
-  fireEvent.mouseOver(button.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(499);
+  fireEvent.mouseEnter(button.parentElement!);
+  fireEvent.mouseMove(button.parentElement!);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(499);
   });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  act(() => {
-    vi.advanceTimersByTime(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  // Base UI mounts the portal on the next animation frame after opening.
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
   });
   expect(screen.getByRole('tooltip')).toHaveTextContent(tooltip);
 });
 
-it('retains the 500ms delay when moving between icons and explains disabled actions', () => {
+it('retains the 500ms delay when moving between icons and explains disabled actions', async () => {
   render(<GraphControls {...props()} hasSubDags={false} />);
   const zoom = screen.getByRole('button', { name: 'Zoom in' });
-  fireEvent.mouseOver(zoom.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(500);
+  fireEvent.mouseEnter(zoom.parentElement!);
+  fireEvent.mouseMove(zoom.parentElement!);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(500);
+  });
+  // Base UI mounts the portal on the next animation frame after opening.
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
   });
   expect(screen.getByRole('tooltip')).toHaveTextContent('Zoom in');
   fireEvent.mouseLeave(zoom.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(250);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250);
   });
   const expand = screen.getByRole('button', { name: 'Expand all' });
   expect(expand).toBeDisabled();
-  fireEvent.mouseOver(expand.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(499);
+  fireEvent.mouseEnter(expand.parentElement!);
+  fireEvent.mouseMove(expand.parentElement!);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(499);
   });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  act(() => {
-    vi.advanceTimersByTime(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  // Base UI mounts the portal on the next animation frame after opening.
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
   });
   expect(screen.getByRole('tooltip')).toHaveTextContent('Expand all sub-DAGs');
 });

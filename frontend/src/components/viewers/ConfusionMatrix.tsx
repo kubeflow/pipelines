@@ -16,8 +16,7 @@
 
 import type * as React from 'react';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
-import { color, commonCss, fontsize } from '../../Css';
-import { classes, stylesheet } from 'typestyle';
+import './ComparisonViewers.css';
 
 const legendNotches = 5;
 
@@ -42,82 +41,6 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
   private _maxRegularCellDimension = 80;
   private _shrinkThreshold = 600;
 
-  private _css = stylesheet({
-    activeLabel: {
-      borderRadius: 5,
-      color: color.theme,
-      fontWeight: 'bold',
-    },
-    cell: {
-      border: 'solid 1px ' + color.background,
-      fontSize: this._isSmall() ? fontsize.small : fontsize.base,
-      position: 'relative',
-      textAlign: 'center',
-      verticalAlign: 'middle',
-    },
-    legend: {
-      background: `linear-gradient(${color.theme}, ${color.background})`,
-      borderRight: 'solid 1px #777',
-      marginLeft: 20,
-      minWidth: 10,
-      position: 'relative',
-      width: 10,
-    },
-    legendLabel: {
-      left: 15,
-      position: 'absolute',
-      top: -7,
-    },
-    legendNotch: {
-      borderTop: 'solid 1px #777',
-      left: '100%',
-      paddingLeft: 5,
-      position: 'absolute',
-      width: 5,
-    },
-    overlay: {
-      backgroundColor: '#000',
-      bottom: 0,
-      left: 0,
-      opacity: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
-    root: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      pointerEvents: this._isSmall() ? 'none' : 'initial', // Disable interaction for snapshot view
-      position: 'relative',
-      width: 'fit-content',
-    },
-    xAxisLabel: {
-      color: color.foreground,
-      fontSize: 15,
-      fontWeight: 'bold',
-      paddingTop: 12,
-      textAlign: 'center',
-    },
-    xlabel: {
-      fontWeight: 'normal',
-      paddingTop: 8,
-      textAlign: 'center',
-      verticalAlign: 'top',
-    },
-    yAxisLabel: {
-      color: color.foreground,
-      fontSize: 15,
-      height: 25,
-      paddingRight: 20,
-      textAlign: 'right',
-    },
-    ylabel: {
-      marginRight: 10,
-      textAlign: 'right',
-      whiteSpace: 'nowrap',
-    },
-  });
-
   constructor(props: any) {
     super(props);
     this.state = {
@@ -141,12 +64,12 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     const small = this._isSmall();
 
     return (
-      <div className={classes(commonCss.flex, this._css.root)}>
+      <div className='kfp-confusion-matrix' data-small={small || undefined}>
         <table>
           <tbody>
             {!small && (
               <tr>
-                <td className={this._css.yAxisLabel}>{yAxisLabel}</td>
+                <td className='kfp-confusion-y-axis-label'>{yAxisLabel}</td>
               </tr>
             )}
             {uiData.map((row, r) => (
@@ -154,10 +77,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 {!small && (
                   <td>
                     <div
-                      className={classes(
-                        this._css.ylabel,
-                        r === activeRow ? this._css.activeLabel : '',
-                      )}
+                      className={`kfp-confusion-ylabel ${r === activeRow ? 'kfp-confusion-active-label' : ''}`}
                       style={{ lineHeight: `${cellDimension}px`, minWidth: cellDimension }}
                     >
                       {
@@ -171,10 +91,10 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 {row.map((cell, c) => (
                   <td
                     key={c}
-                    className={this._css.cell}
+                    className='kfp-confusion-cell'
                     style={{
-                      backgroundColor: `rgba(41, 121, 255, ${opacities[r][c]})`,
-                      color: opacities[r][c] < 0.6 ? color.foreground : color.background,
+                      backgroundColor: `color-mix(in srgb, var(--primary, #2563d9) ${opacities[r][c] * 25}%, var(--card, #fff))`,
+                      color: 'var(--foreground, #15171e)',
                       height: cellDimension,
                       minHeight: cellDimension,
                       minWidth: cellDimension,
@@ -192,7 +112,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                     }
                   >
                     <div
-                      className={this._css.overlay}
+                      className='kfp-confusion-overlay'
                       style={{
                         opacity: r === activeRow || c === activeCol ? 0.05 : 0,
                       }}
@@ -209,9 +129,9 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 <tr>
                   <th />
                   {config.labels.map((label, i) => (
-                    <th key={i} scope='col' className={this._css.xlabel}>
+                    <th key={i} scope='col' className='kfp-confusion-xlabel'>
                       <div
-                        className={i === activeCol ? this._css.activeLabel : ''}
+                        className={i === activeCol ? 'kfp-confusion-active-label' : ''}
                         style={{ overflowWrap: 'anywhere', width: cellDimension }}
                       >
                         {label}
@@ -221,7 +141,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 </tr>
                 <tr>
                   <td />
-                  <td colSpan={config.labels.length} className={this._css.xAxisLabel}>
+                  <td colSpan={config.labels.length} className='kfp-confusion-x-axis-label'>
                     {xAxisLabel}
                   </td>
                 </tr>
@@ -232,19 +152,19 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
 
         {!small && (
           <div
-            className={this._css.legend}
+            className='kfp-confusion-legend'
             style={{ height: 0.75 * config.data.length * cellDimension }}
           >
-            <div className={this._css.legendNotch} style={{ top: 0 }}>
-              <span className={this._css.legendLabel}>{max}</span>
+            <div className='kfp-confusion-legend-notch' style={{ top: 0 }}>
+              <span className='kfp-confusion-legend-label'>{max}</span>
             </div>
             {new Array(legendNotches).fill(0).map((_, i) => (
               <div
                 key={i}
-                className={this._css.legendNotch}
+                className='kfp-confusion-legend-notch'
                 style={{ top: ((legendNotches - i) / legendNotches) * 100 + '%' }}
               >
-                <span className={this._css.legendLabel}>
+                <span className='kfp-confusion-legend-label'>
                   {Math.floor((i / legendNotches) * max)}
                 </span>
               </div>
@@ -282,7 +202,9 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     return {
       cellDimension,
       max,
-      opacities: uiData.map((row) => row.map((value) => +value / max)),
+      opacities: uiData.map((row) =>
+        row.map((value) => (max > 0 && Number.isFinite(value) ? +value / max : 0)),
+      ),
       uiData,
     };
   }
