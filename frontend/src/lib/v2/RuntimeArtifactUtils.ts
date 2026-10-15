@@ -20,6 +20,7 @@ import {
   V2Artifact,
   V2PipelineTask,
 } from 'src/apisv2/run';
+import { ARTIFACT_PREVIEW_METADATA_KEY, PreviewKind } from './ArtifactContentPreview';
 
 const ARTIFACT_SCHEMA_TITLES: Partial<Record<ArtifactArtifactType, string>> = {
   [ArtifactArtifactType.Artifact]: 'system.Artifact',
@@ -217,7 +218,25 @@ export function isVisualizableArtifact(artifact: V2Artifact): boolean {
     isClassificationMetricArtifact(artifact) ||
     isHtmlArtifact(artifact) ||
     isMarkdownArtifact(artifact) ||
-    isLegacyUiMetadataArtifact(artifact)
+    isLegacyUiMetadataArtifact(artifact) ||
+    hasArtifactContentPreview(artifact)
+  );
+}
+
+export function getArtifactContentPreviewKind(artifact: V2beta1Artifact): PreviewKind | undefined {
+  if (artifact.type === ArtifactArtifactType.Dataset) {
+    return 'dataset';
+  }
+  if (artifact.type === ArtifactArtifactType.Model) {
+    return 'model';
+  }
+  return undefined;
+}
+
+export function hasArtifactContentPreview(artifact: V2beta1Artifact): boolean {
+  return (
+    !!getArtifactContentPreviewKind(artifact) &&
+    Object.prototype.hasOwnProperty.call(artifact.metadata || {}, ARTIFACT_PREVIEW_METADATA_KEY)
   );
 }
 

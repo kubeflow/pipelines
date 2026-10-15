@@ -20,6 +20,8 @@ import {
   getArtifactDisplayName,
   getArtifactIdentity,
   getArtifactTypeName,
+  getArtifactContentPreviewKind,
+  hasArtifactContentPreview,
   getOutputArtifactByName,
   getScalarMetricEntries,
   isClassificationMetricArtifact,
@@ -201,6 +203,28 @@ describe('RuntimeArtifactUtils', () => {
         metadata: {},
       }),
     ).toEqual([{ name: 'constructor', value: '-' }]);
+  });
+
+  it('recognizes Dataset and Model previews only when explicitly advertised', () => {
+    for (const [type, kind] of [
+      [ArtifactArtifactType.Dataset, 'dataset'],
+      [ArtifactArtifactType.Model, 'model'],
+    ] as const) {
+      expect(getArtifactContentPreviewKind({ type })).toBe(kind);
+      expect(hasArtifactContentPreview({ type })).toBe(false);
+      const artifact = { type, metadata: { _kfp_preview: { version: 1, path: 'preview.json' } } };
+      expect(hasArtifactContentPreview(artifact)).toBe(true);
+      expect(isVisualizableArtifact(artifact)).toBe(true);
+      expect(isVisualizableArtifact({ type, metadata: { _kfp_preview: { version: 99 } } })).toBe(
+        true,
+      );
+    }
+    expect(
+      hasArtifactContentPreview({
+        type: ArtifactArtifactType.Artifact,
+        metadata: { _kfp_preview: {} },
+      }),
+    ).toBe(false);
   });
 
   it('recognizes legacy UI metadata by artifact name or output key', () => {

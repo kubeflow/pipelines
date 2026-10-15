@@ -28,6 +28,7 @@ import {
   getArtifactsAuthMiddleware,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getArtifactPreviewHandler } from './handlers/artifact-preview.js';
 import { getAuthorizeFn } from './helpers/auth.js';
 import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
@@ -192,6 +193,12 @@ function createUIServer(options: UIConfigs) {
     options.auth.kubeflowUserIdHeader,
     apiServerAddress,
     options.artifacts.proxy.enabled,
+  );
+
+  registerHandler(
+    app.get,
+    '/artifacts/:artifactId/preview',
+    getArtifactPreviewHandler(options, apiServerAddress, authorizeFn),
   );
 
   /** Artifact */

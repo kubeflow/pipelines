@@ -19,6 +19,7 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/StoragePath';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType, ViewerConfig } from './Viewer';
+import datasetPreview from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 import {
   buildConfusionMatrixResult,
   buildRocCurves,
@@ -593,7 +594,43 @@ describe('RuntimeMetricsVisualizations', () => {
     );
   });
 
-  it('renders legacy UI metadata viewers from a native artifact and output key', async () => {
+  it('keeps explicit Dataset previews lazy even when an artifact has a legacy metadata name', async () => {
+    const legacyRead = vi
+      .spyOn(OutputArtifactLoader, 'loadResult')
+      .mockResolvedValue({ configs: [], errors: [] });
+    const previewRead = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const artifact: V2beta1Artifact = {
+      artifact_id: 'dataset-preview',
+      name: 'mlpipeline-ui-metadata',
+      type: ArtifactArtifactType.Dataset,
+      uri: 's3://bucket/dataset',
+      metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+    };
+    const view = (active: boolean, selectedArtifact = artifact) => (
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations artifacts={[selectedArtifact]} active={active} />
+      </CommonTestWrapper>
+    );
+    const { rerender } = render(view(false));
+    expect(legacyRead).not.toHaveBeenCalled();
+    expect(previewRead).not.toHaveBeenCalled();
+    rerender(view(true));
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(legacyRead).not.toHaveBeenCalled();
+    rerender(
+      view(true, { ...artifact, metadata: { _kfp_preview: { version: 2, path: 'preview.json' } } }),
+    );
+    expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
+    expect(legacyRead).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ArtifactArtifactType.Artifact,
+    ArtifactArtifactType.Dataset,
+    ArtifactArtifactType.Model,
+  ])('renders legacy UI metadata viewers without a preview descriptor (%s)', async (type) => {
     const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
       configs: [
         {
@@ -604,10 +641,11 @@ describe('RuntimeMetricsVisualizations', () => {
       ],
       errors: [],
     });
+    loadSpy.mockClear();
     const artifact: V2Artifact = {
       artifact_id: 'legacy-metadata-1',
       name: 'legacy-output',
-      type: ArtifactArtifactType.Artifact,
+      type,
       uri: 's3://reports/mlpipeline-ui-metadata.json',
       metadata: { store_session_info: 'stale-session' } as any,
     };
@@ -623,6 +661,7 @@ describe('RuntimeMetricsVisualizations', () => {
     );
 
     expect(await screen.findByText('restored')).toBeVisible();
+    expect(screen.queryByText(/No preview is enabled/)).toBeNull();
     expect(loadSpy).toHaveBeenCalledWith(
       {
         bucket: 'reports',
@@ -641,6 +680,7 @@ describe('RuntimeMetricsVisualizations', () => {
       configs: [],
       errors: [],
     });
+    loadSpy.mockClear();
     const artifact: V2Artifact = {
       name: 'mlpipeline-ui-metadata',
       uri: 's3://reports/shared-metadata.json',

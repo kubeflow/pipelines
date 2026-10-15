@@ -161,6 +161,7 @@ def get_settings_from_env(
     object_store_host=None,
     http_base_url=None,
     driver_agent_ca_cert_path=None,
+    artifact_previews_enabled: str | None = None,
 ):
     """Returns a dict of settings from environment variables relevant to the
     controller.
@@ -223,6 +224,12 @@ def get_settings_from_env(
         else os.environ.get('DRIVER_AGENT_CA_CERT_PATH', '')
     )
 
+    settings['artifact_previews_enabled'] = (
+        artifact_previews_enabled
+        if artifact_previews_enabled is not None
+        else os.environ.get('ARTIFACT_PREVIEWS_ENABLED', 'true')
+    )
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -255,6 +262,7 @@ def server_factory(
     controller_port=8080,
     http_base_url='',
     driver_agent_ca_cert_path='',
+    artifact_previews_enabled: str = 'true',
 ):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
@@ -560,6 +568,7 @@ def server_factory(
                     'data': {
                         'defaultPipelineRoot': f'minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts',
                         'clusterDomain': cluster_domain,
+                        'artifactPreviewsEnabled': artifact_previews_enabled,
                     },
                 },
                 {

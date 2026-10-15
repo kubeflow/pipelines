@@ -71,3 +71,13 @@ Custom deployments may use different labels; inspect those separately.
   [output viewers](../user-guides/data-handling/artifacts.md)
   and how to provide the metadata to make use of the visualizations
   that the output viewers provide.
+
+  Dataset and Model artifacts can also carry optional, producer-generated
+  [content previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews).
+  These are lazy-loaded JSON snapshots under the same artifact: bounded dataset
+  rows/columns (including Parquet-backed datasets), or model configuration and
+  structural summaries. They need no additional visualization service or container.
+  The SDK generates previews by default for supported Python-component Parquet
+  and XGBoost directory outputs, without manual adapter calls or opt-in flags.
+  Deployment administrators can disable automatic generation with
+  `artifactPreviewsEnabled: "false"` in the deployment's `kfp-launcher` ConfigMap.
