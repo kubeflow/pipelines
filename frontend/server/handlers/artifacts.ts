@@ -83,6 +83,11 @@ import {
   LauncherConfigError,
   LauncherConfigValidationError,
 } from '../helpers/launcher-config.js';
+import {
+  ArtifactContentPreviewRequest,
+  ArtifactPreviewError,
+  readArtifactPreviewBytes,
+} from '../helpers/artifact-preview.js';
 
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
@@ -341,6 +346,7 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
  * @param kubeflowUserIdHeader The header name containing the user identity
  * @param apiServerAddress KFP API server address used for namespace-ownership validation (#9889).
  * @param artifactProxyEnabled Whether volume artifacts are delegated to a namespace proxy.
+ * @param contentPreview Server-resolved preview parent and cancellation context, never browser input.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
@@ -348,6 +354,7 @@ export function getArtifactsAuthMiddleware(
   kubeflowUserIdHeader: string,
   apiServerAddress?: string,
   artifactProxyEnabled = false,
+  contentPreview?: ArtifactContentPreviewRequest,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     hardenArtifactResponse(response);
@@ -405,13 +412,16 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const authError = await authorizeFn(
-      {
-        verb: AuthorizeVerbEnum.GET,
-        resources: AuthorizeResourcesEnum.VIEWERS,
-        namespace: namespace,
-      },
-      request,
+    const authError = await waitForArtifactOperation(
+      authorizeFn(
+        {
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
+          namespace: namespace,
+        },
+        request,
+      ),
+      contentPreview?.signal,
     );
 
     if (authError) {
@@ -425,7 +435,7 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const coordinates = resolveArtifactCoordinates(request);
+    const coordinates = contentPreview?.parent ?? resolveArtifactCoordinates(request);
     if (coordinates === null) {
       console.warn(
         `[SECURITY] Malformed or noncanonical percent-encoding in artifact path. ` +
@@ -479,11 +489,9 @@ export function getArtifactsAuthMiddleware(
       if (requiresArtifactOwnershipValidation(coordinates.source)) {
         const artifactUri = buildArtifactCoordinateUri(coordinates);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };
-        const validation = await validateArtifactNamespace(
-          apiServerAddress,
-          artifactUri,
-          namespace,
-          validationHeaders,
+        const validation = await waitForArtifactOperation(
+          validateArtifactNamespace(apiServerAddress, artifactUri, namespace, validationHeaders),
+          contentPreview?.signal,
         );
 
         if (!validation.valid) {
@@ -532,6 +540,7 @@ export function getArtifactsHandler({
   useParameter,
   tryExtract,
   options,
+  contentPreview,
 }: {
   artifactsConfigs: {
     aws: AWSConfigs;
@@ -545,6 +554,7 @@ export function getArtifactsHandler({
   tryExtract: boolean;
   useParameter: boolean;
   options: UIConfigs;
+  contentPreview?: ArtifactContentPreviewRequest;
 }): Handler {
   const {
     aws,
@@ -612,7 +622,17 @@ export function getArtifactsHandler({
     // hardening headers before parsing so every early error and storage path is
     // protected. Inline previews use fetch(), which ignores Content-Disposition.
     hardenArtifactResponse(res);
-    const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
+    const artifactRequest = contentPreview
+      ? {
+          ...contentPreview.parent,
+          keyEncoding: contentPreview.parent.keyEncoding ?? 'storage',
+          artifactUriQuery: contentPreview.parent.artifactUriQuery || '',
+          namespace: contentPreview.namespace,
+          providerInfo: '',
+          peek: 0,
+          download: false,
+        }
+      : parseArtifactRequest(req, useParameter, options.server.serverNamespace);
     if ('error' in artifactRequest) {
       sendArtifactError(res, artifactRequest.error.status, artifactRequest.error.message);
       return;
@@ -629,12 +649,13 @@ export function getArtifactsHandler({
       download,
     } = artifactRequest;
     const routeCoordinates =
-      useParameter ||
+      contentPreview?.parent ??
+      (useParameter ||
       req.path.endsWith('/artifacts/get') ||
       req.path.endsWith('/pipeline/artifacts/get') ||
       isLauncherArtifactSource(source)
         ? resolveArtifactCoordinates(req)
-        : undefined;
+        : undefined);
     if (routeCoordinates === null) {
       sendArtifactError(res, 400, INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
       return;
@@ -665,7 +686,9 @@ export function getArtifactsHandler({
       return;
     }
     const setArtifactFilename = (transformed: boolean) => {
-      const keyBaseName = storageKey.replace(/\/+$/, '').split('/').pop() || 'artifact';
+      const keyBaseName = contentPreview
+        ? 'preview.json'
+        : storageKey.replace(/\/+$/, '').split('/').pop() || 'artifact';
       res.setHeader(
         'Content-Disposition',
         buildAttachmentDisposition(transformed ? 'artifact' : keyBaseName),
@@ -700,6 +723,7 @@ export function getArtifactsHandler({
         return;
       }
     }
+    const objectKey = contentPreview ? `${storageKey}/preview.json` : storageKey;
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
     if (source !== 'minio' && source !== 's3') {
       setArtifactFilename(false);
@@ -719,11 +743,15 @@ export function getArtifactsHandler({
     if (isLauncherArtifactSource(source)) {
       try {
         resolvedProviderInfo =
-          (await getLauncherProviderInfo(
-            { ...coordinates, key: storageKey, keyEncoding: 'storage', source },
-            namespace,
+          (await waitForArtifactOperation(
+            getLauncherProviderInfo(
+              { ...coordinates, key: storageKey, keyEncoding: 'storage', source },
+              namespace,
+            ),
+            contentPreview?.signal,
           )) || '';
       } catch (error) {
+        contentPreview?.signal.throwIfAborted();
         // Direct mode must not substitute central credentials when native provider validation or
         // trusted launcher configuration fails. The namespace-isolated proxy has its own explicit
         // delegation path for ConfigMap availability failures.
@@ -769,6 +797,9 @@ export function getArtifactsHandler({
     // reading credentials. Validate that same request-local configuration in every provider mode.
 
     const retryAbortController = new AbortController();
+    const storageSignal = contentPreview
+      ? AbortSignal.any([retryAbortController.signal, contentPreview.signal])
+      : retryAbortController.signal;
     const abortRetry = () => retryAbortController.abort();
     const cleanupRetryAbort = () => req.removeListener('aborted', abortRetry);
     if (req.aborted) {
@@ -787,25 +818,30 @@ export function getArtifactsHandler({
     switch (source) {
       case 'gcs':
         await getGCSArtifactHandler(
-          { bucket, key: storageKey },
+          { bucket, key: objectKey },
           peek,
           effectiveProviderInfo,
           namespace,
           allowedGcsUniverseDomains,
           useParameter || download,
+          contentPreview?.signal,
         )(req, res);
         break;
       case 'minio':
         try {
-          client = await createArtifactStoreClient(
-            { minio, s3: aws },
-            'minio',
-            effectiveProviderInfo,
-            namespace,
-            retryAbortController.signal,
-            authorizeEndpoint,
+          client = await waitForArtifactOperation(
+            createArtifactStoreClient(
+              { minio, s3: aws },
+              'minio',
+              effectiveProviderInfo,
+              namespace,
+              storageSignal,
+              authorizeEndpoint,
+            ),
+            contentPreview?.signal,
           );
         } catch (e) {
+          contentPreview?.signal.throwIfAborted();
           sendArtifactError(
             res,
             e instanceof ArtifactStoreConfigurationError ? 400 : 500,
@@ -817,26 +853,31 @@ export function getArtifactsHandler({
           {
             bucket,
             client,
-            key: storageKey,
-            signal: retryAbortController.signal,
+            key: objectKey,
+            signal: storageSignal,
             tryExtract: tryExtract && !download,
             onTransformationDetermined: setArtifactFilename,
           },
           peek,
+          !!contentPreview,
         )(req, res);
         break;
       case 's3':
         try {
-          client = await createMinioClient(
-            aws,
-            's3',
-            effectiveProviderInfo,
-            namespace,
-            undefined,
-            retryAbortController.signal,
-            authorizeEndpoint,
+          client = await waitForArtifactOperation(
+            createMinioClient(
+              aws,
+              's3',
+              effectiveProviderInfo,
+              namespace,
+              undefined,
+              storageSignal,
+              authorizeEndpoint,
+            ),
+            contentPreview?.signal,
           );
         } catch (e) {
+          contentPreview?.signal.throwIfAborted();
           sendArtifactError(
             res,
             e instanceof ArtifactStoreConfigurationError ? 400 : 500,
@@ -848,12 +889,13 @@ export function getArtifactsHandler({
           {
             bucket,
             client,
-            key: storageKey,
-            signal: retryAbortController.signal,
+            key: objectKey,
+            signal: storageSignal,
             tryExtract: tryExtract && !download,
             onTransformationDetermined: setArtifactFilename,
           },
           peek,
+          !!contentPreview,
         )(req, res);
         break;
       case 'http':
@@ -1320,8 +1362,32 @@ function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string
   }
 }
 
-function getMinioArtifactHandler(options: MinioRequestConfig, peek: number = 0) {
+function getMinioArtifactHandler(
+  options: MinioRequestConfig,
+  peek: number = 0,
+  contentPreview = false,
+) {
   return async (req: Request, res: Response) => {
+    if (contentPreview) {
+      const signal = options.signal || new AbortController().signal;
+      try {
+        const stream = await waitForArtifactOperation(
+          options.client.getObject(options.bucket, options.key),
+          signal,
+          (lateStream) => lateStream.destroy(),
+        );
+        res.type('application/json').send(await readArtifactPreviewBytes(stream, signal));
+      } catch (error) {
+        if (isNoSuchKeyError(error)) {
+          throw new ArtifactPreviewError(
+            404,
+            'preview.json is missing. Regenerate the artifact with its preview file.',
+          );
+        }
+        throw error;
+      }
+      return;
+    }
     let handlingError = false;
     const handleObjectFailure = async (err: unknown) => {
       if (handlingError || isArtifactRequestCancelled(req, res, err)) {
@@ -1530,16 +1596,19 @@ export async function streamDirectoryAsTarGz(
 }
 
 /**
- * Wait for one bounded artifact operation while sharing a single archive
- * lifecycle signal. The listener is explicitly removed when the operation
+ * Wait for one artifact operation while sharing a request or archive lifecycle
+ * signal. The listener is explicitly removed when the operation
  * settles so a large directory cannot retain one archive-lifetime promise
  * reaction per object.
  */
 export function waitForArtifactOperation<T>(
   operation: Promise<T>,
-  signal: AbortSignal,
+  signal?: AbortSignal,
   onLateSuccess?: (value: T) => void,
 ): Promise<T> {
+  if (!signal) {
+    return operation;
+  }
   return new Promise<T>((resolve, reject) => {
     let settled = false;
     const cleanup = () => signal.removeEventListener('abort', rejectOnAbort);
@@ -1714,6 +1783,7 @@ function getGCSArtifactHandler(
   namespace?: string,
   allowedUniverseDomains: string[] = ['googleapis.com'],
   isDownloadRoute: boolean = false,
+  previewSignal?: AbortSignal,
 ) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
@@ -1751,7 +1821,10 @@ function getGCSArtifactHandler(
             );
             return;
           } else {
-            credentials = await parseGCSProviderInfo(providerInfo, namespace);
+            credentials = await waitForArtifactOperation(
+              parseGCSProviderInfo(providerInfo, namespace),
+              previewSignal,
+            );
           }
         }
       }
@@ -1772,11 +1845,27 @@ function getGCSArtifactHandler(
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const client = anonymous ? undefined : await getGCSClient(credentials, universeDomain);
+      const client = anonymous
+        ? undefined
+        : await waitForArtifactOperation(getGCSClient(credentials, universeDomain), previewSignal);
       const universeOptions = { universeDomain };
       const accessOptions = anonymous
         ? { anonymous: true, ...universeOptions }
         : { client, credentials, ...universeOptions };
+      if (previewSignal) {
+        const stream = await waitForArtifactOperation(
+          downloadGCSObjectStream({
+            ...accessOptions,
+            bucket,
+            objectName: key,
+            signal: previewSignal,
+          }),
+          previewSignal,
+          (lateStream) => lateStream.destroy(),
+        );
+        res.type('application/json').send(await readArtifactPreviewBytes(stream, previewSignal));
+        return;
+      }
       const matchingFiles = (
         await listGCSObjectNames({
           ...accessOptions,
@@ -1831,6 +1920,29 @@ function getGCSArtifactHandler(
       }
       res.type('text/plain').send(contents);
     } catch (err) {
+      if (previewSignal) {
+        if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
+          throw new ArtifactPreviewError(
+            404,
+            'preview.json is missing. Regenerate the artifact with its preview file.',
+          );
+        }
+        if (
+          err &&
+          typeof err === 'object' &&
+          'response' in err &&
+          err.response &&
+          typeof err.response === 'object' &&
+          'status' in err.response &&
+          err.response.status === 404
+        ) {
+          throw new ArtifactPreviewError(
+            404,
+            'preview.json is missing. Regenerate the artifact with its preview file.',
+          );
+        }
+        throw err;
+      }
       sendArtifactError(res, 500, 'Failed to download GCS file(s). Error: ' + err);
     }
   };

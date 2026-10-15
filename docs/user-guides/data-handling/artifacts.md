@@ -313,6 +313,280 @@ The artifact annotation indicates the type of the artifact. KFP provides several
 
 On the [KFP open source][oss-be] UI, `ClassificationMetrics`, `SlicedClassificationMetrics`, `HTML`, and `Markdown` provide special UI rendering to make the contents of the artifact easily observable.
 
+### Dataset and Model previews
+
+Supported Python components automatically include a small, versioned
+`preview.json` **file** in Dataset and Model output directories. Select that same artifact
+in the run graph and open **Visualization** to view it. On the artifact's own
+details page, select **Show artifact visualization** in Overview.
+
+The preview is a static snapshot, but the UI loads it lazily, only when opened.
+It does not download the dataset or model, inspect Parquet files, or deserialize
+models. Preview generation runs inside the existing producer component; it
+needs no additional container, service, or preview-generating pipeline task.
+
+Previews currently support directory artifacts on S3/MinIO-compatible and GCS
+stores. They use the existing artifact access and namespace isolation policies.
+HTTP URLs, PVC-only artifacts, OCI images, archives, and existing single-file
+outputs do not support this preview layout. Existing artifacts without a
+preview continue to work normally. Do not silently turn a single-file output
+into a directory: its consumers must know which data/model file to read.
+
+#### Automatic previews: enabled by default
+
+Keep writing the native data/model files normally: the SDK generates
+`preview.json` and its metadata
+descriptor inside that component. No adapter call or hand-written JSON is
+required, and no component or pipeline opt-in is needed.
+
+```python
+from kfp import dsl
+
+
+@dsl.component(
+    packages_to_install=['pyarrow==21.0.0'],
+)
+def create_dataset(dataset: dsl.Output[dsl.Dataset]):
+    from pathlib import Path
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    directory = Path(dataset.path)
+    directory.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.table({'distance': [1.25, 2.5]}), directory / 'data.parquet')
+```
+
+Dataset previews include up to ten rows and twenty columns by default.
+The optional `artifact_preview_rows=False` setting
+omits dataset values while retaining the schema and dimensions; it does not
+disable model previews. For sensitive outputs, a component can disable automatic
+generation with `artifact_previews=False`.
+
+Deployment administrators can disable automatic generation for all components
+by setting `artifactPreviewsEnabled: "false"` in the deployment's `kfp-launcher`
+ConfigMap. This overrides `artifact_previews=True` and prevents framework hooks,
+dataset sampling, and automatic preview publication. In multi-user installations,
+the profile controller propagates the setting to execution namespaces; see the
+[operator rollout instructions](../../operator-guides/server-config.md#automatic-artifact-preview-generation).
+Missing configuration defaults to enabled; invalid or unreadable configuration
+disables automatic previews with a warning, without failing the component.
+
+The initial automatic adapters support:
+
+* **Parquet Dataset directories:** exactly one directly contained `*.parquet`
+  file. PyArrow reads its footer and one projected batch, not the full table.
+  Schema-only mode does not read row data. Partitioned directories, duplicate
+  column names, symlinked files, and ambiguous projections are not sampled.
+  Binary and nested cells are explicitly marked as omitted.
+* **XGBoost Model directories:** save one native model under the declared
+  output directory using the normal `Booster.save_model` or sklearn estimator
+  `save_model` method. During execution, scoped SDK hooks capture
+  the live model's configuration after a successful save; the original methods
+  are restored afterwards. No model reload, pickle loading, or tree/weight dump
+  is used. The snapshot reflects configuration at save time, not subsequent
+  changes to the estimator. Saving several model files in one artifact, or
+  replacing the saved file afterwards, leaves the artifact without an automatic
+  preview rather than attaching an ambiguous or stale summary.
+
+PyArrow and XGBoost remain optional dependencies of the **component image**,
+not the core SDK or UI. Native save errors still fail normally; optional preview
+failures are logged without failing successful artifact production. Existing
+preview descriptors and files are not overwritten. Other output formats remain
+usable without a preview.
+
+Use an SDK supporting automatic previews inside the component image. Existing
+compiled Python components also get the default behavior when they execute with
+this SDK; images pinned to older SDKs do not. Use a supporting SDK when compiling
+component opt-out or schema-only settings, which are preserved in the compiled
+executor arguments, including when the component is saved and reloaded.
+
+The deployment switch is read from the existing read-only launcher configuration
+mount before installing hooks and again before publishing previews. It does not
+require recompiling pipelines. Kubernetes configuration updates and multi-user
+reconciliation take time to reach component pods. Already-produced, cached, and
+manually written previews are not removed or hidden by disabling automatic
+generation, and older artifacts are not backfilled. Automatic generation does
+not change payload serialization or convert single-file artifacts into directories.
+
+#### Artifact lists
+
+For `dsl.ParallelFor` producers followed by `dsl.Collected`, each producing task
+generates a preview for its own artifact. Collection groups the artifact
+references; it does not combine their data or create a new preview task.
+The Visualization tab lets you select a member and fetches only that member's
+preview. Its identity, limits, and access checks remain independent of the
+other members.
+
+The [example](../../../samples/core/artifact_previews/artifact_previews.py)
+includes a pipeline returning collected Dataset and Model lists. This does not
+add support for a single primitive Python component emitting artifact lists,
+which the SDK currently rejects.
+
+#### Interoperability contract
+
+Other producers, container components, and imported artifacts can implement the
+same file contract themselves. This is not needed for the automatic adapters.
+Write the data/model files and a UTF-8 JSON preview under the artifact directory,
+then advertise it in the artifact's metadata:
+
+```python
+artifact.metadata['_kfp_preview'] = {
+    'version': 1,
+    'path': 'preview.json',
+}
+```
+
+The path must be the literal `preview.json`; external URLs and other paths are
+not accepted. The preview is part of the existing artifact, not a separate HTML
+or metadata artifact. The normal launcher upload copies the directory's files.
+Manually produced and imported directory artifacts can use the same contract.
+Keep published bundles immutable so the snapshot stays associated with the
+same data/model version.
+
+Before setting the metadata, serialize with `json.dumps(..., allow_nan=False)`,
+verify the encoded content fits **64 KiB**, and atomically rename a temporary
+file to `preview.json`. Only the producer decides what to include: the UI does
+not create or repair previews. Missing files, unsupported versions, invalid
+payloads, and access failures produce a preview error without breaking artifact
+information or downloads.
+
+#### Dataset format
+
+Dataset previews display at most **10 rows and 20 columns**, preserving the
+producer's row/column order. There is no full-dataset pagination or implicit
+sorting. For example:
+
+```json
+{
+  "version": 1,
+  "kind": "dataset",
+  "format": "parquet",
+  "columns": [
+    {"name": "distance", "dtype": "float64"},
+    {"name": "category", "dtype": "string"}
+  ],
+  "rows": [[1.25, "A"], [null, "B"]],
+  "total_rows": 100,
+  "total_columns": 2,
+  "sample": {
+    "method": "head",
+    "rows_truncated": true,
+    "columns_truncated": false,
+    "values_truncated": false,
+    "redacted": false,
+    "rows_omitted": false
+  }
+}
+```
+
+Each column requires a string `name` and `dtype`; duplicate names are allowed
+because rows are positional. Each row must have exactly one cell per preview
+column. `format` is descriptive, not an instruction to load another file.
+`total_rows` and `total_columns` are optional: omit them or use `null` when
+unknown, rather than treating the sample size as a total. Known counts must be
+nonnegative safe integers and cannot be smaller than the displayed sample.
+
+The `sample` object requires `method`, `rows_truncated`, `columns_truncated`,
+and `values_truncated`. Mark incomplete row/column samples explicitly.
+`redacted` and `rows_omitted` default to `false` when absent. To deliberately
+publish only the schema, use `"rows": []` and `"rows_omitted": true`; an empty
+dataset instead has `"total_rows": 0`. The SDK sets these fields automatically
+when `artifact_preview_rows=False`.
+
+Cells accept `null`, booleans, finite numbers, and strings. Strings and labels
+are limited to **256 Unicode code points**. Convert timestamps, decimals,
+integers outside JavaScript's safe integer range, and non-finite numbers to
+explicit strings rather than losing precision or emitting nonstandard JSON.
+Format complex cells as bounded strings. Shorten or omit values before
+publication and set the corresponding indicators; oversized payloads are
+rejected, not silently clipped into partial JSON.
+
+For Parquet, the producer can reuse its in-memory data, or read the schema and
+row count from Parquet metadata and project the chosen columns into the first
+bounded batch. Avoid loading the full file just to build its preview. Other
+formats, including Pandas/Polars/Arrow outputs, can emit the same JSON; no
+format-specific library is installed in the UI.
+
+#### Model format
+
+Model previews separate recorded **training hyperparameters** from structural
+facts. They are not a learned-weight or individual-tree viewer:
+
+```json
+{
+  "version": 1,
+  "kind": "model",
+  "framework": {"name": "xgboost", "version": "3.0.5"},
+  "estimator_class": "xgboost.XGBClassifier",
+  "hyperparameters": {
+    "objective": "binary:logistic",
+    "learning_rate": 0.1,
+    "max_depth": 2,
+    "n_estimators": 5
+  },
+  "structure": {
+    "feature_count": 24,
+    "boosting_rounds": 5,
+    "tree_count": 5
+  },
+  "notes": ["Training configuration recorded by the producer."]
+}
+```
+
+Framework/version, estimator class, sections, and notes are optional. Omitted
+information is shown as not recorded; native model IO does not necessarily
+retain every training setting. The automatic XGBoost adapter captures current
+estimator parameters and structural facts while the live model is available.
+Unset estimator parameters are omitted rather than filled with inferred
+defaults. Fit-time arguments that the estimator does not retain are not recoverable.
+If an estimator was loaded from a saved model, its current parameters are not
+necessarily the original training configuration. Display values may be
+shortened or converted to strings, so the preview is not an executable set of
+parameters for reconstructing the model.
+
+The two sections may contain at most **100 combined entries**. Values are
+JSON scalars or bounded objects/arrays, with at most four nested containers,
+100 entries/items per nested collection, and 256 code points per string/key.
+There may be at most ten notes. The entire file still has the 64 KiB limit.
+Only escaped text is rendered; the server does not run Python or model code.
+
+#### Producer example and privacy
+
+The [Parquet/XGBoost example](../../../samples/core/artifact_previews/artifact_previews.py)
+produces real `data.parquet` and `model.ubj` files. The SDK creates their previews
+by default, without writing preview JSON in the component or invoking an
+adapter. Add `artifact_preview_rows=False` for a schema-only dataset preview.
+Its [requirements](../../../samples/core/artifact_previews/requirements.txt)
+are producer/example dependencies, not additions to the UI or core SDK.
+
+From the repository root, compile or exercise the example locally:
+
+```bash
+uv run python samples/core/artifact_previews/artifact_previews.py
+uv run --with pytest --with-requirements samples/core/artifact_previews/requirements.txt \
+  pytest -v samples/core/artifact_previews/artifact_previews_unit_test.py
+```
+
+Row samples and model settings may contain sensitive data. Because generation
+is enabled by default, disable it deployment-wide or set `artifact_previews=False`
+on components whose outputs are not safe to expose. Use
+`artifact_preview_rows=False` when dataset row values must not be published.
+Automatic sampling uses the first columns; it does not detect or redact
+sensitive fields. For custom previews, select permitted columns and redact
+values **before writing the preview**. UI hiding and lazy loading are not
+access controls. Users who can
+download a directory artifact can generally obtain its preview file too.
+Preview responses use `Cache-Control: no-store`; ordinary metadata/list
+responses contain only the descriptor, not row samples.
+
+The existing UI service resolves the stored parent artifact, applies its viewer
+and namespace ownership policies, and reads only the fixed child file with a
+byte limit and cancellation. Existing namespace artifact proxies must also
+support this endpoint; upgrade their existing images with the UI rather than
+adding containers or bypassing isolation. Strict artifact-only ownership mode
+does not require registering the preview file as another artifact.
+
 
 [ml-metadata]: https://github.com/google/ml-metadata
 [compiler]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/compiler.html#kfp.compiler.Compiler

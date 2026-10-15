@@ -50,6 +50,23 @@ def executor_main():
         help='JSON-serialized ExecutorInput from the orchestrator. '
         'This should contain inputs and placeholders for outputs.')
 
+    preview_options = parser.add_mutually_exclusive_group()
+    preview_options.add_argument(
+        '--artifact_previews',
+        action='store_true',
+        default=True,
+        help='Generate bounded previews for supported directory artifacts (default). '
+        'Cannot override a deployment-level opt-out.')
+    preview_options.add_argument(
+        '--disable_artifact_previews',
+        dest='artifact_previews',
+        action='store_false',
+        help='Disable automatic artifact previews for this component.')
+    parser.add_argument(
+        '--artifact_preview_schema_only',
+        action='store_true',
+        help='Omit dataset row values when automatic previews are enabled.')
+
     args, _ = parser.parse_known_args()
 
     func_name = args.function_to_execute
@@ -96,7 +113,10 @@ def executor_main():
     logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 
     executor = component_executor.Executor(
-        executor_input=executor_input, function_to_execute=function_to_execute)
+        executor_input=executor_input,
+        function_to_execute=function_to_execute,
+        artifact_previews=args.artifact_previews,
+        artifact_preview_rows=not args.artifact_preview_schema_only)
 
     output_file = executor.execute()
     if output_file is None:

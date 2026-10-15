@@ -7,6 +7,58 @@ customizations are available for more advanced usage.
 When deploying Kubeflow Pipelines servers, you can pass various environment variables
 to customize the behavior of servers.
 
+## Automatic artifact preview generation
+
+Python components using an SDK with automatic preview support generate bounded
+previews for supported Parquet Dataset and XGBoost Model directory outputs by
+default. Dataset previews can contain up to ten rows and twenty columns.
+Disable automatic generation before running components if this is inappropriate
+for the deployment's data.
+
+Set `artifactPreviewsEnabled: "false"` in the existing `kfp-launcher` ConfigMap
+in the **installation namespace**. Preserve its other keys, including pipeline
+root and storage-provider settings. For an installation in `kubeflow`:
+
+```bash
+kubectl -n kubeflow patch configmap kfp-launcher --type merge \
+  -p '{"data":{"artifactPreviewsEnabled":"false"}}'
+```
+
+Persist the same override in your deployment configuration so subsequent
+upgrades do not restore the default. Set the value to `"true"` to re-enable
+generation. An absent setting defaults to enabled; invalid values or read
+errors disable generation and produce a warning in the component logs.
+
+For a **standalone installation**, the existing runtime configuration volume
+mounts this ConfigMap directly into component pods. No API-server or Argo
+driver-plugin change is needed.
+
+For a **multi-user installation**, the profile controller reads this key through
+its `ARTIFACT_PREVIEWS_ENABLED` environment variable and writes it to the
+`kfp-launcher` ConfigMap in each pipeline-enabled profile namespace. After
+changing the installation ConfigMap, restart the controller to reload its
+environment:
+
+```bash
+kubectl -n kubeflow rollout restart deployment/kubeflow-pipelines-profile-controller
+kubectl -n kubeflow rollout status deployment/kubeflow-pipelines-profile-controller
+```
+
+Wait for profile reconciliation and verify the value in the execution namespaces
+before running sensitive workloads. Do not edit controller-managed copies as an
+alternative to changing the installation setting.
+
+The SDK reads `/etc/kfp/launcher-config/artifactPreviewsEnabled` before framework
+hooks and again before publishing a preview. Kubernetes volume updates are
+eventually consistent; the switch is not instantaneous for running pods.
+It takes precedence over component preview settings without recompiling
+pipelines. The opt-out stops **automatic generation**, not normal artifact
+production, access, or downloads. It does not remove or hide previously generated,
+cached, imported, or manually written previews.
+
+See [Dataset and Model previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews)
+for supported formats, component-level privacy settings, and the file contract.
+
 ## API Server workflow service-account checks
 
 By default, the API server enforces the service-account policy for all identities

@@ -518,6 +518,62 @@ def test_driver_agent_ca_cert_path_default_and_override():
             driver_agent_ca_cert_path="")["driver_agent_ca_cert_path"] == ""
 
 
+@pytest.mark.parametrize(
+    "sync_server, expected",
+    [
+        (ENV_BASE, "true"),
+        ({
+            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": "false"
+        }, "false"),
+        ({
+            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": "true"
+        }, "true"),
+        ({
+            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": ""
+        }, ""),
+        ({
+            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": "invalid"
+        }, "invalid"),
+    ],
+    indirect=["sync_server"],
+)
+def test_artifact_preview_policy_reaches_each_profile(sync_server,
+                                                      expected: str) -> None:
+    """Propagate the installation policy without replacing invalid values."""
+    for namespace in (NAMESPACE, "second-profile"):
+        parent = copy.deepcopy(PARENT)
+        parent["metadata"]["name"] = namespace
+        attachments = observed_attachments()
+        secret = copy.deepcopy(EXISTING_SECRET)
+        secret["metadata"]["namespace"] = namespace
+        attachments["Secret.v1"] = {
+            f"{namespace}/mlpipeline-minio-artifact": secret
+        }
+        result = post_sync(sync_server, parent, attachments)
+        launcher = next(item for item in result["attachments"]
+                        if item["metadata"]["name"] == "kfp-launcher")
+        assert launcher["metadata"]["namespace"] == namespace
+        assert launcher["data"]["artifactPreviewsEnabled"] == expected
+        assert namespace in launcher["data"]["defaultPipelineRoot"]
+
+
+def test_artifact_preview_policy_is_sourced_from_installation_config() -> None:
+    """Keep the controller source aligned with the mounted runtime setting."""
+    directory = Path(__file__).parent
+    deployment = yaml.safe_load((directory / "deployment.yaml").read_text())
+    launcher = yaml.safe_load((directory.parents[2] / "pipeline" /
+                               "kfp-launcher-configmap.yaml").read_text())
+    assert launcher["data"]["artifactPreviewsEnabled"] == "true"
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    setting = next(item for item in environment
+                   if item["name"] == "ARTIFACT_PREVIEWS_ENABLED")
+    assert setting["valueFrom"]["configMapKeyRef"] == {
+        "name": launcher["metadata"]["name"],
+        "key": "artifactPreviewsEnabled",
+        "optional": True,
+    }
+
+
 @pytest.mark.parametrize("sync_server", [ENV_BASE], indirect=True)
 def test_sync_server_without_pipeline_enabled(sync_server):
     assert post_sync(sync_server, {}, {}) == {"status": {}, "attachments": []}

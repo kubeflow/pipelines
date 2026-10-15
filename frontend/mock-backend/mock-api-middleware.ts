@@ -59,6 +59,8 @@ import {
 } from '../src/lib/Apis';
 import { data as fixedData } from './fixed-data';
 import registerTensorboardProxy from './tensorboard-proxy';
+import datasetPreview from './data/v2/artifact-previews/dataset.json';
+import modelPreview from './data/v2/artifact-previews/model.json';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -83,6 +85,15 @@ const mockV2Artifacts: V2beta1Artifact[] = [
     namespace: 'kubeflow-user-example-com',
     type: ArtifactArtifactType.Dataset,
     uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-dataset',
+    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+  },
+  {
+    artifact_id: 'mock-model-1',
+    name: 'mock-model',
+    namespace: 'kubeflow-user-example-com',
+    type: ArtifactArtifactType.Model,
+    uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-model',
+    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
   },
 ];
 const mockV2Tasks: V2beta1PipelineTask[] = [
@@ -90,6 +101,7 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
     child_tasks: [
       { name: 'chicago-taxi-trips-dataset', task_id: 'mock-task-producer' },
       { name: 'convert-csv-to-apache-parquet', task_id: 'mock-task-consumer' },
+      { name: 'xgboost-train', task_id: 'mock-task-trainer' },
     ],
     create_time: new Date('2026-01-01T00:00:00.000Z'),
     display_name: 'xgboost-sample-pipeline',
@@ -110,7 +122,7 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
       artifacts: [
         {
           artifact_key: 'table',
-          artifacts: mockV2Artifacts,
+          artifacts: [mockV2Artifacts[0]],
           type: V2beta1IOType.OUTPUT,
         },
       ],
@@ -137,7 +149,7 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
       artifacts: [
         {
           artifact_key: 'data',
-          artifacts: mockV2Artifacts,
+          artifacts: [mockV2Artifacts[0]],
           producer: { task_name: 'chicago-taxi-trips-dataset' },
           type: V2beta1IOType.TASK_OUTPUT_INPUT,
         },
@@ -163,8 +175,37 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
     task_id: 'mock-task-consumer',
     type: PipelineTaskTaskType.RUNTIME,
   },
+  {
+    create_time: new Date('2026-01-01T00:02:05.000Z'),
+    display_name: 'XGBoost train',
+    end_time: new Date('2026-01-01T00:02:30.000Z'),
+    name: 'xgboost-train',
+    outputs: {
+      artifacts: [
+        {
+          artifact_key: 'model',
+          artifacts: [mockV2Artifacts[1]],
+          type: V2beta1IOType.OUTPUT,
+        },
+      ],
+    },
+    parent_task_id: 'mock-task-root',
+    run_id: mockNativeRunId,
+    scope_path: 'root.xgboost-train',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-trainer',
+    type: PipelineTaskTaskType.RUNTIME,
+  },
 ];
 const mockV2ArtifactTasks: V2beta1ArtifactTask[] = [
+  {
+    artifact_id: 'mock-model-1',
+    id: 'mock-model-task-output',
+    key: 'model',
+    run_id: mockNativeRunId,
+    task_id: 'mock-task-trainer',
+    type: V2beta1IOType.OUTPUT,
+  },
   {
     artifact_id: 'mock-artifact-1',
     id: 'mock-artifact-task-output',
@@ -599,6 +640,20 @@ export default (app: express.Application) => {
 
   app.get('/hub/', (_, res) => {
     res.sendStatus(200);
+  });
+
+  app.get('/artifacts/:artifactId/preview', (req, res) => {
+    const preview =
+      req.params.artifactId === 'mock-artifact-1'
+        ? datasetPreview
+        : req.params.artifactId === 'mock-model-1'
+          ? modelPreview
+          : undefined;
+    if (!preview) {
+      res.status(404).send('No preview is enabled for this artifact.');
+      return;
+    }
+    res.set('Cache-Control', 'no-store').json(preview);
   });
 
   app.get('/artifacts/get', (req, res) => {

@@ -800,6 +800,8 @@ def create_component_from_func(
     additional_funcs: Optional[List[Callable]] = None,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
     _helper_source_template: Optional[str] = None,
+    artifact_previews: bool = True,
+    artifact_preview_rows: bool = True,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -807,6 +809,10 @@ def create_component_from_func(
     decorator for the canonical documentation for this function.
     """
 
+    if not isinstance(artifact_previews, bool) or not isinstance(
+            artifact_preview_rows, bool):
+        raise TypeError(
+            'artifact_previews and artifact_preview_rows must be booleans.')
     packages_to_install_command = _get_packages_to_install_command(
         install_kfp_package=install_kfp_package,
         target_image=target_image,
@@ -841,6 +847,11 @@ def create_component_from_func(
             embedded_artifact_path=embedded_artifact_path,
             _helper_source_template=_helper_source_template,
         )
+
+    if not artifact_previews:
+        args.append('--disable_artifact_previews')
+    elif not artifact_preview_rows:
+        args.append('--artifact_preview_schema_only')
 
     component_spec = extract_component_interface(func)
     # Attach task_config_passthroughs to the ComponentSpec structure if provided.
