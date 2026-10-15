@@ -140,13 +140,19 @@ in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/bl
 
 ### Artifact authorization boundary
 
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` defaults to `key-prefix`.
-Set it to `storage` only on the authenticated shared UI after verifying restricted
-namespace storage identities and isolated artifact proxies. This enforced mode
-preserves existing object roots without an MLMD lookup. It requires
-`ENABLE_AUTHZ=true` and `ARTIFACTS_SERVICE_PROXY_ENABLED=true`; invalid modes or
-missing prerequisites fail configuration validation. HTTP artifacts and archived
-logs retain their separate policies. See [configuration and rollout](artifact-authorization.md).
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` defaults to `auto`. For supported
+managed `minio://mlpipeline/...` artifacts, the shared UI uses centrally
+verified namespace readiness and the namespace's storage identity. Pending
+readiness or lookup failure returns an actionable HTTP 503 without shared-credential
+fallback. Missing readiness records and unsupported custom storage retain prefix/metadata enforcement.
+
+Explicit `key-prefix` keeps that policy for all applicable requests. Explicit
+`storage` supports reviewed S3, MinIO and GCS storage identities without a fixed key
+layout or metadata lookup; it requires `ENABLE_AUTHZ=true`, namespace proxying,
+updated receivers and effective network/storage isolation. The standard multi-user
+overlay enables managed proxies; standalone serving is unchanged. HTTP artifacts
+and archived logs retain their separate policies. See
+[configuration and rollout](artifact-authorization.md).
 
 ### Artifact storage endpoint allowlist
 

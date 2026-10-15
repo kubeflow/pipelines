@@ -20,10 +20,15 @@ import {
   getArtifactsAuthMiddleware,
   getArtifactsProxyHandler,
   getArtifactReceiverNamespaceMiddleware,
+  getArtifactStorageReceiverMiddleware,
+  ARTIFACT_STORAGE_PROXY_PREFIX,
 } from '../handlers/artifacts.js';
 import { validateArtifactNamespace } from '../helpers/mlmd-validator.js';
 import type { AuthorizeFn } from '../helpers/auth.js';
-import type { ArtifactAuthorizationMode } from '../configs.js';
+import { loadConfigs, type ArtifactAuthorizationMode } from '../configs.js';
+import { getArtifactCredentialBinding } from '../helpers/artifact-authorization.js';
+import { getK8sSecret } from '../k8s-helper.js';
+vi.mock('../k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
 vi.mock('../helpers/mlmd-validator.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../helpers/mlmd-validator.js')>()),
@@ -35,6 +40,33 @@ describe('storage-authorized artifact routing', () => {
   let endpoint: string;
   let forwarded: string[];
   let receivingNamespace: string;
+  let receiverUID: string;
+  let receiverSecret: string;
+  let receiverSSL: boolean;
+  let legacyReceiver: boolean;
+  function receiverOptions() {
+    return loadConfigs(['node', 'server.js', '/tmp'], {
+      FRONTEND_SERVER_NAMESPACE: receivingNamespace,
+      KFP_ARTIFACT_NAMESPACE_UID: receiverUID,
+      MINIO_ACCESS_KEY: 'team-a-key',
+      MINIO_SECRET_KEY: receiverSecret,
+      MINIO_SSL: String(receiverSSL),
+    });
+  }
+  function approval(state = 'ready') {
+    return JSON.stringify({
+      version: 1,
+      namespace: 'team-a',
+      namespaceUID: 'uid-a',
+      state,
+      bucket: 'mlpipeline',
+      credentialBinding: getArtifactCredentialBinding(
+        'team-a',
+        'uid-a',
+        receiverOptions().artifacts.minio,
+      ),
+    });
+  }
   const authorize = vi.fn<AuthorizeFn>();
   const localFetch = vi.fn<RequestHandler>();
   const serviceGetter = vi.fn<(namespace: string) => string>();
@@ -49,7 +81,19 @@ describe('storage-authorized artifact routing', () => {
     });
     forwarded = [];
     receivingNamespace = 'team-a';
+    receiverUID = 'uid-a';
+    receiverSecret = 'team-a-secret';
+    receiverSSL = false;
+    legacyReceiver = false;
+    vi.mocked(getK8sSecret).mockRejectedValue({ code: 404 });
     const service = express();
+    service.get(`${ARTIFACT_STORAGE_PROXY_PREFIX}/*`, (req, res, next) => {
+      if (legacyReceiver) {
+        res.status(200).send('old receiver SPA');
+        return;
+      }
+      getArtifactStorageReceiverMiddleware(receiverOptions())(req, res, next);
+    });
     service.use((req, res, next) =>
       getArtifactReceiverNamespaceMiddleware(receivingNamespace)(req, res, next),
     );
@@ -262,7 +306,7 @@ describe('storage-authorized artifact routing', () => {
     expect(forwarded).toHaveLength(0);
   });
 
-  it('preserves the key-prefix default', async () => {
+  it('preserves explicit key-prefix authorization', async () => {
     await requests(app({ mode: 'key-prefix' }))
       .get(`/artifacts/get?${artifactQuery()}`)
       .set('kubeflow-userid', 'alice@example.com')

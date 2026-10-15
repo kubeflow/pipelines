@@ -179,7 +179,8 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Artifact ownership migration in 2.18
 
-With the default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, multi-user
+When `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix` is selected, or `auto`
+retains prefix enforcement for an unsupported custom store, multi-user
 frontend previews and downloads enforce namespace-prefixed object keys:
 `private-artifacts/<namespace>/...` (or `ARTIFACT_NAMESPACE_KEY_PREFIX/<namespace>/...`).
 Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
@@ -218,13 +219,18 @@ in `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`. See the
 
 ## Storage-authoritative artifact access
 
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` uses each namespace artifact
-service's restricted storage identity after user/namespace authorization. Existing
-roots need no prescribed prefix or MLMD record. This is enforcement, not audit.
-In 2.18, configure credentials and endpoints in the namespace service environment
-or workload identity; browser provider/Secret selectors are discarded. Verify
-proxy ingress isolation before activation. Upgrade all shared-UI replicas in
-`key-prefix` mode before reconciling namespace services that require the authorized
-namespace header; enable storage mode only after all receivers are updated. The
-receiver binding and generated standard NetworkPolicy apply in both modes. See the
-[prerequisites, scope and rollout guide](../docs/operator-guides/artifact-authorization.md).
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. Supported managed
+`minio://mlpipeline/...` artifacts use namespace storage identities after
+trusted controller readiness, without moving already authorized objects or
+requiring MLMD records. The multi-user overlay enables managed proxies. Pending
+readiness or a failed lookup returns an actionable HTTP 503, never a shared-credential
+fallback. Unsupported custom layouts retain prefix enforcement.
+
+Explicit `storage` supports reviewed custom identities; 2.18 uses namespace-service
+environment or workload-identity credentials and discards browser provider/Secret
+selectors. Explicit `key-prefix` remains available. New versioned receiver routes
+require namespace binding; legacy routes preserve old-UI compatibility during
+normal rolling deployment. No UI/controller ordering or opt-in is needed for the
+supported managed path, although reads may need retry while receivers warm up.
+The generated standard NetworkPolicy still requires actual cluster enforcement.
+See [scope, custom-storage requirements and rollout](../docs/operator-guides/artifact-authorization.md).

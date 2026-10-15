@@ -35,9 +35,9 @@ describe('loadConfigs', () => {
     expect(config.server.serverNamespace).toBe('team-a');
   });
 
-  it('defaults to key-prefix artifact authorization', () => {
+  it('defaults to automatic artifact authorization', () => {
     expect(loadConfigs(['node', 'server.js', os.tmpdir()], {}).artifacts.authorizationMode).toBe(
-      'key-prefix',
+      'auto',
     );
   });
 
@@ -48,7 +48,9 @@ describe('loadConfigs', () => {
         loadConfigs(['node', 'server.js', os.tmpdir()], {
           KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE: mode,
         }),
-      ).toThrow('KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE must be "key-prefix" or "storage"');
+      ).toThrow(
+        'KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE must be "auto", "key-prefix", or "storage"',
+      );
     },
   );
 

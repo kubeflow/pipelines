@@ -12,12 +12,16 @@ import requests from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadConfigs } from '../configs.js';
 import {
+  ARTIFACT_STORAGE_PROXY_PREFIX,
+  getArtifactReceiverNamespaceMiddleware,
+  getArtifactStorageReceiverMiddleware,
   getArtifactsAuthMiddleware,
   getArtifactsHandler,
   getArtifactsProxyHandler,
 } from '../handlers/artifacts.js';
 import { getAuthorizeFn } from '../helpers/auth.js';
-import { getConfigMap } from '../k8s-helper.js';
+import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
+import type { ArtifactStorageAuthorization } from '../helpers/artifact-authorization.js';
 import { listObjectsUnderPrefix } from '../minio-helper.js';
 
 vi.mock('../k8s-helper.js', () => ({ getConfigMap: vi.fn(), getK8sSecret: vi.fn() }));
@@ -25,6 +29,7 @@ vi.mock('../k8s-helper.js', () => ({ getConfigMap: vi.fn(), getK8sSecret: vi.fn(
 interface StorageFixture {
   endpoint: string;
   identities: Record<string, { accesskey: string; secretkey: string }>;
+  authorizations: Record<string, ArtifactStorageAuthorization>;
 }
 
 // Run test/seaweedfs/artifact_authorization_test.sh to provision an isolated store.
@@ -36,6 +41,9 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
   const servers: Server[] = [];
   const targets = new Map<string, string>();
   const routed: string[] = [];
+  const originalTargets = new Map<string, string>();
+  let records: Record<string, ArtifactStorageAuthorization>;
+  let oldReceiver: string;
   let central: Express;
   let fixture: StorageFixture;
   let apiOrigin: string;
@@ -49,7 +57,7 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
     return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   }
 
-  function sharedUI(mode: 'storage' | 'key-prefix'): Express {
+  function sharedUI(mode: 'auto' | 'storage' | 'key-prefix'): Express {
     const options = loadConfigs(['node', 'server.js', '/tmp', '3000'], {
       ENABLE_AUTHZ: 'true',
       ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
@@ -88,6 +96,7 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
     for (const [namespace, credentials] of Object.entries(fixture.identities)) {
       const options = loadConfigs(['node', 'server.js', '/tmp', '3000'], {
         FRONTEND_SERVER_NAMESPACE: namespace,
+        KFP_ARTIFACT_NAMESPACE_UID: fixture.authorizations[namespace].namespaceUID,
         MINIO_NAMESPACE: '',
         MINIO_HOST: endpoint.hostname,
         MINIO_PORT: endpoint.port,
@@ -101,6 +110,11 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
         AWS_REGION: 'us-east-1',
       });
       const service = express();
+      service.get(
+        `${ARTIFACT_STORAGE_PROXY_PREFIX}/*`,
+        getArtifactStorageReceiverMiddleware(options),
+      );
+      service.get('/artifacts/*', getArtifactReceiverNamespaceMiddleware(namespace, false));
       service.get(
         '/artifacts/get',
         getArtifactsHandler({
@@ -120,7 +134,14 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
         }),
       );
       targets.set(namespace, await listen(service));
+      originalTargets.set(namespace, targets.get(namespace)!);
     }
+
+    // Old frontends serve their SPA for unknown paths; this must never be
+    // mistaken for a successful artifact response from the new protocol.
+    const legacy = express();
+    legacy.get('*', (_req, res) => res.send('<html>Old receiver UI</html>'));
+    oldReceiver = await listen(legacy);
 
     const api = express();
     api.use((req, res) => {
@@ -146,6 +167,17 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
   beforeEach(() => {
     routed.length = 0;
     metadataLookups = 0;
+    records = structuredClone(fixture.authorizations);
+    vi.mocked(getK8sSecret).mockImplementation(async (name, key, namespace) => {
+      expect(namespace).toBe('kubeflow');
+      expect(key).toBe('authorization.json');
+      const tenant = name.replace(/^kfp-artifact-storage-/, '');
+      const record = records[tenant];
+      if (!record) throw { code: 404 };
+      return JSON.stringify(record);
+    });
+    originalTargets.forEach((target, namespace) => targets.set(namespace, target));
+    central = sharedUI('storage');
   });
 
   afterAll(async () => {
@@ -303,4 +335,84 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
       await expect(list(prefix)).rejects.toMatchObject({ code: 'AccessDenied' });
     },
   );
+
+  it.each([
+    ['private-artifacts/team-a/model.txt', 'team-a current artifact'],
+    ['private/team-a/model.txt', 'team-a existing private artifact'],
+    ['model/customer-17-training/model.txt', 'team-a historical artifact'],
+    ['shared/model.txt', 'administrator-shared artifact'],
+  ])('automatically preserves authorized existing root %s', async (key, expected) => {
+    central = sharedUI('auto');
+    const response = await read(key).expect(200);
+    expect(content(response)).toBe(expected);
+    expect(metadataLookups).toBe(0);
+    expect(getK8sSecret).toHaveBeenCalledWith(
+      'kfp-artifact-storage-team-a',
+      'authorization.json',
+      'kubeflow',
+    );
+  });
+
+  it('activates automatically when controller readiness changes without restarting the UI', async () => {
+    central = sharedUI('auto');
+    records['team-a'].state = 'pending';
+    const waiting = await read('model/customer-17-training/model.txt').expect(503);
+    expect(waiting.headers['retry-after']).toBe('5');
+    expect(routed).toEqual([]);
+    records['team-a'].state = 'ready';
+    const response = await read('model/customer-17-training/model.txt').expect(200);
+    expect(content(response)).toBe('team-a historical artifact');
+    expect(metadataLookups).toBe(0);
+  });
+
+  it('keeps the legacy route usable by an old UI during controller-first rollout', async () => {
+    const response = await requests(originalTargets.get('team-a')!)
+      .get('/artifacts/minio/mlpipeline/model/customer-17-training/model.txt')
+      .expect(200);
+    expect(content(response)).toBe('team-a historical artifact');
+    await requests(originalTargets.get('team-b')!)
+      .get('/artifacts/minio/mlpipeline/model/customer-23-training/model.txt')
+      .set('x-kfp-artifact-namespace', 'team-a')
+      .expect(403);
+  });
+
+  it('rejects Service aliases to old and new receivers without retrying a legacy route', async () => {
+    central = sharedUI('auto');
+    targets.set('team-a', originalTargets.get('team-b')!);
+    await read('model/customer-23-training/model.txt').expect(403);
+    targets.set('team-a', oldReceiver);
+    await read('model/customer-23-training/model.txt').expect(503);
+    expect(routed).toEqual(['team-a', 'team-a']);
+    expect(metadataLookups).toBe(0);
+  });
+
+  it('fails closed for a stale credential binding and recovers on reconciliation', async () => {
+    central = sharedUI('auto');
+    records['team-a'].credentialBinding = '0'.repeat(64);
+    await read('model/customer-17-training/model.txt').expect(503);
+    records['team-a'] = fixture.authorizations['team-a'];
+    const response = await read('model/customer-17-training/model.txt').expect(200);
+    expect(content(response)).toBe('team-a historical artifact');
+    expect(metadataLookups).toBe(0);
+  });
+
+  it('denies cross-tenant access in auto mode despite forged headers and provider configuration', async () => {
+    central = sharedUI('auto');
+    const response = await read('model/customer-23-training/model.txt', {
+      providerInfo: JSON.stringify({
+        Provider: 's3',
+        Params: { fromEnv: 'false', secretName: 'administrator' },
+      }),
+    })
+      .set('x-kfp-artifact-namespace', 'team-b')
+      .set(
+        'x-kfp-artifact-credential-binding',
+        fixture.authorizations['team-b'].credentialBinding!,
+      );
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(content(response)).toContain('Access Denied');
+    expect(content(response)).not.toContain('team-b historical secret');
+    expect(routed).toEqual(['team-a']);
+    expect(metadataLookups).toBe(0);
+  });
 });

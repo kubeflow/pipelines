@@ -1,134 +1,136 @@
 # Artifact authorization and existing storage roots
 
-In storage authorization mode, KFP authorizes the user for the requested namespace.
-Object storage then decides
-what that namespace's storage identity may read. Artifact metadata records are
-provenance; registering another tenant's URI does not grant access to its bytes.
+KFP first authorizes the user for the requested namespace. For supported managed
+storage, the object store then decides what that namespace's storage identity may
+read. Artifact records describe provenance; registering another tenant's URI does
+not grant access to its bytes.
 
 ## Choose the enforcement boundary
 
 `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` is configured on the authenticated
 shared UI server:
 
-| Value | Authorization for S3, MinIO and GCS artifact reads |
+| Value | Object-storage authorization |
 | --- | --- |
-| `key-prefix` (default) | Retains the existing namespace-prefix and artifact-record checks. Use this with shared storage credentials. |
-| `storage` | After user/namespace authorization and path validation, delegate to the namespace artifact service. Its storage credentials authorize the object. No artifact-record lookup or prescribed object-key layout is required. |
+| `auto` (default) | Uses storage authorization for supported managed `minio://mlpipeline/...` artifacts after the controller establishes trusted namespace readiness. Missing readiness records and unsupported custom layouts retain prefix/metadata checks. Pending readiness or a failed readiness lookup denies the managed request with an actionable HTTP 503; it does not fall back to shared credentials. |
+| `key-prefix` | Explicitly retains namespace-prefix and artifact-record checks. Use this when storage identities cannot provide the required isolation. |
+| `storage` | Explicitly delegates S3, MinIO and GCS object reads to the authorized namespace's artifact service. Its restricted storage identity authorizes the object, without an artifact-record lookup or prescribed key layout. Use this for reviewed custom storage outside automatic discovery. |
 
-`storage` requires both `ENABLE_AUTHZ=true` and
-`ARTIFACTS_SERVICE_PROXY_ENABLED=true`. Invalid modes or missing prerequisites fail
-configuration validation. This is full enforcement through a different authority,
-not an audit mode. The existing default is unchanged.
+Storage-authorized requests require authenticated namespace authorization and
+namespace proxying. Explicit `storage` requires `ENABLE_AUTHZ=true` and
+`ARTIFACTS_SERVICE_PROXY_ENABLED=true`; invalid configuration is rejected. Storage
+authorization is enforcement, not an audit exception.
 
-The setting covers artifact previews, downloads and directory operations for the
-object-storage sources above. HTTP artifacts retain the existing shared-UI path,
-base-URL/redirect checks and ownership policy. Archived pod logs use a separate
-path and are not enabled by this setting. Volume artifacts retain their existing
-serving behavior and are outside this object-storage authorization policy. Do not infer coverage of one route from another.
+The setting covers object previews, downloads and directory operations. HTTP
+artifacts retain the shared-UI path, base-URL/redirect checks and ownership policy.
+Archived pod logs and volume artifacts retain their separate serving policies.
+Standalone serving is unchanged.
 
-In 2.18, storage mode uses credentials configured in each namespace artifact
-service's environment or workload identity. Browser `providerInfo` is discarded;
-it cannot select a different endpoint or Secret. Configure custom storage on the
-namespace service itself before enabling this mode. Merely supplying a Secret
-selector from the browser is not supported. Master additionally resolves trusted
-namespace launcher configuration; that resolver is not part of this backport.
+In 2.18, automatic storage authorization is limited to the managed `minio://mlpipeline/...`
+store path using namespace-service environment credentials. Explicit `storage` also
+uses the service's environment or workload identity; browser `providerInfo` is
+discarded and cannot select another endpoint or Secret. Master's trusted namespace
+launcher-provider resolver is not included in 2.18.
 
 `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=enforce|audit` and
-`ARTIFACT_NAMESPACE_OWNERSHIP_MODE=mlmd-then-prefix|mlmd-only` continue to govern
-the default prefix policy. Storage mode does not need audit or MLMD records for
-object-store reads. HTTP artifacts retain their existing ownership behavior.
-
-## Storage isolation is a prerequisite
-
-A central object store is compatible with namespace isolation. Separate SeaweedFS
-instances are not required. The relevant boundary is the permission attached to
-the credentials used for each request:
-
-- Use a distinct, restricted storage identity for each namespace artifact service.
-  Separate Secrets containing the same administrator key are not isolation.
-- Verify that the identity can read intended historical roots and shared objects,
-  and cannot read another namespace's private objects. Namespace-specific bucket
-  names, custom prefixes and compound names are supported when the storage policy
-  grants them. A directory name alone does not grant access.
-- Keep endpoint trust and credential configuration restrictive. The mode does not
-  relax endpoint allowlists, path validation or namespace user authorization.
-- The shared UI must route the request to the authorized namespace's service.
-  A missing or unavailable proxy must not fall back to shared UI credentials.
-- Restrict direct access to artifact services. The profile controller generates a
-  NetworkPolicy allowing port 3000 only from shared-UI Pods in the installation
-  namespace. Set `KFP_NAMESPACE` correctly on custom controller deployments;
-  stock manifests use the controller's namespace via the downward API. The CNI
-  must enforce standard Kubernetes NetworkPolicy; no particular provider, including
-  Calico, is required. Other policies are additive: remove or narrow rules
-  that also allow cross-tenant access to these Pods. Custom deployments must provide
-  equivalent ingress isolation before activation. The generated policy applies to
-  namespace artifact services in both modes; clients that previously called them
-  directly must use the authenticated shared UI.
-
-Stock SeaweedFS profile provisioning grants a namespace access to its
-`private-artifacts/<namespace>/` and `private/<namespace>/` roots plus the intended
-shared `artifacts/` and `shared/` roots. It does not automatically grant arbitrary
-historical roots. Existing credential Secrets are reused, so inspect the effective
-storage permissions rather than assuming an upgraded controller changed them.
-The mode does not alter storage IAM policies or migrate object bytes.
-
-## Adopt without moving existing artifacts
-
-1. Inventory the object stores, namespace artifact services, effective credentials
-   and historical roots. Identify all serving replicas and alternate access paths.
-2. Upgrade **all shared-UI replicas first**, keeping `key-prefix` selected. The
-   updated UI sends the authorized namespace binding in both modes; older UIs do
-   not. Wait for the UI rollout to finish before upgrading the profile controller
-   or enabling receiver binding. Reversing this order causes artifact requests from
-   old UI replicas to fail with HTTP 403, including in default mode.
-3. Upgrade the profile controller and reconcile affected namespaces. Wait for
-   **every** namespace artifact service to run the updated image with
-   `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`. Confirm its
-   `FRONTEND_SERVER_NAMESPACE` matches its namespace. Verify the generated ingress
-   policy and actual denial from tenant Pods; existence alone is not proof. Custom
-   installations need equivalent receiver and ingress protection. Confirm the
-   services use the intended scoped credentials and trusted destinations.
-4. Test storage policy before selecting storage mode: namespace A must read an
-   authorized historical object and fail to read namespace B's private object.
-   Test prefix/directory listing too. Through the UI, verify that retargeting an
-   artifact Service to another namespace's receiver is denied before storage
-   access, including when the caller supplies a forged namespace header.
-5. Set `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated
-   shared UI, keeping its namespace proxy enabled. Roll out all UI replicas.
-   During mixed configuration, replicas still using `key-prefix` may deny custom
-   roots; retry after the rollout finishes. Older images may ignore the new
-   setting; do not treat enforcement as complete until every serving UI and
-   receiver is updated.
-6. Test previews and raw downloads through KFP with actual user identities. Check
-   an existing arbitrary root, a shared object, a denied other-tenant URI and a
-   namespace parameter swap. An importer or metadata association must not turn a
-   denied object into an allowed one. Stop the namespace proxy and confirm that
-   retrieval fails instead of falling back to central credentials.
-
-For example, `s3://results/customer-17/model.bin` can remain where it is. Grant the
-namespace's storage identity the intended access, then use the storage mode; no
-`private-artifacts/<namespace>/` rewrite or metadata-record presence is required.
-Do not grant broader storage access merely to make an upgrade check pass.
-
-To roll back the authorization mode, restore `key-prefix` and roll out the UI.
-Historical custom roots may again be denied. Keep scoped storage credentials and
-proxy ingress protections in place. The mode change does not delete artifacts or
-change retention settings.
+`ARTIFACT_NAMESPACE_OWNERSHIP_MODE=mlmd-then-prefix|mlmd-only` still govern requests
+using the prefix/metadata policy, including HTTP artifacts. They are separate from
+`auto` and `storage`; storage-authorized reads require neither audit nor MLMD.
 
 
-### Receiving namespace binding
+## What changes automatically
 
-Profile-managed artifact services require `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`
-in both authorization modes. Before reading storage, they compare the
-`X-KFP-Artifact-Namespace` header with their own `FRONTEND_SERVER_NAMESPACE` and
-reject missing or mismatched bindings. The updated shared UI replaces any
-caller-supplied header with the namespace authorized for that request. A
-user-controlled Service or ExternalName alias therefore cannot redirect an
-approved request to another namespace's storage identity.
+The standard multi-user overlay enables managed artifact proxies. The controller
+provisions or verifies each namespace's storage identity, verifies the credential's
+IAM ownership and stock namespace policy, and publishes readiness evidence in the
+installation namespace. Readiness is bound to the actual namespace UID and
+credential/endpoint configuration; a tenant-created Secret or matching object-key
+name is not sufficient authority.
 
-This binding relies on UI-only ingress: the header is not a bearer credential.
-Keep direct tenant access denied, including broader additive NetworkPolicy rules.
-Custom artifact services must enforce the same receiver binding. Updating only
-the shared UI is insufficient for storage authorization; old receivers ignore the
-header. Keep the updated shared UI when rolling back from storage to key-prefix;
-rolling back to an old UI image while receiver binding is enabled causes HTTP 403.
+The shared UI uses this readiness evidence before automatically selecting storage
+authorization. The receiving service verifies the corresponding namespace and
+configuration binding before using its credentials. The controller preserves
+administrator-added storage grants; it does not grant arbitrary historical roots
+or move objects to make a check pass. Objects already authorized by that identity
+can remain at their existing roots without rewriting references or MLMD lookup.
+
+SeaweedFS can remain central. Namespace isolation comes from per-namespace KFP
+artifact services and restricted storage identities, not separate SeaweedFS
+instances. Stock policies cover `private-artifacts/<namespace>/` and
+`private/<namespace>/`, plus intended shared `artifacts/` and `shared/` roots.
+Additional historical roots remain usable only where existing authorized grants
+cover them. Distinct Secrets containing the same administrator key are not
+isolation.
+
+Managed profiles also receive a standard Kubernetes NetworkPolicy allowing proxy
+port 3000 only from shared-UI Pods in the installation namespace. The policy applies
+regardless of the authorization mode. The cluster must enforce NetworkPolicy;
+Calico is not required. Other policies are additive and must not reopen tenant
+access. Direct proxy consumers must use the authenticated shared UI.
+
+## Upgrade managed installations
+
+Enabling managed proxies adds one artifact receiver Pod per
+`pipelines.kubeflow.org/enabled=true` namespace that did not already have one.
+The default container requests **10m CPU and 70 MiB memory**, with limits of
+**100m CPU and 500 MiB memory**. These are per namespace, before mesh sidecars or
+custom overrides. Large fleets should count affected namespaces and check cluster
+capacity, namespace quotas and temporary rolling-update surge replicas. Insufficient
+capacity keeps receivers pending and can delay artifact readiness; it does not
+require a particular UI/controller upgrade order.
+
+Apply the normal multi-user deployment update. There is no manual shared-UI versus
+profile-controller ordering and no storage-mode opt-in for supported managed
+storage. The controller reconciles existing profiles and creates or updates their
+artifact services, policies and readiness evidence.
+
+Updated UIs use a versioned receiver route that requires namespace binding. An old
+receiver cannot silently accept that route without its checks. Updated receivers
+retain the legacy route for old UIs during overlap: an absent binding remains
+compatible there, while a supplied binding must match. The new UI never retries a
+failed storage-authorized request through that legacy route or shared credentials.
+This supports either component upgrade order; it does not make an old UI perform
+new authorization or promise uninterrupted reads during rollout.
+
+During proxy startup or readiness convergence, affected reads can return an
+actionable HTTP 503 and need retry after reconciliation completes. Old UI replicas
+may continue to deny historical roots until replaced. Persistent failures require
+inspection of controller reconciliation, receiver readiness, namespace identity
+and storage configuration; do not disable authorization or grant broader access.
+
+After rollout, verify through KFP with actual user identities:
+
+- Historical and new authorized objects, shared objects, previews, raw downloads
+  and directory listings still work.
+- Another tenant's private reads and listings fail, including namespace swaps,
+  forged artifact associations and a Service alias targeting another receiver.
+- Direct tenant access to receivers is denied through Pod and Service IPs,
+  including a Pod spoofing the shared-UI label.
+- A stopped disposable receiver or unavailable readiness lookup fails visibly
+  without shared-credential fallback. Allow it to recover and retry the read.
+
+Policy and readiness resources alone do not prove an installation's effective
+network and storage permissions. Keep those checks in acceptance for custom mesh,
+network policy and storage configurations.
+
+## Custom storage and explicit modes
+
+Automatic discovery is intentionally limited to the supported managed store. It
+does not infer isolation for arbitrary endpoints, bucket layouts, workload
+identities or custom services. Those requests retain prefix/metadata enforcement
+unless the operator explicitly selects `storage` after review.
+
+For explicit storage authorization, configure a restricted identity on each
+namespace service, approve exact endpoint trust, provide the versioned receiver
+protocol and equivalent ingress isolation, then test allowed historical/shared
+reads and denied other-tenant reads/listings. Keep `ENABLE_AUTHZ=true` and namespace
+proxying enabled on the shared UI. A missing or unavailable receiver must fail;
+shared-UI credentials are not a recovery path. Custom services that cannot support
+these protections must retain prefix enforcement.
+
+Where shared credentials require the prefix policy, use `key-prefix`, configure
+namespace-prefixed roots for new runs, and migrate only authorized historical
+objects/references as needed. A metadata change does not move object bytes. Changing
+to `key-prefix` can deny roots that worked through scoped storage identities; test
+that effect before changing the mode. Authorization-mode changes do not delete
+artifacts or alter retention.
