@@ -23,8 +23,10 @@ PYTHON=/path/to/python-with-boto3 \
 
 The fixture creates test Profiles and objects, temporarily pauses the profile
 webhook, holds one receiver pending with a zero-Pod quota, and rotates a test
-tenant's storage credentials. Do not run it against a production or shared
-development installation.
+tenant's storage credentials. It also removes the managed HeadBucket permission
+to verify recovery for existing namespaces while retaining every cross-tenant
+Deny statement; cleanup restores the original bucket policy if recovery fails.
+Do not run it against a production or shared development installation.
 
 The pinned CI Profile controller binds owners to `kubeflow-admin`, which this
 minimal CI installation does not provide. The fixture therefore gives each test

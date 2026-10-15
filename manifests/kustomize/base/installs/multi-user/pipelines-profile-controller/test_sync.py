@@ -720,7 +720,7 @@ def test_storage_authorization_api_failure_is_pending(storage_controller,
     s3.put_bucket_policy.assert_not_called()
 
 
-def test_storage_authorization_keeps_admin_grants_and_missing_list_policy_pending(
+def test_storage_authorization_keeps_admin_grants_and_conflicting_policy_pending(
         storage_controller):
     server, attachments, iam, s3 = storage_controller
     custom = {
@@ -736,12 +736,101 @@ def test_storage_authorization_keeps_admin_grants_and_missing_list_policy_pendin
     s3.get_bucket_policy.return_value["Policy"] = json.dumps(bucket_policy)
     result, observed = ready_storage(storage_controller)
     assert storage_record(result)["state"] == "ready"
-    bucket_policy["Statement"] = [custom]
+    bucket_policy["Statement"][0]["Resource"] = "custom-bucket"
     s3.get_bucket_policy.return_value["Policy"] = json.dumps(bucket_policy)
     assert storage_record(post_sync(server, PARENT,
                                     observed))["state"] == "pending"
     iam.put_user_policy.assert_not_called()
     s3.put_bucket_policy.assert_not_called()
+
+
+@pytest.mark.parametrize("failure_operation", ["get", "put"])
+@pytest.mark.parametrize("persistent", [False, True])
+def test_bucket_policy_initialization_retries_with_persisted_credentials(
+        storage_controller, failure_operation, persistent):
+    server, attachments, iam, s3 = storage_controller
+    attachments["Secret.v1"] = {}
+    iam.create_access_key.return_value = {
+        "AccessKey": {
+            "AccessKeyId": "tenant-access",
+            "SecretAccessKey": "tenant-secret",
+        }
+    }
+    unavailable = True
+    stored_policy = None
+
+    def read_policy(**kwargs):
+        if unavailable and failure_operation == "get":
+            raise RuntimeError("temporary bucket read failure")
+        if stored_policy is None:
+            raise iam_error("NoSuchBucketPolicy")
+        return {"Policy": json.dumps(stored_policy)}
+
+    def write_policy(**kwargs):
+        nonlocal stored_policy
+        if unavailable and failure_operation == "put":
+            raise RuntimeError("temporary bucket write failure")
+        stored_policy = json.loads(kwargs["Policy"])
+
+    s3.get_bucket_policy.side_effect = read_policy
+    s3.put_bucket_policy.side_effect = write_policy
+    first = post_sync(server, PARENT, attachments, converge_policy=False)
+    assert storage_record(first)["state"] == "pending"
+    assert first["resyncAfterSeconds"] == 10
+    credential = next(
+        resource for resource in first["attachments"]
+        if resource["metadata"]["name"] == "mlpipeline-minio-artifact")
+    attachments["Secret.v1"][
+        f"{NAMESPACE}/mlpipeline-minio-artifact"] = credential
+    unavailable = persistent
+    retry = post_sync(server, PARENT, attachments)
+    observed = observe_receiver_resources(retry, attachments)
+    result = post_sync(server, PARENT, observed)
+    actual_credential = next(
+        resource for resource in result["attachments"]
+        if resource["metadata"]["name"] == "mlpipeline-minio-artifact")
+    assert actual_credential["data"] == credential["data"]
+    iam.create_access_key.assert_called_once_with(UserName=NAMESPACE)
+    iam.put_user_policy.assert_not_called()
+    if persistent:
+        assert storage_record(result)["state"] == "pending"
+        assert result["resyncAfterSeconds"] == 10
+        assert stored_policy is None
+    else:
+        assert storage_record(result)["state"] == "ready"
+        assert sync.contains_managed_bucket_policy(stored_policy)
+
+
+def test_existing_namespace_repairs_missing_bucket_statements_preserving_admin(
+        storage_controller):
+    server, _, iam, s3 = storage_controller
+    _, observed = ready_storage(storage_controller)
+    custom = {
+        "Sid": "CustomGrant",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::mlpipeline/shared/*",
+    }
+    stored = {"Version": "2012-10-17", "Statement": [custom]}
+    s3.get_bucket_policy.side_effect = lambda **kwargs: {
+        "Policy": json.dumps(stored)
+    }
+
+    def write_policy(**kwargs):
+        nonlocal stored
+        stored = json.loads(kwargs["Policy"])
+
+    s3.put_bucket_policy.side_effect = write_policy
+    result = post_sync(server, PARENT, observed)
+    assert storage_record(result)["state"] == "ready"
+    assert custom in stored["Statement"]
+    assert sync.contains_managed_bucket_policy(stored)
+    s3.put_bucket_policy.assert_called_once()
+    post_sync(server, PARENT, observed)
+    s3.put_bucket_policy.assert_called_once()
+    iam.create_access_key.assert_not_called()
+    iam.put_user_policy.assert_not_called()
 
 
 def test_storage_credential_rotation_and_namespace_recreation_require_rollout(

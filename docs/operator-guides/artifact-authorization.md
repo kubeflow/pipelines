@@ -82,7 +82,10 @@ require a particular UI/controller upgrade order.
 Apply the normal multi-user deployment update. There is no manual shared-UI versus
 profile-controller ordering and no storage-mode opt-in for supported managed
 storage. The controller reconciles existing profiles and creates or updates their
-artifact services, policies and readiness evidence.
+artifact services, policies and readiness evidence. For verified managed storage
+identities, it retries missing stock bucket-policy setup without replacing existing
+credentials or requiring Secret deletion. It preserves administrator statements;
+conflicting managed statements stay pending for operator review.
 
 Updated UIs use a versioned receiver route that requires namespace binding. An old
 receiver cannot silently accept that route without its checks. Updated receivers
