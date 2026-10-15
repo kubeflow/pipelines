@@ -144,9 +144,3 @@ is inspected by the packaging regression suite to prevent tracked exports from r
 - Frontend browser/device, historical performance, and deployment/rollback qualification run weekly or by manual dispatch, never on pull requests. They remain observational and nonblocking until reliability follow-up [#14754](https://github.com/kubeflow/pipelines/issues/14754) and a separate maintainer promotion decision. This tooling depends on [UI modernization #14584](https://github.com/kubeflow/pipelines/pull/14584) for the production browser suites, shared helpers and performance protocol fixture; land that dependency before enabling these workflows. The daily CI health report includes all three workflows. Retain generated evidence in Actions artifacts and durable release assets rather than committing qualification output to the source tree.
 
 Native Apple qualification requires reviewed WebDriverAgent 16.12.11 and rejects drift in the XCUITest dependency before compiling. Mobile jobs allow 90 minutes for bounded setup, the 25-minute native-check process, diagnostics and artifact upload; the script deadlines remain unchanged. These observational checks remain weekly/manual and depend on the modernization application prerequisite.
-
-- Docker mirror setup only modifies and restarts an active local systemd Docker
-  service. Containerized/provider-managed runners without that service retain
-  their daemon configuration; the helper still requires `docker info` to succeed.
-  Configure daemon mirrors in the runner provider when local service management
-  is unavailable. BuildKit mirror configuration remains independent.
