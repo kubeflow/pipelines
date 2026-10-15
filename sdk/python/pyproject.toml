@@ -24,7 +24,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "click>=8.1.8",
+  "click>=8.5.0",
   "click-option-group>=0.5.7",
   "docstring-parser>=0.7.3,<1",
   "google-auth>=2.61.0,<3",
