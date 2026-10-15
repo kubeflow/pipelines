@@ -457,7 +457,25 @@ class Acceptance:
                 UserName=namespace,
                 PolicyName=policy_name,
                 PolicyDocument=json.dumps(policy))
-            self.expected_policies[namespace] = policy
+            # SeaweedFS serializes singleton Action/Resource lists as strings.
+            # Preserve the stored policy, not the submitted JSON representation.
+            stored_policy = document(
+                self.iam.get_user_policy(
+                    UserName=namespace,
+                    PolicyName=policy_name)['PolicyDocument'])
+            require(
+                any(
+                    statement.get('Sid') == 'ExistingArtifactRoot' and statement
+                    .get('Effect') == 'Allow' and statement.get('Action') in (
+                        's3:GetObject',
+                        ['s3:GetObject']) and statement.get('Resource') in (
+                            'arn:aws:s3:::' + BUCKET + '/' + historical,
+                            ['arn:aws:s3:::' + BUCKET + '/' +
+                             historical]) and not statement.get('Condition')
+                    for statement in stored_policy.get('Statement', [])),
+                'Storage did not retain the administrator historical-root grant'
+            )
+            self.expected_policies[namespace] = stored_policy
             for name, key in self.keys[namespace].items():
                 content = namespace + ':' + name
                 self.s3.put_object(
@@ -516,7 +534,7 @@ class Acceptance:
                     UserName=namespace,
                     PolicyName='KubeflowProject' + namespace)['PolicyDocument'])
             require(policy == self.expected_policies[namespace],
-                    'Controller replaced administrator-added storage grants')
+                    'Stored artifact policy changed during reconciliation')
         self.passed(
             'reconciliation preserves administrator historical-root grants')
 
