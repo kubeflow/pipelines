@@ -1236,6 +1236,31 @@ function createKindStack(config = {}) {
     if (!fs.existsSync(renderedPath)) {
       throw new Error(`kubectl kustomize did not create ${renderedPath}.`);
     }
+    // Executor-plugin releases store the driver image inside a YAML-valued
+    // ConfigMap; Kustomize image transforms cannot reach that embedded value.
+    const driverImage = imageOverrides.images?.driver;
+    if (driverImage) {
+      const { parseAllDocuments, parseDocument } = require('yaml');
+      const documents = parseAllDocuments(fs.readFileSync(renderedPath, 'utf8'));
+      let changed = false;
+      for (const document of documents) {
+        if (document.errors.length) throw new Error(document.errors[0].message);
+        if (
+          document.get('kind') !== 'ConfigMap' ||
+          document.getIn(['metadata', 'name']) !== 'ml-pipeline-driver-agent'
+        )
+          continue;
+        const container = parseDocument(document.getIn(['data', 'sidecar.container']));
+        if (container.errors.length || container.get('name') !== 'driver-plugin') {
+          throw new Error('Invalid driver-plugin sidecar.container in rendered ConfigMap.');
+        }
+        container.set('image', driverImage);
+        container.set('imagePullPolicy', 'IfNotPresent');
+        document.setIn(['data', 'sidecar.container'], String(container));
+        changed = true;
+      }
+      if (changed) fs.writeFileSync(renderedPath, documents.map(String).join(''));
+    }
     return { overlayDir, renderedPath };
   }
 
