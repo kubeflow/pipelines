@@ -161,7 +161,7 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            assert component_input_parameter in parent_component_inputs.parameters, \
+            assert component_input_parameter in parent_component_inputs.parameters,\
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
@@ -172,7 +172,7 @@ def build_task_spec_for_task(
             component_input_artifact = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            assert component_input_artifact in parent_component_inputs.artifacts, \
+            assert component_input_artifact in parent_component_inputs.artifacts,\
                 f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.artifacts[
                 input_name].component_input_artifact = (
@@ -183,7 +183,7 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
+            assert component_input_parameter in parent_component_inputs.parameters,\
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
@@ -211,7 +211,7 @@ def build_task_spec_for_task(
                     component_input_artifact = (
                         compiler_utils.
                         additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_artifact in parent_component_inputs.artifacts, \
+                    assert component_input_artifact in parent_component_inputs.artifacts,\
                         f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.artifacts[
                         input_name].component_input_artifact = (
@@ -246,7 +246,7 @@ def build_task_spec_for_task(
                     component_input_parameter = (
                         compiler_utils.
                         additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_parameter in parent_component_inputs.parameters, \
+                    assert component_input_parameter in parent_component_inputs.parameters,\
                         f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.parameters[
                         input_name].component_input_parameter = (
@@ -310,7 +310,7 @@ def build_task_spec_for_task(
                         component_input_parameter = (
                             compiler_utils.
                             additional_input_name_for_pipeline_channel(channel))
-                        assert component_input_parameter in parent_component_inputs.parameters, \
+                        assert component_input_parameter in parent_component_inputs.parameters,\
                             f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].component_input_parameter = (
@@ -1089,9 +1089,9 @@ def _single_binary_operation_to_cel_condition(
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
         else:
             # Must be a double and int, promote to double.
-            assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, \
+            assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types,\
                 f'Types: {parameter_types} [{left_operand} {right_operand}]'
-            assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, \
+            assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types,\
                 f'Types: {parameter_types} [{left_operand} {right_operand}]'
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
     elif len(parameter_types) == 1:  # Both operands are the same type.

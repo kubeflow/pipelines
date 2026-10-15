@@ -55,6 +55,7 @@ class ComponentInfo():
 
     This will likely be subsumed/augmented with BaseComponent.
     """
+
     name: str
     function_name: str
     func: Callable
@@ -129,7 +130,8 @@ def make_pip_install_command(
     return f'python3 -m pip install --quiet --no-warn-script-location {index_url_options}{concat_package_list}'
 
 
-_install_python_packages_script_template = '''
+_install_python_packages_script_template =\
+                                           '''
 if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
@@ -139,7 +141,8 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 {pip_install_commands} && "$0" "$@"
 
 # Creates and activates a virtual environment in a temporary directory.
 # The environment inherits the system site packages.
-_use_venv_script_template = '''
+_use_venv_script_template =\
+                            '''
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 tmp=$(mktemp -d)
 python3 -m venv "$tmp/venv" --system-site-packages
@@ -639,7 +642,8 @@ def _get_command_and_args_for_lightweight_component(
                 archive_b64, file_basename)
 
     helper_block = f'\n\n{helper_source}\n' if helper_source else ''
-    source = textwrap.dedent('''
+    source = textwrap.dedent(\
+                             '''
         {imports_source}{additional_funcs_source}{helper_block}
 
         {func_source}\n''').format(
@@ -734,7 +738,6 @@ def create_notebook_component_from_func(
     component-building logic is reused by passing the template and the
     notebook path as an embedded artifact.
     """
-
     # Resolve default packages for notebooks when not specified
     if packages_to_install is None:
         packages_to_install = [
@@ -827,7 +830,6 @@ def create_component_from_func(
     The decorator is defined under component_decorator.py. See the
     decorator for the canonical documentation for this function.
     """
-
     packages_to_install_command = _get_packages_to_install_command(
         install_kfp_package=install_kfp_package,
         target_image=target_image,
@@ -957,7 +959,6 @@ def create_container_component_from_func(
     The decorator is defined under container_component_decorator.py. See
     the decorator for the canonical documentation for this function.
     """
-
     component_spec = extract_component_interface(func, containerized=True)
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
@@ -990,7 +991,6 @@ def create_graph_component_from_func(
     The decorator is defined under pipeline_context.py. See the
     decorator for the canonical documentation for this function.
     """
-
     component_spec = extract_component_interface(
         func,
         description=description,

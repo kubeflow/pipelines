@@ -164,7 +164,6 @@ def get_parameter_type(
 
 def get_parameter_type_name(param_type: Optional[Union[Type, str]]) -> str:
     """Gets the parameter type name."""
-
     from kfp.pipeline_spec import pipeline_spec_pb2
     param_enum_val = get_parameter_type(param_type)
     if param_enum_val is None:

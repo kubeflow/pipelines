@@ -1231,23 +1231,23 @@ class TestLiteralInterpolatedChannelValidation(unittest.TestCase):
 
     def test_interpolated_channel_string_defers_literal_validation(self):
         """String with embedded pipeline channels should defer Literal validation to runtime."""
-        
+
         @dsl.component
         def pick(choice: Literal['prefix-a', 'prefix-b']) -> str:
             return choice
 
-        @dsl.pipeline 
+        @dsl.pipeline
         def my_pipeline(suffix: Literal['a', 'b'] = 'a'):
             # This should compile without error even though f'prefix-{suffix}'
             # can't be validated statically against ['prefix-a', 'prefix-b']
             pick(choice=f'prefix-{suffix}')
-        
+
         # Should not raise InconsistentTypeException
         _compile(my_pipeline)
 
     def test_plain_channel_defers_literal_validation(self):
         """Direct pipeline channels should defer Literal validation to runtime."""
-        
+
         @dsl.component
         def produce(value: str) -> str:
             return value
@@ -1256,12 +1256,12 @@ class TestLiteralInterpolatedChannelValidation(unittest.TestCase):
         def pick(choice: Literal['a', 'b']) -> str:
             return choice
 
-        @dsl.pipeline 
+        @dsl.pipeline
         def my_pipeline():
             upstream = produce(value='a')
             # This should compile without error - channel validation is deferred
             pick(choice=upstream.output)
-        
+
         # Should not raise InconsistentTypeException
         _compile(my_pipeline)
 

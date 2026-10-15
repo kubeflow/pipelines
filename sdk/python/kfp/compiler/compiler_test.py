@@ -6644,73 +6644,75 @@ class TestLiteralCompilerOverrideValidation(unittest.TestCase):
 
     def test_valid_literal_override_succeeds(self):
         """Compiler.compile with valid pipeline_parameters should succeed for Literal inputs."""
-        
+
         @dsl.component
         def pick(choice: Literal['a', 'b', 'c'] = 'a') -> str:
             return choice
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = os.path.join(tmpdir, 'pipeline.yaml')
-            
+
             # Should not raise error
             compiler.Compiler().compile(
                 pipeline_func=pick,
                 package_path=output_path,
                 pipeline_parameters={'choice': 'b'}  # Valid literal value
             )
-            
+
             # Verify the override was applied
             with open(output_path) as f:
                 spec = yaml.safe_load(f)
-            default_value = spec['root']['inputDefinitions']['parameters']['choice']['defaultValue']
+            default_value = spec['root']['inputDefinitions']['parameters'][
+                'choice']['defaultValue']
             self.assertEqual('b', default_value['stringValue'])
 
     def test_invalid_literal_override_raises_error(self):
         """Compiler.compile with invalid pipeline_parameters should raise ValueError for Literal inputs."""
-        
+
         @dsl.component
         def pick(choice: Literal['a', 'b', 'c'] = 'a') -> str:
             return choice
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = os.path.join(tmpdir, 'pipeline.yaml')
-            
+
             # Should raise ValueError
             with self.assertRaisesRegex(
-                    ValueError, 
-                    r"Pipeline parameter 'choice' value 'invalid' is not one of the allowed Literal values \['a', 'b', 'c'\]"):
+                    ValueError,
+                    r"Pipeline parameter 'choice' value 'invalid' is not one of the allowed Literal values \['a', 'b', 'c'\]"
+            ):
                 compiler.Compiler().compile(
                     pipeline_func=pick,
                     package_path=output_path,
-                    pipeline_parameters={'choice': 'invalid'}  # Invalid literal value
+                    pipeline_parameters={'choice': 'invalid'
+                                        }  # Invalid literal value
                 )
 
     def test_integer_literal_override_validation(self):
         """Compiler parameter overrides should validate integer Literal values correctly."""
-        
+
         @dsl.component
         def pick(level: Literal[1, 2, 3] = 1) -> int:
             return level
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = os.path.join(tmpdir, 'pipeline.yaml')
-            
+
             # Valid override should succeed
             compiler.Compiler().compile(
                 pipeline_func=pick,
                 package_path=output_path,
-                pipeline_parameters={'level': 2}
-            )
-            
+                pipeline_parameters={'level': 2})
+
             # Invalid override should fail
             with self.assertRaisesRegex(
-                    ValueError, 
-                    r"Pipeline parameter 'level' value 4 is not one of the allowed Literal values \[1, 2, 3\]"):
+                    ValueError,
+                    r"Pipeline parameter 'level' value 4 is not one of the allowed Literal values \[1, 2, 3\]"
+            ):
                 compiler.Compiler().compile(
                     pipeline_func=pick,
                     package_path=output_path,
-                    pipeline_parameters={'level': 4}
-                )
+                    pipeline_parameters={'level': 4})
 
 
 if __name__ == '__main__':

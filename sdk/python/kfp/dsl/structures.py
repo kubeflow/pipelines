@@ -46,6 +46,7 @@ class InputSpec:
         description: Input description.
         literals: The allowed values for this input, if it was declared with a `typing.Literal[...]` annotation. Only applies when `type` is a parameter type.
     """
+
     type: str
     default: Optional[Any] = None
     optional: bool = False
@@ -120,8 +121,9 @@ class InputSpec:
                 is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
-        """Equality comparison for InputSpec. Robust to different type
-        representations, such that it respects the maximum amount of
+        """Equality comparison for InputSpec.
+
+        Robust to different type representations, such that it respects the maximum amount of
         information possible to encode in IR. That is, because
         `typing.List[str]` can only be represented a `List` in IR,
         'typing.List' == 'List' in this comparison.
@@ -180,6 +182,7 @@ class OutputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Output description.
     """
+
     type: str
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
@@ -220,8 +223,9 @@ class OutputSpec:
                 is_artifact_list=is_artifact_list)
 
     def __eq__(self, other: Any) -> bool:
-        """Equality comparison for OutputSpec. Robust to different type
-        representations, such that it respects the maximum amount of
+        """Equality comparison for OutputSpec.
+
+        Robust to different type representations, such that it respects the maximum amount of
         information possible to encode in IR. That is, because
         `typing.List[str]` can only be represented a `List` in IR,
         'typing.List' == 'List' in this comparison.
@@ -271,6 +275,7 @@ class ResourceSpec:
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
+
     cpu_request: Optional[str] = None
     cpu_limit: Optional[str] = None
     memory_request: Optional[str] = None
@@ -377,7 +382,6 @@ class ContainerSpecImplementation:
         Returns:
             ContainerSpecImplementation: The ContainerSpecImplementation instance.
         """
-
         return ContainerSpecImplementation(
             image=container_dict['image'],
             command=container_dict.get('command'),
@@ -415,6 +419,7 @@ class RetryPolicy:
             deployment's Argo configuration applies; KFP's bundled manifests
             set ``'OnError'``.
     """
+
     max_retry_count: Optional[int] = None
     backoff_duration: Optional[str] = None
     backoff_factor: Optional[float] = None
@@ -473,6 +478,7 @@ class TaskSpec:
         display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
+
     name: str
     inputs: Mapping[str, Any]
     dependent_tasks: List[str]
@@ -499,6 +505,7 @@ class ImporterSpec:
          imported before.
         metadata (optional): the properties of the artifact.
     """
+
     artifact_uri: str
     schema_title: str
     schema_version: str
@@ -516,6 +523,7 @@ class Implementation:
         graph: graph implementation details.
         importer: importer implementation details.
     """
+
     container: Optional[ContainerSpecImplementation] = None
     importer: Optional[ImporterSpec] = None
     # Use type forward reference to skip the type validation in BaseModel.
@@ -623,6 +631,7 @@ class ComponentSpec:
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
+
     name: str
     implementation: Implementation
     description: Optional[str] = None
