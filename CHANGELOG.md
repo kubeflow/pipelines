@@ -64,12 +64,15 @@ normal deployment upgrade process; eligible schedules are adopted automatically.
   Stock roles are updated; custom roles need scoped changes. See
   [RBAC/client migration](docs/operator-guides/rbac-migration-2.18.md).
 - **Artifacts:** default `key-prefix` enforcement requires namespace-prefixed keys,
-  even with matching MLMD evidence. The proposed [storage authorization backport](https://github.com/kubeflow/pipelines/pull/14884)
-  permits historical roots without moving objects when namespace-specific storage
-  credentials and isolated artifact proxies enforce access. It is enforcement, not
-  audit. Reconcile proxy ingress policies and verify actual storage/network isolation
-  before enabling it; HTTP artifacts and archived logs keep separate policies.
-  Shared-credential deployments retain the prefix policy. See
+  even with matching MLMD evidence. Opt-in
+  `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` preserves historical roots
+  without moving objects when namespace-specific storage credentials enforce access.
+  It is enforcement, not audit, and does not depend on MLMD. Shared-credential
+  deployments retain the prefix policy. In **both** modes, upgrade shared UI replicas
+  first, then reconcile updated namespace services with their receiver namespace
+  checks and generated ingress policies; old UI replicas otherwise receive HTTP 403.
+  Direct proxy clients must use the authenticated UI. Verify storage and network
+  isolation before opting in; HTTP artifacts and archived logs keep separate policies. See
   [authorization choices and rollout](docs/operator-guides/upgrade-2.18.md#artifact-root-migration).
 - **UI availability and cache:** shared TensorBoard signing keys initialize
   automatically. First adoption interrupts the UI and invalidates old URLs; reopen

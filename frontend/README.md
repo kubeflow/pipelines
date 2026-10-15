@@ -179,7 +179,8 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Artifact ownership migration in 2.18
 
-Multi-user frontend previews and downloads enforce namespace-prefixed object keys by default:
+With the default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, multi-user
+frontend previews and downloads enforce namespace-prefixed object keys:
 `private-artifacts/<namespace>/...` (or `ARTIFACT_NAMESPACE_KEY_PREFIX/<namespace>/...`).
 Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
 to direct and proxied MinIO, S3, GCS and HTTP(S) retrieval. Standalone mode is unchanged.
@@ -203,11 +204,19 @@ route category and reason. Count these events in your log system to track migrat
 URIs, query strings and credentials are not included in the audit event. Audit also emits a startup
 warning. An event records permission to proceed, not proof that the downstream download succeeded.
 
-Configure new pipeline roots with namespace-prefixed paths, then move/copy authorized existing
+For shared-credential deployments retaining prefix enforcement, configure new pipeline
+roots with namespace-prefixed paths, then move/copy authorized existing
 objects and update their references. Metadata changes alone do not move storage objects. Switch
 back to `enforce` and verify preview/download before upgrading. Do not disable authentication to
-restore custom-root access. MLMD outages now deny artifact reads in both modes, including reads of
+restore custom-root access. Under the prefix policy, MLMD outages deny artifact reads in both enforce/audit modes, including reads of
 otherwise correctly prefixed objects; restoring MLMD restores those reads.
+
+Alternatively, `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` preserves existing
+object-store roots through scoped namespace storage identities without an MLMD
+lookup or object move. It is enforcement, not audit. Upgrade the shared UI before
+namespace receivers and verify their namespace binding, ingress isolation and
+storage permissions before activation. See the
+[2.18 rollout guide](../docs/operator-guides/upgrade-2.18.md#artifact-root-migration).
 
 The old unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name is not an alias and is no longer
 read. Use `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` for audit/enforce; do not put these values

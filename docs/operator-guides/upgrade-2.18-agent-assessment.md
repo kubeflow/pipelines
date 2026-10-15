@@ -135,9 +135,10 @@ Inspect representative historical **and newly produced** artifact references usi
 the owning user's view. Classify object paths without exporting complete URIs:
 namespace-prefixed, custom-prefix-plus-namespace, arbitrary legacy root, or unknown.
 First inspect `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` on every shared-UI
-replica and verify the deployed image contains the proposed
-[storage authorization backport](https://github.com/kubeflow/pipelines/pull/14884). An unrecognized environment
-variable on an old image is not activation. For default `key-prefix`, compare with
+replica. It defaults to `key-prefix`; upgrading does not opt into storage mode.
+Verify the shared UI and every receiver run images supporting the selected mode
+and namespace binding. An unrecognized environment variable on an old image is
+not activation. For default `key-prefix`, compare with
 `ARTIFACT_NAMESPACE_KEY_PREFIX`; matching MLMD evidence alone no longer authorizes
 an arbitrary root in multi-user mode. Standalone mode is unaffected by
 this ownership middleware. See [root migration](upgrade-2.18.md#artifact-root-migration).
@@ -151,12 +152,26 @@ provider/Secret selectors are discarded. Do not assume master's trusted launcher
 resolver exists in the backport. Do not print credentials. Check own
 historical-root and intended shared-root reads/listings, then deny another tenant's
 private reads/listings. Distinct Secret names are not evidence of restricted
-credentials. Existing SeaweedFS Secrets are reused; inspect actual IAM policies.
+credentials. SeaweedFS can be central; the per-namespace identity belongs to the
+KFP artifact service, not a separate SeaweedFS deployment. Existing SeaweedFS
+Secrets are reused; inspect actual IAM policies and do not assume reconciliation
+grants arbitrary historical roots.
 
 Verify `ENABLE_AUTHZ=true` and `ARTIFACTS_SERVICE_PROXY_ENABLED=true` on the shared
-UI, the reconciled proxy NetworkPolicy, the correct installation namespace and an
-enforcing CNI. Check additive policies and custom service routes. With authorized
-test identities, deny direct cross-tenant proxy access and namespace swaps. Stop
+UI. In both modes, verify reconciled proxy NetworkPolicies, the correct
+installation namespace, `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`, and each
+receiver's own `FRONTEND_SERVER_NAMESPACE`. Check the rollout order: all shared UI
+replicas first in `key-prefix`, then all receivers, then opt into `storage` after
+isolation checks. Flag an old UI paired with new receivers as an HTTP 403 risk,
+and any old receiver as a storage-mode blocker. Managed profiles generate these
+resources automatically; custom services need equivalent protections. Inventory
+direct proxy clients that must move to the shared UI.
+
+Require standard Kubernetes NetworkPolicy enforcement; no Calico installation is
+required. Check additive policies and custom service routes. With authorized test
+identities, deny direct cross-tenant proxy access through both Pod and Service IPs,
+including pods spoofing the UI label. Test namespace swaps and a service route
+pointing to a different namespace's receiver; its namespace check must reject it. Stop
 or isolate a disposable proxy to prove a failure cannot use shared UI credentials.
 If a live check is not permitted, report that boundary as unverified. The policy
 resource alone is not a successful isolation test. Do not copy storage mode into
@@ -327,7 +342,7 @@ TaskService authorization remediation as a retained security limitation.
 The 3.0 MLMD-to-native transition is separate. Replacement-history import does not
 migrate active workloads, seed cache reuse or move artifact objects. Preserved
 namespace-less URIs still fail the default native prefix policy after metadata
-import. The proposed master storage mode can preserve their access through scoped
+import. Master storage mode can preserve their access through scoped
 credentials, independently of MLMD; require fresh storage and proxy isolation
 acceptance in the replacement installation. Do not report successful import or table creation as complete upgrade or
 artifact-access acceptance.

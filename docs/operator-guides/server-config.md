@@ -272,9 +272,16 @@ unextracted.
 
 ### Artifact ownership controls in 2.18
 
-These are separate settings on the authenticated frontend, not interchangeable
-names for one mode. Standard manifests read them from `pipeline-install-config`;
-restart the frontend after changing that ConfigMap and keep serving replicas consistent.
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` selects the enforcement boundary:
+`key-prefix` is the default; opt-in `storage` uses namespace storage identities for
+S3, MinIO and GCS reads without MLMD lookup or a prescribed key layout. It requires
+authentication, namespace proxying, updated receivers and verified isolation. See
+[authorization and rollout](upgrade-2.18.md#artifact-root-migration).
+
+The controls below apply to the prefix/metadata policy, including the separate
+HTTP artifact path. They are not aliases for the authorization-boundary selector.
+Standard manifests read them from `pipeline-install-config`; restart the frontend
+after changing that ConfigMap and keep serving replicas consistent.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
@@ -295,10 +302,12 @@ setting into those proxies does not enable it on the serving UI. See
 [artifact-root migration](upgrade-2.18.md#artifact-root-migration) for impact and
 return-to-enforcement steps.
 
-Master/3.0 uses the Artifact API instead of MLMD and has no artifact audit exception.
-Its lookup values are `artifact-then-prefix` (default) and `artifact-only`, with the
-old `mlmd-*` spellings accepted as lookup aliases. This does not make arbitrary
-legacy roots valid. These branch differences must not be used as 2.18 settings.
+Master/3.0's default prefix policy uses the Artifact API instead of MLMD and has no
+artifact audit exception. Its lookup values are `artifact-then-prefix` (default)
+and `artifact-only`, with the old `mlmd-*` spellings accepted as lookup aliases.
+Storage mode in either branch bypasses metadata lookup for object-store reads;
+it is an enforced authorization option, not a temporary audit exception to remove
+in 3.0. The native lookup values must not be used as 2.18 settings.
 
 ### TensorBoard proxy signing secret
 
