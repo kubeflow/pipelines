@@ -1059,6 +1059,12 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
+		// The names are informational, so a failed lookup keeps the current
+		// names instead of blocking reconciliation.
+		namesErr := r.setScheduledWorkflowPipelineNames(newScheduledWorkflow)
+		if namesErr != nil {
+			glog.Warningf("Keeping the pipeline names of ScheduledWorkflow %v/%v: %v", jobs[i].Namespace, jobs[i].K8SName, namesErr)
+		}
 
 		for {
 			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
@@ -1067,6 +1073,10 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 					break
 				}
 				return failedToReconcileSwfCrsError(err)
+			}
+			if namesErr != nil {
+				newScheduledWorkflow.Spec.PipelineName = currentScheduledWorkflow.Spec.PipelineName
+				newScheduledWorkflow.Spec.PipelineVersionName = currentScheduledWorkflow.Spec.PipelineVersionName
 			}
 
 			if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
@@ -1920,8 +1930,38 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, nil, "", util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
+	// The names are informational, so a failed lookup must not block creation.
+	if err := r.setScheduledWorkflowPipelineNames(scheduledWorkflow); err != nil {
+		glog.Warningf("Creating recurring run %q in namespace %q without pipeline names: %v", job.DisplayName, k8sNamespace, err)
+	}
 
 	return scheduledWorkflow, tmpl, manifest, nil
+}
+
+// setScheduledWorkflowPipelineNames records the names of the pipeline and
+// pipeline version the ScheduledWorkflow references by ID. Names of deleted
+// pipelines or versions are left empty.
+func (r *ResourceManager) setScheduledWorkflowPipelineNames(scheduledWorkflow *scheduledworkflow.ScheduledWorkflow) error {
+	spec := &scheduledWorkflow.Spec
+	if spec.PipelineId != "" {
+		pipeline, err := r.GetPipeline(spec.PipelineId)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return util.Wrap(err, "Failed to read the pipeline name")
+		}
+		if pipeline != nil {
+			spec.PipelineName = pipeline.Name
+		}
+	}
+	if spec.PipelineVersionId != "" {
+		pipelineVersion, err := r.GetPipelineVersion(spec.PipelineVersionId)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return util.Wrap(err, "Failed to read the pipeline version name")
+		}
+		if pipelineVersion != nil {
+			spec.PipelineVersionName = pipelineVersion.Name
+		}
+	}
+	return nil
 }
 
 // Enables or disables a recurring run with given id.

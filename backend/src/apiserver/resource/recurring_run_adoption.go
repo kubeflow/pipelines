@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
@@ -173,6 +174,11 @@ func (r *ResourceManager) synchronizeAdoptedRecurringRun(ctx context.Context, id
 	if err != nil {
 		return err
 	}
+	// The names are informational, so a failed lookup keeps the current names.
+	namesErr := r.setScheduledWorkflowPipelineNames(canonical)
+	if namesErr != nil {
+		glog.Warningf("Keeping the pipeline names of ScheduledWorkflow %v/%v: %v", job.Namespace, job.K8SName, namesErr)
+	}
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		live, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})
 		if err != nil {
@@ -184,6 +190,9 @@ func (r *ResourceManager) synchronizeAdoptedRecurringRun(ctx context.Context, id
 		original := live
 		live = live.DeepCopy()
 		live.Spec = canonical.Spec
+		if namesErr != nil {
+			live.Spec.PipelineName, live.Spec.PipelineVersionName = original.Spec.PipelineName, original.Spec.PipelineVersionName
+		}
 		// A rerun after online adoption must not acknowledge an in-flight claim.
 		if !state.Pending {
 			live.Status.Trigger.LastIndex = util.Int64Pointer(state.LastRunIndex)

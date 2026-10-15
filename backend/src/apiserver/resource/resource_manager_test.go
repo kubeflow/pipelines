@@ -7246,6 +7246,137 @@ func TestReconcileSwfCrs(t *testing.T) {
 	require.NotNil(t, swf.Spec.Workflow.Spec)
 }
 
+func TestScheduledWorkflowPipelineNames(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		multiUser bool
+		pinned    bool
+	}{
+		{name: "single-user latest version"},
+		{name: "single-user pinned version", pinned: true},
+		{name: "multi-user latest version", multiUser: true},
+		{name: "multi-user pinned version", multiUser: true, pinned: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			configureRecurringRunAccountTest(t)
+			viper.Set(common.MultiUserMode, tc.multiUser)
+			store, _, pipeline, version := initWithPipeline(t)
+			defer store.Close()
+			store.SubjectAccessReviewClientFake = &recurringRunAccountReview{allowedAccount: "override-runner"}
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+			experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+			require.NoError(t, err)
+			pipelineSpec := model.PipelineSpec{
+				PipelineId:    pipeline.UUID,
+				RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
+			}
+			expectedVersionName := ""
+			if tc.pinned {
+				pipelineSpec.PipelineVersionId = version.UUID
+				expectedVersionName = version.Name
+			}
+			job, err := manager.CreateJob(multiUserContext(), &model.Job{
+				DisplayName: "j1", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true,
+				ServiceAccount: "override-runner", PipelineSpec: pipelineSpec,
+			})
+			require.NoError(t, err)
+
+			ctx := context.Background()
+			swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+			swf, err := swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, pipeline.UUID, swf.Spec.PipelineId)
+			require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+			require.Equal(t, pipelineSpec.PipelineVersionId, swf.Spec.PipelineVersionId)
+			require.Equal(t, expectedVersionName, swf.Spec.PipelineVersionName)
+
+			// Emulate a ScheduledWorkflow created before the names were recorded.
+			swf.Spec.PipelineName = version.Name
+			swf.Spec.PipelineVersionName = ""
+			_, err = swfClient.Update(ctx, swf)
+			require.NoError(t, err)
+			require.NoError(t, manager.ReconcileSwfCrs(ctx))
+			swf, err = swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			if tc.pinned {
+				require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+				require.Equal(t, version.Name, swf.Spec.PipelineVersionName)
+			} else {
+				// Startup reconciliation only rebuilds pinned schedules.
+				require.Equal(t, version.Name, swf.Spec.PipelineName)
+			}
+		})
+	}
+}
+
+func TestSetScheduledWorkflowPipelineNamesMissingReferences(t *testing.T) {
+	store, manager, _, _ := initWithPipeline(t)
+	swf := &swfapi.ScheduledWorkflow{Spec: swfapi.ScheduledWorkflowSpec{
+		PipelineId: "deleted-pipeline", PipelineVersionId: "deleted-version",
+	}}
+	require.NoError(t, manager.setScheduledWorkflowPipelineNames(swf))
+	require.Empty(t, swf.Spec.PipelineName)
+	require.Empty(t, swf.Spec.PipelineVersionName)
+
+	require.NoError(t, store.Close())
+	for _, spec := range []swfapi.ScheduledWorkflowSpec{{PipelineId: "p1"}, {PipelineVersionId: "v1"}} {
+		require.Error(t, manager.setScheduledWorkflowPipelineNames(&swfapi.ScheduledWorkflow{Spec: spec}),
+			"lookup failures other than NotFound must not be ignored")
+	}
+}
+
+type unavailablePipelineStore struct{ storage.PipelineStoreInterface }
+
+func (unavailablePipelineStore) GetPipeline(string) (*model.Pipeline, error) {
+	return nil, util.NewInternalServerError(fmt.Errorf("store unavailable"), "Failed to get a pipeline")
+}
+
+func TestCreateJobSucceedsWhenPipelineNameLookupFails(t *testing.T) {
+	store, manager, _, version := initWithPipeline(t)
+	defer store.Close()
+	manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1", Enabled: true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+	})
+	require.NoError(t, err)
+	swf, err := store.SwfClient().ScheduledWorkflow(job.Namespace).Get(context.Background(), job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, version.UUID, swf.Spec.PipelineVersionId)
+	require.Empty(t, swf.Spec.PipelineName)
+}
+
+func TestReconcileSwfCrsKeepsPipelineNamesWhenLookupFails(t *testing.T) {
+	store, manager, pipeline, version := initWithPipeline(t)
+	defer store.Close()
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1", Enabled: true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+	swf, err := swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	swf.Spec.Workflow.Spec = nil
+	_, err = swfClient.Update(ctx, swf)
+	require.NoError(t, err)
+
+	manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+	require.NoError(t, manager.ReconcileSwfCrs(ctx))
+	swf, err = swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, swf.Spec.Workflow.Spec, "the rest of the spec must still be reconciled")
+	require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+	require.Equal(t, version.Name, swf.Spec.PipelineVersionName)
+}
+
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
