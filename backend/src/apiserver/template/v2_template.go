@@ -77,7 +77,6 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
 			ExperimentId:      modelJob.ExperimentId,
 			PipelineId:        modelJob.PipelineId,
-			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
 			ServiceAccount:    modelJob.ServiceAccount,
 			PluginsInput:      pluginsInput,
