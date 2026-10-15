@@ -39,7 +39,7 @@
     "react-virtualized": "^9.22.6",
     "recharts": "^3.7.0",
     "runtypes": "^7.0.5",
-    "ts-proto": "^2.13.0",
+    "ts-proto": "^2.15.0",
     "typestyle": "^2.4.0",
     "url": "^0.11.4"
   },
