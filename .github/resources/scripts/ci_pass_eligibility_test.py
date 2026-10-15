@@ -214,9 +214,9 @@ class CIPassedTest(unittest.TestCase):
                 self.assertEqual(result['outputs']['ready'], 'true')
                 self.assert_last_status(result, 'success')
 
-    def test_complete_ci_publishes_success_without_provisional_pending(self):
+    def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
-        self.assertNotIn(['status', 'pending', 'head'], result['calls'])
+        self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
         self.assert_last_status(result, 'success')
 
     def test_verified_ci_does_not_require_approval_label(self):
@@ -309,9 +309,6 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             text=True)
         actual = json.loads(result.stdout)
         self.assertEqual(actual['result'], [{
-            'number': 1,
-            'head': 'success'
-        }, {
             'number': 2,
             'head': 'failure'
         }, {
@@ -333,7 +330,10 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             'number': 9,
             'head': 'retarget-success'
         }])
-        self.assertEqual(actual['requests'], [])
+        self.assertEqual(actual['requests'], [
+            'success', 'failure', 'pending', 'missing', 'untrusted',
+            'stale-success', 'legacy-success', 'retarget-success'
+        ])
 
     def test_recovery_revokes_green_when_base_tip_advances(self):
         script = r"""
@@ -374,10 +374,10 @@ async function run(liveTip) {
             text=True)
         actual = json.loads(result.stdout)
         self.assertNotEqual(actual['publishedStamp'], actual['advancedStamp'])
-        self.assertEqual(actual['noAdvance'], [{'number': 42, 'head': 'H'}])
+        self.assertEqual(actual['noAdvance'], [])
         self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'H'}])
 
-    def test_base_advance_preserves_success_across_full_reconciliation(self):
+    def test_base_advance_revokes_stale_green_across_full_reconciliation(self):
         B1 = 'a' * 40
         B2 = 'c' * 40
         published_stamp = hashlib.sha256(
@@ -385,8 +385,13 @@ async function run(liveTip) {
                        separators=(',', ':')).encode()).hexdigest()
         initial = ('Expected CI and all checks passed; base policy ' +
                    published_stamp + '.')
-        # Current-head success remains valid when master advances. The policy
-        # is still loaded from B2 and every later sweep rechecks its requirements.
+        # The PR's frozen base is B1 but master has advanced to B2. Its stored
+        # ci-passed success is stamped B1, and the run was created before B2
+        # became reachable on master. Reconciliation must revoke the green
+        # (pending) using the run's immutable creation time against B2's push
+        # arrival time, and the next sweep must STILL select the PR. Cover both
+        # the run-scoped association (already mutated to B2) and the
+        # empty-pull_requests fallback.
         for run_pull_requests in ([], [{
                 'number': 7,
                 'base': {
@@ -415,22 +420,22 @@ async function run(liveTip) {
                         'pull_requests': run_pull_requests,
                     },
                 })
+                # Discovery: the stale success (stamped B1) is selected because
+                # the live tip B2 no longer matches the stored stamp.
                 self.assertEqual(result['recoveryBefore'], [{
                     'number': 7,
                     'head': 'head'
                 }], result)
-                self.assert_last_status(result, 'success')
-                self.assertIn(['add-label', ['ci-passed']], result['calls'])
+                # Reconciliation revokes the green instead of re-stamping it.
+                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+                self.assert_last_status(result, 'pending')
+                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+                self.assertIn(['remove-label', 'ci-passed'], result['calls'])
+                # Next sweep still selects the PR: it is not green.
                 self.assertEqual(result['recoveryAfter'], [{
                     'number': 7,
                     'head': 'head'
                 }], result)
-
-    def test_green_recovery_never_temporarily_revokes_passing_evidence(self):
-        result = exercise({'schedule': True, 'initialStatus': 'success'})
-        self.assertNotIn(['status', 'pending', 'head'], result['calls'])
-        self.assertNotIn(['status', 'failure', 'head'], result['calls'])
-        self.assert_last_status(result, 'success')
 
     def test_success_records_the_validated_base_policy(self):
         result = exercise()
@@ -839,14 +844,15 @@ async function run(liveTip) {
         self.assertIn(['add-label', ['ci-passed']], result['calls'])
 
     def test_merge_during_reconciliation_preserves_status(self):
-        # PR open when prepare runs (preserves passing evidence), merged by
+        # PR open when prepare runs (publishes provisional pending), merged by
         # the time finalize re-reads it. finalize must publish nothing.
         result = exercise({
             'initialStatus': 'success',
             'mergeBeforeFinal': True,
         })
         self.assertNotIn('error', result)
-        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'pending', 'head']])
         self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
 
     def test_merge_before_finalize_read_failure_preserves_status(self):
@@ -859,7 +865,8 @@ async function run(liveTip) {
             'finalizeReadFailure': True,
         })
         self.assertNotIn('error', result)
-        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'pending', 'head']])
         self.assertNotIn(['status', 'failure', 'head'], result['calls'])
 
     def test_merged_pr_resolve_failure_does_not_publish_failure(self):
@@ -997,12 +1004,47 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
             argv, check=True, capture_output=True, text=True)
         return json.loads(result.stdout)
 
-    def test_master_push_never_revokes_current_head_evidence(self):
-        for tip in ('a' * 40, 'c' * 40):
-            actual = self._run_revoke('c' * 40, tip)
-            self.assertEqual(actual['count'], 0)
-            self.assertEqual(actual['writes'], [])
-            self.assertEqual(actual['listCalls'], [])
+    def test_push_revocation_revokes_only_stale_success(self):
+        actual = self._run_revoke('c' * 40, 'c' * 40)
+        self.assertEqual(actual['count'], 2)
+        self.assertEqual([write['sha'] for write in actual['writes']],
+                         ['stale', 'legacy'])
+        for write in actual['writes']:
+            self.assertEqual(write['context'], 'ci-passed')
+            self.assertEqual(write['state'], 'failure')
+            self.assertEqual(write['description'],
+                             'Base advanced; re-test against new master.')
+            self.assertLessEqual(len(write['description']), 140)
+        self.assertEqual(actual['listCalls'][0]['base'], 'master')
+        self.assertEqual(actual['listCalls'][0]['state'], 'open')
+        self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_bails_when_master_has_advanced(self):
+        # A delayed job for an older push (tip=B1) must not revoke a green
+        # stamped for the newer live tip (B2); revokeStaleGreens resolves the
+        # live tip and skips when it has moved past the triggering push.
+        actual = self._run_revoke('c' * 40, 'a' * 40)
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
+        self.assertEqual(actual['listCalls'], [])
+
+    def test_push_revocation_revalidates_live_tip_mid_scan(self):
+        # tip = B1. getRef returns B1 for the initial guard and the first PR,
+        # then B2 for later PRs (master advanced mid-scan). A fresh B2-stamped
+        # success appears on a later PR. The B1 job must revoke only the
+        # pre-advance stale PR and BAIL before touching the fresh B2 success.
+        actual = self._run_revoke('a' * 40, 'a' * 40, advance_after=2)
+        self.assertEqual(actual['count'], 1)
+        self.assertEqual([w['sha'] for w in actual['writes']], ['stale'])
+
+    def test_push_revocation_revalidates_after_status_pagination(self):
+        # tip = B1. The status lookup paginates: page 1 is an unrelated status,
+        # then master advances B1->B2 and a fresh B2-stamped success is
+        # published before page 2. The B1 job must read that fresh success,
+        # re-check the live tip (now B2 != B1), and BAIL without writing failure.
+        actual = self._run_revoke('a' * 40, 'a' * 40, flip='status-pagination')
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
 
     def test_push_revocation_rejects_non_sha_tip(self):
         script = r"""

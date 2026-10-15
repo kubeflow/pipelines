@@ -40,9 +40,12 @@ async function currentStatus(github, context, head) {
 }
 
 async function baseRevision(github, context, pr) {
-  // Resolve current trusted workflow policy, not an execution freshness cutoff.
-  // Passing current-head runs need not be recreated whenever master advances.
-  // Strict branch protection/Tide own merge-time integration freshness.
+  // ONE validated base revision for policy loading, execution freshness,
+  // publication, and the post-publication check. GitHub freezes pr.base.sha at
+  // the PR's last sync, so any use of the frozen sha leaves a stale green
+  // untouched as the base advances. Key every use off the LIVE base branch tip
+  // instead, so an advance revokes the green and forces fresh CI against the
+  // new base. Release branches keep their frozen base.sha behavior.
   let sha = pr.base.sha;
   if (pr.base.ref === 'master') {
     const {data} = await github.rest.git.getRef({
@@ -54,7 +57,7 @@ async function baseRevision(github, context, pr) {
 }
 
 function basePolicyStamp(baseRef, baseSha) {
-  // Record the trusted policy revision evaluated, not the merge revision tested. The base
+  // Bind green evidence to the exact checked-in workflow policy. The base
   // revision is resolved ONCE per cycle and threaded through every site, so
   // this helper must never re-resolve the live tip (re-resolving can stamp a
   // green with a base whose evidence was validated against another revision).
@@ -76,22 +79,60 @@ async function recoveryCandidates({github, context}) {
   const candidates = [];
   for (const pr of prs) {
     if (blocked(pr)) continue;
-    // Reassess even green heads: trusted workflow requirements and external
-    // checks may change without a new PR-head commit or a delivered event.
+    // Revisit green heads when their trusted base policy changes, including
+    // statuses published before base-policy stamps were introduced.
+    const status = await currentStatus(github, context, pr.head.sha);
+    if (status?.state === 'success' &&
+        status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
   return candidates;
 }
 
-async function revokeStaleGreens({tip}) {
-  // Compatibility hook for the existing trusted push workflow. A base push
-  // does not invalidate current-head CI evidence. Scheduled reconciliation
-  // still evaluates the current trusted policy and all current checks.
+async function revokeStaleGreens({github, context, tip}) {
+  // Push-triggered revocation narrows the stale-green merge window (#14762): the
+  // moment master advances, a ci-passed success stamped against any prior base
+  // revision is revoked instead of waiting for the next scheduled sweep.
+  // Freshness reuses the same determination as recovery: a green is fresh only
+  // when its description still carries the stamp for the live base tip. This
+  // writes only the commit status; the sweep reconciles the informational label
+  // with its broader permissions.
   if (!/^[0-9a-f]{40}$/.test(tip || '')) {
     throw new Error('Stale revocation requires a full base commit SHA');
   }
-  return 0;
+  // Only the most recent push may revoke. Push jobs can execute out of order:
+  // master may advance B then C, CI Check publish a success stamped for C, and
+  // a delayed B job would otherwise treat that valid C green as stale and
+  // overwrite it with failure. Resolve the LIVE master tip and bail out when it
+  // has already moved past this push's tip; the newer job (or the sweep) owns
+  // revocation for the advanced base.
+  const {data: ref} = await github.rest.git.getRef({
+    ...context.repo, ref: 'heads/master',
+  });
+  if (ref.object.sha !== tip) return 0;
+  const prs = await github.paginate(github.rest.pulls.list, {
+    ...context.repo, state: 'open', base: 'master', per_page: 100,
+  });
+  let revoked = 0;
+  for (const pr of prs) {
+    if (blocked(pr)) continue;
+    const status = await currentStatus(github, context, pr.head.sha);
+    // Revalidate AFTER reading the status: the combined-status lookup can
+    // paginate, and master may advance mid-read publishing a fresher success.
+    const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: 'heads/master'});
+    if (liveRef.object.sha !== tip) return revoked;
+    // Never revoke a head without a ci-passed success.
+    if (status?.state !== 'success') continue;
+    if (status.description === successDescription(pr, tip)) continue;
+    await github.rest.repos.createCommitStatus({
+      ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
+      description: 'Base advanced; re-test against new master.',
+      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    });
+    revoked++;
+  }
+  return revoked;
 }
 
 async function resolve(github, context, recovery) {
@@ -174,11 +215,16 @@ async function freshAfter(github, context, pr) {
 
 async function evidence(github, context, pr, root) {
   const baseSha = await baseRevision(github, context, pr);
+  // Only the live master tip advances behind the publisher's back; release
+  // branches keep their frozen base.sha behavior (see baseRevision). The
+  // freshness check is scoped to the live base so release branches are
+  // unchanged.
+  const liveBase = pr.base.ref === 'master';
   const [inventory, cutoff] = await Promise.all([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, ...inventory, freshAfter: cutoff};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.
@@ -222,19 +268,9 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
-  if (pr.state !== 'open' || blocked(pr)) {
-    await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
-    return;
-  }
-  const [result, checks] = await Promise.all([
-    evidence(github, context, pr, root),
-    verifyCheckRuns({github, ...context.repo, sha: pr.head.sha}),
-  ]);
-  // Rechecking a green head must not itself revoke passing evidence. The
-  // finalizer still requires the independent checker and rereads all evidence.
-  if (!result.passed || checks.state !== 'success') {
-    await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
-  }
+  await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
+  if (pr.state !== 'open' || blocked(pr)) return;
+  const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
 }
