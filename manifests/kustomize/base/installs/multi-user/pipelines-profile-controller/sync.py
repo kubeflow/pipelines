@@ -146,9 +146,16 @@ def receiver_rollout_ready(desired_resources, attachments, namespace):
         actual_spec = actual.get("spec", {})
         expected_spec = desired[kind]["spec"]
         if kind == "Deployment":
+            actual_template = copy.deepcopy(actual_spec.get("template", {}))
+            # Kubernetes omits empty literal EnvVar.value fields on readback.
+            # Preserve nonempty values and valueFrom so changed settings fail.
+            for container in actual_template.get("spec",
+                                                 {}).get("containers", []):
+                for variable in container.get("env", []):
+                    if "valueFrom" not in variable:
+                        variable.setdefault("value", "")
             # API defaulting adds fields, so compare only fields we generate.
-            if not contains_desired(
-                    actual_spec.get("template", {}), expected_spec["template"]):
+            if not contains_desired(actual_template, expected_spec["template"]):
                 return False
             generation = actual.get("metadata", {}).get("generation", 0)
             status = actual.get("status", {})
