@@ -123,6 +123,7 @@ class Acceptance:
         self.tenants = [self.run_id + '-a', self.run_id + '-b']
         self.users = {name: name + '@example.com' for name in self.tenants}
         self.results = []
+        self.last_response = None
         self.runtime_images = []
         self.phase = 'initialization'
         self.source_head = subprocess.run(
@@ -205,6 +206,11 @@ class Acceptance:
         except urllib.error.HTTPError as error:
             response = error
         with response:
+            self.last_response = {
+                'namespace': namespace,
+                'status': response.status,
+                'retryAfter': response.headers.get('Retry-After'),
+            }
             return {
                 'status': response.status,
                 'body': response.read(4096).decode(errors='replace'),
@@ -347,6 +353,44 @@ class Acceptance:
             wait_for('Profile namespace',
                      lambda: get('namespace', namespace, optional=True),
                      self.timeout)
+            # The standalone CI Profile controller does not install the dashboard's
+            # kubeflow-admin ClusterRole. Grant only artifact viewing to this User;
+            # the real API SAR must still deny access to the other namespace.
+            apply({
+                'apiVersion':
+                    'rbac.authorization.k8s.io/v1',
+                'kind':
+                    'Role',
+                'metadata': {
+                    'name': 'artifact-acceptance-viewer',
+                    'namespace': namespace,
+                },
+                'rules': [{
+                    'apiGroups': ['kubeflow.org'],
+                    'resources': ['viewers'],
+                    'verbs': ['get'],
+                }],
+            })
+            apply({
+                'apiVersion':
+                    'rbac.authorization.k8s.io/v1',
+                'kind':
+                    'RoleBinding',
+                'metadata': {
+                    'name': 'artifact-acceptance-viewer',
+                    'namespace': namespace,
+                },
+                'roleRef': {
+                    'apiGroup': 'rbac.authorization.k8s.io',
+                    'kind': 'Role',
+                    'name': 'artifact-acceptance-viewer',
+                },
+                'subjects': [{
+                    'apiGroup': 'rbac.authorization.k8s.io',
+                    'kind': 'User',
+                    'name': self.users[namespace],
+                }],
+            })
         # Quota is a real scheduling blocker: neither readiness nor the controller
         # record is fabricated. Releasing it must let normal reconciliation finish.
         apply({
@@ -369,7 +413,7 @@ class Acceptance:
             response = self.request(self.tenants[0], 'model/historical.txt')
             require(response['status'] != 200,
                     'Pending rollout incorrectly returned an artifact')
-            # Profile namespace and owner RoleBindings reconcile independently.
+            # API authorization can lag behind the fixture RoleBinding.
             return response if response['status'] == 503 else None
 
         response = wait_for('Profile owner authorization and pending response',
@@ -863,6 +907,9 @@ class Acceptance:
         diagnostics = {
             'sourceHead': self.source_head,
             'phase': self.phase,
+            'lastResponse': self.last_response,
+            'authorization': {},
+            'deployments': {},
             'namespaces': {}
         }
         for namespace in [self.namespace, *self.tenants]:
@@ -889,6 +936,35 @@ class Acceptance:
                 } for status in item.get('status', {}).get(
                     'containerStatuses', [])],
             } for item in (pods or {}).get('items', [])]
+        for namespace in self.tenants:
+            secret = get(
+                'secret',
+                'kfp-artifact-storage-' + namespace,
+                self.namespace,
+                optional=True)
+            if secret:
+                record = json.loads(decode_secret(secret, 'authorization.json'))
+                diagnostics['authorization'][namespace] = {
+                    key: record.get(key)
+                    for key in ('version', 'namespace', 'namespaceUID', 'state',
+                                'bucket')
+                }
+            receiver = get('deployment', RECEIVER, namespace, optional=True)
+            if receiver:
+                status = receiver.get('status', {})
+                diagnostics['deployments'][namespace] = {
+                    'generation': receiver['metadata'].get('generation'),
+                    **{
+                        key: status.get(key)
+                        for key in ('observedGeneration', 'replicas',
+                                    'updatedReplicas', 'availableReplicas',
+                                    'readyReplicas')
+                    },
+                    'conditions': [{
+                        key: condition.get(key) for key in ('type', 'status',
+                                                           'reason')
+                    } for condition in status.get('conditions', [])],
+                }
         (self.output / 'diagnostics.json'
         ).write_text(json.dumps(diagnostics, indent=2) + '\n')
 

@@ -140,4 +140,16 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
 
-- Frontend Tests also runs `test/seaweedfs/artifact_authorization_test.sh` against disposable SeaweedFS 4.48. The fixture provisions real profile-controller IAM policies and administrator-authorized historical roots, then tests production authorization/proxy/storage handlers. Kubernetes identity/ConfigMap lookups are stubbed; the object store is real. This proves object read/list isolation and compatibility, not CNI enforcement. Run the generated proxy NetworkPolicy tests separately and verify ingress denial with the installation's CNI before enabling storage authorization.
+- Frontend Tests runs `test/seaweedfs/artifact_authorization_test.sh` against
+  the branch's shipped SeaweedFS version. IAM and object storage are real;
+  namespace authorization and Kubernetes observations/readiness are fixtures.
+  This suite covers object/list isolation, provider selection and protocol
+  regressions; it does not establish live CNI enforcement or full-cluster rollout.
+- The focused `e2e-test.yml` dispatch (`artifact_authorization_only=true`) builds
+  the selected revision and runs
+  `test/artifact-proxy/test-artifact-authorization.sh` against real multi-user KFP
+  on stock Kind. See the [fixture README](../../test/artifact-proxy/README.md) for
+  mutation, cleanup, image evidence and branch-specific old-UI scope. Port
+  forwarding supplies trusted identity headers; ingress login and header
+  sanitization require separate checks. Installation-specific storage, mesh and
+  additive NetworkPolicies still require effective access checks.

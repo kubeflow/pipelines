@@ -22,10 +22,17 @@ PYTHON=/path/to/python-with-boto3 \
 ```
 
 The fixture creates test Profiles and objects, temporarily pauses the profile
-webhook, holds one receiver pending with a zero-Pod quota, and rotates a test tenant's storage credentials. Do not run it against a
-production or shared development installation. Requests go through the running
-UI and real API authorization; port forwarding supplies the trusted user header
-normally set by ingress, so this does not test ingress login.
+webhook, holds one receiver pending with a zero-Pod quota, and rotates a test
+tenant's storage credentials. Do not run it against a production or shared
+development installation.
+
+The pinned CI Profile controller binds owners to `kubeflow-admin`, which this
+minimal CI installation does not provide. The fixture therefore gives each test
+User a namespace-scoped Role and RoleBinding granting only `get` on
+`kubeflow.org/viewers` in that User's test namespace. Requests still go through
+the running UI and real KFP API/SAR; the other test namespace remains unauthorized.
+Port forwarding supplies the trusted user header normally set by ingress, so this
+does not test ingress login or identity-header sanitization.
 
 Both branches test an actual 2.17.2 receiver followed by automatic replacement.
 The 2.18 branch also tests the 2.17.2 shared UI against a new receiver. Master

@@ -83,8 +83,13 @@ receiver cannot silently accept that route without its checks. Updated receivers
 retain the legacy route for old UIs during overlap: an absent binding remains
 compatible there, while a supplied binding must match. The new UI never retries a
 failed storage-authorized request through that legacy route or shared credentials.
-This supports either component upgrade order; it does not make an old UI perform
-new authorization or promise uninterrupted reads during rollout.
+This supports either component upgrade order for compatible UI/API versions;
+it does not make an old UI perform new authorization or promise uninterrupted
+reads during rollout. Receiver-protocol compatibility does not restore APIs
+removed in 3.0: the 2.17.2 shared UI requires the V1 authorization API, which
+master no longer serves. The 2.17.2 shared-UI overlap check therefore applies to
+release-2.18. Master checks old-receiver rejection and automatic replacement
+separately.
 
 During proxy startup or readiness convergence, affected reads can return an
 actionable HTTP 503 and need retry after reconciliation completes. Old UI replicas
