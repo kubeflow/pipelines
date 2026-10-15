@@ -93,7 +93,10 @@ describe.skipIf(!fixturePath)('storage-authorized artifacts with real tenant cre
   beforeAll(async () => {
     fixture = JSON.parse(readFileSync(fixturePath!, 'utf8')) as StorageFixture;
     const endpoint = new URL(fixture.endpoint);
-    vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found', statusCode: 404 }]);
+    vi.mocked(getConfigMap).mockResolvedValue([
+      undefined,
+      { message: 'not found', statusCode: 404 },
+    ]);
     for (const [namespace, credentials] of Object.entries(fixture.identities)) {
       const options = loadConfigs(['node', 'server.js', '/tmp', '3000'], {
         FRONTEND_SERVER_NAMESPACE: namespace,
