@@ -967,3 +967,31 @@ func TestGetServiceAccountAuthorizationMode(t *testing.T) {
 		})
 	}
 }
+
+func TestRunsGCIndexConfiguration(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	timeout, err := GetRunsGCIndexBuildTimeout()
+	require.NoError(t, err)
+	assert.Equal(t, 12*time.Hour, timeout)
+	prepareOnly, err := GetRunsGCIndexPrepareOnly()
+	require.NoError(t, err)
+	assert.False(t, prepareOnly)
+	for _, value := range []string{"", "0", "-1h", "12", "tomorrow"} {
+		viper.Set(RunsGCIndexBuildTimeout, value)
+		require.ErrorContains(t, ValidateRunsGCIndexConfig(), RunsGCIndexBuildTimeout)
+	}
+	viper.Set(RunsGCIndexBuildTimeout, "48h")
+	timeout, err = GetRunsGCIndexBuildTimeout()
+	require.NoError(t, err)
+	assert.Equal(t, 48*time.Hour, timeout)
+	for _, value := range []string{"", "tru", "yes", "2"} {
+		viper.Set(RunsGCIndexPrepareOnly, value)
+		require.ErrorContains(t, ValidateRunsGCIndexConfig(), RunsGCIndexPrepareOnly)
+	}
+	viper.Set(RunsGCIndexPrepareOnly, true)
+	require.NoError(t, ValidateRunsGCIndexConfig())
+	prepareOnly, err = GetRunsGCIndexPrepareOnly()
+	require.NoError(t, err)
+	assert.True(t, prepareOnly)
+}
