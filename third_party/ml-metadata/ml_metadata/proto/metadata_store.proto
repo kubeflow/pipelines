@@ -1,0 +1,1233 @@
+/* Copyright 2019 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+syntax = "proto2";
+
+package ml_metadata;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.EnumValueOptions {
+  // The system type information of each simple type enum refers to.
+  optional SystemTypeExtension system_type_extension = 384560917;
+}
+
+message SystemTypeExtension {
+  // The name of a system defined type.
+  optional string type_name = 1;
+}
+
+// A value in properties.
+message Value {
+  oneof value {
+    int64 int_value = 1;
+    double double_value = 2;
+    string string_value = 3;
+    google.protobuf.Struct struct_value = 4;
+    google.protobuf.Any proto_value = 5;
+    bool bool_value = 6;
+  }
+}
+
+message Artifact {
+  // Output only. The unique server generated id of the artifact.
+  optional int64 id = 1;
+  // The client provided name of the artifact. This field is optional. If set,
+  // it must be unique among all the artifacts of the same artifact type within
+  // a database instance and cannot be changed once set.
+  optional string name = 7;
+  // The id of an ArtifactType. This needs to be specified when an artifact is
+  // created, and it cannot be changed.
+  optional int64 type_id = 2;
+  // Output only. The name of an ArtifactType.
+  optional string type = 8;
+  // The uniform resource identifier of the physical artifact.
+  // May be empty if there is no physical artifact.
+  optional string uri = 3;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all artifacts within a database instance.
+  optional string external_id = 11;
+  // Properties of the artifact.
+  // Properties must be specified in the ArtifactType.
+  map<string, Value> properties = 4;
+  // User provided custom properties which are not defined by its type.
+  map<string, Value> custom_properties = 5;
+
+  enum State {
+    UNKNOWN = 0;
+    // A state indicating that the artifact may exist.
+    PENDING = 1;
+    // A state indicating that the artifact should exist, unless something
+    // external to the system deletes it.
+    LIVE = 2;
+    // A state indicating that the artifact should be deleted.
+    MARKED_FOR_DELETION = 3;
+    // A state indicating that the artifact has been deleted.
+    DELETED = 4;
+    // A state indicating that the artifact has been abandoned, which may be
+    // due to a failed or cancelled execution.
+    ABANDONED = 5;
+    // A state indicating that the artifact is a reference artifact. At
+    // execution start time, the orchestrator produces an output artifact for
+    // each output key with state PENDING. However, for an intermediate
+    // artifact, this first artifact's state will be REFERENCE. Intermediate
+    // artifacts emitted during a component's execution will copy the REFERENCE
+    // artifact's attributes. At the end of an execution, the artifact state
+    // should remain REFERENCE instead of being changed to LIVE.
+    REFERENCE = 6;
+  }
+
+  // The state of the artifact known to the system.
+  optional State state = 6;
+  // Output only. Create time of the artifact in millisecond since epoch.
+  optional int64 create_time_since_epoch = 9;
+  // Output only. Last update time of the artifact since epoch in millisecond
+  // since epoch.
+  optional int64 last_update_time_since_epoch = 10;
+
+  // Output only.
+  optional google.protobuf.Any system_metadata = 12;
+}
+
+// The list of supported property value types.
+enum PropertyType {
+  UNKNOWN = 0;
+  INT = 1;
+  DOUBLE = 2;
+  STRING = 3;
+  // Prefer to use `PROTO` to store structed data since this option has
+  // inefficient database storage usage.
+  STRUCT = 4;
+  PROTO = 5;
+  BOOLEAN = 6;
+}
+
+message ArtifactType {
+  // The id of the type. 1-1 relationship between type names and IDs.
+  optional int64 id = 1;
+  // The name of the type. It must be unique among ArtifactTypes within a
+  // database instance.
+  optional string name = 2;
+  // An optional version of the type. An empty string is treated as unset.
+  optional string version = 4;
+  // An optional description about the type.
+  optional string description = 5;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all artifact types within a database
+  // instance.
+  optional string external_id = 7;
+  // The schema of the type.
+  // Properties are always optional in the artifact.
+  // Properties of an artifact type can be expanded but not contracted (i.e.,
+  // you can add columns but not remove them).
+  map<string, PropertyType> properties = 3;
+
+  // An enum of system-defined artifact types.
+  enum SystemDefinedBaseType {
+    UNSET = 0 [(system_type_extension).type_name = 'unset_artifact_type'];
+    DATASET = 1 [(system_type_extension).type_name = 'mlmd.Dataset'];
+    MODEL = 2 [(system_type_extension).type_name = 'mlmd.Model'];
+    METRICS = 3 [(system_type_extension).type_name = 'mlmd.Metrics'];
+    STATISTICS = 4 [(system_type_extension).type_name = 'mlmd.Statistics'];
+  }
+
+  // An optional system defined base_type expressing the intent of the current
+  // type. This field is useful for the tool builders to utilize the stored MLMD
+  // information, e.g., `MyModel` ArtifactType could set base_type = MODEL.
+  optional SystemDefinedBaseType base_type = 6;
+}
+
+// An event represents a relationship between an artifact and an execution.
+// There are different kinds of events, relating to both input and output, as
+// well as how they are used by the mlmd powered system.
+// For example, the DECLARED_INPUT and DECLARED_OUTPUT events are part of the
+// signature of an execution. For example, consider:
+//
+//   my_result = my_execution({"data":[3,7],"schema":8})
+//
+// Where 3, 7, and 8 are artifact_ids, Assuming execution_id of my_execution is
+// 12 and artifact_id of my_result is 15, the events are:
+//   {
+//       artifact_id:3,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"data"},{"index":0}]}
+//   }
+//   {
+//       artifact_id:7,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"data"},{"index":1}]}
+//   }
+//   {
+//       artifact_id:8,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"schema"}]}
+//   }
+//   {
+//       artifact_id:15,
+//       execution_id: 12,
+//       type:DECLARED_OUTPUT,
+//       path:{step:[{"key":"my_result"}]}
+//   }
+//
+// Other event types include INPUT/OUTPUT, INTERNAL_INPUT/_OUTPUT and
+// PENDING_OUTPUT:
+//
+// * The INPUT/OUTPUT is an event that actually reads/writes an artifact by an
+//   execution. The input/output artifacts may not declared in the signature,
+//   For example, the trainer may output multiple caches of the parameters
+//   (as an OUTPUT), then finally write the SavedModel as a DECLARED_OUTPUT.
+//
+// * The INTERNAL_INPUT/_OUTPUT are event types which are only meaningful to
+//   an orchestration system to keep track of the details for later debugging.
+//   For example, a fork happened conditioning on an artifact, then an execution
+//   is triggered, such fork implementing may need to log the read and write
+//   of artifacts and may not be worth displaying to the users.
+//
+//   For instance, in the above example,
+//
+//     my_result = my_execution({"data":[3,7],"schema":8})
+//
+//   there is another execution (id: 15), which represents a
+//   `garbage_collection` step in an orchestration system
+//
+//     gc_result = garbage_collection(my_result)
+//
+//   that cleans `my_result` if needed. The details should be invisible to the
+//   end users and lineage tracking. The orchestrator can emit following events:
+//
+//     {
+//         artifact_id: 15,
+//         execution_id: 15,
+//         type:INTERNAL_INPUT,
+//     }
+//     {
+//         artifact_id:16,  // New artifact containing the GC job result.
+//         execution_id: 15,
+//         type:INTERNAL_OUTPUT,
+//         path:{step:[{"key":"gc_result"}]}
+//     }
+//
+// * The PENDING_OUTPUT event is used to indicate that an artifact is
+//   tentatively associated with an active execution which has not yet been
+//   finalized. For example, an orchestration system can register output
+//   artifacts of a running execution with PENDING_OUTPUT events to indicate
+//   the output artifacts the execution is expected to produce. When the
+//   execution is finished, the final set of output artifacts can be associated
+//   with the exeution using OUTPUT events, and any unused artifacts which were
+//   previously registered with PENDING_OUTPUT events can be updated to set
+//   their Artifact.State to ABANDONED.
+//
+// Events are unique of the same
+// (artifact_id, execution_id, type) combination within a metadata store.
+message Event {
+  // A simple path (e.g. {step{key:"foo"}}) can name an artifact in the context
+  // of an execution.
+  message Path {
+    message Step {
+      oneof value {
+        int64 index = 1;
+        string key = 2;
+      }
+    }
+    // A simple path (e.g. {step{key:"foo"}}) can name an artifact in the
+    // context of an execution.
+    repeated Step steps = 1;
+  }
+  // Events distinguish between an artifact that is written by the execution
+  // (possibly as a cache), versus artifacts that are part of the declared
+  // output of the Execution. For more information on what DECLARED_ means,
+  // see the comment on the message.
+  enum Type {
+    UNKNOWN = 0;
+    DECLARED_OUTPUT = 1;  // A declared output of the execution.
+    DECLARED_INPUT = 2;   // A declared input of the execution.
+    INPUT = 3;            // An input of the execution.
+    OUTPUT = 4;           // An output of the execution.
+    INTERNAL_INPUT = 5;   // An internal input of the execution.
+    INTERNAL_OUTPUT = 6;  // An internal output of the execution.
+    PENDING_OUTPUT = 7;   // A pending output of the execution.
+  }
+  // The artifact id is required for an event, and should refer to an
+  // existing artifact.
+  optional int64 artifact_id = 1;
+  // The execution_id is required for an event, and should refer to an
+  // existing execution.
+  optional int64 execution_id = 2;
+  // The path in an artifact struct, or the name of an artifact.
+  optional Path path = 3;
+  // The type of an event.
+  optional Type type = 4;
+  // Time the event occurred
+  // Epoch is Jan 1, 1970, UTC
+  optional int64 milliseconds_since_epoch = 5;
+
+  // Output only.
+  optional google.protobuf.Any system_metadata = 6;
+}
+
+message Execution {
+  // Output only. The unique server generated id of the execution.
+  optional int64 id = 1;
+  // The client provided name of the execution. This field is optional. If set,
+  // it must be unique among all the executions of the same execution type
+  // within a database instance and cannot be changed once set.
+  optional string name = 6;
+  // The id of an ExecutionType. This needs to be specified when an execution is
+  // created, and it cannot be changed.
+  // The id of an ExecutionType.
+  optional int64 type_id = 2;
+  // Output only. The name of an ExecutionType.
+  optional string type = 7;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all executions within a database instance.
+  optional string external_id = 10;
+  // The state of the Execution. The state transitions are
+  //   NEW -> RUNNING -> COMPLETE | CACHED | FAILED | CANCELED
+  // CACHED means the execution is skipped due to cached results.
+  // CANCELED means the execution is skipped due to precondition not met. It is
+  // different from CACHED in that a CANCELED execution will not have any event
+  // associated with it. It is different from FAILED in that there is no
+  // unexpected error happened and it is regarded as a normal state.
+  enum State {
+    UNKNOWN = 0;
+    NEW = 1;
+    RUNNING = 2;
+    COMPLETE = 3;
+    FAILED = 4;
+    CACHED = 5;
+    CANCELED = 6;
+  }
+  // The last known state of an execution in the system.
+  optional State last_known_state = 3;
+  // Properties of the Execution.
+  // Properties must be specified in the ExecutionType.
+  map<string, Value> properties = 4;
+  // User provided custom properties which are not defined by its type.
+  map<string, Value> custom_properties = 5;
+  // Output only. Create time of the execution in millisecond since epoch.
+  optional int64 create_time_since_epoch = 8;
+  // Output only. Last update time of the execution in millisecond since epoch.
+  optional int64 last_update_time_since_epoch = 9;
+
+  // Output only.
+  optional google.protobuf.Any system_metadata = 11;
+}
+
+message ExecutionType {
+  // The id of the type. 1-1 relationship between type names and IDs.
+  optional int64 id = 1;
+  // The name of the type. It must be unique among ExecutionTypes within a
+  // database instance.
+  optional string name = 2;
+  // An optional version of the type. An empty string is treated as unset.
+  optional string version = 6;
+  // An optional description about the type.
+  optional string description = 7;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all execution types within a database
+  // instance.
+  optional string external_id = 9;
+  // The schema of the type.
+  // Properties are always optional in the execution.
+  map<string, PropertyType> properties = 3;
+  // The ArtifactStructType of the input.
+  // For example: {
+  //     "dict":{
+  //        "properties":{
+  //          "schema":{
+  //            "union_type":{
+  //              "none":{},
+  //              "simple":{...schema type...}
+  //             },
+  //          },
+  //          "data":{
+  //            "simple":{...data_type...}
+  //          }
+  //       }
+  //     }
+  // }
+  // That would be an optional schema field with a required data field.
+  optional ArtifactStructType input_type = 4;
+  // The ArtifactStructType of the output.
+  // For example {"simple":{...stats gen output type...}}
+  optional ArtifactStructType output_type = 5;
+
+  // An enum of system-defined execution types.
+  enum SystemDefinedBaseType {
+    UNSET = 0 [(system_type_extension).type_name = 'unset_execution_type'];
+    TRAIN = 1 [(system_type_extension).type_name = 'mlmd.Train'];
+    TRANSFORM = 2 [(system_type_extension).type_name = 'mlmd.Transform'];
+    PROCESS = 3 [(system_type_extension).type_name = 'mlmd.Process'];
+    EVALUATE = 4 [(system_type_extension).type_name = 'mlmd.Evaluate'];
+    DEPLOY = 5 [(system_type_extension).type_name = 'mlmd.Deploy'];
+  }
+
+  // An optional system defined base_type expressing the intent of the current
+  // type. This field is useful for the tool builders to utilize the stored MLMD
+  // information, e.g., `MyTrainer` ExecutionType could set base_type = TRAIN.
+  optional SystemDefinedBaseType base_type = 8;
+}
+
+message ContextType {
+  // The id of the type. 1-1 relationship between type names and IDs.
+  optional int64 id = 1;
+  // The name of the type, e.g., Pipeline, Task, Session, User, etc. It must be
+  // unique among ContextTypes within a database instance.
+  optional string name = 2;
+  // An optional version of the type. An empty string is treated as unset.
+  optional string version = 4;
+  // An optional description about the type.
+  optional string description = 5;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all context types within a database
+  // instance.
+  optional string external_id = 7;
+  // The schema of the type, e.g., name: string, owner: string
+  // Properties are always optional in the context.
+  // Properties of an context type can be expanded but not contracted (i.e.,
+  // you can add columns but not remove them).
+  map<string, PropertyType> properties = 3;
+
+  // An enum of system-defined context types.
+  enum SystemDefinedBaseType {
+    UNSET = 0 [(system_type_extension).type_name = 'unset_context_type'];
+  }
+
+  // An optional system defined base_type expressing the intent of the current
+  // context type.
+  // *NOTE: currently there are no system Context types defined, and the field
+  // is not used for ContextType.
+  optional SystemDefinedBaseType base_type = 6;
+}
+
+message Context {
+  // Output Only. The unique server generated id of the context.
+  optional int64 id = 1;
+  // The client provided name of the context. It must be unique within a
+  // database instance.
+  optional string name = 3;
+  // The id of a ContextType. This needs to be specified when a context is
+  // created, and it cannot be changed.
+  optional int64 type_id = 2;
+  // Output only. The name of a ContextType.
+  optional string type = 6;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all contexts within a virtual database.
+  optional string external_id = 9;
+  // Values of the properties, which must be specified in the ContextType.
+  map<string, Value> properties = 4;
+  // User provided custom properties which are not defined by its type.
+  map<string, Value> custom_properties = 5;
+  // Output only. Create time of the context in millisecond since epoch.
+  optional int64 create_time_since_epoch = 7;
+  // Output only. Last update time of the context in millisecond since epoch.
+  optional int64 last_update_time_since_epoch = 8;
+
+  // Output only system metadata.
+  optional google.protobuf.Any system_metadata = 10;
+}
+
+// the Attribution edges between Context and Artifact instances.
+message Attribution {
+  optional int64 artifact_id = 1;
+  optional int64 context_id = 2;
+}
+
+// the Association edges between Context and Execution instances.
+message Association {
+  optional int64 execution_id = 1;
+  optional int64 context_id = 2;
+}
+
+// the Parental Context edges between Context and Context instances.
+message ParentContext {
+  optional int64 child_id = 1;
+  optional int64 parent_id = 2;
+}
+
+// A self-contained provenance (sub)graph representation consists of MLMD nodes
+// and their relationships. It is used to represent the query results from the
+// persistent backend (e.g., lineage about a node, reachability of two nodes).
+message LineageGraph {
+  // extracted types
+  repeated ArtifactType artifact_types = 1;
+  repeated ExecutionType execution_types = 2;
+  repeated ContextType context_types = 3;
+  // extracted nodes
+  repeated Artifact artifacts = 4;
+  repeated Execution executions = 5;
+  repeated Context contexts = 6;
+  // extracted edges
+  repeated Event events = 7;
+  repeated Attribution attributions = 8;
+  repeated Association associations = 9;
+}
+
+// The list of ArtifactStruct is EXPERIMENTAL and not in use yet.
+// The type of an ArtifactStruct.
+// An artifact struct type represents an infinite set of artifact structs.
+// It can specify the input or output type of an ExecutionType.
+// See the more specific types referenced in the message for more details.
+message ArtifactStructType {
+  oneof kind {
+    ArtifactType simple = 1;  // Matches exactly this type.
+    UnionArtifactStructType union_type = 2;
+    IntersectionArtifactStructType intersection = 3;
+    ListArtifactStructType list = 4;
+    NoneArtifactStructType none = 5;
+    AnyArtifactStructType any = 6;
+    TupleArtifactStructType tuple = 7;
+    DictArtifactStructType dict = 8;
+  }
+}
+
+// Represents a union of types.
+message UnionArtifactStructType {
+  // An artifact struct matches this type if it matches any of the candidates.
+  // If candidates is empty, this is a bottom type (matches no artifacts).
+  repeated ArtifactStructType candidates = 1;
+}
+
+// A member of this type must satisfy all constraints.
+// This primarily useful not as an end-user type, but something calculated
+// as an intermediate type in the system.
+//
+// For example, suppose you have a method:
+// def infer_my_input_type(a): # try to infer the input type of this method.
+//   use_in_method_x(a) # with input type x_input
+//   use_in_method_y(a) # with input type y_input
+//
+// Given this information, you know that infer_my_input_type has
+// type {"intersection":{"constraints":[x_input, y_input]}}.
+//
+// IntersectionArtifactStructType intersection_type = {"constraints":[
+//     {"dict":{"properties":{"schema":{"any":{}}},
+//              "extra_properties":{"any":{}}}},
+//     {"dict":{"properties":{"data":{"any":{}}},
+//              "extra_properties":{"any":{}}}}]}
+// Since the first constraint requires the dictionary to have a schema
+// property, and the second constraint requires it to have a data property, this
+// is equivalent to:
+// ArtifactStructType other_type =
+//      {"dict":{"properties":{"schema":{"any":{}},"data":{"any":{}}}},
+//       "extra_properties":{"any":{}}}
+//
+message IntersectionArtifactStructType {
+  repeated ArtifactStructType constraints = 1;
+}
+
+// Represents an ArtifactStruct list type with homogeneous elements.
+message ListArtifactStructType {
+  // Every entry in the list must be of this type.
+  // Note: if this type is Any, then the list can have arbitrary elements.
+  optional ArtifactStructType element = 1;
+}
+
+// The only member of this type is a None artifact.
+// Note: ArtifactStruct{} is a None artifact.
+// This can represent an execution that has no outputs (or inputs),
+// or can be part of a UnionArtifactStructType to represent an optional
+// input.
+// For example, StatsGen has an "optional" schema input.
+// A practical example of this is:
+// stats_gen_type = {
+//     "dict":{
+//        "properties":{
+//          "schema":{
+//            "union_type":{
+//              "none":{},
+//              "simple":{...schema type...}
+//             },
+//          },
+//          "data":{
+//            "simple":{...data_type...}
+//          }
+//       }
+//     }
+// };
+message NoneArtifactStructType {}
+
+// Every ArtifactStruct is a member of this type.
+message AnyArtifactStructType {}
+
+// An ordered list of heterogeneous artifact structs.
+// The length of the list is fixed.
+// Each position in the list can have a different type.
+message TupleArtifactStructType {
+  repeated ArtifactStructType elements = 1;
+}
+
+// A artifact struct type that represents a record or struct-like dictionary.
+// ArtifactStruct would be map (i.e. ArtifactStructMap)
+message DictArtifactStructType {
+  // Underlying properties for the type.
+  map<string, ArtifactStructType> properties = 1;
+
+  // If true, then if properties["foo"] can be None, then that key is not
+  // required.
+  optional bool none_type_not_required = 2;
+
+  // Extra keys are allowed that are not specified in properties. These
+  // keys must have the type specified below.
+  // If this is not specified, then extra properties are not allowed.
+  optional ArtifactStructType extra_properties_type = 3;
+}
+
+// Configuration for a "fake" database.
+// This database is an in-memory SQLite database that lives only as
+// long as the associated object lives.
+message FakeDatabaseConfig {}
+
+message MySQLDatabaseConfig {
+  // The hostname or IP address of the MYSQL server:
+  // * If unspecified, a connection to the local host is assumed.
+  //   The client connects using a Unix socket specified by `socket`.
+  // * Otherwise, TCP/IP is used.
+  // Currently a replicated MYSQL backend is not supported.
+  optional string host = 1;
+  // The TCP Port number that the MYSQL server accepts connections on.
+  // If unspecified, the default MYSQL port (3306) is used.
+  optional int64 port = 2;
+  // The database to connect to. Must be specified.
+  // After connecting to the MYSQL server, this database is created if not
+  // already present unless skip_db_creation is set.
+  // All queries after Connect() are assumed to be for this database.
+  optional string database = 3;
+  // The MYSQL login id. If empty, the current user is assumed.
+  optional string user = 4;
+  // The password to use for `user`. If empty, only MYSQL user ids that don't
+  // have a password set are allowed to connect.
+  optional string password = 5;
+  // The Unix socket to use to connect to the server. If unspecified, a
+  // `host` must be provided.
+  optional string socket = 6;
+
+  // The options to establish encrypted connections to MySQL using SSL.
+  message SSLOptions {
+    // The path name of the client private key file.
+    optional string key = 1;
+    // The path name of the client public key certificate file.
+    optional string cert = 2;
+    // The path name of the CA certificate file.
+    optional string ca = 3;
+    // The path name of the directory that contains trusted SSL CA certificates.
+    optional string capath = 4;
+    // The list of permissible ciphers for SSL encryption.
+    optional string cipher = 5;
+    // If set, enable verification of the server certificate against the host
+    // name used when connecting to the server.
+    optional bool verify_server_cert = 6;
+  }
+  // If the field is set, the ssl options are set in mysql_options before
+  // establishing a connection. It is ignored if the mysql server does not
+  // enable SSL.
+  optional SSLOptions ssl_options = 7;
+
+  // A config to skip the database creation if not exist when connecting the
+  // db instance. It is useful when the db creation is handled by an admin
+  // process, while the lib user should not issue db creation clauses.
+  optional bool skip_db_creation = 8;
+}
+
+// A config contains the parameters when using with SqliteMetadatSource.
+message SqliteMetadataSourceConfig {
+  // A uri specifying Sqlite3 database filename, for example:
+  //
+  //   file:some_sqlite3_file_in_local_dir.db
+  //   file:///home/username/some_sqlite3_file.db
+  //
+  // see https://www.sqlite.org/c3ref/open.html for model details
+  //
+  // If not given, a in-memory sqlite3 database is used, and destroyed when
+  // disconnecting the metadata source.
+  optional string filename_uri = 1;
+
+  // Connection parameters for SQLite3 based metadata source.
+  enum ConnectionMode {
+    UNKNOWN = 0;
+    // Connect a metadata source in read-only mode. Connection fail if the
+    // sqlite3 database at the `filename` does not exist. Any queries modifying
+    // the database fail.
+    READONLY = 1;
+    // Connect a metadata source in read/write mode. Connection fail if the
+    // sqlite3 database at the `filename` does not exist.
+    READWRITE = 2;
+    // Similar to READWRITE. In addition, it creates the database if it does not
+    // exist.
+    READWRITE_OPENCREATE = 3;
+  }
+
+  // A flag specifying the connection mode. If not given, default connection
+  // mode is set to READWRITE_OPENCREATE.
+  optional ConnectionMode connection_mode = 2;
+}
+
+// A config contains the parameters when using with PostgreSQLMetadatSource.
+// Next index: 10
+message PostgreSQLDatabaseConfig {
+  // Name of host to connect to. If the host name starts with /, it is taken as
+  // a Unix-domain socket in the abstract namespace.
+  optional string host = 1;
+
+  // Numeric IP address of host to connect to. If this field is provided, `host`
+  // field is ignored.
+  optional string hostaddr = 2;
+
+  // Port number to connect to at the server host, or socket file name extension
+  // for Unix-domain connections.
+  optional string port = 3;
+
+  // PostgreSQL user name to connect as. Defaults to be the same as the
+  // operating system name of the user running the application.
+  optional string user = 4;
+
+  // Password to be used if the server demands password authentication.
+  optional string password = 5;
+
+  // Specifies the name of the file used to store passwords.
+  optional string passfile = 6;
+
+  // The database name. Defaults to be the same as the user name.
+  optional string dbname = 7;
+
+  // A config to skip the database creation if not exist when connecting the
+  // db instance. It is useful when the db creation is handled by an admin
+  // process, while the lib user should not issue db creation clauses.
+  optional bool skip_db_creation = 8;
+
+  message SSLOptions {
+    // disable, allow, verify-ca, verify-full, etc. Reference:
+    // https://www.postgresql.org/docs/current/libpq-connect.html
+    optional string sslmode = 1;
+
+    // This parameter specifies the file name of the client SSL certificate,
+    // replacing the default ~/.postgresql/postgresql.crt. This parameter is
+    // ignored if an SSL connection is not made.
+    optional string sslcert = 2;
+
+    // This parameter specifies the location for the secret key used for the
+    // client certificate. It can either specify a file name that will be used
+    // instead of the default ~/.postgresql/postgresql.key, this parameter is
+    // ignored if an SSL connection is not made.
+    optional string sslkey = 3;
+
+    // This parameter specifies the password for the secret key specified in
+    // sslkey, allowing client certificate private keys to be stored in
+    // encrypted form on disk even when interactive passphrase input is not
+    // practical.
+    optional string sslpassword = 4;
+
+    // This parameter specifies the name of a file containing SSL certificate
+    // authority (CA) certificate(s). If the file exists, the server's
+    // certificate will be verified to be signed by one of these authorities.
+    // The default is ~/.postgresql/root.crt.
+    optional string sslrootcert = 5;
+  }
+
+  optional SSLOptions ssloption = 9;
+}
+
+
+message MigrationOptions {
+  // If not set, by default the upgrade migration is disabled. MLMD only
+  // compares db_v with the lib_v, and raise error if the two do not align.
+  // If the field is set to true, MLMD performs upgrade migration. It upgrades
+  // the database schema version (db_v) to align with the library schema
+  // version (lib_v) when connecting to the database.
+  // Schema migration should not be run concurrently with multiple clients to
+  // prevent data races.
+  optional bool enable_upgrade_migration = 3;
+
+  // Downgrade the given database to the specified schema version.
+  // For v0.13.2 release, the schema_version is 0.
+  // For 0.14.0 and 0.15.0 release, the schema_version is 4.
+  // More details are described in g3doc/get_start.md#upgrade-mlmd-library
+  // Set this field only when a database is accidentally upgraded by a newer
+  // version library. Each library version only knows how to downgrade to
+  // previous schema versions. As downgrade migrations inevitably introduce
+  // data loss, please consider taking a backup of the database before
+  // downgrading schema.
+  // After downgrade migration, the database connection is canceled. The user
+  // needs to downgrade the library to use the database.
+  optional int64 downgrade_to_schema_version = 2 [default = -1];
+
+  reserved 1;
+}
+
+message RetryOptions {
+  // The max number of retries when transaction returns Aborted error.
+  optional int64 max_num_retries = 1;
+}
+
+message ConnectionConfig {
+  // Configuration for a new connection.
+  oneof config {
+    FakeDatabaseConfig fake_database = 1;
+    MySQLDatabaseConfig mysql = 2;
+    SqliteMetadataSourceConfig sqlite = 3;
+
+    // PostgreSQL database connection config.
+    PostgreSQLDatabaseConfig postgresql = 5;
+
+  }
+
+  // Options for overwriting the default retry setting when MLMD transactions
+  // returning Aborted error.
+  // The setting is currently available for python client library only.
+  // TODO(b/154862807) set the setting in transaction executor.
+  optional RetryOptions retry_options = 4;
+}
+
+// A list of supported GRPC arguments defined in:
+// https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+message GrpcChannelArguments {
+  // Maximum message length in bytes per response that the channel can receive.
+  optional int64 max_receive_message_length = 1;
+  // Maximum misbehaving pings the server can bear before sending goaway and
+  // closing the transport? (0 indicates infinite number of misbehaving pings)
+  optional int64 http2_max_ping_strikes = 2;
+}
+
+// Configuration for the gRPC metadata store client.
+message MetadataStoreClientConfig {
+  // The hostname or IP address of the gRPC server. Must be specified.
+  optional string host = 1;
+  // The TCP Port number that the gRPC server accepts connections on.
+  // Must be specified.
+  optional int64 port = 2;
+
+  message SSLConfig {
+    // The PEM-encoded private key as a byte string, or Empty if no private key
+    // should be used.
+    optional string client_key = 1;
+    // The PEM-encoded certificate chain as a byte string to use or or Empty if
+    // no certificate chain should be used.
+    optional string server_cert = 2;
+    // The PEM-encoded root certificates as a byte string, or Empty to retrieve
+    // them from a default location chosen by gRPC runtime.
+    optional string custom_ca = 3;
+  }
+
+  // Configuration for a secure gRPC channel.
+  // If not given, insecure connection is used.
+  optional SSLConfig ssl_config = 3;
+
+  // GRPC channel creation arguments.
+  optional GrpcChannelArguments channel_arguments = 4;
+
+  // Time duration that a client is willing to wait for a reply from the server.
+  // If unset, the timeout is considered infinite. When the field is specified,
+  // Grpc APIs would return DeadlineExceededError when server does not respond
+  // within `client_timeout_sec`. Floating point valued, in seconds.
+  optional double client_timeout_sec = 5;
+
+}
+
+// Configuration for the gRPC metadata store server.
+message MetadataStoreServerConfig {
+  // Configuration to connect the metadata source backend.
+  optional ConnectionConfig connection_config = 1;
+
+  // Configuration for upgrade and downgrade migrations the metadata source.
+  optional MigrationOptions migration_options = 3;
+
+  message SSLConfig {
+    // Private server key for SSL
+    optional string server_key = 1;
+    // Public server certificate
+    optional string server_cert = 2;
+    // Custom certificate authority
+    optional string custom_ca = 3;
+    // Valid client certificate required?
+    optional bool client_verify = 4;
+  }
+
+  // Configuration for a secure gRPC channel.
+  // If not given, insecure connection is used.
+  optional SSLConfig ssl_config = 2;
+}
+
+// ListOperationOptions represents the set of options and predicates to be
+// used for List operations on Artifacts, Executions and Contexts.
+message ListOperationOptions {
+  // Max number of resources to return in the result. A value of zero or less
+  // results in a InvalidArgumentError.
+  // The API implementation also enforces an upper-bound of 100, and picks the
+  // minimum between this value and the one specified here.
+  optional int32 max_result_size = 1 [default = 20];
+
+  message OrderByField {
+    // Supported fields for Ordering.
+    enum Field {
+      FIELD_UNSPECIFIED = 0;
+      CREATE_TIME = 1;
+      LAST_UPDATE_TIME = 2;
+      ID = 3;
+    }
+
+    // Field to order.
+    optional Field field = 1 [default = ID];
+
+    // Direction of ordering.
+    optional bool is_asc = 2 [default = true];
+  }
+
+  // Ordering field.
+  optional OrderByField order_by_field = 2;
+
+  // Identifies the next page of results.
+  optional string next_page_token = 3;
+
+  // A boolean expression in SQL syntax that is used to specify the conditions
+  // on node attributes and directly connected assets.
+  //
+  // In the current implementation, filtering Artifact/Execution/Context with
+  // the following attributes and neighborhood is supported:
+  //
+  // Attributes:
+  //     id:int64, type_id:int64, type:string,
+  //     uri:string, name: string, external_id: string,
+  //     create_time_since_epoch:int64, last_update_time_since_epoch:int64
+  //     state:ENUM (Artifact only) last_known_state:ENUM (Execution only)
+  //
+  // Neighborhood
+  // - Properties and Custom Properties (for all node types):
+  //   syntax: properties.$name ($name is the property name)
+  //           custom_properties.$name ($name is the custom property name)
+  //   attributes: the following attributes can be used
+  //      int_value: int64, double_value: double, string_value: string
+  //      bool_value: bool
+  //
+  // - Context (for Artifact and Execution):
+  //   syntax: contexts_$alias ($alias can be [0-9A-Za-z_])
+  //   attributes: the following attributes can be used
+  //      id:int64, name:string, type:string, create_time_since_epoch:int64,
+  //      last_update_time_since_epoch: int64
+  //
+  // - Parent and Child Contexts (for Contexts):
+  //   syntax: parent_contexts_$alias( $alias can be [0-9A-Za-z_]
+  //           child_contexts_$alias( $alias can be [0-9A-Za-z_]
+  //   attributes: the following attributes can be used
+  //      id:int64, name: string, type:string
+  //
+  // - Event (for Artifact and Execution)
+  //   syntax: events_$alias ($alias can be [0-9A-Za-z_])
+  //   attributes: the following attributes can be used
+  //     artifact_id: int64(Execution only), execution_id: int64(Artifact only),
+  //     type: ENUM, milliseconds_since_epoch: int64
+  //
+  // Examples:
+  // a) to filter nodes attributes:
+  //    - id != 1
+  //    - id IN (1, 3)
+  //    - type_id = 5
+  //    - type = 'my_type_name'
+  //    - name = 'foo'
+  //    - type = 'bar' AND name LIKE 'foo%'
+  //    - external_id = 'my_external_id'
+  //    - NOT(create_time_since_epoch < 1 OR last_update_time_since_epoch < 1)
+  //
+  // b) to filter artifacts' uri
+  //    - uri = 'exact_path_string'
+  //    - uri LIKE 'path_like_this%'
+  //    - uri IS NOT NULL
+  //
+  // c) to filter artifact's state or execution's last_known_state
+  //    - state = LIVE
+  //    - state IS NULL
+  //    - state IN (PENDING, LIVE)
+  //    - last_known_state = RUNNING
+  //    - last_known_state != RUNNING
+  //    - last_known_state NOT IN (FAILED, CANCELED)
+  //
+  // d) to filter nodes having a specific context, artifact, or execution
+  //    - contexts_a.id = 5
+  //    - contexts_a.type = 'RunContext'
+  //    - contexts_a.name = 'my_run'
+  //    - contexts_a.create_time_since_epoch = 1626761453
+  //    - contexts_a.last_update_time_since_epoch = 1626761453
+  //    To filter nodes with conditions on multiple contexts:
+  //    - contexts_a.name = 'my_run' AND contexts_b.name = 'my_pipeline'
+  //    To filter context with artifacts:
+  //    - artifacts_a.id = 5
+  //    - artifacts_a.type = 'Dataset'
+  //    - artifacts_a.name = 'my_dataset'
+  //    - artifacts_a.uri = 'exact_path_string'
+  //    - artifacts_a.state = LIVE
+  //    - artifacts_a.state IN (PENDING, LIVE)
+  //    - artifacts_a.external_id = "my_external_id"
+  //    - artifacts_a.create_time_since_epoch = 1626761453
+  //    - artifacts_a.last_update_time_since_epoch = 1626761453
+  //    To filter contexts with conditions on multiple artifacts:
+  //    - artifacts_a.name = 'my_run' AND artifacts_b.name = 'my_pipeline'
+  //    To filter context with executions:
+  //    - executions_a.id = 5
+  //    - executions_a.type = 'Dataset'
+  //    - executions_a.name = 'my_dataset'
+  //    - executions_a.last_known_state = RUNNING
+  //.   - executions_a.last_known_state IN (NEW, RUNNING)
+  //    - executions_a.external_id = "my_external_id"
+  //    - executions_a.create_time_since_epoch = 1626761453
+  //    - executions_a.last_update_time_since_epoch = 1626761453
+  //    To filter contexts with conditions on multiple executions:
+  //    - executions_a.name = 'my_run' AND executions_b.name = 'my_pipeline'
+  //
+  // e) to filter nodes condition on their properties
+  //    - properties.accuracy.double_value > 0.95
+  //    - custom_properties.my_param.string_value = "foo"
+  //    If the name of the property or custom property includes characters
+  //    other than [0-9A-Za-z_], then the name need to be backquoted,
+  //    e.g.,
+  //    - properties.`my property`.int_value > 0
+  //    - custom_properties.`my:custom.property`.bool_value = true
+  //
+  // f) complex query to filter both node attributes and neighborhood
+  //    - type = 'DataSet' AND
+  //      (contexts_a.type = 'RunContext' AND contexts_a.name = 'my_run') AND
+  //      (properties.span = 1 OR custom_properties.span = 1)
+  //
+  // g) to filter parent/child context
+  //    - parent_contexts_a.id = 5
+  //    - child_contexts_a.type = 'RunContext'
+  //    - parent_contexts_a.name = 'parent_context_1'
+  //
+  // h) to filter Artifacts on Events
+  //    - events_0.execution_id = 1
+  //    - events_0.type = INPUT
+  //    - events_0.milliseconds_since_epoch = 1
+  //    to filter Executions on Events
+  //    - events_0.artifact_id = 1
+  //    - events_0.type IN (INPUT, INTERNAL_INPUT)
+  //    - events_0.milliseconds_since_epoch = 1
+  // TODO(b/145945460) Support filtering on event step fields.
+  optional string filter_query = 4;
+}
+
+// Encapsulates information to identify the next page of resources in
+// ListOperation.
+message ListOperationNextPageToken {
+  // Id offset within the resultset to start next page.
+  // Id offset is returned as Id is the unique field used to break ties for
+  // fields that might have duplicate entries, e.g. there could be two
+  // resources with same create_time. In such cases to  break the tie in
+  // ordering, id offset is used.
+  // This field is currently only set whe order_by field is CREATE_TIME.
+  optional int64 id_offset = 1;
+
+  // Offset value of the order by field. If ID is used this value is same as
+  // id_offset.
+  optional int64 field_offset = 2;
+
+  // Options set in the first call to ListOperation. This ensures that if
+  // next_page_token is set by the caller then ListPipelineJobs API will always
+  // use options set in the first call.
+  optional ListOperationOptions set_options = 3;
+
+  // List of ids that have the same order_by field values. This is used to
+  // ensure List Operation does not return duplicate entries for nodes that have
+  // the same order_by field value.
+  // This field is currently only set whe order_by field is LAST_UPDATE_TIME.
+  repeated int64 listed_ids = 4;
+
+}
+
+// Options for transactions.
+// Note: This is under development. Clients should not use it.
+message TransactionOptions {
+  extensions 1000 to max;
+
+  // Transaction tag for debug use only.
+  optional string tag = 1;
+}
+
+
+// TODO(b/283852485): Deprecate GetLineageGraph API after migration to
+// GetLineageSubgraph API.
+// The query options for `get_lineage_graph` operation.
+// `query_nodes` is a list of nodes of interest.
+// Currently only artifacts are supported as `query_nodes`.
+// `stop_conditions` defines the filtering rules when querying a lineage graph.
+// `max_node_size` defines the total number of artifacts and executions returned
+// in the subgraph.
+message LineageGraphQueryOptions {
+  // A query to specify the nodes of interest.
+  // `ListOperationOptions.max_result_size` sets the maximum number of nodes to
+  // begin with the graph search.
+  // TODO(b/178491112) Support query_nodes for Executions.
+  oneof query_nodes {
+    ListOperationOptions artifacts_options = 1;
+  }
+
+  // Filtering conditions for retrieving the lineage graph.
+  message BoundaryConstraint {
+    // The maximum number of hops from the `query_nodes` to traverse.
+    // A hop is defined as a jump to the next node following the path of
+    // node -> event -> next_node.
+    // For example, in the lineage graph a_1 -> e_1 -> a_2:
+    // a_2 is 2 hops away from a_1, and e_1 is 1 hop away from a_1.
+    // `max_num_hops` should be non-negative.
+    // When its value is set to 0, only the `query_nodes` are returned.
+    optional int64 max_num_hops = 1;
+
+    // Filtering conditions for retrieving the lineage graph.
+    // Please refer to `ListOperationOptions.filter_query` for the syntax.
+    //
+    // If set, the `boundary_artifacts` defines which artifacts to keep in the
+    // returned lineage graph during the graph search.
+    // Artifacts that do not satisfy the `boundary_artifacts` are filtered out,
+    // and the subgraphs starting at them will be pruned.
+    // If not set, no artifacts will be filtered out.
+    // Taking the following lineage graph as example:
+    // (`a` represents an Artifact, `e` represents an Execution, each arrow
+    // represents a hop.)
+    //  a_0   a_1     a_3
+    //   |      \   /     \
+    //  \/      \/ \/     \/
+    //  e_0      e_1      e_3
+    //                   /   \
+    //                  \/   \/
+    //        a_2     a_4     a_5
+    //           \   /
+    //           \/ \/
+    //            e_2
+    // To query all the upstream and downstream nodes 3 hops away from a_4,
+    // while excluding the upstream subgraph starting at a_3, then
+    // `stop_conditions` can be set as:
+    // {
+    //   max_num_hops: 3
+    //   boundary_artifacts: 'id != 3'
+    // }
+    // With the `stop_conditions`, {a_3, e_1, a_1, a_0, e_0} will be filtered
+    // out.
+    // The returned lineage graph looks like:
+    //                    e_3
+    //                   /   \
+    //                  \/   \/
+    //        a_2     a_4     a_5
+    //           \   /
+    //           \/ \/
+    //            e_2
+    optional string boundary_artifacts = 2;
+    // If set, the `boundary_executions` defines which executions to keep in the
+    // returned lineage graph during the graph search.
+    // Executions that do not satisfy the `boundary_executions` are filtered out
+    // and the subgraphs starting at them will be pruned.
+    // If not set, no executions will be filtered out.
+    // In the example above, to query for all the upstream and downstream nodes
+    // 3 hops away from a_4, while excluding the upstream subgraph and the
+    // downstream subgraph starting at e_3, then `stop_conditions` can be set as
+    // {
+    //   max_num_hops: 3
+    //   boundary_executions: 'id != 3'
+    // }
+    // With the `stop_conditions`, {e_3, a_5, a_3, e_1, a_1, a_0, e_0} will be
+    // filtered out.
+    // The returned lineage graph looks like:
+    //        a_2     a_4
+    //           \   /
+    //           \/ \/
+    //            e_2
+    // However, for the following graph:
+    //  a_0   a_1     a_3
+    //   |      \   /     \
+    //  \/      \/ \/     \/
+    //  e_0      e_1      e_3
+    //              \    /   \
+    //               \/ \/   \/
+    //        a_2     a_4     a_5
+    //           \   /
+    //           \/ \/
+    //            e_2
+    // With the same `stop_conditions`, only {e_3, a_5, a_0, e_0} will be
+    // filtered out.
+    // The returned lineage graph looks like:
+    //       a_1     a_3
+    //          \   /
+    //          \/ \/
+    //           e_1
+    //              \
+    //               \/
+    //        a_2     a_4
+    //           \   /
+    //           \/ \/
+    //            e_2
+    optional string boundary_executions = 3;
+  }
+
+  // A constraint option to define the filtering rules when querying a lineage
+  // graph.
+  optional BoundaryConstraint stop_conditions = 2;
+
+  // Maximum total number of artifacts and executions in the whole returned
+  // lineage graph.
+  // If set to 0 or below, all related nodes will be returned without any
+  // number limitation.
+  // The number counts toward Artifacts and Executions. Nothing else considered.
+  //
+  // NOTE: There is no pagination supported.
+  optional int64 max_node_size = 3 [default = 20];
+}
+
+// The query options for lineage graph tracing from a list of interested nodes.
+message LineageSubgraphQueryOptions {
+  // `starting_nodes` is a list of nodes of interest to start graph tracing.
+  // NOTE: The maximum number of starting nodes is 100 at most.
+  message StartingNodes {
+    // `filter_query` is a boolean expression in SQL syntax that is used to
+    // specify the conditions on starting nodes.
+    // Please refer to ListOperationOptions.filter_query for more details.
+    optional string filter_query = 1;
+  }
+
+  oneof starting_nodes {
+    StartingNodes starting_artifacts = 1;
+    StartingNodes starting_executions = 2;
+  }
+
+  // The maximum number of hops from the `starting_nodes` to traverse.
+  // A hop is defined as a jump to the next node following the path of
+  // node -> event -> next_node.
+  // For example, in the lineage graph a_1 -> e_1 -> a_2:
+  // a_2 is 2 hops away from a_1, and e_1 is 1 hop away from a_1.
+  // `max_num_hops` should be non-negative.
+  // When its value is set to 0, only the `starting_nodes` are returned.
+  optional int64 max_num_hops = 3;
+
+  enum Direction {
+    // Direction is by defult DIRECTION_UNSPECIFIED, which is equivalent to
+    // BIDIRECTIONAL.
+    DIRECTION_UNSPECIFIED = 0;
+    // Indicates tracing the lineage graph by hops in upstream direction.
+    UPSTREAM = 1;
+    // Indicates tracing the lineage graph by hops in downstream direction.
+    DOWNSTREAM = 2;
+    // Indicates tracing the lineage graph in both directions.
+    BIDIRECTIONAL = 3;
+  }
+  // The direction of lineage graph tracing, which means the direction of all
+  // hops in the tracing.
+  //   An UPSTREAM hop means an expansion following the path of
+  //     execution -> output_event -> artifact or
+  //     artifact -> input_event -> execution
+  //   A DOWNSTREAM hop means an expansion following the path of
+  //     execution -> input_event -> artifact or
+  //     artifact -> output_event -> execution
+  // Please refer to `Direction` for more details.
+  optional Direction direction = 4;
+}

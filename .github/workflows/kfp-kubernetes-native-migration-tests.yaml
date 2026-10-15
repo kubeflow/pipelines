@@ -173,10 +173,10 @@ jobs:
 
       - name: Collect failed logs
         if:
-          ${{ steps.deploy.outcome != 'success' || steps.run-db-mode-tests.outcome != 'success' ||
-          steps.switch-to-k8s-mode.outcome != 'success' || steps.re-forward-api-port.outcome != 'success' || steps.run-k8s-mode-tests.outcome != 'success' }}
+          ${{ !cancelled() && (steps.deploy.outcome != 'success' || steps.run-db-mode-tests.outcome != 'success' ||
+          steps.switch-to-k8s-mode.outcome != 'success' || steps.re-forward-api-port.outcome != 'success' || steps.run-k8s-mode-tests.outcome != 'success') }}
         run: |
-          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp.log/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
