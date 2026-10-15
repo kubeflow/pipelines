@@ -28,6 +28,7 @@ import {
   getLogsInfo,
   LOGS_BANNER_ADDITIONAL_INFO,
   LOGS_BANNER_MESSAGE,
+  LIFECYCLE_FAILURE_MESSAGE,
   LIFECYCLE_WARNING_MESSAGE,
   LOGS_DETAILS,
   RuntimeNodeDetailsV2,
@@ -428,6 +429,40 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(
       screen.getByText('Back-off pulling image "ghcr.io/example/does-not-exist:v1"'),
     ).toBeInTheDocument();
+  });
+
+  it('says the task failed, not that it has not failed yet, once a task with a lifecycle message fails', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled (exit code 137)',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_FAILURE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows the lifecycle warning banner on a sub-DAG node', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, type: 'SUB_DAG' } as any}
+          elementRuntimeInfo={{
+            task: createTask({
+              type: PipelineTaskTaskType.DAG,
+              state: PipelineTaskTaskState.RUNNING,
+              lifecycle_message: 'OOMKilled',
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByText(LIFECYCLE_WARNING_MESSAGE)).toBeInTheDocument();
   });
 
   it('shows no lifecycle banner when the task has no lifecycle message', () => {

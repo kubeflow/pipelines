@@ -27,6 +27,8 @@ export type SubDagTaskData = FlowElementDataBase & {
   groupKind?: SubDagKind;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the driver pod, same semantics as on execution nodes.
+  lifecycleMessage?: string;
 };
 
 export type SubDagFlowElementData = SubDagTaskData & {

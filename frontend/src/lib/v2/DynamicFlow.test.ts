@@ -67,6 +67,39 @@ describe('DynamicFlow', () => {
       expect(graph[0].data?.label).toBe('parallel-loop (Loop)');
     });
 
+    it('sets the lifecycle message on a sub-DAG node and clears it on recovery', () => {
+      const subDagElement = {
+        id: 'task.inner-dag',
+        type: NodeTypeNames.SUB_DAG,
+        position: { x: 0, y: 0 },
+        data: { label: 'inner-dag' },
+      };
+      const subDagTask: V2beta1PipelineTask = {
+        task_id: 'inner-dag-task',
+        parent_task_id: rootTask.task_id,
+        name: 'inner-dag',
+        type: PipelineTaskTaskType.DAG,
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled',
+      };
+
+      const withWarning = updateFlowElementsState(
+        ['root'],
+        [subDagElement],
+        [rootTask, subDagTask],
+      );
+      expect(withWarning[0].data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycleMessage: 'OOMKilled',
+      });
+
+      const recovered = updateFlowElementsState(['root'], withWarning, [
+        rootTask,
+        { ...subDagTask, lifecycle_message: undefined },
+      ]);
+      expect((recovered[0].data as any).lifecycleMessage).toBeUndefined();
+    });
+
     it('updates task and artifact nodes from hydrated task data', () => {
       const preprocessTask: V2beta1PipelineTask = {
         task_id: 'preprocess-task',

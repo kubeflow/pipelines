@@ -62,6 +62,23 @@ export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
 export const LIFECYCLE_WARNING_MESSAGE =
   "Kubernetes reported a problem with this task's pod. The task has not failed yet and may recover. Select Details to see the raw message.";
+export const LIFECYCLE_FAILURE_MESSAGE =
+  'The task failed after Kubernetes reported a problem with its pod. Select Details to see the raw message.';
+
+function LifecycleBanner({ task }: { task?: V2beta1PipelineTask }) {
+  const lifecycleMessage = getTaskLifecycleMessage(task);
+  if (!lifecycleMessage) {
+    return null;
+  }
+  const failed = task?.state === PipelineTaskTaskState.FAILED;
+  return (
+    <Banner
+      mode={failed ? 'error' : 'warning'}
+      message={failed ? LIFECYCLE_FAILURE_MESSAGE : LIFECYCLE_WARNING_MESSAGE}
+      additionalInfo={lifecycleMessage}
+    />
+  );
+}
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -212,17 +229,10 @@ function TaskNodeDetail({
     (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
-  const lifecycleMessage = getTaskLifecycleMessage(task);
 
   return (
     <div className={commonCss.page}>
-      {lifecycleMessage && (
-        <Banner
-          mode='warning'
-          message={LIFECYCLE_WARNING_MESSAGE}
-          additionalInfo={lifecycleMessage}
-        />
-      )}
+      <LifecycleBanner task={task} />
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
@@ -615,6 +625,7 @@ function SubDAGNodeDetail({ element, task, namespace }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   return (
     <div className={commonCss.page}>
+      <LifecycleBanner task={task} />
       <MD2Tabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}

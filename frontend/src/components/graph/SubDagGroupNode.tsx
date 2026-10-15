@@ -4,10 +4,11 @@
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { Node, NodeProps } from '@xyflow/react';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
 import { color } from 'src/Css';
-import { getIcon } from './ExecutionNode';
+import { getIcon, getWarningIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
@@ -29,7 +30,9 @@ export default function SubDagGroupNode({
   draggable?: boolean;
 }) {
   const collapsed = !!data.collapsed;
-  const status = getIcon(data.state);
+  // Same rule as ExecutionNode: a lifecycle message is a warning until the task is FAILED.
+  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  const status = showWarning ? getWarningIcon() : getIcon(data.state);
   return (
     <>
       <div
