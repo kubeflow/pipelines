@@ -161,12 +161,14 @@ does not make imported history executable or eligible for cache reuse. The separ
 [scheduling prerequisite](https://github.com/kubeflow/pipelines/pull/14769) does not
 complete the wider migration contract.
 
-Metadata import alone does not authorize arbitrary-root artifact downloads. The
-default native policy still requires a namespace-prefixed path. The
-[storage authorization mode](https://github.com/kubeflow/pipelines/pull/14883) works without MLMD and can preserve
-existing roots when namespace credentials enforce object access. Verify the same
-storage and proxy isolation after migration; metadata import is not that proof. Neither successful table creation nor a successful history import
-certifies an in-place 3.0 upgrade.
+Metadata import alone does not authorize artifact downloads. Both branches support
+namespace storage authorization without MLMD. Default `auto` uses it for verified
+managed `minio://mlpipeline/...` artifacts; unsupported custom storage retains
+prefix enforcement unless explicitly reviewed for `storage` mode. Existing roots
+can stay in place when the namespace identity already has access. Verify the
+storage and proxy boundary again in a replacement installation; an imported URI is
+not that proof. Neither successful table creation nor history import certifies an
+in-place 3.0 upgrade.
 
 ## Check applicable compatibility changes
 
@@ -176,7 +178,7 @@ Review these before rollout when the corresponding features are in use:
 | --- | --- |
 | Service-account and workflow-identity policy | Inventory custom runner, template, and plugin identities and test their scoped grants. Both controls default to `enforce`; temporary `audit` modes restore the associated exposure and are planned for removal in 3.0. Keep modes consistent across API replicas. See [service-account migration](scheduled-service-accounts.md#temporary-audit-mode-for-migration) and [workflow-identity audit scope](server-config.md#audit-mode-for-rollout). Audit does not bypass schedule adoption or the independent [RBAC/client changes](rbac-migration-2.18.md). |
 | Legacy V1/raw-Argo cache | For a 2.17.2 upgrade, apply the standard rolling update normally; no manual cache-server shutdown or submission pause is required. Wait for every old cache-server process to terminate before treating enforcement as fully active. Cache reuse can decrease during overlap. Default enforcement stops reusing historical entries of unknown ownership: extra computation occurs when steps next execute and miss the cache, not as a startup rebuild. Native V2 caching is unaffected. See [cache rollout and temporary audit mode](https://github.com/kubeflow/pipelines/blob/release-2.18/backend/src/cache/README.md#namespace-isolation-and-upgrades). |
-| Multi-user artifact roots | Default `key-prefix` enforcement requires a namespace path component even with matching MLMD evidence. Opt-in `storage` enforcement preserves historical roots through namespace-scoped storage credentials and isolated proxies, without MLMD lookup or an object move. Upgrade shared UI replicas before reconciling namespace services; receiver checks and generated ingress policies apply in both modes. Verify storage/ingress isolation before opting in. Shared credentials still require the prefix policy. See [artifact-root migration](#artifact-root-migration). |
+| Multi-user artifact roots | Default `auto` preserves already authorized managed `minio://mlpipeline/...` roots through verified namespace storage identities, without MLMD lookup or an object move. Standard multi-user proxies and receiver rollout are automatic, with no required UI/controller order. Reads can need retry while readiness converges. Unsupported custom storage retains prefix enforcement or requires explicit reviewed `storage` configuration. Verify effective storage/ingress isolation; direct proxy clients must use the shared UI. See [artifact-root migration](#artifact-root-migration). |
 | Custom artifact storage | Configure exact trusted S3 origins and the HTTP artifact base where applicable; a permissive domain regex alone is insufficient for custom S3 origins. Propagate configuration to existing profile proxies and verify artifacts and archived logs in those profiles. See [endpoint configuration](server-config.md#artifact-storage-endpoint-allowlist) and [HTTP/profile migration](server-config.md#http-artifact-migration-for-218). |
 | Pipeline size ceilings | Check uploads, extracted specifications (including existing object-store specifications used by later executions), and update bodies against their separate 32 MiB defaults. Supported overrides are bounded at 128 MiB; size memory and the entire request path before raising them. There is no audit/unlimited mode. See [settings and actionable errors](server-config.md#pipeline-size-limits). |
 | Legacy metrics files | V1 metrics collection bounds each metrics file at 1 MiB by default. Check `MAX_METRICS_FILE_BYTES` on the collector; an oversized file can leave metrics missing from an otherwise completed task. This is not the native V2 metrics path. See [legacy metrics limits](server-config.md#legacy-metrics-file-limit). |
@@ -253,66 +255,71 @@ move historical objects.
 
 ### Preserve existing roots with storage enforcement
 
-Set `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated shared
-UI to use namespace storage permissions as the object-access authority.
-After checking the caller's namespace permission, the UI delegates S3, MinIO and
-GCS reads to that namespace's artifact service. Its restricted storage identity
-authorizes the object; neither an MLMD record nor a prescribed key layout is
-required. This is enforced authorization, not audit, and is also the direction for
-3.0 without MLMD. The default remains `key-prefix`; upgrading alone does not enable
-storage mode. SeaweedFS can remain a central object store. The per-namespace
-components are KFP artifact services and their restricted storage identities, not
-separate SeaweedFS instances.
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. For supported
+managed `minio://mlpipeline/...` artifacts, KFP checks the caller's namespace
+permission and uses that namespace's storage identity after trusted controller
+readiness. Existing authorized roots need no prescribed key layout, object move,
+reference rewrite or MLMD lookup. This is enforced authorization, not audit, and
+also works after MLMD removal in 3.0.
 
-The profile controller automatically creates ingress policies and enables receiver
-namespace checks when it reconciles managed artifact services, in **both** modes.
-It does not rewrite storage permissions or move historical objects. Direct proxy
-consumers must use the authenticated shared UI. Use this rollout sequence even
-when retaining the default prefix policy:
+SeaweedFS remains central. Namespace isolation is provided by KFP's per-namespace
+artifact services and storage identities. Standard multi-user manifests enable
+managed proxies. The controller verifies namespace IAM identity and stock policy,
+preserves administrator-added grants, reconciles receivers and standard ingress
+NetworkPolicies, and records readiness in the installation namespace. It does not
+automatically grant arbitrary historical roots or treat imported metadata as
+storage permission.
 
-1. Upgrade **all shared-UI replicas first**, keeping `key-prefix`. Updated UI
-   replicas send the authorized namespace to the receiving service. Old UI
-   replicas lack that header and receive HTTP 403 from updated receivers.
-2. Upgrade the profile controller and namespace artifact services, then reconcile
-   existing profiles. Verify `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true` and each
-   receiver's own `FRONTEND_SERVER_NAMESPACE`. An old receiver that ignores the
-   new setting is not ready for storage mode. Custom services need equivalent
-   receiver checks and ingress protection.
-3. Verify the generated NetworkPolicy permits port 3000 only from shared-UI Pods
-   in the installation namespace. This uses standard Kubernetes NetworkPolicy;
-   Calico is not required. The cluster must enforce the policy, and additional
-   policies must not reopen tenant access. Test actual denial through Pod and
-   Service addresses, including another tenant spoofing the UI label.
-4. To opt into storage mode, first verify each namespace service's restricted
-   storage identity can read/list its intended historical and shared roots and
-   cannot read/list another tenant's private objects. Separate Secrets containing
-   the same administrator key are insufficient. No audit setting is needed.
-5. Only after every receiver is updated and isolation is verified, keep
-   `ENABLE_AUTHZ=true` and `ARTIFACTS_SERVICE_PROXY_ENABLED=true`, set storage mode
-   on the shared UI and roll out all replicas. Test as actual users: previews,
-   downloads, namespace swaps, a service route targeting another namespace's
-   receiver and an unavailable proxy. None may expose another tenant's objects or
-   fall back to shared UI credentials. Replicas still using `key-prefix` can deny
-   custom roots until the rollout finishes.
+Enabling managed proxies adds one artifact receiver Pod per
+`pipelines.kubeflow.org/enabled=true` namespace that did not already have one.
+The default container requests **10m CPU and 70 MiB memory**, with limits of
+**100m CPU and 500 MiB memory**. These are per namespace, before mesh sidecars or
+custom overrides. Large fleets should count affected namespaces and check cluster
+capacity, namespace quotas and temporary rolling-update surge replicas. Insufficient
+capacity keeps receivers pending and can delay artifact readiness; it does not
+require a particular UI/controller upgrade order.
 
-In 2.18, configure credentials and custom endpoints in each namespace
-service's environment or workload identity. Browser provider/Secret selectors are
-discarded. Master additionally resolves trusted namespace launcher configuration;
-that separate resolver is not included in the backport. Verify this difference for
-custom Secret-backed providers before switching modes.
+Use the normal deployment update; **no manual shared-UI/controller order or mode
+opt-in is required for the supported managed path**. Updated UIs call a versioned
+receiver route with namespace and credential-configuration binding. Updated
+receivers retain the legacy route for old UIs during overlap, so either component
+can update first. A new UI does not retry a failed storage-authorized read through
+the legacy route or shared credentials. Pending readiness or lookup failures
+return actionable HTTP 503 responses; retry after reconciliation. A missing
+readiness record or unsupported custom layout conservatively retains prefix
+checks. Old UIs may still deny custom roots until their rollout completes; this is
+not an uninterrupted-availability guarantee.
 
-Stock SeaweedFS profile policies authorize namespace private roots plus intended
-shared roots. They do not automatically grant arbitrary historical prefixes, and
-existing credential Secrets are reused without reconciling their storage policies.
-When isolation already covers those roots, no object/reference migration is needed.
-The mode does not change endpoint trust, HTTP artifact or archived-log policies.
-See the
+After rollout, verify historical/new previews, downloads and directory listings
+as actual users. Confirm denied private reads/listings from another namespace,
+namespace swaps and a Service alias targeting a different receiver. Verify the
+NetworkPolicy permits proxy port 3000 only from shared-UI Pods in the installation
+namespace through both Pod and Service addresses, including tenant Pods spoofing
+UI labels. This uses standard Kubernetes NetworkPolicy; Calico is not required.
+Additional policies must not reopen tenant access. An unavailable receiver or
+readiness API must never cause a shared-credential read. Managed readiness
+resources alone do not prove effective installation isolation.
+
+For custom stores outside automatic discovery, explicit `storage` requires
+`ENABLE_AUTHZ=true`, namespace proxying, reviewed restricted storage identities,
+trusted endpoints, the versioned receiver protocol and equivalent ingress
+isolation. In 2.18, configure credentials/endpoints in each namespace service's
+environment or workload identity; browser provider/Secret selectors are discarded.
+Master additionally resolves trusted namespace launcher configuration. Neither
+branch automatically certifies arbitrary S3/GCS providers. Custom services without
+the required protections retain prefix enforcement.
+
+Stock namespace policies cover private namespace roots and intended shared roots;
+existing additional grants remain the authority for other historical roots. Do not
+broaden them just to pass an upgrade check. HTTP artifacts and archived logs keep
+separate policies. See the
 [full authorization guide](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/artifact-authorization.md).
 
-### Default prefix enforcement and temporary audit
+### Prefix enforcement and temporary audit
 
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix` remains the default and is
-required when object reads use shared credentials. In this mode, when MLMD records exist, every returned artifact must have matching
+Explicit `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, and `auto` for
+unsupported storage or an absent readiness record, retain the prefix/metadata policy. Use this
+policy where storage identities cannot provide the required isolation. In this mode, when MLMD records exist, every returned artifact must have matching
 namespace evidence, and the object key must also have the namespace prefix.
 When no artifact record exists, the default lookup policy permits a validated
 namespace-prefix fallback; `mlmd-only` denies it. MLMD lookup errors still deny access. The default is
@@ -332,8 +339,8 @@ open. Do not infer compatibility from new pipeline defaults alone:
   Verify historical and new reads before removing old copies.
 
 `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit` is a temporary 2.18 migration option,
-with `enforce` as the default. It only affects the prefix policy; selecting storage
-mode does not require audit and does not use MLMD evidence to grant object access.
+with `enforce` as the default. It only affects the prefix policy; automatic or explicit storage
+authorization does not require audit and does not use MLMD evidence to grant object access.
 The unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name
 was removed without an alias. The separate `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`
 controls lookup fallback, not audit/enforce; see the

@@ -272,10 +272,15 @@ unextracted.
 
 ### Artifact ownership controls in 2.18
 
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` selects the enforcement boundary:
-`key-prefix` is the default; opt-in `storage` uses namespace storage identities for
-S3, MinIO and GCS reads without MLMD lookup or a prescribed key layout. It requires
-authentication, namespace proxying, updated receivers and verified isolation. See
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. Supported managed
+`minio://mlpipeline/...` artifacts use verified namespace storage readiness;
+pending or failed readiness lookup returns HTTP 503 without shared-credential
+fallback. Missing readiness and unsupported custom storage retain prefix checks.
+Explicit `key-prefix` retains that policy. Explicit `storage` uses reviewed
+namespace storage identities for S3, MinIO and GCS reads without MLMD lookup or a
+prescribed key layout, with authentication, versioned receivers and effective
+isolation. Standard multi-user manifests enable managed proxies and support either
+UI/controller upgrade order. See
 [authorization and rollout](upgrade-2.18.md#artifact-root-migration).
 
 The controls below apply to the prefix/metadata policy, including the separate
@@ -302,10 +307,11 @@ setting into those proxies does not enable it on the serving UI. See
 [artifact-root migration](upgrade-2.18.md#artifact-root-migration) for impact and
 return-to-enforcement steps.
 
-Master/3.0's default prefix policy uses the Artifact API instead of MLMD and has no
-artifact audit exception. Its lookup values are `artifact-then-prefix` (default)
+Where prefix enforcement applies, master/3.0 uses the Artifact API instead of
+MLMD and has no artifact audit exception. Its lookup values are `artifact-then-prefix` (default)
 and `artifact-only`, with the old `mlmd-*` spellings accepted as lookup aliases.
-Storage mode in either branch bypasses metadata lookup for object-store reads;
+Automatic or explicit storage authorization in either branch bypasses metadata
+lookup for object-store reads;
 it is an enforced authorization option, not a temporary audit exception to remove
 in 3.0. The native lookup values must not be used as 2.18 settings.
 
