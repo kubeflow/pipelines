@@ -94,9 +94,10 @@ it should have the following content:
 Instructions:
 
 * Run everything e2e: build images, backend compiler, compile pipelines and run them.
-  This updates `V2_DRIVER_IMAGE` and `V2_LAUNCHER_IMAGE` on the development API-server
-  deployment to the published image digests and waits for its rollout before
-  submitting IR. Use a dedicated development cluster: the image settings affect
+  This updates the executor-plugin ConfigMap with the published driver image and
+  `V2_LAUNCHER_IMAGE` on the development API-server deployment, then waits for
+  the API-server rollout before submitting IR. Use a dedicated development cluster:
+  the image settings affect
   all subsequent runs compiled by that API server. `DEV_KUBE_CONTEXT` must be
   explicit, and your KFP client's endpoint must refer to the same installation.
   Override `DEV_API_DEPLOYMENT` if its name is not `ml-pipeline`. If the client

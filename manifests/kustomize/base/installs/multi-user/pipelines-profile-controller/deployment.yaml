@@ -90,9 +90,14 @@ spec:
             configMapKeyRef:
               key: ARTIFACT_RETENTION_DAYS
               name: pipeline-install-config
+        - name: DRIVER_AGENT_CA_CERT_PATH
+          value: /etc/kfp/driver-agent-ca/ca.crt
         volumeMounts:
         - name: hooks
           mountPath: /hooks
+        - name: driver-agent-ca
+          mountPath: /etc/kfp/driver-agent-ca
+          readOnly: true
         ports:
         - containerPort: 8080
         readinessProbe:
@@ -113,3 +118,12 @@ spec:
       - name: hooks
         configMap:
           name: kubeflow-pipelines-profile-controller-code
+      # Only ca.crt (never tls.key) of the TLS overlay's CA Secret; the volume
+      # stays empty on non-TLS installations, so no copies are made there.
+      - name: driver-agent-ca
+        secret:
+          secretName: argo-workflows-agent-ca-certificates
+          optional: true
+          items:
+          - key: ca.crt
+            path: ca.crt

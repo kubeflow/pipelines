@@ -11,6 +11,8 @@ resources:
   - route.yaml
 
 patches:
+  - path: patches/driver-agent-controller.yaml
+  - path: patches/driver-agent-plugin.yaml
   # Disable the optional TensorBoard viewer controller on OpenShift
   - path: patches/viewer-crd.yaml
     target:
