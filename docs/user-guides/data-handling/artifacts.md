@@ -315,7 +315,8 @@ On the [KFP open source][oss-be] UI, `ClassificationMetrics`, `SlicedClassificat
 
 ### Dataset and Model previews
 
-Supported Python components automatically include a small, versioned
+When deployment administrators enable automatic previews, supported Python
+components include a small, versioned
 `preview.json` **file** in Dataset and Model output directories. Select that same artifact
 in the run graph and open **Visualization** to view it. On the artifact's own
 details page, select **Show artifact visualization** in Overview.
@@ -332,9 +333,10 @@ outputs do not support this preview layout. Existing artifacts without a
 preview continue to work normally. Do not silently turn a single-file output
 into a directory: its consumers must know which data/model file to read.
 
-#### Automatic previews: enabled by default
+#### Automatic previews: deployment opt-in
 
-Keep writing the native data/model files normally: the SDK generates
+Automatic generation is **off by default**. Once your deployment enables it,
+keep writing the native data/model files normally: the SDK generates
 `preview.json` and its metadata
 descriptor inside that component. No adapter call or hand-written JSON is
 required, and no component or pipeline opt-in is needed.
@@ -359,26 +361,55 @@ def create_dataset(dataset: dsl.Output[dsl.Dataset]):
 
 Dataset previews include up to ten rows and twenty columns by default.
 The optional `artifact_preview_rows=False` setting
-omits dataset values while retaining the schema and dimensions; it does not
+omits dataset values while retaining available schema and dimensions; it does not
 disable model previews. For sensitive outputs, a component can disable automatic
 generation with `artifact_previews=False`.
 
-Deployment administrators can disable automatic generation for all components
-by setting `artifactPreviewsEnabled: "false"` in the deployment's `kfp-launcher`
-ConfigMap. This overrides `artifact_previews=True` and prevents framework hooks,
-dataset sampling, and automatic preview publication. In multi-user installations,
+Deployment administrators enable automatic generation for supported components
+by setting `artifactPreviewsEnabled: "true"` in the deployment's `kfp-launcher`
+ConfigMap. A missing or false deployment setting overrides `artifact_previews=True`
+and prevents framework hooks, dataset sampling, and automatic preview publication.
+In multi-user installations,
 the profile controller propagates the setting to execution namespaces; see the
 [operator rollout instructions](../../operator-guides/server-config.md#automatic-artifact-preview-generation).
-Missing configuration defaults to enabled; invalid or unreadable configuration
-disables automatic previews with a warning, without failing the component.
+Invalid or unreadable configuration also disables automatic previews with a
+warning, without failing the component. The component flag cannot enable
+generation in a deployment that has not opted in.
 
-The initial automatic adapters support:
+Automatic Dataset adapters require exactly one supported data file directly
+inside the artifact directory; partitioned datasets, archives, and symlinks are
+not sampled. Pandas and Polars native writers are supported without
+preview-specific calls:
 
 * **Parquet Dataset directories:** exactly one directly contained `*.parquet`
   file. PyArrow reads its footer and one projected batch, not the full table.
   Schema-only mode does not read row data. Partitioned directories, duplicate
   column names, symlinked files, and ambiguous projections are not sampled.
   Binary and nested cells are explicitly marked as omitted.
+* **CSV:** UTF-8, comma-delimited files with a header. Quoting and multiline
+  cells are preserved. Cells are displayed as strings rather than inventing
+  original dataframe dtypes.
+* **JSON/JSONL:** UTF-8 JSON records arrays, newline-delimited records
+  (`.jsonl` or `.ndjson`), and Pandas column/split orientations (`.json`).
+  JSON types are inferred from the bounded sample and labeled accordingly;
+  nested values are omitted. Text parsing reads at most a 1 MiB source prefix.
+  Columns/split JSON must fit within that source limit; use records or JSONL
+  for larger outputs. Incomplete records are not displayed.
+* **Arrow/Feather:** Arrow IPC files/streams (`.arrow` or `.ipc`) and Feather v2
+  (`.feather`), using PyArrow. Only the selected columns and enough record
+  batches for the sample are decoded; schema-only mode decodes no batches.
+  IPC readers may decompress whole projected batches, so the ten-row
+  **display** limit is not a bound on batch-decompression memory. Use
+  appropriately sized producer record batches.
+
+The adapters report total dimensions only when known without scanning the
+whole dataset. JSON records can introduce later columns, so the preview does
+not claim the sample's width is the total width. Schema-only JSON still
+examines a bounded record prefix to discover columns/types, but publishes no
+row values.
+
+Automatic Model adapters support:
+
 * **XGBoost Model directories:** save one native model under the declared
   output directory using the normal `Booster.save_model` or sklearn estimator
   `save_model` method. During execution, scoped SDK hooks capture
@@ -388,16 +419,31 @@ The initial automatic adapters support:
   changes to the estimator. Saving several model files in one artifact, or
   replacing the saved file afterwards, leaves the artifact without an automatic
   preview rather than attaching an ambiguous or stale summary.
+* **PyTorch Model directories:** use `torch.save` with a path to save an
+  `nn.Module`, a state dictionary, or a checkpoint containing `state_dict` or
+  `model_state_dict`. Native `torch.jit.save` and ScriptModule `save` are also
+  supported. Scoped hooks record tensor names, shapes, dtypes, and counts,
+  **never tensor values**. Module previews can count trainable parameters;
+  state-dictionary element counts include buffers and are not labeled as
+  parameter counts. A state dictionary does not retain the original class,
+  architecture settings, or training hyperparameters. Existing checkpoints
+  are not deserialized to infer these details.
+* **Hugging Face Transformers Model directories:** native `save_pretrained`
+  bundles, including sharded safetensors, use their saved `config.json`.
+  The SDK reads at most 64 KiB of this configuration and displays its recorded
+  framework version, architecture, and configuration. Weights are never
+  opened or validated. This configuration is not a complete training record.
 
-PyArrow and XGBoost remain optional dependencies of the **component image**,
+Scientific libraries remain optional dependencies of the **component image**,
 not the core SDK or UI. Native save errors still fail normally; optional preview
 failures are logged without failing successful artifact production. Existing
 preview descriptors and files are not overwritten. Other output formats remain
 usable without a preview.
 
 Use an SDK supporting automatic previews inside the component image. Existing
-compiled Python components also get the default behavior when they execute with
-this SDK; images pinned to older SDKs do not. Use a supporting SDK when compiling
+compiled Python components also get automatic previews when they execute with
+this SDK in an enabled deployment; images pinned to older SDKs do not.
+Use a supporting SDK when compiling
 component opt-out or schema-only settings, which are preserved in the compiled
 executor arguments, including when the component is saved and reloaded.
 
@@ -553,10 +599,13 @@ Only escaped text is rendered; the server does not run Python or model code.
 
 #### Producer example and privacy
 
-The [Parquet/XGBoost example](../../../samples/core/artifact_previews/artifact_previews.py)
-produces real `data.parquet` and `model.ubj` files. The SDK creates their previews
-by default, without writing preview JSON in the component or invoking an
-adapter. Add `artifact_preview_rows=False` for a schema-only dataset preview.
+The [examples](../../../samples/core/artifact_previews/artifact_previews.py)
+produce real Parquet/XGBoost files, Pandas/Polars dataframes in multiple formats,
+PyTorch modules/state dictionaries/TorchScript, and a tiny locally initialized
+Transformer. They download no pretrained models. In an enabled deployment, the SDK
+creates previews without component-written preview JSON or adapter calls.
+The format-matrix pipeline also collects dataframe and PyTorch artifact lists.
+Add `artifact_preview_rows=False` for a schema-only dataset preview.
 Its [requirements](../../../samples/core/artifact_previews/requirements.txt)
 are producer/example dependencies, not additions to the UI or core SDK.
 
@@ -564,13 +613,19 @@ From the repository root, compile or exercise the example locally:
 
 ```bash
 uv run python samples/core/artifact_previews/artifact_previews.py
-uv run --with pytest --with-requirements samples/core/artifact_previews/requirements.txt \
+HF_HUB_OFFLINE=1 uv run --with pytest \
+  --extra-index-url https://download.pytorch.org/whl/cpu \
+  --with-requirements samples/core/artifact_previews/requirements.txt \
   pytest -v samples/core/artifact_previews/artifact_previews_unit_test.py
 ```
 
-Row samples and model settings may contain sensitive data. Because generation
-is enabled by default, disable it deployment-wide or set `artifact_previews=False`
-on components whose outputs are not safe to expose. Use
+Tests explicitly simulate an enabled deployment; local execution without the
+deployment policy does not generate previews. The example pins CPU-only PyTorch
+on Linux and includes its official package index.
+
+Row samples and model settings may contain sensitive data. Review this before
+opting in deployment-wide, and set `artifact_previews=False` on individual
+components whose outputs are not safe to expose. Use
 `artifact_preview_rows=False` when dataset row values must not be published.
 Automatic sampling uses the first columns; it does not detect or redact
 sensitive fields. For custom previews, select permitted columns and redact

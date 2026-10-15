@@ -74,7 +74,7 @@ describe('artifact content previews', () => {
   it('keeps missing and malformed declarations out of the network path', () => {
     const read = vi.spyOn(Apis, 'getArtifactContentPreview');
     const { rerender } = render(view([{ ...artifact, metadata: {} }]));
-    expect(screen.getByText(/get automatic previews by default/)).toBeVisible();
+    expect(screen.getByText(/require deployment-level opt-in/)).toBeVisible();
     rerender(
       view([{ ...artifact, metadata: { _kfp_preview: { version: 2, path: 'preview.json' } } }]),
     );

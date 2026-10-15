@@ -13,6 +13,7 @@
 # limitations under the License.
 """Framework-independent tests of automatic preview lifecycle and bounds."""
 
+import csv
 import json
 import os
 from pathlib import Path
@@ -89,6 +90,13 @@ FRAMEWORK = types.SimpleNamespace(
 )
 
 
+def fake_framework_import(name: str) -> types.SimpleNamespace:
+    """Keep lifecycle tests independent of installed scientific libraries."""
+    if name == 'xgboost':
+        return FRAMEWORK
+    raise ImportError(f'{name} is not installed in this test')
+
+
 class ArtifactPreviewTest(unittest.TestCase):
     """Automatic previews must never alter the primary artifact or native
     save."""
@@ -98,6 +106,7 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.policy = self.root / 'artifactPreviewsEnabled'
+        self.policy.write_text('true')
         policy_path = mock.patch.object(previews, '_DEPLOYMENT_CONFIG_PATH',
                                         self.policy)
         policy_path.start()
@@ -105,7 +114,9 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.model = dsl.Model(uri=str(self.root / 'model'))
         Path(self.model.path).mkdir()
         self.import_module = mock.patch.object(
-            previews.importlib, 'import_module', return_value=FRAMEWORK)
+            previews.importlib,
+            'import_module',
+            side_effect=fake_framework_import)
         self.import_module.start()
         self.addCleanup(self.import_module.stop)
 
@@ -148,8 +159,9 @@ class ArtifactPreviewTest(unittest.TestCase):
                          b'native-model')
         self.assertFalse((Path(self.model.path) / 'preview.json').exists())
 
-    def test_deployment_policy_defaults_to_enabled(self) -> None:
-        self.assertTrue(previews._deployment_allows_previews())
+    def test_deployment_policy_requires_explicit_enablement(self) -> None:
+        self.policy.unlink()
+        self.assertFalse(previews._deployment_allows_previews())
         for value, enabled in (('true', True), ('false', False),
                                (' TRUE\n', True), (' False\n', False)):
             with self.subTest(value=value):
@@ -183,8 +195,9 @@ class ArtifactPreviewTest(unittest.TestCase):
                 self.assertFalse(previews._deployment_allows_previews())
         self.assertIn('cannot read', '\n'.join(messages.output))
 
-    def test_deployment_opt_out_overrides_component_enablement(self) -> None:
-        self.policy.write_text('false')
+    def test_missing_deployment_opt_in_overrides_component_enablement(
+            self) -> None:
+        self.policy.unlink()
         dataset = dsl.Dataset(uri=str(self.root / 'dataset'))
         original = FakeEstimator.save_model
 
@@ -196,7 +209,7 @@ class ArtifactPreviewTest(unittest.TestCase):
             FakeEstimator().save_model(Path(model.path) / 'model.ubj')
 
         with mock.patch.object(previews.importlib, 'import_module') as imported:
-            with mock.patch.object(previews, '_parquet_preview') as sample:
+            with mock.patch.object(previews, '_dataset_preview') as sample:
                 result = executor.Executor(
                     self.runtime_input(dataset=dataset, model=self.model),
                     produce,
@@ -283,7 +296,7 @@ class ArtifactPreviewTest(unittest.TestCase):
             with self.assertLogs(
                     previews.__name__, level='WARNING') as messages:
                 session.generate()
-        self.assertIn('No supported XGBoost save_model call',
+        self.assertIn('No supported XGBoost or PyTorch save',
                       '\n'.join(messages.output))
         self.assertNotIn('_kfp_preview', self.model.metadata)
 
@@ -491,6 +504,158 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertIn('omitted', json.dumps(values.value(cyclic)))
         self.assertTrue(values.shortened)
 
+    def test_text_samples_bound_rows_columns_and_preserve_unknown_totals(
+            self) -> None:
+        for extension in ('csv', 'json', 'jsonl'):
+            with self.subTest(extension=extension):
+                directory = self.root / extension
+                directory.mkdir()
+                records = [{
+                    f'column_{column}': row + column for column in range(25)
+                } for row in range(32)]
+                path = directory / f'data.{extension}'
+                if extension == 'csv':
+                    with path.open('w', newline='') as stream:
+                        writer = csv.DictWriter(
+                            stream, fieldnames=list(records[0]))
+                        writer.writeheader()
+                        writer.writerows(records)
+                else:
+                    path.write_text(
+                        json.dumps(records) if extension ==
+                        'json' else '\n'.join(
+                            json.dumps(record) for record in records))
+                preview = previews._dataset_preview(directory, True)
+                self.assertEqual(len(preview['rows']), 10)
+                self.assertEqual(len(preview['columns']), 20)
+                self.assertIsNone(preview['total_rows'])
+                self.assertEqual(preview['total_columns'],
+                                 25 if extension == 'csv' else None)
+                self.assertTrue(preview['sample']['rows_truncated'])
+                self.assertTrue(preview['sample']['columns_truncated'])
+                self.assertEqual(preview['rows'][0][0],
+                                 '0' if extension == 'csv' else 0)
+                schema = previews._dataset_preview(directory, False)
+                self.assertEqual(schema['rows'], [])
+                self.assertTrue(schema['sample']['rows_omitted'])
+                self.assertLessEqual(
+                    len(previews._encode(preview)), previews.MAX_BYTES)
+
+    def test_csv_preserves_quoted_multiline_and_empty_cells(self) -> None:
+        directory = self.root / 'csv'
+        directory.mkdir()
+        (directory /
+         'data.csv').write_text('name,note,empty\n"a,b","first\nsecond",\n')
+        preview = previews._dataset_preview(directory, True)
+        self.assertEqual(preview['rows'], [['a,b', 'first\nsecond', '']])
+        self.assertEqual(preview['total_rows'], 1)
+        self.assertFalse(preview['sample']['rows_truncated'])
+
+    def test_json_types_precision_and_nested_omissions(self) -> None:
+        directory = self.root / 'json'
+        directory.mkdir()
+        (directory / 'data.json').write_text(
+            json.dumps([
+                {
+                    'integer': 2**63,
+                    'nested': {
+                        'secret': 1
+                    },
+                    'nullable': None
+                },
+                {
+                    'integer': 7,
+                    'nested': [1, 2],
+                    'nullable': False
+                },
+            ]))
+        preview = previews._dataset_preview(directory, True)
+        self.assertEqual(preview['rows'][0],
+                         [str(2**63), '<nested JSON value omitted>', None])
+        self.assertEqual(preview['total_rows'], 2)
+        self.assertEqual(preview['total_columns'], 3)
+        self.assertTrue(preview['sample']['values_truncated'])
+        self.assertEqual(preview['columns'][2]['dtype'],
+                         'boolean | null (sample)')
+
+    def test_large_json_records_use_only_a_bounded_prefix(self) -> None:
+        payload = json.dumps([{'value': index} for index in range(200)])
+        path = self.root / 'data.json'
+        path.write_text(payload)
+        with mock.patch.object(previews, 'MAX_TEXT_SOURCE_BYTES', 256):
+            preview = previews._text_dataset_preview(path, True)
+        self.assertEqual(preview['rows'], [[index] for index in range(10)])
+        self.assertIsNone(preview['total_rows'])
+        self.assertTrue(preview['sample']['rows_truncated'])
+
+    def test_bounded_text_read_does_not_decode_partial_utf8(self) -> None:
+        path = self.root / 'data.json'
+        path.write_text('["\U0001f600"]', encoding='utf-8')
+        with mock.patch.object(previews, 'MAX_TEXT_SOURCE_BYTES', 4):
+            text, complete = previews._text_prefix(path)
+        self.assertEqual(text, '["')
+        self.assertFalse(complete)
+
+    def test_malformed_text_data_is_not_published(self) -> None:
+        for extension, content in (('csv', 'a,b\n1\n'),
+                                   ('csv', 'a\n"unterminated'), ('json',
+                                                                 '[{"a": 1},]'),
+                                   ('json', '[{"a": 1}]trailing'),
+                                   ('json', '[{"a": 1} {"a": 2}]'),
+                                   ('json', '[{"a": 1, "a": 2}]'),
+                                   ('json', '[1, 2]'), ('jsonl',
+                                                        '{"a": 1}{"a": 2}')):
+            with self.subTest(content=content):
+                path = self.root / f'data.{extension}'
+                path.write_text(content)
+                with self.assertRaises((ValueError, csv.Error)):
+                    previews._text_dataset_preview(path, True)
+
+    def test_transformers_configuration_never_opens_weight_files(self) -> None:
+        directory = Path(self.model.path)
+        (directory / 'config.json').write_text(
+            json.dumps({
+                'model_type': 'bert',
+                'transformers_version': '5.20.0',
+                'architectures': ['BertForSequenceClassification'],
+                'hidden_size': 16,
+                '_name_or_path': 'private-training-path',
+            }))
+        (directory / 'model.safetensors').write_bytes(b'not inspected')
+        session = previews.ArtifactPreviewSession({'model': self.model})
+        with mock.patch.object(previews.importlib, 'import_module') as imported:
+            session.generate()
+        imported.assert_not_called()
+        preview = self.load_preview(self.model)
+        self.assertEqual(preview['framework']['name'], 'transformers')
+        self.assertEqual(preview['estimator_class'],
+                         'transformers.BertForSequenceClassification')
+        self.assertEqual(preview['hyperparameters'], {'hidden_size': 16})
+        self.assertEqual(preview['structure'], {'model_type': 'bert'})
+
+    def test_transformers_config_size_and_symlinks_are_rejected(self) -> None:
+        path = Path(self.model.path) / 'config.json'
+        path.write_bytes(b' ' * (previews.MAX_BYTES + 1))
+        with self.assertRaisesRegex(ValueError, '64 KiB'):
+            previews._transformers_preview(Path(self.model.path))
+        path.unlink()
+        path.symlink_to(self.policy)
+        with self.assertRaisesRegex(ValueError, 'regular file'):
+            previews._transformers_preview(Path(self.model.path))
+
+    def test_large_model_structure_is_trimmed_to_the_byte_limit(self) -> None:
+        preview = previews._model_preview('pytorch', '2', 'module', {}, {
+            'tensors': {
+                f'{index}' + '\U0001f600' * 250: {
+                    'shape': [8, 4],
+                    'dtype': 'float32'
+                } for index in range(100)
+            }
+        }, [])
+        self.assertLessEqual(len(previews._encode(preview)), previews.MAX_BYTES)
+        self.assertTrue(preview['structure']['tensors'])
+        self.assertTrue(any('64 KiB' in note for note in preview['notes']))
+
     def test_oversized_preview_does_not_publish_a_descriptor_or_partial_file(
             self) -> None:
         with self.assertRaisesRegex(ValueError, 'exceeds 64 KiB'):
@@ -542,7 +707,7 @@ class ArtifactPreviewTest(unittest.TestCase):
                 return_value=types.SimpleNamespace(
                     produce=produce)), mock.patch.object(
                         previews,
-                        '_parquet_preview',
+                        '_dataset_preview',
                         return_value={'kind': 'dataset'}) as sample:
             executor_main.executor_main()
         sample.assert_called_once_with(Path(dataset.path), False)

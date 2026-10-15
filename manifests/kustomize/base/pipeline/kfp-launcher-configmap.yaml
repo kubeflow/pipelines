@@ -4,4 +4,4 @@ metadata:
   name: kfp-launcher
 data:
   defaultPipelineRoot: $(kfp-default-pipeline-root)
-  artifactPreviewsEnabled: "true"
+  artifactPreviewsEnabled: "false"

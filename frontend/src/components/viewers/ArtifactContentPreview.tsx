@@ -161,7 +161,7 @@ function SelectedArtifactPreview({
     return (
       <Banner
         mode='info'
-        message='No preview is available for this artifact. Supported directory outputs get automatic previews by default; check the component SDK, deployment settings, and logs.'
+        message='No preview is available for this artifact. Automatic previews require deployment-level opt-in; check supported formats, the component SDK, and logs.'
       />
     );
   }

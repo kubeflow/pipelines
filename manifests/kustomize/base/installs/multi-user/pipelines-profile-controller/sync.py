@@ -214,7 +214,7 @@ def get_settings_from_env(controller_port=None,
 
     settings["artifact_previews_enabled"] = \
         artifact_previews_enabled if artifact_previews_enabled is not None \
-            else os.environ.get("ARTIFACT_PREVIEWS_ENABLED", "true")
+            else os.environ.get("ARTIFACT_PREVIEWS_ENABLED", "false")
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
@@ -244,7 +244,7 @@ def server_factory(frontend_image,
                    controller_port=8080,
                    http_base_url="",
                    driver_agent_ca_cert_path="",
-                   artifact_previews_enabled: str = "true"):
+                   artifact_previews_enabled: str = "false"):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
