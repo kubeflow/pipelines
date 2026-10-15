@@ -78,6 +78,15 @@ function display_pod_info {
                     echo "No logs found for pod ${POD_NAME}."
             fi
 
+            echo "----- PREVIOUS LOGS -----"
+            if [[ "${COMPONENT}" == agent ]]; then
+                kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" -c driver-plugin --previous || \
+                    echo "No previous logs found for pod ${POD_NAME}."
+            else
+                kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" --previous || \
+                    echo "No previous logs found for pod ${POD_NAME}."
+            fi
+
             echo "==========================="
             echo ""
         } | tee -a "$OUTPUT_FILE"

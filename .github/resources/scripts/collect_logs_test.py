@@ -16,18 +16,43 @@
 """Exercise agent container selection through collect-logs.sh, without a
 cluster."""
 
+import fnmatch
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import tempfile
 import textwrap
 import unittest
 
+import yaml
+
 SCRIPT = Path(__file__).with_name('collect-logs.sh')
 
 
 class CollectLogsTest(unittest.TestCase):
+
+    def test_migration_deployment_failure_retains_uploaded_diagnostics(self):
+        root = SCRIPT.resolve().parents[3]
+        workflow = yaml.safe_load(
+            (root / '.github/workflows/' /
+             'kfp-kubernetes-native-migration-tests.yaml').read_text())
+        steps = workflow['jobs']['kfp-kubernetes-native-migration-tests'][
+            'steps']
+        collect = next(
+            step for step in steps if step.get('name') == 'Collect failed logs')
+        upload = next(
+            step for step in steps
+            if step.get('name') == 'Collect test results')
+        # Without a status function GitHub implicitly requires success(), skipping
+        # collection when deployment fails before the test steps execute.
+        self.assertIn('!cancelled()', collect['if'])
+        self.assertIn("steps.deploy.outcome != 'success'", collect['if'])
+        command = shlex.split(collect['run'].splitlines()[0])
+        output = command[command.index('--output') + 1]
+        self.assertTrue(fnmatch.fnmatch(output, upload['with']['path']))
+        self.assertIn('failure()', upload['if'])
 
     def test_kubectl_failures_are_bounded_and_best_effort(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -49,6 +74,10 @@ class CollectLogsTest(unittest.TestCase):
                         exit 0
                         ;;
                       *"describe pod seaweedfs-0"*) exit 1 ;;
+                      *"logs seaweedfs-0"*"--previous"*)
+                        echo "previous container crash reason"
+                        exit 0
+                        ;;
                       *"logs seaweedfs-0"*) exit 1 ;;
                     esac
                     exit 1
@@ -73,6 +102,7 @@ class CollectLogsTest(unittest.TestCase):
             output = output_file.read_text(encoding='utf-8')
             self.assertIn('No events found for pod seaweedfs-0.', output)
             self.assertIn('No logs found for pod seaweedfs-0.', output)
+            self.assertIn('previous container crash reason', output)
             calls = call_log.read_text(encoding='utf-8').splitlines()
             self.assertGreaterEqual(len(calls), 5)
             self.assertTrue(
@@ -105,6 +135,8 @@ elif args[:2] == ['get', 'pod']:
 elif args[:2] == ['describe', 'pod']:
     print('Events: none')
 elif args[0] == 'logs':
+    if '--previous' in args:
+        args.remove('--previous')
     if args[1] == 'my-agent-pipeline-task':
         assert '-c' not in args
         print('workload-log')

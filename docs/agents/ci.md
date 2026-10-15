@@ -142,3 +142,5 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+
+- Native migration failure diagnostics use an explicit status check so deployment failures cannot skip collection. Pod logs are written under `/tmp/tmp.log/` to match the uploaded artifact glob; the shared collector includes previous container logs for crash-loop diagnosis.
