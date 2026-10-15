@@ -72,13 +72,15 @@ describe('RecurringRunsManager', () => {
     );
   }
 
-  function getRowById(id: string): HTMLElement {
-    const rows = screen.getAllByTestId('table-row');
-    const row = rows.find((element) => element.getAttribute('data-row-id') === id);
-    if (!row) {
-      throw new Error(`Row not found: ${id}`);
-    }
-    return row;
+  function findRowById(id: string): Promise<HTMLElement> {
+    return waitFor(() => {
+      const rows = screen.getAllByTestId('table-row');
+      const row = rows.find((element) => element.getAttribute('data-row-id') === id);
+      if (!row) {
+        throw new Error(`Row not found: ${id}`);
+      }
+      return row;
+    });
   }
 
   beforeEach(() => {
@@ -199,7 +201,7 @@ describe('RecurringRunsManager', () => {
 
   it('retries a list-row disable only after an explicit handoff rejection', async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
+    const row = await findRowById('recurringrun1');
     listRecurringRunsSpy.mockClear();
     disableRecurringRunSpy.mockRejectedValueOnce(
       new Response(
@@ -219,9 +221,7 @@ describe('RecurringRunsManager', () => {
     vi.useFakeTimers();
     try {
       await act(async () => {
-        fireEvent.click(
-          within(getRowById('recurringrun1')).getByRole('button', { name: 'Enabled' }),
-        );
+        fireEvent.click(within(row).getByRole('button', { name: 'Enabled' }));
       });
       expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
       expect(listRecurringRunsSpy).not.toHaveBeenCalled();
@@ -246,9 +246,7 @@ describe('RecurringRunsManager', () => {
 
   it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
-
-    const row = getRowById('recurringrun1');
+    const row = await findRowById('recurringrun1');
     const button = within(row).getByRole('button', { name: 'Enabled' });
     fireEvent.click(button);
 
@@ -259,9 +257,7 @@ describe('RecurringRunsManager', () => {
 
   it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
-
-    const row = getRowById('recurringrun2');
+    const row = await findRowById('recurringrun2');
     const button = within(row).getByRole('button', { name: 'Disabled' });
     fireEvent.click(button);
 
@@ -272,9 +268,7 @@ describe('RecurringRunsManager', () => {
 
   it("renders an enable button if the run's enabled field is undefined, clicking the button calls enable API", async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
-
-    const row = getRowById('recurringrun3');
+    const row = await findRowById('recurringrun3');
     const button = within(row).getByRole('button', { name: 'Disabled' });
     fireEvent.click(button);
 
@@ -285,10 +279,9 @@ describe('RecurringRunsManager', () => {
 
   it('reloads the list of runs after enable/disabling', async () => {
     renderManager();
-    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
+    const row = await findRowById('recurringrun1');
 
     listRecurringRunsSpy.mockClear();
-    const row = getRowById('recurringrun1');
     const button = within(row).getByRole('button', { name: 'Enabled' });
     fireEvent.click(button);
 
