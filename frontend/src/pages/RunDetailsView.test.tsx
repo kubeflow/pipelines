@@ -381,21 +381,38 @@ describe('RunDetailsV2', () => {
   });
 
   it('reveals a deep-linked iteration beyond the default limit without leaving the root graph', async () => {
-    const tasks = loopTasks.map((task) =>
-      task.task_id === 'sweep'
-        ? { ...task, type_attributes: { iteration_count: '11' } }
-        : task.task_id === 'train-1'
-          ? { ...task, type_attributes: { iteration_index: '10' } }
-          : task,
-    );
+    // This navigation regression needs eleven iterations, but not the shared
+    // fixture's artifact/evaluation graph repeated inside every iteration.
+    const spec = PipelineSpec.fromPartial({
+      pipelineInfo: loopSpec.pipelineInfo,
+      deploymentSpec: loopSpec.deploymentSpec,
+      root: loopSpec.root,
+      components: {
+        train: { executorLabel: 'exec-train' },
+        prepare: { executorLabel: 'exec-prepare' },
+        body: { dag: { tasks: { train: loopSpec.components.body.dag!.tasks.train } } },
+      },
+    });
+    const tasks = loopTasks
+      .filter((task) => ['root', 'sweep', 'train-1'].includes(task.task_id!))
+      .map((task) => ({
+        ...task,
+        outputs: undefined,
+        type_attributes:
+          task.task_id === 'sweep'
+            ? { iteration_count: '11' }
+            : task.task_id === 'train-1'
+              ? { iteration_index: '10' }
+              : task.type_attributes,
+      }));
     vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks });
     render(
       <CommonTestWrapper>
         <RunDetailsView
           {...generateProps()}
           location={{ pathname: `/runs/details/${RUN_ID}`, search: '?task=train-1' } as any}
-          parsedPipelineSpec={loopSpec}
-          pipeline_job={JSON.stringify(PipelineSpec.toJSON(loopSpec))}
+          parsedPipelineSpec={spec}
+          pipeline_job={JSON.stringify(PipelineSpec.toJSON(spec))}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.RUNNING }}
         />
       </CommonTestWrapper>,
