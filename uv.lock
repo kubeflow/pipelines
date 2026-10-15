@@ -4028,11 +4028,11 @@ wheels = [
 
 [[package]]
 name = "types-tabulate"
-version = "0.9.0.20241207"
+version = "0.10.0.20261006"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/43/16030404a327e4ff8c692f2273854019ed36718667b2993609dc37d14dd4/types_tabulate-0.9.0.20241207.tar.gz", hash = "sha256:ac1ac174750c0a385dfd248edc6279fa328aaf4ea317915ab879a2ec47833230", size = 8195, upload-time = "2024-12-07T02:54:42.554Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/c0/548058b63e3f29dc2f3c8643ce63095022855d3c7ad00e548388e99e9b3c/types_tabulate-0.10.0.20261006.tar.gz", hash = "sha256:505bb455e337e85f2cf1dfa56c25322ef70059f095673861114444fae3e9e8d7", size = 8606, upload-time = "2026-10-06T08:15:18.526Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5e/86/a9ebfd509cbe74471106dffed320e208c72537f9aeb0a55eaa6b1b5e4d17/types_tabulate-0.9.0.20241207-py3-none-any.whl", hash = "sha256:b8dad1343c2a8ba5861c5441370c3e35908edd234ff036d4298708a1d4cf8a85", size = 8307, upload-time = "2024-12-07T02:54:41.031Z" },
+    { url = "https://files.pythonhosted.org/packages/12/5f/28fa88d90e5cfd3586d4a39d4f6efffa7e1f804a7f6bc6f49fa9f9a4c671/types_tabulate-0.10.0.20261006-py3-none-any.whl", hash = "sha256:b4c5772065de6f5d104daf31a72ce0e78abe07d3b1c7b23e28566b5c95f4faf1", size = 8178, upload-time = "2026-10-06T08:15:17.54Z" },
 ]
 
 [[package]]
