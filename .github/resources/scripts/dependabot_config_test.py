@@ -59,6 +59,19 @@ class DependabotConfigTest(unittest.TestCase):
             flags=re.MULTILINE | re.DOTALL,
         )
 
+    def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
+        docker = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'docker')
+        rules = [
+            rule for rule in docker['ignore']
+            if fnmatchcase('mysql', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'mysql',
+            'versions': ['<8.4', '>=8.5'],
+        }])
+
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [
             block for configured_ecosystem, block in self.update_blocks()
