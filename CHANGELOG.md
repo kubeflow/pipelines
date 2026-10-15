@@ -2,7 +2,32 @@ Changelog
 
 ## Unreleased
 
+### Artifact authorization
+
+- The default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` preserves already
+  authorized historical roots for supported managed `minio://mlpipeline/...`
+  artifacts through verified namespace storage identities, without moving objects
+  or relying on metadata records. Standard multi-user manifests enable managed
+  proxies. Controller readiness and a versioned receiver protocol make UI/controller
+  upgrade ordering automatic; old UIs remain compatible with the legacy route.
+  Readiness convergence can temporarily return actionable HTTP 503 responses that
+  require retry. No request falls back to shared credentials after a readiness or
+  receiver failure. Unsupported custom storage retains prefix enforcement; reviewed
+  custom identities can explicitly select `storage`, while `key-prefix` remains
+  available. Existing administrator grants are preserved; arbitrary historical
+  access is not added. Generated standard NetworkPolicies still need effective
+  enforcement, and direct proxy consumers must use the authenticated shared UI.
+  Enabling managed proxies adds one receiver Pod per previously unserved enabled
+  namespace: requests 10m CPU/70 MiB memory, limits 100m CPU/500 MiB memory, before
+  mesh sidecars and rollout surge. Large fleets should review capacity and quotas.
+  HTTP artifacts and archived logs retain separate policies. See the
+  [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
+
 ### Upgrade notes
+
+See the [2.18 upgrade guide](docs/operator-guides/upgrade-2.18.md) for applicable
+operator actions and client changes. Standard managed installations use their
+normal deployment upgrade process; eligible schedules are adopted automatically.
 
 #### Python support in 2.18
 
@@ -41,25 +66,46 @@ Changelog
 
 #### Breaking changes for multi-user upgrades to 2.18
 
-- **Recreate existing recurring runs through the API:** pre-upgrade schedules
-  stop firing until reviewed and recreated, even if they still appear enabled.
-  The startup migration inventory only logs affected schedules; it does not
-  backfill trusted scheduling state.
-- **Upgrade the API, scheduled-workflow controller, and RBAC together:** the new
-  multi-user controller delegates execution to the API. The new ClusterRole
-  removes Workflow creation permission, so a 2.17.2 controller cannot keep
-  creating Workflows with 2.18 RBAC. Drain old API replicas before recreating
-  schedules; see the procedure below.
-- **Pass a namespace for pipeline-by-name lookup:** with the Kubernetes-native
-  pipeline store in multi-user mode, pipeline-by-name API
-  lookups require an explicit `namespace`; they no longer fall back to the KFP
-  installation namespace. Pass `namespace` to SDK `get_pipeline_id` when looking
-  up private pipelines, then pass the returned ID to `get_pipeline`. Update callers
-  before upgrading from 2.17.2 (for example,
-  `client.get_pipeline_id('my-pipeline', namespace='team-a')`). This requirement
-  does not apply to the SQL pipeline store or single-user mode.
+- **SDK/client environments:** the accepted 2.18 SDK and Kubernetes SDK extension
+  minimum is Python >=3.10, delivered in [#14865](https://github.com/kubeflow/pipelines/pull/14865).
+  Upgrade affected Python 3.9 submitters and SDK-installing component images.
+  Newly compiled components may need explicit private-mirror trust; embedded
+  artifacts must be self-contained. Download consumers must handle attachments
+  and original archive bytes. See [migration examples](docs/operator-guides/upgrade-2.18.md#sdk-and-custom-client-migration).
+- **Recurring runs:** upgraded API/controller processes coordinate writer handoff
+  and adopt trusted database definitions and retained progress, including disabled
+  schedules. No blanket recreation, history cleanup, manual replica drain or
+  sequencing is required. During handoff, schedule create/enable/disable requests
+  can return retryable `Unavailable` before mutation. Updated UI/Python SDK retry
+  only its explicit handoff marker within a bounded budget; confirm the final state.
+  Inconsistent records, CR-only multi-user schedules and custom/shared-database
+  writers require the [documented assessment](docs/operator-guides/upgrade-2.18.md#multi-user-scheduling-during-the-upgrade).
+- **Execution policy and custom roles:** review custom service accounts, additional
+  workflow identities, private upload scope/references, log and TensorBoard grants.
+  Stock roles are updated; custom roles need scoped changes. See
+  [RBAC/client migration](docs/operator-guides/rbac-migration-2.18.md).
+- **UI availability and cache:** shared TensorBoard signing keys initialize
+  automatically. First adoption interrupts the UI and invalidates old URLs; reopen
+  TensorBoard. Later UI updates still use `Recreate` unless configured for rolling
+  updates after key adoption. Legacy V1 cache entries of unknown ownership are cold
+  under enforcement; extra compute occurs on later execution, not at startup.
+  Cache-server rolling upgrades do not require manual shutdown.
+- **Pipeline and metrics limits:** review extracted/object-store specifications and
+  update bodies as well as uploads. Legacy V1 metrics files have a configurable
+  1 MiB default ceiling. See [size limits](docs/operator-guides/server-config.md#pipeline-size-limits).
+- **Pagination:** affected saved tokens require explicit restart. The updated UI
+  restarts once; SDK/custom callers must handle the restart error without appending
+  restarted results to an old traversal. See [client recovery](docs/operator-guides/pagination-recovery.md).
+- **Pipeline-by-name API:** custom callers must specify the private owning
+  namespace. Kubernetes-native multi-user lookup rejects an omitted namespace;
+  SQL lookup without one searches shared pipelines only. Ordinary SDK
+  `get_pipeline_id()` uses filtered listing, not this endpoint. See
+  [lookup compatibility](docs/operator-guides/upgrade-2.18.md#make-pipeline-lookup-namespaces-explicit).
+- **Recurring-run parameters:** API-path schedules expand scheduling macros inside
+  nested list/struct parameters and support `[[Index]]`, matching embedded workflow
+  scheduling. Review nested literal `[[…]]` or `{{$.…}}` values that may now be substituted.
 
-#### Database migration
+#### Database initialization and optional retention indexes
 
 Unlike earlier index-related column reductions, this change **does not narrow
 `JobUUID` from `varchar(255)` to `varchar(191)`**. The 191-character convention
@@ -80,34 +126,27 @@ PostgreSQL uses a full-column index on `"JobUUID"`, created with
 column types and values are preserved too. Normal PostgreSQL index-entry size
 limits still apply; this does not promise indexing arbitrarily large text values.
 
-API startup preserves the existing type and width of `run_details.JobUUID` and
-adds its recurring-run lookup index separately. MySQL explicitly requires
-`ALGORITHM=INPLACE, LOCK=NONE`; unsupported online DDL fails startup instead of
-falling back to a table copy. Existing valid indexes are retained. Index builds
-consume I/O and can briefly acquire metadata locks; lock waits are bounded.
-See [startup index preparation](docs/agents/development.md#recurring-run-lookup-index).
+KFP 2.18 retains MLMD. API startup performs schema reconciliation and a
+pipeline-reference backfill before the new process serves requests; it does not
+perform the 3.0 MLMD-to-native history migration. Depending on the existing schema
+and data, this work can delay startup or block database writes. Background schedule
+adoption is a separate, later operation and does not make startup migrations online.
 
-Other startup schema changes and the pipeline-reference backfill remain
-synchronous and may delay readiness or block writes. Retention-index
-preparation is separate from this lookup index; background automation and staged
-activation are covered by [#14877](https://github.com/kubeflow/pipelines/pull/14877).
-
-#### Scheduling migration details
-
-- **Recurring-run security:** multi-user recurring runs created before API-owned
-  scheduling state must be reviewed and recreated through the API. Otherwise they
-  stop submitting executions, even when shown as enabled. API startup logs now
-  enumerate affected jobs. See the [migration inventory and procedure](docs/operator-guides/scheduled-service-accounts.md#inventory-before-completing-the-upgrade).
-  Upgrade the API and controller together and apply the multi-user RBAC; generic
-  schedules alone do not replace an upgraded controller in multi-user mode.
-  Block recurring-run creation and recreation until all old API replicas and their
-  in-flight reports have drained. Schedules created during mixed-version API
-  operation also require review and recreation, even if they have scheduling
-  state and are omitted from the migration inventory.
-- **Recurring-run parameters:** API-path schedules now expand scheduling macros
-  inside nested list/struct parameters and support `[[Index]]`, matching embedded
-  workflow scheduling. Review nested values containing literal `[[…]]` or
-  `{{$.…}}` before recreating schedules; these sequences may now be substituted.
+Run retention remains disabled by default. Enabling retention
+prepares indexes in the background without ordinary manual SQL. Previously
+configured retention paused by missing indexes can then resume archival/deletion.
+Use `RUNS_GC_INDEX_PREPARE_ONLY=true` across all replicas to build before catch-up;
+clear it when ready. `RUNS_GC_INDEX_BUILD_TIMEOUT` defaults to `12h` per index
+attempt, separately from the five-second metadata-lock wait. New leaders,
+completed builds and recovery wait a full GC interval before collection.
+Retention indexes are separate from
+the recurring-run lookup index. The startup helper preserves existing `JobUUID`
+column types and builds that lookup index with explicit online DDL during startup,
+retaining valid existing indexes. It stops startup on failure rather than falling
+back to a copying or write-blocking build; brief metadata locks and I/O remain.
+See
+[database migration paths and operator impact](docs/operator-guides/upgrade-2.18.md#database-migration-paths)
+for backup/rehearsal guidance and the conditional online-index procedure.
 
 ## 2.17.1 (2026-08-26)
 

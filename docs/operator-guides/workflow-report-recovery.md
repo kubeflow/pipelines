@@ -1,6 +1,9 @@
 # Workflow reporting: ownership and recovery
 
-Run the read-only scan against the existing 2.17 installation before upgrading:
+To collect additional ownership evidence before an upgrade or investigate
+reporting problems, you can run this read-only scan against the existing
+installation. It is optional; the normal managed upgrade does not depend on it.
+For a 2.17.2 source installation:
 
 ```bash
 python3 tools/upgrade-readiness/readiness.py \
@@ -41,10 +44,15 @@ listing itself; an empty scan cannot prove there are no orphaned records. Compar
 with your existing run/schedule inventory and escalate unexplained omissions. Do not
 grant broad access simply to eliminate an unknown finding.
 
-## Before and after the upgrade
+(before-and-after-the-upgrade)=
+## Reporting checks and recovery
+
+Keep normal metadata backups and verify reporting after the upgrade. If a run
+stops receiving updates or the scan identifies an ownership concern, use the
+following recovery guidance for the affected runs:
 
 1. Preserve original Workflows and persistence-agent evidence until runs have a
-   terminal state recorded in KFP. Avoid TTL/GC/manual deletion during validation.
+   terminal state recorded in KFP. Avoid TTL/GC/manual deletion of affected Workflows while investigating.
    Back up KFP metadata using your established procedure before upgrading.
 2. Check API-server and persistence-agent logs for the affected run ID. Distinguish
    temporary live-lookup failures (`Unavailable` / “will retry”) from namespace,

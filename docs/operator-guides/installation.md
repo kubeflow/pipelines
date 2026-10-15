@@ -1,5 +1,12 @@
 # Installation
 
+:::{note}
+Upgrading an existing installation to 2.18? The
+[2.18 upgrade guide](upgrade-2.18.md) explains automatic schedule adoption and UI
+signing-key initialization during the normal rollout, compatibility checks for
+custom configurations, and troubleshooting.
+:::
+
 As an alternative to deploying Kubeflow Pipelines (KFP) as part of the [Community distribution](https://www.kubeflow.org/docs/started/installing-kubeflow),
 you can also choose to deploy only Kubeflow Pipelines standalone.
 
