@@ -25,7 +25,7 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { ToolbarProps } from 'src/components/Toolbar';
-import { color, commonCss, padding } from 'src/Css';
+import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/StaticGraphParser';
@@ -226,7 +226,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             style={{
               position: 'relative',
               overflow: 'hidden',
-              borderTop: `8px solid ${color.background}`,
             }}
           >
             <DagCanvas
