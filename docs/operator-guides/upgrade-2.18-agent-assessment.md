@@ -201,6 +201,12 @@ Service aliases targeting another receiver. Interrupt a disposable receiver or
 readiness lookup and verify that failure never falls back to shared credentials,
 then recover and retry. If live checks are not authorized, report those boundaries
 as unverified. HTTP artifacts, archived logs and volume paths remain separate.
+
+Local port forwarding with a trusted user header can exercise KFP namespace
+authorization, but cannot establish that the installation's ingress authenticates
+users or strips spoofed identity headers. Record that limitation and separately
+verify the real ingress path before claiming end-user isolation.
+
 See [managed rollout and custom-storage scope](upgrade-2.18.md#preserve-existing-roots-with-storage-enforcement).
 
 Check every authenticated serving UI replica (including custom authenticated
