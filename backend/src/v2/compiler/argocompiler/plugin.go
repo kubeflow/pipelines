@@ -20,6 +20,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 )
@@ -27,6 +28,7 @@ import (
 func (c *workflowCompiler) driverPluginArgs(driverType string) map[string]interface{} {
 	args := map[string]interface{}{
 		"type":                       driverType,
+		"driver_retry_generation":    "{{workflow.annotations." + util.AnnotationKeyRetryGeneration + "}}",
 		"pipeline_name":              c.spec.GetPipelineInfo().GetName(),
 		"run_id":                     runID(),
 		"run_name":                   runResourceName(),
@@ -64,6 +66,9 @@ func driverPlugin(params map[string]interface{}) (*wfapi.Plugin, error) {
 
 // updateDriverPluginArgs preserves existing compiler-generated request arguments.
 func updateDriverPluginArgs(tmpl *wfapi.Template, updates map[string]any) error {
+	if tmpl.Plugin == nil {
+		return fmt.Errorf("template %q has no driver plugin", tmpl.Name)
+	}
 	config, owned, err := driverapi.DecodePluginConfig(tmpl.Plugin.Value)
 	if err != nil {
 		return err

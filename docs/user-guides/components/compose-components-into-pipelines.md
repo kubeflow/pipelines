@@ -172,7 +172,9 @@ See the [`PipelineTask` reference documentation][pipelinetask] for more informat
 On the KFP backend with Argo Workflows, `.set_retry()` configures eligible
 container and nested pipeline drivers as well as container executors. A
 **driver** resolves inputs, checks the cache, and prepares execution. The
-**executor** runs the component after its driver succeeds.
+**executor** runs the component after its driver succeeds. Drivers run through
+the Argo executor plugin; task retry and finalization requests use the same
+authenticated runtime API and generation fences.
 
 Each phase has its own retry budget and backoff. For example,
 `task.set_retry(num_retries=3, policy='Always')` permits an initial driver attempt

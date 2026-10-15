@@ -17,13 +17,14 @@ package executorplugin
 import (
 	"context"
 	"errors"
+	"strconv"
+	"testing"
+
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	drivercommon "github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/require"
-	"strconv"
-	"testing"
 )
 
 type recordingStoppedDriverFinalizer struct {
@@ -143,6 +144,11 @@ func TestFinalizerInvocationBypassesTaskExecutionAndClosesClients(t *testing.T) 
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, 1, wrapped.finalizer.calls)
+	require.Equal(t, args.RunID, wrapped.finalizer.run)
+	require.Equal(t, args.TaskName, wrapped.finalizer.task)
+	require.Equal(t, args.ParentTaskID, wrapped.finalizer.parent)
+	require.Equal(t, int64(4), wrapped.finalizer.generation)
+	require.Nil(t, wrapped.finalizer.iteration)
 	require.True(t, closed)
 }
 func TestRetryInvocationPreservesRetryAndExitOptions(t *testing.T) {

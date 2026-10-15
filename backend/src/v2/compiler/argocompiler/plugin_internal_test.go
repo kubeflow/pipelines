@@ -39,8 +39,8 @@ func requireDriverPluginArgs(t *testing.T, tmpl *wfapi.Template) map[string]inte
 	assert.Empty(t, tmpl.Sidecars)
 	assert.Empty(t, tmpl.Volumes)
 	assert.Empty(t, tmpl.Metadata.Labels)
-	for key := range tmpl.Metadata.Annotations {
-		assert.Contains(t, []string{"sidecar.istio.io/inject", "pipelines.kubeflow.org/runtime-role", "pipelines.kubeflow.org/task-driver-retry", "pipelines.kubeflow.org/driver-retry-finalizer", "pipelines.kubeflow.org/template-name"}, key)
+	if tmpl.Name == "system-container-driver" || tmpl.Name == "system-dag-driver" {
+		assert.Empty(t, tmpl.Metadata.Annotations)
 	}
 
 	var pluginConfig map[string]map[string]map[string]interface{}

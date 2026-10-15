@@ -49,6 +49,7 @@ spec:
       driver-plugin:
         args:
           cache_disabled: false
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
           http_proxy: ""
           https_proxy: ""
           iteration_index: '{{inputs.parameters.iteration-index}}'
@@ -261,6 +262,7 @@ spec:
       driver-plugin:
         args:
           cache_disabled: false
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
           http_proxy: ""
           https_proxy: ""
           iteration_index: '{{inputs.parameters.iteration-index}}'
@@ -404,6 +406,7 @@ spec:
       driver-plugin:
         args:
           cache_disabled: false
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
           exit_task_name: '{{inputs.parameters.exit-task-name}}'
           exit_task_status: '{{inputs.parameters.exit-task-status}}'
           http_proxy: ""

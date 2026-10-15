@@ -17,10 +17,11 @@ package executorplugin
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
-	"strconv"
 )
 
 type driverRetryOptions struct {

@@ -46,7 +46,7 @@ func (c *workflowCompiler) addTaskRetryDriverTemplate(baseName string, task *pip
 	}
 	policy := protoRetryPolicyToArgo(task.GetRetryPolicy().GetPolicy())
 	if policy == "" {
-		// A driver reports API errors by exiting unsuccessfully. OnError alone
+		// A driver reports API errors as Failed nodes. OnError alone
 		// would retry infrastructure errors but omit these recoverable failures.
 		policy = string(wfapi.RetryPolicyAlways)
 	}

@@ -376,14 +376,15 @@ func TestRuntimeTemplatesCarryGenerationWithoutTaskRetries(t *testing.T) {
 	assert.Equal(t, "0", wf.Annotations[util.AnnotationKeyRetryGeneration])
 	drivers, launchers := 0, 0
 	for _, tmpl := range wf.Spec.Templates {
-		switch tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] {
-		case string(util.ExecutionRuntimeRoleDriver):
+		if tmpl.Plugin != nil {
 			drivers++
-		case string(util.ExecutionRuntimeRoleLauncher):
-			launchers++
-		default:
+			assert.Equal(t, "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}", requireDriverPluginArgs(t, &tmpl)["driver_retry_generation"])
 			continue
 		}
+		if tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] != string(util.ExecutionRuntimeRoleLauncher) {
+			continue
+		}
+		launchers++
 		require.NotNil(t, tmpl.Container)
 		found := false
 		for _, env := range tmpl.Container.Env {

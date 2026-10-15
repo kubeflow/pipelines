@@ -79,7 +79,12 @@ func TestCompilePluginDriversDisableTaskRetryFlags(t *testing.T) {
 				}
 				resolved, err := argocommon.ProcessArgs(argologging.NewSlogLogger(argologging.Info, argologging.Text).NewBackgroundContext(), &tmpl, &arguments, nil, argocommon.Parameters{"retries": "7"}, false, "", nil)
 				require.NoError(t, err)
-				assert.Equal(t, before.Spec.Templates[i].Plugin, tmpl.Plugin, "plugin admission must not rewrite request arguments")
+				beforeArgs := requireDriverPluginArgs(t, &before.Spec.Templates[i])
+				currentArgs := requireDriverPluginArgs(t, &tmpl)
+				for key, value := range beforeArgs {
+					assert.Equal(t, value, currentArgs[key], "plugin admission must preserve existing argument %s", key)
+				}
+				assert.JSONEq(t, `{"PLUGIN_CONFIG":"enabled"}`, currentArgs["runtime_args"].(string))
 				args := requireDriverPluginArgs(t, resolved)
 				assert.Equal(t, "false", args["driver_retry_enabled"])
 				assert.Equal(t, "0", args["driver_retry_attempt"])
