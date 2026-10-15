@@ -28,7 +28,7 @@
     "lodash.isfunction": "^3.0.9",
     "markdown-to-jsx": "^9.10.3",
     "proto3-json-serializer": "^4.0.2",
-    "protobufjs": "~8.8.0",
+    "protobufjs": "~8.8.1",
     "re-resizable": "^6.11.2",
     "react": "^19.3.0",
     "react-ace": "^15.0.0",
