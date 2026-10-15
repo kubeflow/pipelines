@@ -36,7 +36,7 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 | --- | --- | --- |
 | 2.18 schema changes and reference backfill | Synchronously during API startup, before that process serves requests | Automatic, but may delay readiness or block database writes. Back up and assess representative upgrade duration and database capacity. |
 | 2.18 recurring-run adoption | In the background after API startup and managed writer handoff | No separate migration Job or blanket schedule recreation. Schedule mutations may be temporarily rejected; inconsistent records require investigation. |
-| Optional run-retention indexes | Background preparation when retention or prepare-only is enabled; requires #14877 | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; conflicting definitions still need diagnosis. Disabled retention with prepare-only off does no preparation. |
+| Optional run-retention indexes | Background preparation when retention or prepare-only is enabled | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; conflicting definitions still need diagnosis. Disabled retention with prepare-only off does no preparation. |
 | 3.0 MLMD-to-native history/execution migration | Separate, not performed by the 2.18 startup path | Replacement-history import and schedule prerequisites do not establish a supported in-place upgrade or active-workload continuity. |
 
 ### Automatic startup schema and data changes
@@ -48,9 +48,8 @@ helper that preserves existing `run_details.JobUUID` column types, including
 shrink existing identifiers to create the index, and retains an existing valid
 index instead of rebuilding it on each restart.
 
-**Release dependency:** this behavior requires [#14874](https://github.com/kubeflow/pipelines/pull/14874)
-to merge into `release-2.18`; verify the final release candidate
-includes it before relying on these guarantees.
+The online helper is delivered in [#14874](https://github.com/kubeflow/pipelines/pull/14874).
+For a pre-release image, verify it includes that change before relying on these guarantees.
 
 Unlike earlier index-related column reductions, this change **does not narrow
 `JobUUID` from `varchar(255)` to `varchar(191)`**. The 191-character convention
@@ -111,11 +110,10 @@ an operator-authored SQL migration for an ordinary supported upgrade.
 
 ### Automatic retention index preparation
 
-**Release dependency:** this behavior requires
-[#14877](https://github.com/kubeflow/pipelines/pull/14877), the backport of
-[#14876](https://github.com/kubeflow/pipelines/pull/14876). Earlier candidates only
-validate these indexes and require operator creation; verify the release includes
-the automation before relying on it.
+Automatic preparation is delivered in
+[#14877](https://github.com/kubeflow/pipelines/pull/14877), adapted from
+[#14876](https://github.com/kubeflow/pipelines/pull/14876). Earlier pre-release images
+only validate these indexes; verify the deployed image includes the automation.
 
 `RUNS_RETENTION_TIME` and `ARCHIVED_RUNS_RETENTION_TIME` remain disabled by default.
 When either is configured, the GC leader prepares both indexes sequentially in the

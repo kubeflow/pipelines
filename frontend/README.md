@@ -211,14 +211,20 @@ back to `enforce` and verify preview/download before upgrading. Do not disable a
 restore custom-root access. Under the prefix policy, MLMD outages deny artifact reads in both enforce/audit modes, including reads of
 otherwise correctly prefixed objects; restoring MLMD restores those reads.
 
-Alternatively, `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` preserves existing
-object-store roots through scoped namespace storage identities without an MLMD
-lookup or object move. It is enforcement, not audit. Upgrade the shared UI before
-namespace receivers and verify their namespace binding, ingress isolation and
-storage permissions before activation. See the
-[2.18 rollout guide](../docs/operator-guides/upgrade-2.18.md#artifact-root-migration).
-
 The old unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name is not an alias and is no longer
 read. Use `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` for audit/enforce; do not put these values
 in `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`. See the
 [2.18 configuration reference](../docs/operator-guides/server-config.md#artifact-ownership-controls-in-218).
+
+## Storage-authoritative artifact access
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` uses each namespace artifact
+service's restricted storage identity after user/namespace authorization. Existing
+roots need no prescribed prefix or MLMD record. This is enforcement, not audit.
+In 2.18, configure credentials and endpoints in the namespace service environment
+or workload identity; browser provider/Secret selectors are discarded. Verify
+proxy ingress isolation before activation. Upgrade all shared-UI replicas in
+`key-prefix` mode before reconciling namespace services that require the authorized
+namespace header; enable storage mode only after all receivers are updated. The
+receiver binding and generated standard NetworkPolicy apply in both modes. See the
+[prerequisites, scope and rollout guide](../docs/operator-guides/artifact-authorization.md).

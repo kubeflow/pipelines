@@ -2,7 +2,23 @@ Changelog
 
 ## Unreleased
 
-### Upgrade notes for 2.18
+### Artifact authorization
+
+- Deployments with restricted namespace storage credentials can select
+  `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated shared UI
+  to retain historical object roots without moving bytes or requiring MLMD records.
+  This is enforced authorization, not audit. Default `key-prefix` behavior remains
+  for shared credentials. Upgrade all shared-UI replicas in `key-prefix` mode
+  before reconciling the profile controller and namespace receivers. Receivers
+  require the UI's authorized namespace header in both modes; old UI replicas
+  otherwise receive HTTP 403. Before selecting storage mode, wait for all receivers,
+  reconcile proxy ingress policies, and verify actual storage/network isolation.
+  Direct proxy consumers must use the authenticated shared UI. In 2.18, storage mode uses namespace-service environment
+  or workload-identity credentials; browser provider/Secret selectors are discarded.
+  HTTP artifacts and archived logs retain separate policies. See the
+  [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
+
+### Upgrade notes
 
 See the [2.18 upgrade guide](docs/operator-guides/upgrade-2.18.md) for applicable
 operator actions and client changes. Standard managed installations use their
@@ -63,17 +79,6 @@ normal deployment upgrade process; eligible schedules are adopted automatically.
   workflow identities, private upload scope/references, log and TensorBoard grants.
   Stock roles are updated; custom roles need scoped changes. See
   [RBAC/client migration](docs/operator-guides/rbac-migration-2.18.md).
-- **Artifacts:** default `key-prefix` enforcement requires namespace-prefixed keys,
-  even with matching MLMD evidence. Opt-in
-  `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` preserves historical roots
-  without moving objects when namespace-specific storage credentials enforce access.
-  It is enforcement, not audit, and does not depend on MLMD. Shared-credential
-  deployments retain the prefix policy. In **both** modes, upgrade shared UI replicas
-  first, then reconcile updated namespace services with their receiver namespace
-  checks and generated ingress policies; old UI replicas otherwise receive HTTP 403.
-  Direct proxy clients must use the authenticated UI. Verify storage and network
-  isolation before opting in; HTTP artifacts and archived logs keep separate policies. See
-  [authorization choices and rollout](docs/operator-guides/upgrade-2.18.md#artifact-root-migration).
 - **UI availability and cache:** shared TensorBoard signing keys initialize
   automatically. First adoption interrupts the UI and invalidates old URLs; reopen
   TensorBoard. Later UI updates still use `Recreate` unless configured for rolling
@@ -122,8 +127,7 @@ perform the 3.0 MLMD-to-native history migration. Depending on the existing sche
 and data, this work can delay startup or block database writes. Background schedule
 adoption is a separate, later operation and does not make startup migrations online.
 
-Run retention remains disabled by default. With the pending retention automation
-in [#14877](https://github.com/kubeflow/pipelines/pull/14877), enabling retention
+Run retention remains disabled by default. Enabling retention
 prepares indexes in the background without ordinary manual SQL. Previously
 configured retention paused by missing indexes can then resume archival/deletion.
 Use `RUNS_GC_INDEX_PREPARE_ONLY=true` across all replicas to build before catch-up;
@@ -131,11 +135,11 @@ clear it when ready. `RUNS_GC_INDEX_BUILD_TIMEOUT` defaults to `12h` per index
 attempt, separately from the five-second metadata-lock wait. New leaders,
 completed builds and recovery wait a full GC interval before collection.
 Retention indexes are separate from
-the recurring-run lookup index. A pending release fix preserves existing `JobUUID`
+the recurring-run lookup index. The startup helper preserves existing `JobUUID`
 column types and builds that lookup index with explicit online DDL during startup,
 retaining valid existing indexes. It stops startup on failure rather than falling
 back to a copying or write-blocking build; brief metadata locks and I/O remain.
-This guarantee depends on the online-index fix landing in the release candidate. See
+See
 [database migration paths and operator impact](docs/operator-guides/upgrade-2.18.md#database-migration-paths)
 for backup/rehearsal guidance and the conditional online-index procedure.
 

@@ -300,8 +300,8 @@ not serialize all schema changes. Background schedule adoption is a later step,
 not proof of a lock-free or zero-downtime database upgrade. Do not run DDL or mutate
 migration markers as part of this read-only assessment.
 
-For the recurring-run lookup index, verify the final candidate includes the pending
-online JobUUID-index change. Inspect the existing `JobUUID` type and
+For the recurring-run lookup index, verify the deployed image includes the
+online JobUUID-index helper delivered by [#14874](https://github.com/kubeflow/pipelines/pull/14874). Inspect the existing `JobUUID` type and
 `idx_run_details_job_uuid` definition without changing them. That helper preserves
 existing column types and valid indexes; fresh tables use `varchar(255)`. Missing
 indexes use MySQL `ALGORITHM=INPLACE, LOCK=NONE` with a 191-character prefix, or
@@ -312,8 +312,8 @@ duration, brief metadata locks and I/O; do not treat this one online operation a
 proof that every startup migration is online.
 
 Inspect actual retention settings; default zero disables automatic retention.
-Verify whether the candidate includes [#14877](https://github.com/kubeflow/pipelines/pull/14877)
-before describing index preparation as automatic. With that change, retention or
+For pre-release images, verify inclusion of merged [#14877](https://github.com/kubeflow/pipelines/pull/14877)
+before describing index preparation as automatic. In 2.18, retention or
 `RUNS_GC_INDEX_PREPARE_ONLY=true` starts background preparation; both off does no
 work. Inspect `idx_run_gc_lifecycle` and `idx_run_gc_archived`, including MySQL
 visibility and PostgreSQL validity, plus preparation/timeout/retry diagnostics.
