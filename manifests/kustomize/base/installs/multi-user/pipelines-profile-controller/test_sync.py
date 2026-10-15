@@ -563,7 +563,7 @@ def test_driver_agent_ca_cert_path_default_and_override():
 @pytest.mark.parametrize(
     'sync_server, expected',
     [
-        (ENV_BASE, 'true'),
+        (ENV_BASE, 'false'),
         ({**ENV_BASE, 'ARTIFACT_PREVIEWS_ENABLED': 'false'}, 'false'),
         ({**ENV_BASE, 'ARTIFACT_PREVIEWS_ENABLED': 'true'}, 'true'),
         ({**ENV_BASE, 'ARTIFACT_PREVIEWS_ENABLED': ''}, ''),
@@ -604,7 +604,7 @@ def test_artifact_preview_policy_is_sourced_from_installation_config() -> None:
             directory.parents[2] / 'pipeline' / 'kfp-launcher-configmap.yaml'
         ).read_text()
     )
-    assert launcher['data']['artifactPreviewsEnabled'] == 'true'
+    assert launcher['data']['artifactPreviewsEnabled'] == 'false'
     environment = deployment['spec']['template']['spec']['containers'][0]['env']
     setting = next(
         item

@@ -9,24 +9,25 @@ to customize the behavior of servers.
 
 ## Automatic artifact preview generation
 
-Python components using an SDK with automatic preview support generate bounded
-previews for supported Parquet Dataset and XGBoost Model directory outputs by
-default. Dataset previews can contain up to ten rows and twenty columns.
-Disable automatic generation before running components if this is inappropriate
-for the deployment's data.
+Automatic artifact preview generation is **off by default** and requires
+deployment-level opt-in. After enablement, Python components using a supporting
+SDK automatically preview supported dataframe and XGBoost/PyTorch/Transformers
+directory outputs without per-component opt-in. Dataset previews can contain up
+to ten rows and twenty columns; review whether exposing these samples and model
+configuration is appropriate for the deployment's data before enabling it.
 
-Set `artifactPreviewsEnabled: "false"` in the existing `kfp-launcher` ConfigMap
+Set `artifactPreviewsEnabled: "true"` in the existing `kfp-launcher` ConfigMap
 in the **installation namespace**. Preserve its other keys, including pipeline
 root and storage-provider settings. For an installation in `kubeflow`:
 
 ```bash
 kubectl -n kubeflow patch configmap kfp-launcher --type merge \
-  -p '{"data":{"artifactPreviewsEnabled":"false"}}'
+  -p '{"data":{"artifactPreviewsEnabled":"true"}}'
 ```
 
 Persist the same override in your deployment configuration so subsequent
-upgrades do not restore the default. Set the value to `"true"` to re-enable
-generation. An absent setting defaults to enabled; invalid values or read
+upgrades do not restore the default. Set the value to `"false"` to disable
+generation. An absent setting disables generation; invalid values or read
 errors disable generation and produce a warning in the component logs.
 
 For a **standalone installation**, the existing runtime configuration volume
@@ -52,7 +53,7 @@ The SDK reads `/etc/kfp/launcher-config/artifactPreviewsEnabled` before framewor
 hooks and again before publishing a preview. Kubernetes volume updates are
 eventually consistent; the switch is not instantaneous for running pods.
 It takes precedence over component preview settings without recompiling
-pipelines. The opt-out stops **automatic generation**, not normal artifact
+pipelines. Disabling the setting stops **automatic generation**, not normal artifact
 production, access, or downloads. It does not remove or hide previously generated,
 cached, imported, or manually written previews.
 

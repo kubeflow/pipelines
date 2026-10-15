@@ -15,11 +15,15 @@
 
 from __future__ import annotations
 
+import codecs
+from collections.abc import Mapping
+import csv
 from dataclasses import dataclass
 import datetime
 import decimal
 import functools
 import importlib
+import io
 import itertools
 import json
 import logging
@@ -27,6 +31,7 @@ import math
 from pathlib import Path
 import tempfile
 import threading
+from types import ModuleType
 from typing import Any, Callable
 
 from kfp.dsl.types.artifact_types import Artifact
@@ -36,13 +41,15 @@ MAX_ROWS = 10
 MAX_COLUMNS = 20
 MAX_STRING_LENGTH = 256
 MAX_SAFE_INTEGER = 2**53 - 1
+MAX_TEXT_SOURCE_BYTES = 1024 * 1024
 
 _LOGGER = logging.getLogger(__name__)
 _DEPLOYMENT_CONFIG_PATH = Path(
     '/etc/kfp/launcher-config/artifactPreviewsEnabled')
 _HOOK_LOCK = threading.RLock()
 _SESSIONS: list[ArtifactPreviewSession] = []
-_SAVE_METHODS: list[tuple[type, Callable[..., Any], Callable[..., Any]]] = []
+_SAVE_METHODS: list[tuple[type | ModuleType, str, Callable[..., Any],
+                          Callable[..., Any]]] = []
 
 
 class PreviewGenerationError(ValueError):
@@ -57,7 +64,7 @@ def _deployment_allows_previews() -> bool:
         value = _DEPLOYMENT_CONFIG_PATH.read_text(
             encoding='utf-8').strip().lower()
     except FileNotFoundError:
-        return True
+        return False
     except (OSError, UnicodeError) as error:
         _LOGGER.warning(
             'Automatic artifact previews disabled: cannot read %s. '
@@ -145,8 +152,11 @@ class _Values:
 def _parquet_preview(directory: Path, include_rows: bool) -> dict[str, Any]:
     """Read the footer and one projected batch, never a complete Parquet
     table."""
-    candidates = list(itertools.islice(directory.glob('*.parquet'), 2))
-    if len(candidates) != 1 or candidates[0].is_symlink():
+    candidates = list(
+        itertools.islice((path for path in directory.iterdir()
+                          if path.suffix.lower() == '.parquet'), 2))
+    if len(candidates) != 1 or candidates[0].is_symlink(
+    ) or not candidates[0].is_file():
         raise PreviewGenerationError(
             'Store exactly one Parquet file directly inside each Dataset directory.'
         )
@@ -167,6 +177,308 @@ def _parquet_preview(directory: Path, include_rows: bool) -> dict[str, Any]:
         ) from error
 
 
+def _dataset_preview(directory: Path, include_rows: bool) -> dict[str, Any]:
+    """Select one supported data file without guessing among multiple
+    outputs."""
+    extensions = {
+        '.parquet', '.csv', '.json', '.jsonl', '.ndjson', '.arrow', '.ipc',
+        '.feather'
+    }
+    candidates = list(
+        itertools.islice(
+            (path for path in directory.iterdir() if
+             path.suffix.lower() in extensions and path.name != 'preview.json'),
+            2))
+    if len(candidates) != 1 or candidates[0].is_symlink(
+    ) or not candidates[0].is_file():
+        raise PreviewGenerationError(
+            'Store exactly one supported data file directly inside each Dataset directory.'
+        )
+    path = candidates[0]
+    if path.suffix.lower() == '.parquet':
+        return _parquet_preview(directory, include_rows)
+    if path.suffix.lower() in {'.arrow', '.ipc', '.feather'}:
+        return _arrow_preview(path, include_rows)
+    try:
+        return _text_dataset_preview(path, include_rows)
+    except (csv.Error, RecursionError) as error:
+        raise PreviewGenerationError(
+            f'The data file could not be sampled within the preview limits: {error}'
+        ) from error
+
+
+def _dataset_payload(format_name: str, columns: list[tuple[str, str]],
+                     rows: list[list[Any]], values: _Values, include_rows: bool,
+                     total_rows: int | None, total_columns: int | None,
+                     more_rows: bool, more_columns: bool) -> dict[str, Any]:
+    """Apply the shared dataset contract and encoded-byte budget."""
+    preview: dict[str, Any] = {
+        'version': 1,
+        'kind': 'dataset',
+        'format': format_name,
+        'columns': [{
+            'name': values.text(name),
+            'dtype': values.text(dtype)
+        } for name, dtype in columns],
+        'rows': rows if include_rows else [],
+        'total_rows': total_rows,
+        'total_columns': total_columns,
+        'sample': {
+            'method': 'head',
+            'rows_truncated': include_rows and more_rows,
+            'columns_truncated': more_columns,
+            'values_truncated': values.shortened,
+            'redacted': False,
+            'rows_omitted': not include_rows,
+        },
+    }
+    if preview['rows'] and not columns:
+        raise PreviewGenerationError(
+            'A row sample requires at least one column.')
+    while preview['rows'] and len(_encode(preview)) > MAX_BYTES:
+        preview['rows'].pop()
+        preview['sample']['rows_truncated'] = True
+    return preview
+
+
+def _text_prefix(path: Path) -> tuple[str, bool]:
+    """Bound text input as well as output; never read an entire large file."""
+    with path.open('rb') as source:
+        content = source.read(MAX_TEXT_SOURCE_BYTES + 1)
+    complete = len(content) <= MAX_TEXT_SOURCE_BYTES
+    decoder = codecs.getincrementaldecoder('utf-8-sig')()
+    return decoder.decode(
+        content[:MAX_TEXT_SOURCE_BYTES], final=complete), complete
+
+
+def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate fields rather than silently displaying a different
+    row."""
+    result = {}
+    for name, value in pairs:
+        if name in result:
+            raise PreviewGenerationError(
+                'Duplicate JSON field names are not supported.')
+        result[name] = value
+    return result
+
+
+def _json_records(text: str, complete: bool,
+                  lines: bool) -> tuple[list[dict[str, Any]], bool]:
+    """Decode at most ten records from JSON arrays or JSON Lines prefixes."""
+    decoder = json.JSONDecoder(object_pairs_hook=_json_object)
+    records: list[dict[str, Any]] = []
+    offset = 0
+    after_comma = False
+    text = text.lstrip()
+    if not lines:
+        if not text.startswith('['):
+            raise PreviewGenerationError('Expected a JSON records array.')
+        offset = 1
+    while True:
+        while offset < len(text) and text[offset].isspace():
+            offset += 1
+        if not lines and offset < len(text) and text[offset] == ']':
+            if after_comma or text[offset + 1:].strip():
+                raise PreviewGenerationError('Invalid JSON records array.')
+            return records, True
+        if offset == len(text):
+            if lines and complete:
+                return records, True
+            raise PreviewGenerationError(
+                'A complete JSON sample exceeds the 1 MiB read limit.')
+        if len(records) == MAX_ROWS:
+            return records, False
+        record, end = decoder.raw_decode(text, offset)
+        if not isinstance(record, dict):
+            raise PreviewGenerationError(
+                'JSON rows must be objects with column names.')
+        records.append(record)
+        after_comma = False
+        offset = end
+        if lines:
+            if offset < len(text) and not text[offset].isspace():
+                raise PreviewGenerationError(
+                    'JSON Lines records must be separated by whitespace.')
+        else:
+            while offset < len(text) and text[offset].isspace():
+                offset += 1
+            if offset < len(text) and text[offset] == ',':
+                offset += 1
+                after_comma = True
+            elif offset >= len(text) or text[offset] != ']':
+                raise PreviewGenerationError(
+                    'JSON records must be separated by commas.')
+
+
+def _json_columns(document: Any) -> tuple[list[str], list[list[Any]], int]:
+    """Support bounded Pandas column-oriented and split-oriented JSON files."""
+    if not isinstance(document, dict):
+        raise PreviewGenerationError(
+            'Expected JSON records, columns, or split orientation.')
+    if isinstance(document.get('columns'), list) and isinstance(
+            document.get('data'), list):
+        names, data = document['columns'], document['data']
+        if (not all(isinstance(name, str) for name in names) or
+                any(not isinstance(row, list) or len(row) != len(names)
+                    for row in data)):
+            raise PreviewGenerationError(
+                'JSON split columns and rows do not match.')
+        return names, [row[:MAX_COLUMNS] for row in data[:MAX_ROWS]], len(data)
+    if not all(isinstance(column, dict) for column in document.values()):
+        raise PreviewGenerationError(
+            'Use JSON records, columns, split, or JSON Lines.')
+    names = list(document)
+    indexes = list(
+        dict.fromkeys(
+            index for column in document.values() for index in column))
+    rows = [[document[name].get(index)
+             for name in names[:MAX_COLUMNS]]
+            for index in indexes[:MAX_ROWS]]
+    return names, rows, len(indexes)
+
+
+def _json_dtype(values: list[Any]) -> str:
+    """Describe only observed JSON types, without guessing missing file
+    schema."""
+    names = {
+        ('null' if value is None else 'boolean'
+         if isinstance(value, bool) else 'integer' if isinstance(value, int)
+         else 'number' if isinstance(value, float) else 'string' if isinstance(
+             value, str) else 'array' if isinstance(value, list) else 'object')
+        for value in values
+    }
+    return f'{" | ".join(sorted(names))} (sample)' if names else 'unknown'
+
+
+def _text_dataset_preview(path: Path, include_rows: bool) -> dict[str, Any]:
+    """Sample CSV or JSON without installing a dataframe library."""
+    text, complete = _text_prefix(path)
+    values = _Values()
+    extension = path.suffix.lower()
+    total_columns: int | None
+    raw_rows: list[list[Any]]
+    rows: list[list[Any]]
+    if extension == '.csv':
+        if not complete:
+            text = text.rsplit('\n', 1)[0] + '\n' if '\n' in text else ''
+        reader = csv.reader(io.StringIO(text, newline=''), strict=True)
+        names = next(reader, None)
+        if names is None:
+            raise PreviewGenerationError(
+                'CSV previews require a complete header row.')
+        raw_rows = list(itertools.islice(reader, MAX_ROWS +
+                                         1)) if include_rows else []
+        if any(len(row) != len(names) for row in raw_rows):
+            raise PreviewGenerationError(
+                'CSV rows do not match the header width.')
+        total_rows = len(raw_rows) if include_rows and complete and len(
+            raw_rows) <= MAX_ROWS else None
+        total_columns = len(names)
+        more_rows = not complete or len(raw_rows) > MAX_ROWS
+        rows = [[values.value(cell)
+                 for cell in row[:MAX_COLUMNS]]
+                for row in raw_rows[:MAX_ROWS]]
+        columns = [(name, 'string') for name in names[:MAX_COLUMNS]]
+        format_name = 'csv'
+    else:
+        lines = extension in {'.jsonl', '.ndjson'}
+        if lines or text.lstrip().startswith('['):
+            records, exhausted = _json_records(text, complete, lines)
+            names = list(
+                dict.fromkeys(name for record in records for name in record))
+            raw_rows = [[record.get(name)
+                         for name in names[:MAX_COLUMNS]]
+                        for record in records]
+            total_rows = len(records) if exhausted else None
+            total_columns = len(names) if exhausted else None
+            more_rows = not exhausted
+        else:
+            if not complete:
+                raise PreviewGenerationError(
+                    'Column/split-oriented JSON exceeds 1 MiB; use records or JSON Lines for large files.'
+                )
+            names, raw_rows, total_rows = _json_columns(
+                json.loads(text, object_pairs_hook=_json_object))
+            total_columns = len(names)
+            more_rows = total_rows > len(raw_rows)
+        columns = [(name, _json_dtype([row[index]
+                                       for row in raw_rows]))
+                   for index, name in enumerate(names[:MAX_COLUMNS])]
+        rows = []
+        if include_rows:
+            for row in raw_rows:
+                cells = []
+                for cell in row:
+                    if isinstance(cell, (dict, list)):
+                        values.shortened = True
+                        cells.append('<nested JSON value omitted>')
+                    else:
+                        cells.append(values.value(cell))
+                rows.append(cells)
+        format_name = 'jsonl' if lines else 'json'
+    return _dataset_payload(format_name, columns, rows, values, include_rows,
+                            total_rows, total_columns, more_rows,
+                            len(names) > MAX_COLUMNS)
+
+
+def _arrow_preview(path: Path, include_rows: bool) -> dict[str, Any]:
+    """Read projected IPC batches, including Feather v2, without reading all
+    rows."""
+    try:
+        arrow = importlib.import_module('pyarrow')
+        ipc = importlib.import_module('pyarrow.ipc')
+    except (ImportError, OSError) as error:
+        raise PreviewGenerationError(
+            'Install PyArrow for Arrow/Feather previews.') from error
+    values = _Values()
+    try:
+        with arrow.memory_map(str(path), 'r') as source:
+            is_file = source.read(6) == b'ARROW1'
+            source.seek(0)
+            open_reader = ipc.open_file if is_file else ipc.open_stream
+            schema = open_reader(source).schema
+            fields = list(itertools.islice(schema, MAX_COLUMNS))
+            rows: list[list[Any]] = []
+            total_rows = None
+            more_rows = False
+            if include_rows:
+                source.seek(0)
+                reader = open_reader(
+                    source,
+                    options=ipc.IpcReadOptions(
+                        included_fields=list(range(len(fields)))))
+                batches = (reader.get_batch(index)
+                           for index in range(reader.num_record_batches)
+                          ) if is_file else iter(reader)
+                exhausted = True
+                seen = 0
+                for index, batch in enumerate(batches):
+                    seen += batch.num_rows
+                    for row_index in range(
+                            min(batch.num_rows, MAX_ROWS + 1 - len(rows))):
+                        rows.append([
+                            _parquet_cell(column[row_index], arrow, values)
+                            for column in batch.columns
+                        ])
+                    if len(rows) > MAX_ROWS or index == 63:
+                        exhausted = False
+                        break
+                more_rows = not exhausted
+                if exhausted or (is_file and reader.num_record_batches == 1):
+                    total_rows = seen
+                rows = rows[:MAX_ROWS]
+            return _dataset_payload(
+                'feather' if path.suffix.lower() == '.feather' else 'arrow',
+                [(field.name, str(field.type)) for field in fields], rows,
+                values, include_rows, total_rows, len(schema), more_rows,
+                len(schema) > len(fields))
+    except (arrow.ArrowException, OverflowError) as error:
+        raise PreviewGenerationError(
+            f'Could not read a bounded Arrow/Feather sample: {error}'
+        ) from error
+
+
 def _parquet_cell(scalar: Any, arrow: Any, values: _Values) -> Any:
     """Decode scalar cells only; do not materialize nested or binary
     payloads."""
@@ -174,7 +486,21 @@ def _parquet_cell(scalar: Any, arrow: Any, values: _Values) -> Any:
         return None
     data_type = scalar.type
     if arrow.types.is_dictionary(data_type):
-        data_type = data_type.value_type
+        scalar = scalar.value
+        return _parquet_cell(scalar, arrow, values)
+    string_types: list[Callable[[Any], bool]] = [
+        arrow.types.is_string, arrow.types.is_large_string
+    ]
+    if hasattr(arrow.types, 'is_string_view'):
+        string_types.append(arrow.types.is_string_view)
+    if any(supported(data_type) for supported in string_types):
+        buffer = scalar.as_buffer()
+        byte_limit = MAX_STRING_LENGTH * 4 + 4
+        decoder = codecs.getincrementaldecoder('utf-8')()
+        text = decoder.decode(
+            buffer.slice(0, min(buffer.size, byte_limit)).to_pybytes(),
+            final=buffer.size <= byte_limit)
+        return values.text(text)
     supported_types = (
         arrow.types.is_boolean,
         arrow.types.is_integer,
@@ -184,8 +510,6 @@ def _parquet_cell(scalar: Any, arrow: Any, values: _Values) -> Any:
         arrow.types.is_time,
         arrow.types.is_timestamp,
         arrow.types.is_duration,
-        arrow.types.is_string,
-        arrow.types.is_large_string,
     )
     if any(supported(data_type) for supported in supported_types):
         return values.value(scalar.as_py())
@@ -218,36 +542,13 @@ def _parquet_sample(parquet: Any, arrow: Any,
                 for column in batch.columns
             ]
                     for row_index in range(batch.num_rows)]
-    preview: dict[str, Any] = {
-        'version': 1,
-        'kind': 'dataset',
-        'format': 'parquet',
-        'columns': [{
-            'name': values.text(field.name),
-            'dtype': values.text(str(field.type)),
-        } for field in fields],
-        'rows': rows,
-        'total_rows': parquet.metadata.num_rows,
-        'total_columns': len(parquet.schema_arrow),
-        'sample': {
-            'method':
-                'head',
-            'rows_truncated':
-                include_rows and parquet.metadata.num_rows > len(rows),
-            'columns_truncated':
-                len(parquet.schema_arrow) > len(fields),
-            'values_truncated':
-                values.shortened,
-            'redacted':
-                False,
-            'rows_omitted':
-                not include_rows,
-        },
-    }
-    while rows and len(_encode(preview)) > MAX_BYTES:
-        rows.pop()
-        preview['sample']['rows_truncated'] = True
-    return preview
+    return _dataset_payload('parquet',
+                            [(field.name, str(field.type)) for field in fields],
+                            rows, values,
+                            include_rows, parquet.metadata.num_rows,
+                            len(parquet.schema_arrow), parquet.metadata.num_rows
+                            > len(rows),
+                            len(parquet.schema_arrow) > len(fields))
 
 
 def _xgboost_preview(model: Any, framework: Any) -> dict[str, Any]:
@@ -276,48 +577,162 @@ def _xgboost_preview(model: Any, framework: Any) -> dict[str, Any]:
     tree_count = tree_config.get('gbtree_model_param', {}).get('num_trees')
     if tree_count is not None:
         structure['tree_count'] = int(tree_count)
+    return _model_preview(
+        'xgboost', framework.__version__, f'xgboost.{type(model).__name__}',
+        parameters, structure, [
+            'Current configuration at save time, not a complete training record. '
+            'Unset parameters and fit-time arguments not retained by the estimator are omitted.',
+        ])
+
+
+def _torch_preview(model: Any, framework: Any) -> dict[str, Any]:
+    """Summarize live tensors without reading their values or loading a
+    checkpoint."""
+    structure: dict[str, Any]
+    if isinstance(model, framework.nn.Module):
+        tensors = dict(model.named_parameters())
+        structure = {
+            'parameter_count':
+                sum(parameter.numel() for parameter in tensors.values()),
+            'trainable_parameter_count':
+                sum(parameter.numel()
+                    for parameter in tensors.values()
+                    if parameter.requires_grad),
+            'buffer_count':
+                sum(1 for _ in model.buffers()),
+        }
+        estimator_class = f'{type(model).__module__}.{type(model).__qualname__}'
+        note = 'Module structure at save time; no weights or tensor values are included.'
+    else:
+        state = model
+        if isinstance(state, Mapping):
+            for key in ('model_state_dict', 'state_dict'):
+                if isinstance(state.get(key), Mapping):
+                    state = state[key]
+                    break
+        if not isinstance(state, Mapping):
+            raise PreviewGenerationError(
+                'PyTorch previews support modules and state dictionaries.')
+        tensors = {
+            name: value
+            for name, value in state.items()
+            if isinstance(name, str) and isinstance(value, framework.Tensor)
+        }
+        if not tensors:
+            raise PreviewGenerationError(
+                'No model tensors were found in this PyTorch checkpoint.')
+        structure = {
+            'tensor_count':
+                len(tensors),
+            'tensor_element_count':
+                sum(tensor.numel() for tensor in tensors.values()),
+        }
+        estimator_class = 'PyTorch state_dict'
+        note = (
+            'State dictionaries may contain parameters and buffers. Architecture, training '
+            'hyperparameters, and trainability cannot be recovered from them; tensor values are omitted.'
+        )
+    structure['tensors'] = {
+        name: {
+            'shape': list(tensor.shape),
+            'dtype': str(tensor.dtype)
+        } for name, tensor in itertools.islice(tensors.items(), 100)
+    }
+    notes = [note]
+    if len(tensors) > 100:
+        notes.append('Only the first 100 tensor descriptions are included.')
+    return _model_preview('pytorch', framework.__version__, estimator_class, {},
+                          structure, notes)
+
+
+def _transformers_preview(directory: Path) -> dict[str, Any] | None:
+    """Read native Transformers configuration JSON, never model weights."""
+    path = directory / 'config.json'
+    if not path.exists():
+        return None
+    if path.is_symlink() or not path.is_file():
+        raise PreviewGenerationError(
+            'Transformers config.json must be a regular file.')
+    with path.open('rb') as source:
+        content = source.read(MAX_BYTES + 1)
+    if len(content) > MAX_BYTES:
+        raise PreviewGenerationError(
+            'Transformers config.json exceeds the 64 KiB read limit.')
+    config = json.loads(content, object_pairs_hook=_json_object)
+    if (not isinstance(config, dict) or
+            not isinstance(config.get('model_type'), str) or
+            not isinstance(config.get('transformers_version'), str)):
+        return None
+    architectures = config.get('architectures')
+    estimator_class = (f'transformers.{architectures[0]}'
+                       if isinstance(architectures, list) and architectures and
+                       isinstance(architectures[0], str) else
+                       'Architecture not recorded')
+    parameters = {
+        name: value
+        for name, value in config.items()
+        if not name.startswith('_') and
+        name not in {'architectures', 'model_type', 'transformers_version'}
+    }
+    return _model_preview(
+        'transformers', config['transformers_version'], estimator_class,
+        parameters, {'model_type': config['model_type']}, [
+            'Configuration from the native save_pretrained config.json file. '
+            'Model weights were not opened or validated; this is not a training history.',
+        ])
+
+
+def _model_preview(framework_name: str, framework_version: str,
+                   estimator_class: str, parameters: dict[str, Any],
+                   structure: dict[str,
+                                   Any], notes: list[str]) -> dict[str, Any]:
+    """Apply one bounded, JSON-safe model contract across supported
+    frameworks."""
     values = _Values()
+    bounded_structure = {
+        name: values.value(value)
+        for name, value in itertools.islice(structure.items(), 100)
+    }
     hyperparameters = {}
     for name, value in itertools.islice(parameters.items(),
-                                        100 - len(structure)):
+                                        100 - len(bounded_structure)):
         if not isinstance(name, str) or len(name) > MAX_STRING_LENGTH:
             values.shortened = True
             continue
         hyperparameters[name] = values.value(value)
     values.shortened |= len(parameters) > len(hyperparameters)
     preview: dict[str, Any] = {
-        'version':
-            1,
-        'kind':
-            'model',
+        'version': 1,
+        'kind': 'model',
         'framework': {
-            'name': 'xgboost',
-            'version': values.text(framework.__version__)
+            'name': framework_name,
+            'version': values.text(framework_version)
         },
-        'estimator_class':
-            values.text(f'xgboost.{type(model).__name__}'),
-        'hyperparameters':
-            hyperparameters,
-        'structure':
-            structure,
-        'notes': [
-            'Current configuration at save time, not a complete training record. '
-            'Unset parameters and fit-time arguments not retained by the estimator are omitted.',
-        ],
+        'estimator_class': values.text(estimator_class),
+        'hyperparameters': hyperparameters,
+        'structure': bounded_structure,
+        'notes': list(notes),
     }
     if values.shortened:
         preview['notes'].append(
             'Some parameter values were shortened or omitted.')
-    while hyperparameters and len(_encode(preview)) > MAX_BYTES:
-        largest = max(
-            hyperparameters,
-            key=lambda key: len(_encode({key: hyperparameters[key]})))
-        del hyperparameters[largest]
-        if 'Some parameters were omitted to keep the preview within 64 KiB.' not in preview[
-                'notes']:
-            preview['notes'].append(
-                'Some parameters were omitted to keep the preview within 64 KiB.'
-            )
+    budget_note = 'Some summary entries were omitted to keep the preview within 64 KiB.'
+    while len(_encode(preview)) > MAX_BYTES and (hyperparameters or
+                                                 bounded_structure):
+        section, largest = max(
+            ((section, key)
+             for section in (hyperparameters, bounded_structure)
+             for key in section),
+            key=lambda item: len(_encode({item[1]: item[0][item[1]]})))
+        value = section[largest]
+        if isinstance(value, dict) and value:
+            value.popitem()
+        elif isinstance(value, list) and value:
+            value.pop()
+        else:
+            del section[largest]
+        if budget_note not in preview['notes']:
+            preview['notes'].append(budget_note)
     return preview
 
 
@@ -335,34 +750,74 @@ class _SavedModel:
     preview: dict[str, Any]
 
 
-def _save_wrapper(original: Callable[..., Any],
-                  framework: Any) -> Callable[..., Any]:
+def _save_wrapper(original: Callable[..., Any], framework: Any,
+                  preview_fn: Callable[[Any, Any], dict[str, Any]],
+                  model_arg: str, filename_arg: str) -> Callable[..., Any]:
     """Observe a successful native save without changing its arguments or
     result."""
 
     @functools.wraps(original)
-    def save(model: Any, fname: Any, *args: Any, **kwargs: Any) -> Any:
-        result = original(model, fname, *args, **kwargs)
+    def save(*args: Any, **kwargs: Any) -> Any:
+        result = original(*args, **kwargs)
+        model = args[0] if args else kwargs[model_arg]
+        fname = args[1] if len(args) > 1 else kwargs[filename_arg]
         with _HOOK_LOCK:
             sessions = tuple(_SESSIONS)
         for session in sessions:
-            session.capture_model(model, fname, framework)
+            session.capture_model(model, fname, framework, preview_fn)
         return result
 
     return save
 
 
-def _restore_save_hooks() -> None:
+def _restore_save_hooks(start: int = 0) -> None:
     """Restore installed hooks without overwriting a later framework
     integration."""
-    for model_class, original, wrapper in reversed(_SAVE_METHODS):
-        if getattr(model_class, 'save_model', None) is wrapper:
-            setattr(model_class, 'save_model', original)
+    for owner, method, original, wrapper in reversed(_SAVE_METHODS[start:]):
+        if getattr(owner, method, None) is wrapper:
+            setattr(owner, method, original)
         else:
             _LOGGER.warning(
-                'A framework integration replaced %s.save_model during execution; '
-                'its replacement was left unchanged.', model_class.__name__)
-    _SAVE_METHODS.clear()
+                'A framework integration replaced %s.%s during execution; '
+                'its replacement was left unchanged.', owner.__name__, method)
+    del _SAVE_METHODS[start:]
+
+
+def _install_save_hooks() -> None:
+    """Install available adapters independently; a broken optional one must not
+    disable others."""
+    for name in ('xgboost', 'torch'):
+        try:
+            framework = importlib.import_module(name)
+        except (ImportError, OSError, RuntimeError) as error:
+            _LOGGER.debug('Optional %s preview adapter unavailable: %s', name,
+                          error)
+            continue
+        start = len(_SAVE_METHODS)
+        try:
+            if name == 'xgboost':
+                methods = [(framework.Booster, 'save_model', _xgboost_preview,
+                            'self', 'fname')]
+                if getattr(framework, 'XGBModel', None) is not None:
+                    methods.append((framework.XGBModel, 'save_model',
+                                    _xgboost_preview, 'self', 'fname'))
+            else:
+                methods = [
+                    (framework, 'save', _torch_preview, 'obj', 'f'),
+                    (framework.jit, 'save', _torch_preview, 'm', 'f'),
+                    (framework.jit.ScriptModule, 'save', _torch_preview, 'self',
+                     'f'),
+                ]
+            for owner, method, preview_fn, model_arg, filename_arg in methods:
+                original = getattr(owner, method)
+                wrapper = _save_wrapper(original, framework, preview_fn,
+                                        model_arg, filename_arg)
+                setattr(owner, method, wrapper)
+                _SAVE_METHODS.append((owner, method, original, wrapper))
+        except (AttributeError, TypeError) as error:
+            _restore_save_hooks(start)
+            _LOGGER.warning('Could not install automatic %s preview hooks: %s',
+                            name, error)
 
 
 class ArtifactPreviewSession:
@@ -386,31 +841,11 @@ class ArtifactPreviewSession:
                    '_kfp_preview' not in artifact.metadata
                    for artifact in self.artifacts.values()):
             return self
-        try:
-            framework = importlib.import_module('xgboost')
-        except (ImportError, OSError) as error:
-            _LOGGER.warning(
-                'Automatic model previews require XGBoost installed in the component image: %s',
-                error)
-            return self
         with _HOOK_LOCK:
             if not _SESSIONS:
-                try:
-                    model_classes = [framework.Booster]
-                    estimator_class = getattr(framework, 'XGBModel', None)
-                    if estimator_class is not None:
-                        model_classes.append(estimator_class)
-                    for model_class in model_classes:
-                        original = model_class.save_model
-                        wrapper = _save_wrapper(original, framework)
-                        model_class.save_model = wrapper
-                        _SAVE_METHODS.append((model_class, original, wrapper))
-                except (AttributeError, TypeError) as error:
-                    _restore_save_hooks()
-                    _LOGGER.warning(
-                        'Could not install automatic preview hooks for this XGBoost version: %s',
-                        error)
-                    return self
+                _install_save_hooks()
+            if not _SAVE_METHODS:
+                return self
             _SESSIONS.append(self)
             self._hooks_enabled = True
         return self
@@ -427,7 +862,8 @@ class ArtifactPreviewSession:
                 _restore_save_hooks()
         self.models.clear()
 
-    def capture_model(self, model: Any, filename: Any, framework: Any) -> None:
+    def capture_model(self, model: Any, filename: Any, framework: Any,
+                      preview_fn: Callable[[Any, Any], dict[str, Any]]) -> None:
         """Capture only saves inside this execution's declared Model
         directories."""
         try:
@@ -446,10 +882,9 @@ class ArtifactPreviewSession:
                 if name not in self.ambiguous_models:
                     self.models.pop(name, None)
                     self.models[name] = _SavedModel(
-                        path, _fingerprint(path),
-                        _xgboost_preview(model, framework))
+                        path, _fingerprint(path), preview_fn(model, framework))
         except (OSError, ValueError, TypeError, AttributeError, KeyError,
-                OverflowError, framework.core.XGBoostError) as error:
+                OverflowError, RuntimeError) as error:
             _LOGGER.warning(
                 'Could not capture an automatic model preview; the saved model is unchanged: %s',
                 error)
@@ -477,8 +912,12 @@ class ArtifactPreviewSession:
                         'not workspace or OCI outputs.')
                 directory = Path(artifact.path)
                 if artifact.schema_title == 'system.Dataset':
-                    preview = _parquet_preview(directory, self.include_rows)
+                    preview = _dataset_preview(directory, self.include_rows)
                 else:
+                    transformer_preview = _transformers_preview(directory)
+                    if transformer_preview is not None:
+                        self._publish(directory, artifact, transformer_preview)
+                        continue
                     saved = self.models.get(name)
                     if name in self.ambiguous_models:
                         raise PreviewGenerationError(
@@ -486,8 +925,8 @@ class ArtifactPreviewSession:
                         )
                     if saved is None:
                         raise PreviewGenerationError(
-                            'No supported XGBoost save_model call was captured in this output '
-                            'directory. Other model formats are not inspected or deserialized.'
+                            'No supported XGBoost or PyTorch save was captured, and no native '
+                            'Transformers configuration was found. Model weights are never deserialized.'
                         )
                     if not saved.path.is_relative_to(directory.resolve()):
                         raise PreviewGenerationError(
@@ -496,7 +935,7 @@ class ArtifactPreviewSession:
                     if _fingerprint(saved.path) != saved.fingerprint:
                         raise PreviewGenerationError(
                             'The saved model changed after its configuration was captured. '
-                            'Save the final model with save_model inside its artifact directory.'
+                            'Save the final model inside its artifact directory using a supported native API.'
                         )
                     preview = saved.preview
                 self._publish(directory, artifact, preview)

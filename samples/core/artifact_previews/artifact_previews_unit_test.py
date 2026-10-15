@@ -15,13 +15,17 @@
 required."""
 
 from collections.abc import Iterator
+import csv
 import json
 from pathlib import Path
 from typing import Any
 from unittest import mock
 
+from artifact_previews import artifact_preview_formats_pipeline
 from artifact_previews import artifact_preview_list_pipeline
 from artifact_previews import artifact_preview_pipeline
+from artifact_previews import create_dataframe_artifact
+from artifact_previews import create_model_artifact
 from artifact_previews import create_preview_artifacts
 from kfp import compiler
 from kfp import dsl
@@ -29,10 +33,25 @@ from kfp.dsl import _artifact_preview
 from kfp.dsl import executor
 import numpy as np
 import pyarrow as pa
+import pyarrow.feather as feather
 import pyarrow.parquet as pq
 import pytest
 import xgboost as xgb
 import yaml
+
+# The macOS wheels' OpenMP runtimes require XGBoost to load before PyTorch.
+# isort: split
+import torch
+from transformers import BertConfig
+from transformers import BertForSequenceClassification
+
+
+@pytest.fixture(autouse=True)
+def enabled_deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise producers under an explicitly enabled deployment policy."""
+    policy = tmp_path / 'artifactPreviewsEnabled'
+    policy.write_text('true')
+    monkeypatch.setattr(_artifact_preview, '_DEPLOYMENT_CONFIG_PATH', policy)
 
 
 def produce(
@@ -328,3 +347,323 @@ def test_native_booster_preview_without_model_reload_or_tree_dump(
         'boosting_rounds': 3,
         'tree_count': 3,
     }
+
+
+def execute_sample(directory: Path,
+                   kind: str,
+                   include_rows: bool = True,
+                   **parameters: str) -> dsl.Artifact:
+    """Run each native writer through the real executor, without preview
+    calls."""
+    name = 'dataset' if kind == 'Dataset' else 'model'
+    component = create_dataframe_artifact if kind == 'Dataset' else create_model_artifact
+    runtime = executor.Executor(
+        {
+            'inputs': {
+                'parameterValues': parameters
+            },
+            'outputs': {
+                'artifacts': {
+                    name: {
+                        'artifacts': [{
+                            'uri': str(directory / name),
+                            'type': {
+                                'schemaTitle': f'system.{kind}'
+                            },
+                        }]
+                    },
+                },
+                'outputFile': str(directory / 'executor_output.json'),
+            },
+        },
+        component,
+        artifact_preview_rows=include_rows)
+    output = json.loads(Path(runtime.execute()).read_text())
+    artifact = runtime.output_artifacts[name]
+    assert output['artifacts'][name]['artifacts'][0][
+        'metadata'] == artifact.metadata
+    return artifact
+
+
+def load_preview(artifact: dsl.Artifact) -> dict:
+    """Require the descriptor, encoded budget, and completed publication."""
+    assert artifact.metadata['_kfp_preview'] == {
+        'version': 1,
+        'path': 'preview.json'
+    }
+    path = Path(artifact.path) / 'preview.json'
+    assert path.stat().st_size <= _artifact_preview.MAX_BYTES
+    assert not list(path.parent.glob('.kfp-preview-*.tmp'))
+    return json.loads(path.read_text())
+
+
+@pytest.mark.parametrize('library', ['pandas', 'polars'])
+@pytest.mark.parametrize('file_format', [
+    'parquet',
+    'csv',
+    'json',
+    'jsonl',
+    'arrow',
+    'arrow-stream',
+    'feather',
+])
+@pytest.mark.parametrize('include_rows', [True, False])
+def test_dataframe_native_writer_matrix(tmp_path: Path, library: str,
+                                        file_format: str,
+                                        include_rows: bool) -> None:
+    artifact = execute_sample(
+        tmp_path,
+        'Dataset',
+        include_rows,
+        library=library,
+        file_format=file_format)
+    preview = load_preview(artifact)
+    assert preview['format'] == ('arrow' if file_format == 'arrow-stream' else
+                                 file_format)
+    assert len(preview['columns']) == 20
+    assert [column['name'] for column in preview['columns'][:4]
+           ] == ['record_id', 'category', 'score', 'accepted']
+    assert preview['total_columns'] == (None if file_format in ('json', 'jsonl')
+                                        else 25)
+    assert preview['sample']['columns_truncated'] is True
+    assert preview['sample']['rows_omitted'] is not include_rows
+    assert len(preview['rows']) == (10 if include_rows else 0)
+    if include_rows:
+        if file_format == 'csv':
+            with (Path(artifact.path) / 'data.csv').open(newline='') as source:
+                native_rows = list(csv.reader(source))
+            assert preview['rows'] == [row[:20] for row in native_rows[1:11]]
+        else:
+            assert [row[:4] for row in preview['rows']] == [[
+                row, 'group_a' if row % 2 == 0 else 'group_b', row / 8,
+                row % 2 == 0
+            ] for row in range(10)]
+        assert preview['sample']['rows_truncated'] is True
+    if file_format == 'parquet' or (file_format == 'feather' and include_rows):
+        assert preview['total_rows'] == 32
+    else:
+        assert preview['total_rows'] is None
+
+
+@pytest.mark.parametrize('file_format', ['json-columns', 'json-split'])
+def test_pandas_json_orientations(tmp_path: Path, file_format: str) -> None:
+    artifact = execute_sample(
+        tmp_path, 'Dataset', library='pandas', file_format=file_format)
+    preview = load_preview(artifact)
+    assert preview['format'] == 'json'
+    assert preview['total_rows'] == 32
+    assert preview['total_columns'] == 25
+    assert len(preview['rows']) == 10
+    assert preview['rows'][0][:4] == [0, 'group_a', 0, True]
+
+
+@pytest.mark.parametrize('container', ['file', 'stream', 'feather'])
+def test_arrow_schema_only_does_not_decode_record_batches(
+        tmp_path: Path, container: str) -> None:
+    table = pa.table({'value': [1, 2]})
+    path = tmp_path / ('data.feather'
+                       if container == 'feather' else 'data.arrow')
+    if container == 'feather':
+        feather.write_feather(table, path)
+    else:
+        writer = pa.ipc.new_file if container == 'file' else pa.ipc.new_stream
+        with pa.OSFile(str(path), 'wb') as output:
+            with writer(output, table.schema) as stream:
+                stream.write_table(table)
+    reader_type = pa.ipc.RecordBatchStreamReader if container == 'stream' else pa.ipc.RecordBatchFileReader
+    method = 'read_next_batch' if container == 'stream' else 'get_batch'
+    with mock.patch.object(
+            reader_type, method, side_effect=AssertionError('schema only')):
+        preview = _artifact_preview._dataset_preview(tmp_path, False)
+    assert preview['columns'] == [{'name': 'value', 'dtype': 'int64'}]
+    assert preview['rows'] == []
+    assert preview['sample']['rows_omitted'] is True
+
+
+def test_arrow_projection_does_not_read_the_complete_table(
+        tmp_path: Path) -> None:
+    table = pa.table({f'column_{index}': range(100) for index in range(25)})
+    feather.write_feather(table, tmp_path / 'data.feather', chunksize=8)
+    original = pa.ipc.RecordBatchFileReader.get_batch
+    selected_widths = []
+
+    def get_batch(reader: pa.ipc.RecordBatchFileReader,
+                  index: int) -> pa.RecordBatch:
+        assert index < 2, 'Only enough projected batches for ten rows should be decoded.'
+        batch = original(reader, index)
+        selected_widths.append(batch.num_columns)
+        return batch
+
+    with mock.patch.object(pa.ipc.RecordBatchFileReader, 'get_batch',
+                           get_batch):
+        preview = _artifact_preview._dataset_preview(tmp_path, True)
+    assert selected_widths == [20, 20]
+    assert len(preview['rows']) == 10
+    assert preview['total_rows'] is None
+
+
+@pytest.mark.parametrize('serialization',
+                         ['state_dict', 'checkpoint', 'module', 'torchscript'])
+def test_pytorch_native_serialization_and_structure(tmp_path: Path,
+                                                    serialization: str) -> None:
+    original_save = torch.save
+    original_jit_save = torch.jit.save
+    with mock.patch.object(
+            torch,
+            'load',
+            side_effect=AssertionError('no checkpoint deserialization')):
+        with mock.patch.object(
+                torch.jit,
+                'load',
+                side_effect=AssertionError('no TorchScript loading')):
+            artifact = execute_sample(
+                tmp_path,
+                'Model',
+                framework='pytorch',
+                serialization=serialization)
+    assert torch.save is original_save
+    assert torch.jit.save is original_jit_save
+    preview = load_preview(artifact)
+    assert preview['framework'] == {
+        'name': 'pytorch',
+        'version': torch.__version__
+    }
+    assert preview['hyperparameters'] == {}
+    tensors = preview['structure']['tensors']
+    assert tensors['0.weight'] == {'shape': [8, 4], 'dtype': 'torch.float32'}
+    assert tensors['2.bias'] == {'shape': [2], 'dtype': 'torch.float32'}
+    assert len(tensors) == 4
+    if serialization in ('state_dict', 'checkpoint'):
+        assert preview['structure']['tensor_element_count'] == 58
+        assert preview['structure']['tensor_count'] == 4
+        assert 'parameter_count' not in preview['structure']
+    else:
+        assert preview['structure']['parameter_count'] == 58
+        assert preview['structure']['trainable_parameter_count'] == 58
+    path = Path(artifact.path) / 'model.pt'
+    torch.manual_seed(42)
+    expected = torch.nn.Sequential(
+        torch.nn.Linear(4, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2)).eval()
+    if serialization == 'torchscript':
+        loaded = torch.jit.load(str(path))
+    elif serialization == 'module':
+        loaded = torch.load(path, weights_only=False)
+    else:
+        state = torch.load(path, weights_only=True)
+        loaded = torch.nn.Sequential(
+            torch.nn.Linear(4, 8), torch.nn.ReLU(), torch.nn.Linear(8,
+                                                                    2)).eval()
+        loaded.load_state_dict(state['model_state_dict'] if serialization ==
+                               'checkpoint' else state)
+    inputs = torch.arange(12, dtype=torch.float32).reshape(3, 4)
+    torch.testing.assert_close(loaded(inputs), expected(inputs))
+
+
+def test_pytorch_summary_does_not_read_tensor_values() -> None:
+    model = torch.nn.Sequential(torch.nn.Linear(4, 8), torch.nn.BatchNorm1d(8))
+    with mock.patch.object(
+            torch.Tensor, 'numpy', side_effect=AssertionError('no values')):
+        with mock.patch.object(
+                torch.Tensor, 'tolist',
+                side_effect=AssertionError('no values')):
+            with mock.patch.object(
+                    torch.Tensor, 'item',
+                    side_effect=AssertionError('no values')):
+                preview = _artifact_preview._torch_preview(model, torch)
+                state_preview = _artifact_preview._torch_preview(
+                    model.state_dict(), torch)
+    assert preview['structure']['parameter_count'] == 56
+    assert preview['structure']['buffer_count'] == 3
+    assert state_preview['structure']['tensor_element_count'] == 73
+    assert 'parameter_count' not in state_preview['structure']
+
+
+def test_transformers_save_pretrained_and_native_reload(tmp_path: Path) -> None:
+    with mock.patch.object(
+            BertForSequenceClassification,
+            'from_pretrained',
+            side_effect=AssertionError(
+                'no model deserialization during preview generation')):
+        artifact = execute_sample(tmp_path, 'Model', framework='transformers')
+    preview = load_preview(artifact)
+    directory = Path(artifact.path)
+    config = json.loads((directory / 'config.json').read_text())
+    assert preview['framework'] == {
+        'name': 'transformers',
+        'version': config['transformers_version']
+    }
+    assert preview[
+        'estimator_class'] == 'transformers.BertForSequenceClassification'
+    assert preview['hyperparameters']['hidden_size'] == 16
+    assert preview['hyperparameters']['num_hidden_layers'] == 1
+    assert preview['hyperparameters']['num_attention_heads'] == 2
+    assert preview['structure'] == {'model_type': 'bert'}
+    assert 'weights' not in json.dumps(preview['hyperparameters']).lower()
+    loaded = BertForSequenceClassification.from_pretrained(
+        directory, local_files_only=True).eval()
+    torch.manual_seed(42)
+    expected = BertForSequenceClassification(
+        BertConfig(
+            vocab_size=32,
+            hidden_size=16,
+            num_hidden_layers=1,
+            num_attention_heads=2,
+            intermediate_size=32,
+            max_position_embeddings=32,
+            num_labels=2)).eval()
+    inputs = torch.tensor([[1, 2, 3, 4]])
+    with torch.no_grad():
+        torch.testing.assert_close(
+            loaded(inputs).logits,
+            expected(inputs).logits)
+
+
+def test_transformers_sharded_safetensors_need_no_weight_reads(
+        tmp_path: Path) -> None:
+    model = BertForSequenceClassification(
+        BertConfig(
+            vocab_size=32,
+            hidden_size=16,
+            num_hidden_layers=1,
+            num_attention_heads=2,
+            intermediate_size=32))
+    artifact = dsl.Model(uri=str(tmp_path))
+    with _artifact_preview.ArtifactPreviewSession({'model': artifact
+                                                  }) as session:
+        model.save_pretrained(tmp_path, max_shard_size='1KB')
+        assert len(list(tmp_path.glob('model-*.safetensors'))) > 1
+        session.generate()
+    assert load_preview(artifact)['framework']['name'] == 'transformers'
+
+
+@pytest.mark.parametrize('policy', [None, 'false'])
+@pytest.mark.parametrize('framework', ['pytorch', 'transformers'])
+def test_new_models_require_deployment_opt_in(tmp_path: Path,
+                                              policy: str | None,
+                                              framework: str) -> None:
+    setting = tmp_path / 'artifactPreviewsEnabled'
+    if policy is None:
+        setting.unlink()
+    else:
+        setting.write_text(policy)
+    original = torch.save
+    artifact = execute_sample(tmp_path, 'Model', framework=framework)
+    assert torch.save is original
+    assert '_kfp_preview' not in artifact.metadata
+    assert not (Path(artifact.path) / 'preview.json').exists()
+    assert any(Path(artifact.path).iterdir())
+
+
+def test_format_collection_pipeline_has_no_preview_tasks(
+        tmp_path: Path) -> None:
+    package = tmp_path / 'formats.yaml'
+    compiler.Compiler().compile(artifact_preview_formats_pipeline, str(package))
+    specification = yaml.safe_load(package.read_text())
+    assert len(specification['deploymentSpec']['executors']) == 3
+    for container in specification['deploymentSpec']['executors'].values():
+        assert '--artifact_previews' not in container['container']['args']
+        assert '_kfp_preview' not in '\n'.join(
+            container['container']['command'])
+    outputs = specification['root']['outputDefinitions']['artifacts']
+    assert outputs['dataframes']['isArtifactList'] is True
+    assert outputs['pytorch_models']['isArtifactList'] is True

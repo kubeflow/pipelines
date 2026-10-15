@@ -77,7 +77,8 @@ Custom deployments may use different labels; inspect those separately.
   These are lazy-loaded JSON snapshots under the same artifact: bounded dataset
   rows/columns (including Parquet-backed datasets), or model configuration and
   structural summaries. They need no additional visualization service or container.
-  The SDK generates previews by default for supported Python-component Parquet
-  and XGBoost directory outputs, without manual adapter calls or opt-in flags.
-  Deployment administrators can disable automatic generation with
-  `artifactPreviewsEnabled: "false"` in the deployment's `kfp-launcher` ConfigMap.
+  Automatic generation is off unless deployment administrators set
+  `artifactPreviewsEnabled: "true"` in the deployment's `kfp-launcher` ConfigMap.
+  Once enabled, the SDK previews supported Python-component dataframe and
+  XGBoost/PyTorch/Transformers directory outputs without manual adapter calls
+  or per-component opt-in.

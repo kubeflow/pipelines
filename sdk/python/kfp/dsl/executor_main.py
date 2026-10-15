@@ -58,8 +58,8 @@ def executor_main():
         '--artifact_previews',
         action='store_true',
         default=True,
-        help='Generate bounded previews for supported directory artifacts (default). '
-        'Cannot override a deployment-level opt-out.',
+        help='Allow bounded previews for supported directory artifacts. '
+        'Generation requires deployment-level opt-in.',
     )
     preview_options.add_argument(
         '--disable_artifact_previews',
