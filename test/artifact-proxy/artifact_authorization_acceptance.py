@@ -124,6 +124,7 @@ class Acceptance:
         self.users = {name: name + '@example.com' for name in self.tenants}
         self.results = []
         self.last_response = None
+        self.last_probe_response = None
         self.runtime_images = []
         self.phase = 'initialization'
         self.source_head = subprocess.run(
@@ -232,7 +233,12 @@ class Acceptance:
                                 text=True,
                                 timeout=30)
         require(result.returncode == 0, 'Network probe process failed')
-        return json.loads(result.stdout)
+        response = json.loads(result.stdout)
+        self.last_probe_response = {
+            key: response.get(key) for key in ('status', 'version', 'retryAfter',
+                                              'networkError', 'code')
+        }
+        return response
 
     def receiver_request(self, namespace, key, headers=None, legacy=False):
         path = '' if legacy else '/artifact-proxy/v1'
@@ -682,21 +688,32 @@ class Acceptance:
             '--timeout=' + str(self.timeout) + 's',
             timeout=self.timeout + 10)
         self.capture_images(namespace, 'app=' + RECEIVER)
-        old_response = self.receiver_request(
-            namespace, self.keys[namespace]['historical'], {
-                NAMESPACE_HEADER: namespace,
-                BINDING_HEADER: self.record(namespace)['credentialBinding'],
-            })
-        require(
-            old_response.get('status') in [200, 404] and
-            old_response.get('version') is None,
-            'Actual old receiver did not answer the unsupported versioned route'
-        )
+
+        # Deployment readiness can precede Service endpoint convergence. Prove
+        # that the old binary serves an artifact before testing its unsupported
+        # protocol; a network outage must not count as an old receiver response.
+        def old_receiver_available():
+            legacy = self.receiver_request(namespace, key, legacy=True)
+            if legacy.get('status') != 200 or legacy.get(
+                    'body') != namespace + ':private':
+                return False
+            response = self.receiver_request(
+                namespace, self.keys[namespace]['historical'], {
+                    NAMESPACE_HEADER: namespace,
+                    BINDING_HEADER: self.record(namespace)['credentialBinding'],
+                })
+            return (response.get('status') in [200, 404] and
+                    response.get('version') is None)
+
+        wait_for(
+            'old receiver Service to serve the legacy artifact and reject the versioned route',
+            old_receiver_available, min(self.timeout, 60))
+        self.passed(
+            'real old receiver serves the artifact before protocol rejection')
         response = self.request(namespace, self.keys[namespace]['historical'])
         require(
-            response['status'] == 503,
-            'New UI accepted an old receiver response without the versioned protocol'
-        )
+            response['status'] == 503 and response['retryAfter'] == '5',
+            'New UI must return retryable unavailability for an old receiver')
         self.passed(
             'new UI rejects real old receiver without interpreting SPA as artifact'
         )
@@ -926,6 +943,7 @@ class Acceptance:
             'sourceHead': self.source_head,
             'phase': self.phase,
             'lastResponse': self.last_response,
+            'lastProbeResponse': self.last_probe_response,
             'authorization': {},
             'deployments': {},
             'namespaces': {}
