@@ -13,17 +13,27 @@
 # limitations under the License.
 
 import base64
+import copy
 import hashlib
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 import json
 import os
+from urllib.parse import unquote
 
 # From awscli installed in alpine/k8s image
 import botocore.session
 
 S3_BUCKET_NAME = 'mlpipeline'
 HEALTHZ_PATH = '/healthz'
+# Metacontroller records each returned attachment in this annotation and
+# three-way merges against it on the next sync.
+LAST_APPLIED_ANNOTATION = 'metacontroller.k8s.io/last-applied-configuration'
+# Metadata worth echoing back for a Secret this controller does not rewrite.
+# Server- and Metacontroller-owned fields such as resourceVersion, uid, and
+# ownerReferences change on every write, so returning them would alter the
+# last-applied annotation each cycle and reconcile InPlace Secrets forever.
+PRESERVED_SECRET_METADATA = ('name', 'namespace', 'labels', 'annotations')
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -33,15 +43,176 @@ s3 = session.create_client(
     's3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
+def preserved_secret(observed):
+    """Desired state for an observed Secret that only external controllers
+    populate: its data and intentional metadata, without volatile fields."""
+    secret = copy.deepcopy(observed)
+    metadata = secret.get('metadata', {})
+    secret['metadata'] = {
+        key: metadata[key]
+        for key in PRESERVED_SECRET_METADATA
+        if key in metadata
+    }
+    annotations = secret['metadata'].get('annotations')
+    if annotations is not None:
+        annotations.pop(LAST_APPLIED_ANNOTATION, None)
+        if not annotations:
+            del secret['metadata']['annotations']
+    return secret
+
+
 def _normalize_domain(domain):
     return domain if domain.startswith('.') else '.' + domain
+
+
+def artifact_storage_record_name(namespace):
+    return f"kfp-artifact-storage-{namespace}"
+
+
+def artifact_credential_binding(namespace, namespace_uid, endpoint, access_key,
+                                secret_key):
+    values = [namespace, namespace_uid, endpoint, access_key, secret_key]
+    return hashlib.sha256("\0".join(values).encode("utf-8")).hexdigest()
+
+
+def managed_object_policy(namespace):
+    return {
+        "Version":
+            "2012-10-17",
+        "Statement": [{
+            "Effect":
+                "Allow",
+            "Action": ["s3:Put*", "s3:Get*", "s3:List*", "s3:DeleteObject"],
+            "Resource": [
+                f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
+                f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
+                f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
+                f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
+            ],
+        }],
+    }
+
+
+def policy_document(value):
+    return json.loads(unquote(value)) if isinstance(value, str) else value
+
+
+def has_managed_object_policy(document, namespace):
+    """Recognize the upstream grant without changing storage-admin
+    additions."""
+    expected = managed_object_policy(namespace)["Statement"][0]
+    for statement in document.get("Statement", []):
+        if (statement.get("Effect") == expected["Effect"] and
+                not statement.get("Condition") and
+                set(statement.get("Action", [])) == set(expected["Action"]) and
+                set(statement.get("Resource", [])) == set(
+                    expected["Resource"])):
+            return True
+    return False
+
+
+def contains_managed_bucket_policy(document):
+    statements = document.get("Statement", [])
+    return all(
+        statement in statements for statement in managed_bucket_list_policy(
+            S3_BUCKET_NAME)["Statement"])
+
+
+def receiver_rollout_ready(desired_resources, attachments, namespace):
+    """Only observed current-template replicas activate the new request
+    path."""
+    desired = {
+        resource["kind"]: resource
+        for resource in desired_resources
+        if resource["metadata"]["name"] == "ml-pipeline-ui-artifact"
+    }
+    for kind, version in [("Deployment", "apps/v1"), ("Service", "v1"),
+                          ("NetworkPolicy", "networking.k8s.io/v1")]:
+        actual = attachments.get(f"{kind}.{version}",
+                                 {}).get(f"{namespace}/ml-pipeline-ui-artifact",
+                                         {})
+        if actual.get("metadata", {}).get("deletionTimestamp"):
+            return False
+        actual_spec = actual.get("spec", {})
+        expected_spec = desired[kind]["spec"]
+        if kind == "Deployment":
+            actual_template = copy.deepcopy(actual_spec.get("template", {}))
+            # Kubernetes omits empty literal EnvVar.value fields on readback.
+            # Preserve nonempty values and valueFrom so changed settings fail.
+            for container in actual_template.get("spec",
+                                                 {}).get("containers", []):
+                for variable in container.get("env", []):
+                    if "valueFrom" not in variable:
+                        variable.setdefault("value", "")
+            # API defaulting adds fields, so compare only fields we generate.
+            if not contains_desired(actual_template, expected_spec["template"]):
+                return False
+            generation = actual.get("metadata", {}).get("generation", 0)
+            status = actual.get("status", {})
+            replicas = actual_spec.get("replicas", 1)
+            if (generation < 1 or replicas < 1 or
+                    status.get("observedGeneration", 0) < generation or any(
+                        status.get(field, 0) != replicas for field in [
+                            "replicas", "updatedReplicas", "availableReplicas",
+                            "readyReplicas"
+                        ]) or status.get("unavailableReplicas", 0) != 0):
+                return False
+        elif kind == "NetworkPolicy" and actual_spec != expected_spec:
+            return False
+        elif kind == "Service" and (actual_spec.get(
+                "type", "ClusterIP") != "ClusterIP" or
+                                    actual_spec.get("externalName")):
+            return False
+        elif not contains_desired(actual_spec, expected_spec):
+            return False
+    return True
+
+
+def contains_desired(actual, desired):
+    if isinstance(desired, dict):
+        return isinstance(actual, dict) and all(
+            key in actual and contains_desired(actual[key], value)
+            for key, value in desired.items())
+    if isinstance(desired, list):
+        return isinstance(actual, list) and len(actual) >= len(desired) and all(
+            any(contains_desired(item, expected)
+                for item in actual)
+            for expected in desired)
+    return actual == desired
 
 
 def artifact_server_environment(namespace,
                                 cluster_domain,
                                 allowed_artifact_endpoints,
-                                http_base_url=""):
+                                http_base_url="",
+                                object_store_host="seaweedfs",
+                                kfp_namespace="kubeflow",
+                                namespace_uid=""):
     return [
+        {
+            "name": "KFP_ARTIFACT_NAMESPACE_UID",
+            "value": namespace_uid
+        },
+        {
+            "name": "MINIO_HOST",
+            "value": object_store_host
+        },
+        {
+            "name": "MINIO_NAMESPACE",
+            "value": kfp_namespace
+        },
+        {
+            "name": "MINIO_PORT",
+            "value": "8333"
+        },
+        {
+            "name": "MINIO_SSL",
+            "value": "false"
+        },
+        {
+            "name": "ARTIFACTS_REQUIRE_PROXY_NAMESPACE",
+            "value": "false",
+        },
         {
             "name": "MINIO_ACCESS_KEY",
             "valueFrom": {
@@ -87,6 +258,79 @@ def artifact_server_environment(namespace,
     ]
 
 
+def managed_bucket_list_policy(bucket_name):
+    bucket_arn = f"arn:aws:s3:::{bucket_name}"
+    desired = {
+        "Version":
+            "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowOwnDeepList",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:ListBucket",
+                "Resource": bucket_arn,
+                "Condition": {
+                    "StringLike": {
+                        "s3:prefix": [
+                            "private-artifacts/${aws:username}/*",
+                            "private/${aws:username}/*",
+                            "artifacts/*",
+                            "shared/*",
+                        ]
+                    }
+                },
+            },
+            {
+                "Sid": "AllowHeadBucket",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:ListBucket",
+                "Resource": bucket_arn,
+                "Condition": {
+                    "StringEquals": {
+                        "s3:RequestMethod": "HEAD"
+                    }
+                },
+            },
+            {
+                "Sid": "AllowTopLevelDelimitedBrowse",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:ListBucket",
+                "Resource": bucket_arn,
+                "Condition": {
+                    "Null": {
+                        "s3:prefix": "true"
+                    },
+                    "StringEquals": {
+                        "s3:delimiter": "/"
+                    },
+                },
+            },
+            {
+                "Sid": "DenyOtherDeepList",
+                "Effect": "Deny",
+                "Principal": "*",
+                "Action": "s3:ListBucket",
+                "Resource": bucket_arn,
+                "Condition": {
+                    "StringLike": {
+                        "s3:prefix": ["private-artifacts/*", "private/*"]
+                    },
+                    "StringNotLike": {
+                        "s3:prefix": [
+                            "private-artifacts/${aws:username}/*",
+                            "private/${aws:username}/*",
+                        ]
+                    },
+                },
+            },
+        ],
+    }
+    return desired
+
+
 def create_iam_client():
     # To interact with SeaweedFS user management. Region does not matter.
     endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
@@ -114,7 +358,8 @@ def get_settings_from_env(controller_port=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None,
-                          http_base_url=None):
+                          http_base_url=None,
+                          kfp_namespace=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -156,6 +401,9 @@ def get_settings_from_env(controller_port=None,
         cluster_domain or \
         os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
 
+    settings["kfp_namespace"] = \
+        kfp_namespace or os.environ.get("KFP_NAMESPACE", "kubeflow")
+
     settings["object_store_host"] = \
         object_store_host or \
         os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
@@ -185,11 +433,148 @@ def server_factory(frontend_image,
                    object_store_host="seaweedfs",
                    url="",
                    controller_port=8080,
-                   http_base_url=""):
+                   http_base_url="",
+                   kfp_namespace="kubeflow"):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
     class Controller(BaseHTTPRequestHandler):
+
+        def ensure_namespace_object_policy(self, namespace):
+            policy_name = f"KubeflowProject{namespace}"
+            try:
+                iam.get_user_policy(UserName=namespace, PolicyName=policy_name)
+                return
+            except Exception as exception:
+                if getattr(exception, "response",
+                           {}).get("Error", {}).get("Code") != "NoSuchEntity":
+                    raise
+            # Establish the user and policy before minting credentials: a failed
+            # IAM request can then retry without creating orphan access keys.
+            try:
+                iam.create_user(UserName=namespace)
+            except Exception as exception:
+                if getattr(exception, "response",
+                           {}).get("Error",
+                                   {}).get("Code") != "EntityAlreadyExists":
+                    raise
+            # Another provisioner or storage administrator may have supplied a
+            # policy while the user was created. Never replace that policy.
+            try:
+                iam.get_user_policy(UserName=namespace, PolicyName=policy_name)
+                return
+            except Exception as exception:
+                if getattr(exception, "response",
+                           {}).get("Error", {}).get("Code") != "NoSuchEntity":
+                    raise
+            iam.put_user_policy(
+                UserName=namespace,
+                PolicyName=policy_name,
+                PolicyDocument=json.dumps(managed_object_policy(namespace)))
+
+        def artifact_storage_record(self, parent, attachments, resources):
+            namespace = parent["metadata"]["name"]
+            namespace_uid = parent["metadata"].get("uid", "")
+            record = {
+                "version": 1,
+                "namespace": namespace,
+                "namespaceUID": namespace_uid,
+                "state": "unsupported",
+                "bucket": S3_BUCKET_NAME,
+            }
+            secret = next(
+                (resource for resource in resources
+                 if resource["kind"] == "Secret" and
+                 resource["metadata"]["name"] == "mlpipeline-minio-artifact"),
+                {})
+            try:
+                data = secret.get("data", {})
+                access_key = base64.b64decode(
+                    data["accesskey"], validate=True).decode("utf-8")
+                secret_key = base64.b64decode(
+                    data["secretkey"], validate=True).decode("utf-8")
+                if not access_key or not secret_key or not namespace_uid:
+                    raise ValueError("Incomplete namespace storage credentials")
+            except (KeyError, ValueError, UnicodeError):
+                return self.artifact_storage_record_secret(namespace, record)
+
+            record["credentialBinding"] = artifact_credential_binding(
+                namespace, namespace_uid,
+                f"http://{object_store_host}.{kfp_namespace}:8333", access_key,
+                secret_key)
+            # Environment Secret references refresh only when the Pod restarts.
+            # A separate digest triggers rollout without exposing the request binding.
+            receiver = next(resource for resource in resources
+                            if resource["kind"] == "Deployment")
+            receiver["spec"]["template"]["metadata"]["annotations"][
+                "kubeflow-pipelines/artifact-storage-revision"] = hashlib.sha256(
+                    ("receiver-rollout\0" + record["credentialBinding"]
+                    ).encode("utf-8")).hexdigest()[:16]
+            try:
+                # IAM is the admin-controlled authority; a tenant Secret's name,
+                # labels and readiness never establish its storage identity.
+                keys = iam.list_access_keys(UserName=namespace)
+                markers = set()
+                while not any(
+                        key.get("AccessKeyId") == access_key and
+                        key.get("Status") == "Active"
+                        for key in keys.get("AccessKeyMetadata", [])):
+                    if not keys.get("IsTruncated"):
+                        return self.artifact_storage_record_secret(
+                            namespace, record)
+                    marker = keys.get("Marker")
+                    if not marker or marker in markers:
+                        raise ValueError("Incomplete IAM access-key pagination")
+                    markers.add(marker)
+                    keys = iam.list_access_keys(
+                        UserName=namespace, Marker=marker)
+                policy = policy_document(
+                    iam.get_user_policy(
+                        UserName=namespace,
+                        PolicyName=f"KubeflowProject{namespace}")
+                    ["PolicyDocument"])
+                if not has_managed_object_policy(policy, namespace):
+                    return self.artifact_storage_record_secret(
+                        namespace, record)
+                # Initialization can fail after credentials have been persisted.
+                # Retry only for a verified namespace identity; add missing managed
+                # statements without replacing administrator or conflicting policy.
+                self.ensure_bucket_list_policy(S3_BUCKET_NAME)
+                bucket_policy = policy_document(
+                    s3.get_bucket_policy(Bucket=S3_BUCKET_NAME)["Policy"])
+                record["state"] = "pending"
+                if contains_managed_bucket_policy(
+                        bucket_policy) and receiver_rollout_ready(
+                            resources, attachments, namespace):
+                    record["state"] = "ready"
+            except Exception as exception:
+                error_code = getattr(exception, "response",
+                                     {}).get("Error", {}).get("Code")
+                record[
+                    "state"] = "unsupported" if error_code == "NoSuchEntity" else "pending"
+                # Exceptions can carry request credentials; log only the class.
+                print(
+                    f"Artifact storage authorization for {namespace} is {record['state']}; "
+                    f"verify namespace IAM and the bucket list policy ({type(exception).__name__})."
+                )
+            return self.artifact_storage_record_secret(namespace, record)
+
+        def artifact_storage_record_secret(self, namespace, record):
+            return {
+                "apiVersion": "v1",
+                "kind": "Secret",
+                "metadata": {
+                    "name": artifact_storage_record_name(namespace),
+                    "namespace": kfp_namespace,
+                },
+                "type": "Opaque",
+                "data": {
+                    "authorization.json":
+                        base64.b64encode(
+                            json.dumps(record, sort_keys=True).encode("utf-8")
+                        ).decode("ascii")
+                },
+            }
 
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
             """Configures or deletes the lifecycle policy based on the
@@ -265,101 +650,46 @@ def server_factory(frontend_image,
             Allow-only and cannot express Deny; SeaweedFS evaluates the
             bucket policy before it.
             """
-            bucket_arn = f"arn:aws:s3:::{bucket_name}"
-            desired = {
-                "Version":
-                    "2012-10-17",
-                "Statement": [
-                    {
-                        "Sid": "AllowOwnDeepList",
-                        "Effect": "Allow",
-                        "Principal": "*",
-                        "Action": "s3:ListBucket",
-                        "Resource": bucket_arn,
-                        "Condition": {
-                            "StringLike": {
-                                "s3:prefix": [
-                                    "private-artifacts/${aws:username}/*",
-                                    "private/${aws:username}/*",
-                                    "artifacts/*",
-                                    "shared/*",
-                                ]
-                            }
-                        },
-                    },
-                    {
-                        "Sid": "AllowHeadBucket",
-                        "Effect": "Allow",
-                        "Principal": "*",
-                        "Action": "s3:ListBucket",
-                        "Resource": bucket_arn,
-                        "Condition": {
-                            "StringEquals": {
-                                "s3:RequestMethod": "HEAD"
-                            }
-                        },
-                    },
-                    {
-                        "Sid": "AllowTopLevelDelimitedBrowse",
-                        "Effect": "Allow",
-                        "Principal": "*",
-                        "Action": "s3:ListBucket",
-                        "Resource": bucket_arn,
-                        "Condition": {
-                            "Null": {
-                                "s3:prefix": "true"
-                            },
-                            "StringEquals": {
-                                "s3:delimiter": "/"
-                            },
-                        },
-                    },
-                    {
-                        "Sid": "DenyOtherDeepList",
-                        "Effect": "Deny",
-                        "Principal": "*",
-                        "Action": "s3:ListBucket",
-                        "Resource": bucket_arn,
-                        "Condition": {
-                            "StringLike": {
-                                "s3:prefix": [
-                                    "private-artifacts/*", "private/*"
-                                ]
-                            },
-                            "StringNotLike": {
-                                "s3:prefix": [
-                                    "private-artifacts/${aws:username}/*",
-                                    "private/${aws:username}/*",
-                                ]
-                            },
-                        },
-                    },
-                ],
-            }
-            desired_json = json.dumps(desired, sort_keys=True)
-
+            desired = managed_bucket_list_policy(bucket_name)
             try:
-                current = s3.get_bucket_policy(Bucket=bucket_name).get(
-                    "Policy", "")
-                if current and json.dumps(
-                        json.loads(current), sort_keys=True) == desired_json:
+                current = policy_document(
+                    s3.get_bucket_policy(Bucket=bucket_name)["Policy"])
+            except Exception as exception:
+                code = getattr(exception, "response", {}).get("Error",
+                                                              {}).get("Code")
+                if code != "NoSuchBucketPolicy":
+                    print(
+                        f"Cannot inspect bucket list policy for {bucket_name}; "
+                        "leaving existing policy unchanged.")
                     return
-            except Exception:
-                pass
-
+                current = {"Version": "2012-10-17", "Statement": []}
+            statements = current.get("Statement", [])
+            for required in desired["Statement"]:
+                same_sid = [
+                    statement for statement in statements
+                    if statement.get("Sid") == required["Sid"]
+                ]
+                if same_sid and same_sid != [required]:
+                    print(
+                        f"Bucket list policy {bucket_name} has a conflicting managed "
+                        "statement; preserve it and review the storage configuration."
+                    )
+                    return
+            missing = [
+                required for required in desired["Statement"]
+                if required not in statements
+            ]
+            if not missing:
+                return
+            # Existing administrator statements remain intact.
+            current["Statement"] = statements + missing
             try:
                 s3.put_bucket_policy(
-                    Bucket=bucket_name, Policy=json.dumps(desired))
-                print(
-                    f"Set ListBucket isolation bucket policy on {bucket_name}")
-            except Exception as exception:
-                if hasattr(exception,
-                           'response') and 'Error' in exception.response:
-                    print(
-                        f"ERROR: Failed to set bucket policy: {exception.response['Error']['Code']} - {exception}"
-                    )
-                else:
-                    print(f"ERROR: Failed to set bucket policy: {exception}")
+                    Bucket=bucket_name, Policy=json.dumps(current))
+                print(f"Added managed ListBucket statements on {bucket_name}")
+            except Exception:
+                print(f"Cannot update bucket list policy for {bucket_name}; "
+                      "storage authorization remains pending.")
 
         def sync(self, parent, attachments):
             # parent is a namespace
@@ -374,11 +704,17 @@ def server_factory(frontend_image,
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
+                    len([
+                        key for key in attachments["Secret.v1"]
+                        if key.startswith(f"{namespace}/")
+                    ]) == 1 and len(attachments["ConfigMap.v1"]) == 3 and
                     len(attachments["Deployment.apps/v1"]) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     len(attachments["Service.v1"]) ==
+                    (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
+                    len(
+                        attachments.get("NetworkPolicy.networking.k8s.io/v1",
+                                        {})) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
             }
@@ -455,6 +791,44 @@ def server_factory(frontend_image,
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
                     {
+                        "apiVersion": "networking.k8s.io/v1",
+                        "kind": "NetworkPolicy",
+                        "metadata": {
+                            "name": "ml-pipeline-ui-artifact",
+                            "namespace": namespace,
+                        },
+                        "spec": {
+                            "podSelector": {
+                                "matchLabels": {
+                                    "app": "ml-pipeline-ui-artifact"
+                                }
+                            },
+                            "policyTypes": ["Ingress"],
+                            # Both selectors must match: a tenant must not gain access by
+                            # labeling its own pod as the shared UI. Other NetworkPolicies
+                            # are additive and must not grant cross-tenant proxy access.
+                            "ingress": [{
+                                "from": [{
+                                    "namespaceSelector": {
+                                        "matchLabels": {
+                                            "kubernetes.io/metadata.name":
+                                                kfp_namespace
+                                        }
+                                    },
+                                    "podSelector": {
+                                        "matchLabels": {
+                                            "app": "ml-pipeline-ui"
+                                        }
+                                    },
+                                }],
+                                "ports": [{
+                                    "protocol": "TCP",
+                                    "port": 3000
+                                }],
+                            }],
+                        },
+                    },
+                    {
                         "apiVersion": "apps/v1",
                         "kind": "Deployment",
                         "metadata": {
@@ -496,12 +870,23 @@ def server_factory(frontend_image,
                                         "ports": [{
                                             "containerPort": 3000
                                         }],
+                                        "readinessProbe": {
+                                            "tcpSocket": {
+                                                "port": 3000
+                                            },
+                                            "periodSeconds": 2,
+                                            "timeoutSeconds": 1,
+                                        },
                                         "env":
                                             artifact_server_environment(
                                                 namespace,
                                                 cluster_domain,
                                                 allowed_artifact_endpoints,
                                                 http_base_url,
+                                                object_store_host,
+                                                kfp_namespace,
+                                                parent.get("metadata",
+                                                           {}).get("uid", ""),
                                             ),
                                         "resources": {
                                             "requests": {
@@ -554,36 +939,12 @@ def server_factory(frontend_image,
             # use it. Else create a new credentials on seaweedfs for the namespace.
             if s3_secret := attachments["Secret.v1"].get(
                     f"{namespace}/mlpipeline-minio-artifact"):
-                desired_resources.append(s3_secret)
+                desired_resources.append(preserved_secret(s3_secret))
                 print('Using existing secret')
             else:
+                self.ensure_namespace_object_policy(namespace)
                 print('Creating new access key.')
                 s3_access_key = iam.create_access_key(UserName=namespace)
-
-                # Per-user policy grants object access only. ListBucket scoping is
-                # handled by the bucket policy (ensure_bucket_list_policy) because
-                # the embedded user-policy engine is Allow-only and cannot Deny.
-                iam.put_user_policy(
-                    UserName=namespace,
-                    PolicyName=f"KubeflowProject{namespace}",
-                    PolicyDocument=json.dumps({
-                        "Version":
-                            "2012-10-17",
-                        "Statement": [{
-                            "Effect":
-                                "Allow",
-                            "Action": [
-                                "s3:Put*", "s3:Get*", "s3:List*",
-                                "s3:DeleteObject"
-                            ],
-                            "Resource": [
-                                f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
-                                f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
-                                f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
-                                f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
-                            ]
-                        }]
-                    }))
 
                 self.ensure_bucket_list_policy(S3_BUCKET_NAME)
 
@@ -611,6 +972,36 @@ def server_factory(frontend_image,
                         },
                     })
 
+            if artifacts_proxy_enabled.lower() == "true":
+                storage_record_secret = self.artifact_storage_record(
+                    parent, attachments, desired_resources)
+                desired_resources.append(storage_record_secret)
+                policy = next(resource for resource in desired_resources
+                              if resource["kind"] == "NetworkPolicy")
+                observed_policy = attachments.get(
+                    "NetworkPolicy.networking.k8s.io/v1",
+                    {}).get(f"{namespace}/ml-pipeline-ui-artifact", {})
+                existing_receiver = attachments.get(
+                    "Deployment.apps/v1",
+                    {}).get(f"{namespace}/ml-pipeline-ui-artifact")
+                # Establish ingress isolation before a new receiver can listen.
+                # Retain existing receivers while their policy converges.
+                if existing_receiver is None and observed_policy.get(
+                        "spec") != policy["spec"]:
+                    desired_resources = [
+                        resource for resource in desired_resources
+                        if resource["kind"] != "Deployment"
+                    ]
+                result = {
+                    "status": desired_status,
+                    "attachments": desired_resources
+                }
+                storage_state = json.loads(
+                    base64.b64decode(storage_record_secret["data"]
+                                     ["authorization.json"]))["state"]
+                if storage_state == "pending":
+                    result["resyncAfterSeconds"] = 10
+                return result
             return {"status": desired_status, "attachments": desired_resources}
 
         def do_GET(self):

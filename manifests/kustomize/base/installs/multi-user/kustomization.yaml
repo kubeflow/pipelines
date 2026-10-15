@@ -19,6 +19,7 @@ resources:
 - virtual-service.yaml
 
 patches:
+- path: pipeline-install-config-patch.yaml
 - path: api-service/deployment-patch.yaml
 - path: pipelines-ui/deployment-patch.yaml
 - path: pipelines-ui/configmap-patch.yaml

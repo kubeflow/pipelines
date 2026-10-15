@@ -38,6 +38,10 @@ images:
     newTag: latest
 
 patches:
+  - path: ../profile-controller-env.yaml
+    target:
+      kind: Deployment
+      name: kubeflow-pipelines-profile-controller
   - path: ../pipeline-crd-rbac.yaml
     target:
       kind: ClusterRole

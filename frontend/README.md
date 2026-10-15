@@ -179,7 +179,9 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Artifact ownership migration in 2.18
 
-Multi-user frontend previews and downloads enforce namespace-prefixed object keys by default:
+When `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix` is selected, or `auto`
+retains prefix enforcement for an unsupported custom store, multi-user
+frontend previews and downloads enforce namespace-prefixed object keys:
 `private-artifacts/<namespace>/...` (or `ARTIFACT_NAMESPACE_KEY_PREFIX/<namespace>/...`).
 Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
 to direct and proxied MinIO, S3, GCS and HTTP(S) retrieval. Standalone mode is unchanged.
@@ -194,7 +196,8 @@ migration deadline before upgrading to 3.0. The 3.0 policy has no audit exceptio
 Audit relaxes only an absent namespace prefix after successful MLMD lookup and matching namespace
 evidence for every returned artifact. It does not relax user authorization, explicit namespace
 mismatches, unsafe paths, missing protobufs, MLMD errors/timeouts or missing context evidence.
-For objects absent from MLMD, `mlmd-then-prefix` retains the validated namespace-prefix fallback;
+The separate `ARTIFACT_NAMESPACE_OWNERSHIP_MODE` selects metadata lookup behavior.
+For objects absent from MLMD, its default `mlmd-then-prefix` retains the validated namespace-prefix fallback;
 `mlmd-only` still denies them. Neither mode permits unavailable ownership checks to fail open.
 
 Each permitted legacy read emits an `artifact_ownership_audit` warning with namespace, source,
@@ -202,8 +205,32 @@ route category and reason. Count these events in your log system to track migrat
 URIs, query strings and credentials are not included in the audit event. Audit also emits a startup
 warning. An event records permission to proceed, not proof that the downstream download succeeded.
 
-Configure new pipeline roots with namespace-prefixed paths, then move/copy authorized existing
+For shared-credential deployments retaining prefix enforcement, configure new pipeline
+roots with namespace-prefixed paths, then move/copy authorized existing
 objects and update their references. Metadata changes alone do not move storage objects. Switch
 back to `enforce` and verify preview/download before upgrading. Do not disable authentication to
-restore custom-root access. MLMD outages now deny artifact reads in both modes, including reads of
+restore custom-root access. Under the prefix policy, MLMD outages deny artifact reads in both enforce/audit modes, including reads of
 otherwise correctly prefixed objects; restoring MLMD restores those reads.
+
+The old unreleased `ARTIFACT_OWNERSHIP_ENFORCEMENT` name is not an alias and is no longer
+read. Use `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` for audit/enforce; do not put these values
+in `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`. See the
+[2.18 configuration reference](../docs/operator-guides/server-config.md#artifact-ownership-controls-in-218).
+
+## Storage-authoritative artifact access
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. Supported managed
+`minio://mlpipeline/...` artifacts use namespace storage identities after
+trusted controller readiness, without moving already authorized objects or
+requiring MLMD records. The multi-user overlay enables managed proxies. Pending
+readiness or a failed lookup returns an actionable HTTP 503, never a shared-credential
+fallback. Unsupported custom layouts retain prefix enforcement.
+
+Explicit `storage` supports reviewed custom identities; 2.18 uses namespace-service
+environment or workload-identity credentials and discards browser provider/Secret
+selectors. Explicit `key-prefix` remains available. New versioned receiver routes
+require namespace binding; legacy routes preserve old-UI compatibility during
+normal rolling deployment. No UI/controller ordering or opt-in is needed for the
+supported managed path, although reads may need retry while receivers warm up.
+The generated standard NetworkPolicy still requires actual cluster enforcement.
+See [scope, custom-storage requirements and rollout](../docs/operator-guides/artifact-authorization.md).

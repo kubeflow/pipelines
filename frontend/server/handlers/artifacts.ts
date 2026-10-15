@@ -11,7 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs.js';
+import {
+  ArtifactAuthorizationMode,
+  AWSConfigs,
+  HttpConfigs,
+  MinioConfigs,
+  ProcessEnv,
+  UIConfigs,
+} from '../configs.js';
 import { Client as MinioClient } from 'minio';
 import {
   PreviewStream,
@@ -59,6 +66,11 @@ import {
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
 
+import {
+  getArtifactCredentialBinding,
+  getArtifactStorageAuthorization,
+} from '../helpers/artifact-authorization.js';
+
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
  * in the artifact request object.
@@ -87,6 +99,9 @@ type AuthorizedArtifact = {
   key: string;
   namespace: string;
   auditCustomRoot: boolean;
+  storageAuthorization: boolean;
+  credentialBinding?: string;
+  useLegacyDirect?: boolean;
   envoyAddress?: string;
 };
 
@@ -237,50 +252,20 @@ export function pipePreviewResponse(
 }
 
 /**
- * Returns an authorization middleware for artifact endpoints.
- * This middleware handles 3 modes:
- *
- * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
- *    No Subject Access Review and 100% insecure. The namespace query
- *    parameter is optional and not validated or authorized when
- *    authorization is disabled.
- *
- * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
- *    Namespace parameter is required, its format is validated, and RBAC is
- *    checked (the user is authenticated to access the artifact from the
- *    specific namespace folder on the object storage via Subject Access
- *    Review) before accessing SeaweedFS/storage directly.
- *
- * 3. Artifact PROXY MODE (overhead, disabled by default):
- *    Namespace parameter is required, its format is validated, and RBAC is
- *    checked. This adds significant overhead to each namespace, decreases
- *    scalability, and is prone to many CVEs in the artifact proxy
- *    deployment.
- *
- * Note: Secret-backed provider mode (fromEnv === 'false') names a Kubernetes
- * Secret to source object-store credentials from. The frontend server only
- * honors it when the requested namespace is the server's own namespace, so it
- * never reads Secrets from a customer namespace. In multi-user deployments the
- * provider info is dropped for user namespaces and artifact retrieval falls
- * back to the server's own environment credentials (SeaweedFS in the kubeflow
- * namespace) or the per-namespace artifact proxy.
- * See: https://github.com/kubeflow/pipelines/pull/12860
- *
- * Security: This addresses the vulnerability where the namespace parameter
- * could be manipulated to access artifacts from other namespaces.
- * See https://github.com/kubeflow/pipelines/issues/9889
- *
- * @param authorizeFn The authorization function to validate permissions
- * @param authEnabled Whether authorization is enabled
- * @param kubeflowUserIdHeader The header name containing the user identity
- * @param envoyAddress MLMD Envoy address used for namespace-ownership
- *   validation (#9889). Required in multi-user mode.
+ * Authorizes the user for the requested namespace before resolving artifact access.
+ * The default policy validates object ownership with MLMD and the namespace key prefix.
+ * Storage authorization delegates object access to the namespace artifact service's
+ * storage identity; it never permits direct retrieval with shared UI credentials.
+ * HTTP and volume artifacts retain their existing source-specific authorization.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
   envoyAddress?: string,
+  artifactProxyEnabled = false,
+  authorizationMode: ArtifactAuthorizationMode = 'key-prefix',
+  installationNamespace = 'kubeflow',
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     hardenArtifactResponse(response);
@@ -290,6 +275,22 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
+    if (
+      authorizationMode !== 'auto' &&
+      authorizationMode !== 'key-prefix' &&
+      authorizationMode !== 'storage'
+    ) {
+      sendArtifactError(response, 500, 'Invalid artifact authorization mode');
+      return;
+    }
+    if (authorizationMode === 'storage' && (!authEnabled || !artifactProxyEnabled)) {
+      sendArtifactError(
+        response,
+        503,
+        'Storage artifact authorization requires authentication and a namespace artifact proxy',
+      );
+      return;
+    }
     if (!authEnabled) {
       return next();
     }
@@ -366,9 +367,70 @@ export function getArtifactsAuthMiddleware(
       sendArtifactError(response, 400, 'Malformed URL encoding in artifact path');
       return;
     }
+    let credentialBinding: string | undefined;
+    let useLegacyDirect = false;
+    let storageAuthorization =
+      authorizationMode === 'storage' &&
+      (coords.source === 's3' || coords.source === 'minio' || coords.source === 'gcs');
+    if (
+      authorizationMode === 'auto' &&
+      artifactProxyEnabled &&
+      coords.source === 'minio' &&
+      coords.bucket === 'mlpipeline'
+    ) {
+      try {
+        const approval = await getArtifactStorageAuthorization(namespace, installationNamespace);
+        if (approval?.state === 'pending')
+          throw new Error('Artifact storage authorization rollout is pending');
+        if (approval?.state === 'ready') {
+          storageAuthorization = true;
+          credentialBinding = approval.credentialBinding;
+        } else if (!approval) {
+          // A new receiver may not exist during the first apply. The existing prefix policy
+          // still authorizes direct reads independently; this is selected before any fetch.
+          useLegacyDirect = true;
+        }
+      } catch {
+        response.setHeader('Retry-After', '5');
+        sendArtifactError(
+          response,
+          503,
+          'Artifact storage authorization is being reconciled. Retry shortly; no broader credentials were used.',
+        );
+        return;
+      }
+    }
+    if (
+      authorizationMode === 'storage' &&
+      (!ARTIFACT_SOURCES.has(coords.source as ArtifactSource) || !coords.bucket || !coords.key)
+    ) {
+      sendArtifactError(
+        response,
+        403,
+        'Artifact source, bucket, and key are required and must use a supported storage source',
+      );
+      return;
+    }
+    const policyKey = coords.key.endsWith('/') ? coords.key.slice(0, -1) : coords.key;
+    if (
+      storageAuthorization &&
+      (!isAllowedResourceName(coords.bucket) ||
+        coords.key.length > 1024 ||
+        policyKey
+          .split('/')
+          .some((segment) => segment === '' || segment === '.' || segment === '..'))
+    ) {
+      sendArtifactError(response, 400, 'Invalid storage artifact bucket or path');
+      return;
+    }
     const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
     let auditCustomRoot = false;
-    if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
+    if (
+      !storageAuthorization &&
+      mlmdTrackedSources.has(coords.source) &&
+      coords.bucket &&
+      coords.key
+    ) {
       if (!envoyAddress) {
         sendArtifactError(response, 503, 'Artifact ownership validation is unavailable');
         return;
@@ -401,7 +463,15 @@ export function getArtifactsAuthMiddleware(
     }
     authorizedArtifacts.set(
       request,
-      Object.freeze({ ...coords, namespace, auditCustomRoot, envoyAddress }),
+      Object.freeze({
+        ...coords,
+        namespace,
+        auditCustomRoot,
+        envoyAddress,
+        storageAuthorization,
+        credentialBinding,
+        useLegacyDirect,
+      }),
     );
     next();
   };
@@ -450,6 +520,14 @@ export function getArtifactsHandler({
     // hardening headers before parsing so every early error and storage path is
     // protected. Inline previews use fetch(), which ignores Content-Disposition.
     hardenArtifactResponse(res);
+    if (authorizedArtifacts.get(req)?.storageAuthorization) {
+      sendArtifactError(
+        res,
+        503,
+        'Storage-authorized artifacts require the namespace artifact proxy',
+      );
+      return;
+    }
     const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
     if ('error' in artifactRequest) {
       sendArtifactError(res, artifactRequest.error.status, artifactRequest.error.message);
@@ -514,7 +592,8 @@ export function getArtifactsHandler({
           `only be read from the server namespace; falling back to environment credentials.`,
       );
     }
-    const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
+    const effectiveProviderInfo =
+      allowProviderSecrets && !res.locals.authorizedArtifactUseEnvironment ? providerInfo : '';
 
     // Provider endpoints are request-controlled. A hostname regex cannot reliably
     // distinguish a restrictive allowlist from an equivalent allow-all expression,
@@ -1661,6 +1740,89 @@ const ARTIFACTS_PROXY_DEFAULTS = {
   serviceName: 'ml-pipeline-ui-artifact',
   servicePort: '80',
 };
+const ARTIFACT_NAMESPACE_HEADER = 'x-kfp-artifact-namespace';
+const ARTIFACT_CREDENTIAL_BINDING_HEADER = 'x-kfp-artifact-credential-binding';
+const ARTIFACT_PROXY_VERSION_HEADER = 'x-kfp-artifact-proxy-version';
+export const ARTIFACT_STORAGE_PROXY_PREFIX = '/artifact-proxy/v1';
+
+/** The header is a binding, not authentication; ingress is restricted to the shared UI. */
+export function getArtifactReceiverNamespaceMiddleware(
+  namespace?: string,
+  required = true,
+): Handler {
+  return (req, res, next) => {
+    const binding = req.headers[ARTIFACT_NAMESPACE_HEADER];
+    if (namespace !== undefined && (required || binding !== undefined) && binding !== namespace) {
+      sendArtifactError(res, 403, 'Artifact proxy namespace does not match receiving namespace');
+      return;
+    }
+    next();
+  };
+}
+
+/** New storage-authorized requests never use the legacy route accepted by old receivers. */
+export function getArtifactStorageReceiverMiddleware(options: UIConfigs): Handler {
+  return (req, res, next) => {
+    res.setHeader(ARTIFACT_PROXY_VERSION_HEADER, '1');
+    if (
+      options.auth.enabled ||
+      req.headers[ARTIFACT_NAMESPACE_HEADER] !== options.server.serverNamespace
+    ) {
+      sendArtifactError(res, 403, 'Artifact proxy namespace does not match receiving namespace');
+      return;
+    }
+    const binding = req.headers[ARTIFACT_CREDENTIAL_BINDING_HEADER];
+    if (binding !== undefined) {
+      const namespaceUID = options.artifacts.namespaceUID;
+      if (
+        !namespaceUID ||
+        typeof binding !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(binding) ||
+        binding !==
+          getArtifactCredentialBinding(
+            options.server.serverNamespace,
+            namespaceUID,
+            options.artifacts.minio,
+          )
+      ) {
+        res.setHeader('Retry-After', '5');
+        sendArtifactError(
+          res,
+          503,
+          'Artifact storage credentials are being reconciled. Retry shortly.',
+        );
+        return;
+      }
+      // Auto authorization covers exactly the environment identity certified by the controller.
+      // A browser or a tenant launcher ConfigMap must not replace its provider configuration.
+      const url = new URL(req.url, DUMMY_BASE_PATH);
+      url.searchParams.delete('providerInfo');
+      const coordinates = resolveArtifactCoordinates({
+        path: url.pathname.slice(ARTIFACT_STORAGE_PROXY_PREFIX.length),
+        query: Object.fromEntries(url.searchParams),
+      });
+      if (!coordinates || coordinates.source !== 'minio' || coordinates.bucket !== 'mlpipeline') {
+        sendArtifactError(
+          res,
+          403,
+          'Artifact storage approval does not cover this source or bucket',
+        );
+        return;
+      }
+      req.url = url.pathname + url.search;
+      req.originalUrl = req.url;
+      res.locals.authorizedArtifactUseEnvironment = true;
+    }
+    if (!req.url.startsWith(`${ARTIFACT_STORAGE_PROXY_PREFIX}/artifacts/`)) {
+      sendArtifactError(res, 400, 'Invalid artifact proxy protocol path');
+      return;
+    }
+    req.url = req.url.slice(ARTIFACT_STORAGE_PROXY_PREFIX.length);
+    req.originalUrl = req.url;
+    next();
+  };
+}
+
 export type NamespacedServiceGetter = (namespace: string) => string;
 export interface ArtifactsProxyConfig {
   serviceName: string;
@@ -1694,8 +1856,22 @@ export function getArtifactsProxyHandler({
   namespacedServiceGetter: NamespacedServiceGetter;
 }): Handler {
   if (!enabled) {
-    return (_req, _res, next) => next();
+    return (req, res, next) => {
+      if (authorizedArtifacts.get(req)?.storageAuthorization) {
+        sendArtifactError(
+          res,
+          503,
+          'Storage-authorized artifacts require the namespace artifact proxy',
+        );
+        return;
+      }
+      next();
+    };
   }
+  const proxyTargets = new WeakMap<IncomingMessage, string>();
+  const proxyNamespaces = new WeakMap<IncomingMessage, string>();
+  const proxyCredentialBindings = new WeakMap<IncomingMessage, string>();
+  const storageProxyRequests = new WeakSet<IncomingMessage>();
   const proxy = createProxyMiddleware({
     pathFilter: (_pathname, req) => {
       // only proxy requests with namespace query parameter
@@ -1703,14 +1879,35 @@ export function getArtifactsProxyHandler({
     },
     changeOrigin: true,
     on: {
-      proxyReq: (proxyReq) => {
+      proxyReq: (proxyReq, req) => {
+        // Never forward a client-supplied binding, even when its Service is an alias.
+        proxyReq.removeHeader(ARTIFACT_NAMESPACE_HEADER);
+        proxyReq.removeHeader(ARTIFACT_CREDENTIAL_BINDING_HEADER);
+        const credentialBinding = proxyCredentialBindings.get(req);
+        if (credentialBinding)
+          proxyReq.setHeader(ARTIFACT_CREDENTIAL_BINDING_HEADER, credentialBinding);
+        const namespace = proxyNamespaces.get(req);
+        if (namespace) proxyReq.setHeader(ARTIFACT_NAMESPACE_HEADER, namespace);
         console.log('Proxied artifact request: ', proxyReq.path);
       },
       // http-proxy-middleware copies upstream headers after this outer handler
       // starts. Rewrite the proxy response itself so a tenant-side artifact
       // service cannot replace the attachment guard with `inline` or remove
       // nosniff while returning active HTML.
-      proxyRes: hardenArtifactProxyResponse,
+      proxyRes: (proxyRes, req) => {
+        const requiresReceiverUpgrade =
+          storageProxyRequests.has(req) && proxyRes.headers[ARTIFACT_PROXY_VERSION_HEADER] !== '1';
+        hardenArtifactProxyResponse(proxyRes);
+        if (requiresReceiverUpgrade) {
+          // Old UI servers may answer an unknown route with their HTML application.
+          // Never report that as a successful artifact read or retry a legacy URL.
+          proxyRes.statusCode = 503;
+          proxyRes.headers['retry-after'] = '5';
+          proxyRes.headers['x-kfp-artifact-proxy-error'] = 'receiver-upgrade-required';
+        }
+        if (storageProxyRequests.has(req) && proxyRes.statusCode === 503)
+          proxyRes.headers['retry-after'] = '5';
+      },
     },
     pathRewrite: (pathStr, _req) => {
       const url = new URL(pathStr || '', DUMMY_BASE_PATH);
@@ -1746,17 +1943,9 @@ export function getArtifactsProxyHandler({
       return url.pathname + url.search;
     },
     router: (req) => {
-      const namespace = getNamespaceFromUrl(req.url || '');
-      if (!namespace) {
-        console.log(`namespace query param expected in ${req.url}.`);
-        throw new Error(`namespace query param expected.`);
-      }
-      const urlStr = namespacedServiceGetter(namespace!);
-      if (!isAllowedDomain(urlStr, allowedDomain)) {
-        console.log(`Domain is not allowed.`);
-        throw new Error(`Domain is not allowed.`);
-      }
-      return namespacedServiceGetter(namespace!);
+      const target = proxyTargets.get(req);
+      if (!target) throw new Error('Artifact proxy target was not authorized');
+      return target;
     },
     target: '/artifacts',
     headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
@@ -1765,11 +1954,15 @@ export function getArtifactsProxyHandler({
     hardenArtifactResponse(res);
     const namespace = getNamespaceFromUrl(req.url || '');
     const authorized = authorizedArtifacts.get(req);
+    const forwardedUrl = new URL(req.url, DUMMY_BASE_PATH);
+    if (authorized?.storageAuthorization && !namespace) {
+      sendArtifactError(res, 403, 'Storage-authorized artifacts require an authorized namespace');
+      return;
+    }
     if (authorized) {
       // The proxy consumes req.url, not Express's parsed query/params. Check
       // that actual forwarding input before removing namespace or rewriting
       // query-based downloads for older tenant artifact services.
-      const forwardedUrl = new URL(req.url, DUMMY_BASE_PATH);
       const forwardedQuery = Object.fromEntries(forwardedUrl.searchParams);
       const forwardedCoordinates = resolveArtifactCoordinates({
         path: forwardedUrl.pathname,
@@ -1790,11 +1983,38 @@ export function getArtifactsProxyHandler({
         return;
       }
       // Older tenant services cannot enforce the central HTTP redirect policy.
-      if (authorized.source === 'http' || authorized.source === 'https') return next();
+      if (
+        authorized.source === 'http' ||
+        authorized.source === 'https' ||
+        authorized.useLegacyDirect
+      )
+        return next();
     }
     if (namespace && !isAllowedResourceName(namespace)) {
       sendArtifactError(res, 400, 'Invalid namespace');
       return;
+    }
+    if (namespace) {
+      const target = namespacedServiceGetter(namespace);
+      if (!isAllowedDomain(target, allowedDomain)) {
+        sendArtifactError(res, 403, 'Artifact proxy domain is not allowed');
+        return;
+      }
+      proxyTargets.set(req, target);
+      proxyNamespaces.set(req, namespace);
+      if (authorized?.credentialBinding)
+        proxyCredentialBindings.set(req, authorized.credentialBinding);
+      if (authorized?.storageAuthorization) {
+        // Tenant proxies resolve credentials from their own environment or workload identity.
+        // Browser-supplied provider settings must not select a different credential authority.
+        forwardedUrl.searchParams.delete('providerInfo');
+        storageProxyRequests.add(req);
+        const artifactPath = forwardedUrl.pathname.indexOf('/artifacts/');
+        forwardedUrl.pathname =
+          ARTIFACT_STORAGE_PROXY_PREFIX + forwardedUrl.pathname.slice(artifactPath);
+      }
+      req.url = forwardedUrl.pathname + forwardedUrl.search;
+      req.originalUrl = req.url;
     }
     proxy(req, res, next);
   };

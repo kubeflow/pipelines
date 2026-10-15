@@ -14,6 +14,7 @@ on:
       - release-2.18
     paths:
       - 'frontend/**'
+      - 'test/seaweedfs/artifact_authorization*'
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
@@ -96,3 +97,10 @@ jobs:
 
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
+
+    - name: Verify artifact authorization against real namespace storage
+      timeout-minutes: 10
+      run: |
+        python -m venv /tmp/kfp-artifact-storage-test
+        /tmp/kfp-artifact-storage-test/bin/pip install 'boto3==1.35.99'
+        PYTHON=/tmp/kfp-artifact-storage-test/bin/python bash test/seaweedfs/artifact_authorization_test.sh

@@ -205,3 +205,17 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the profile controller; the pin selects more than Istio images.
 
 - The shared deploy action provisions GitHub CLI before image artifact polling. It reuses an installed CLI or downloads a checksum-pinned Linux AMD64/ARM64 release into runner temporary storage and exports its path for later steps. Missing CLI prerequisites fail immediately instead of consuming the artifact wait window.
+
+- Frontend Tests runs `test/seaweedfs/artifact_authorization_test.sh` against
+  the branch's shipped SeaweedFS version. IAM and object storage are real;
+  namespace authorization and Kubernetes observations/readiness are fixtures.
+  This suite covers object/list isolation, provider selection and protocol
+  regressions; it does not establish live CNI enforcement or full-cluster rollout.
+- The focused `e2e-test.yml` dispatch (`artifact_authorization_only=true`) builds
+  the selected revision and runs
+  `test/artifact-proxy/test-artifact-authorization.sh` against real multi-user KFP
+  on stock Kind. See the [fixture README](../../test/artifact-proxy/README.md) for
+  mutation, cleanup, image evidence and branch-specific old-UI scope. Port
+  forwarding supplies trusted identity headers; ingress login and header
+  sanitization require separate checks. Installation-specific storage, mesh and
+  additive NetworkPolicies still require effective access checks.
