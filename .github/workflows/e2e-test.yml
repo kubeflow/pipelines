@@ -37,11 +37,15 @@ on:
       # Artifact authorization changes must exercise the multi-user artifact
       # proxy and SeaweedFS namespace-isolation checks below.
       - 'frontend/server/handlers/artifacts.ts'
+      - 'frontend/server/app.ts'
+      - 'frontend/server/configs.ts'
+      - 'frontend/server/helpers/artifact-*.ts'
       - 'proxy/**'
       - 'manifests/kustomize/**'
       # The artifact-proxy E2E script is exercised only by this workflow, so
       # changes to it must trigger these lanes.
       - 'test/artifact-proxy/**'
+      - 'test/seaweedfs/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - 'sdk/**'
       - 'kubernetes_platform/**'
@@ -51,6 +55,11 @@ on:
 
   workflow_dispatch:
     inputs:
+      artifact_authorization_only:
+        description: "Run only full-cluster artifact authorization acceptance and its image builds"
+        default: false
+        required: false
+        type: boolean
       test_label:
         description: "Test label that you want to filter on and run"
         default: 'ApiServerTests'
@@ -82,6 +91,7 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   end-to-end-scenario-tests:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.artifact_authorization_only }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -262,6 +272,7 @@ jobs:
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
   end-to-end-critical-scenario-multi-user-tests:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.artifact_authorization_only }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -365,6 +376,7 @@ jobs:
 
 
   end-to-end-critical-mlflow-tests:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.artifact_authorization_only }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -518,3 +530,67 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
           mlflow_enabled: 'true'
+
+  artifact-authorization-acceptance:
+    name: Artifact authorization full-cluster acceptance
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.artifact_authorization_only }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Create stock Kind cluster
+        id: create-cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: "v1.36.1"
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy multi-user KFP
+        uses: ./.github/actions/deploy
+        with:
+          multi_user: "true"
+          artifact_proxy: "true"
+          db_type: "mysql"
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: "false"
+
+      - name: Set up acceptance dependencies
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/artifact-authorization-venv"
+          "$RUNNER_TEMP/artifact-authorization-venv/bin/python" -m pip install boto3
+
+      - name: Test automatic artifact authorization and rollout
+        shell: bash
+        env:
+          PYTHON: ${{ runner.temp }}/artifact-authorization-venv/bin/python
+        run: |
+          bash test/artifact-proxy/test-artifact-authorization.sh \
+            --namespace "$NAMESPACE" \
+            --output-dir "$RUNNER_TEMP/artifact-authorization"
+
+      - name: Collect cluster status
+        if: ${{ always() && steps.create-cluster.outcome == 'success' }}
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/artifact-authorization"
+          kubectl get pods,deployments,services,networkpolicies -A -o wide \
+            > "$RUNNER_TEMP/artifact-authorization/cluster-status.txt" 2>&1 || true
+          kubectl get events -A --sort-by=.lastTimestamp \
+            > "$RUNNER_TEMP/artifact-authorization/cluster-events.txt" 2>&1 || true
+
+      - name: Upload acceptance evidence
+        if: ${{ always() && steps.create-cluster.outcome == 'success' }}
+        uses: ./.github/actions/upload-artifact-with-retry
+        with:
+          name: artifact-authorization-acceptance
+          path: ${{ runner.temp }}/artifact-authorization
+          retention-days: "7"

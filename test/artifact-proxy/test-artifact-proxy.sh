@@ -2,9 +2,11 @@
 set -euxo pipefail
 
 # Artifact Proxy E2E Test
-# Validates artifact proxy functionality in multi-user mode
+# Validates the user-facing artifact path through the authenticated shared UI.
+# Direct tenant access to receiver pods is intentionally denied by NetworkPolicy.
 
 NAMESPACE="${1:-${USER_NAMESPACE:-kubeflow-user-example-com}}"
+UI_URL="http://ml-pipeline-ui.kubeflow.svc.cluster.local"
 
 # Create curl pod for testing
 kubectl -n "$NAMESPACE" run kfp-proxy-curl --image=curlimages/curl:8.7.1 --restart=Never \
@@ -15,8 +17,8 @@ kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=
 HEALTH_RESPONSE=""
 for attempt in $(seq 1 30); do
   if HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
-    curl -fsS -H 'kubeflow-userid: user@example.com' \
-    "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v1beta1/healthz") && \
+    curl --connect-timeout 5 --max-time 30 -fsS -H 'kubeflow-userid: user@example.com' \
+    "${UI_URL}/apis/v2beta1/healthz") && \
     jq -e '.apiServerReady == true' >/dev/null <<<"$HEALTH_RESPONSE"; then
     break
   fi
@@ -34,14 +36,29 @@ done
 
 # Test 2: Verify proxy can list pipelines
 PIPELINES_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
-  curl -fsS -H 'kubeflow-userid: user@example.com' \
-  "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2beta1/pipelines?page_size=1")
+  curl --connect-timeout 5 --max-time 30 -fsS -H 'kubeflow-userid: user@example.com' \
+  "${UI_URL}/apis/v2beta1/pipelines?page_size=1&namespace=${NAMESPACE}")
 
 if ! echo "$PIPELINES_RESPONSE" | grep -q '"pipelines"'; then
   echo "ERROR: Failed to list pipelines"
   echo "Response: $PIPELINES_RESPONSE"
   exit 1
 fi
+
+# Wait for the profile controller to observe the protected receiver rollout.
+for attempt in $(seq 1 60); do
+  state=$(kubectl -n kubeflow get secret "kfp-artifact-storage-${NAMESPACE}" \
+    -o jsonpath='{.data.authorization\.json}' 2>/dev/null | base64 -d | jq -r .state || true)
+  if [[ "$state" == "ready" ]]; then
+    break
+  fi
+  if [[ "$attempt" -eq 60 ]]; then
+    echo "ERROR: Artifact storage authorization did not become ready (state=${state:-absent})"
+    kubectl -n "$NAMESPACE" get deployments,pods,networkpolicies
+    exit 1
+  fi
+  sleep 5
+done
 
 # Test 3: Submit workflow and fetch artifact
 WORKFLOW_MANIFEST="$(cat <<'EOF'
@@ -88,9 +105,9 @@ if [[ -z "$KEY" ]]; then
   echo "ERROR: Could not locate S3 key for artifact 'out' in workflow status"
   exit 1
 fi
-ARTIFACT_URL="http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/artifacts/get?source=minio&bucket=mlpipeline&key=${KEY}"
+ARTIFACT_URL="${UI_URL}/artifacts/get?source=minio&bucket=mlpipeline&namespace=${NAMESPACE}&key=${KEY}"
 if ! kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- sh -c \
-  "curl -fsS -H 'kubeflow-userid: user@example.com' '${ARTIFACT_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
+  "curl --connect-timeout 5 --max-time 30 -fsS -H 'kubeflow-userid: user@example.com' '${ARTIFACT_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
   echo "ERROR: Artifact content validation failed"
   kubectl -n "$NAMESPACE" logs deploy/ml-pipeline-ui-artifact -c ml-pipeline-ui-artifact --tail=50 || true
   exit 1
