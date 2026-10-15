@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
@@ -166,6 +167,11 @@ func (a transferSchedules) Prepare(ctx context.Context, source string, original 
 		}
 		swf.Spec.Workflow = &scheduledworkflow.WorkflowResource{Parameters: parameters, PipelineRoot: string(j.PipelineRoot)}
 		swf.Spec.ServiceAccount = serviceAccount
+		// SQL catalog rows are published after staging, so their names may not
+		// resolve yet. The names are informational and must not block the transfer.
+		if err := a.r.setScheduledWorkflowPipelineNames(swf); err != nil {
+			glog.Warningf("Staging transferred schedule %q without pipeline names: %v", original.UUID, err)
+		}
 	} else if !common.IsMultiUserMode() && a.r.pluginDispatcher.PluginsRegistered() {
 		return nil, util.NewFailedPreconditionError(errors.New("inline-only schedules require a catalog definition with plugins"), "Upload the inline pipeline definition to the catalog before transferring this schedule")
 	}
@@ -183,7 +189,7 @@ func (a transferSchedules) Prepare(ctx context.Context, source string, original 
 				return nil, util.NewAlreadyExistError("Schedule staging name already has different provenance")
 			}
 		}
-		if current.Spec.Enabled || !reflect.DeepEqual(current.Spec, swf.Spec) {
+		if current.Spec.Enabled || !sameStagedScheduleSpec(current.Spec, swf.Spec) {
 			return nil, util.NewAlreadyExistError("Staged schedule changed; restore it before retrying the transfer")
 		}
 		j.UUID = string(current.UID)
@@ -207,6 +213,14 @@ func (a transferSchedules) Prepare(ctx context.Context, source string, original 
 	j.K8SName = created.Name
 	j.Conditions = model.StatusStateDisabled.ToString()
 	return &j, nil
+}
+
+// sameStagedScheduleSpec ignores the informational pipeline names, so a
+// schedule staged by an earlier version can still be resumed.
+func sameStagedScheduleSpec(staged, desired scheduledworkflow.ScheduledWorkflowSpec) bool {
+	staged.PipelineName, staged.PipelineVersionName = "", ""
+	desired.PipelineName, desired.PipelineVersionName = "", ""
+	return reflect.DeepEqual(staged, desired)
 }
 
 // transferScheduleIDs prevents startup reconciliation from replacing imported
