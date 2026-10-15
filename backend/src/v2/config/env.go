@@ -281,12 +281,30 @@ func GetPipelineRootWithPipelineRunContext(
 	pipelineName, namespace string,
 	k8sClient kubernetes.Interface,
 	run *go_client.Run) (string, error) {
+	return PipelineRootForRun(ctx, pipelineName, namespace, run, ClusterLauncherConfigLoader(k8sClient))
+}
+
+// LauncherConfigLoader returns a namespace's launcher config. A nil config
+// with a nil error means the optional config is absent.
+type LauncherConfigLoader func(ctx context.Context, namespace string) (*Config, error)
+
+// ClusterLauncherConfigLoader reads the launcher config on every call.
+func ClusterLauncherConfigLoader(k8sClient kubernetes.Interface) LauncherConfigLoader {
+	return func(ctx context.Context, namespace string) (*Config, error) {
+		return LoadLauncherConfig(ctx, k8sClient, namespace)
+	}
+}
+
+// PipelineRootForRun returns the run's pipeline root, extended with the
+// pipeline name and run ID. The launcher config is consulted only when the
+// run does not set its own root.
+func PipelineRootForRun(ctx context.Context, pipelineName, namespace string, run *go_client.Run, load LauncherConfigLoader) (string, error) {
 	var pipelineRoot string
 	if run.RuntimeConfig != nil && run.RuntimeConfig.PipelineRoot != "" {
 		pipelineRoot = run.RuntimeConfig.PipelineRoot
 		glog.Infof("PipelineRoot=%q from runtime config will be used.", pipelineRoot)
 	} else {
-		cfg, err := LoadLauncherConfig(ctx, k8sClient, namespace)
+		cfg, err := load(ctx, namespace)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch launcher configmap: %w", err)
 		}
