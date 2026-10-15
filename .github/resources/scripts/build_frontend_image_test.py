@@ -181,30 +181,90 @@ class BuildTest(unittest.TestCase):
         time.sleep(0.8)
         self.assertFalse(marker.exists())
 
-    def test_sigterm_interrupts_running_client(self):
-        ready = Path(self.directory.name) / 'ready'
+    def assert_sigterm_stops_client_group(self, omit_cleanup=False):
+        client_ready = Path(self.directory.name) / 'client-ready'
+        descendant_ready = Path(self.directory.name) / 'descendant-ready'
+        descendant = (
+            'import os,signal,time; from pathlib import Path; '
+            'signal.signal(signal.SIGTERM,signal.SIG_IGN); '
+            'print("descendant ready",flush=True); '
+            f'Path({str(descendant_ready)!r}).write_text(str(os.getpid())); '
+            'time.sleep(30)')
+        client = (
+            'import os,signal,subprocess,sys,time; from pathlib import Path; '
+            'signal.signal(signal.SIGTERM,signal.SIG_IGN); '
+            f'subprocess.Popen([sys.executable,"-c",{descendant!r}]); '
+            'print("client ready",flush=True); '
+            f'Path({str(client_ready)!r}).write_text(str(os.getpid())); '
+            'time.sleep(30)')
         script = Path(self.directory.name) / 'cancel.py'
         script.write_text(
-            f'import sys,signal; sys.path.insert(0,{str(Path(__file__).parent)!r})\n'
+            f'import sys,signal,subprocess; sys.path.insert(0,{str(Path(__file__).parent)!r})\n'
             'import build_frontend_image as b\n'
             'def stop(*args): raise KeyboardInterrupt\n'
             'signal.signal(signal.SIGTERM,stop)\n'
-            f'b.run([sys.executable,"-c", "from pathlib import Path; import time; '
-            f'Path({str(ready)!r}).touch(); time.sleep(30)"],30,grace=0.05)\n')
+            # Negative control: the wrapper exits on cancellation but abandons
+            # its separately sessioned client and descendant.
+            +
+            ('def unclean(command, *args, **kwargs):\n'
+             '    return subprocess.Popen(command,start_new_session=True).wait()\n'
+             'b.run=unclean\n' if omit_cleanup else '') + 'try:\n'
+            f'    b.run([sys.executable,"-c",{client!r}],30,grace=0.05)\n'
+            'except KeyboardInterrupt:\n'
+            '    sys.exit(130)\n')
         process = subprocess.Popen([sys.executable, str(script)],
-                                   stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.DEVNULL)
-        self.addCleanup(lambda: process.poll() is None and process.kill())
-        for _ in range(100):
-            if ready.exists():
-                break
-            time.sleep(0.02)
-        self.assertTrue(ready.exists())
-        os.kill(process.pid, signal.SIGTERM)
-        time.sleep(0.01)
-        if process.poll() is None:
-            os.kill(process.pid, signal.SIGINT)
-        self.assertNotEqual(process.wait(timeout=3), 0)
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   text=True)
+        client_pid = None
+        try:
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                if (client_ready.exists() and client_ready.read_text() and
+                        descendant_ready.exists() and
+                        descendant_ready.read_text()):
+                    break
+                time.sleep(0.02)
+            self.assertTrue(client_ready.exists(), 'client did not start')
+            client_pid = int(client_ready.read_text())
+            self.assertTrue(descendant_ready.exists(),
+                            'descendant did not start')
+            descendant_pid = int(descendant_ready.read_text())
+            self.assertEqual(os.getpgid(client_pid), client_pid)
+            self.assertEqual(os.getpgid(descendant_pid), client_pid)
+            os.kill(process.pid, signal.SIGTERM)
+            try:
+                # Both children retain the output pipe until exit. EOF proves
+                # group termination, even when dead descendants await reaping.
+                output, errors = process.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.fail('SIGTERM did not stop the wrapper and client group')
+            self.assertEqual(process.returncode, 130, errors)
+            self.assertIn('client ready', output)
+            self.assertIn('descendant ready', output)
+        finally:
+            # Test hygiene only, after the assertion: never rescue the signal
+            # under test with SIGINT or count forced cleanup as success.
+            if client_pid is None and client_ready.exists():
+                value = client_ready.read_text()
+                client_pid = int(value) if value else None
+            if client_pid is not None:
+                try:
+                    os.killpg(client_pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=3)
+
+    def test_sigterm_interrupts_running_client(self):
+        self.assert_sigterm_stops_client_group()
+
+    def test_sigterm_regression_rejects_cleanup_free_interrupt(self):
+        with self.assertRaisesRegex(
+                AssertionError,
+                'SIGTERM did not stop the wrapper and client group'):
+            self.assert_sigterm_stops_client_group(omit_cleanup=True)
 
 
 if __name__ == '__main__':
