@@ -472,6 +472,11 @@ def observe_receiver_resources(result, attachments, ready=True):
             continue
         resource = copy.deepcopy(resource)
         if kind == "Deployment":
+            # The Kubernetes API omits EnvVar.value when it is an empty string.
+            for container in resource["spec"]["template"]["spec"]["containers"]:
+                for variable in container["env"]:
+                    if variable.get("value") == "":
+                        del variable["value"]
             resource["metadata"]["generation"] = 2
             if ready:
                 resource["status"] = {
@@ -546,9 +551,33 @@ def test_storage_authorization_waits_for_policy_and_current_receiver(
     s3.put_bucket_policy.assert_not_called()
 
 
+def test_storage_authorization_accepts_api_omitted_empty_environment_values(
+        storage_controller):
+    server, attachments, _, _ = storage_controller
+    result = post_sync(server, PARENT, attachments)
+    original = copy.deepcopy(result)
+    observed = observe_receiver_resources(result, attachments)
+    assert result == original
+    deployment = observed["Deployment.apps/v1"][
+        f"{NAMESPACE}/ml-pipeline-ui-artifact"]
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    for name in ["HTTP_BASE_URL", "ALLOWED_ARTIFACT_ENDPOINTS"]:
+        assert next(variable for variable in environment
+                    if variable["name"] == name) == {
+                        "name": name
+                    }
+    original_observation = copy.deepcopy(observed)
+    assert sync.receiver_rollout_ready(result["attachments"], observed,
+                                       NAMESPACE)
+    assert observed == original_observation
+    assert storage_record(post_sync(server, PARENT,
+                                    observed))["state"] == "ready"
+
+
 @pytest.mark.parametrize("mutation", [
     "old-generation", "old-replicas", "unready", "wrong-image", "wrong-policy",
-    "wrong-service"
+    "wrong-service", "missing-env-value", "wrong-env-value", "empty-env-value",
+    "empty-env-value-from"
 ])
 def test_storage_authorization_does_not_trust_incomplete_rollout(
         storage_controller, mutation):
@@ -566,6 +595,29 @@ def test_storage_authorization_does_not_trust_incomplete_rollout(
     elif mutation == "wrong-image":
         deployment["spec"]["template"]["spec"]["containers"][0][
             "image"] = "old-image"
+    elif mutation in ["missing-env-value", "wrong-env-value"]:
+        environment = deployment["spec"]["template"]["spec"]["containers"][0][
+            "env"]
+        variable = next(
+            item for item in environment if item["name"] == "MINIO_HOST")
+        if mutation == "missing-env-value":
+            del variable["value"]
+        else:
+            variable["value"] = "other-storage"
+    elif mutation in ["empty-env-value", "empty-env-value-from"]:
+        environment = deployment["spec"]["template"]["spec"]["containers"][0][
+            "env"]
+        variable = next(
+            item for item in environment if item["name"] == "HTTP_BASE_URL")
+        if mutation == "empty-env-value":
+            variable["value"] = "http://untrusted-storage"
+        else:
+            variable["valueFrom"] = {
+                "secretKeyRef": {
+                    "name": "untrusted-config",
+                    "key": "url"
+                }
+            }
     elif mutation == "wrong-policy":
         observed["NetworkPolicy.networking.k8s.io/v1"][
             f"{NAMESPACE}/ml-pipeline-ui-artifact"]["spec"]["ingress"].append(
