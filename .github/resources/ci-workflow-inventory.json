@@ -4,7 +4,7 @@
     {
       "path": ".github/workflows/ai-analyzer.lock.yml",
       "name": "AI issue quality analyzer",
-      "header_sha256": "7a649a210577c581138fcaa18fd99c004823fe360b5aa60658342064018e8c2c",
+      "header_sha256": "cd334b92f4d6205ffbb468ace61b6ac39807d3f4a611c414d725b7fe7c2777f1",
       "pull_request": null
     },
     {
@@ -135,7 +135,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3d6f7b5c4bcd37318e6975de9c55220fefd272f891fe5eee72fc44cff68efd26",
+      "header_sha256": "f920a9acee097c00e703214127d9a41c95a914cefed42485c3d41c3587824bcb",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -148,6 +148,7 @@
           "**/action.yml",
           "**/action.yaml",
           ".pre-commit-config.yaml",
+          ".github/actionlint.yaml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
           ".github/actions/download-artifact-with-retry/**",

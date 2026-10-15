@@ -1,4 +1,10 @@
 paths:
+  .github/workflows/ai-analyzer.lock.yml:
+    ignore:
+      # GitHub supports these gh-aw fields; actionlint v1.7.12 does not yet.
+      # Keep exceptions file-scoped and remove once actionlint supports them.
+      - '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$'
+      - '^unknown permission scope "copilot-requests"\. all available permission scopes are .+$'
   .github/workflows/upgrade-test.yml:
     ignore:
       # This deliberate checked-in pause is required until #14029 is delivered.

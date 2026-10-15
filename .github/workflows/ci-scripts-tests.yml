@@ -19,6 +19,7 @@ on:
       - '**/action.yml'
       - '**/action.yaml'
       - '.pre-commit-config.yaml'
+      - '.github/actionlint.yaml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
