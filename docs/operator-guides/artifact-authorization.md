@@ -91,3 +91,18 @@ To roll back the authorization mode, restore `key-prefix` and roll out the UI.
 Historical custom roots may again be denied. Keep scoped storage credentials and
 proxy ingress protections in place. The mode change does not delete artifacts or
 change retention settings.
+
+### Receiving namespace binding
+
+Upgrade the shared UI and **every** namespace artifact service before enabling
+storage authorization. Profile-managed artifact services set
+`ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true` and reject requests unless the
+`X-KFP-Artifact-Namespace` header matches their own `FRONTEND_SERVER_NAMESPACE`.
+The shared UI replaces any caller-supplied header with the namespace authorized
+for that request. Thus a tenant-controlled Service or ExternalName alias cannot
+retarget an authorized request to another namespace's storage identity.
+
+This binding relies on the UI-only NetworkPolicy described above: the header is
+not a bearer credential. Keep direct tenant ingress denied, including additive
+NetworkPolicy allowances. Custom artifact services must enforce the same binding;
+older services that ignore it are not safe receivers for storage authorization.

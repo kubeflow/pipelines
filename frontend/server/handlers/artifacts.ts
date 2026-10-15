@@ -1927,6 +1927,21 @@ const ARTIFACTS_PROXY_DEFAULTS = {
   serviceName: 'ml-pipeline-ui-artifact',
   servicePort: '80',
 };
+const ARTIFACT_NAMESPACE_HEADER = 'x-kfp-artifact-namespace';
+
+/** Enforce the shared UI's namespace binding before using receiver credentials.
+ * NetworkPolicy must restrict callers to the shared UI; this header is not a token.
+ */
+export function getArtifactReceiverNamespaceMiddleware(namespace?: string): Handler {
+  return (req, res, next) => {
+    if (namespace !== undefined && req.headers[ARTIFACT_NAMESPACE_HEADER] !== namespace) {
+      sendArtifactError(res, 403, 'Artifact proxy namespace does not match receiving namespace');
+      return;
+    }
+    next();
+  };
+}
+
 export type NamespacedServiceGetter = (namespace: string) => string;
 export interface ArtifactsProxyConfig {
   serviceName: string;
@@ -1975,6 +1990,7 @@ export function getArtifactsProxyHandler({
   // Resolve once after checking the authorized namespace. Routing must not re-read a
   // mutable query parameter after asynchronous provider resolution.
   const proxyTargets = new WeakMap<IncomingMessage, string>();
+  const proxyNamespaces = new WeakMap<IncomingMessage, string>();
   const proxy = createProxyMiddleware({
     pathFilter: (_pathname, req) => {
       // only proxy requests with namespace query parameter
@@ -1982,7 +1998,11 @@ export function getArtifactsProxyHandler({
     },
     changeOrigin: true,
     on: {
-      proxyReq: (proxyReq) => {
+      proxyReq: (proxyReq, req) => {
+        // Never forward a client-supplied binding, even when its Service is an alias.
+        proxyReq.removeHeader(ARTIFACT_NAMESPACE_HEADER);
+        const namespace = proxyNamespaces.get(req);
+        if (namespace) proxyReq.setHeader(ARTIFACT_NAMESPACE_HEADER, namespace);
         console.log('Proxied artifact request: ', proxyReq.path);
       },
       // http-proxy-middleware copies upstream headers after this outer handler
@@ -2040,6 +2060,7 @@ export function getArtifactsProxyHandler({
         return;
       }
       proxyTargets.set(req, target);
+      proxyNamespaces.set(req, namespace);
       const url = new URL(req.url || '', DUMMY_BASE_PATH);
       url.searchParams.delete('providerInfo');
       const resolvedCoordinates = resolveArtifactCoordinates({

@@ -24,6 +24,17 @@ describe('loadConfigs', () => {
     expect(() => loadConfigs(argv, {})).toThrowError();
   });
 
+  it('enables receiver namespace binding only when configured', () => {
+    const argv = ['node', 'server.js', os.tmpdir()];
+    expect(loadConfigs(argv, {}).artifacts.requireProxyNamespace).toBe(false);
+    const config = loadConfigs(argv, {
+      ARTIFACTS_REQUIRE_PROXY_NAMESPACE: 'true',
+      FRONTEND_SERVER_NAMESPACE: 'team-a',
+    });
+    expect(config.artifacts.requireProxyNamespace).toBe(true);
+    expect(config.server.serverNamespace).toBe('team-a');
+  });
+
   it('defaults to key-prefix artifact authorization', () => {
     expect(loadConfigs(['node', 'server.js', os.tmpdir()], {}).artifacts.authorizationMode).toBe(
       'key-prefix',

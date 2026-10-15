@@ -81,6 +81,10 @@ def artifact_server_environment(namespace,
                                 http_base_url=""):
     return [
         {
+            "name": "ARTIFACTS_REQUIRE_PROXY_NAMESPACE",
+            "value": "true",
+        },
+        {
             "name": "MINIO_ACCESS_KEY",
             "valueFrom": {
                 "secretKeyRef": {

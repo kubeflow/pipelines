@@ -23,6 +23,7 @@ import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
   getArtifactsHandler,
+  getArtifactReceiverNamespaceMiddleware,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
@@ -183,6 +184,9 @@ function createUIServer(options: UIConfigs) {
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    getArtifactReceiverNamespaceMiddleware(
+      options.artifacts.requireProxyNamespace ? options.server.serverNamespace : undefined,
+    ),
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -192,6 +196,9 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    getArtifactReceiverNamespaceMiddleware(
+      options.artifacts.requireProxyNamespace ? options.server.serverNamespace : undefined,
+    ),
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,

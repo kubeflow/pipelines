@@ -276,6 +276,18 @@ def test_artifact_network_policy_binds_shared_ui_identity(
             }],
         }],
     }
+    deployment = next(item for item in result["attachments"]
+                      if item["kind"] == "Deployment" and
+                      item["metadata"]["name"] == "ml-pipeline-ui-artifact")
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert {
+        "name": "ARTIFACTS_REQUIRE_PROXY_NAMESPACE",
+        "value": "true"
+    } in environment
+    assert {
+        "name": "FRONTEND_SERVER_NAMESPACE",
+        "value": NAMESPACE
+    } in environment
     # A single peer requires BOTH the install namespace and UI pod labels. Splitting
     # these into two peers would allow a tenant to impersonate the UI using a label.
     assert len(policy["spec"]["ingress"][0]["from"]) == 1
