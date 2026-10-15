@@ -893,6 +893,12 @@ class Acceptance:
                 for statement in original['Statement']
                 if statement.get('Effect') == 'Deny'),
             'Policy recovery fixture must preserve every Deny statement')
+        # These namespaces were already Ready before this external policy change.
+        # Queue a watched event; real incomplete initialization already requests
+        # a 10-second resync and does not need an operator to trigger it.
+        kubectl('annotate', 'namespace', self.tenants[0],
+                'artifact-acceptance/policy-recovery=' + self.run_id,
+                '--overwrite')
         self.scale_controller(self.controller_replicas)
 
         def repaired():
