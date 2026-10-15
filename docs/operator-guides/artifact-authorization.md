@@ -58,7 +58,8 @@ the credentials used for each request:
   NetworkPolicy allowing port 3000 only from shared-UI Pods in the installation
   namespace. Set `KFP_NAMESPACE` correctly on custom controller deployments;
   stock manifests use the controller's namespace via the downward API. The CNI
-  must enforce NetworkPolicy. Other policies are additive: remove or narrow rules
+  must enforce standard Kubernetes NetworkPolicy; no particular provider, including
+  Calico, is required. Other policies are additive: remove or narrow rules
   that also allow cross-tenant access to these Pods. Custom deployments must provide
   equivalent ingress isolation before activation. The generated policy applies to
   namespace artifact services in both modes; clients that previously called them
@@ -75,20 +76,30 @@ The mode does not alter storage IAM policies or migrate object bytes.
 
 1. Inventory the object stores, namespace artifact services, effective credentials
    and historical roots. Identify all serving replicas and alternate access paths.
-2. Deploy the updated profile controller and reconcile affected namespaces. Verify
-   the generated ingress policy and its actual enforcement; existence alone is not
-   proof. Custom installations must provide equivalent protection. Confirm the
-   namespace services use the intended scoped credentials and trusted destinations.
-3. Test storage policy before changing the UI: namespace A must read an authorized
-   historical object and fail to read namespace B's private object. Also test
-   prefix/directory listing so object names cannot leak across the boundary.
-4. Set `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated
+2. Upgrade **all shared-UI replicas first**, keeping `key-prefix` selected. The
+   updated UI sends the authorized namespace binding in both modes; older UIs do
+   not. Wait for the UI rollout to finish before upgrading the profile controller
+   or enabling receiver binding. Reversing this order causes artifact requests from
+   old UI replicas to fail with HTTP 403, including in default mode.
+3. Upgrade the profile controller and reconcile affected namespaces. Wait for
+   **every** namespace artifact service to run the updated image with
+   `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`. Confirm its
+   `FRONTEND_SERVER_NAMESPACE` matches its namespace. Verify the generated ingress
+   policy and actual denial from tenant Pods; existence alone is not proof. Custom
+   installations need equivalent receiver and ingress protection. Confirm the
+   services use the intended scoped credentials and trusted destinations.
+4. Test storage policy before selecting storage mode: namespace A must read an
+   authorized historical object and fail to read namespace B's private object.
+   Test prefix/directory listing too. Through the UI, verify that retargeting an
+   artifact Service to another namespace's receiver is denied before storage
+   access, including when the caller supplies a forged namespace header.
+5. Set `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated
    shared UI, keeping its namespace proxy enabled. Roll out all UI replicas.
    During mixed configuration, replicas still using `key-prefix` may deny custom
    roots; retry after the rollout finishes. Older images may ignore the new
-   setting; do not treat enforcement as complete until every serving UI replica
-   is updated.
-5. Test previews and raw downloads through KFP with actual user identities. Check
+   setting; do not treat enforcement as complete until every serving UI and
+   receiver is updated.
+6. Test previews and raw downloads through KFP with actual user identities. Check
    an existing arbitrary root, a shared object, a denied other-tenant URI and a
    namespace parameter swap. An importer or metadata association must not turn a
    denied object into an allowed one. Stop the namespace proxy and confirm that
@@ -103,3 +114,21 @@ To roll back the authorization mode, restore `key-prefix` and roll out the UI.
 Historical custom roots may again be denied. Keep scoped storage credentials and
 proxy ingress protections in place. The mode change does not delete artifacts or
 change retention settings.
+
+
+### Receiving namespace binding
+
+Profile-managed artifact services require `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`
+in both authorization modes. Before reading storage, they compare the
+`X-KFP-Artifact-Namespace` header with their own `FRONTEND_SERVER_NAMESPACE` and
+reject missing or mismatched bindings. The updated shared UI replaces any
+caller-supplied header with the namespace authorized for that request. A
+user-controlled Service or ExternalName alias therefore cannot redirect an
+approved request to another namespace's storage identity.
+
+This binding relies on UI-only ingress: the header is not a bearer credential.
+Keep direct tenant access denied, including broader additive NetworkPolicy rules.
+Custom artifact services must enforce the same receiver binding. Updating only
+the shared UI is insufficient for storage authorization; old receivers ignore the
+header. Keep the updated shared UI when rolling back from storage to key-prefix;
+rolling back to an old UI image while receiver binding is enabled causes HTTP 403.

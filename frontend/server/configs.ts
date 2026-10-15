@@ -200,6 +200,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Object authorization policy; storage delegates to namespace-scoped credentials. */
     KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE = 'key-prefix',
+    ARTIFACTS_REQUIRE_PROXY_NAMESPACE = 'false',
     /** Additional object-store origins allowed for secret-backed provider configs. */
     ALLOWED_ARTIFACT_ENDPOINTS = '',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
@@ -350,6 +351,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       minio,
       proxy: artifactProxy,
       authorizationMode,
+      requireProxyNamespace: asBool(ARTIFACTS_REQUIRE_PROXY_NAMESPACE),
       allowOfficialAwsEndpoints: Boolean(configuredAwsEndpoint),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
@@ -506,6 +508,7 @@ export interface UIConfigs {
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
     authorizationMode: ArtifactAuthorizationMode;
+    requireProxyNamespace?: boolean;
     allowOfficialAwsEndpoints: boolean;
     streamLogsFromServerApi: boolean;
     allowedDomain: string;

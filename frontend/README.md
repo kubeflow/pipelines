@@ -217,5 +217,8 @@ service's restricted storage identity after user/namespace authorization. Existi
 roots need no prescribed prefix or MLMD record. This is enforcement, not audit.
 In 2.18, configure credentials and endpoints in the namespace service environment
 or workload identity; browser provider/Secret selectors are discarded. Verify
-proxy ingress isolation before activation. See the
+proxy ingress isolation before activation. Upgrade all shared-UI replicas in
+`key-prefix` mode before reconciling namespace services that require the authorized
+namespace header; enable storage mode only after all receivers are updated. The
+receiver binding and generated standard NetworkPolicy apply in both modes. See the
 [prerequisites, scope and rollout guide](../docs/operator-guides/artifact-authorization.md).

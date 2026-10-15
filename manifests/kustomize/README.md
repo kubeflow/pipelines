@@ -99,8 +99,12 @@ operator-configured namespace prefix), including through tenant proxies. Configu
 an endpoint or proxy does not make an existing custom-root object belong to a
 namespace. With restricted namespace credentials, use storage authorization to
 preserve existing roots. Reconcile the generated proxy ingress policy and verify
-actual storage/network isolation before activation. See
-[authorization choices and rollout](../../docs/operator-guides/artifact-authorization.md).
+actual storage/network isolation before activation. For the first upgrade to
+receiver namespace binding, complete the shared-UI image rollout in `key-prefix`
+mode before updating the profile controller and namespace receivers. Old UIs do
+not send the required namespace header and receive HTTP 403 from updated
+receivers in either mode. Enable storage mode only after every receiver is updated.
+See [authorization choices and rollout](../../docs/operator-guides/artifact-authorization.md).
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
 providers require namespace-isolated artifact proxies. Set
@@ -116,8 +120,8 @@ settings as environment variables. For the standard multi-user installation
 
 ```sh
 kubectl -n kubeflow rollout restart deployment/ml-pipeline-ui
-kubectl -n kubeflow rollout restart deployment/kubeflow-pipelines-profile-controller
 kubectl -n kubeflow rollout status deployment/ml-pipeline-ui
+kubectl -n kubeflow rollout restart deployment/kubeflow-pipelines-profile-controller
 kubectl -n kubeflow rollout status deployment/kubeflow-pipelines-profile-controller
 ```
 

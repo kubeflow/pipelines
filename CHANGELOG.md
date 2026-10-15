@@ -8,9 +8,12 @@ Changelog
   `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated shared UI
   to retain historical object roots without moving bytes or requiring MLMD records.
   This is enforced authorization, not audit. Default `key-prefix` behavior remains
-  for shared credentials. Before activation, reconcile proxy ingress policies and
-  verify actual storage/network isolation. Direct proxy consumers must use the
-  authenticated shared UI. In 2.18, storage mode uses namespace-service environment
+  for shared credentials. Upgrade all shared-UI replicas in `key-prefix` mode
+  before reconciling the profile controller and namespace receivers. Receivers
+  require the UI's authorized namespace header in both modes; old UI replicas
+  otherwise receive HTTP 403. Before selecting storage mode, wait for all receivers,
+  reconcile proxy ingress policies, and verify actual storage/network isolation.
+  Direct proxy consumers must use the authenticated shared UI. In 2.18, storage mode uses namespace-service environment
   or workload-identity credentials; browser provider/Secret selectors are discarded.
   HTTP artifacts and archived logs retain separate policies. See the
   [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).

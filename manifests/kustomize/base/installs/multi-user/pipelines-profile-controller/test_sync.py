@@ -566,6 +566,18 @@ def test_artifact_network_policy_binds_shared_ui_identity(
             }],
         }],
     }
+    deployment = next(item for item in result["attachments"]
+                      if item["kind"] == "Deployment" and
+                      item["metadata"]["name"] == "ml-pipeline-ui-artifact")
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert {
+        "name": "ARTIFACTS_REQUIRE_PROXY_NAMESPACE",
+        "value": "true"
+    } in environment
+    assert {
+        "name": "FRONTEND_SERVER_NAMESPACE",
+        "value": "myName"
+    } in environment
     attachments["NetworkPolicy.networking.k8s.io/v1"] = {"artifact": policy}
     assert post_sync(server, PARENT, attachments)["status"] == {
         "kubeflow-pipelines-ready": "True"

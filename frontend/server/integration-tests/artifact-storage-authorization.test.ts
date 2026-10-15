@@ -16,7 +16,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import express, { type Request, type RequestHandler } from 'express';
 import type { Server } from 'http';
 import requests from 'supertest';
-import { getArtifactsAuthMiddleware, getArtifactsProxyHandler } from '../handlers/artifacts.js';
+import {
+  getArtifactsAuthMiddleware,
+  getArtifactsProxyHandler,
+  getArtifactReceiverNamespaceMiddleware,
+} from '../handlers/artifacts.js';
 import { validateArtifactNamespace } from '../helpers/mlmd-validator.js';
 import type { AuthorizeFn } from '../helpers/auth.js';
 import type { ArtifactAuthorizationMode } from '../configs.js';
@@ -30,6 +34,7 @@ describe('storage-authorized artifact routing', () => {
   let downstream: Server;
   let endpoint: string;
   let forwarded: string[];
+  let receivingNamespace: string;
   const authorize = vi.fn<AuthorizeFn>();
   const localFetch = vi.fn<RequestHandler>();
   const serviceGetter = vi.fn<(namespace: string) => string>();
@@ -43,7 +48,11 @@ describe('storage-authorized artifact routing', () => {
       reason: 'mlmd-unavailable',
     });
     forwarded = [];
+    receivingNamespace = 'team-a';
     const service = express();
+    service.use((req, res, next) =>
+      getArtifactReceiverNamespaceMiddleware(receivingNamespace)(req, res, next),
+    );
     service.use((req, res) => {
       forwarded.push(req.url);
       res.status(req.url.includes('denied') ? 403 : 200).send('namespace storage response');
@@ -109,6 +118,40 @@ describe('storage-authorized artifact routing', () => {
       ...extra,
     }).toString();
   }
+
+  it.each(['storage', 'key-prefix'] as const)(
+    'rejects a tenant Service alias targeting another namespace in %s mode',
+    async (mode) => {
+      // A tenant-a Service alias resolves to tenant-b, which must not use its credentials.
+      vi.mocked(validateArtifactNamespace).mockResolvedValue({ valid: true });
+      receivingNamespace = 'team-b';
+      await requests(app({ mode }))
+        .get(`/artifacts/get?${artifactQuery({ key: 'private-artifacts/team-a/model.txt' })}`)
+        .set('kubeflow-userid', 'alice@example.com')
+        .set('x-kfp-artifact-namespace', 'team-b')
+        .expect(403);
+      expect(forwarded).toHaveLength(0);
+      expect(localFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['storage', 'key-prefix'] as const)(
+    'replaces spoofed client bindings with the authorized namespace in %s mode',
+    async (mode) => {
+      vi.mocked(validateArtifactNamespace).mockResolvedValue({ valid: true });
+      await requests(app({ mode }))
+        .get(`/artifacts/get?${artifactQuery({ key: 'private-artifacts/team-a/model.txt' })}`)
+        .set('kubeflow-userid', 'alice@example.com')
+        .set('x-kfp-artifact-namespace', 'team-b')
+        .expect(200);
+      expect(forwarded).toHaveLength(1);
+    },
+  );
+
+  it('rejects requests without a binding at the receiving service', async () => {
+    await requests(endpoint).get('/artifacts/get').expect(403);
+    expect(forwarded).toHaveLength(0);
+  });
 
   it.each(['s3', 'minio', 'gcs'])(
     'accepts existing %s roots without artifact records',
