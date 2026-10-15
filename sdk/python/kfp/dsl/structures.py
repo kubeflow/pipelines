@@ -84,8 +84,25 @@ class InputSpec:
             # without isOptional=True
             optional = ir_component_inputs_dict.get(
                 'isOptional', 'defaultValue' in ir_component_inputs_dict)
+            # Restore allowed Literal values written by the compiler. Each
+            # entry is a protobuf Value serialized to a plain Python scalar.
+            raw_literals = ir_component_inputs_dict.get('literals')
+            if raw_literals:
+                literals = [
+                    v.get('stringValue') or v.get('numberValue')
+                    for v in raw_literals
+                ]
+                # Cast integer literals back to int (proto stores all numbers
+                # as float/double, so 1.0 -> 1 when the type is INTEGER).
+                if type_ == 'Integer':
+                    literals = [int(v) for v in literals]
+            else:
+                literals = None
             return InputSpec(
-                type=type_, default=default_value, optional=optional)
+                type=type_,
+                default=default_value,
+                optional=optional,
+                literals=literals)
 
         else:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']

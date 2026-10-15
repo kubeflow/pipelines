@@ -296,10 +296,19 @@ def verify_type_compatibility(
         # avoid circular imports
         from kfp.dsl import pipeline_channel
         is_channel = isinstance(given_value, pipeline_channel.PipelineChannel)
+        # A plain string may contain embedded pipeline channel placeholders
+        # (e.g. f'prefix-{choice}').  extract_pipelinechannel_from_placeholder
+        # returns a non-empty list when the string carries such a placeholder,
+        # meaning the final value is only known at runtime and cannot be
+        # validated statically against the Literal constraint.
+        has_embedded_channel = (not is_channel and isinstance(
+            given_value, str) and bool(
+                pipeline_channel.extract_pipelinechannel_from_placeholder(
+                    given_value)))
         # PipelineChannel.__eq__ builds a ConditionOperation rather than
         # returning a bool, so `given_value in expected_literals` is only
         # safe for constants, not channels.
-        if not is_channel and given_value not in expected_literals:
+        if not is_channel and not has_embedded_channel and given_value not in expected_literals:
             types_are_compatible = False
             error_text = (
                 error_message_prefix +

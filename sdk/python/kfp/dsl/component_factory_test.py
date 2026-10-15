@@ -409,6 +409,60 @@ class TestLiteralParameterAnnotations(unittest.TestCase):
                 return choice
 
 
+class TestLiteralContainerComponentPlaceholders(unittest.TestCase):
+    """Regression tests for P3: container component placeholder handling of Literal annotations."""
+
+    def test_container_component_with_literal_parameter_compiles(self):
+        """@dsl.container_component with Literal parameter should compile without error."""
+        
+        @dsl.container_component
+        def container_with_literal(choice: Literal['a', 'b']):
+            return dsl.ContainerSpec(
+                image='python:3.8',
+                command=['python', '-c'],
+                args=['print(f"Choice: {choice}")'],
+            )
+        
+        # Should not raise "param_type is not a parameter type" error
+        spec = container_with_literal.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['a', 'b'], spec.inputs['choice'].literals)
+
+    def test_container_component_with_optional_literal_parameter_compiles(self):
+        """@dsl.container_component with Optional[Literal] parameter should compile without error."""
+        from typing import Optional
+        
+        @dsl.container_component
+        def container_with_optional_literal(choice: Optional[Literal['x', 'y']] = None):
+            return dsl.ContainerSpec(
+                image='python:3.8',
+                command=['python', '-c'],
+                args=['print(f"Choice: {choice}")'],
+            )
+        
+        # Should not raise "param_type is not a parameter type" error
+        spec = container_with_optional_literal.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['x', 'y'], spec.inputs['choice'].literals)
+        self.assertTrue(spec.inputs['choice'].optional)
+
+    def test_container_component_with_integer_literal_parameter_compiles(self):
+        """@dsl.container_component with integer Literal parameter should compile without error."""
+        
+        @dsl.container_component
+        def container_with_int_literal(level: Literal[1, 2, 3] = 1):
+            return dsl.ContainerSpec(
+                image='python:3.8',
+                command=['python', '-c'],
+                args=['print(f"Level: {level}")'],
+            )
+        
+        # Should not raise "param_type is not a parameter type" error
+        spec = container_with_int_literal.component_spec
+        self.assertEqual('Integer', spec.inputs['level'].type)
+        self.assertEqual([1, 2, 3], spec.inputs['level'].literals)
+
+
 class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
 
     def test_unknown(self):

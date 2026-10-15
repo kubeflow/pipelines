@@ -938,8 +938,15 @@ def make_input_for_parameterized_container_component_function(
             # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
+            # Literal[...] and Optional[Literal[...]] must be normalized to
+            # their underlying scalar type before get_parameter_type_name(),
+            # which does not understand Literal annotations.
+            normalized = annotation
+            literal_values = type_utils.get_literal_values(annotation)
+            if literal_values is not None:
+                normalized = type(literal_values[0])
             placeholder._ir_type = type_utils.get_parameter_type_name(
-                annotation)
+                normalized)
         return placeholder
 
 

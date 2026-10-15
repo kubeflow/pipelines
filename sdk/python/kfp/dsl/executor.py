@@ -527,6 +527,11 @@ def is_parameter(annotation: Any) -> bool:
     ) and type_utils.is_pydantic_basemodel_subclass(stripped_annotation):
         return True
 
+    # Literal[...] and Optional[Literal[...]] are parameter types whose
+    # underlying scalar type (str, int, or float) is a parameter type.
+    if type_utils.get_literal_values(annotation) is not None:
+        return True
+
     return type_utils.is_parameter_type(str(annotation))
 
 
