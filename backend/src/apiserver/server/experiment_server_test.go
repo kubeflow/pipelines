@@ -364,7 +364,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	defer clients.Close()
 
 	// Create another experiment
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIDTwo, nil))
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(manager)
 	experiment := &apiV2beta1.Experiment{DisplayName: "exp2"}
@@ -386,7 +386,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	}
 
 	// Create a run in experiment 1
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdThree, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIDThree, nil))
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	genericRun.DisplayName = "run1"
@@ -395,7 +395,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Create a run in experiment 2
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdFour, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIDFour, nil))
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	genericRun.DisplayName = "run2"

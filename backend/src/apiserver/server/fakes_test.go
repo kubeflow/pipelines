@@ -40,10 +40,10 @@ import (
 const (
 	DefaultFakeUUID    = "123e4567-e89b-12d3-a456-426655440000"
 	NonDefaultFakeUUID = "123e4567-e89b-12d3-a456-426655441000"
-	DefaultFakeIdOne   = "123e4567-e89b-12d3-a456-426655440000"
-	DefaultFakeIdTwo   = "123e4567-e89b-12d3-a456-426655440001"
-	DefaultFakeIdThree = "123e4567-e89b-12d3-a456-426655440002"
-	DefaultFakeIdFour  = "123e4567-e89b-12d3-a456-426655440003"
+	DefaultFakeIDOne   = "123e4567-e89b-12d3-a456-426655440000"
+	DefaultFakeIDTwo   = "123e4567-e89b-12d3-a456-426655440001"
+	DefaultFakeIDThree = "123e4567-e89b-12d3-a456-426655440002"
+	DefaultFakeIDFour  = "123e4567-e89b-12d3-a456-426655440003"
 )
 
 // This automatically runs before all the tests.
