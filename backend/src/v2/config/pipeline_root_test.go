@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
