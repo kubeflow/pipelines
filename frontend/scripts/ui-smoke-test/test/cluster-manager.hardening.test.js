@@ -608,6 +608,73 @@ test('storage configuration leaves revisions without SeaweedFS unchanged', async
   assert.equal(appliedManifest, manifest);
 });
 
+test('local driver image replaces executor-plugin sidecar images without changing its contract', async (t) => {
+  const pluginPath = path.resolve(
+    __dirname,
+    '../../../../manifests/kustomize/base/pipeline/ml-pipeline-driver-plugin-cm.yaml',
+  );
+  const pluginManifest = fs.readFileSync(pluginPath, 'utf8');
+  const original = parseAllDocuments(pluginManifest)[0].toJS();
+  const localDriver = 'kfp-ui-smoke/driver:head-sha';
+  const delegate = deploymentRunner([], {
+    manifest: `${renderedManifest()}\n---\n${pluginManifest}`,
+  });
+  let appliedManifest;
+  const stack = createTestStack(t, {
+    runner(command, args, options) {
+      if (command === 'kubectl' && args.includes('apply') && args.includes('-f')) {
+        appliedManifest = fs.readFileSync(args.at(-1), 'utf8');
+      }
+      return delegate(command, args, options);
+    },
+  });
+  await stack.deployRevision('/revision', {
+    platform: 'linux/amd64',
+    imageOverrides: { images: { driver: localDriver } },
+  });
+  const resources = parseAllDocuments(appliedManifest).map((document) => document.toJS());
+  const plugin = resources.find(
+    (resource) => resource.metadata.name === 'ml-pipeline-driver-agent',
+  );
+  const expectedContainer = parseAllDocuments(original.data['sidecar.container'])[0].toJS();
+  expectedContainer.image = localDriver;
+  expectedContainer.imagePullPolicy = 'IfNotPresent';
+  assert.deepEqual(
+    parseAllDocuments(plugin.data['sidecar.container'])[0].toJS(),
+    expectedContainer,
+  );
+  assert.deepEqual(
+    { ...plugin, data: { ...plugin.data, 'sidecar.container': undefined } },
+    { ...original, data: { ...original.data, 'sidecar.container': undefined } },
+  );
+});
+
+test('malformed executor-plugin containers fail before applying the local stack', async (t) => {
+  const calls = [];
+  const plugin = {
+    apiVersion: 'v1',
+    kind: 'ConfigMap',
+    metadata: { name: 'ml-pipeline-driver-agent' },
+    data: { 'sidecar.container': 'name: unexpected-container\nimage: release:old\n' },
+  };
+  const stack = createTestStack(t, {
+    runner: deploymentRunner(calls, {
+      manifest: `${renderedManifest()}\n---\n${JSON.stringify(plugin)}`,
+    }),
+  });
+  await assert.rejects(
+    stack.deployRevision('/revision', {
+      platform: 'linux/amd64',
+      imageOverrides: { images: { driver: 'kfp-ui-smoke/driver:head-sha' } },
+    }),
+    /Invalid driver-plugin sidecar.container/,
+  );
+  assert.equal(
+    calls.some(({ command, args }) => command === 'kubectl' && args.includes('apply')),
+    false,
+  );
+});
+
 test('deployment reserves small SeaweedFS volumes only in rendered smoke manifests', async (t) => {
   for (const existingFlags of [
     [],
