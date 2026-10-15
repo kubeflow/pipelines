@@ -390,6 +390,14 @@ func (d *failingRunCreationDispatcher) PluginsRegistered() bool {
 	return true
 }
 
+func (d *failingRunCreationDispatcher) OnRunCreationDiscarded(
+	context.Context,
+	*apiserverPlugins.PendingRun,
+	util.ExecutionSpec,
+) error {
+	return nil
+}
+
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
 	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
@@ -2426,7 +2434,7 @@ func TestCreateRun_PluginFailureStillCallsOnRunEnd(t *testing.T) {
 		&ResourceManagerOptions{CollectMetrics: false},
 	)
 
-	experimentID, err := manager.CreateDefaultExperiment("")
+	experimentID, err := manager.CreateDefaultExperiment(context.Background(), "")
 	require.NoError(t, err)
 
 	dispatcher := &failingRunCreationDispatcher{}
@@ -2436,8 +2444,8 @@ func TestCreateRun_PluginFailureStillCallsOnRunEnd(t *testing.T) {
 		DisplayName:  "plugin-failure-run",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 
