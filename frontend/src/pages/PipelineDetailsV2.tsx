@@ -28,7 +28,7 @@ import type {
   PipelineFlowElement,
 } from 'src/lib/v2/FlowTypes';
 
-import { color, commonCss, padding } from 'src/Css';
+import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
@@ -72,7 +72,6 @@ function PipelineDetailsV2({
           style={{
             position: 'relative',
             overflow: 'hidden',
-            borderTop: `8px solid ${color.background}`,
           }}
         >
           <DagCanvas

@@ -1,0 +1,140 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-flaky-retry
+# Inputs:
+#    a: float [Default: 1.0]
+#    b: float [Default: 7.0]
+components:
+  comp-check-sum:
+    executorLabel: exec-check-sum
+    inputDefinitions:
+      parameters:
+        expected:
+          parameterType: NUMBER_DOUBLE
+        total:
+          parameterType: NUMBER_DOUBLE
+  comp-flaky-add:
+    executorLabel: exec-flaky-add
+    inputDefinitions:
+      parameters:
+        a:
+          parameterType: NUMBER_DOUBLE
+        b:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_DOUBLE
+deploymentSpec:
+  executors:
+    exec-check-sum:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - check_sum
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef check_sum(total: float, expected: float):\n    if total != expected:\n\
+          \        raise ValueError(f'expected {expected}, got {total}')\n    print(f'sum\
+          \ {total} matches {expected}')\n\n"
+        image: python:3.11
+    exec-flaky-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flaky_add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flaky_add(a: float, b: float) -> float:\n    import os\n    attempt\
+          \ = int(os.environ.get('KFP_RETRY_INDEX') or '0')\n    print(f'attempt index\
+          \ {attempt}')\n    if attempt == 0:\n        raise RuntimeError('failing on\
+          \ purpose on the first attempt')\n    return a + b\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-flaky-retry
+root:
+  dag:
+    tasks:
+      check-sum:
+        cachingOptions: {}
+        componentRef:
+          name: comp-check-sum
+        dependentTasks:
+        - flaky-add
+        inputs:
+          parameters:
+            expected:
+              runtimeValue:
+                constant: 8.0
+            total:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: flaky-add
+        taskInfo:
+          name: check-sum
+      flaky-add:
+        cachingOptions: {}
+        componentRef:
+          name: comp-flaky-add
+        inputs:
+          parameters:
+            a:
+              componentInputParameter: a
+            b:
+              componentInputParameter: b
+        retryPolicy:
+          backoffDuration: 0s
+          backoffFactor: 2.0
+          backoffMaxDuration: 3600s
+          maxRetryCount: 2
+        taskInfo:
+          name: flaky-add
+  inputDefinitions:
+    parameters:
+      a:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      b:
+        defaultValue: 7.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3

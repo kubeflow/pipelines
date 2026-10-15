@@ -16,6 +16,8 @@
 from pathlib import Path
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = ROOT / '.github/workflows/osv-scanner.yml'
 CI_SCRIPTS_WORKFLOW_PATH = ROOT / '.github/workflows/ci-scripts-tests.yml'
@@ -84,6 +86,20 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             'category: kubeflow-pipelines-osv-image-${{ matrix.category }}',
             self.workflow)
         self.assertIn('      fail-fast: false', self.workflow)
+
+    def test_discovery_installs_yaml_dependency_before_rendering(self):
+        workflow = yaml.safe_load(self.workflow)
+        steps = workflow['jobs']['discover-images']['steps']
+        install_index = next(
+            index for index, step in enumerate(steps) if step.get('run') ==
+            'python3 -m pip install -r .github/scripts/requirements.txt')
+        render_index = next(index for index, step in enumerate(steps)
+                            if 'osv_manifest_images.py' in step.get('run', ''))
+        self.assertLess(install_index, render_index)
+        self.assertTrue(
+            any(
+                step.get('uses', '').startswith('actions/setup-python@')
+                for step in steps[:install_index]))
 
     def test_exact_duplicate_results_are_removed_before_upload(self):
         self.assertEqual(self.workflow.count('deduplicate_sarif.py'), 2)
