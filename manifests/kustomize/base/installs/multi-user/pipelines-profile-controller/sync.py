@@ -26,6 +26,14 @@ import botocore.session
 
 S3_BUCKET_NAME = 'mlpipeline'
 HEALTHZ_PATH = '/healthz'
+# Metacontroller records each returned attachment in this annotation and
+# three-way merges against it on the next sync.
+LAST_APPLIED_ANNOTATION = 'metacontroller.k8s.io/last-applied-configuration'
+# Metadata worth echoing back for a Secret this controller does not rewrite.
+# Server- and Metacontroller-owned fields such as resourceVersion, uid, and
+# ownerReferences change on every write, so returning them would alter the
+# last-applied annotation each cycle and reconcile InPlace Secrets forever.
+PRESERVED_SECRET_METADATA = ('name', 'namespace', 'labels', 'annotations')
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -33,6 +41,24 @@ s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL",
                                  "http://seaweedfs.kubeflow:8333")
 s3 = session.create_client(
     's3', region_name='foobar', endpoint_url=s3_endpoint_url)
+
+
+def preserved_secret(observed):
+    """Desired state for an observed Secret that only external controllers
+    populate: its data and intentional metadata, without volatile fields."""
+    secret = copy.deepcopy(observed)
+    metadata = secret.get('metadata', {})
+    secret['metadata'] = {
+        key: metadata[key]
+        for key in PRESERVED_SECRET_METADATA
+        if key in metadata
+    }
+    annotations = secret['metadata'].get('annotations')
+    if annotations is not None:
+        annotations.pop(LAST_APPLIED_ANNOTATION, None)
+        if not annotations:
+            del secret['metadata']['annotations']
+    return secret
 
 
 def _normalize_domain(domain):
@@ -911,7 +937,7 @@ def server_factory(frontend_image,
             # use it. Else create a new credentials on seaweedfs for the namespace.
             if s3_secret := attachments["Secret.v1"].get(
                     f"{namespace}/mlpipeline-minio-artifact"):
-                desired_resources.append(s3_secret)
+                desired_resources.append(preserved_secret(s3_secret))
                 print('Using existing secret')
             else:
                 self.ensure_namespace_object_policy(namespace)

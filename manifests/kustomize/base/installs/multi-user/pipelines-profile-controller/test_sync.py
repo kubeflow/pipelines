@@ -551,6 +551,60 @@ def test_storage_authorization_waits_for_policy_and_current_receiver(
     s3.put_bucket_policy.assert_not_called()
 
 
+def test_storage_authorization_records_are_updated_in_place():
+    controller = yaml.safe_load(
+        Path(sync.__file__).with_name("decorator-controller.yaml").read_text())
+    secret_rules = [
+        rule for rule in controller["spec"]["attachments"]
+        if rule["resource"] == "secrets"
+    ]
+    assert len(secret_rules) == 1
+    assert secret_rules[0]["updateStrategy"]["method"] == "InPlace"
+
+
+def test_existing_credentials_preserve_data_without_metadata_churn(
+        storage_controller):
+    server, observed, _, _ = storage_controller
+    key = f"{NAMESPACE}/mlpipeline-minio-artifact"
+    credential = observed["Secret.v1"][key]
+    credential["type"] = "Opaque"
+    credential["metadata"].update({
+        "labels": {
+            "operator": "managed"
+        },
+        "annotations": {
+            "custom": "preserve-me"
+        },
+        "uid": "credential-uid",
+        "ownerReferences": [{
+            "kind": "Namespace",
+            "uid": "namespace-uid"
+        }],
+        "creationTimestamp": "2026-10-15T00:00:00Z",
+        "managedFields": [{
+            "manager": "metacontroller"
+        }],
+    })
+    expected = copy.deepcopy(credential)
+    expected["metadata"] = {
+        key: expected["metadata"][key]
+        for key in ("name", "namespace", "labels", "annotations")
+    }
+    for version in range(1, 9):
+        credential["metadata"]["resourceVersion"] = str(version)
+        credential["metadata"]["annotations"][
+            "metacontroller.k8s.io/last-applied-configuration"] = json.dumps(
+                expected)
+        before = copy.deepcopy(observed)
+        result = post_sync(server, PARENT, observed)
+        desired = next(
+            resource for resource in result["attachments"]
+            if resource["kind"] == "Secret" and
+            resource["metadata"]["name"] == "mlpipeline-minio-artifact")
+        assert desired == expected
+        assert observed == before
+
+
 def test_storage_authorization_accepts_api_omitted_empty_environment_values(
         storage_controller):
     server, attachments, _, _ = storage_controller
