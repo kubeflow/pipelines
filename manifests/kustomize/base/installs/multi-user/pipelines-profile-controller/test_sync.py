@@ -1,5 +1,6 @@
 import base64
 import copy
+import itertools
 import json
 import os
 from pathlib import Path
@@ -316,6 +317,177 @@ def test_ca_rotation_reconciles_without_changing_other_secrets(
         else:
             assert secret == previous
     assert observed == before
+
+
+# Read-only metadata that Metacontroller v4.16.2 reverts after merging
+# (objectMetaSystemFields in pkg/controller/common/manage_children.go).
+METACONTROLLER_SYSTEM_FIELDS = (
+    "selfLink",
+    "uid",
+    "resourceVersion",
+    "generation",
+    "creationTimestamp",
+    "deletionTimestamp",
+    "deletionGracePeriodSeconds",
+    "managedFields",
+)
+
+
+def metacontroller_merge(destination, last_applied, desired):
+    """Port of dynamicapply.merge from Metacontroller v4.16.2: apply the diff
+    from last_applied to desired onto destination.
+
+    Secrets hold no lists, so lists take the desired value.
+    """
+    if isinstance(destination, dict):
+        last_applied = last_applied or {}
+        desired = desired or {}
+        for key in last_applied:
+            if key not in desired:
+                destination.pop(key, None)
+        for key, value in desired.items():
+            destination[key] = metacontroller_merge(
+                destination.get(key), last_applied.get(key), value)
+        return destination
+    return desired
+
+
+def metacontroller_apply_update(observed, desired):
+    """Port of common.ApplyUpdate from Metacontroller v4.16.2, which decides
+    whether an InPlace attachment differs from the observed object."""
+    desired = copy.deepcopy(desired)
+    desired.get("metadata", {}).get("annotations",
+                                    {}).pop(sync.LAST_APPLIED_ANNOTATION, None)
+    last_applied = json.loads(observed["metadata"].get("annotations", {}).get(
+        sync.LAST_APPLIED_ANNOTATION) or "null")
+    merged = metacontroller_merge(
+        copy.deepcopy(observed), last_applied, desired)
+    for field in METACONTROLLER_SYSTEM_FIELDS:
+        if field in observed["metadata"]:
+            merged["metadata"][field] = observed["metadata"][field]
+        else:
+            merged["metadata"].pop(field, None)
+    merged["metadata"].setdefault(
+        "annotations", {})[sync.LAST_APPLIED_ANNOTATION] = json.dumps(
+            desired, sort_keys=True)
+    return merged
+
+
+def metacontroller_create(desired, resource_versions):
+    """A Secret as the API server stores it after Metacontroller creates it:
+    the last-applied annotation, the controller ownerReference, and the
+    system metadata that observed attachments carry."""
+    stored = copy.deepcopy(desired)
+    stored["metadata"].setdefault(
+        "annotations", {})[sync.LAST_APPLIED_ANNOTATION] = json.dumps(
+            desired, sort_keys=True)
+    stored["metadata"]["ownerReferences"] = [{
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "name": NAMESPACE,
+        "uid": "parent-uid",
+        "controller": True,
+        "blockOwnerDeletion": True,
+    }]
+    stored["metadata"].update({
+        "uid": f"uid-{desired['metadata']['name']}",
+        "creationTimestamp": "2026-10-14T00:00:00Z",
+        "managedFields": [{
+            "manager": "metacontroller"
+        }],
+        "resourceVersion": str(next(resource_versions)),
+    })
+    stored.setdefault("type", "Opaque")
+    return stored
+
+
+def test_preserved_secrets_converge_under_in_place_updates(
+        start_sync_server, tmp_path):
+    ca_cert_path = tmp_path / "ca.crt"
+    ca_cert_path.write_bytes(b"original CA")
+    server = start_ca_server(start_sync_server, ca_cert_path)
+    resource_versions = itertools.count(1)
+    observed = observed_attachments(ready=True)
+    observed["Secret.v1"] = {
+        f"{NAMESPACE}/mlpipeline-minio-artifact":
+            metacontroller_create(
+                {
+                    **copy.deepcopy(EXISTING_SECRET), "data": {
+                        "accesskey": "YWNjZXNz",
+                        "secretkey": "c2VjcmV0"
+                    }
+                }, resource_versions),
+    }
+
+    def reconcile():
+        """One Metacontroller sync: create missing Secrets, apply the others
+        in place, and count how many the API server had to write."""
+        result = post_sync(server, PARENT, observed)
+        writes = 0
+        for desired in result["attachments"]:
+            if desired["kind"] != "Secret":
+                continue
+            key = f"{NAMESPACE}/{desired['metadata']['name']}"
+            assert not set(desired["metadata"]) & (
+                set(METACONTROLLER_SYSTEM_FIELDS) | {"ownerReferences"}), key
+            assert sync.LAST_APPLIED_ANNOTATION not in desired["metadata"].get(
+                "annotations", {}), key
+            current = observed["Secret.v1"].get(key)
+            if current is None:
+                observed["Secret.v1"][key] = metacontroller_create(
+                    desired, resource_versions)
+                writes += 1
+                continue
+            updated = metacontroller_apply_update(current, desired)
+            if updated != current:
+                updated["metadata"]["resourceVersion"] = str(
+                    next(resource_versions))
+                observed["Secret.v1"][key] = updated
+                writes += 1
+        return writes
+
+    # The first sync creates the CA and token Secrets and may adopt
+    # server-defaulted fields of the pre-existing credentials once.
+    assert reconcile() >= 3
+    # The token controller then populates the service-account token Secrets.
+    token_data = {
+        "token": "ZXhpc3Rpbmctand0",
+        "ca.crt": "Y2x1c3Rlci1jYQ==",
+        "namespace": "bXlOYW1l",
+    }
+    for secret in observed["Secret.v1"].values():
+        if secret.get("type") == "kubernetes.io/service-account-token":
+            secret["data"] = dict(token_data)
+            secret["metadata"]["annotations"][
+                "kubernetes.io/service-account.uid"] = "sa-uid"
+            secret["metadata"]["resourceVersion"] = str(next(resource_versions))
+    assert reconcile() == 2
+    for _ in range(8):
+        assert reconcile() == 0, observed["Secret.v1"]
+
+    # Rotation rewrites only the CA copy, and the loop settles again.
+    ca_cert_path.write_bytes(b"rotated CA")
+    assert reconcile() == 1
+    for _ in range(8):
+        assert reconcile() == 0, observed["Secret.v1"]
+
+    secrets = observed["Secret.v1"]
+    assert secrets[f"{NAMESPACE}/{sync.DRIVER_AGENT_CA_SECRET_NAME}"][
+        "data"] == {
+            "ca.crt": base64.b64encode(b"rotated CA").decode("utf-8")
+        }
+    assert secrets[f"{NAMESPACE}/mlpipeline-minio-artifact"]["data"] == {
+        "accesskey": "YWNjZXNz",
+        "secretkey": "c2VjcmV0"
+    }
+    for name in (
+            "default-editor.service-account-token",
+            "ml-pipeline-driver-agent-executor-plugin.service-account-token"):
+        secret = secrets[f"{NAMESPACE}/{name}"]
+        assert secret["data"] == token_data
+        assert secret["metadata"]["annotations"][
+            "kubernetes.io/service-account.uid"] == "sa-uid"
+        assert secret["metadata"]["ownerReferences"][0]["uid"] == "parent-uid"
 
 
 @pytest.mark.parametrize("state", ["missing", "empty"])
