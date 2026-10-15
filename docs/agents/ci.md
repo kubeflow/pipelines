@@ -260,9 +260,4 @@ The frontend qualification reliability reporter supports `--collect --repository
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
 - `legacy-native-transfer.yml` qualifies the merged 2.18 exporter against candidate native import in two independent Kind stores. The source uses a pinned 2.18 API server over the published 2.17.2 MLMD runtime; this is archive compatibility coverage, not an in-place upgrade or complete release qualification. See `docs/design/218-native-transfer.md` for checked invariants and exclusions. Keep the existing upgrade pause intact.
-
-- Docker mirror setup only modifies and restarts an active local systemd Docker
-  service. Containerized/provider-managed runners without that service retain
-  their daemon configuration; the helper still requires `docker info` to succeed.
-  Configure daemon mirrors in the runner provider when local service management
-  is unavailable. BuildKit mirror configuration remains independent.
+- Native migration failure diagnostics use an explicit status check so deployment failures cannot skip collection. Pod logs are written under `/tmp/tmp.log/` to match the uploaded artifact glob; the shared collector includes previous container logs for crash-loop diagnosis.
