@@ -139,6 +139,7 @@ class Acceptance:
         self.controller_replicas = None
         self.iam = None
         self.s3 = None
+        self.recovery_bucket_policy = None
         self.ui_pod = None
         self.ui_container = None
         self.controller_paused = False
@@ -861,6 +862,65 @@ class Acceptance:
             kubectl('delete', 'pod', name, '-n', probe_namespace,
                     '--wait=false')
 
+    def recover_bucket_policy(self):
+        credentials = {
+            namespace: get('secret', CREDENTIAL_SECRET, namespace)['data']
+            for namespace in self.tenants
+        }
+        original = document(self.s3.get_bucket_policy(Bucket=BUCKET)['Policy'])
+        missing = copy.deepcopy(original)
+        missing['Statement'] = [
+            statement for statement in missing['Statement']
+            if statement.get('Sid') != 'AllowHeadBucket'
+        ]
+        require(
+            len(missing['Statement']) == len(original['Statement']) - 1,
+            'Expected exactly one managed HeadBucket policy statement')
+        self.scale_controller(0)
+        self.recovery_bucket_policy = original
+        # Remove only a permission, retaining all cross-tenant Deny statements.
+        # Existing credentials must trigger repair; no new Profile is created.
+        self.s3.put_bucket_policy(Bucket=BUCKET, Policy=json.dumps(missing))
+        stored = document(self.s3.get_bucket_policy(Bucket=BUCKET)['Policy'])
+        require(
+            not any(
+                statement.get('Sid') == 'AllowHeadBucket'
+                for statement in stored.get('Statement', [])),
+            'Policy recovery fixture did not remove HeadBucket permission')
+        require(
+            all(
+                statement in stored.get('Statement', [])
+                for statement in original['Statement']
+                if statement.get('Effect') == 'Deny'),
+            'Policy recovery fixture must preserve every Deny statement')
+        self.scale_controller(self.controller_replicas)
+
+        def repaired():
+            current = document(
+                self.s3.get_bucket_policy(Bucket=BUCKET)['Policy'])
+            return all(
+                statement in current.get('Statement', [])
+                for statement in original['Statement'])
+
+        wait_for('existing namespace to recover missing managed bucket policy',
+                 repaired, min(self.timeout, 120))
+        for namespace in self.tenants:
+            self.wait_state(namespace, 'ready')
+            require(
+                get('secret', CREDENTIAL_SECRET,
+                    namespace)['data'] == credentials[namespace],
+                'Bucket policy recovery replaced existing tenant credentials')
+            response = self.request(namespace,
+                                    self.keys[namespace]['historical'])
+            require(
+                response['status'] == 200 and
+                response['body'] == namespace + ':historical',
+                'Historical artifact access did not recover with bucket policy')
+        self.recovery_bucket_policy = None
+        self.passed(
+            'existing namespaces repair missing managed policy without replacing credentials'
+        )
+
     def rotate_credentials(self):
         namespace = self.tenants[0]
         previous = self.record(namespace)
@@ -1027,6 +1087,12 @@ class Acceptance:
             return kubectl(*args, optional=True, timeout=20)
 
         try:
+            if self.recovery_bucket_policy is not None and self.s3:
+                attempt(
+                    'Could not restore original bucket policy',
+                    lambda: self.s3.put_bucket_policy(
+                        Bucket=BUCKET,
+                        Policy=json.dumps(self.recovery_bucket_policy)))
             if self.controller_paused and self.controller_replicas is not None:
                 attempt(
                     'Restore profile webhook replicas manually',
@@ -1094,8 +1160,8 @@ class Acceptance:
                     self.prepare, self.pending_rollout,
                     self.seed_existing_roots, self.check_access,
                     self.check_protocol, self.check_network_policy,
-                    self.mixed_versions, self.rotate_credentials,
-                    self.check_access
+                    self.mixed_versions, self.recover_bucket_policy,
+                    self.rotate_credentials, self.check_access
             ]:
                 self.phase = phase.__name__
                 print('PHASE: ' + self.phase, flush=True)

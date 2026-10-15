@@ -562,8 +562,10 @@ def server_factory(frontend_image,
                 if not has_managed_object_policy(policy, namespace):
                     return self.artifact_storage_record_secret(
                         namespace, record)
-                # Preserve administrator changes. A missing/conflicting managed
-                # list boundary is a rollout blocker, never an implicit rewrite.
+                # Initialization can fail after credentials have been persisted.
+                # Retry only for a verified namespace identity; add missing managed
+                # statements without replacing administrator or conflicting policy.
+                self.ensure_bucket_list_policy(S3_BUCKET_NAME)
                 bucket_policy = policy_document(
                     s3.get_bucket_policy(Bucket=S3_BUCKET_NAME)["Policy"])
                 record["state"] = "pending"
