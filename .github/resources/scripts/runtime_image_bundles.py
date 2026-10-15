@@ -17,7 +17,7 @@
 import argparse
 from pathlib import Path
 
-BUNDLES = ('fixtures', 'mysql', 'argo-v3.7.18', 'argo-v4.1.2', 'modelcar')
+BUNDLES = ('fixtures', 'mysql', 'argo-v4.0.13', 'argo-v4.1.5', 'modelcar')
 ROOT = Path(__file__).resolve().parents[3]
 
 

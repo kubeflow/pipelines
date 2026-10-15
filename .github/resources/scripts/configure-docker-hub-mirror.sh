@@ -38,8 +38,8 @@ if [[ "${EUID}" -ne 0 ]]; then
   privilege_command=(sudo)
 fi
 
-# Use the Ubuntu system interpreter: setup-python runtimes may need
-# LD_LIBRARY_PATH, which sudo deliberately removes. This helper is stdlib-only.
+# Use the host interpreter: setup-python may require LD_LIBRARY_PATH, which
+# sudo strips. This host configuration helper uses only the standard library.
 configuration_status=$("${privilege_command[@]}" /usr/bin/python3 \
   "${C_DIR}/configure_docker_registry_mirror.py" \
   --config "$DOCKER_DAEMON_CONFIG" \

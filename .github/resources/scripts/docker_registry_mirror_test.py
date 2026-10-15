@@ -175,7 +175,7 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                         if healthy:
                             self.assertIn('provider-managed', result.stdout)
 
-    def test_shell_wrapper_restarts_docker_only_when_config_changes(self):
+    def test_shell_wrapper_uses_system_python_and_restarts_only_on_change(self):
         binary_directory = Path(self.temp_directory.name) / 'bin'
         binary_directory.mkdir()
         command_log = Path(self.temp_directory.name) / 'commands.log'
@@ -186,12 +186,15 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                     'if [[ "$1" == "info" ]]; then\n'
                     '  echo "Registry Mirrors: ${DOCKER_HUB_MIRROR:-https://mirror.gcr.io}/"\n'
                     'fi\n'),
-                'sudo':
-                    '#!/usr/bin/env bash\nunset LD_LIBRARY_PATH\nexec "$@"\n',
-                # Model a setup-python executable that cannot load after sudo
-                # strips its shared-library environment.
-                'python3': ('#!/usr/bin/env bash\n'
-                            'echo missing-libpython >&2\nexit 127\n'),
+                'python3': (
+                    '#!/usr/bin/env bash\n'
+                    'echo "unexpected PATH python3" >> "$COMMAND_LOG"\n'
+                    'echo "libpython3.11.so.1.0: cannot open shared object file" >&2\n'
+                    'exit 127\n'),
+                'sudo': ('#!/usr/bin/env bash\n'
+                         'echo "sudo $1" >> "$COMMAND_LOG"\n'
+                         'unset LD_LIBRARY_PATH\n'
+                         'exec "$@"\n'),
                 'systemctl': ('#!/usr/bin/env bash\n'
                               'echo "systemctl $*" >> "$COMMAND_LOG"\n'),
         }.items():
@@ -218,6 +221,15 @@ class DockerRegistryMirrorTest(unittest.TestCase):
         commands = command_log.read_text(encoding='utf-8').splitlines()
         self.assertEqual(commands.count('systemctl restart docker'), 1)
         self.assertEqual(commands.count('docker info'), 2)
+        self.assertNotIn('unexpected PATH python3', commands)
+        self.assertEqual(
+            commands.count('sudo /usr/bin/python3'),
+            2 if os.geteuid() != 0 else 0,
+        )
+        self.assertEqual(
+            commands.count('sudo systemctl'),
+            1 if os.geteuid() != 0 else 0,
+        )
 
 
 if __name__ == '__main__':

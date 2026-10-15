@@ -121,19 +121,19 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Upload runtime argo-v3.7.18 bundle
+      - name: Upload runtime argo-v4.0.13 bundle
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}-argo-v3.7.18
-          path: ${{ env.ARTIFACTS_PATH }}/argo-v3.7.18/argo-v3.7.18.tar
+          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}-argo-v4.0.13
+          path: ${{ env.ARTIFACTS_PATH }}/argo-v4.0.13/argo-v4.0.13.tar
           if-no-files-found: error
           retention-days: 3
 
-      - name: Upload runtime argo-v4.1.2 bundle
+      - name: Upload runtime argo-v4.1.5 bundle
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}-argo-v4.1.2
-          path: ${{ env.ARTIFACTS_PATH }}/argo-v4.1.2/argo-v4.1.2.tar
+          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}-argo-v4.1.5
+          path: ${{ env.ARTIFACTS_PATH }}/argo-v4.1.5/argo-v4.1.5.tar
           if-no-files-found: error
           retention-days: 3
 

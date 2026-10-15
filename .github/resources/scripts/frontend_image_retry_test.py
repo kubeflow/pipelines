@@ -40,12 +40,17 @@ class FrontendImageRetryTest(unittest.TestCase):
 
     def test_frontend_owns_its_recovery_and_other_images_keep_action_retry(
             self):
-        self.assertEqual(self.frontend['if'],
-                         "${{ matrix.image == 'frontend' }}")
+        self.assertEqual(
+            self.frontend['if'],
+            "${{ matrix.image == 'frontend' && steps.validate-image.outcome != 'success' }}"
+        )
         self.assertNotIn('continue-on-error', self.frontend)
         setup = next(s for s in self.steps if s.get('id') == 'buildx')
         for step in (setup, self.first):
-            self.assertEqual(step['if'], "${{ matrix.image != 'frontend' }}")
+            self.assertEqual(
+                step['if'],
+                "${{ matrix.image != 'frontend' && steps.validate-image.outcome != 'success' }}"
+            )
         self.assertTrue(self.first['continue-on-error'])
         self.assertEqual(self.retry['if'],
                          "${{ steps.save-image.outcome == 'failure' }}")
@@ -88,7 +93,7 @@ class FrontendImageRetryTest(unittest.TestCase):
                 additional_tags=['kind-registry:5000/frontend:ci'])
 
     def test_only_successful_builds_publish_and_record_arm_identity(self):
-        success = "steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success'"
+        success = "steps.validate-image.outcome == 'success' || steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success'"
         upload = next(s for s in self.steps if s['name'] == 'Upload artifact')
         identity = next(
             s for s in self.steps if s['name'] == 'Record ARM image identity')
@@ -96,6 +101,12 @@ class FrontendImageRetryTest(unittest.TestCase):
         self.assertEqual(
             identity['if'],
             "${{ inputs.architecture == 'arm64' && (" + success + ') }}')
+        retained = next(s for s in self.steps
+                        if s['name'] == 'Retain successful image archive')
+        self.assertIn("steps.frontend-image.outcome == 'success'",
+                      retained['if'])
+        self.assertIn("steps.validate-image.outcome != 'success'",
+                      retained['if'])
         self.assertEqual(upload['with']['if-no-files-found'], 'error')
         self.assertLess(
             self.steps.index(self.frontend), self.steps.index(identity))

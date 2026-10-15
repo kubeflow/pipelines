@@ -44,7 +44,7 @@ class RuntimeImageBundlesTest(unittest.TestCase):
             any('argoproj/' in image or '/mysql:' in image for image in images))
 
     def test_argo_pairs(self):
-        for version in ('v3.7.18', 'v4.1.2'):
+        for version in ('v4.0.13', 'v4.1.5'):
             with self.subTest(version=version):
                 self.assertCountEqual(
                     bundles.bundle_images('argo-' + version), [
@@ -65,18 +65,18 @@ class RuntimeImageBundlesTest(unittest.TestCase):
         for database, mysql in (('', True), ('mysql', True), ('pgx', False)):
             with self.subTest(database=database):
                 self.assertEqual(
-                    'mysql' in bundles.selected_bundles('v4.1.2', database),
+                    'mysql' in bundles.selected_bundles('v4.1.5', database),
                     mysql)
 
     def test_modelcar_is_optional_and_built_separately(self):
-        self.assertNotIn('modelcar', bundles.selected_bundles('v4.1.2'))
+        self.assertNotIn('modelcar', bundles.selected_bundles('v4.1.5'))
         self.assertEqual(
-            bundles.selected_bundles('v4.1.2', modelcar=True),
-            ['fixtures', 'argo-v4.1.2', 'mysql', 'modelcar'])
+            bundles.selected_bundles('v4.1.5', modelcar=True),
+            ['fixtures', 'argo-v4.1.5', 'mysql', 'modelcar'])
         self.assertEqual(bundles.bundle_images('modelcar'), [])
 
     def test_custom_argo_falls_back_to_full_inventory(self):
-        expected = ['fixtures', 'mysql', 'argo-v3.7.18', 'argo-v4.1.2']
+        expected = ['fixtures', 'mysql', 'argo-v4.0.13', 'argo-v4.1.5']
         self.assertCountEqual(
             bundles.selected_bundles('v9.9.9', 'pgx'), expected)
         self.assertCountEqual(
@@ -94,7 +94,7 @@ class RuntimeImageBundlesTest(unittest.TestCase):
 
     def test_unknown_database_rejected(self):
         with self.assertRaisesRegex(ValueError, 'Unsupported runtime database'):
-            bundles.selected_bundles('v4.1.2', 'unknown')
+            bundles.selected_bundles('v4.1.5', 'unknown')
 
     def test_comments_and_empty_lines_ignored(self):
         self.assertEqual(

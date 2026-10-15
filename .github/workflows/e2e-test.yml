@@ -290,7 +290,7 @@ jobs:
           k8s_version: "v1.36.1"
           cluster_name: ${{ env.CLUSTER_NAME }}
           runtime_image_path: images_${{ github.run_id }}
-          runtime_argo_version: "v4.1.2"
+          runtime_argo_version: "v4.1.5"
 
       - name: Deploy KFP
         uses: ./.github/actions/deploy

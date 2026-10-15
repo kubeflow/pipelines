@@ -20,7 +20,7 @@ source .github/resources/scripts/helper-functions.sh
 mkdir -p "${artifacts_path}"
 
 if [[ "${2:-}" == --bundles ]]; then
-  for bundle in fixtures mysql argo-v3.7.18 argo-v4.1.2; do
+  for bundle in fixtures mysql argo-v4.0.13 argo-v4.1.5; do
     mkdir -p "$artifacts_path/$bundle"
     python3 .github/resources/scripts/runtime_image_bundles.py "$bundle" > "$artifacts_path/$bundle/images.txt"
     pull_and_save_runtime_base_images "$artifacts_path/$bundle/images.txt" "$artifacts_path/$bundle/$bundle.tar"

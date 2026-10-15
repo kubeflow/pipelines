@@ -262,7 +262,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
 
     def start_prefetch(self):
         self.env['GITHUB_RUN_ATTEMPT'] = '1'
-        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.5'
         self.env['RUNTIME_DOWNLOAD_ONLY'] = 'true'
         result = self.run_loader('runtime-base-images')
         self.assert_success(result)
@@ -277,7 +277,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.assertEqual(self.state()['attempts'], downloads)
         self.assertEqual(
             set(self.state()['imports']),
-            {'fixtures.tar', 'mysql.tar', 'argo-v4.1.2.tar', 'modelcar.tar'})
+            {'fixtures.tar', 'mysql.tar', 'argo-v4.1.5.tar', 'modelcar.tar'})
         self.assertTrue(
             all(count == 1 for count in self.state()['imports'].values()))
 
@@ -335,7 +335,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         return settings
 
     def test_selected_bundles_download_exact_ids_without_other_archives(self):
-        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.5'
         self.env['RUNTIME_DB_TYPE'] = 'pgx'
         self.env['LOAD_MODELCAR_FIXTURE'] = 'false'
         self.configure(**self.bundle_settings())
@@ -343,22 +343,22 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.assert_success(result)
         self.assertEqual(self.state()['imports'], {
             'fixtures.tar': 1,
-            'argo-v4.1.2.tar': 1
+            'argo-v4.1.5.tar': 1
         })
         self.assertEqual(
             set(self.state()['attempts']),
-            {'runtime-base-images', 'fixtures', 'argo-v4.1.2'})
+            {'runtime-base-images', 'fixtures', 'argo-v4.1.5'})
 
     def test_bundle_modelcar_and_mysql_are_required_when_enabled(self):
-        self.env['RUNTIME_ARGO_VERSION'] = 'v3.7.18'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.0.13'
         self.configure(**self.bundle_settings())
         self.assert_success(self.run_loader('runtime-base-images'))
         self.assertEqual(
             set(self.state()['imports']),
-            {'fixtures.tar', 'argo-v3.7.18.tar', 'mysql.tar', 'modelcar.tar'})
+            {'fixtures.tar', 'argo-v4.0.13.tar', 'mysql.tar', 'modelcar.tar'})
 
     def test_all_selected_bundle_metadata_validated_before_any_import(self):
-        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.5'
         settings = self.bundle_settings()
         settings['bundle_metadata']['1001']['expired'] = True
         self.configure(**settings)
@@ -368,7 +368,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.assertEqual(set(self.state()['attempts']), {'runtime-base-images'})
 
     def test_missing_bundle_archive_fails_completeness(self):
-        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.5'
         settings = self.bundle_settings()
         settings['downloads']['fixtures'] = ['missing']
         self.configure(**settings)
@@ -378,7 +378,7 @@ class LoadReadyImageArtifactsTest(unittest.TestCase):
         self.assertEqual(self.state()['attempts']['fixtures'], 2)
 
     def test_malformed_bundle_map_rejected_before_download(self):
-        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.2'
+        self.env['RUNTIME_ARGO_VERSION'] = 'v4.1.5'
         for value in (0, True, '1000'):
             with self.subTest(value=value):
                 settings = self.bundle_settings()

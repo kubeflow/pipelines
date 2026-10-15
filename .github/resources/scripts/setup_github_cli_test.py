@@ -135,6 +135,17 @@ class SetupGitHubCliTest(unittest.TestCase):
         self.assertIn('setup-github-cli.sh', result.stderr)
         self.assertFalse((self.root / 'calls').exists())
 
+    def test_cluster_provisions_cli_before_runtime_prefetch(self):
+        action = yaml.safe_load((SCRIPTS.parents[1] / 'actions' /
+                                 'create-cluster' / 'action.yml').read_text())
+        steps = action['runs']['steps']
+        setup = next(i for i, step in enumerate(steps)
+                     if 'setup-github-cli.sh' in step.get('run', ''))
+        prefetch = next(i for i, step in enumerate(steps)
+                        if 'runtime_prefetch.py start' in step.get('run', ''))
+        self.assertLess(setup, prefetch)
+        self.assertEqual(steps[setup].get('if'), steps[prefetch].get('if'))
+
     def test_deploy_provisions_cli_before_polling(self):
         action = yaml.safe_load((SCRIPTS.parents[1] / 'actions' / 'deploy' /
                                  'action.yml').read_text())
