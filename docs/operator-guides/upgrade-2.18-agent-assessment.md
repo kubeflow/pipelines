@@ -157,6 +157,14 @@ changes and credential rotation require new matching readiness before storage
 reads proceed. Controller logs and receiver status should explain persistent
 failures without an operator needing to disable authorization.
 
+Distinguish transient storage-policy failures from conflicting managed statements.
+The controller retries missing, nonconflicting standard bucket-list statements
+after verifying the namespace IAM identity and standard object policy, including
+when credentials already exist. Existing credential data and administrator policy
+additions are preserved; recovery does not require deleting a Secret. Conflicting
+statements remain unchanged and require administrator review. Report persistent
+policy conflicts separately from transient reconciliation retries.
+
 Standard multi-user manifests enable managed proxies. Count namespaces labeled
 `pipelines.kubeflow.org/enabled=true` and identify those without an existing artifact
 receiver. Each newly enabled namespace gains one Pod whose default container

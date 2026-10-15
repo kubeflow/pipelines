@@ -270,6 +270,14 @@ NetworkPolicies, and records readiness in the installation namespace. It does no
 automatically grant arbitrary historical roots or treat imported metadata as
 storage permission.
 
+The controller retries transient storage-policy errors automatically, including
+for namespaces with existing credentials. After verifying the namespace IAM
+identity and standard object policy, it adds only missing, nonconflicting standard
+bucket-list policy statements and preserves administrator additions. Keep
+credential Secrets in place; deletion is not a recovery step. Conflicting policy
+statements remain unchanged and require administrator review. Reads remain
+retryable while readiness is pending.
+
 Enabling managed proxies adds one artifact receiver Pod per
 `pipelines.kubeflow.org/enabled=true` namespace that did not already have one.
 The default container requests **10m CPU and 70 MiB memory**, with limits of
