@@ -319,7 +319,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "593f38af09ca8065fdd48c3eba6004cd4724b5d672d36a5fcd856b70e90661fd",
+      "header_sha256": "0e8c13b09a52c2777537f01202e482d447af9c676a4ee1be9342ec9915404220",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -340,9 +340,13 @@
           "go.sum",
           "backend/**",
           "frontend/server/handlers/artifacts.ts",
+          "frontend/server/app.ts",
+          "frontend/server/configs.ts",
+          "frontend/server/helpers/artifact-*.ts",
           "proxy/**",
           "manifests/kustomize/**",
           "test/artifact-proxy/**",
+          "test/seaweedfs/**",
           "test_data/sdk_compiled_pipelines/**",
           "sdk/**",
           "kubernetes_platform/**",
