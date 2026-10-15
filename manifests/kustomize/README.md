@@ -324,7 +324,10 @@ namespace. Deployments with namespace-scoped credentials can instead use
 to preserve authorized existing roots. Reconcile the generated proxy ingress
 NetworkPolicy and verify storage and network isolation first; policies need an
 enforcing CNI, and other policies can add access. Direct proxy consumers must use
-the authenticated shared UI. See [authorization and rollout](../../docs/operator-guides/artifact-authorization.md).
+the authenticated shared UI. In both modes, upgrade shared-UI replicas before
+reconciling updated receivers with `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`;
+otherwise old UIs receive HTTP 403 from the new receivers. Enable storage mode only
+after every receiver is updated. See [authorization and rollout](../../docs/operator-guides/artifact-authorization.md).
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
 providers require namespace-isolated artifact proxies. Set
