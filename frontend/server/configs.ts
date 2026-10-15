@@ -170,7 +170,7 @@ function parseArgs(argv: string[]) {
   return { staticDir, port };
 }
 
-export type ArtifactAuthorizationMode = 'key-prefix' | 'storage';
+export type ArtifactAuthorizationMode = 'auto' | 'key-prefix' | 'storage';
 
 export type ProcessEnv = NodeJS.ProcessEnv | { [key: string]: string };
 
@@ -197,7 +197,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Object authorization policy; storage delegates to namespace-scoped credentials. */
-    KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE = 'key-prefix',
+    KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE = 'auto',
+    KFP_ARTIFACT_NAMESPACE_UID = '',
     ARTIFACTS_REQUIRE_PROXY_NAMESPACE = 'false',
     /** Additional object-store origins allowed for artifact provider configs. */
     ALLOWED_ARTIFACT_ENDPOINTS = '',
@@ -269,8 +270,14 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   } = env;
 
   const authorizationMode = KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE.trim().toLowerCase();
-  if (authorizationMode !== 'key-prefix' && authorizationMode !== 'storage') {
-    throw new Error('KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE must be "key-prefix" or "storage"');
+  if (
+    authorizationMode !== 'auto' &&
+    authorizationMode !== 'key-prefix' &&
+    authorizationMode !== 'storage'
+  ) {
+    throw new Error(
+      'KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE must be "auto", "key-prefix", or "storage"',
+    );
   }
   const artifactProxy = loadArtifactsProxyConfig(env);
   if (authorizationMode === 'storage' && (!asBool(ENABLE_AUTHZ) || !artifactProxy.enabled)) {
@@ -344,6 +351,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       proxy: artifactProxy,
       authorizationMode,
       requireProxyNamespace: asBool(ARTIFACTS_REQUIRE_PROXY_NAMESPACE),
+      namespaceUID: KFP_ARTIFACT_NAMESPACE_UID,
       allowOfficialAwsEndpoints: Boolean(configuredAwsEndpoint),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
@@ -482,6 +490,7 @@ export interface UIConfigs {
     proxy: ArtifactsProxyConfig;
     authorizationMode: ArtifactAuthorizationMode;
     requireProxyNamespace?: boolean;
+    namespaceUID?: string;
     allowOfficialAwsEndpoints: boolean;
     streamLogsFromServerApi: boolean;
     allowedDomain: string;

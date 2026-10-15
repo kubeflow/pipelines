@@ -6,6 +6,8 @@
 
 import base64
 from contextlib import redirect_stdout
+import copy
+import hashlib
 import importlib.util
 from io import StringIO
 import json
@@ -37,27 +39,32 @@ with patch.object(
         'ThreadingHTTPServer',
         side_effect=lambda address, handler: SimpleNamespace(
             RequestHandlerClass=handler)):
-    handler_type = producer.server_factory(
-        **producer.get_settings_from_env()).RequestHandlerClass
+    handler_type = producer.server_factory(**producer.get_settings_from_env(
+        artifacts_proxy_enabled="true")).RequestHandlerClass
 handler = handler_type.__new__(handler_type)
 identities = {}
+parents = {}
+observations = {}
 for namespace, legacy_root in [('team-a', 'model/customer-17-training/'),
                                ('team-b', 'model/customer-23-training/')]:
+    parents[namespace] = {
+        'metadata': {
+            'name': namespace,
+            'uid': f'fixture-{namespace}-uid',
+            'labels': {
+                'pipelines.kubeflow.org/enabled': 'true'
+            }
+        }
+    }
     with redirect_stdout(StringIO()):
         resources = handler.sync(
-            {
-                'metadata': {
-                    'name': namespace,
-                    'labels': {
-                        'pipelines.kubeflow.org/enabled': 'true'
-                    }
-                }
-            }, {
+            parents[namespace], {
                 'Secret.v1': {},
                 'ConfigMap.v1': {},
                 'Deployment.apps/v1': {},
                 'Service.v1': {}
             })['attachments']
+    observations[namespace] = resources
     secret = next(
         resource for resource in resources
         if resource.get('kind') == 'Secret' and
@@ -146,10 +153,78 @@ for namespace, credentials in identities.items():
         raise AssertionError(
             f'{namespace} could read the other tenant artifact')
 
+# Exercise controller reconciliation against the real IAM API for pre-existing
+# credentials and administrator-granted historical roots. Kubernetes observation
+# and readiness are simulated here; this fixture does not replace cluster rollout
+# acceptance. No credential or capability value is printed.
+authorizations = {}
+original_bucket_policy = producer.s3.get_bucket_policy(
+    Bucket='mlpipeline')['Policy']
+for namespace, credentials in identities.items():
+    keys = producer.iam.list_access_keys(
+        UserName=namespace)['AccessKeyMetadata']
+    assert any(key['AccessKeyId'] == credentials['accesskey'] and
+               key.get('Status') == 'Active' for key in keys)
+    states = []
+    for attempt in range(4):
+        attachments = {
+            'Secret.v1': {},
+            'ConfigMap.v1': {},
+            'Deployment.apps/v1': {},
+            'Service.v1': {},
+            'NetworkPolicy.networking.k8s.io/v1': {},
+            'Role.rbac.authorization.k8s.io/v1': {},
+            'RoleBinding.rbac.authorization.k8s.io/v1': {}
+        }
+        for original in observations[namespace]:
+            resource = copy.deepcopy(original)
+            if resource['kind'] == 'Deployment':
+                resource['metadata']['generation'] = 1
+                resource['status'] = {
+                    'observedGeneration': 1,
+                    'replicas': 1,
+                    'updatedReplicas': 1,
+                    'readyReplicas': 1,
+                    'availableReplicas': 1,
+                    'unavailableReplicas': 0
+                }
+            resource_type = f"{resource['kind']}.{resource['apiVersion']}"
+            attachments.setdefault(
+                resource_type, {}
+            )[f"{resource['metadata']['namespace']}/{resource['metadata']['name']}"] = resource
+        with redirect_stdout(StringIO()):
+            observations[namespace] = handler.sync(parents[namespace],
+                                                   attachments)['attachments']
+        capability = next(
+            resource for resource in observations[namespace]
+            if resource['kind'] == 'Secret' and
+            resource['metadata']['name'] == f'kfp-artifact-storage-{namespace}')
+        authorization = json.loads(
+            base64.b64decode(capability['data']['authorization.json']))
+        states.append(authorization['state'])
+        if authorization['state'] == 'ready':
+            break
+    assert authorization[
+        'state'] == 'ready', f'{namespace}: readiness states {states}'
+    # The Node fixture reaches this store through Docker's random localhost port,
+    # not Kubernetes DNS. Rebind only that transport coordinate; IAM verification,
+    # namespace UID and credentials above come from real controller reconciliation.
+    from urllib.parse import urlparse
+    parsed_endpoint = urlparse(endpoint)
+    authorization['credentialBinding'] = hashlib.sha256('\0'.join([
+        namespace, parents[namespace]['metadata']['uid'],
+        f'{parsed_endpoint.scheme}://{parsed_endpoint.hostname}:{parsed_endpoint.port}',
+        credentials['accesskey'], credentials['secretkey']
+    ]).encode()).hexdigest()
+    authorizations[namespace] = authorization
+assert producer.s3.get_bucket_policy(
+    Bucket='mlpipeline')['Policy'] == original_bucket_policy
+
 Path(sys.argv[1]).write_text(
     json.dumps({
         'endpoint': endpoint,
-        'identities': identities
+        'identities': identities,
+        'authorizations': authorizations
     }))
 print(
     'Provisioned two isolated identities with stock and historical artifact roots.'

@@ -4,17 +4,25 @@ Changelog
 
 ### Upgrade notes
 
-- **Existing artifact roots:** deployments with namespace-scoped storage credentials
-  can select `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the shared UI.
-  Namespace authorization remains mandatory; object storage authorizes reads through
-  namespace artifact services without an artifact-record lookup or prescribed key
-  layout. This is enforced authorization, not audit. The default `key-prefix` policy
-  remains the default for shared storage credentials. In both modes, upgrade all
-  shared-UI replicas before reconciling updated namespace receivers; old UIs lack
-  the required namespace header and receive HTTP 403 from new receivers. Verify
-  receiver binding and storage/ingress isolation before opting in. Direct proxy consumers
-  must use the authenticated shared UI. HTTP artifacts and archived logs retain
-  their separate policies. See the [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
+- The default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` preserves already
+  authorized historical roots for supported managed `minio://mlpipeline/...`
+  artifacts through verified namespace storage identities, without moving objects
+  or relying on metadata records. Standard multi-user manifests enable managed
+  proxies. Controller readiness and a versioned receiver protocol make UI/controller
+  upgrade ordering automatic; old UIs remain compatible with the legacy route.
+  Readiness convergence can temporarily return actionable HTTP 503 responses that
+  require retry. No request falls back to shared credentials after a readiness or
+  receiver failure. Unsupported custom storage retains prefix enforcement; reviewed
+  custom identities can explicitly select `storage`, while `key-prefix` remains
+  available. Existing administrator grants are preserved; arbitrary historical
+  access is not added. Generated standard NetworkPolicies still need effective
+  enforcement, and direct proxy consumers must use the authenticated shared UI.
+  Enabling managed proxies adds one receiver Pod per previously unserved enabled
+  namespace: requests 10m CPU/70 MiB memory, limits 100m CPU/500 MiB memory, before
+  mesh sidecars and rollout surge. Large fleets should review capacity and quotas.
+  HTTP artifacts and archived logs retain separate policies. See the
+  [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
+
 - **Recurring-run security:** multi-user recurring runs created before API-owned
   scheduling state must be reviewed and recreated through the API. Otherwise they
   stop submitting executions, even when shown as enabled. API startup logs now

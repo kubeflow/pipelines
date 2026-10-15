@@ -314,31 +314,36 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials. Under the default
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, authenticated
-multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
-operator-configured namespace prefix), including through tenant proxies. Configuring
-an endpoint or proxy does not make an existing custom-root object belong to a
-namespace. Deployments with namespace-scoped credentials can instead use
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` on the authenticated shared UI
-to preserve authorized existing roots. Reconcile the generated proxy ingress
-NetworkPolicy and verify storage and network isolation first; policies need an
-enforcing CNI, and other policies can add access. Direct proxy consumers must use
-the authenticated shared UI. In both modes, upgrade shared-UI replicas before
-reconciling updated receivers with `ARTIFACTS_REQUIRE_PROXY_NAMESPACE=true`;
-otherwise old UIs receive HTTP 403 from the new receivers. Enable storage mode only
-after every receiver is updated. See [authorization and rollout](../../docs/operator-guides/artifact-authorization.md).
+Allowlisting does not grant bucket access or configure credentials.
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` uses namespace storage authorization
+for supported managed `minio://mlpipeline/...` artifacts after controller
+readiness. Unsupported custom endpoints/layouts retain prefix/metadata enforcement.
+To preserve custom roots outside automatic discovery, explicitly select `storage`
+only after reviewing namespace credential permissions, endpoint trust, versioned
+receiver support and ingress isolation. Explicit `key-prefix` retains namespace
+path checks. See [authorization and rollout](../../docs/operator-guides/artifact-authorization.md).
+
+The standard multi-user overlay enables managed proxies. Managed artifact upgrades
+accept either UI/controller order: the new receiver protocol enforces namespace
+binding, while the legacy route remains compatible with old UIs during overlap.
+Pending readiness or proxy startup can temporarily return HTTP 503; retry after
+reconciliation. The new UI never falls back to the old route or shared credentials
+for a storage-authorized request. The generated standard NetworkPolicy must be
+enforced, and broader additive policies must not allow direct tenant access.
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
-providers require namespace-isolated artifact proxies. Set
-`ARTIFACTS_PROXY_ENABLED: "true"` in the installation configuration if needed.
+providers require namespace-isolated artifact proxies. Standard multi-user
+manifests enable `ARTIFACTS_PROXY_ENABLED`; custom deployments must enable it
+explicitly if they use namespace proxying.
 Adding an origin alone does not enable these providers through the shared UI.
 The profile controller propagates the allowlist to profile artifact proxies;
 configuring `AWS_S3_ENDPOINT` directly on the shared UI does not propagate that
 trust to those proxies.
 
 After applying the configuration, restart the processes that consume these
-settings as environment variables. For the standard multi-user installation
+settings as environment variables. These restarts have no required relative order.
+For the standard multi-user installation
 (replace `kubeflow` with your installation namespace):
 
 ```sh

@@ -178,15 +178,15 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Multi-user artifact ownership
 
-With `ENABLE_AUTHZ=true` and the default
-`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`, artifact previews and downloads
+With `ENABLE_AUTHZ=true`, explicit `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`
+or `auto` handling an unsupported custom store, artifact previews and downloads
 require an object key under
 `private-artifacts/<namespace>/...`, or the equivalent prefix configured by the operator through
 `ARTIFACT_NAMESPACE_KEY_PREFIX`. This applies to MinIO, S3, GCS, and HTTP(S) artifacts, including
 requests made with `ARTIFACTS_SERVICE_PROXY_ENABLED=true`. A namespace-scoped metadata record does
 not establish ownership of an arbitrary object: a pipeline can import an existing URI.
 
-**Compatibility change under the default prefix policy:** custom-root objects outside that
+**Compatibility change where prefix enforcement applies:** custom-root objects outside that
 namespace prefix return HTTP 403. Deployments with isolated namespace storage credentials can
 select [storage authorization](#storage-authoritative-artifact-access) to retain existing roots.
 For shared credentials, configure
@@ -214,7 +214,17 @@ path policy; it does not enable arbitrary custom roots.
 
 ## Storage-authoritative artifact access
 
-For deployments with isolated namespace storage credentials, the authenticated UI
-can use `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=storage` with namespace artifact
-proxying. Existing authorized roots need no migration or metadata lookup. See the
-[enforcement prerequisites, route scope and rollout guide](../docs/operator-guides/artifact-authorization.md).
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. Supported managed
+`minio://mlpipeline/...` artifacts use namespace storage identities after
+trusted controller readiness. Objects already authorized by those identities need
+no move or metadata lookup. The multi-user overlay enables managed proxies;
+unsupported custom layouts retain prefix enforcement. Pending readiness or lookup
+failure returns an actionable HTTP 503 without shared-credential fallback.
+
+Explicit `storage` remains available for reviewed custom identities and trusted
+namespace launcher-provider configuration; explicit `key-prefix` retains the
+prefix/metadata policy. Versioned receivers enforce namespace binding while legacy
+routes preserve old-UI compatibility during normal rolling deployment. No manual
+UI/controller ordering or opt-in is needed for the supported managed path; reads
+can need retry during convergence. See
+[enforcement scope and rollout](../docs/operator-guides/artifact-authorization.md).
