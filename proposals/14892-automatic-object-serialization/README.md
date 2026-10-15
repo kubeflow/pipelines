@@ -1,10 +1,29 @@
-# KEP-NNNN: Automatic Typed Object Serialization
+# KEP-14892: Automatic Typed Object Serialization
 
 <!-- toc -->
 - [Summary](#summary)
 - [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
+  - [SDK User Experience](#sdk-user-experience)
+  - [User Stories](#user-stories)
+  - [Risks and Mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
+  - [Supported Types and Formats](#supported-types-and-formats)
+  - [Contracts and Dependencies](#contracts-and-dependencies)
+  - [Artifact Bundle and Runtime](#artifact-bundle-and-runtime)
+  - [Sub-DAGs, Control Flow, and Caching](#sub-dags-control-flow-and-caching)
+  - [Security and Error Reporting](#security-and-error-reporting)
+  - [Frontend Considerations](#frontend-considerations)
+  - [KFP Local Considerations](#kfp-local-considerations)
+  - [Migration Strategy](#migration-strategy)
+  - [Test Plan](#test-plan)
+    - [Prerequisite testing updates](#prerequisite-testing-updates)
+    - [Unit Tests](#unit-tests)
+    - [E2E tests](#e2e-tests)
+    - [Integration tests](#integration-tests)
+  - [Graduation Criteria](#graduation-criteria)
 - [Implementation History](#implementation-history)
 - [Drawbacks](#drawbacks)
 - [Alternatives](#alternatives)
@@ -52,30 +71,7 @@ At runtime, the executor loads inputs before calling the component and saves
 returned objects afterward. Existing scalar, JSON, and Pydantic parameters are
 unchanged.
 
-### User Stories
-
-Authors can prepare a DataFrame, train a model inside a reusable sub-pipeline,
-and consume that model for prediction without writing artifact IO. A deployment
-component can still request `Input[Model]` and inspect the bundle without loading
-the model.
-
-### Risks and Mitigations
-
-| Risk | Mitigation |
-| --- | --- |
-| Silent dtype/state loss | Publish round-trip guarantees; reject unsupported values. |
-| Unsafe reconstruction | Trusted readers, restricted model loading, and bundle validation. |
-| Memory and IO surprises | Explicit eager-loading opt-in, resource limits, and path-based escape hatches. |
-| Dependency drift or stale cache hits | Versioned contracts, reader compatibility, and contract-aware cache identity. |
-| Expanding maintenance burden | Bounded class/version support and optional dependencies. |
-
-SDK/runtime and security reviewers should review the initial adapters before
-alpha; frontend/local maintainers should review their respective behavior.
-Reviewers and approvals are not assigned by this proposal.
-
-## Design Details
-
-### Python API
+### SDK User Experience
 
 Illustrative API, not current SDK support. Component images must provide the
 chosen frameworks and compatible KFP/adapters; image configuration is omitted.
@@ -146,6 +142,29 @@ sub-pipeline annotations constrain the Python type, not an encoding; forwarding
 ports inherit the producer's codec. Only an explicit `Serialization(...)`
 imposes a format constraint. Annotations cannot transcode artifacts.
 Named output fields remain separate outputs.
+
+### User Stories
+
+Authors can prepare a DataFrame, train a model inside a reusable sub-pipeline,
+and consume that model for prediction without writing artifact IO. A deployment
+component can still request `Input[Model]` and inspect the bundle without loading
+the model.
+
+### Risks and Mitigations
+
+| Risk | Mitigation |
+| --- | --- |
+| Silent dtype/state loss | Publish round-trip guarantees; reject unsupported values. |
+| Unsafe reconstruction | Trusted readers, restricted model loading, and bundle validation. |
+| Memory and IO surprises | Explicit eager-loading opt-in, resource limits, and path-based escape hatches. |
+| Dependency drift or stale cache hits | Versioned contracts, reader compatibility, and contract-aware cache identity. |
+| Expanding maintenance burden | Bounded class/version support and optional dependencies. |
+
+SDK/runtime and security reviewers should review the initial adapters before
+alpha; frontend/local maintainers should review their respective behavior.
+Reviewers and approvals are not assigned by this proposal.
+
+## Design Details
 
 ### Supported Types and Formats
 
@@ -392,6 +411,8 @@ agree on time/peak-memory budgets rather than assume a performance improvement.
   demonstrated DataFrame formats and native XGBoost round trips through nested
   sub-pipelines. The prototype is not included in this KEP-only PR and does not
   implement production SDK/IR support or satisfy graduation requirements.
+- 2026-10-15: Assigned KEP-14892 to match the
+  [proposal PR](https://github.com/kubeflow/pipelines/pull/14892).
 
 ## Drawbacks
 
