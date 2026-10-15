@@ -106,81 +106,7 @@ function invalidRunMetadata(run) {
   return null;
 }
 
-const MISSING_BASE_RECOVERY_DOCS =
-  'https://github.com/kubeflow/pipelines/blob/master/docs/agents/ci-passed.md#missing-base-merge-record';
-
-async function baseArrivedAt({github, owner, repo, baseSha, baseRef}) {
-  // A run tests the base revision that was live when it was created. For a
-  // pull_request run, Actions checks out a synthetic merge commit whose SHA is
-  // NOT exposed on the run object, so it cannot be compared directly. The
-  // merge commit contains the validated base iff the run was created at or
-  // after that base became reachable on the base branch. A commit's own
-  // timestamps do not record that arrival: a commit can be prepared well
-  // before it is pushed (fast-forward integration), so neither committer.date
-  // nor author.date proves when the branch advanced to it. The authoritative
-  // provenance is the merge record: when the base revision landed through a
-  // pull request, that PR's merged_at is when the ref advanced, regardless of
-  // merge method. A direct push of a pre-existing commit has no merged PR, so
-  // its arrival cannot be established and the caller fails closed to pending
-  // rather than ever passing stale evidence as fresh.
-  // Returns a discriminated result so the caller can tell a lookup failure, a
-  // missing merge record, and an unparseable merge timestamp apart, instead of
-  // collapsing all three to null:
-  //   {status: 'arrived', arrivedAt}  - a merged PR with a parseable merged_at
-  //   {status: 'missing'}             - no merged PR (e.g. a direct push)
-  //   {status: 'invalid'}             - a merged PR whose merged_at is unparseable
-  //   {status: 'error'}               - the lookup API call failed
-  if (!baseSha) return {status: 'missing'};
-  try {
-    const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
-      owner, repo, commit_sha: baseSha, per_page: 100,
-    });
-    if (!Array.isArray(pulls)) return {status: 'invalid'};
-    const verifyCandidate = async candidate => {
-      if (candidate.merge_commit_sha !== baseSha) return null;
-      if (!Number.isSafeInteger(candidate.number) || candidate.number <= 0) {
-        return {status: 'invalid'};
-      }
-      // Discovery is only a hint. Read the authoritative PR record, including
-      // merged (absent on list responses), before trusting its arrival time.
-      const {data: pr} = await github.rest.pulls.get({
-        owner, repo, pull_number: candidate.number,
-      });
-      if (pr.number !== candidate.number || pr.merged !== true ||
-          pr.merge_commit_sha !== baseSha || pr.base?.ref !== baseRef ||
-          typeof pr.base?.repo?.full_name !== 'string' ||
-          pr.base.repo.full_name.toLowerCase() !== `${owner}/${repo}`.toLowerCase()) {
-        return null;
-      }
-      const arrivedAt = typeof pr.merged_at === 'string' ? Date.parse(pr.merged_at) : NaN;
-      return Number.isFinite(arrivedAt) ? {status: 'arrived', arrivedAt} : {status: 'invalid'};
-    };
-    for (const pr of pulls) {
-      const result = await verifyCandidate(pr);
-      if (result) return result;
-    }
-    // GitHub's commit-to-PR association can be empty even for a merged PR.
-    // Search a bounded recent window independently; never infer provenance
-    // from a title, commit message, or commit timestamp. Exhaustion stays closed.
-    for (let page = 1; page <= 5; page++) {
-      const {data: candidates} = await github.rest.pulls.list({
-        owner, repo, state: 'closed', base: baseRef, sort: 'updated',
-        direction: 'desc', per_page: 100, page,
-      });
-      if (!Array.isArray(candidates)) return {status: 'invalid'};
-      for (const candidate of candidates) {
-        const result = await verifyCandidate(candidate);
-        if (result) return result;
-      }
-      if (candidates.length < 100) break;
-    }
-    return {status: 'missing'};
-  } catch (error) {
-    return {status: 'error'};
-  }
-}
-
-async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, liveBase, inventory,
+async function verifyExpectedWorkflows({github, owner, repo, pullRequest, inventory,
   workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
@@ -212,7 +138,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   const failures = [];
   const pending = [];
   const missing = [];
-  let documentation = null;
+
   if (expected.length === 0) failures.push('No expected PR workflows; CI coverage cannot be established');
   // Fetch one head-scoped snapshot for all lanes, rather than one request
   // series per workflow on every constituent completion event.
@@ -220,28 +146,6 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     owner, repo, event: 'pull_request', head_sha: pullRequest.head.sha, per_page: 100,
   });
   if (runs.length >= 1000) throw new Error('Workflow run history truncated for this PR head');
-  // Freshness keys off the LIVE base tip. A run tested the validated base iff
-  // it was created at or after that base became reachable; resolve the arrival
-  // time once here (it depends only on baseSha, not on any individual run).
-  // When the base is frozen (release branches), skip the check entirely to
-  // preserve existing behavior.
-  const baseArrived = liveBase && baseSha ?
-    await baseArrivedAt({github, owner, repo, baseSha, baseRef: pullRequest.base.ref}) : null;
-  // The missing/malformed-base provenance is repository-wide, not per-workflow.
-  // A direct push leaves no merged PR (and a merged PR with an unparseable
-  // merged_at cannot be resolved), so no fresh CI run can ever establish the
-  // base's arrival. Emit the reason once, up front, first among pending
-  // reasons, so it still surfaces when every expected workflow is absent or
-  // in progress. Failure reasons still win: the caller prepends failures ahead
-  // of pending, so ordering here only affects pending-vs-pending precedence.
-  if (baseArrived && (baseArrived.status === 'missing' || baseArrived.status === 'invalid')) {
-    documentation = MISSING_BASE_RECOVERY_DOCS;
-    if (baseArrived.status === 'missing') {
-      pending.push(`no merged PR for base ${baseSha}. Maintainer investigation required.`);
-    } else {
-      pending.push(`malformed merged-PR record for base ${baseSha}. Maintainer investigation required.`);
-    }
-  }
   for (const workflow of expected) {
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
@@ -255,7 +159,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     }
     // A rerun updates an existing ID. Order by attempt start as well as run
     // creation so rerunning an older execution cannot hide behind a newer
-    // run's prior success. Creation remains the separate base-freshness proof.
+    // run's prior success. Creation remains the separate retarget-freshness proof.
     const attemptTime = run => run.run_started_at === null ? Date.parse(run.created_at) :
       Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at));
     matching.sort((left, right) => attemptTime(right) - attemptTime(left) || right.id - left.id);
@@ -287,28 +191,11 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     if (association?.base?.ref && association.base.ref !== pullRequest.base.ref) {
       failures.push(`${workflow.path}: workflow ran for a different base branch`);
     }
-    // The run-scoped base association and pullRequest.base.sha are MUTABLE
-    // (GitHub rewrites them to the PR's current base), so neither proves which
-    // base a run tested. Instead, a run is fresh for the live base only when it
-    // was created after that base became reachable on the base branch; the
-    // run's immutable creation time is compared against the push event that
-    // introduced the base (run.created_at is validated by invalidRunMetadata
-    // above). Both values are second-granularity, so an equal instant is
-    // ambiguous: the run may have been created sub-second before the base
-    // arrived and tested an older base. Resolve the tie fail-closed (<=) so the
-    // merge gate can never pass stale evidence as fresh; the PR stays pending
-    // until a strictly later run.
-    if (liveBase && baseSha) {
-      if (baseArrived.status === 'error') {
-        pending.push(`${workflow.path}: Cannot establish master arrival for base ${baseSha}: lookup failed. Retrying.`);
-      } else if (baseArrived.status === 'arrived' && Date.parse(run.created_at) <= baseArrived.arrivedAt) {
-        pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
-      }
-    }
+
   }
   const state = failures.length ? 'failure' : pending.length ? 'pending' : 'success';
   return {state, passed: state === 'success', reasons: [...failures, ...pending],
-    expected: expected.map(workflow => workflow.path), disabled, missing, documentation};
+    expected: expected.map(workflow => workflow.path), disabled, missing, documentation: null};
 }
 
 async function loadBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {

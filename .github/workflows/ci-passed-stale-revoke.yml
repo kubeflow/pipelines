@@ -1,16 +1,13 @@
-# Revoke a stale ci-passed success the moment master advances, narrowing the
-# window between a base advance and the next scheduled recovery sweep (#14762).
-# Only trusted base-branch code runs here; the same freshness determination as
-# CI Check decides which greens are stale. This writes only the commit status.
+# Compatibility entry point for master pushes. Current-head CI remains valid
+# across base movement; the hook writes no statuses. CI Check re-evaluates
+# trusted workflow requirements and checks, while merge policy owns freshness.
 name: Revoke Stale CI Passed
 
 on:
   push:
     branches: [master]
 
-# Serialize push-triggered revocations: a delayed job for an older tip must not
-# run concurrently with a newer push's job. revokeStaleGreens additionally bails
-# out when the live master tip no longer matches the triggering push.
+# Retain the existing scheduling contract while older events drain.
 concurrency:
   group: revoke-stale-ci-passed
   cancel-in-progress: false
@@ -34,7 +31,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      - name: Revoke stale ci-passed statuses
+      - name: Preserve current-head CI evidence
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
           PUSH_TIP: ${{ github.event.after || github.sha }}
@@ -42,4 +39,4 @@ jobs:
           script: |
             const {revokeStaleGreens} = require('./.github/resources/scripts/ci_passed.js');
             const revoked = await revokeStaleGreens({github, context, tip: process.env.PUSH_TIP});
-            core.info(`Revoked ${revoked} stale ci-passed status(es).`);
+            core.info(`Compatibility hook wrote ${revoked} status(es); base movement alone preserves CI evidence.`);

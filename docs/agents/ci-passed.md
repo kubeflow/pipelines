@@ -1,32 +1,28 @@
 # CI merge gate
 
-CI Check is the publisher of the `ci-passed` commit status and the only writer
-of `success` or `pending`. A separate push-triggered workflow
-(`ci-passed-stale-revoke.yml`) is a second writer that revokes a stale `success`
-to `failure` the moment `master` advances, before the scheduled sweep runs; it
-narrows the stale-base window and does not close it (see the section below). The
-label with the same name is informational. Tide remains the merge authority;
-human PRs still require review. Automatic Dependabot creation holds have been
-removed; merging now relies on the required `ci-passed` status and the deployed
-Tide policy. Existing PR-specific holds remain separate maintainer decisions and
-are never removed by the publisher. Required `ci-passed` protection is intended
-for `master` only: older release branches do not publish this commit status.
+CI Check publishes the `ci-passed` commit status from trusted repository code.
+It qualifies the latest test attempts for the current PR head and target branch;
+it does not certify integration with every later commit added to `master`.
+The matching label is informational. Tide remains the merge authority, and
+review requirements and explicit maintainer holds remain independent.
 
-## Push-triggered stale revocation
+## Base movement and integration freshness
 
-A push to `master` runs `ci-passed-stale-revoke.yml`, which flips a stale
-`ci-passed` success to `failure` as soon as the base advances instead of waiting
-up to 15 minutes for the scheduled sweep. It reuses the same freshness
-determination as recovery: a green is fresh only when its description still
-carries the stamp for the live base tip. This is mitigation, not a hard
-guarantee: the window between a base advance and the status write is narrowed
-but not closed, and merge-time freshness enforcement (a merge queue that checks
-its synthetic commit) is tracked separately. It resolves the live master tip and
-skips revocation when the tip has already moved past the triggering push, so an
-out-of-order job does not overwrite a green stamped for a newer base. It runs only
-trusted base-branch code and writes only the commit status (`contents: read`,
-`pull-requests: read`, `statuses: write`); the scheduled sweep still reconciles
-the informational label.
+Unrelated commits on `master` do not invalidate passing current-head CI. The
+push-triggered `ci-passed-stale-revoke.yml` retains a compatibility hook that
+writes no statuses. Scheduled reconciliation still evaluates the current trusted
+workflow requirements and current check results, including already-green heads.
+It does not temporarily invalidate a green merely to recheck passing evidence.
+
+Retargeting to another base branch still requires a new execution after the
+recorded retarget event; rerunning an old execution cannot satisfy that cutoff.
+New heads, failed or cancelled latest attempts, missing required workflows,
+malformed evidence and explicit approval holds still prevent success.
+
+Merge-time integration freshness belongs to strict branch protection and Tide's
+mergeability enforcement (or a merge queue testing its synthetic merge commit).
+The status is not a substitute for those controls and does not protect against
+administrative bypass. Do not disable strict protection as part of this change.
 
 ## Contract and enforcement
 
@@ -77,7 +73,8 @@ remain independent requirements.
 
 `.github/resources/ci-workflow-inventory.json` records local `pull_request`
 branch/path filters for regression checks. At runtime, the publisher loads workflow
-YAML from the PR's immutable base SHA in the upstream repository. It fetches the
+YAML from the current trusted `master` revision in the upstream repository
+(or the PR's associated base SHA for release branches). It fetches the
 workflow directory in one GraphQL query and parses its contents as data with the
 trusted publisher's inventory generator and pinned PyYAML dependency. It never
 executes or checks out PR code. This lets release branches retain their own
@@ -99,13 +96,12 @@ updates the inventory. There is no repository-variable override. Other guards,
 mixed enabled/disabled jobs, and all other workflows still require success;
 a `skipped` conclusion does not satisfy an expected workflow.
 
-This policy belongs to the PR's immutable base SHA. After the enabling change
-merges, update PR branches to include that base policy and trigger fresh upgrade
-coverage. A successful status records a bounded fingerprint of its validated
-base branch and SHA. Scheduled recovery revisits older successes without that
-stamp and successes for a different base branch or SHA; publication also rechecks
-the base before and after writing success. Branch
-protection must continue to require an up-to-date base as described above.
+A successful status records a bounded fingerprint of the trusted policy revision
+that was evaluated. This stamp is provenance, not a claim that the workflow run
+executed against that exact revision. Reconciliation always rechecks current
+requirements, including newly enabled lanes. Changed workflow implementation or
+latest-base integration coverage may require new CI through the merge policy;
+old passing runs are not evidence that newly changed workflow code executed.
 
 When changing workflow names, event triggers, or the checked-in upgrade pause,
 regenerate the inventory:
@@ -133,12 +129,9 @@ their own workflow timeouts remain authoritative.
 
 ## External-check recovery
 
-A scheduled sweep every 15 minutes selects open PRs without `needs-ok-to-test` or a successful
-`ci-passed` status for their current base branch and SHA, and runs the same reconciler for
+A scheduled sweep every 15 minutes selects all open PRs without
+`needs-ok-to-test`, including passing heads, and runs the same reconciler for
 each captured number/head pair, with at most four jobs running in parallel.
-Successes from a different base, or legacy successes without a base stamp, are
-revalidated. Green PRs with a matching base stamp rely on event-driven
-invalidation and do not allocate recovery runners.
 Each job holds the same SHA-scoped writer lock as event-driven reconciliation
 only while checking and publishing; no sleep or long poll holds that lock.
 A late external check such as DCO can therefore recover after the final
@@ -171,8 +164,8 @@ reconciliation validates all checks. Its failed outcome cannot authorize success
 Both expected workflows and external check evidence are reread after publication
 to revoke a success that raced with a rerun. This adds API reads, including one
 paginated jobs lookup per relevant rerun attempt; it adds no waiting loop or runner
-held for the suite's duration. A queued candidate that is now successful is still
-invalidated before revalidation. Status lookup traverses all combined-status pages.
+held for the suite's duration. A queued candidate whose workflow and check evidence remains successful keeps
+its existing green during revalidation. Status lookup traverses all combined-status pages.
 
 GitHub can delay or drop scheduled executions, so 15 minutes is a requested
 cadence, not a recovery SLA. More than 256 recovery candidates fails the discovery job
@@ -181,41 +174,6 @@ scheduled runs; manually rerunning CI Check remains the fallback. Do not rely
 solely on `check_run`: GitHub suppresses that trigger when the check suite's
 head SHA is associated with GitHub Actions. See the
 [GitHub event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
-
-## Missing base merge record
-
-The freshness check establishes when the base revision became reachable on
-`master` by reading the merged-PR record for that commit. A commit merged
-through a pull request carries an authoritative `merged_at` timestamp. A direct
-push of a pre-existing commit has no merged PR, so its arrival cannot be
-established and the check fails closed to pending rather than passing stale
-evidence as fresh.
-
-The commit-to-PR association endpoint can omit a real merge. If it supplies no
-verified match, CI Check independently scans up to 500 recently updated closed
-PRs targeting the base branch (five pages of 100). Discovery only selects
-candidates whose merge SHA exactly equals the base SHA. Each candidate, including
-associated PRs, is reread through the individual PR endpoint and must have the
-same number, `merged: true`, the expected base repository and branch, the exact
-merge SHA, and a parseable string `merged_at`. Only that verified timestamp is
-used by the existing freshness check. A rerun of an execution created before
-that timestamp remains stale; commit dates, titles, and messages are never
-substituted for merge provenance.
-
-API failures remain pending with a retry diagnostic. Missing matches, including
-exhaustion of the bounded recent-PR window, remain pending and request maintainer
-investigation; malformed timestamps get a distinct diagnostic. Read the
-`ci-passed` status and CI Check logs to tell them apart. A missing association
-alone does not prove a direct push: inspect the authoritative merged PR record.
-Rerunning tests cannot establish missing provenance or expand the search window.
-
-Recovery for a missing record is a maintainer action. A maintainer should
-confirm whether the base revision landed through a pull request. If it did,
-investigate why the merge record is absent or malformed and correct it. If it
-landed through a direct push (for example a fast-forward integration), the
-maintainer decides the next step, such as merging a follow-up through a pull
-request to restore provenance. Do not weaken the freshness check to admit
-stale evidence.
 
 ## Validation and coordinated rollout
 
