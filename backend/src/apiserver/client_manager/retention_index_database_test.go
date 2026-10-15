@@ -161,6 +161,27 @@ func TestRetentionIndexesMySQLOnline(t *testing.T) {
 	t.Logf("262144 rows, sequential index preparation=%s, completed read/write cycles during each active build=%v, maximum cycle latency=%s, unchanged TABLE_ID=%d", elapsed, during, longest, before)
 }
 
+// A pgx timeout can return before PostgreSQL processes cancellation. Keep the
+// fixture's blocking transaction open until the builder releases ownership;
+// otherwise the interrupted CREATE can finish before cancellation arrives.
+func waitForRetentionPostgresBuilder(t *testing.T, db *sql.DB) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	require.Eventually(t, func() bool {
+		conn, err := db.Conn(ctx)
+		require.NoError(t, err)
+		defer conn.Close()
+		release, err := lockGarbageCollectorIndexes(ctx, conn, "pgx")
+		if err != nil {
+			require.Contains(t, err.Error(), "another replica")
+			return false
+		}
+		release()
+		return true
+	}, 5*time.Second, 10*time.Millisecond)
+}
+
 func TestRetentionIndexesDatabaseRecovery(t *testing.T) {
 	for _, engine := range []string{"mysql", "pgx"} {
 		t.Run(engine, func(t *testing.T) {
@@ -187,12 +208,13 @@ func TestRetentionIndexesDatabaseRecovery(t *testing.T) {
 			_, err = prepareGarbageCollectorIndexes(context.Background(), db, dialect, 250*time.Millisecond)
 			require.Error(t, err)
 			require.Less(t, time.Since(started), 5*time.Second)
-			require.NoError(t, tx.Rollback())
 			if engine == "pgx" {
+				waitForRetentionPostgresBuilder(t, db)
 				var valid bool
 				require.NoError(t, db.QueryRow("SELECT indisvalid FROM pg_index WHERE indexrelid=to_regclass('idx_run_gc_lifecycle')").Scan(&valid))
 				require.False(t, valid, "the interrupted concurrent build must leave an invalid index to exercise automatic recovery")
 			}
+			require.NoError(t, tx.Rollback())
 			// MySQL may finish tearing down the canceled server session after the
 			// client returns. Its retained advisory lock must prevent overlap.
 			require.Eventually(t, func() bool {
@@ -279,24 +301,11 @@ func TestRetentionIndexesPostgresRecoveryWithWrites(t *testing.T) {
 	require.NoError(t, err)
 	_, err = prepareGarbageCollectorIndexes(context.Background(), db, dialect, 250*time.Millisecond)
 	require.Error(t, err)
-	require.NoError(t, blocker.Rollback())
+	waitForRetentionPostgresBuilder(t, db)
 	var valid bool
 	require.NoError(t, db.QueryRow(`SELECT indisvalid FROM pg_index WHERE indexrelid=to_regclass('idx_run_gc_lifecycle')`).Scan(&valid))
 	require.False(t, valid)
-	// Cancellation can return before the server session has released its advisory
-	// lock. Wait for ownership before starting the deterministic recovery fixture.
-	require.Eventually(t, func() bool {
-		conn, err := db.Conn(context.Background())
-		require.NoError(t, err)
-		defer conn.Close()
-		release, err := lockGarbageCollectorIndexes(context.Background(), conn, "pgx")
-		if err != nil {
-			require.Contains(t, err.Error(), "another replica")
-			return false
-		}
-		release()
-		return true
-	}, 5*time.Second, 10*time.Millisecond)
+	require.NoError(t, blocker.Rollback())
 
 	reader, err := db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	require.NoError(t, err)
@@ -397,15 +406,30 @@ func TestRetentionIndexesPostgresInvalidConflicts(t *testing.T) {
 			defer blocker.Rollback()
 			_, err = blocker.Exec(`INSERT INTO run_details ("UUID") VALUES ('blocker')`)
 			require.NoError(t, err)
+			builder, err := db.Conn(context.Background())
+			require.NoError(t, err)
+			defer builder.Close()
+			var builderPID int
+			require.NoError(t, builder.QueryRowContext(context.Background(), "SELECT pg_backend_pid()").Scan(&builderPID))
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
-			_, err = db.ExecContext(ctx, `CREATE INDEX CONCURRENTLY idx_run_gc_lifecycle ON run_details `+definition)
+			_, err = builder.ExecContext(ctx, `CREATE INDEX CONCURRENTLY idx_run_gc_lifecycle ON run_details `+definition)
 			require.Error(t, err)
-			require.NoError(t, blocker.Rollback())
+			// This external builder does not hold KFP's advisory lock. Wait for
+			// its actual backend to exit before releasing the blocking writer.
+			waitCtx, stopWaiting := context.WithTimeout(context.Background(), 5*time.Second)
+			defer stopWaiting()
+			require.Eventually(t, func() bool {
+				var active bool
+				err := db.QueryRowContext(waitCtx, "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = $1)", builderPID).Scan(&active)
+				require.NoError(t, err)
+				return !active
+			}, 5*time.Second, 10*time.Millisecond)
 			var before, after int64
 			var valid bool
 			require.NoError(t, db.QueryRow(`SELECT indexrelid, indisvalid FROM pg_index WHERE indexrelid=to_regclass('idx_run_gc_lifecycle')`).Scan(&before, &valid))
 			require.False(t, valid)
+			require.NoError(t, blocker.Rollback())
 			_, err = prepareGarbageCollectorIndexes(context.Background(), db, sqldrv.NewDBDialect("pgx"), time.Minute)
 			require.ErrorContains(t, err, "does not match the recoverable invalid index definition")
 			require.NoError(t, db.QueryRow(`SELECT to_regclass('idx_run_gc_lifecycle')::oid`).Scan(&after))

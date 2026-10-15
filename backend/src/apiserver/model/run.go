@@ -219,7 +219,7 @@ type Run struct {
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
 	ExperimentId string `gorm:"column:ExperimentUUID;type:varchar(64); not null; index:experimentuuid_createatinsec,priority:1; index:experimentuuid_conditions_finishedatinsec,priority:1"`
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	RecurringRunId string `gorm:"column:JobUUID; type:varchar(191); default:null; index:idx_run_details_job_uuid;"`
+	RecurringRunId string `gorm:"column:JobUUID; type:varchar(255); default:null;"`
 	// Imported runs are historical records and have no execution in this cluster.
 	ImportedFrom *string `gorm:"column:ImportedFrom;type:varchar(191);"`
 	ImportDigest *string `gorm:"column:ImportDigest;type:varchar(64);"`

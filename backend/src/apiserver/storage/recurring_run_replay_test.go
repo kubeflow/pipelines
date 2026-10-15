@@ -138,6 +138,9 @@ func TestRecurringRunReplayQueryDialects(t *testing.T) {
 func TestRecurringRunReplayUsesScheduleIndexes(t *testing.T) {
 	db, d := NewFakeDBOrFatal()
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	// Production startup prepares this index separately using online DDL.
+	_, indexErr := db.Exec("CREATE INDEX idx_run_details_job_uuid ON run_details (JobUUID)")
+	require.NoError(t, indexErr)
 	query, args, err := d.FinalizeSelect(recurringRunReplayQuery(d.QuoteIdentifier, "target", "missing"))
 	require.NoError(t, err)
 	rows, err := db.Query("EXPLAIN QUERY PLAN "+query, args...)

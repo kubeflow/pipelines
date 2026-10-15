@@ -61,11 +61,36 @@ Changelog
 
 #### Database migration
 
-API startup adds `idx_run_details_job_uuid` to `run_details` for recurring-run
-concurrency checks and bounds `JobUUID` to `varchar(191)`, matching the job ID
-column. Existing run associations are preserved. Allow time for this schema
-migration on large run tables; index creation or column conversion can rebuild
-or lock the table depending on the database version.
+Unlike earlier index-related column reductions, this change **does not narrow
+`JobUUID` from `varchar(255)` to `varchar(191)`**. The 191-character convention
+worked around older InnoDB's 767-byte index-key limit with `utf8mb4`; it is not a
+general limit on modern databases. Modern InnoDB with `DYNAMIC` row format and the
+default 16 KiB page size supports 3,072-byte index keys, enough for this 255-character
+column. Narrowing an existing column would require a table copy and block writes,
+so we preserve its existing width. The new MySQL index uses a 191-character
+**prefix** as a conservative compatibility choice for historical text columns and
+older row formats, not as a limit on the stored column. Ordinary schedule UUIDs
+fit entirely within that prefix. Longer values remain intact and SQL compares the
+complete value; identifiers sharing the prefix can require extra comparisons.
+We retain this approach rather than add schema-dependent index-selection branches
+that provide no meaningful benefit for ordinary UUIDs.
+
+PostgreSQL uses a full-column index on `"JobUUID"`, created with
+`CREATE INDEX CONCURRENTLY`; it does not use the MySQL prefix. Existing PostgreSQL
+column types and values are preserved too. Normal PostgreSQL index-entry size
+limits still apply; this does not promise indexing arbitrarily large text values.
+
+API startup preserves the existing type and width of `run_details.JobUUID` and
+adds its recurring-run lookup index separately. MySQL explicitly requires
+`ALGORITHM=INPLACE, LOCK=NONE`; unsupported online DDL fails startup instead of
+falling back to a table copy. Existing valid indexes are retained. Index builds
+consume I/O and can briefly acquire metadata locks; lock waits are bounded.
+See [startup index preparation](docs/agents/development.md#recurring-run-lookup-index).
+
+Other startup schema changes and the pipeline-reference backfill remain
+synchronous and may delay readiness or block writes. Retention-index
+preparation is separate from this lookup index; background automation and staged
+activation are covered by [#14877](https://github.com/kubeflow/pipelines/pull/14877).
 
 #### Scheduling migration details
 

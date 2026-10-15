@@ -767,11 +767,11 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 func autoMigrate(db *gorm.DB) error {
 	glog.Infof("Running AutoMigrate.")
 
-	if err := db.AutoMigrate(model.AllModels()...); err != nil {
+	if err := preserveRunJobUUID(db).AutoMigrate(model.AllModels()...); err != nil {
 		return fmt.Errorf("AutoMigrate failed: %w", err)
 	}
 
-	return nil
+	return ensureRecurringRunIndex(db)
 }
 
 // getColumnLength returns the declared length for a column using GORM ColumnTypes.
