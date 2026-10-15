@@ -90,8 +90,11 @@ class ScheduleWriterRBACTest(unittest.TestCase):
             {
                 'apiGroups': ['apps'],
                 'resources': ['deployments'],
-                'resourceNames':
-                    ['ml-pipeline', 'ml-pipeline-scheduledworkflow'],
+                'verbs': ['get', 'list']
+            },
+            {
+                'apiGroups': ['apps'],
+                'resources': ['replicasets'],
                 'verbs': ['get']
             },
         ])
