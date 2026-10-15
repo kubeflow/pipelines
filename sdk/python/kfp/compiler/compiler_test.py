@@ -19,7 +19,7 @@ import re
 import subprocess
 import tempfile
 import textwrap
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, Literal, NamedTuple, Optional
 import unittest
 
 from absl.testing import parameterized
@@ -6664,7 +6664,7 @@ class TestLiteralCompilerOverrideValidation(unittest.TestCase):
                 spec = yaml.safe_load(f)
             default_value = spec['root']['inputDefinitions']['parameters'][
                 'choice']['defaultValue']
-            self.assertEqual('b', default_value['stringValue'])
+            self.assertEqual('b', default_value)
 
     def test_invalid_literal_override_raises_error(self):
         """Compiler.compile with invalid pipeline_parameters should raise ValueError for Literal inputs."""

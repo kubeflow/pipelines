@@ -80,6 +80,12 @@ class InputSpec:
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
+            if isinstance(default_value, dict):
+                for k in ('stringValue', 'numberValue', 'boolValue',
+                          'listValue', 'structValue'):
+                    if k in default_value:
+                        default_value = default_value[k]
+                        break
             # fallback to checking if the parameter has a default value,
             # since some IR compiled with kfp<=2.0.0b8 will have defaults
             # without isOptional=True
@@ -89,10 +95,8 @@ class InputSpec:
             # entry is a protobuf Value serialized to a plain Python scalar.
             raw_literals = ir_component_inputs_dict.get('literals')
             if raw_literals:
-                literals = [
-                    v.get('stringValue') or v.get('numberValue')
-                    for v in raw_literals
-                ]
+                literals = [(v.get('stringValue') or v.get('numberValue'))
+                            if isinstance(v, dict) else v for v in raw_literals]
                 # Cast integer literals back to int (proto stores all numbers
                 # as float/double, so 1.0 -> 1 when the type is INTEGER).
                 if type_ == 'Integer':

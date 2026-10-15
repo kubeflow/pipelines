@@ -2329,7 +2329,8 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
 
 
 class TestLiteralParameterExecutor(parameterized.TestCase):
-    """Regression tests for P1: Executor.is_parameter() recognizing Literal annotations."""
+    """Regression tests for P1: Executor.is_parameter() recognizing Literal
+    annotations."""
 
     @parameterized.parameters(
         {'annotation': Literal['a', 'b', 'c']},
@@ -2338,11 +2339,13 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
         {'annotation': Optional[Literal['x', 'y']]},
     )
     def test_is_parameter_recognizes_literal_annotations(self, annotation):
-        """Literal and Optional[Literal] annotations should be recognized as parameters."""
+        """Literal and Optional[Literal] annotations should be recognized as
+        parameters."""
         self.assertTrue(executor.is_parameter(annotation))
 
     def test_literal_parameter_execution_with_supplied_value(self):
-        """A Literal parameter should receive the supplied runtime value, not its default."""
+        """A Literal parameter should receive the supplied runtime value, not
+        its default."""
 
         def comp_with_literal(choice: Literal['a', 'b'] = 'a') -> str:
             return choice
@@ -2377,7 +2380,8 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
 
     def test_literal_parameter_execution_without_supplied_value_uses_default(
             self):
-        """A Literal parameter without a supplied value should use its Python default."""
+        """A Literal parameter without a supplied value should use its Python
+        default."""
 
         def comp_with_literal(choice: Literal['a', 'b'] = 'a') -> str:
             return choice
@@ -2407,7 +2411,8 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
             self.assertEqual(output['parameterValues']['Output'], 'a')
 
     def test_required_literal_parameter_without_value_raises_error(self):
-        """A required Literal parameter missing from inputs should raise TypeError."""
+        """A required Literal parameter missing from inputs should raise
+        TypeError."""
 
         def comp_with_required_literal(choice: Literal['a', 'b']) -> str:
             return choice

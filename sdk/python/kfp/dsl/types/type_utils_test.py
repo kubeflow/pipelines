@@ -1227,10 +1227,12 @@ class TestGetCanonicalNameForOuterGeneric(parameterized.TestCase):
 
 
 class TestLiteralInterpolatedChannelValidation(unittest.TestCase):
-    """Regression tests for P4: interpolated channel strings in Literal validation."""
+    """Regression tests for P4: interpolated channel strings in Literal
+    validation."""
 
     def test_interpolated_channel_string_defers_literal_validation(self):
-        """String with embedded pipeline channels should defer Literal validation to runtime."""
+        """String with embedded pipeline channels should defer Literal
+        validation to runtime."""
 
         @dsl.component
         def pick(choice: Literal['prefix-a', 'prefix-b']) -> str:
@@ -1246,7 +1248,8 @@ class TestLiteralInterpolatedChannelValidation(unittest.TestCase):
         _compile(my_pipeline)
 
     def test_plain_channel_defers_literal_validation(self):
-        """Direct pipeline channels should defer Literal validation to runtime."""
+        """Direct pipeline channels should defer Literal validation to
+        runtime."""
 
         @dsl.component
         def produce(value: str) -> str:

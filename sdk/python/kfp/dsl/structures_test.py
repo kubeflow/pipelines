@@ -766,10 +766,12 @@ class TestLoadDocumentsFromYAML(unittest.TestCase):
 
 
 class TestInputSpecLiteralsDeserialization(unittest.TestCase):
-    """Regression tests for P2: InputSpec.from_ir_component_inputs_dict() reading literals."""
+    """Regression tests for P2: InputSpec.from_ir_component_inputs_dict()
+    reading literals."""
 
     def test_literals_preserved_in_yaml_roundtrip(self):
-        """Literals should be preserved through save_to_component_yaml/load_component_from_file."""
+        """Literals should be preserved through
+        save_to_component_yaml/load_component_from_file."""
 
         @dsl.component
         def comp_with_literal(choice: Literal['a', 'b', 'c'] = 'a') -> str:
@@ -780,7 +782,8 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
                 mode='w', suffix='.yaml', delete=False) as f:
             yaml_path = f.name
         try:
-            comp_with_literal.save_to_component_yaml(yaml_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp_with_literal, package_path=yaml_path)
 
             # Load component from YAML
             loaded_comp = components.load_component_from_file(yaml_path)
@@ -795,7 +798,8 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
             os.unlink(yaml_path)
 
     def test_from_ir_component_inputs_dict_reads_string_literals(self):
-        """InputSpec.from_ir_component_inputs_dict should read string literals from IR."""
+        """InputSpec.from_ir_component_inputs_dict should read string literals
+        from IR."""
         ir_dict = {
             'parameterType':
                 'STRING',
@@ -825,7 +829,8 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
         self.assertEqual(['a', 'b', 'c'], input_spec.literals)
 
     def test_from_ir_component_inputs_dict_reads_integer_literals(self):
-        """InputSpec.from_ir_component_inputs_dict should read integer literals from IR."""
+        """InputSpec.from_ir_component_inputs_dict should read integer literals
+        from IR."""
         ir_dict = {
             'parameterType':
                 'NUMBER_INTEGER',
@@ -857,7 +862,8 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
                          input_spec.literals)  # Literals cast back to int
 
     def test_from_ir_component_inputs_dict_reads_float_literals(self):
-        """InputSpec.from_ir_component_inputs_dict should read float literals from IR."""
+        """InputSpec.from_ir_component_inputs_dict should read float literals
+        from IR."""
         ir_dict = {
             'parameterType': 'NUMBER_DOUBLE',
             'defaultValue': {
@@ -882,7 +888,8 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
         self.assertEqual([1.5, 2.5], input_spec.literals)
 
     def test_from_ir_component_inputs_dict_no_literals_field(self):
-        """InputSpec.from_ir_component_inputs_dict should handle missing literals field gracefully."""
+        """InputSpec.from_ir_component_inputs_dict should handle missing
+        literals field gracefully."""
         ir_dict = {
             'parameterType': 'STRING',
             'defaultValue': {

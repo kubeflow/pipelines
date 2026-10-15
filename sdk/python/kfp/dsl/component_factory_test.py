@@ -410,7 +410,8 @@ class TestLiteralParameterAnnotations(unittest.TestCase):
 
 
 class TestLiteralContainerComponentPlaceholders(unittest.TestCase):
-    """Regression tests for P3: container component placeholder handling of Literal annotations."""
+    """Regression tests for P3: container component placeholder handling of
+    Literal annotations."""
 
     def test_container_component_with_literal_parameter_compiles(self):
         """@dsl.container_component with Literal parameter should compile without error."""
