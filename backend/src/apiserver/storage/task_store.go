@@ -86,6 +86,9 @@ type TaskStoreInterface interface {
 	// UpdateTask Updates an existing task entry in the database.
 	UpdateTask(new *model.Task) (*model.Task, error)
 
+	// UpdateTaskWithRetryFence updates an existing task entry in the database with retry fencing.
+	UpdateTaskWithRetryFence(new *model.Task, expectedRetryGeneration int64) (*model.Task, error)
+
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
 	// from a clean RUNNING attempt while preserving task history.
 	ResetTasksForRetry(taskIDs []string) error
@@ -1057,10 +1060,108 @@ func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error)
 	return task, nil
 }
 
+func extractPodUIDs(pods model.JSONSlice) []string {
+	var uids []string
+	for _, item := range pods {
+		switch p := item.(type) {
+		case map[string]interface{}:
+			if uid, ok := p["uid"].(string); ok && uid != "" {
+				uids = append(uids, uid)
+			} else if uid, ok := p["Uid"].(string); ok && uid != "" {
+				uids = append(uids, uid)
+			}
+		case *apiv2beta1.PipelineTask_TaskPod:
+			if p != nil && p.GetUid() != "" {
+				uids = append(uids, p.GetUid())
+			}
+		}
+	}
+	return uids
+}
+
+func extractPodNames(pods model.JSONSlice) []string {
+	var names []string
+	for _, item := range pods {
+		switch p := item.(type) {
+		case map[string]interface{}:
+			if name, ok := p["name"].(string); ok && name != "" {
+				names = append(names, name)
+			} else if name, ok := p["Name"].(string); ok && name != "" {
+				names = append(names, name)
+			}
+		case *apiv2beta1.PipelineTask_TaskPod:
+			if p != nil && p.GetName() != "" {
+				names = append(names, p.GetName())
+			}
+		}
+	}
+	return names
+}
+
+func slicesOverlap(a, b []string) bool {
+	for _, x := range a {
+		for _, y := range b {
+			if x == y {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func extractRetiredPodUIDs(attrs model.JSONData) []string {
+	if attrs == nil {
+		return nil
+	}
+	raw, ok := attrs["retired_pod_uids"].([]interface{})
+	if !ok {
+		return nil
+	}
+	var uids []string
+	for _, item := range raw {
+		if s, ok := item.(string); ok && s != "" {
+			uids = append(uids, s)
+		}
+	}
+	return uids
+}
+
+func isTerminalTaskState(state model.TaskStatus) bool {
+	switch apiv2beta1.PipelineTask_TaskState(state) {
+	case apiv2beta1.PipelineTask_SUCCEEDED,
+		apiv2beta1.PipelineTask_FAILED,
+		apiv2beta1.PipelineTask_SKIPPED,
+		apiv2beta1.PipelineTask_CACHED:
+		return true
+	default:
+		return false
+	}
+}
+
+func isStructuralTaskType(t model.TaskType) bool {
+	switch apiv2beta1.PipelineTask_TaskType(t) {
+	case apiv2beta1.PipelineTask_ROOT,
+		apiv2beta1.PipelineTask_DAG,
+		apiv2beta1.PipelineTask_LOOP,
+		apiv2beta1.PipelineTask_CONDITION,
+		apiv2beta1.PipelineTask_CONDITION_BRANCH:
+		return true
+	default:
+		return false
+	}
+}
+
 // UpdateTask updates an existing task in the tasks table and returns the updated task.
 // Uses row-level locking to prevent race conditions when multiple concurrent updates
 // try to modify the same task (e.g., loop iterations propagating parameters to parent task).
 func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
+	return s.UpdateTaskWithRetryFence(new, -1)
+}
+
+// UpdateTaskWithRetryFence updates an existing task in the tasks table with retry generation fencing.
+// If expectedRetryGeneration >= 0, it first acquires a row-level lock on the run_details row
+// and verifies that run_details.RetryGeneration matches expectedRetryGeneration.
+func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGeneration int64) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if new == nil {
@@ -1081,11 +1182,159 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}()
 
+	runUUID := new.RunUUID
+	if runUUID == "" {
+		row := tx.QueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE %s = ?", q("RunUUID"), q(tableName), q("UUID")), new.UUID)
+		if err := row.Scan(&runUUID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, util.NewResourceNotFoundError("task", new.UUID)
+			}
+			return nil, util.NewInternalServerError(err, "Failed to get run UUID for task %s", new.UUID)
+		}
+	}
+
+	// Lock run_details first when expectedRetryGeneration >= 0 to enforce atomic retry fencing
+	// (lock ordering: run_details -> tasks).
+	// For ordinary updates (expectedRetryGeneration < 0), read RetryGeneration without an exclusive
+	// row lock to avoid serializing concurrent task updates within the same run.
+	var currentRetryGeneration sql.NullInt64
+	lockRunSQL, lockRunArgs, err := qb.
+		Select(q("RetryGeneration")).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): runUUID}).
+		ToSql()
+	if err == nil {
+		if expectedRetryGeneration >= 0 {
+			lockRunSQL = s.dbDialect.SelectForUpdate(lockRunSQL)
+		}
+		if err := tx.QueryRow(lockRunSQL, lockRunArgs...).Scan(&currentRetryGeneration); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, util.NewInternalServerError(err, "Failed to query run_details for task update: %v", err)
+		}
+	}
+
+	if expectedRetryGeneration >= 0 {
+		if currentRetryGeneration.Int64 != expectedRetryGeneration {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale retry generation: expected %d, got %d", expectedRetryGeneration, currentRetryGeneration.Int64),
+				"Task update rejected due to stale retry generation for run %s", runUUID,
+			)
+		}
+	}
+
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
 	// This prevents other concurrent updates from reading the same old state
 	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
 	if err != nil {
 		return nil, err
+	}
+
+	oldUIDs := extractPodUIDs(lockedOld.Pods)
+	newUIDs := extractPodUIDs(new.Pods)
+	oldNames := extractPodNames(lockedOld.Pods)
+	newNames := extractPodNames(new.Pods)
+
+	retiredUIDs := extractRetiredPodUIDs(lockedOld.TypeAttrs)
+	isRetried := currentRetryGeneration.Int64 > 0 || len(retiredUIDs) > 0
+
+	// 0. Check against retired pod UIDs from prior retry attempts
+	if len(newUIDs) > 0 {
+		if slicesOverlap(newUIDs, retiredUIDs) {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: incoming pods %v contain retired pod UID", newUIDs),
+				"Task update rejected due to pod identity mismatch: retired pod identity for task %s", new.UUID,
+			)
+		}
+	}
+
+	// 1. Verify active attempt pod identity.
+	// When pod UIDs are present on both sides, match strictly on pod UIDs to prevent
+	// pod name reuse across retries from accepting stale callbacks.
+	if len(oldUIDs) > 0 && len(newUIDs) > 0 {
+		if !slicesOverlap(newUIDs, oldUIDs) {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: incoming pods %v do not match active pods %v", newUIDs, oldUIDs),
+				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
+			)
+		}
+	} else if len(oldUIDs) > 0 && len(newUIDs) == 0 {
+		// When the active attempt has registered pod UIDs, incoming callbacks cannot be verified by UID.
+		// On retried tasks (where stale callbacks from prior attempts could reuse pod names or omit pod identity),
+		// reject unfenced terminal updates because unverified callers could overwrite the active retry attempt's state.
+		isTerminal := isTerminalTaskState(new.State) || new.FinishedInSec > 0
+		if isRetried && expectedRetryGeneration < 0 && isTerminal {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: terminal update rejected because incoming update lacks pod UID while active task has pod UIDs %v", oldUIDs),
+				"Task update rejected due to unverified pod identity for task %s", new.UUID,
+			)
+		}
+		// For non-terminal updates (or unretried tasks) that include pod names, ensure the pod name matches the active attempt.
+		if len(oldNames) > 0 && len(newNames) > 0 && !slicesOverlap(newNames, oldNames) {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: incoming pod names %v do not match active pod names %v", newNames, oldNames),
+				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
+			)
+		}
+	} else if len(oldNames) > 0 && len(newNames) > 0 {
+		if !slicesOverlap(newNames, oldNames) {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: incoming pod names %v do not match active pod names %v", newNames, oldNames),
+				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
+			)
+		}
+	}
+
+	// 2. Intra-attempt terminal state protection:
+	// For ordinary callbacks (expectedRetryGeneration < 0) within the same attempt,
+	// terminal states (SUCCEEDED, FAILED, SKIPPED, CACHED) are irreversible.
+	// A delayed callback (e.g. from an earlier DRIVER pod) must not regress a terminal state back to
+	// RUNNING, nor overwrite an EXECUTOR failure with SUCCEEDED.
+	if expectedRetryGeneration < 0 && isTerminalTaskState(lockedOld.State) {
+		if new.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
+			oldStateStr := apiv2beta1.PipelineTask_TaskState(lockedOld.State).String()
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: cannot regress terminal task %s (state %s) to RUNNING", new.UUID, oldStateStr),
+				"Task update rejected because task %s is already in terminal state %s", new.UUID, oldStateStr,
+			)
+		}
+		if lockedOld.State == model.TaskStatus(apiv2beta1.PipelineTask_FAILED) && new.State == model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED) {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: cannot overwrite FAILED state with SUCCEEDED for task %s", new.UUID),
+				"Task update rejected because task %s has already failed", new.UUID,
+			)
+		}
+	}
+
+	// 3. Retry gap protection:
+	// If the run has been retried (RetryGeneration > 0 or retired UIDs present), the task was reset for retry
+	// (RUNNING with empty pods), and an unfenced ordinary callback (expectedRetryGeneration < 0)
+	// tries to write a terminal state before the retry attempt has registered an active pod,
+	// it is a stale terminal callback from the prior attempt.
+	// A genuine pod-registration update must register the new attempt in non-terminal (RUNNING)
+	// state without a completion timestamp. A callback attempting to mark the task terminal
+	// while no active pod has registered is rejected, regardless of whether it carries pod information.
+	// Note: Structural tasks (DAG, LOOP, ROOT, CONDITION) do not register pods.
+	if isRetried &&
+		expectedRetryGeneration < 0 &&
+		len(oldUIDs) == 0 &&
+		len(oldNames) == 0 &&
+		!isStructuralTaskType(lockedOld.Type) &&
+		lockedOld.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
+		isTerminal := isTerminalTaskState(new.State) || new.FinishedInSec > 0
+		if isTerminal {
+			return nil, util.NewConflictServerError(
+				fmt.Errorf("stale task update: terminal update rejected because task %s is waiting for retry pod to register", new.UUID),
+				"Task update rejected because task %s was reset for retry and has not registered an active pod for generation %d",
+				new.UUID, currentRetryGeneration.Int64,
+			)
+		}
+	}
+
+	// 4. Defense-in-depth: Reject updates whose completion time predates the attempt start time.
+	if new.FinishedInSec > 0 && lockedOld.StartedInSec > 0 && new.FinishedInSec < lockedOld.StartedInSec {
+		return nil, util.NewConflictServerError(
+			fmt.Errorf("stale task update: finish time %d predates retry start %d", new.FinishedInSec, lockedOld.StartedInSec),
+			"Task update rejected because it predates the current retry attempt for task %s", new.UUID,
+		)
 	}
 
 	// Use the locked version for merging instead of the 'old' parameter
@@ -1212,6 +1461,9 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	}
 
 	if new.TypeAttrs != nil {
+		if lockedOld.TypeAttrs != nil && lockedOld.TypeAttrs["retired_pod_uids"] != nil && new.TypeAttrs["retired_pod_uids"] == nil {
+			new.TypeAttrs["retired_pod_uids"] = lockedOld.TypeAttrs["retired_pod_uids"]
+		}
 		if b, err := json.Marshal(new.TypeAttrs); err == nil {
 			setMap[q("TypeAttrs")] = string(b)
 		} else {
@@ -1331,6 +1583,19 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 			return util.NewInternalServerError(err, "Failed to marshal retry task state history")
 		}
 
+		prevUIDs := extractPodUIDs(task.Pods)
+		mergedTypeAttrs := task.TypeAttrs
+		if mergedTypeAttrs == nil {
+			mergedTypeAttrs = make(model.JSONData)
+		}
+		if len(prevUIDs) > 0 {
+			mergedTypeAttrs["retired_pod_uids"] = append(extractRetiredPodUIDs(mergedTypeAttrs), prevUIDs...)
+		}
+		typeAttrsBytes, err := json.Marshal(mergedTypeAttrs)
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to marshal retry task type attributes")
+		}
+
 		updateSQL, updateArgs, err := qb.
 			Update(q(tableName)).
 			SetMap(sq.Eq{
@@ -1342,6 +1607,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 				q("OutputParameters"): emptyJSONArray,
 				q("StateHistory"):     string(historyBytes),
 				q("LifecycleMessage"): nil,
+				q("TypeAttrs"):        string(typeAttrsBytes),
 			}).
 			Where(sq.Eq{q("UUID"): task.UUID}).
 			ToSql()
