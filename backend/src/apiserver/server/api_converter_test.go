@@ -1282,6 +1282,64 @@ func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
 	assert.Nil(t, unset.LifecycleMessage)
 }
 
+func TestToModelAndAPITask_LifecycleCategory(t *testing.T) {
+	category := "image-pull"
+	msg := "ImagePullBackOff"
+	apiTask := &apiv2beta1.PipelineTask{
+		TaskId:            "task-1",
+		RunId:             "run-1",
+		LifecycleMessage:  &msg,
+		LifecycleCategory: &category,
+	}
+	modelTask, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	require.NotNil(t, modelTask.LifecycleCategory)
+	assert.Equal(t, "image-pull", *modelTask.LifecycleCategory)
+
+	exported, err := toAPITask(modelTask, nil)
+	require.NoError(t, err)
+	require.NotNil(t, exported.LifecycleCategory)
+	assert.Equal(t, "image-pull", exported.GetLifecycleCategory())
+
+	clear := ""
+	apiTask.LifecycleMessage = &clear
+	apiTask.LifecycleCategory = &clear
+	cleared, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	require.NotNil(t, cleared.LifecycleCategory)
+	assert.Equal(t, "", *cleared.LifecycleCategory)
+
+	unset, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "task-2", RunId: "run-1"})
+	require.NoError(t, err)
+	assert.Nil(t, unset.LifecycleCategory)
+}
+
+func TestToModelTask_LifecycleCategoryRequiresMessage(t *testing.T) {
+	category := "image-pull"
+	empty := ""
+	msg := "ImagePullBackOff"
+
+	// A category without a message is rejected, whether the message is unset or empty.
+	_, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleCategory: &category})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lifecycle_category requires a non-empty lifecycle_message")
+
+	_, err = toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &empty, LifecycleCategory: &category})
+	require.Error(t, err)
+
+	// A category together with a message is accepted.
+	ok, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &msg, LifecycleCategory: &category})
+	require.NoError(t, err)
+	require.NotNil(t, ok.LifecycleCategory)
+	assert.Equal(t, "image-pull", *ok.LifecycleCategory)
+
+	// Clearing the message without a category clears the category too.
+	cleared, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &empty})
+	require.NoError(t, err)
+	require.NotNil(t, cleared.LifecycleCategory)
+	assert.Equal(t, "", *cleared.LifecycleCategory)
+}
+
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string

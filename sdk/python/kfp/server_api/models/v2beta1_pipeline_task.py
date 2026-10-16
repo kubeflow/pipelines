@@ -51,7 +51,8 @@ class V2beta1PipelineTask(object):
         'inputs': 'PipelineTaskInputOutputs',
         'outputs': 'PipelineTaskInputOutputs',
         'scope_path': 'str',
-        'lifecycle_message': 'str'
+        'lifecycle_message': 'str',
+        'lifecycle_category': 'str'
     }
 
     attribute_map = {
@@ -73,10 +74,11 @@ class V2beta1PipelineTask(object):
         'inputs': 'inputs',
         'outputs': 'outputs',
         'scope_path': 'scope_path',
-        'lifecycle_message': 'lifecycle_message'
+        'lifecycle_message': 'lifecycle_message',
+        'lifecycle_category': 'lifecycle_category'
     }
 
-    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, lifecycle_category=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1PipelineTask - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -101,6 +103,7 @@ class V2beta1PipelineTask(object):
         self._outputs = None
         self._scope_path = None
         self._lifecycle_message = None
+        self._lifecycle_category = None
         self.discriminator = None
 
         if name is not None:
@@ -141,6 +144,8 @@ class V2beta1PipelineTask(object):
             self.scope_path = scope_path
         if lifecycle_message is not None:
             self.lifecycle_message = lifecycle_message
+        if lifecycle_category is not None:
+            self.lifecycle_category = lifecycle_category
 
     @property
     def name(self):
@@ -558,6 +563,29 @@ class V2beta1PipelineTask(object):
         """
 
         self._lifecycle_message = lifecycle_message
+
+    @property
+    def lifecycle_category(self):
+        """Gets the lifecycle_category of this V2beta1PipelineTask.  # noqa: E501
+
+        Classified category of lifecycle_message. One of image-pull, scheduling, runtime, admission, or unknown. Empty when lifecycle_message is empty.  # noqa: E501
+
+        :return: The lifecycle_category of this V2beta1PipelineTask.  # noqa: E501
+        :rtype: str
+        """
+        return self._lifecycle_category
+
+    @lifecycle_category.setter
+    def lifecycle_category(self, lifecycle_category):
+        """Sets the lifecycle_category of this V2beta1PipelineTask.
+
+        Classified category of lifecycle_message. One of image-pull, scheduling, runtime, admission, or unknown. Empty when lifecycle_message is empty.  # noqa: E501
+
+        :param lifecycle_category: The lifecycle_category of this V2beta1PipelineTask.  # noqa: E501
+        :type lifecycle_category: str
+        """
+
+        self._lifecycle_category = lifecycle_category
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -40,6 +40,11 @@ type V2beta1PipelineTask struct {
 	// inputs
 	Inputs *PipelineTaskInputOutputs `json:"inputs,omitempty"`
 
+	// Classified category of lifecycle_message.
+	// One of image-pull, scheduling, runtime, admission, or unknown.
+	// Empty when lifecycle_message is empty.
+	LifecycleCategory string `json:"lifecycle_category,omitempty"`
+
 	// Latest pod lifecycle diagnostic from the execution engine.
 	// Read-only via REST; the persistence agent clears this field automatically on recovery.
 	LifecycleMessage string `json:"lifecycle_message,omitempty"`

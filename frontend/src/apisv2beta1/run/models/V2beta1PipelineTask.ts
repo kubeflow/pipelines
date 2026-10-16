@@ -194,6 +194,14 @@ export interface V2beta1PipelineTask {
    * @memberof V2beta1PipelineTask
    */
   lifecycle_message?: string;
+  /**
+   * Classified category of lifecycle_message.
+   * One of image-pull, scheduling, runtime, admission, or unknown.
+   * Empty when lifecycle_message is empty.
+   * @type {string}
+   * @memberof V2beta1PipelineTask
+   */
+  lifecycle_category?: string;
 }
 
 /**
@@ -250,6 +258,7 @@ export function V2beta1PipelineTaskFromJSONTyped(
       json['outputs'] == null ? undefined : PipelineTaskInputOutputsFromJSON(json['outputs']),
     scope_path: json['scope_path'] == null ? undefined : json['scope_path'],
     lifecycle_message: json['lifecycle_message'] == null ? undefined : json['lifecycle_message'],
+    lifecycle_category: json['lifecycle_category'] == null ? undefined : json['lifecycle_category'],
   };
 }
 
@@ -295,5 +304,6 @@ export function V2beta1PipelineTaskToJSONTyped(
     outputs: PipelineTaskInputOutputsToJSON(value['outputs']),
     scope_path: value['scope_path'],
     lifecycle_message: value['lifecycle_message'],
+    lifecycle_category: value['lifecycle_category'],
   };
 }
