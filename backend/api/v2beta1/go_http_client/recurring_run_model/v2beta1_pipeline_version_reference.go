@@ -14,11 +14,19 @@ import (
 // swagger:model v2beta1PipelineVersionReference
 type V2beta1PipelineVersionReference struct {
 
-	// Input. Required. Unique ID of the parent pipeline.
+	// Input. Unique ID of the parent pipeline. Required unless pipeline_name is set.
 	PipelineID string `json:"pipeline_id,omitempty"`
+
+	// Input. Optional. Name of the parent pipeline in the run's namespace, used
+	// instead of pipeline_id. Not returned in responses.
+	PipelineName string `json:"pipeline_name,omitempty"`
 
 	// Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
+
+	// Input. Optional. Name of a version of the pipeline named by pipeline_name,
+	// used instead of pipeline_version_id. Not returned in responses.
+	PipelineVersionName string `json:"pipeline_version_name,omitempty"`
 }
 
 // Validate validates this v2beta1 pipeline version reference
