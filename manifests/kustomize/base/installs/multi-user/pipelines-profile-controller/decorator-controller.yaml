@@ -18,7 +18,7 @@ spec:
   - apiVersion: v1
     resource: configmaps
     updateStrategy:
-      method: OnDelete
+      method: InPlace
   - apiVersion: apps/v1
     resource: deployments
     updateStrategy:

@@ -49,6 +49,30 @@ Wait for profile reconciliation and verify the value in the execution namespaces
 before running sensitive workloads. Do not edit controller-managed copies as an
 alternative to changing the installation setting.
 
+Upgrades must also apply the updated `DecoratorController` manifest: ConfigMaps
+now reconcile in place instead of only being recreated after deletion. For
+existing profiles, the controller updates only `artifactPreviewsEnabled` in
+`kfp-launcher`, preserving namespace-specific roots, providers, other data, and
+customized Argo artifact repositories. Launcher ConfigMaps must remain mutable
+for policy updates to succeed.
+
+Periodic reconciliation can take up to one hour. To request an earlier sync,
+replace `PROFILE_NAMESPACE` below with each affected profile namespace:
+
+```bash
+kubectl annotate namespace PROFILE_NAMESPACE \
+  pipelines.kubeflow.org/preview-policy-refresh="$(date +%s)" --overwrite
+kubectl -n PROFILE_NAMESPACE get configmap kfp-launcher \
+  -o jsonpath='{.data.artifactPreviewsEnabled}'
+```
+
+The profile controller also propagates `pipeline-install-config`'s
+`USERID_HEADER` into namespace artifact servers as `KUBEFLOW_USERID_HEADER`.
+This preserves the shared UI's authenticated identity for preview metadata
+lookups. If the installation key is absent, both services retain their common
+server default. Restart the profile controller and wait for its artifact-server
+Deployment rollouts after changing that installation setting.
+
 The SDK reads `/etc/kfp/launcher-config/artifactPreviewsEnabled` before framework
 hooks and again before publishing a preview. Kubernetes volume updates are
 eventually consistent; the switch is not instantaneous for running pods.

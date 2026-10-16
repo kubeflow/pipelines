@@ -20,6 +20,7 @@ from http.server import ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 try:
     import botocore.session
@@ -38,11 +39,11 @@ DRIVER_AGENT_CA_SECRET_NAME = 'argo-workflows-agent-ca-certificates'
 # Metacontroller records each returned attachment in this annotation and
 # three-way merges against it on the next sync.
 LAST_APPLIED_ANNOTATION = 'metacontroller.k8s.io/last-applied-configuration'
-# Metadata worth echoing back for a Secret this controller does not rewrite.
+# Metadata worth echoing back for attachments with externally managed fields.
 # Server- and Metacontroller-owned fields such as resourceVersion, uid, and
 # ownerReferences change on every write, so returning them would alter the
-# last-applied annotation each cycle and reconcile InPlace Secrets forever.
-PRESERVED_SECRET_METADATA = ('name', 'namespace', 'labels', 'annotations')
+# last-applied annotation each cycle and reconcile InPlace attachments forever.
+PRESERVED_ATTACHMENT_METADATA = ('name', 'namespace', 'labels', 'annotations')
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -52,22 +53,22 @@ s3 = session.create_client(
     's3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
-def preserved_secret(observed):
-    """Desired state for an observed Secret that only external controllers
-    populate: its data and intentional metadata, without volatile fields."""
-    secret = copy.deepcopy(observed)
-    metadata = secret.get('metadata', {})
-    secret['metadata'] = {
+def preserved_attachment(observed: dict[str, Any]) -> dict[str, Any]:
+    """Retain observed data and intentional metadata without reconciliation
+    bookkeeping or volatile API-server fields."""
+    resource = copy.deepcopy(observed)
+    metadata = resource.get('metadata', {})
+    resource['metadata'] = {
         key: metadata[key]
-        for key in PRESERVED_SECRET_METADATA
+        for key in PRESERVED_ATTACHMENT_METADATA
         if key in metadata
     }
-    annotations = secret['metadata'].get('annotations')
+    annotations = resource['metadata'].get('annotations')
     if annotations is not None:
         annotations.pop(LAST_APPLIED_ANNOTATION, None)
         if not annotations:
-            del secret['metadata']['annotations']
-    return secret
+            del resource['metadata']['annotations']
+    return resource
 
 
 def _normalize_domain(domain):
@@ -78,7 +79,8 @@ def artifact_server_environment(namespace,
                                 cluster_domain,
                                 allowed_artifact_endpoints,
                                 allowed_gcs_universe_domains="googleapis.com",
-                                http_base_url=""):
+                                http_base_url="",
+                                user_id_header: str | None = None):
     return [
         {
             "name": "MINIO_ACCESS_KEY",
@@ -110,6 +112,10 @@ def artifact_server_environment(namespace,
             "name": "FRONTEND_SERVER_NAMESPACE",
             "value": namespace,
         },
+        *([{
+            "name": "KUBEFLOW_USERID_HEADER",
+            "value": user_id_header,
+        }] if user_id_header is not None else []),
         {
             "name": "CLUSTER_DOMAIN",
             "value": cluster_domain,
@@ -159,7 +165,8 @@ def get_settings_from_env(controller_port=None,
                           object_store_host=None,
                           http_base_url=None,
                           driver_agent_ca_cert_path=None,
-                          artifact_previews_enabled: str | None = None):
+                          artifact_previews_enabled: str | None = None,
+                          user_id_header: str | None = None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -216,6 +223,10 @@ def get_settings_from_env(controller_port=None,
         artifact_previews_enabled if artifact_previews_enabled is not None \
             else os.environ.get("ARTIFACT_PREVIEWS_ENABLED", "false")
 
+    settings["user_id_header"] = \
+        user_id_header if user_id_header is not None \
+            else os.environ.get("USERID_HEADER")
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -244,7 +255,8 @@ def server_factory(frontend_image,
                    controller_port=8080,
                    http_base_url="",
                    driver_agent_ca_cert_path="",
-                   artifact_previews_enabled: str = "false"):
+                   artifact_previews_enabled: str = "false",
+                   user_id_header: str | None = None):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
@@ -647,6 +659,7 @@ def server_factory(frontend_image,
                                                 allowed_artifact_endpoints,
                                                 allowed_gcs_universe_domains,
                                                 http_base_url,
+                                                user_id_header,
                                             ),
                                         "resources": {
                                             "requests": {
@@ -771,17 +784,22 @@ def server_factory(frontend_image,
                         },
                     })
 
-            # Only the CA rotates in place; retain observed credentials and
-            # service-account tokens, including controller-populated fields,
-            # but not the volatile metadata that would never converge.
+            # Preserve namespace-managed storage settings and credentials.
+            # Only the preview policy and CA are controlled by the installation.
             for index, resource in enumerate(desired_resources):
                 name = resource["metadata"]["name"]
-                if (resource["kind"] == "Secret" and
+                kind = resource["kind"]
+                if (kind in ("Secret", "ConfigMap") and
                         name != DRIVER_AGENT_CA_SECRET_NAME):
-                    existing = attachments["Secret.v1"].get(
+                    existing = attachments[f"{kind}.v1"].get(
                         f"{namespace}/{name}")
                     if existing:
-                        desired_resources[index] = preserved_secret(existing)
+                        preserved = preserved_attachment(existing)
+                        if kind == "ConfigMap" and name == "kfp-launcher":
+                            preserved.setdefault(
+                                "data", {})["artifactPreviewsEnabled"] = \
+                                    artifact_previews_enabled
+                        desired_resources[index] = preserved
 
             return {"status": desired_status, "attachments": desired_resources}
 
