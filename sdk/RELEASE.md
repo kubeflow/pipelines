@@ -52,6 +52,10 @@
 
 ## Bug fixes and other changes
 
+* Fix `local.init(workspace_root=...)` deleting the user-provided workspace
+  directory once a local pipeline run finishes. Only an auto-created temporary
+  workspace is removed now.
+
 # 2.15.2
 
 ## Bug fixes and other changes

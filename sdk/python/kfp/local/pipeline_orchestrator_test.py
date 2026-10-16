@@ -985,6 +985,53 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 type(local.config.LocalExecutionConfig.instance.runner),
                 local.DockerRunner)
 
+    def test_user_provided_workspace_is_not_deleted(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = os.path.join(temp_dir, 'workspace')
+            os.makedirs(workspace_root)
+            existing_file = os.path.join(workspace_root, 'notes.txt')
+            with open(existing_file, 'w') as f:
+                f.write('keep me')
+
+            local.init(
+                local.SubprocessRunner(use_venv=False),
+                pipeline_root=ROOT_FOR_TESTING,
+                workspace_root=workspace_root)
+
+            @dsl.component
+            def identity(string: str) -> str:
+                return string
+
+            @dsl.pipeline
+            def my_pipeline() -> str:
+                return identity(string='foo').output
+
+            my_pipeline()
+
+            self.assertTrue(os.path.exists(workspace_root))
+            self.assertTrue(os.path.exists(existing_file))
+
+    def test_temporary_workspace_is_deleted(self):
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+        workspace_root = local.config.LocalExecutionConfig.instance.workspace_root
+        self.assertTrue(os.path.exists(workspace_root))
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline() -> str:
+            return identity(string='foo').output
+
+        my_pipeline()
+
+        self.assertFalse(os.path.exists(workspace_root))
+
 
 class TestFstringContainerComponent(
         testing_utilities.LocalRunnerEnvironmentTestCase):
