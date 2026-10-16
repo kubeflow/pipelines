@@ -137,6 +137,11 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   their daemon configuration; the helper still requires `docker info` to succeed.
   Configure daemon mirrors in the runner provider when local service management
   is unavailable. BuildKit mirror configuration remains independent.
+- Both SDK reference sites set the Sphinx Immaterial `font` option to `False`.
+  This uses the theme's system fallback fonts and disables build-time Google
+  Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
+  font configuration with network connections rejected before building the full
+  references. Keep the no-network regression when changing themes or fonts.
 - The deploy action provisions GitHub CLI when absent on Linux runners, using a
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
