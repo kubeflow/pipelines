@@ -16,9 +16,11 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -85,6 +87,18 @@ type Options struct {
 	DefaultHostUsers           *bool
 	CaCertPath                 string
 	PluginDispatcher           plugins.TaskPluginDispatcher
+
+	// RunRefresher is an optional callback to refresh the Run with authoritative state,
+	// used for bounded synchronization of exit-handler dependencies.
+	RunRefresher func(ctx context.Context) (*apiv2beta1.Run, error) `json:"-"`
+
+	// FinalStatusTimeout is an optional timeout for waiting for producer tasks to reach terminal state.
+	// Defaults to 30s if not set.
+	FinalStatusTimeout time.Duration
+
+	// FinalStatusPollInterval is an optional interval between polling attempts when waiting for producer tasks.
+	// Defaults to 100ms if not set.
+	FinalStatusPollInterval time.Duration
 }
 
 // Info provides information used for debugging

@@ -23,6 +23,7 @@ import (
 
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apicommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
@@ -503,6 +504,14 @@ func drive() (err error) {
 		PipelineJobScheduleTimeUTC: resolvedPipelineJobScheduleTimeUTC,
 		CaCertPath:                 *caCertPath,
 		PluginDispatcher:           pluginDispatcher,
+		RunRefresher: func(refreshCtx context.Context) (*go_client.Run, error) {
+			fullView := go_client.GetRunRequest_FULL
+			authCtx := apicommon.WithAuthoritativeRequirement(refreshCtx)
+			return clientManager.KFPAPIClient().GetRun(authCtx, &go_client.GetRunRequest{
+				RunId: *runID,
+				View:  &fullView,
+			})
+		},
 	}
 	var execution *driver.Execution
 	switch *driverType {

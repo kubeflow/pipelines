@@ -61,7 +61,7 @@ func ResolveInputs(ctx context.Context, opts common.Options) (*InputMetadata, *i
 	}
 
 	// Handle parameters
-	resolvedParameters, err := resolveParameters(opts)
+	resolvedParameters, err := resolveParametersWithContext(ctx, &opts)
 	if err != nil {
 		return nil, nil, err
 	}
