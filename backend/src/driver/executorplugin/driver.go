@@ -30,6 +30,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apicommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
@@ -253,6 +254,14 @@ func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArg
 		PipelineJobCreateTimeUTC: createTime, PipelineJobScheduleTimeUTC: scheduleTime,
 		PluginDispatcher: pluginDispatcher, ProxyConfig: invocation.proxyConfig,
 		LauncherConfig: r.launcherConfigs.loader(clientManager.K8sClient()),
+		RunRefresher: func(refreshCtx context.Context) (*go_client.Run, error) {
+			fullView := go_client.GetRunRequest_FULL
+			authCtx := apicommon.WithAuthoritativeRequirement(refreshCtx)
+			return clientManager.KFPAPIClient().GetRun(authCtx, &go_client.GetRunRequest{
+				RunId: args.RunID,
+				View:  &fullView,
+			})
+		},
 	}
 
 	if publishLogs {

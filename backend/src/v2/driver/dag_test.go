@@ -805,18 +805,30 @@ func TestFinalStatus(t *testing.T) {
 	_, exitHandler1Task := tc.RunDagDriver("exit-handler-1", parentTask)
 	parentTask = exitHandler1Task
 
-	_, _ = tc.RunContainerDriver("some-task", parentTask, nil, true)
+	_, someTask := tc.RunContainerDriver("some-task", parentTask, nil, true)
+	someTask.State = apiv2beta1.PipelineTask_SUCCEEDED
+	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		TaskId: someTask.GetTaskId(),
+		Task:   someTask,
+	})
+	require.NoError(t, err)
 
 	tc.ExitDag()
+	// Update DAG task status to SUCCEEDED upon exit, as expected in production.
+	exitHandler1Task.State = apiv2beta1.PipelineTask_SUCCEEDED
+	_, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		TaskId: exitHandler1Task.GetTaskId(),
+		Task:   exitHandler1Task,
+	})
+	require.NoError(t, err)
+	tc.RefreshRun()
 	parentTask = tc.RootTask
 
 	_, echoStateTask := tc.RunContainerDriver("echo-state", parentTask, nil, true)
 	require.Len(t, echoStateTask.Inputs.GetParameters(), 1)
 	inputFinalStatusParam := echoStateTask.Inputs.GetParameters()[0]
 	require.NotNil(t, inputFinalStatusParam)
-	// Mock library doesn't update dag statuses, in production we would expect
-	// this to say "SUCCEEDED" once it's done running
-	require.Equal(t, "RUNNING", inputFinalStatusParam.GetValue().GetStructValue().Fields["state"].GetStringValue())
+	require.Equal(t, "SUCCEEDED", inputFinalStatusParam.GetValue().GetStructValue().Fields["state"].GetStringValue())
 	require.Equal(t, "exit-handler-1", inputFinalStatusParam.GetValue().GetStructValue().Fields["pipelineTaskName"].GetStringValue())
 }
 
