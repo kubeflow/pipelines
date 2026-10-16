@@ -4,6 +4,18 @@ Changelog
 
 ### Upgrade notes
 
+- **Run retention:** required indexes are now prepared automatically in the
+  background when retention is enabled; no ordinary manual SQL step is needed.
+  Previously configured retention that was paused by missing indexes can now
+  begin archiving/deleting after preparation and a full GC interval. Set
+  `RUNS_GC_INDEX_PREPARE_ONLY=true` consistently across API replicas to build
+  indexes without catch-up, then clear it when ready. Retention remains disabled
+  by default. `RUNS_GC_INDEX_BUILD_TIMEOUT` defaults to `12h` per index attempt;
+  metadata-lock waits stay bounded to five seconds. Builds consume database
+  resources and server cleanup may outlast cancellation. Interrupted PostgreSQL
+  builds with matching managed definitions recover automatically; conflicting
+  definitions still require inspection. See
+  [retention configuration](docs/operator-guides/server-config.md#run-retention-and-index-preparation).
 - **Recurring-run security:** multi-user recurring runs created before API-owned
   scheduling state must be reviewed and recreated through the API. Otherwise they
   stop submitting executions, even when shown as enabled. API startup logs now
