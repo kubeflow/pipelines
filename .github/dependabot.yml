@@ -63,6 +63,11 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # Keep the bundled database on 8.4 LTS. Patch and digest updates remain
+      # enabled; changing release lines requires a tested database migration.
+      - dependency-name: "mysql"
+        versions: ["<8.4", ">=8.5"]
     groups:
       # The controller injects argoexec into workflow pods, so update the two
       # runtime images together when Dependabot finds a new release.
