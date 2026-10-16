@@ -789,9 +789,16 @@ def _install_save_hooks() -> None:
     for name in ('xgboost', 'torch'):
         try:
             framework = importlib.import_module(name)
-        except (ImportError, OSError, RuntimeError) as error:
+        except ImportError as error:
             _LOGGER.debug('Optional %s preview adapter unavailable: %s', name,
                           error)
+            continue
+        except Exception as error:
+            # Optional framework initializers can raise non-import errors,
+            # including binary-compatibility failures from transitive libraries.
+            _LOGGER.warning(
+                'Could not initialize optional %s preview adapter: %s', name,
+                error)
             continue
         start = len(_SAVE_METHODS)
         try:
@@ -843,7 +850,12 @@ class ArtifactPreviewSession:
             return self
         with _HOOK_LOCK:
             if not _SESSIONS:
-                _install_save_hooks()
+                try:
+                    _install_save_hooks()
+                except BaseException:
+                    # __exit__ is not called when __enter__ is interrupted.
+                    _restore_save_hooks()
+                    raise
             if not _SAVE_METHODS:
                 return self
             _SESSIONS.append(self)
@@ -939,7 +951,7 @@ class ArtifactPreviewSession:
                         )
                     preview = saved.preview
                 self._publish(directory, artifact, preview)
-            except (OSError, ValueError, TypeError) as error:
+            except (OSError, ValueError, TypeError, RecursionError) as error:
                 _LOGGER.warning(
                     'Automatic preview unavailable for output %r; its artifact is unchanged: %s',
                     name, error)

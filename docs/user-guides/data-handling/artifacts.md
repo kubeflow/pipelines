@@ -440,6 +440,12 @@ failures are logged without failing successful artifact production. Existing
 preview descriptors and files are not overwritten. Other output formats remain
 usable without a preview.
 
+A broken optional framework initializer disables only that adapter, not the
+remaining adapters or the component. Excessively nested model configuration is
+also skipped with a warning, even if its file fits the byte limit. Process-control
+exceptions and failures in the producer's own native save operations still
+propagate normally.
+
 Use an SDK supporting automatic previews inside the component image. Existing
 compiled Python components also get automatic previews when they execute with
 this SDK in an enabled deployment; images pinned to older SDKs do not.

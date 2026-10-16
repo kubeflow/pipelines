@@ -82,6 +82,17 @@ class FakeEstimator:
         }
 
 
+class FakeTensor:
+    """Expose tensor structure without importing PyTorch or inspecting
+    values."""
+
+    shape = (2, 3)
+    dtype = 'torch.float32'
+
+    def numel(self) -> int:
+        return 6
+
+
 FRAMEWORK = types.SimpleNamespace(
     Booster=FakeBooster,
     XGBModel=FakeEstimator,
@@ -389,6 +400,90 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertEqual(previews._SESSIONS, [])
         self.assertEqual(previews._SAVE_METHODS, [])
 
+    def test_broken_optional_import_does_not_block_other_adapters_or_execution(
+            self) -> None:
+        """A broken XGBoost install must not prevent native PyTorch outputs."""
+        for error_type in (ValueError, TypeError, AttributeError, KeyError,
+                           OSError, RuntimeError):
+            with self.subTest(error=error_type.__name__):
+                model = dsl.Model(
+                    uri=str(self.root / f'model-{error_type.__name__}'))
+                Path(model.path).mkdir()
+                native_save = FakeBooster.save_model
+                torch = types.SimpleNamespace(
+                    __version__='2.14.1',
+                    Tensor=FakeTensor,
+                    nn=types.SimpleNamespace(Module=FakeEstimator),
+                    save=native_save,
+                    jit=types.SimpleNamespace(
+                        save=native_save,
+                        ScriptModule=types.SimpleNamespace(save=native_save)))
+
+                def import_framework(name: str) -> types.SimpleNamespace:
+                    if name == 'xgboost':
+                        raise error_type('binary-incompatible optional library')
+                    self.assertEqual(name, 'torch')
+                    return torch
+
+                def produce(model: dsl.Output[dsl.Model]) -> None:
+                    torch.save({'weight': FakeTensor()},
+                               Path(model.path) / 'model.pt')
+
+                with mock.patch.object(
+                        previews.importlib,
+                        'import_module',
+                        side_effect=import_framework):
+                    with self.assertLogs(
+                            previews.__name__, level='WARNING') as messages:
+                        result = executor.Executor(
+                            self.runtime_input(model=model), produce).execute()
+                self.assertIn('xgboost', '\n'.join(messages.output))
+                self.assertIn('binary-incompatible', '\n'.join(messages.output))
+                metadata = json.loads(Path(result).read_text())
+                self.assertIn(
+                    '_kfp_preview',
+                    metadata['artifacts']['model']['artifacts'][0]['metadata'])
+                preview = self.load_preview(model)
+                self.assertEqual(preview['framework']['name'], 'pytorch')
+                self.assertEqual(preview['structure']['tensor_element_count'],
+                                 6)
+                self.assertEqual((Path(model.path) / 'model.pt').read_bytes(),
+                                 b'native-model')
+                self.assertIs(torch.save, native_save)
+                self.assertEqual(previews._SESSIONS, [])
+                self.assertEqual(previews._SAVE_METHODS, [])
+
+    def test_import_process_control_exceptions_propagate_and_restore_hooks(
+            self) -> None:
+        """Interrupted entry must not leave hooks installed without a
+        session."""
+        original_booster_save = FakeBooster.save_model
+        original_estimator_save = FakeEstimator.save_model
+        for error_type in (KeyboardInterrupt, SystemExit):
+            for failing_framework in ('xgboost', 'torch'):
+                with self.subTest(
+                        error=error_type.__name__, framework=failing_framework):
+
+                    def import_framework(name: str) -> types.SimpleNamespace:
+                        if name == failing_framework:
+                            raise error_type('interrupted import')
+                        return fake_framework_import(name)
+
+                    with mock.patch.object(
+                            previews.importlib,
+                            'import_module',
+                            side_effect=import_framework):
+                        with self.assertRaisesRegex(error_type,
+                                                    'interrupted import'):
+                            with previews.ArtifactPreviewSession(
+                                {'model': self.model}):
+                                self.fail('The component must not execute.')
+                    self.assertIs(FakeBooster.save_model, original_booster_save)
+                    self.assertIs(FakeEstimator.save_model,
+                                  original_estimator_save)
+                    self.assertEqual(previews._SESSIONS, [])
+                    self.assertEqual(previews._SAVE_METHODS, [])
+
     def test_native_booster_does_not_require_the_optional_sklearn_api(
             self) -> None:
         native_only = types.SimpleNamespace(
@@ -642,6 +737,45 @@ class ArtifactPreviewTest(unittest.TestCase):
         path.symlink_to(self.policy)
         with self.assertRaisesRegex(ValueError, 'regular file'):
             previews._transformers_preview(Path(self.model.path))
+
+    def test_recursive_model_configuration_does_not_fail_executor_finalization(
+            self) -> None:
+        """Skip one recursive configuration while finalizing all native
+        outputs."""
+        # Python 3.13's JSON C-stack limit can exceed sys.getrecursionlimit().
+        depth = 32_000
+        config = ('{"model_type":"bert","transformers_version":"5.20.0",'
+                  '"nested":' + '[' * depth + '0' + ']' * depth + '}')
+        self.assertLess(len(config.encode()), previews.MAX_BYTES)
+        with self.assertRaises(RecursionError):
+            json.loads(config, object_pairs_hook=previews._json_object)
+        dataset = dsl.Dataset(uri=str(self.root / 'dataset'))
+
+        def produce(model: dsl.Output[dsl.Model],
+                    dataset: dsl.Output[dsl.Dataset]) -> None:
+            (Path(model.path) / 'config.json').write_text(config)
+            (Path(model.path) /
+             'model.safetensors').write_bytes(b'native-weights')
+            Path(dataset.path).mkdir()
+            (Path(dataset.path) / 'data.csv').write_text('value\n1\n')
+
+        with self.assertLogs(previews.__name__, level='WARNING') as messages:
+            result = executor.Executor(
+                self.runtime_input(model=self.model, dataset=dataset),
+                produce).execute()
+        self.assertIn("output 'model'", '\n'.join(messages.output))
+        metadata = json.loads(Path(result).read_text())['artifacts']
+        self.assertNotIn('_kfp_preview',
+                         metadata['model']['artifacts'][0]['metadata'])
+        self.assertIn('_kfp_preview',
+                      metadata['dataset']['artifacts'][0]['metadata'])
+        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
+        self.assertEqual((Path(self.model.path) / 'config.json').read_text(),
+                         config)
+        self.assertEqual(
+            (Path(self.model.path) / 'model.safetensors').read_bytes(),
+            b'native-weights')
+        self.assertEqual(self.load_preview(dataset)['rows'], [['1']])
 
     def test_large_model_structure_is_trimmed_to_the_byte_limit(self) -> None:
         preview = previews._model_preview('pytorch', '2', 'module', {}, {
