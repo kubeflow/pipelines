@@ -2181,3 +2181,122 @@ func TestGetAnyPipelineVersionID_IgnoresDeletedVersions(t *testing.T) {
 	require.Nil(t, err)
 	assert.Empty(t, pipelineVersionID)
 }
+
+func TestDeletePipelineAndVersions(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create a pipeline.
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1", "test pipeline", "ns1"))
+	require.Nil(t, err)
+
+	// Create two versions under the pipeline.
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "version 1", "", "", ""))
+	require.Nil(t, err)
+
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v2", "version 2", "", "", ""))
+	require.Nil(t, err)
+
+	// Verify versions exist before delete.
+	opts := list.EmptyOptions()
+	versions, totalSize, _, err := pipelineStore.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, 2, len(versions))
+
+	// Delete pipeline and all versions atomically.
+	err = pipelineStore.DeletePipelineAndVersions(pipeline.UUID)
+	assert.Nil(t, err)
+
+	// Verify pipeline is gone.
+	_, err = pipelineStore.GetPipeline(pipeline.UUID)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	// Verify versions are gone.
+	versions, totalSize, _, err = pipelineStore.ListPipelineVersions(pipeline.UUID, opts, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, totalSize)
+	assert.Equal(t, 0, len(versions))
+}
+
+func TestDeletePipelineAndVersions_NoPipeline(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Deleting a non-existent pipeline should not error (DELETE affects 0 rows).
+	err := pipelineStore.DeletePipelineAndVersions("non-existent-id")
+	assert.Nil(t, err)
+}
+
+// TestDeletePipelineAndVersions_RollbackOnPipelineDeleteFailure verifies the
+// atomicity guarantee: when the pipeline DELETE fails after the version DELETE
+// succeeds inside the transaction, the entire operation is rolled back and
+// the pipeline, versions, statuses, and tags all remain unchanged.
+func TestDeletePipelineAndVersions_RollbackOnPipelineDeleteFailure(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create a pipeline.
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1", "test pipeline", "ns1"))
+	require.Nil(t, err)
+
+	// Add tags to the pipeline.
+	pipelineTags := map[string]string{"env": "prod", "team": "ml"}
+	err = pipelineStore.UpdatePipelineFields(pipeline.UUID, "", pipelineTags)
+	require.Nil(t, err)
+
+	// Create a version under the pipeline.
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "version 1", "", "", ""))
+	require.Nil(t, err)
+
+	// Add tags to the version.
+	versionTags := map[string]string{"stage": "stable"}
+	err = pipelineStore.UpdatePipelineVersionFields(DefaultFakePipelineIdTwo, "", versionTags)
+	require.Nil(t, err)
+
+	// Rename the pipelines table so the pipeline DELETE inside the transaction
+	// fails while the version DELETE (which runs first) would have succeeded.
+	// Unlike DROP TABLE, RENAME preserves the data so we can verify survival.
+	_, err = db.Exec(`ALTER TABLE "pipelines" RENAME TO "pipelines_hidden"`)
+	require.Nil(t, err)
+
+	// Attempt cascade delete — should fail because the pipelines table is gone.
+	err = pipelineStore.DeletePipelineAndVersions(pipeline.UUID)
+	assert.NotNil(t, err, "Expected an error when the pipeline DELETE fails")
+
+	// Restore the pipelines table.
+	_, err = db.Exec(`ALTER TABLE "pipelines_hidden" RENAME TO "pipelines"`)
+	require.Nil(t, err)
+
+	// Verify the pipeline row survived with correct status.
+	survivedPipeline, err := pipelineStore.GetPipelineWithStatus(pipeline.UUID, model.PipelineReady)
+	require.Nil(t, err, "Pipeline row should survive because the transaction was rolled back")
+	assert.Equal(t, pipeline.UUID, survivedPipeline.UUID)
+	assert.Equal(t, model.PipelineReady, survivedPipeline.Status)
+
+	// Verify the version survived.
+	opts := list.EmptyOptions()
+	versions, totalSize, _, err := pipelineStore.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.Nil(t, err)
+	assert.Equal(t, 1, totalSize, "Version should survive because the transaction was rolled back")
+	assert.Equal(t, 1, len(versions))
+	assert.Equal(t, model.PipelineVersionReady, versions[0].Status)
+
+	// Verify pipeline tags survived.
+	loadedPipelineTags, err := pipelineStore.GetPipelineTags(pipeline.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, pipelineTags, loadedPipelineTags, "Pipeline tags should survive the rollback")
+
+	// Verify version tags survived.
+	loadedVersionTags, err := pipelineStore.GetPipelineVersionTags(DefaultFakePipelineIdTwo)
+	require.Nil(t, err)
+	assert.Equal(t, versionTags, loadedVersionTags, "Version tags should survive the rollback")
+}
+
