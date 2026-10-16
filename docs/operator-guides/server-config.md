@@ -158,6 +158,20 @@ When deploying frontend server called `ml-pipeline-ui`, you can pass various env
 variables to customize the server behavior for your namespace. Some examples are shown
 in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/pipeline/ml-pipeline-ui-deployment.yaml#L32-L50).
 
+### Artifact request limits
+
+Each UI server instance permits 300 artifact requests per minute per user in
+authenticated deployments, using the same trusted upstream identity header as
+authorization. Standalone and unauthenticated requests share a budget by client
+IP instead; caller-supplied identity and forwarding headers do not override it.
+The ingress must continue to strip untrusted identity headers before supplying
+the authenticated user.
+
+Previews and downloads share this budget across namespaces and base-path aliases.
+Requests beyond the limit receive HTTP 429 with a `Retry-After` delay before any
+artifact lookup, authorization call, or storage read. The budget is local to each
+server process, not a distributed deployment-wide quota.
+
 ### Artifact storage endpoint allowlist
 
 For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact

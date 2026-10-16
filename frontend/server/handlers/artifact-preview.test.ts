@@ -59,6 +59,7 @@ function setup(auth = true, proxy = false) {
   const app = express();
   app.get(
     '/artifacts/:artifactId/preview',
+    artifacts.getArtifactsRateLimiter(options.auth.enabled, options.auth.kubeflowUserIdHeader),
     getArtifactPreviewHandler(options, 'http://api-server', authorize),
   );
   return app;

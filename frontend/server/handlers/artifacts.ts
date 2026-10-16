@@ -40,6 +40,7 @@ import { Readable } from 'stream';
 import { pipeline as pipelinePromise } from 'stream/promises';
 import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response, NextFunction } from 'express';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
@@ -178,6 +179,36 @@ export function sendArtifactError(response: Response, status: number, message: s
   }
   hardenArtifactResponse(response);
   response.status(status).type('text/plain').send(message);
+}
+
+/** Shares one request budget across artifact previews, downloads, and route aliases. */
+export function getArtifactsRateLimiter(
+  authEnabled: boolean,
+  kubeflowUserIdHeader: string,
+): Handler {
+  return rateLimit({
+    windowMs: 60_000,
+    limit: 300,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: (request) => {
+      // Use the same trusted upstream identity as authorization, not a shared ingress IP.
+      const header = request.headers[kubeflowUserIdHeader.toLowerCase()];
+      const identity = Array.isArray(header) ? header[0] : header;
+      if (authEnabled && identity) {
+        return `user:${identity}`;
+      }
+      return `ip:${ipKeyGenerator(request.ip || request.socket.remoteAddress || 'unknown')}`;
+    },
+    handler: (_request, response) => {
+      response.setHeader('Cache-Control', 'no-store');
+      sendArtifactError(
+        response,
+        429,
+        'Too many artifact requests. Retry after the delay indicated by the Retry-After header.',
+      );
+    },
+  });
 }
 
 export function pipePreviewResponse(

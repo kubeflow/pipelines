@@ -38,10 +38,10 @@ As illustrated by `training_component`, artifacts are simply a thin wrapper arou
 
 ### Artifact properties
 
-To use create and consume artifacts from components, you'll use the available properties on [artifact instances](#artifact-types). Artifacts feature four properties:  
-* `name`, the name of the artifact (cannot be overwritten on Vertex Pipelines).  
-* `.uri`, the location of your artifact object. For input artifacts, this is where the object resides currently. For output artifacts, this is where you will write the artifact from within your component.  
-* `.metadata`, additional key-value pairs about the artifact.  
+To use create and consume artifacts from components, you'll use the available properties on [artifact instances](#artifact-types). Artifacts feature four properties:
+* `name`, the name of the artifact (cannot be overwritten on Vertex Pipelines).
+* `.uri`, the location of your artifact object. For input artifacts, this is where the object resides currently. For output artifacts, this is where you will write the artifact from within your component.
+* `.metadata`, additional key-value pairs about the artifact.
 * `.path`, a local path that corresponds to the artifact's `.uri`.
 
 The artifact `.path` attribute is particularly helpful. When you write the contents of your artifact to the location provided by the artifact's `.path` attribute, the pipelines backend will handle copying the file at `.path` to the URI at `.uri` automatically, allowing you to create artifact files within a component by only interacting with the task's local filesystem.
@@ -57,13 +57,13 @@ from kfp.dsl import Input
 def print_artifact_properties(dataset: Input[Dataset]):
     with open(dataset.path) as f:
         lines = f.readlines()
-    
+
     print('Information about the artifact')
     print('Name:', dataset.name)
     print('URI:', dataset.uri)
     print('Path:', dataset.path)
     print('Metadata:', dataset.metadata)
-    
+
     return len(lines)
 ```
 
@@ -101,7 +101,7 @@ def train_model(dataset: Input[Dataset], model: Output[Model]):
 
     # train a model
     trained_model = ...
-    
+
     trained_model.save(model.path)
     model.metadata['samples'] = len(dataset_lines)
 ```
@@ -131,7 +131,7 @@ def train_model(dataset: Dataset) -> Model:
 
     model_artifact = Model(uri=dsl.get_uri(), metadata={'samples': len(dataset_lines)})
     trained_model.save(model_artifact.path)
-    
+
     return model_artifact
 ```
 
@@ -154,13 +154,13 @@ def train_multiple_models(
     # train a model
     trained_model1 = ...
     trained_model2 = ...
-    
+
     model_artifact1 = Model(uri=dsl.get_uri(suffix='model1'), metadata={'samples': len(dataset_lines)})
     trained_model1.save(model_artifact1.path)
-    
+
     model_artifact2 = Model(uri=dsl.get_uri(suffix='model2'), metadata={'samples': len(dataset_lines)})
     trained_model2.save(model_artifact2.path)
-    
+
     outputs = NamedTuple('outputs', model1=Model, model2=Model)
     return outputs(model1=model_artifact1, model2=model_artifact2)
 ```
@@ -216,7 +216,7 @@ Please see [Pipeline Basics][pipelines] for comprehensive documentation on how t
 
 KFP supports input lists of artifacts, annotated as `List[Artifact]` or `Input[List[Artifact]]`. This is useful for collecting output artifacts from a loop of tasks using the [`dsl.ParallelFor`][dsl-parallelfor] and [`dsl.Collected`][dsl-collected] control flow objects.
 
-Pipelines can also return an output list of artifacts by using a `-> List[Artifact]` return annotation and returning a [`dsl.Collected`][dsl-collected] instance. 
+Pipelines can also return an output list of artifacts by using a `-> List[Artifact]` return annotation and returning a [`dsl.Collected`][dsl-collected] instance.
 
 Both consuming an input list of artifacts and returning an output list of artifacts from a pipeline are described in [Pipeline Control Flow: Parallel looping][parallel-looping]. Creating output lists of artifacts from a single-step component is not currently supported.
 
@@ -268,7 +268,7 @@ def train(model: dsl.Model, trained_model: dsl.Output[dsl.Model]):
 
     # Upload the model to S3 and register it in MLMD
     trained_model.set_path(model.path) # or trained_model.custom_path = model.path
-    
+
 @dsl.pipeline(
     name="my-pipeline",
     pipeline_config=dsl.PipelineConfig(
