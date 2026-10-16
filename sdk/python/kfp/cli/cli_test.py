@@ -29,6 +29,7 @@ from kfp.cli import cli
 from kfp.cli import compile_
 from kfp.cli import output
 from kfp.cli import pipeline
+from kfp.cli import run as run_cli
 from kfp.dsl import pipeline_context
 import yaml
 
@@ -506,6 +507,43 @@ def iris_pipeline():
             with open(output_file.name, 'r') as f:
                 doc = yaml.safe_load(f)
             self.assertIn('pipelineInfo', doc)
+
+
+class TestDisplayRunWatch(parameterized.TestCase):
+
+    def setUp(self):
+        self.client = mock.Mock()
+        patcher = mock.patch('kfp.cli.run.output.print_output')
+        self.addCleanup(patcher.stop)
+        patcher.start()
+        sleep_patcher = mock.patch('kfp.cli.run.time.sleep')
+        self.addCleanup(sleep_patcher.stop)
+        sleep_patcher.start()
+
+    def test_watch_keeps_polling_while_paused(self):
+        # A paused run can be resumed, so watching must not stop on PAUSED.
+        self.client.get_run.side_effect = [
+            mock.Mock(state='RUNNING'),
+            mock.Mock(state='PAUSED'),
+            mock.Mock(state='SUCCEEDED'),
+        ]
+
+        run_cli.display_run(
+            self.client, 'run-id', watch=True, output_format='table')
+
+        self.assertEqual(self.client.get_run.call_count, 3)
+
+    @parameterized.parameters('SUCCEEDED', 'SKIPPED', 'FAILED', 'CANCELED')
+    def test_watch_stops_on_terminal_state(self, state):
+        self.client.get_run.side_effect = [
+            mock.Mock(state='RUNNING'),
+            mock.Mock(state=state),
+        ]
+
+        run_cli.display_run(
+            self.client, 'run-id', watch=True, output_format='table')
+
+        self.assertEqual(self.client.get_run.call_count, 2)
 
 
 if __name__ == '__main__':
