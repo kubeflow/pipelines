@@ -23,6 +23,7 @@ PARENT = {
             "pipelines.kubeflow.org/enabled": "true"
         },
         "name": NAMESPACE,
+        "uid": "namespace-uid",
     }
 }
 EXISTING_SECRET = {
@@ -110,10 +111,10 @@ def observed_attachments(proxy_enabled=False, ready=False, ca=False):
             "repositories": {}
         } if ready else {},
         "Deployment.apps/v1": {
-            "artifact": {}
+            f"{NAMESPACE}/ml-pipeline-ui-artifact": {}
         } if ready and proxy_enabled else {},
         "Service.v1": {
-            "artifact": {}
+            f"{NAMESPACE}/ml-pipeline-ui-artifact": {}
         } if ready and proxy_enabled else {},
         "ServiceAccount.v1": {
             "driver-plugin": {}
@@ -122,6 +123,9 @@ def observed_attachments(proxy_enabled=False, ready=False, ca=False):
         "RoleBinding.rbac.authorization.k8s.io/v1": {
             "driver-plugin": {}
         } if ready else {},
+        "NetworkPolicy.networking.k8s.io/v1": {
+            f"{NAMESPACE}/ml-pipeline-ui-artifact": {}
+        } if ready and proxy_enabled else {},
     }
 
 
@@ -149,7 +153,7 @@ def sync_server(request, start_sync_server):
         return start_sync_server(**get_settings_from_env())
 
 
-def post_sync(server, parent, attachments):
+def post_sync(server, parent, attachments, converge_policy=True):
     host, port = server.server_address
     response = requests.post(
         f"http://{host}:{port}",
@@ -160,7 +164,19 @@ def post_sync(server, parent, attachments):
         timeout=5,
     )
     response.raise_for_status()
-    return response.json()
+    result = response.json()
+    # Most tests inspect the generated workload after the policy-first phase.
+    if converge_policy and not any(item["kind"] == "Deployment"
+                                   for item in result["attachments"]):
+        policy = next((item for item in result["attachments"]
+                       if item["kind"] == "NetworkPolicy"), None)
+        if policy:
+            observed = copy.deepcopy(attachments)
+            observed["NetworkPolicy.networking.k8s.io/v1"] = {
+                f"{parent['metadata']['name']}/ml-pipeline-ui-artifact": policy
+            }
+            return post_sync(server, parent, observed, converge_policy=False)
+    return result
 
 
 def assert_profile_resources(result, expected_image, ca_cert=None):
@@ -181,6 +197,8 @@ def assert_profile_resources(result, expected_image, ca_cert=None):
         expected.update({
             ("Deployment", "ml-pipeline-ui-artifact"),
             ("Service", "ml-pipeline-ui-artifact"),
+            ("NetworkPolicy", "ml-pipeline-ui-artifact"),
+            ("Secret", sync.artifact_storage_record_name(NAMESPACE)),
         })
         deployment = next(
             item for item in resources if item["kind"] == "Deployment")
@@ -224,6 +242,87 @@ def test_sync_desires_profile_resources(sync_server, expected_image, ready):
                        observed_attachments(bool(expected_image), ready))
     assert result["status"] == {"kubeflow-pipelines-ready": str(ready)}
     assert_profile_resources(result, expected_image)
+
+
+@pytest.mark.parametrize(
+    "sync_server, expected_namespace", [
+        (ENV_IMAGES, "kubeflow"),
+        ({
+            **ENV_IMAGES, "KFP_NAMESPACE": "custom-install"
+        }, "custom-install"),
+        ({
+            **ENV_IMAGES, "DISABLE_ISTIO_SIDECAR": "true"
+        }, "kubeflow"),
+    ],
+    indirect=["sync_server"])
+def test_artifact_network_policy_binds_shared_ui_identity(
+        sync_server, expected_namespace):
+    result = post_sync(sync_server, PARENT, observed_attachments(True))
+    policy = next(item for item in result["attachments"]
+                  if item["kind"] == "NetworkPolicy")
+    assert policy["metadata"] == {
+        "name": "ml-pipeline-ui-artifact",
+        "namespace": NAMESPACE,
+    }
+    assert policy["spec"] == {
+        "podSelector": {
+            "matchLabels": {
+                "app": "ml-pipeline-ui-artifact"
+            }
+        },
+        "policyTypes": ["Ingress"],
+        "ingress": [{
+            "from": [{
+                "namespaceSelector": {
+                    "matchLabels": {
+                        "kubernetes.io/metadata.name": expected_namespace
+                    }
+                },
+                "podSelector": {
+                    "matchLabels": {
+                        "app": "ml-pipeline-ui"
+                    }
+                },
+            }],
+            "ports": [{
+                "protocol": "TCP",
+                "port": 3000
+            }],
+        }],
+    }
+    deployment = next(item for item in result["attachments"]
+                      if item["kind"] == "Deployment" and
+                      item["metadata"]["name"] == "ml-pipeline-ui-artifact")
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert {
+        "name": "ARTIFACTS_REQUIRE_PROXY_NAMESPACE",
+        "value": "false"
+    } in environment
+    assert {
+        "name": "FRONTEND_SERVER_NAMESPACE",
+        "value": NAMESPACE
+    } in environment
+    # A single peer requires BOTH the install namespace and UI pod labels. Splitting
+    # these into two peers would allow a tenant to impersonate the UI using a label.
+    assert len(policy["spec"]["ingress"][0]["from"]) == 1
+
+
+@pytest.mark.parametrize("sync_server", [ENV_IMAGES], indirect=True)
+def test_artifact_proxy_waits_for_network_policy(sync_server):
+    attachments = observed_attachments(True, True)
+    attachments.pop("NetworkPolicy.networking.k8s.io/v1")
+    result = post_sync(sync_server, PARENT, attachments)
+    assert result["status"] == {"kubeflow-pipelines-ready": "False"}
+
+
+def test_kfp_namespace_setting_override():
+    with mock.patch.dict(
+            os.environ, {
+                **ENV_BASE, "KFP_NAMESPACE": "custom"
+            }, clear=True):
+        assert get_settings_from_env()["kfp_namespace"] == "custom"
+        assert get_settings_from_env(
+            kfp_namespace="other")["kfp_namespace"] == "other"
 
 
 def test_sync_server_with_direct_settings(start_sync_server):
@@ -689,3 +788,507 @@ def test_healthz_responds_during_slow_sync(start_sync_server):
         finally:
             release_sync.set()
             post.join(timeout=10)
+
+
+@pytest.fixture
+def storage_controller(start_sync_server, monkeypatch):
+    with mock.patch.dict(os.environ, ENV_IMAGES, clear=True):
+        server = start_sync_server(**get_settings_from_env())
+    iam = mock.Mock()
+    iam.list_access_keys.return_value = {
+        "AccessKeyMetadata": [{
+            "AccessKeyId": "tenant-access",
+            "Status": "Active"
+        }]
+    }
+    iam.get_user_policy.return_value = {
+        "PolicyDocument": sync.managed_object_policy(NAMESPACE)
+    }
+    s3 = mock.Mock()
+    s3.get_bucket_policy.return_value = {
+        "Policy":
+            json.dumps(sync.managed_bucket_list_policy(sync.S3_BUCKET_NAME))
+    }
+    monkeypatch.setattr(sync, "iam", iam)
+    monkeypatch.setattr(sync, "s3", s3)
+    attachments = observed_attachments(True)
+    secret = copy.deepcopy(EXISTING_SECRET)
+    secret["data"] = {
+        "accesskey": base64.b64encode(b"tenant-access").decode(),
+        "secretkey": base64.b64encode(b"tenant-secret").decode(),
+    }
+    attachments["Secret.v1"][f"{NAMESPACE}/mlpipeline-minio-artifact"] = secret
+    return server, attachments, iam, s3
+
+
+def storage_record(result):
+    secret = next(item for item in result["attachments"] if item["metadata"]
+                  ["name"] == sync.artifact_storage_record_name(NAMESPACE))
+    assert secret["metadata"]["namespace"] == "kubeflow"
+    return json.loads(base64.b64decode(secret["data"]["authorization.json"]))
+
+
+def observe_receiver_resources(result, attachments, ready=True):
+    observed = copy.deepcopy(attachments)
+    for resource in result["attachments"]:
+        kind = resource["kind"]
+        if kind not in ["Deployment", "Service", "NetworkPolicy"]:
+            continue
+        resource = copy.deepcopy(resource)
+        if kind == "Deployment":
+            # The Kubernetes API omits EnvVar.value when it is an empty string.
+            for container in resource["spec"]["template"]["spec"]["containers"]:
+                for variable in container["env"]:
+                    if variable.get("value") == "":
+                        del variable["value"]
+            resource["metadata"]["generation"] = 2
+            if ready:
+                resource["status"] = {
+                    "observedGeneration": 2,
+                    "replicas": 1,
+                    "updatedReplicas": 1,
+                    "availableReplicas": 1,
+                    "readyReplicas": 1,
+                }
+        observed[f"{kind}.{resource['apiVersion']}"][
+            f"{NAMESPACE}/ml-pipeline-ui-artifact"] = resource
+    return observed
+
+
+def ready_storage(storage_controller):
+    server, attachments, iam, s3 = storage_controller
+    result = post_sync(server, PARENT, attachments)
+    observed = observe_receiver_resources(result, attachments)
+    return post_sync(server, PARENT, observed), observed
+
+
+def test_storage_authorization_waits_for_policy_and_current_receiver(
+        storage_controller, capsys):
+    server, attachments, iam, s3 = storage_controller
+    first = post_sync(server, PARENT, attachments, converge_policy=False)
+    assert storage_record(first)["state"] == "pending"
+    assert first["resyncAfterSeconds"] == 10
+    assert not any(
+        resource["kind"] == "Deployment" for resource in first["attachments"])
+    second = post_sync(
+        server,
+        PARENT,
+        observe_receiver_resources(first, attachments),
+        converge_policy=False)
+    assert storage_record(second)["state"] == "pending"
+    assert any(
+        resource["kind"] == "Deployment" for resource in second["attachments"])
+    observed = observe_receiver_resources(second, attachments)
+    result = post_sync(server, PARENT, observed)
+    record = storage_record(result)
+    assert "resyncAfterSeconds" not in result
+    assert record == {
+        "version":
+            1,
+        "namespace":
+            NAMESPACE,
+        "namespaceUID":
+            "namespace-uid",
+        "state":
+            "ready",
+        "bucket":
+            "mlpipeline",
+        "credentialBinding":
+            sync.artifact_credential_binding(NAMESPACE, "namespace-uid",
+                                             "http://seaweedfs.kubeflow:8333",
+                                             "tenant-access", "tenant-secret"),
+    }
+    receiver = next(
+        item for item in result["attachments"] if item["kind"] == "Deployment")
+    environment = receiver["spec"]["template"]["spec"]["containers"][0]["env"]
+    values = {item["name"]: item.get("value") for item in environment}
+    assert values["KFP_ARTIFACT_NAMESPACE_UID"] == "namespace-uid"
+    assert values["MINIO_HOST"] == "seaweedfs"
+    assert values["MINIO_NAMESPACE"] == "kubeflow"
+    assert values["MINIO_PORT"] == "8333"
+    assert values["MINIO_SSL"] == "false"
+    assert values["ARTIFACTS_REQUIRE_PROXY_NAMESPACE"] == "false"
+    output = capsys.readouterr().out
+    assert "tenant-secret" not in output
+    assert record["credentialBinding"] not in output
+    iam.put_user_policy.assert_not_called()
+    s3.put_bucket_policy.assert_not_called()
+
+
+def test_storage_authorization_accepts_api_omitted_empty_environment_values(
+        storage_controller):
+    server, attachments, _, _ = storage_controller
+    result = post_sync(server, PARENT, attachments)
+    original = copy.deepcopy(result)
+    observed = observe_receiver_resources(result, attachments)
+    assert result == original
+    deployment = observed["Deployment.apps/v1"][
+        f"{NAMESPACE}/ml-pipeline-ui-artifact"]
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    for name in ["HTTP_BASE_URL", "ALLOWED_ARTIFACT_ENDPOINTS"]:
+        assert next(variable for variable in environment
+                    if variable["name"] == name) == {
+                        "name": name
+                    }
+    original_observation = copy.deepcopy(observed)
+    assert sync.receiver_rollout_ready(result["attachments"], observed,
+                                       NAMESPACE)
+    assert observed == original_observation
+    assert storage_record(post_sync(server, PARENT,
+                                    observed))["state"] == "ready"
+
+
+@pytest.mark.parametrize("mutation", [
+    "old-generation", "old-replicas", "unready", "wrong-image", "wrong-policy",
+    "wrong-service", "missing-env-value", "wrong-env-value", "empty-env-value",
+    "empty-env-value-from"
+])
+def test_storage_authorization_does_not_trust_incomplete_rollout(
+        storage_controller, mutation):
+    server, _, _, _ = storage_controller
+    result, observed = ready_storage(storage_controller)
+    assert storage_record(result)["state"] == "ready"
+    deployment = observed["Deployment.apps/v1"][
+        f"{NAMESPACE}/ml-pipeline-ui-artifact"]
+    if mutation == "old-generation":
+        deployment["status"]["observedGeneration"] = 1
+    elif mutation == "old-replicas":
+        deployment["status"]["replicas"] = 2
+    elif mutation == "unready":
+        deployment["status"]["availableReplicas"] = 0
+    elif mutation == "wrong-image":
+        deployment["spec"]["template"]["spec"]["containers"][0][
+            "image"] = "old-image"
+    elif mutation in ["missing-env-value", "wrong-env-value"]:
+        environment = deployment["spec"]["template"]["spec"]["containers"][0][
+            "env"]
+        variable = next(
+            item for item in environment if item["name"] == "MINIO_HOST")
+        if mutation == "missing-env-value":
+            del variable["value"]
+        else:
+            variable["value"] = "other-storage"
+    elif mutation in ["empty-env-value", "empty-env-value-from"]:
+        environment = deployment["spec"]["template"]["spec"]["containers"][0][
+            "env"]
+        variable = next(
+            item for item in environment if item["name"] == "HTTP_BASE_URL")
+        if mutation == "empty-env-value":
+            variable["value"] = "http://untrusted-storage"
+        else:
+            variable["valueFrom"] = {
+                "secretKeyRef": {
+                    "name": "untrusted-config",
+                    "key": "url"
+                }
+            }
+    elif mutation == "wrong-policy":
+        observed["NetworkPolicy.networking.k8s.io/v1"][
+            f"{NAMESPACE}/ml-pipeline-ui-artifact"]["spec"]["ingress"].append(
+                {})
+    else:
+        observed["Service.v1"][f"{NAMESPACE}/ml-pipeline-ui-artifact"]["spec"][
+            "type"] = "ExternalName"
+    assert storage_record(post_sync(server, PARENT,
+                                    observed))["state"] == "pending"
+
+
+@pytest.mark.parametrize(
+    "cause", ["foreign-key", "inactive-key", "foreign-policy", "broad-policy"])
+def test_storage_authorization_leaves_unmanaged_credentials_unsupported(
+        storage_controller, cause):
+    server, attachments, iam, s3 = storage_controller
+    if cause == "foreign-key":
+        iam.list_access_keys.return_value["AccessKeyMetadata"][0][
+            "AccessKeyId"] = "other-key"
+    elif cause == "inactive-key":
+        iam.list_access_keys.return_value["AccessKeyMetadata"][0][
+            "Status"] = "Inactive"
+    elif cause == "foreign-policy":
+        iam.get_user_policy.return_value[
+            "PolicyDocument"] = sync.managed_object_policy("other-namespace")
+    else:
+        iam.get_user_policy.return_value["PolicyDocument"]["Statement"][0][
+            "Resource"].append("*")
+    assert storage_record(post_sync(server, PARENT,
+                                    attachments))["state"] == "unsupported"
+    iam.put_user_policy.assert_not_called()
+    s3.put_bucket_policy.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "operation", ["list_access_keys", "get_user_policy", "get_bucket_policy"])
+def test_storage_authorization_api_failure_is_pending(storage_controller,
+                                                      operation):
+    server, attachments, iam, s3 = storage_controller
+    client = s3 if operation == "get_bucket_policy" else iam
+    getattr(client, operation).side_effect = RuntimeError(
+        "do not log credential-bearing details")
+    assert storage_record(post_sync(server, PARENT,
+                                    attachments))["state"] == "pending"
+    iam.put_user_policy.assert_not_called()
+    s3.put_bucket_policy.assert_not_called()
+
+
+def test_storage_authorization_keeps_admin_grants_and_conflicting_policy_pending(
+        storage_controller):
+    server, attachments, iam, s3 = storage_controller
+    custom = {
+        "Sid": "HistoricalRoots",
+        "Effect": "Allow",
+        "Action": ["s3:GetObject"],
+        "Resource": ["arn:aws:s3:::mlpipeline/historical/team-a/*"]
+    }
+    iam.get_user_policy.return_value["PolicyDocument"]["Statement"].append(
+        custom)
+    bucket_policy = sync.managed_bucket_list_policy(sync.S3_BUCKET_NAME)
+    bucket_policy["Statement"].append(custom)
+    s3.get_bucket_policy.return_value["Policy"] = json.dumps(bucket_policy)
+    result, observed = ready_storage(storage_controller)
+    assert storage_record(result)["state"] == "ready"
+    bucket_policy["Statement"][0]["Resource"] = "custom-bucket"
+    s3.get_bucket_policy.return_value["Policy"] = json.dumps(bucket_policy)
+    assert storage_record(post_sync(server, PARENT,
+                                    observed))["state"] == "pending"
+    iam.put_user_policy.assert_not_called()
+    s3.put_bucket_policy.assert_not_called()
+
+
+@pytest.mark.parametrize("failure_operation", ["get", "put"])
+@pytest.mark.parametrize("persistent", [False, True])
+def test_bucket_policy_initialization_retries_with_persisted_credentials(
+        storage_controller, failure_operation, persistent):
+    server, attachments, iam, s3 = storage_controller
+    attachments["Secret.v1"] = {}
+    iam.create_access_key.return_value = {
+        "AccessKey": {
+            "AccessKeyId": "tenant-access",
+            "SecretAccessKey": "tenant-secret",
+        }
+    }
+    unavailable = True
+    stored_policy = None
+
+    def read_policy(**kwargs):
+        if unavailable and failure_operation == "get":
+            raise RuntimeError("temporary bucket read failure")
+        if stored_policy is None:
+            raise iam_error("NoSuchBucketPolicy")
+        return {"Policy": json.dumps(stored_policy)}
+
+    def write_policy(**kwargs):
+        nonlocal stored_policy
+        if unavailable and failure_operation == "put":
+            raise RuntimeError("temporary bucket write failure")
+        stored_policy = json.loads(kwargs["Policy"])
+
+    s3.get_bucket_policy.side_effect = read_policy
+    s3.put_bucket_policy.side_effect = write_policy
+    first = post_sync(server, PARENT, attachments, converge_policy=False)
+    assert storage_record(first)["state"] == "pending"
+    assert first["resyncAfterSeconds"] == 10
+    credential = next(
+        resource for resource in first["attachments"]
+        if resource["metadata"]["name"] == "mlpipeline-minio-artifact")
+    attachments["Secret.v1"][
+        f"{NAMESPACE}/mlpipeline-minio-artifact"] = credential
+    unavailable = persistent
+    retry = post_sync(server, PARENT, attachments)
+    observed = observe_receiver_resources(retry, attachments)
+    result = post_sync(server, PARENT, observed)
+    actual_credential = next(
+        resource for resource in result["attachments"]
+        if resource["metadata"]["name"] == "mlpipeline-minio-artifact")
+    assert actual_credential["data"] == credential["data"]
+    iam.create_access_key.assert_called_once_with(UserName=NAMESPACE)
+    iam.put_user_policy.assert_not_called()
+    if persistent:
+        assert storage_record(result)["state"] == "pending"
+        assert result["resyncAfterSeconds"] == 10
+        assert stored_policy is None
+    else:
+        assert storage_record(result)["state"] == "ready"
+        assert sync.contains_managed_bucket_policy(stored_policy)
+
+
+def test_existing_namespace_repairs_missing_bucket_statements_preserving_admin(
+        storage_controller):
+    server, _, iam, s3 = storage_controller
+    _, observed = ready_storage(storage_controller)
+    custom = {
+        "Sid": "CustomGrant",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::mlpipeline/shared/*",
+    }
+    stored = {"Version": "2012-10-17", "Statement": [custom]}
+    s3.get_bucket_policy.side_effect = lambda **kwargs: {
+        "Policy": json.dumps(stored)
+    }
+
+    def write_policy(**kwargs):
+        nonlocal stored
+        stored = json.loads(kwargs["Policy"])
+
+    s3.put_bucket_policy.side_effect = write_policy
+    result = post_sync(server, PARENT, observed)
+    assert storage_record(result)["state"] == "ready"
+    assert custom in stored["Statement"]
+    assert sync.contains_managed_bucket_policy(stored)
+    s3.put_bucket_policy.assert_called_once()
+    post_sync(server, PARENT, observed)
+    s3.put_bucket_policy.assert_called_once()
+    iam.create_access_key.assert_not_called()
+    iam.put_user_policy.assert_not_called()
+
+
+def test_storage_credential_rotation_and_namespace_recreation_require_rollout(
+        storage_controller):
+    server, _, _, _ = storage_controller
+    result, observed = ready_storage(storage_controller)
+    previous = storage_record(result)
+    observed["Secret.v1"][f"{NAMESPACE}/mlpipeline-minio-artifact"]["data"][
+        "secretkey"] = base64.b64encode(b"rotated-secret").decode()
+    rotated = post_sync(server, PARENT, observed)
+    record = storage_record(rotated)
+    assert record["state"] == "pending"
+    assert record["credentialBinding"] != previous["credentialBinding"]
+    observed = observe_receiver_resources(rotated, observed)
+    assert storage_record(post_sync(server, PARENT,
+                                    observed))["state"] == "ready"
+    recreated_parent = copy.deepcopy(PARENT)
+    recreated_parent["metadata"]["uid"] = "recreated-namespace-uid"
+    recreated = storage_record(post_sync(server, recreated_parent, observed))
+    assert recreated["state"] == "pending"
+    assert recreated["credentialBinding"] != record["credentialBinding"]
+
+
+def test_storage_registry_updates_in_place_and_is_removed_when_proxy_disabled(
+        storage_controller, start_sync_server):
+    server, _, _, _ = storage_controller
+    result, observed = ready_storage(storage_controller)
+    registry = next(item for item in result["attachments"] if item["metadata"]
+                    ["name"] == sync.artifact_storage_record_name(NAMESPACE))
+    observed["Secret.v1"][
+        f"kubeflow/{sync.artifact_storage_record_name(NAMESPACE)}"] = registry
+    observed["Deployment.apps/v1"][f"{NAMESPACE}/ml-pipeline-ui-artifact"][
+        "status"]["readyReplicas"] = 0
+    assert storage_record(post_sync(server, PARENT,
+                                    observed))["state"] == "pending"
+    disabled = start_minimal_server(start_sync_server)
+    result = post_sync(disabled, PARENT, observed)
+    assert not any(
+        item["metadata"]["name"] == sync.artifact_storage_record_name(NAMESPACE)
+        for item in result["attachments"])
+
+
+def test_new_profile_bucket_policy_preserves_admin_statements(
+        storage_controller):
+    server, _, _, s3 = storage_controller
+    handler = object.__new__(server.RequestHandlerClass)
+    custom = {
+        "Sid": "CustomGrant",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::mlpipeline/shared/*"
+    }
+    s3.get_bucket_policy.return_value["Policy"] = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [custom]
+    })
+    handler.ensure_bucket_list_policy("mlpipeline")
+    written = json.loads(s3.put_bucket_policy.call_args.kwargs["Policy"])
+    assert custom in written["Statement"]
+    assert sync.contains_managed_bucket_policy(written)
+    conflicting = sync.managed_bucket_list_policy("mlpipeline")
+    conflicting["Statement"][0]["Resource"] = "custom-bucket"
+    s3.get_bucket_policy.return_value["Policy"] = json.dumps(conflicting)
+    s3.put_bucket_policy.reset_mock()
+    handler.ensure_bucket_list_policy("mlpipeline")
+    s3.put_bucket_policy.assert_not_called()
+
+
+def test_only_multi_user_overlay_enables_artifact_proxy():
+    multi_user = Path(sync.__file__).resolve().parent.parent
+    patch = yaml.safe_load(
+        (multi_user / "pipeline-install-config-patch.yaml").read_text())
+    generic = yaml.safe_load(
+        (multi_user.parent /
+         "generic/pipeline-install-config.yaml").read_text())
+    kustomization = yaml.safe_load(
+        (multi_user / "kustomization.yaml").read_text())
+    assert patch["data"]["ARTIFACTS_PROXY_ENABLED"] == "true"
+    assert generic["data"]["ARTIFACTS_PROXY_ENABLED"] == "false"
+    assert {
+        "path": "pipeline-install-config-patch.yaml"
+    } in kustomization["patches"]
+
+
+def iam_error(code):
+    error = RuntimeError(code)
+    error.response = {"Error": {"Code": code}}
+    return error
+
+
+def test_missing_credential_secret_preserves_existing_iam_policy(
+        storage_controller):
+    server, _, iam, _ = storage_controller
+    custom = {
+        "Version":
+            "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:GetObject"],
+            "Resource": ["arn:aws:s3:::mlpipeline/legacy-custom/*"]
+        }]
+    }
+    iam.get_user_policy.return_value = {"PolicyDocument": custom}
+    handler = object.__new__(server.RequestHandlerClass)
+    handler.ensure_namespace_object_policy(NAMESPACE)
+    iam.create_user.assert_not_called()
+    iam.put_user_policy.assert_not_called()
+    assert iam.get_user_policy.return_value["PolicyDocument"] == custom
+
+
+@pytest.mark.parametrize("already_exists", [False, True])
+def test_new_namespace_policy_is_established_before_access_key(
+        storage_controller, already_exists):
+    server, _, iam, _ = storage_controller
+    iam.get_user_policy.side_effect = [
+        iam_error("NoSuchEntity"),
+        iam_error("NoSuchEntity")
+    ]
+    if already_exists:
+        iam.create_user.side_effect = iam_error("EntityAlreadyExists")
+    handler = object.__new__(server.RequestHandlerClass)
+    handler.ensure_namespace_object_policy(NAMESPACE)
+    iam.create_user.assert_called_once_with(UserName=NAMESPACE)
+    iam.put_user_policy.assert_called_once_with(
+        UserName=NAMESPACE,
+        PolicyName=f"KubeflowProject{NAMESPACE}",
+        PolicyDocument=json.dumps(sync.managed_object_policy(NAMESPACE)))
+    iam.create_access_key.assert_not_called()
+
+
+@pytest.mark.parametrize("failure", ["inspection", "user", "policy"])
+def test_namespace_iam_failures_do_not_mint_orphan_keys(storage_controller,
+                                                        failure):
+    server, attachments, iam, _ = storage_controller
+    attachments["Secret.v1"].clear()
+    if failure == "inspection":
+        iam.get_user_policy.side_effect = RuntimeError("IAM unavailable")
+    else:
+        iam.get_user_policy.side_effect = [
+            iam_error("NoSuchEntity"),
+            iam_error("NoSuchEntity")
+        ]
+        if failure == "user":
+            iam.create_user.side_effect = RuntimeError("IAM unavailable")
+        else:
+            iam.put_user_policy.side_effect = RuntimeError("IAM unavailable")
+    handler = object.__new__(server.RequestHandlerClass)
+    with pytest.raises(RuntimeError, match="IAM unavailable"):
+        handler.sync(PARENT, attachments)
+    iam.create_access_key.assert_not_called()

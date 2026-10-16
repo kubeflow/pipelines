@@ -178,14 +178,18 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Multi-user artifact ownership
 
-With `ENABLE_AUTHZ=true`, artifact previews and downloads require an object key under
+With `ENABLE_AUTHZ=true`, explicit `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`
+or `auto` handling an unsupported custom store, artifact previews and downloads
+require an object key under
 `private-artifacts/<namespace>/...`, or the equivalent prefix configured by the operator through
 `ARTIFACT_NAMESPACE_KEY_PREFIX`. This applies to MinIO, S3, GCS, and HTTP(S) artifacts, including
 requests made with `ARTIFACTS_SERVICE_PROXY_ENABLED=true`. A namespace-scoped metadata record does
 not establish ownership of an arbitrary object: a pipeline can import an existing URI.
 
-**Compatibility change:** custom-root objects outside that namespace prefix return HTTP 403,
-even when a tenant proxy has isolated credentials. To retain frontend previews/downloads, configure
+**Compatibility change where prefix enforcement applies:** custom-root objects outside that
+namespace prefix return HTTP 403. Deployments with isolated namespace storage credentials can
+select [storage authorization](#storage-authoritative-artifact-access) to retain existing roots.
+For shared credentials, configure
 pipeline roots with the tenant namespace segment and write or copy authorized artifacts to those
 paths. Updating metadata alone does not move existing objects. Keep storage credentials and tenant
 proxy access isolated; the path policy does not replace storage or network authorization.
@@ -204,6 +208,23 @@ Redirects must stay on the configured origin and under the same namespace prefix
 signed URLs and same-origin signed URLs outside that prefix return HTTP 403. Standalone mode keeps
 its existing redirect behavior.
 
-Standalone mode and namespace-proxied volume artifacts are unchanged. The `artifact-only` mode
+Standalone mode and namespace-proxied volume artifacts are unchanged. Under `key-prefix`, the `artifact-only` mode
 (also accepted as legacy `mlmd-only`) requires metadata evidence in addition to the namespace
 path policy; it does not enable arbitrary custom roots.
+
+## Storage-authoritative artifact access
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. Supported managed
+`minio://mlpipeline/...` artifacts use namespace storage identities after
+trusted controller readiness. Objects already authorized by those identities need
+no move or metadata lookup. The multi-user overlay enables managed proxies;
+unsupported custom layouts retain prefix enforcement. Pending readiness or lookup
+failure returns an actionable HTTP 503 without shared-credential fallback.
+
+Explicit `storage` remains available for reviewed custom identities and trusted
+namespace launcher-provider configuration; explicit `key-prefix` retains the
+prefix/metadata policy. Versioned receivers enforce namespace binding while legacy
+routes preserve old-UI compatibility during normal rolling deployment. No manual
+UI/controller ordering or opt-in is needed for the supported managed path; reads
+can need retry during convergence. See
+[enforcement scope and rollout](../docs/operator-guides/artifact-authorization.md).

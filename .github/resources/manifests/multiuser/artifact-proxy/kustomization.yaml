@@ -39,7 +39,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline-viewer-crd
-  - path: env.yaml
+  - path: ../profile-controller-env.yaml
     target:
       kind: Deployment
       name: kubeflow-pipelines-profile-controller

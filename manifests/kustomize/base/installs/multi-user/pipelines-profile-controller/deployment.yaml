@@ -32,6 +32,10 @@ spec:
         - configMapRef:
             name: kubeflow-pipelines-profile-controller-env
         env:
+        - name: KFP_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: KFP_VERSION
           valueFrom:
             configMapKeyRef:

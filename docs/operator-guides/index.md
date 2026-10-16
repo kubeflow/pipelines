@@ -9,6 +9,7 @@ installation
 supported-platforms
 gcp-inverse-proxy-removal
 server-config
+artifact-authorization
 scheduled-service-accounts
 multi-user
 high-availability
