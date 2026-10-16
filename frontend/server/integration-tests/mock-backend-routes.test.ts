@@ -170,7 +170,7 @@ describe('mock backend routes', () => {
         .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
         .expect(200);
 
-      expect(response.body.tasks).toHaveLength(3);
+      expect(response.body.tasks).toHaveLength(4);
       expect(response.body.tasks).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ task_id: 'mock-task-root', type: 'ROOT' }),
@@ -188,6 +188,20 @@ describe('mock backend routes', () => {
             state: 'SUCCEEDED',
             task_id: 'mock-task-consumer',
           }),
+          expect.objectContaining({
+            outputs: {
+              artifacts: [
+                expect.objectContaining({
+                  artifact_key: 'model',
+                  artifacts: [
+                    expect.objectContaining({ artifact_id: 'mock-model-1', type: 'Model' }),
+                  ],
+                }),
+              ],
+            },
+            task_id: 'mock-task-trainer',
+            type: 'RUNTIME',
+          }),
         ]),
       );
     });
@@ -196,13 +210,19 @@ describe('mock backend routes', () => {
       const listResponse = await request.get('/apis/v2beta1/artifacts').expect(200);
 
       expect(listResponse.body).toMatchObject({
-        total_size: 1,
+        total_size: 2,
         artifacts: [
           {
             artifact_id: 'mock-artifact-1',
             name: 'mock-dataset',
             namespace: 'kubeflow-user-example-com',
             type: 'Dataset',
+          },
+          {
+            artifact_id: 'mock-model-1',
+            name: 'mock-model',
+            namespace: 'kubeflow-user-example-com',
+            type: 'Model',
           },
         ],
       });
@@ -219,6 +239,16 @@ describe('mock backend routes', () => {
         namespace: 'kubeflow-user-example-com',
         type: 'Dataset',
       });
+
+      const modelResponse = await request.get('/apis/v2beta1/artifacts/mock-model-1').expect(200);
+
+      expect(modelResponse.body).toMatchObject({
+        artifact_id: 'mock-model-1',
+        metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+        name: 'mock-model',
+        namespace: 'kubeflow-user-example-com',
+        type: 'Model',
+      });
     });
 
     it('returns 404 for an unknown native artifact', async () => {
@@ -231,6 +261,11 @@ describe('mock backend routes', () => {
       const response = await request.get('/apis/v2beta1/artifact_tasks').expect(200);
 
       expect(response.body.artifact_tasks).toEqual([
+        expect.objectContaining({
+          artifact_id: 'mock-model-1',
+          task_id: 'mock-task-trainer',
+          type: 'OUTPUT',
+        }),
         expect.objectContaining({
           artifact_id: 'mock-artifact-1',
           task_id: 'mock-task-producer',

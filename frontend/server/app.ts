@@ -26,6 +26,7 @@ import {
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
+  getArtifactsRateLimiter,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
 import { getArtifactPreviewHandler } from './handlers/artifact-preview.js';
@@ -159,6 +160,10 @@ function createUIServer(options: UIConfigs) {
 
   /** Authorize function - created early so it can be used by artifact handlers */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+  const artifactsRateLimiter = getArtifactsRateLimiter(
+    options.auth.enabled,
+    options.auth.kubeflowUserIdHeader,
+  );
 
   /**
    * Artifact Authorization Middleware
@@ -174,9 +179,9 @@ function createUIServer(options: UIConfigs) {
     options.artifacts.proxy.enabled,
   );
 
-  registerHandler(
-    app.get,
-    '/artifacts/:artifactId/preview',
+  app.get(
+    ['/artifacts/:artifactId/preview', `${basePath}/artifacts/:artifactId/preview`],
+    artifactsRateLimiter,
     getArtifactPreviewHandler(options, apiServerAddress, authorizeFn),
   );
 
@@ -189,6 +194,7 @@ function createUIServer(options: UIConfigs) {
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -198,6 +204,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
