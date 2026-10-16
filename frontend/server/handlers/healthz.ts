@@ -80,13 +80,18 @@ export function getHealthzHandler(options: {
       const response = await fetch(healthzEndpoint, {
         signal: AbortSignal.timeout(1000),
       });
-      healthzStats.apiServerReady = true;
+      if (!response.ok) {
+        throw new Error(
+          `API health check returned HTTP ${response.status}; verify the backend exposes ${healthzEndpoint}`,
+        );
+      }
       const serverStatus = (await response.json()) as Record<string, any>;
       healthzStats.apiServerCommitHash = serverStatus.commit_sha;
       healthzStats.apiServerTagName = serverStatus.tag_name;
       healthzStats.apiServerMultiUser = serverStatus.multi_user;
       healthzStats.multi_user = serverStatus.multi_user;
       healthzStats.pipelineStore = serverStatus.pipeline_store;
+      healthzStats.apiServerReady = true;
     } catch (e) {
       healthzStats.apiServerReady = false;
     }

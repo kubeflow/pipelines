@@ -11,7 +11,7 @@ import {
   nestedArtifactSpec,
 } from 'src/data/test/groupedFlow';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { buildGroupedFlow, GROUP_HEADER_HEIGHT, GROUP_NODE_TYPE, layerNodeId } from './GroupedFlow';
 import { convertSubDagToFlowElements, NodeTypeNames } from './StaticFlow';
 import {

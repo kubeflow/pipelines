@@ -46,7 +46,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param pipeline: Required input. Pipeline that needs to be created. (required)
-        :type pipeline: V2beta1Pipeline
+        :type pipeline: V2Pipeline
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -59,7 +59,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Pipeline
+        :rtype: V2Pipeline
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_create_pipeline_with_http_info(pipeline, **kwargs)  # noqa: E501
@@ -74,7 +74,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param pipeline: Required input. Pipeline that needs to be created. (required)
-        :type pipeline: V2beta1Pipeline
+        :type pipeline: V2Pipeline
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -91,7 +91,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Pipeline, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Pipeline, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -147,14 +147,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines', 'POST',
+            '/apis/v2/pipelines', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Pipeline',  # noqa: E501
+            response_type='V2Pipeline',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -172,7 +172,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreatePipelineAndVersionRequest
+        :type body: V2CreatePipelineAndVersionRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -185,7 +185,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Pipeline
+        :rtype: V2Pipeline
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_create_pipeline_and_version_with_http_info(body, **kwargs)  # noqa: E501
@@ -200,7 +200,7 @@ class PipelineServiceApi(object):
         >>> result = thread.get()
 
         :param body: (required)
-        :type body: V2beta1CreatePipelineAndVersionRequest
+        :type body: V2CreatePipelineAndVersionRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -217,7 +217,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Pipeline, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Pipeline, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -273,14 +273,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/create', 'POST',
+            '/apis/v2/pipelines/create', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Pipeline',  # noqa: E501
+            response_type='V2Pipeline',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -300,7 +300,7 @@ class PipelineServiceApi(object):
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
         :type pipeline_id: str
         :param pipeline_version: Required input. Pipeline version ID to be created. (required)
-        :type pipeline_version: V2beta1PipelineVersion
+        :type pipeline_version: V2PipelineVersion
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -313,7 +313,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1PipelineVersion
+        :rtype: V2PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, pipeline_version, **kwargs)  # noqa: E501
@@ -330,7 +330,7 @@ class PipelineServiceApi(object):
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
         :type pipeline_id: str
         :param pipeline_version: Required input. Pipeline version ID to be created. (required)
-        :type pipeline_version: V2beta1PipelineVersion
+        :type pipeline_version: V2PipelineVersion
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -347,7 +347,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1PipelineVersion, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2PipelineVersion, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -410,14 +410,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_id}/versions', 'POST',
+            '/apis/v2/pipelines/{pipeline_id}/versions', 'POST',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1PipelineVersion',  # noqa: E501
+            response_type='V2PipelineVersion',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -539,7 +539,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_id}', 'DELETE',
+            '/apis/v2/pipelines/{pipeline_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -672,7 +672,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'DELETE',
+            '/apis/v2/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -710,7 +710,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Pipeline
+        :rtype: V2Pipeline
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_get_pipeline_with_http_info(pipeline_id, **kwargs)  # noqa: E501
@@ -742,7 +742,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Pipeline, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Pipeline, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -794,14 +794,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_id}', 'GET',
+            '/apis/v2/pipelines/{pipeline_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Pipeline',  # noqa: E501
+            response_type='V2Pipeline',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -820,7 +820,7 @@ class PipelineServiceApi(object):
 
         :param name: Required input. Name of the pipeline to be retrieved. (required)
         :type name: str
-        :param namespace: Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off.
+        :param namespace: Optional input. Namespace of the pipeline. It could be empty if default namespaces needs to be used or if multi-user support is turned off.
         :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -834,7 +834,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Pipeline
+        :rtype: V2Pipeline
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_get_pipeline_by_name_with_http_info(name, **kwargs)  # noqa: E501
@@ -850,7 +850,7 @@ class PipelineServiceApi(object):
 
         :param name: Required input. Name of the pipeline to be retrieved. (required)
         :type name: str
-        :param namespace: Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off.
+        :param namespace: Optional input. Namespace of the pipeline. It could be empty if default namespaces needs to be used or if multi-user support is turned off.
         :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -868,7 +868,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Pipeline, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Pipeline, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -923,14 +923,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/names/{name}', 'GET',
+            '/apis/v2/pipelines/names/{name}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Pipeline',  # noqa: E501
+            response_type='V2Pipeline',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -963,7 +963,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1PipelineVersion
+        :rtype: V2PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_get_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, **kwargs)  # noqa: E501
@@ -997,7 +997,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1PipelineVersion, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2PipelineVersion, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1056,14 +1056,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'GET',
+            '/apis/v2/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1PipelineVersion',  # noqa: E501
+            response_type='V2PipelineVersion',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1102,7 +1102,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListPipelineVersionsResponse
+        :rtype: V2ListPipelineVersionsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_list_pipeline_versions_with_http_info(pipeline_id, **kwargs)  # noqa: E501
@@ -1142,7 +1142,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListPipelineVersionsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListPipelineVersionsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1206,14 +1206,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_id}/versions', 'GET',
+            '/apis/v2/pipelines/{pipeline_id}/versions', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListPipelineVersionsResponse',  # noqa: E501
+            response_type='V2ListPipelineVersionsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1252,7 +1252,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1ListPipelinesResponse
+        :rtype: V2ListPipelinesResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_list_pipelines_with_http_info(**kwargs)  # noqa: E501
@@ -1292,7 +1292,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1ListPipelinesResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2ListPipelinesResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1352,14 +1352,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines', 'GET',
+            '/apis/v2/pipelines', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1ListPipelinesResponse',  # noqa: E501
+            response_type='V2ListPipelinesResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1392,7 +1392,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Pipeline
+        :rtype: V2Pipeline
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_update_pipeline_with_http_info(pipeline_pipeline_id, pipeline, **kwargs)  # noqa: E501
@@ -1426,7 +1426,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Pipeline, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Pipeline, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1489,14 +1489,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline.pipeline_id}', 'PATCH',
+            '/apis/v2/pipelines/{pipeline.pipeline_id}', 'PATCH',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Pipeline',  # noqa: E501
+            response_type='V2Pipeline',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -1531,7 +1531,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1PipelineVersion
+        :rtype: V2PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
         return self.pipeline_service_update_pipeline_version_with_http_info(pipeline_version_pipeline_id, pipeline_version_pipeline_version_id, pipeline_version, **kwargs)  # noqa: E501
@@ -1567,7 +1567,7 @@ class PipelineServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1PipelineVersion, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2PipelineVersion, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1637,14 +1637,14 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}', 'PATCH',
+            '/apis/v2/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}', 'PATCH',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1PipelineVersion',  # noqa: E501
+            response_type='V2PipelineVersion',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

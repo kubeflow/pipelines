@@ -127,9 +127,9 @@ describe('artifact proxy ownership with the production validator', () => {
   ])('denies an imported custom-root URI before proxying: %s', async (path) => {
     await requests(app.app).get(path).set('kubeflow-userid', 'a@example.com').expect(403);
     expect(forwarded).toEqual([]);
-    expect(
-      fetchSpy.mock.calls.some(([url]) => String(url).includes('/apis/v2beta1/artifacts')),
-    ).toBe(true);
+    expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/apis/v2/artifacts'))).toBe(
+      true,
+    );
   });
 
   it.each([false, true])('still serves own namespace prefix (download=%s)', async (download) => {

@@ -45,6 +45,7 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -308,6 +309,7 @@ jobs:
             A) TEST_LABEL="($TEST_LABEL) && (ApiPipelineShardA || Pipeline)" ;;
             B) TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline)" ;;
           esac
+          TEST_LABEL="($TEST_LABEL) || LegacyAPICompatibility"
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES

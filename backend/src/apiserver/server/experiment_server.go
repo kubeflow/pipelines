@@ -19,7 +19,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -83,7 +83,7 @@ type BaseExperimentServer struct {
 
 type ExperimentServer struct {
 	*BaseExperimentServer
-	apiv2beta1.UnimplementedExperimentServiceServer
+	apiv2.UnimplementedExperimentServiceServer
 }
 
 func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
@@ -101,8 +101,8 @@ func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment 
 	return s.resourceManager.CreateExperiment(experiment)
 }
 
-func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2beta1.CreateExperimentRequest) (
-	*apiv2beta1.Experiment, error,
+func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2.CreateExperimentRequest) (
+	*apiv2.Experiment, error,
 ) {
 	if s.options.CollectMetrics {
 		createExperimentRequests.Inc()
@@ -122,7 +122,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2b
 		experimentCount.Inc()
 	}
 
-	apiExperiment := toApiExperiment(newExperiment)
+	apiExperiment := toAPIExperiment(newExperiment)
 	if apiExperiment == nil {
 		return nil, util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to create experiment")
 	}
@@ -137,8 +137,8 @@ func (s *BaseExperimentServer) getExperiment(ctx context.Context, experimentId s
 	return s.resourceManager.GetExperiment(experimentId)
 }
 
-func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta1.GetExperimentRequest) (
-	*apiv2beta1.Experiment, error,
+func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2.GetExperimentRequest) (
+	*apiv2.Experiment, error,
 ) {
 	if s.options.CollectMetrics {
 		getExperimentRequests.Inc()
@@ -149,7 +149,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta
 		return nil, util.Wrap(err, "Failed to fetch experiment")
 	}
 
-	apiExperiment := toApiExperiment(experiment)
+	apiExperiment := toAPIExperiment(experiment)
 	if apiExperiment == nil {
 		return nil, util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to fetch experiment")
 	}
@@ -177,8 +177,8 @@ func (s *BaseExperimentServer) listExperiments(ctx context.Context, pageToken st
 	return experiments, int32(totalSize), nextPageToken, nil
 }
 
-func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2beta1.ListExperimentsRequest) (
-	*apiv2beta1.ListExperimentsResponse, error,
+func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2.ListExperimentsRequest) (
+	*apiv2.ListExperimentsResponse, error,
 ) {
 	if s.options.CollectMetrics {
 		listExperimentsRequests.Inc()
@@ -193,8 +193,8 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 	if err != nil {
 		return nil, util.Wrap(err, "List experiments failed")
 	}
-	return &apiv2beta1.ListExperimentsResponse{
-		Experiments:   toApiExperiments(experiments),
+	return &apiv2.ListExperimentsResponse{
+		Experiments:   toAPIExperiments(experiments),
 		TotalSize:     totalSize,
 		NextPageToken: nextPageToken,
 	}, nil
@@ -208,7 +208,7 @@ func (s *BaseExperimentServer) deleteExperiment(ctx context.Context, experimentI
 	return s.resourceManager.DeleteExperiment(experimentId)
 }
 
-func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*emptypb.Empty, error) {
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2.DeleteExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
 	}
@@ -261,7 +261,7 @@ func (s *BaseExperimentServer) archiveExperiment(ctx context.Context, experiment
 	return s.resourceManager.ArchiveExperiment(ctx, experimentId)
 }
 
-func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2beta1.ArchiveExperimentRequest) (*emptypb.Empty, error) {
+func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2.ArchiveExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveExperimentRequests.Inc()
 	}
@@ -280,7 +280,7 @@ func (s *BaseExperimentServer) unarchiveExperiment(ctx context.Context, experime
 	return s.resourceManager.UnarchiveExperiment(experimentId)
 }
 
-func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2beta1.UnarchiveExperimentRequest) (*emptypb.Empty, error) {
+func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2.UnarchiveExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
 	}

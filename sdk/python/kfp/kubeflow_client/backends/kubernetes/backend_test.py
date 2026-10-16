@@ -1145,7 +1145,7 @@ def test_run(backend, test_case, caplog):
 
     elif input_type == 'pipeline_version_obj':
         pv = Mock(
-            spec=kfp.server_api.V2beta1PipelineVersion,
+            spec=kfp.server_api.V2PipelineVersion,
             pipeline_id='pid-1',
             pipeline_version_id='vid-1',
         )
@@ -1163,8 +1163,7 @@ def test_run(backend, test_case, caplog):
             assert result.run_id == test_case.expected_output['run_id']
 
     elif input_type == 'pipeline_obj':
-        pipeline_obj = Mock(
-            spec=kfp.server_api.V2beta1Pipeline, pipeline_id='pid-1')
+        pipeline_obj = Mock(spec=kfp.server_api.V2Pipeline, pipeline_id='pid-1')
         mock_run = Mock(run_id='r-5')
         with patch.object(
                 backend, 'run_pipeline',
@@ -1216,7 +1215,7 @@ def test_run(backend, test_case, caplog):
     elif input_type == 'pv_obj_with_version':
         mock_run = Mock(run_id='r-warn-3')
         pv_obj = Mock(
-            spec=kfp.server_api.V2beta1PipelineVersion,
+            spec=kfp.server_api.V2PipelineVersion,
             pipeline_id='pid-1',
             pipeline_version_id='vid-1',
         )
@@ -1229,7 +1228,7 @@ def test_run(backend, test_case, caplog):
 
     elif input_type == 'pipeline_obj_with_version':
         pipeline_obj = Mock(
-            spec=kfp.server_api.V2beta1Pipeline,
+            spec=kfp.server_api.V2Pipeline,
             pipeline_id='pid-1',
             display_name='my-pipe',
         )
@@ -2026,7 +2025,7 @@ def test__generate_run_name(test_case):
     elif source == 'yaml_path':
         result = KubernetesBackend._generate_run_name('/tmp/train.yaml')
     elif source == 'pipeline_object':
-        pipe = kfp.server_api.V2beta1Pipeline(display_name='uploaded-pipe')
+        pipe = kfp.server_api.V2Pipeline(display_name='uploaded-pipe')
         result = KubernetesBackend._generate_run_name(pipe)
 
     assert result.startswith(test_case.expected_output)

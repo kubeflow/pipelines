@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"google.golang.org/protobuf/proto"
 )
@@ -30,11 +30,11 @@ import (
 type BatchUpdater struct {
 	// Map of task ID to the latest task update
 	// Using a map automatically deduplicates multiple updates to the same task
-	taskUpdates map[string]*apiV2beta1.PipelineTask
+	taskUpdates map[string]*apiV2.PipelineTask
 
 	// Artifact-task relationships to create
 	// We can use the existing bulk API for these
-	artifactTasks []*apiV2beta1.ArtifactTask
+	artifactTasks []*apiV2.ArtifactTask
 
 	// Artifacts to create
 	// These need to be created before artifact-tasks that reference them
@@ -52,21 +52,21 @@ type BatchUpdater struct {
 
 // createArtifactRequest stores the full context needed to create an artifact
 type createArtifactRequest struct {
-	request *apiV2beta1.CreateArtifactRequest
+	request *apiV2.CreateArtifactRequest
 }
 
 // NewBatchUpdater creates a new BatchUpdater
 func NewBatchUpdater() *BatchUpdater {
 	return &BatchUpdater{
-		taskUpdates:   make(map[string]*apiV2beta1.PipelineTask),
-		artifactTasks: make([]*apiV2beta1.ArtifactTask, 0),
+		taskUpdates:   make(map[string]*apiV2.PipelineTask),
+		artifactTasks: make([]*apiV2.ArtifactTask, 0),
 		artifacts:     make([]*createArtifactRequest, 0),
 	}
 }
 
 // QueueTaskUpdate queues a task update. If the same task is updated multiple times,
 // the updates are merged (parameters and artifacts are accumulated, status is taken from latest).
-func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
+func (b *BatchUpdater) QueueTaskUpdate(task *apiV2.PipelineTask) {
 	if task == nil || task.TaskId == "" {
 		glog.Warning("Attempted to queue nil task or task with empty ID")
 		return
@@ -77,7 +77,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		b.dedupedTaskUpdates++
 		glog.V(2).Infof("Merging task update for task %s", task.TaskId)
 		if proto.Equal(existingTask, task) {
-			if task.State != apiV2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
+			if task.State != apiV2.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
 				existingTask.State = task.State
 			}
 			if task.EndTime != nil {
@@ -91,7 +91,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		// 1. Accumulate output parameters (append new ones)
 		if task.Outputs != nil && len(task.Outputs.Parameters) > 0 {
 			if existingTask.Outputs == nil {
-				existingTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{}
+				existingTask.Outputs = &apiV2.PipelineTask_InputOutputs{}
 			}
 			existingTask.Outputs.Parameters = append(existingTask.Outputs.Parameters, task.Outputs.Parameters...)
 		}
@@ -99,7 +99,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		// 2. Accumulate output artifacts (append new ones)
 		if task.Outputs != nil && len(task.Outputs.Artifacts) > 0 {
 			if existingTask.Outputs == nil {
-				existingTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{}
+				existingTask.Outputs = &apiV2.PipelineTask_InputOutputs{}
 			}
 			existingTask.Outputs.Artifacts = append(existingTask.Outputs.Artifacts, task.Outputs.Artifacts...)
 		}
@@ -107,7 +107,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		// 3. Accumulate input parameters (append new ones)
 		if task.Inputs != nil && len(task.Inputs.Parameters) > 0 {
 			if existingTask.Inputs == nil {
-				existingTask.Inputs = &apiV2beta1.PipelineTask_InputOutputs{}
+				existingTask.Inputs = &apiV2.PipelineTask_InputOutputs{}
 			}
 			existingTask.Inputs.Parameters = append(existingTask.Inputs.Parameters, task.Inputs.Parameters...)
 		}
@@ -115,13 +115,13 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		// 4. Accumulate input artifacts (append new ones)
 		if task.Inputs != nil && len(task.Inputs.Artifacts) > 0 {
 			if existingTask.Inputs == nil {
-				existingTask.Inputs = &apiV2beta1.PipelineTask_InputOutputs{}
+				existingTask.Inputs = &apiV2.PipelineTask_InputOutputs{}
 			}
 			existingTask.Inputs.Artifacts = append(existingTask.Inputs.Artifacts, task.Inputs.Artifacts...)
 		}
 
 		// 5. Take the latest status and timestamps
-		if task.State != apiV2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
+		if task.State != apiV2.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
 			existingTask.State = task.State
 		}
 		if task.EndTime != nil {
@@ -136,7 +136,7 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		if len(task.Pods) > 0 {
 			existingTask.Pods = task.Pods
 		}
-		if task.Type != apiV2beta1.PipelineTask_TASK_TYPE_UNSPECIFIED {
+		if task.Type != apiV2.PipelineTask_TASK_TYPE_UNSPECIFIED {
 			existingTask.Type = task.Type
 		}
 		if task.TypeAttributes != nil {
@@ -144,14 +144,14 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTask) {
 		}
 	} else {
 		// First update for this task
-		b.taskUpdates[task.TaskId] = proto.Clone(task).(*apiV2beta1.PipelineTask)
+		b.taskUpdates[task.TaskId] = proto.Clone(task).(*apiV2.PipelineTask)
 	}
 
 	b.queuedTaskUpdates++
 }
 
 // QueueArtifactTask queues an artifact-task relationship to create
-func (b *BatchUpdater) QueueArtifactTask(artifactTask *apiV2beta1.ArtifactTask) {
+func (b *BatchUpdater) QueueArtifactTask(artifactTask *apiV2.ArtifactTask) {
 	if artifactTask == nil {
 		glog.Warning("Attempted to queue nil artifact task")
 		return
@@ -161,7 +161,7 @@ func (b *BatchUpdater) QueueArtifactTask(artifactTask *apiV2beta1.ArtifactTask) 
 	b.queuedArtifactTasks++
 }
 
-func artifactTaskIterationIdentity(artifactTask *apiV2beta1.ArtifactTask) int64 {
+func artifactTaskIterationIdentity(artifactTask *apiV2.ArtifactTask) int64 {
 	if artifactTask == nil || artifactTask.GetProducer() == nil || artifactTask.GetProducer().Iteration == nil {
 		return -1
 	}
@@ -169,7 +169,7 @@ func artifactTaskIterationIdentity(artifactTask *apiV2beta1.ArtifactTask) int64 
 }
 
 // QueueArtifact queues an artifact to create
-func (b *BatchUpdater) QueueArtifact(request *apiV2beta1.CreateArtifactRequest) {
+func (b *BatchUpdater) QueueArtifact(request *apiV2.CreateArtifactRequest) {
 	if request == nil {
 		glog.Warning("Attempted to queue nil artifact")
 		return
@@ -205,7 +205,7 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 
 	existingLinksByTask := make(map[string]map[string]struct{}, len(taskIDs))
 	for taskID := range taskIDs {
-		task, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		task, err := apiClient.GetTask(ctx, &apiV2.GetTaskRequest{
 			TaskId: taskID,
 			RunId:  runID,
 		})
@@ -213,7 +213,7 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 			return fmt.Errorf("failed to refresh task %s before omitting existing artifact links: %w", taskID, err)
 		}
 		links := make(map[string]struct{})
-		for _, inputOutputs := range []*apiV2beta1.PipelineTask_InputOutputs{
+		for _, inputOutputs := range []*apiV2.PipelineTask_InputOutputs{
 			task.GetInputs(),
 			task.GetOutputs(),
 		} {
@@ -239,7 +239,7 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 		return nil
 	}
 
-	filtered := make([]*apiV2beta1.ArtifactTask, 0, len(b.artifactTasks))
+	filtered := make([]*apiV2.ArtifactTask, 0, len(b.artifactTasks))
 	for _, artifactTask := range b.artifactTasks {
 		if artifactTask == nil {
 			continue
@@ -263,7 +263,7 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 	return nil
 }
 
-func artifactIOIterationIdentity(artifactIO *apiV2beta1.PipelineTask_InputOutputs_IOArtifact) int64 {
+func artifactIOIterationIdentity(artifactIO *apiV2.PipelineTask_InputOutputs_IOArtifact) int64 {
 	if artifactIO == nil || artifactIO.GetProducer() == nil || artifactIO.GetProducer().Iteration == nil {
 		return -1
 	}
@@ -315,8 +315,8 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 				blankArtifactTaskCount,
 			)
 		}
-		bulkReq := &apiV2beta1.CreateArtifactsBulkRequest{
-			Artifacts: make([]*apiV2beta1.CreateArtifactRequest, 0, len(b.artifacts)),
+		bulkReq := &apiV2.CreateArtifactsBulkRequest{
+			Artifacts: make([]*apiV2.CreateArtifactRequest, 0, len(b.artifacts)),
 		}
 		for _, artifactReq := range b.artifacts {
 			bulkReq.Artifacts = append(bulkReq.Artifacts, artifactReq.request)
@@ -349,7 +349,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 
 	// Step 2: Create artifact-tasks using existing bulk API
 	if len(b.artifactTasks) > 0 {
-		dedupedArtifactTasks := make([]*apiV2beta1.ArtifactTask, 0, len(b.artifactTasks))
+		dedupedArtifactTasks := make([]*apiV2.ArtifactTask, 0, len(b.artifactTasks))
 		seenArtifactTasks := make(map[string]struct{}, len(b.artifactTasks))
 		for _, artifactTask := range b.artifactTasks {
 			dedupeKey := fmt.Sprintf(
@@ -366,7 +366,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 			seenArtifactTasks[dedupeKey] = struct{}{}
 			dedupedArtifactTasks = append(dedupedArtifactTasks, artifactTask)
 		}
-		_, err := client.CreateArtifactTasks(ctx, &apiV2beta1.CreateArtifactTasksBulkRequest{
+		_, err := client.CreateArtifactTasks(ctx, &apiV2.CreateArtifactTasksBulkRequest{
 			ArtifactTasks: dedupedArtifactTasks,
 		})
 		if err != nil {
@@ -385,7 +385,7 @@ func (b *BatchUpdater) Flush(ctx context.Context, client kfpapi.API) error {
 				break
 			}
 		}
-		_, err := client.UpdateTasksBulk(ctx, &apiV2beta1.UpdateTasksBulkRequest{
+		_, err := client.UpdateTasksBulk(ctx, &apiV2.UpdateTasksBulkRequest{
 			Tasks: b.taskUpdates,
 			RunId: runID,
 		})
@@ -419,11 +419,11 @@ func (b *BatchUpdater) reset() {
 }
 
 func (b *BatchUpdater) clearTaskUpdates() {
-	b.taskUpdates = make(map[string]*apiV2beta1.PipelineTask)
+	b.taskUpdates = make(map[string]*apiV2.PipelineTask)
 }
 
 func (b *BatchUpdater) clearArtifactTasks() {
-	b.artifactTasks = make([]*apiV2beta1.ArtifactTask, 0)
+	b.artifactTasks = make([]*apiV2.ArtifactTask, 0)
 }
 
 func (b *BatchUpdater) clearArtifacts() {

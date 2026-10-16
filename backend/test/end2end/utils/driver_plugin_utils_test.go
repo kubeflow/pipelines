@@ -22,7 +22,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -195,7 +195,7 @@ func TestTaskAttemptNodes(t *testing.T) {
 func TestDriverLogsURI(t *testing.T) {
 	driverType := run_model.PipelineTaskTaskPodTypeDRIVER
 	executorType := run_model.PipelineTaskTaskPodTypeEXECUTOR
-	task := &run_model.V2beta1PipelineTask{
+	task := &run_model.V2PipelineTask{
 		Pods:           []*run_model.PipelineTaskTaskPod{{Name: "wf-agent", Type: &driverType}, {Name: "wf-task", Type: &executorType}},
 		StatusMetadata: &run_model.PipelineTaskStatusMetadata{CustomProperties: map[string]any{DriverLogsURIProperty: "minio://mlpipeline/v2/artifacts/p/r/flaky-add/driver-logs"}},
 	}
@@ -205,10 +205,10 @@ func TestDriverLogsURI(t *testing.T) {
 	if got := DriverLogsURI(task); got == "" {
 		t.Fatal("DriverLogsURI() is empty")
 	}
-	if got := DriverLogsURI(&run_model.V2beta1PipelineTask{}); got != "" {
+	if got := DriverLogsURI(&run_model.V2PipelineTask{}); got != "" {
 		t.Fatalf("DriverLogsURI() of task without metadata = %q, want empty", got)
 	}
-	if HasDriverPod(&run_model.V2beta1PipelineTask{Pods: []*run_model.PipelineTaskTaskPod{{Name: "wf-task", Type: &executorType}}}) {
+	if HasDriverPod(&run_model.V2PipelineTask{Pods: []*run_model.PipelineTaskTaskPod{{Name: "wf-task", Type: &executorType}}}) {
 		t.Fatal("HasDriverPod() = true for executor-only task")
 	}
 }

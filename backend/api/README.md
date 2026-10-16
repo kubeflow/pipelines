@@ -1,145 +1,114 @@
 # Kubeflow Pipelines backend API
 
-## Before you begin
+## Versions and compatibility
 
-Tools needed:
+`v2` is the canonical backend API: HTTP endpoints use `/apis/v2`, protobuf
+services use `kubeflow.pipelines.backend.api.v2`, and generated clients use
+`V2…` model names.
 
-* [docker](https://docs.docker.com/get-docker/)
-* [make](https://www.gnu.org/software/make/)
-* [java](https://www.java.com/en/download/)
-* [python3](https://www.python.org/downloads/)
+`v2beta1` is a thin compatibility layer, not a second implementation:
 
-The backend supports only `v2beta1`:
+- `/apis/v2beta1/...` is internally rewritten to `/apis/v2/...` before routing,
+  including uploads, health checks, log/artifact streams, and data transfer.
+  There are no HTTP redirects or additional upstream requests.
+- The old gRPC service names register the same v2 handlers. Authentication,
+  validation, persistence, and error handling remain shared. A small frozen
+  descriptor snapshot supports legacy reflection and independent wire tests.
+- Old Go client import paths and exported names are generated aliases and
+  forwarding functions to v2, not duplicate clients or message implementations.
+  Recompiled callers use canonical v2 endpoints and protobuf identities;
+  already-built clients still work through the legacy server aliases.
+- Generated Python `V2beta1…` imports, including module-qualified imports under
+  `kfp.server_api.models.v2beta1_*`, are aliases of the canonical `V2…` classes.
+  They serialize the same fields and use the v2 endpoints.
+- Request/response fields, resource names, filter syntax, and page tokens are
+  unchanged. Removed v1 APIs are not supported.
 
-```bash
-export API_VERSION="v2beta1"
-```
+PipelineSpec IR (`api/v2alpha1`) and Kubernetes CRDs
+(`pipelines.kubeflow.org/v2beta1`) have version lifecycles independent of the backend API. Old clients can call the new server;
+new v2 clients require a server that exposes v2 (upgrade the server first).
 
-## Compiling `.proto` files to Go client and swagger definitions
+Make schema changes under `backend/api/v2`. The descriptor compatibility regression
+in `backend/src/apiserver/api_compat_test.go` checks v2 against the frozen
+`v2beta1/legacy_descriptor.pb` snapshot: existing fields, enums, RPCs, and HTTP
+bindings must remain compatible, but additive v2 changes are allowed.
+Incompatible future changes require explicit compatibility adapters rather than
+changes to that historical baseline. There is no second editable proto tree.
 
-Use `make generate` command to generate clients:
-```bash
-make generate
-```
+## Observe legacy usage
 
-**Default behavior (fast):** Uses pre-built image for faster development.
+The API server exports `kfp_api_legacy_requests_total{protocol="http"}` and
+`kfp_api_legacy_requests_total{protocol="grpc"}` on `/metrics`. These count
+requests entering legacy routes, including unsuccessful requests; canonical
+requests do not increment them. Labels never contain resource IDs or raw paths.
+This preserves an operational usage signal while shared interceptors retain
+canonical method names.
 
-**When pre-built images may be outdated:** Force building from source:
-```bash
-USE_PREBUILT_IMAGE=false make generate
-```
+## Generate Go clients and OpenAPI definitions
 
-The source build automatically:
-1. Builds the API generator Docker image from `backend/api/Dockerfile`
-2. Runs the generator inside the container to create client libraries
-3. Caches the built image for subsequent runs (using `.image-built` target)
-
-Go client library will be placed into:
-
-* `./${API_VERSION}/go_client`
-* `./${API_VERSION}/go_http_client`
-* `./${API_VERSION}/swagger`
-
-> **Note**
-> `./${API_VERSION}/swagger/pipeline.upload.swagger.json` is manually created, while the rest of `./${API_VERSION}/swagger/*.swagger.json` are compiled from `./${API_VERSION}/*.proto` files.
-
-## Compiling Python client
-
-To generate the Python client, use the `generate-kfp-server-api-package` Make target:
-
-```bash
-make generate-kfp-server-api-package
-```
-
-**Default behavior (fast):** Uses pre-built image for faster development.
-
-**When pre-built images may be outdated:** Force building from source:
-```bash
-USE_PREBUILT_IMAGE=false make generate-kfp-server-api-package
-```
-
-The source build automatically:
-1. Builds the API generator Docker image (with Java) from source if needed
-2. Runs the Python client generation script inside the container
-3. The image already includes Java required for the OpenAPI generator
-
-Alternatively, you can run the script directly if you have Java and Python3 installed locally:
+Requires Docker and Make:
 
 ```bash
-./build_kfp_server_api_python_package.sh
+make -C backend/api generate
 ```
 
-For `API_VERSION=v2beta1`, the client is placed in
-`sdk/python/kfp/server_api` and ships only with `kfp`; generated REST documentation
-remains in `./v2beta1/python_http_client`. The v1beta1 client remains a standalone
-backend generation artifact at `./v1beta1/python_http_client`. Neither schema nor
-Go output locations change.
+`API_VERSION` defaults to `v2`; other generation versions are rejected.
+Prebuilt generator images are used by default. After toolchain changes, or
+before validating an API change, build the generator from the pinned source:
 
-## Updating of API reference documentation
-
-> **Note**
-> Whenever the API definition changes (i.e., the file `kfp_api_single_file.swagger.json` changes), the API reference documentation needs to be updated.
-
-API definitions in this folder are used to generate [`v2beta1`](https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/) API reference documentation on kubeflow.org. Follow the steps below to update the documentation:
-
-1. Install [bootprint-openapi](https://github.com/bootprint/bootprint-monorepo/tree/master/packages/bootprint-openapi) and [html-inline](https://www.npmjs.com/package/html-inline) packages using `npm`:
-   ```bash
-   npm install -g bootprint
-   npm install -g bootprint-openapi
-   npm -g install html-inline
-   ```
-
-2. Generate *self-contained html file(s)* with API reference documentation from `./${API_VERSION}/swagger/kfp_api_single_file.swagger.json`:
-
-   For `v2beta1`:
-
-   ```bash
-   bootprint openapi ./v2beta1/swagger/kfp_api_single_file.swagger.json ./temp/v2
-   html-inline ./temp/v2/index.html > ./temp/v2/kubeflow-pipeline-api-spec.html
-   ```
-
-3. Use the above generated html file(s) to replace the relevant section(s) on kubeflow.org. When copying th content, make sure to **preserve the original headers**.
-   - `v2beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec.html).
-
-4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See an example [here](https://github.com/kubeflow/website/pull/3444).
-
-## Local development and Docker image management
-
-### Development Workflow Options
-
-The API generation workflow supports two modes:
-
-**1. Fast Development (default):** Uses pre-built images
 ```bash
-make generate                           # Uses pre-built image (fast)
-make generate-kfp-server-api-package   # Uses pre-built image (fast)
+USE_PREBUILT_IMAGE=false make -C backend/api generate
 ```
 
-**2. Source Build (accurate):** Builds from current source
+Outputs live under `backend/api/v2/{go_client,go_http_client,swagger}`.
+The same command regenerates the legacy Go import shims from those outputs.
+`make -C backend/api generate-compat` regenerates just the shims without Docker.
+`swagger/pipeline.upload.swagger.json` and `transfer.openapi.yaml` are manually
+maintained HTTP contracts. All other Swagger and client outputs are generated;
+do not edit them directly. `generate-from-scratch` is an alias for the source
+build. Docker caches the image through the `.image-built` target.
+
+## Generate the Python client
+
 ```bash
-USE_PREBUILT_IMAGE=false make generate                           # Builds from source
-USE_PREBUILT_IMAGE=false make generate-kfp-server-api-package   # Builds from source
+USE_PREBUILT_IMAGE=false make -C backend/api generate-kfp-server-api-package
 ```
 
-**CI/Validation:** Always builds from source to ensure accuracy.
+The generated modules live in `sdk/python/kfp/server_api` and ship only in the
+unified `kfp` distribution. Documentation lives in
+`backend/api/v2/python_http_client`; it is not a separate Python distribution.
+`hack/generate_python_compat.py` generates the legacy model import aliases as
+part of this command. Import/endpoint smoke tests live outside the regenerated
+directory, in `backend/api/v2/python_http_client_smoke`.
 
-### When to Use Each Mode
+With Java, Python 3, and jq installed, the Python generator can also run directly:
 
-- **Pre-built images**: Regular development, prototyping, testing
-- **Source build**: When pre-built images may have outdated tool versions, when changing API generation tools, updating dependencies, or before committing API changes
+```bash
+backend/api/build_kfp_server_api_python_package.sh
+```
 
-### Legacy Targets
+## Generate frontend clients
 
-- `make generate-from-scratch`: Legacy target, always builds from source
+After regenerating Swagger:
 
-### Docker Requirements
+```bash
+cd frontend
+npm run apis:all
+```
 
-- **Docker**: Required for all API generation operations (BuildKit is enabled automatically for layer caching)
+This regenerates browser and server clients from the v2 contracts. Each target
+owns only its output directory; unrelated or historical trees are not deleted.
 
-### Manual API Generator Image Publishing
+## API reference documentation
 
-The `build-tools-images.yml` CI workflow automatically publishes API generator images to GitHub Container Registry. Manual publishing is typically not needed, but if required:
+The merged `backend/api/v2/swagger/kfp_api_single_file.swagger.json` is the
+canonical API reference. Keep `docs/_static/kfp_api_single_file.swagger.json`
+synchronized with it when generating the contracts.
 
-1. Update the [Dockerfile](./Dockerfile) with your changes
-2. The image will be built and published automatically on the next push to a tracked branch
-3. For manual publishing, see the `build-tools-images.yml` workflow for the exact commands
+For kubeflow.org, generate the self-contained reference with
+[bootprint-openapi](https://github.com/bootprint/bootprint-monorepo/tree/master/packages/bootprint-openapi)
+and [html-inline](https://www.npmjs.com/package/html-inline), then update
+[the website reference](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec.html).
+
+The `build-tools-images.yml` workflow publishes the API generator and release
+images. See that workflow for native-platform validation and publication.
