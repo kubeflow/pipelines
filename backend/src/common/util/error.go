@@ -205,6 +205,14 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 		codes.Aborted)
 }
 
+func NewConflictServerError(err error, messageFormat string, a ...interface{}) *UserError {
+	message := fmt.Sprintf(messageFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, "ConflictServerError: %v", message),
+		message,
+		codes.Aborted)
+}
+
 func NewBadKubernetesNameError(objectType string) *UserError {
 	return NewBadRequestError(
 		fmt.Errorf(
