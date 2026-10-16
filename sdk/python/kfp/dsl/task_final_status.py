@@ -42,12 +42,12 @@ class PipelineTaskFinalStatus:
     state: str
     """Final state of the task.
 
-    The value could be one of ``'SUCCEEDED'``, ``'FAILED'`` or ``'CANCELLED'``.
+    The value is one of ``'SUCCEEDED'``, ``'FAILED'``, ``'SKIPPED'`` or
+    ``'CACHED'``.
     """
 
     pipeline_job_resource_name: str
-    """Pipeline job resource name, in the format of
-    ``projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}``."""
+    """Name of the pipeline run that produced this status."""
 
     pipeline_task_name: str
     """Name of the task that produced this status."""
@@ -57,11 +57,11 @@ class PipelineTaskFinalStatus:
     <github.com/googleapis/googleapis/blob/master/google/rpc/code.proto>`_ in
     case of error.
 
-    If state is ``'SUCCEEDED'``, this is ``None``.
+    This is ``None`` unless the task failed.
     """
 
     error_message: Optional[str]
     """In case of error, the detailed error message.
 
-    If state is ``'SUCCEEDED'``, this is ``None``.
+    This is ``None`` unless the task failed.
     """
