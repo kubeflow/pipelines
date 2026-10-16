@@ -16,6 +16,7 @@
 
 import { produce as immerProduce } from 'immer';
 import * as React from 'react';
+import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
 import { Link } from 'react-router';
 import { classes } from 'typestyle';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
@@ -122,6 +123,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
           initialSortColumn={PipelineSortKeys.CREATED_AT}
           updateSelection={this._selectionChanged.bind(this, undefined)}
           selectedIds={this.state.selectedIds}
+          onPaginationRestart={this._clearPaginationSelection}
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
@@ -211,12 +213,20 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       );
       displayPipelines = response.pipelines || [];
       displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
+      if (request.isCurrent?.() === false) return '';
       this.clearBanner();
     } catch (err) {
+      if (request.isCurrent?.() === false) return '';
+      await throwIfPaginationRestartRequired(err);
+      request.onFailure?.();
+      if (request.isCurrent?.() === false) return '';
+      this.setStateSafe({ displayPipelines: [] });
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      if (request.isCurrent?.() === false) return '';
       await this.showPageError('Error: failed to retrieve list of pipelines.', error);
     }
 
+    if (request.isCurrent?.() === false) return '';
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
 
     return response ? response.next_page_token || '' : '';
@@ -236,6 +246,13 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         </Link>
       </Tooltip>
     );
+  };
+
+  private _clearPaginationSelection = (): void => {
+    this.setStateSafe({ selectedIds: [], selectedVersionIds: {} });
+    const actions = this.props.toolbarProps.actions;
+    actions[ButtonKeys.DELETE_RUN].disabled = true;
+    this.props.updateToolbar({ actions });
   };
 
   // selection changes passed in via "selectedIds" can be
