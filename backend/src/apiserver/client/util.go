@@ -17,6 +17,7 @@ package client
 import (
 	"os"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/requestprofile"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +31,7 @@ func getKubernetesClientset(clientParams util.ClientParameters) (*kubernetes.Cli
 	restConfig.QPS = float32(clientParams.QPS)
 	restConfig.Burst = clientParams.Burst
 
+	requestprofile.ConfigureKubernetes(restConfig)
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set")

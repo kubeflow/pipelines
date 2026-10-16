@@ -1011,3 +1011,25 @@ func TestGetServiceAccountAuthorizationMode(t *testing.T) {
 		})
 	}
 }
+
+// CI uses the existing API-server keys, which Viper uppercases without
+// inserting underscores. Profiling does not control client configuration.
+func TestKubernetesClientConfigEnvVars(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.AutomaticEnv()
+	t.Setenv("CLIENTQPS", "")
+	t.Setenv("CLIENTBURST", "")
+	assert.Equal(t, float64(5), GetFloat64ConfigWithDefault("ClientQPS", 5))
+	assert.Equal(t, 10, GetIntConfigWithDefault("ClientBurst", 10))
+	t.Setenv("CLIENTQPS", "20")
+	t.Setenv("CLIENTBURST", "40")
+	for _, profiling := range []string{"false", "true"} {
+		t.Setenv("KFP_RUNTIME_PROFILE_TIMINGS", profiling)
+		assert.Equal(t, float64(20), GetFloat64ConfigWithDefault("ClientQPS", 5))
+		assert.Equal(t, 40, GetIntConfigWithDefault("ClientBurst", 10))
+		t.Setenv("CLIENTQPS", "-1")
+		assert.Equal(t, float64(-1), GetFloat64ConfigWithDefault("ClientQPS", 5))
+		t.Setenv("CLIENTQPS", "20")
+	}
+}

@@ -19,13 +19,27 @@ artifacts_path=${1:?Usage: build-runtime-base-images.sh OUTPUT_DIRECTORY}
 source .github/resources/scripts/helper-functions.sh
 mkdir -p "${artifacts_path}"
 
-pull_and_save_runtime_base_images \
-  .github/resources/runtime-base-images.txt \
-  "${artifacts_path}/runtime-base-images.tar"
+if [[ "${2:-}" == --bundles ]]; then
+  for bundle in fixtures mysql argo-v4.0.13 argo-v4.1.5; do
+    mkdir -p "$artifacts_path/$bundle"
+    python3 .github/resources/scripts/runtime_image_bundles.py "$bundle" > "$artifacts_path/$bundle/images.txt"
+    pull_and_save_runtime_base_images "$artifacts_path/$bundle/images.txt" "$artifacts_path/$bundle/$bundle.tar"
+    echo "Runtime bundle $bundle archive bytes: $(wc -c < "$artifacts_path/$bundle/$bundle.tar")"
+  done
+  mkdir -p "$artifacts_path/modelcar"
+  modelcar_archive="$artifacts_path/modelcar/modelcar.tar"
+else
+  pull_and_save_runtime_base_images \
+    .github/resources/runtime-base-images.txt \
+    "${artifacts_path}/runtime-base-images.tar"
+  modelcar_archive="$artifacts_path/modelcar.tar"
+fi
 
 retry 3 30 env DOCKER_BUILDKIT=1 docker build \
   --file test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
   --tag registry.domain.local/modelcar:test \
   .
 docker save registry.domain.local/modelcar:test \
-  --output "${artifacts_path}/modelcar.tar"
+  --output "$modelcar_archive"
+
+echo "Runtime Modelcar archive bytes: $(wc -c < "$modelcar_archive")"

@@ -114,12 +114,16 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
+          runtime_image_path: images_${{ github.run_id }}
+          runtime_argo_version: ${{ matrix.argo_version }}
+          runtime_db_type: ${{ matrix.db_type }}
 
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          tune_kubernetes_client: 'true'
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           proxy: ${{ matrix.proxy }}
@@ -213,12 +217,15 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
+          runtime_image_path: images_${{ github.run_id }}
+          runtime_argo_version: ${{ matrix.argo_version }}
 
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          tune_kubernetes_client: 'true'
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -278,12 +285,15 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
+          runtime_image_path: images_${{ github.run_id }}
+          runtime_db_type: ${{ matrix.db_type }}
 
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          tune_kubernetes_client: 'true'
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
           db_type: ${{ matrix.db_type }}
