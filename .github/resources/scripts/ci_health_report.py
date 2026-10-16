@@ -69,6 +69,9 @@ TARGET_WORKFLOWS = [
     "kfp-sdk-client-tests.yml",
     "upgrade-test.yml",
     "kfp-webhooks.yml",
+    "frontend-browser-qualification.yml",
+    "frontend-performance-qualification.yml",
+    "frontend-deployment-qualification.yml",
 ]
 
 ISSUE_TITLE = "CI Health Report (automated)"
