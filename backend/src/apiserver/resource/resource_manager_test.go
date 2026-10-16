@@ -355,6 +355,12 @@ func (c *patchCountingScheduledWorkflowClient) Patch(ctx context.Context, name s
 	return c.ScheduledWorkflowInterface.Patch(ctx, name, patchType, data, subresources...)
 }
 
+// Count both mutation forms: synchronized mode changes use a UID/resourceVersion update.
+func (c *patchCountingScheduledWorkflowClient) Update(ctx context.Context, swf *swfapi.ScheduledWorkflow) (*swfapi.ScheduledWorkflow, error) {
+	*c.patchCalls++
+	return c.ScheduledWorkflowInterface.Update(ctx, swf)
+}
+
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
 	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
