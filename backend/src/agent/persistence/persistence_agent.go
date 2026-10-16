@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -81,6 +80,13 @@ func NewPersistenceAgent(
 	log.Info("Setting up event handlers")
 
 	return agent, nil
+}
+
+// HasSynced returns true after both informer caches complete their initial LIST.
+// It reports initial cache synchronization to the readiness probe; it does not
+// detect ongoing watch staleness or API server connectivity loss.
+func (p *PersistenceAgent) HasSynced() bool {
+	return p.workflowClient.HasSynced()() && p.swfClient.HasSynced()()
 }
 
 // Run will set up the event handlers for types we are interested in, as well
