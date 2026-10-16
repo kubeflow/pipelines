@@ -204,6 +204,15 @@ Redirects must stay on the configured origin and under the same namespace prefix
 signed URLs and same-origin signed URLs outside that prefix return HTTP 403. Standalone mode keeps
 its existing redirect behavior.
 
-Standalone mode and namespace-proxied volume artifacts are unchanged. The `artifact-only` mode
-(also accepted as legacy `mlmd-only`) requires metadata evidence in addition to the namespace
-path policy; it does not enable arbitrary custom roots.
+Standalone mode and namespace-proxied volume artifacts are unchanged.
+`ARTIFACT_NAMESPACE_OWNERSHIP_MODE` selects the lookup policy:
+
+- `artifact-then-prefix` (default; legacy alias `mlmd-then-prefix`) accepts canonical
+  namespace-prefixed paths before requesting the Artifact API. Encoded namespace spellings
+  require a matching API record as well as a valid decoded prefix.
+- `artifact-only` (legacy alias `mlmd-only`) requires metadata evidence in addition to the
+  namespace path policy. It does not enable arbitrary custom roots.
+
+These values are not audit/enforce switches. Master/3.0 has no artifact audit exception and
+does not read the 2.18-only `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` setting. The configurable
+`ARTIFACT_NAMESPACE_KEY_PREFIX` changes the expected prefix, not the ownership requirement.
