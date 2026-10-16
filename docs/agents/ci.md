@@ -141,3 +141,6 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+## Lightweight visual capture recovery
+
+`frontend/scripts/visual-compare-run.sh` resolves capture output paths absolutely, performs one toolchain preflight, and shares a fixed clock across both revisions (`FIXED_TIME=` explicitly uses real time). CLI relative paths resolve from the caller's working directory; npm commands run from `frontend`. Capture failure does not skip the other revision or report generation: inspect each side's `capture-results.json` and the generated comparison report. Failed captures always fail the command; pixel differences fail only with `--fail-on-diff`. Preserve failure manifests and completed rows for diagnosis. Route and manifest filenames must be unique ignoring case to prevent overwrites on macOS and Windows. These explicitly invoked tools do not add a recurring screenshot gate.
