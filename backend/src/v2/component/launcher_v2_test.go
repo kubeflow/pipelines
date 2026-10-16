@@ -157,25 +157,42 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			baseAPI := kfpapi.NewMockAPI()
+			pipelineSpec := &structpb.Struct{}
+			require.NoError(t, protojson.Unmarshal([]byte(`{"root":{"dag":{"tasks":{"task":{"taskInfo":{"name":"task"}}}}}}`), pipelineSpec))
 			run := &apiv2beta1.Run{
 				RunId: "run",
 				PipelineSource: &apiv2beta1.Run_PipelineSpec{
-					PipelineSpec: &structpb.Struct{},
+					PipelineSpec: pipelineSpec,
 				},
 			}
 			baseAPI.AddRun(run)
+			root := &apiv2beta1.PipelineTask{
+				TaskId: "root", Name: "root", RunId: run.GetRunId(), ScopePath: "root",
+				Type: apiv2beta1.PipelineTask_ROOT, State: apiv2beta1.PipelineTask_RUNNING,
+			}
+			_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: root, RunId: run.GetRunId()})
+			require.NoError(t, err)
+			properties := map[string]*structpb.Value{
+				util.DriverRetryGenerationKey: structpb.NewStringValue("7"),
+				util.DriverRetryAttemptKey:    structpb.NewStringValue("2"),
+				"plugins.mlflow.run_id":       structpb.NewStringValue("existing-plugin-run"),
+				"driver_logs_uri":             structpb.NewStringValue("s3://pipeline-root/driver-logs.txt"),
+				"unrelated":                   structpb.NewBoolValue(true),
+			}
 			task := &apiv2beta1.PipelineTask{
-				TaskId: "task",
-				RunId:  run.GetRunId(),
-				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+				TaskId:       "task",
+				Name:         "task",
+				RunId:        run.GetRunId(),
+				ParentTaskId: util.StringPointer(root.GetTaskId()),
+				ScopePath:    "root.task",
+				Type:         apiv2beta1.PipelineTask_RUNTIME,
+				State:        apiv2beta1.PipelineTask_SUCCEEDED,
 				StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
-					CustomProperties: map[string]*structpb.Value{
-						"driver_logs_uri": structpb.NewStringValue("s3://pipeline-root/driver-logs.txt"),
-						"unrelated":       structpb.NewBoolValue(true),
-					},
+					Message:          "previous attempt",
+					CustomProperties: properties,
 				},
 			}
-			_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+			_, err = baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
 				Task:  task,
 				RunId: run.GetRunId(),
 			})
@@ -194,7 +211,7 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 					Task: task,
 				},
 				clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), failingAPI),
-				pipelineSpec:  &structpb.Struct{},
+				pipelineSpec:  pipelineSpec,
 				batchUpdater:  NewBatchUpdater(),
 			}
 
@@ -203,6 +220,21 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 			require.Error(t, err)
 			for _, expectedError := range test.expectedErrors {
 				assert.Contains(t, err.Error(), expectedError)
+			}
+			assert.Len(t, task.GetStatusMetadata().GetCustomProperties(), len(properties))
+			for key, value := range properties {
+				assert.Equal(t, value.AsInterface(), task.GetStatusMetadata().GetCustomProperties()[key].AsInterface(), key)
+			}
+			if test.updateTasksBulkErr != nil {
+				assert.Contains(t, task.GetStatusMetadata().GetMessage(), test.updateTasksBulkErr.Error())
+			} else {
+				assert.Contains(t, task.GetStatusMetadata().GetMessage(), test.expectedErrors[0])
+			}
+			if test.executionErr != nil && test.updateTasksBulkErr == nil {
+				assert.EqualError(t, err, test.executionErr.Error(), "component failures should complete status propagation without a second finalization error")
+				persistedRoot, getErr := baseAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: root.GetTaskId(), RunId: run.GetRunId()})
+				require.NoError(t, getErr)
+				assert.Equal(t, apiv2beta1.PipelineTask_FAILED, persistedRoot.GetState())
 			}
 			if test.expectNotSucceeded {
 				persistedTask, getErr := baseAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
@@ -219,10 +251,11 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 				var response map[string]interface{}
 				require.NoError(t, json.Unmarshal(encoded, &response))
 				metadata := response["status_metadata"].(map[string]interface{})
-				assert.Equal(t, map[string]interface{}{
-					"driver_logs_uri": "s3://pipeline-root/driver-logs.txt",
-					"unrelated":       true,
-				}, metadata["custom_properties"])
+				assert.Equal(t, "s3://pipeline-root/driver-logs.txt", metadata["custom_properties"].(map[string]interface{})["driver_logs_uri"])
+				assert.Len(t, persistedTask.GetStatusMetadata().GetCustomProperties(), len(properties))
+				for key, value := range properties {
+					assert.Equal(t, value.AsInterface(), persistedTask.GetStatusMetadata().GetCustomProperties()[key].AsInterface(), "failed attempts must retain property %s", key)
+				}
 			}
 		})
 	}

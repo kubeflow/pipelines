@@ -690,3 +690,27 @@ func (m *MockAPI) AddPipelineVersion(pipelineID, versionID string, version *apiv
 func (m *MockAPI) UpdateStatuses(ctx context.Context, run *apiv2beta1.Run, pipelineSpec *structpb.Struct, currentTask *apiv2beta1.PipelineTask) error {
 	return updateStatuses(ctx, run, m, pipelineSpec, currentTask)
 }
+
+// FinalizeStoppedDriver models the generation-scoped stop without claiming a
+// new attempt. Storage integration tests cover locking and ancestor propagation.
+func (m *MockAPI) FinalizeStoppedDriver(ctx context.Context, runID string, generation int64, taskName, parentTaskID string, iterationIndex *int64) error {
+	for _, task := range m.tasks {
+		if task.GetRunId() != runID || task.GetName() != taskName || task.GetParentTaskId() != parentTaskID {
+			continue
+		}
+		actualIteration := taskIterationIndex(task)
+		if (actualIteration == nil) != (iterationIndex == nil) || actualIteration != nil && *actualIteration != *iterationIndex {
+			continue
+		}
+		properties := task.GetStatusMetadata().GetCustomProperties()
+		if properties[util.DriverRetryGenerationKey].GetStringValue() != fmt.Sprint(generation) {
+			continue
+		}
+		switch task.GetState() {
+		case apiv2beta1.PipelineTask_SUCCEEDED, apiv2beta1.PipelineTask_CACHED, apiv2beta1.PipelineTask_SKIPPED:
+		default:
+			task.State = apiv2beta1.PipelineTask_FAILED
+		}
+	}
+	return nil
+}

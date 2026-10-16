@@ -309,8 +309,8 @@ func (PipelineTaskSpec_TriggerPolicy_TriggerStrategy) EnumDescriptor() ([]byte, 
 
 // The retry policy controls which failure types trigger a retry attempt.
 // Maps directly to Argo Workflows retryStrategy.retryPolicy.
-// POLICY_UNSPECIFIED omits the field, so the deployment's Argo
-// configuration decides; KFP's bundled manifests set OnError.
+// POLICY_UNSPECIFIED selects Always for eligible drivers and leaves the
+// executor policy to the deployment; KFP's bundled manifests set OnError.
 type PipelineTaskSpec_RetryPolicy_Policy int32
 
 const (
@@ -4385,7 +4385,12 @@ func (x *PipelineTaskSpec_TriggerPolicy) GetStrategy() PipelineTaskSpec_TriggerP
 	return PipelineTaskSpec_TriggerPolicy_TRIGGER_STRATEGY_UNSPECIFIED
 }
 
-// User-configured task-level retry.
+// User-configured task-level retry. On the KFP Argo backend, eligible container
+// and nested DAG drivers and container executors each have an independent
+// max_retry_count budget. Zero disables retries for both eligible phases.
+// Root DAG drivers and native Kubernetes PVC operations retain deployment
+// retry policy. Enabled task plugins disable task-configured driver retries
+// while preserving executor retries.
 type PipelineTaskSpec_RetryPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of retries before considering a task as failed. Set to 0 or
