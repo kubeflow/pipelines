@@ -161,7 +161,7 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            assert component_input_parameter in parent_component_inputs.parameters, \
+            assert component_input_parameter in parent_component_inputs.parameters,\
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
@@ -172,7 +172,7 @@ def build_task_spec_for_task(
             component_input_artifact = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            assert component_input_artifact in parent_component_inputs.artifacts, \
+            assert component_input_artifact in parent_component_inputs.artifacts,\
                 f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.artifacts[
                 input_name].component_input_artifact = (
@@ -183,7 +183,7 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
+            assert component_input_parameter in parent_component_inputs.parameters,\
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
@@ -211,7 +211,7 @@ def build_task_spec_for_task(
                     component_input_artifact = (
                         compiler_utils.
                         additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_artifact in parent_component_inputs.artifacts, \
+                    assert component_input_artifact in parent_component_inputs.artifacts,\
                         f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.artifacts[
                         input_name].component_input_artifact = (
@@ -246,7 +246,7 @@ def build_task_spec_for_task(
                     component_input_parameter = (
                         compiler_utils.
                         additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_parameter in parent_component_inputs.parameters, \
+                    assert component_input_parameter in parent_component_inputs.parameters,\
                         f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.parameters[
                         input_name].component_input_parameter = (
@@ -310,7 +310,7 @@ def build_task_spec_for_task(
                         component_input_parameter = (
                             compiler_utils.
                             additional_input_name_for_pipeline_channel(channel))
-                        assert component_input_parameter in parent_component_inputs.parameters, \
+                        assert component_input_parameter in parent_component_inputs.parameters,\
                             f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].component_input_parameter = (
@@ -424,6 +424,11 @@ def _build_component_spec_from_component_spec_structure(
             if input_spec.description:
                 component_spec.input_definitions.parameters[
                     input_name].description = input_spec.description
+            if input_spec.literals:
+                component_spec.input_definitions.parameters[
+                    input_name].literals.extend(
+                        to_protobuf_value(value)
+                        for value in input_spec.literals)
 
         else:
             component_spec.input_definitions.artifacts[
@@ -1084,9 +1089,9 @@ def _single_binary_operation_to_cel_condition(
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
         else:
             # Must be a double and int, promote to double.
-            assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, \
+            assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types,\
                 f'Types: {parameter_types} [{left_operand} {right_operand}]'
-            assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, \
+            assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types,\
                 f'Types: {parameter_types} [{left_operand} {right_operand}]'
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
     elif len(parameter_types) == 1:  # Both operands are the same type.
@@ -1317,6 +1322,28 @@ def modify_pipeline_spec_with_override(
     # that match the pipeline inputs definition.
     for input_name, input_value in (pipeline_parameters or {}).items():
         if input_name in pipeline_spec.root.input_definitions.parameters:
+            # Validate the override value against any Literal constraint that
+            # was compiled into the spec before writing it as the default.
+            param_spec = pipeline_spec.root.input_definitions.parameters[
+                input_name]
+            if param_spec.literals:
+                from google.protobuf import struct_pb2
+                allowed = []
+                for lit_val in param_spec.literals:
+                    kind = lit_val.WhichOneof('kind')
+                    if kind == 'string_value':
+                        allowed.append(lit_val.string_value)
+                    elif kind == 'number_value':
+                        # Preserve int vs float depending on the parameter type
+                        if param_spec.parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
+                            allowed.append(int(lit_val.number_value))
+                        else:
+                            allowed.append(lit_val.number_value)
+                if input_value not in allowed:
+                    raise ValueError(
+                        f'Pipeline parameter {input_name!r} value '
+                        f'{input_value!r} is not one of the allowed Literal '
+                        f'values {allowed!r}.')
             _fill_in_component_input_default_value(pipeline_spec.root,
                                                    input_name, input_value)
         elif input_name in pipeline_spec.root.input_definitions.artifacts:

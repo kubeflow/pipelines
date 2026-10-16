@@ -14,7 +14,7 @@
 
 import re
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Literal, Optional
 import unittest
 
 from kfp import dsl
@@ -357,6 +357,112 @@ class TestBuiltinGenericParameterAnnotations(unittest.TestCase):
             type_utils.get_canonical_name_for_outer_generic(
                 spec.outputs['Output'].type), 'Dict')
         self.assertFalse(spec.outputs['Output'].is_artifact_list)
+
+
+class TestLiteralParameterAnnotations(unittest.TestCase):
+
+    def test_string_literal(self):
+
+        @dsl.component
+        def comp(choice: Literal['a', 'b', 'c'] = 'a') -> str:
+            return choice
+
+        spec = comp.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['a', 'b', 'c'], spec.inputs['choice'].literals)
+
+    def test_int_literal(self):
+
+        @dsl.component
+        def comp(n: Literal[1, 2, 3] = 1) -> int:
+            return n
+
+        spec = comp.component_spec
+        self.assertEqual('Integer', spec.inputs['n'].type)
+        self.assertEqual([1, 2, 3], spec.inputs['n'].literals)
+
+    def test_optional_literal(self):
+
+        @dsl.component
+        def comp(choice: Optional[Literal['a', 'b']] = None) -> str:
+            return choice
+
+        spec = comp.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['a', 'b'], spec.inputs['choice'].literals)
+
+    def test_non_literal_parameter_has_no_literals(self):
+
+        @dsl.component
+        def comp(name: str) -> str:
+            return name
+
+        spec = comp.component_spec
+        self.assertIsNone(spec.inputs['name'].literals)
+
+    def test_mixed_type_literal_raises(self):
+        with self.assertRaisesRegex(
+                TypeError, 'KFP supports Literals of a single type only.'):
+
+            @dsl.component
+            def comp(choice: Literal['a', 1]) -> str:
+                return choice
+
+
+class TestLiteralContainerComponentPlaceholders(unittest.TestCase):
+    """Regression tests for P3: container component placeholder handling of
+    Literal annotations."""
+
+    def test_container_component_with_literal_parameter_compiles(self):
+        """@dsl.container_component with Literal parameter should compile without error."""
+
+        @dsl.container_component
+        def container_with_literal(choice: Literal['a', 'b']):
+            return dsl.ContainerSpec(
+                image='python:3.8',
+                command=['python', '-c'],
+                args=['print(f"Choice: {choice}")'],
+            )
+
+        # Should not raise "param_type is not a parameter type" error
+        spec = container_with_literal.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['a', 'b'], spec.inputs['choice'].literals)
+
+    def test_container_component_with_optional_literal_parameter_compiles(self):
+        """@dsl.container_component with Optional[Literal] parameter should compile without error."""
+        from typing import Optional
+
+        @dsl.container_component
+        def container_with_optional_literal(
+                choice: Optional[Literal['x', 'y']] = None):
+            return dsl.ContainerSpec(
+                image='python:3.8',
+                command=['python', '-c'],
+                args=['print(f"Choice: {choice}")'],
+            )
+
+        # Should not raise "param_type is not a parameter type" error
+        spec = container_with_optional_literal.component_spec
+        self.assertEqual('String', spec.inputs['choice'].type)
+        self.assertEqual(['x', 'y'], spec.inputs['choice'].literals)
+        self.assertTrue(spec.inputs['choice'].optional)
+
+    def test_container_component_with_integer_literal_parameter_compiles(self):
+        """@dsl.container_component with integer Literal parameter should compile without error."""
+
+        @dsl.container_component
+        def container_with_int_literal(level: Literal[1, 2, 3] = 1):
+            return dsl.ContainerSpec(
+                image='python:3.8',
+                command=['python', '-c'],
+                args=['print(f"Level: {level}")'],
+            )
+
+        # Should not raise "param_type is not a parameter type" error
+        spec = container_with_int_literal.component_spec
+        self.assertEqual('Integer', spec.inputs['level'].type)
+        self.assertEqual([1, 2, 3], spec.inputs['level'].literals)
 
 
 class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
