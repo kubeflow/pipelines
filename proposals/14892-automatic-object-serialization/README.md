@@ -12,6 +12,7 @@
 - [Design Details](#design-details)
   - [Supported Types and Formats](#supported-types-and-formats)
   - [Contracts and Dependencies](#contracts-and-dependencies)
+  - [Python SDK Serialization Hooks](#python-sdk-serialization-hooks)
   - [Artifact Bundle and Runtime](#artifact-bundle-and-runtime)
   - [Sub-DAGs, Control Flow, and Caching](#sub-dags-control-flow-and-caching)
   - [Security and Error Reporting](#security-and-error-reporting)
@@ -34,10 +35,11 @@
 ## Summary
 
 Let Python components receive and return supported DataFrames and trained models
-using native type annotations. KFP selects a serializer, persists an ordinary
-artifact, and reconstructs it in the consuming component. Sub-pipelines forward
-references, not live objects. This adds automatic serialization to existing
-artifact storage, not a shared-memory service or a new object store.
+using native type annotations. SDK-managed hooks reconstruct inputs before
+Python execution and serialize returned objects afterward using ordinary
+artifacts. Sub-pipelines forward references, not live objects. This adds
+automatic serialization to existing artifact storage, not a shared-memory
+service or a new object store.
 
 ## Motivation
 
@@ -52,8 +54,8 @@ which was closed for inactivity.
 - Pass native objects between components and through nested sub-pipelines.
 - Support multiple DataFrame libraries/formats and framework-specific models.
 - Preserve artifact lineage, caching, local execution, and explicit path access.
-- Allow explicit application adapters without making every framework a core
-  SDK dependency.
+- Allow inheritable application hooks and image-local registration without
+  making every framework a core SDK dependency.
 
 ### Non-Goals
 
@@ -62,14 +64,17 @@ which was closed for inactivity.
 - Implicit library conversion, model export, or collection of distributed/lazy
   DataFrames.
 - Replacing existing parameter/artifact APIs or adding rich artifact viewers.
+- Injecting Python hooks into arbitrary container components or implementing a
+  namespace hook CRD in the initial feature.
 
 ## Proposal
 
 Introduce opt-in, versioned serialization contracts on artifact ports. The
 compiler resolves the native type, writer format/options, and permitted readers.
-At runtime, the executor loads inputs before calling the component and saves
-returned objects afterward. Existing scalar, JSON, and Pydantic parameters are
-unchanged.
+The Python SDK executor invokes pre-execution deserialization and post-execution
+serialization hooks for lightweight and containerized Python components.
+Existing scalar, JSON, Pydantic, and explicit artifact/path interfaces bypass
+these hooks and remain unchanged.
 
 ### SDK User Experience
 
@@ -219,11 +224,11 @@ format/options, and permitted reconstruction bindings. Preserve these through
 component loading, imports, and sub-DAG interfaces. Artifact metadata alone
 cannot describe an independently loaded consumer's input contract.
 
-Resolve deterministic adapter registrations into canonical executor bindings
+Resolve deterministic hook/codec registrations into canonical executor bindings
 emitted in container arguments, so normal remote/local fingerprints include
-them. Ambiguity requires an explicit choice. The compiler checks known
-producer/consumer compatibility; the executor checks the actual manifest,
-schema, dependencies, and reconstructed type.
+their IDs, revisions, and options. Ambiguity requires an explicit choice. The
+compiler checks known producer/consumer compatibility; the executor checks the
+actual manifest, schema, dependencies, and reconstructed type.
 
 Adapters/frameworks come from the component image or explicitly declared
 dependencies, never artifact-directed installation. Load optional dependencies
@@ -236,6 +241,72 @@ backends; pipelines without contracts retain the existing version. Use backend
 schema-version validation to reject unsupported pipelines, not ignored optional
 fields. Exact fields/version require API review; regenerated bindings,
 compiler/driver/executor validation, and documented minimum versions gate alpha.
+
+### Python SDK Serialization Hooks
+
+Provide an inheritable `SerializationHook[T]` interface with
+`pre_execute(context) -> T` for typed inputs and
+`post_execute(value: T, context) -> None` for typed outputs. Built-in
+Dataset/Model codecs implement this interface; applications can subclass them
+or compose a new implementation. The SDK invokes hooks automatically, not the
+component author. One resolved hook owns each typed port; do not chain multiple
+serializers or encode again at sub-DAG boundaries.
+
+The context contains the component/port identity, resolved read-only contract,
+validated input manifest where applicable, and SDK-managed artifact handle.
+Hooks may enrich metadata, but must not rebind artifact paths/URIs, change port
+contracts, or mutate published inputs. The SDK retains common bundle/type
+validation and output publication outside overridable hooks.
+
+Register trusted, preinstalled classes at runtime startup under stable
+`HookReference(id, revision)` values. An image can ship an explicit registrar or
+installed entry points; registration alone does not override built-ins.
+Reject duplicate, missing, or incompatible registrations without fallback.
+Illustrative image-local extension, not an existing SDK API:
+
+```python
+from typing import Any
+
+from kfp.dsl.serialization import (
+    HookContext, HookReference, HookRegistry, NativeSerializationHook,
+)
+
+
+class TeamNativeHook(NativeSerializationHook):
+    """Reuse native dataset/model IO with team-owned metadata."""
+
+    def post_execute(self, value: Any, context: HookContext) -> None:
+        """Enrich the output without replacing its native encoding."""
+        super().post_execute(value, context)
+        context.artifact.metadata["team.owner"] = "ml"
+
+
+def register_hooks(registry: HookRegistry) -> None:
+    """Called by trusted component-image startup code."""
+    registry.register(HookReference("team.native", 1), TeamNativeHook)
+```
+
+An explicit per-port selection such as
+`serialization_hooks={"data": HookReference("team.native", 1)}` on a Python
+component selects the registered implementation; bare annotations retain the
+built-in hook. Registration and selection spellings remain subject to API review.
+Custom implementations run with component privileges, not in a sandbox.
+
+All input hooks finish before user code. Output hooks run only after a successful
+return, before executor output and artifact publication. A hook failure fails the
+task; it must not produce a successful partial result. Create fresh instances
+per attempt: retries can repeat hooks, while cache hits skip producer execution
+and its hooks. Do not rely on hooks for exactly-once external side effects.
+
+**Namespace registration is a discussion option, not an approved CRD design.**
+A namespaced CR could define named profiles referencing installed hook IDs,
+revisions, and declarative options through the same registry interface. It must
+not deliver executable Python, select arbitrary imports, or install packages.
+Selection/default inheritance, policy precedence, RBAC, and resolution timing
+need separate agreement. Any eventual namespace selection must be authorized
+and snapshotted into the run's resolved contract before cache lookup; namespace
+edits must not silently change queued/retried runs. Keep image-local registration
+usable without Kubernetes or a CR.
 
 ### Artifact Bundle and Runtime
 
@@ -253,9 +324,10 @@ in artifact metadata; large schemas and inventories stay in the bundle.
 Preserve unrelated user metadata.
 
 1. The launcher or local runner supplies normal artifact/workspace paths.
-2. The executor validates inputs and reconstructs objects with permitted readers.
-3. Outputs are serialized into attempt-local staging; write the final manifest
-   only after payload writes succeed.
+2. The Python SDK executor validates bindings/bundles, runs input hooks, and
+   calls the function with reconstructed objects.
+3. After a successful return, output hooks serialize into attempt-local staging;
+   finalize manifests after payload writes and validate completed bundles.
 4. Normal upload/registration publishes the completed artifact. Required
    persistence must finish before the task succeeds.
 
@@ -286,7 +358,7 @@ Legacy files need explicit adoption/conversion, not a format guessed from their
 extension.
 
 Both producer and consumer cache identities include resolved codec revisions,
-options, and reader/custom-adapter bindings, alongside normal code/image/inputs.
+options, and hook/reader bindings, alongside normal code/image/inputs.
 Custom keys currently bypass that normal identity: change both remote and local
 custom-key paths to also hash the contract fingerprint for typed ports. Existing
 untyped custom-key behavior stays unchanged.
@@ -332,8 +404,9 @@ previews are separate work; the UI/API must not reconstruct native models.
 
 ### KFP Local Considerations
 
-`SubprocessRunner` and `DockerRunner` must use the same bindings, bundles, and
-validation, including direct component calls and nested pipeline execution.
+`SubprocessRunner` and `DockerRunner` must use the same hook lifecycle,
+registrations, bindings, and validation, including direct component calls and
+nested pipeline execution. Local registration must not require a Kubernetes CR.
 Preserve metadata through local inputs, outputs, and caches; do not shortcut
 serialization by sharing host objects. Local `.output`/`.outputs` remain
 artifact handles. Missing dependencies fail as they do remotely.
@@ -368,6 +441,8 @@ baselines have not been collected for this draft.
   sharded/tied weights, and rejection of missing shards or remote-code requests.
 - Annotation/default resolution, named outputs, reader selection, compiled
   reloads, rejected root artifact inputs, and unchanged parameter/path behavior.
+- Hook ordering, inherited/custom hooks, image registration, missing/duplicate
+  revisions, fresh retry state, and no publication after input/body/output failure.
 - Corrupt/oversized manifests, bounded compressed payloads, path confinement,
   forbidden loaders, redacted errors, and partial writes.
 - Contract-aware remote/local cache keys, including custom keys.
@@ -385,7 +460,9 @@ baselines have not been collected for this draft.
 
 - Generated IR, backend/launcher/executor propagation, unsupported-runtime
   rejection, imports/adoption, and local direct-task/pipeline parity.
-- Optional-dependency isolation, generated component bindings, and `--no-deps`.
+- Optional-dependency isolation, image-installed hooks, generated lightweight
+  component bindings, and `--no-deps`; neither artifact data nor namespace
+  configuration may select unregistered executable code.
 - Existing access restrictions on imported/cached/workspace bundles and UI
   metadata/lineage without native reconstruction.
 
@@ -396,8 +473,8 @@ agree on time/peak-memory budgets rather than assume a performance improvement.
 
 - **Alpha:** Explicit opt-in, version/runtime checks, all three tabular libraries
   with both formats, a bounded sklearn subset, XGBoost's three classes with both
-  formats, nested/local parity, artifact escape hatches, and adapter security
-  review. No default pickle fallback.
+  formats, Python hook lifecycle/registration, nested/local parity, artifact
+  escape hatches, and adapter security review. No default pickle fallback.
 - **Beta:** Documented custom adapters, supported NumPy/Keras/PyTorch and Hugging
   Face Transformers subsets, control-flow/list coverage, previous-writer
   compatibility, migration guidance, and measured resource budgets. Framework
@@ -413,6 +490,8 @@ agree on time/peak-memory budgets rather than assume a performance improvement.
   implement production SDK/IR support or satisfy graduation requirements.
 - 2026-10-15: Assigned KEP-14892 to match the
   [proposal PR](https://github.com/kubeflow/pipelines/pull/14892).
+- 2026-10-16: Specified SDK-managed Python pre/post execution hooks, inheritable
+  image-registered implementations, and namespace profiles as an open design option.
 
 ## Drawbacks
 
@@ -436,6 +515,8 @@ can hide IO costs, and existing serving consumers may need bundle adapters.
    carry the contract?
 2. Which exact class/dtype/version guarantees and adapter owners are supportable,
    and should all three tabular libraries default to Parquet?
+3. Should namespace hook profiles use a CR, and how should authorization,
+   selection/inheritance precedence, and immutable resolution work?
 
 ## References
 
