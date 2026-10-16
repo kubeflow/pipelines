@@ -28,6 +28,7 @@ from kfp.compiler import compiler_utils
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
 from kfp.dsl import (
     component_factory,
+    constants,
     for_loop,
     pipeline_channel,
     pipeline_config,
@@ -2477,6 +2478,26 @@ def create_pipeline_spec(
         deployment_config=deployment_config,
         platform_spec=platform_spec,
     )
+
+    # Apply after merging nested pipelines and exit handlers, without changing
+    # reusable component definitions or passing new CLI flags to older images.
+    if pipeline_config is not None and not pipeline_config.artifact_previews:
+        for executor in deployment_config.executors.values():
+            if not executor.HasField('container'):
+                continue
+            environment = executor.container.env
+            for index in reversed(range(len(environment))):
+                if (
+                    environment[index].name
+                    == constants.ARTIFACT_PREVIEWS_ENV_VAR
+                ):
+                    del environment[index]
+            environment.add(
+                name=constants.ARTIFACT_PREVIEWS_ENV_VAR, value='false'
+            )
+        pipeline_spec.deployment_spec.update(
+            json_format.MessageToDict(deployment_config)
+        )
 
     _build_dag_outputs(
         component_spec=pipeline_spec.root,

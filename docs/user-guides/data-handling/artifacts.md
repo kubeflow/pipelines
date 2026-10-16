@@ -315,9 +315,9 @@ On the [KFP open source][oss-be] UI, `ClassificationMetrics`, `SlicedClassificat
 
 ### Dataset and Model previews
 
-When deployment administrators enable automatic previews, supported Python
-components include a small, versioned
-`preview.json` **file** in Dataset and Model output directories. Select that same artifact
+By default, supported Python components include a small, versioned
+`preview.json` **file** in Dataset and Model output directories. Pipeline and
+component authors can disable generation as described below. Select that same artifact
 in the run graph and open **Visualization** to view it. On the artifact's own
 details page, select **Show artifact visualization** in Overview.
 
@@ -333,13 +333,13 @@ outputs do not support this preview layout. Existing artifacts without a
 preview continue to work normally. Do not silently turn a single-file output
 into a directory: its consumers must know which data/model file to read.
 
-#### Automatic previews: deployment opt-in
+#### Automatic previews: pipeline and component controls
 
-Automatic generation is **off by default**. Once your deployment enables it,
+Automatic generation is **enabled by default**. With a supporting component SDK,
 keep writing the native data/model files normally: the SDK generates
 `preview.json` and its metadata
 descriptor inside that component. No adapter call or hand-written JSON is
-required, and no component or pipeline opt-in is needed.
+required, and no deployment configuration or explicit opt-in is needed.
 
 ```python
 from kfp import dsl
@@ -365,16 +365,26 @@ omits dataset values while retaining available schema and dimensions; it does no
 disable model previews. For sensitive outputs, a component can disable automatic
 generation with `artifact_previews=False`.
 
-Deployment administrators enable automatic generation for supported components
-by setting `artifactPreviewsEnabled: "true"` in the deployment's `kfp-launcher`
-ConfigMap. A missing or false deployment setting overrides `artifact_previews=True`
-and prevents framework hooks, dataset sampling, and automatic preview publication.
-In multi-user installations,
-the profile controller propagates the setting to execution namespaces; see the
-[operator rollout instructions](../../operator-guides/server-config.md#automatic-artifact-preview-generation).
-Invalid or unreadable configuration also disables automatic previews with a
-warning, without failing the component. The component flag cannot enable
-generation in a deployment that has not opted in.
+To disable automatic generation throughout a pipeline:
+
+```python
+@dsl.pipeline(pipeline_config=dsl.PipelineConfig(artifact_previews=False))
+def private_pipeline():
+    create_dataset()
+```
+
+`PipelineConfig.artifact_previews` defaults to `True`. Setting it to `False`
+prevents framework hooks, dataset sampling, and automatic preview publication
+for all components in that pipeline, including nested pipelines and exit
+handlers. A nested pipeline or component's own opt-out remains effective when
+the enclosing pipeline enables previews. Setting `artifact_previews=True` on a
+component does not override an enclosing pipeline's opt-out.
+
+For a component-wide opt-out, use `@dsl.component(artifact_previews=False)`.
+Both settings are compile-time options: recompile the pipeline when changing
+them. They affect generated previews, not native output files, and do not remove
+or hide previously generated, cached, imported, or manually written previews.
+There is no deployment-level preview switch.
 
 Automatic Dataset adapters require exactly one supported data file directly
 inside the artifact directory; partitioned datasets, archives, and symlinks are
@@ -608,7 +618,7 @@ Only escaped text is rendered; the server does not run Python or model code.
 The [examples](../../../samples/core/artifact_previews/artifact_previews.py)
 produce real Parquet/XGBoost files, Pandas/Polars dataframes in multiple formats,
 PyTorch modules/state dictionaries/TorchScript, and a tiny locally initialized
-Transformer. They download no pretrained models. In an enabled deployment, the SDK
+Transformer. They download no pretrained models. By default, the SDK
 creates previews without component-written preview JSON or adapter calls.
 The format-matrix pipeline also collects dataframe and PyTorch artifact lists.
 Add `artifact_preview_rows=False` for a schema-only dataset preview.
@@ -625,13 +635,16 @@ HF_HUB_OFFLINE=1 uv run --with pytest \
   pytest -v samples/core/artifact_previews/artifact_previews_unit_test.py
 ```
 
-Tests explicitly simulate an enabled deployment; local execution without the
-deployment policy does not generate previews. The example pins CPU-only PyTorch
+The examples include a pipeline-level opt-out that produces the same native
+files without previews. Local execution honors the compiled pipeline setting;
+it does not require deployment configuration. The example pins CPU-only PyTorch
 on Linux and includes its official package index.
 
 Row samples and model settings may contain sensitive data. Review this before
-opting in deployment-wide, and set `artifact_previews=False` on individual
-components whose outputs are not safe to expose. Use
+running pipelines with a supporting SDK. Set
+`PipelineConfig(artifact_previews=False)` for sensitive pipelines, or
+`artifact_previews=False` on individual components whose outputs are not safe
+to expose. Use
 `artifact_preview_rows=False` when dataset row values must not be published.
 Automatic sampling uses the first columns; it does not detect or redact
 sensitive fields. For custom previews, select permitted columns and redact

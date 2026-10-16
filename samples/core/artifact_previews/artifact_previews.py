@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Native dataframe/model outputs for deployments that enable automatic
+"""Native dataframe/model outputs with default-on, pipeline-controlled
 previews."""
 
 import os
@@ -42,7 +42,7 @@ def create_preview_artifacts(
     model: dsl.Output[dsl.Model],
     seed: int = 42,
 ) -> None:
-    """Write native files; an enabled deployment generates their previews.
+    """Write native files; the SDK generates their previews by default.
 
     Args:
         dataset: Directory containing data.parquet.
@@ -242,6 +242,14 @@ def create_model_artifact(
 @dsl.pipeline(name='artifact-previews')
 def artifact_preview_pipeline() -> None:
     """Demonstrates previews without a separate preview-generating task."""
+    create_preview_artifacts()
+
+
+@dsl.pipeline(
+    name='artifact-previews-disabled',
+    pipeline_config=dsl.PipelineConfig(artifact_previews=False))
+def artifact_preview_disabled_pipeline() -> None:
+    """Write the same native artifacts without generating previews."""
     create_preview_artifacts()
 
 

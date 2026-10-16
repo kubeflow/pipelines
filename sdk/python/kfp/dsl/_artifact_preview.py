@@ -28,12 +28,14 @@ import itertools
 import json
 import logging
 import math
+import os
 from pathlib import Path
 import tempfile
 import threading
 from types import ModuleType
 from typing import Any, Callable
 
+from kfp.dsl import constants
 from kfp.dsl.types.artifact_types import Artifact
 
 MAX_BYTES = 64 * 1024
@@ -44,8 +46,6 @@ MAX_SAFE_INTEGER = 2**53 - 1
 MAX_TEXT_SOURCE_BYTES = 1024 * 1024
 
 _LOGGER = logging.getLogger(__name__)
-_DEPLOYMENT_CONFIG_PATH = Path(
-    '/etc/kfp/launcher-config/artifactPreviewsEnabled')
 _HOOK_LOCK = threading.RLock()
 _SESSIONS: list[ArtifactPreviewSession] = []
 _SAVE_METHODS: list[tuple[type | ModuleType, str, Callable[..., Any],
@@ -57,30 +57,18 @@ class PreviewGenerationError(ValueError):
     artifact."""
 
 
-def _deployment_allows_previews() -> bool:
-    """Read the mounted launcher policy, disabling previews on invalid
-    settings."""
-    try:
-        value = _DEPLOYMENT_CONFIG_PATH.read_text(
-            encoding='utf-8').strip().lower()
-    except FileNotFoundError:
-        return False
-    except (OSError, UnicodeError) as error:
-        _LOGGER.warning(
-            'Automatic artifact previews disabled: cannot read %s. '
-            'Check the deployment launcher configuration: %s',
-            _DEPLOYMENT_CONFIG_PATH, error)
-        return False
+def _pipeline_allows_previews() -> bool:
+    """Read the compiled task setting; pipelines enable previews by default."""
+    value = os.environ.get(constants.ARTIFACT_PREVIEWS_ENV_VAR,
+                           'true').strip().lower()
     if value == 'true':
         return True
     if value == 'false':
-        _LOGGER.info(
-            'Automatic artifact previews disabled by the deployment configuration.'
-        )
         return False
     _LOGGER.warning(
-        'Automatic artifact previews disabled: set artifactPreviewsEnabled '
-        'in the deployment kfp-launcher ConfigMap to "true" or "false".')
+        'Automatic artifact previews disabled: the compiled task setting %s '
+        'must be "true" or "false". Recompile with PipelineConfig(artifact_previews=...).',
+        constants.ARTIFACT_PREVIEWS_ENV_VAR)
     return False
 
 
@@ -842,7 +830,7 @@ class ArtifactPreviewSession:
     def __enter__(self) -> ArtifactPreviewSession:
         """Install only the supported framework hooks needed by declared
         outputs."""
-        if not _deployment_allows_previews():
+        if not _pipeline_allows_previews():
             return self
         if not any(artifact.schema_title == 'system.Model' and
                    '_kfp_preview' not in artifact.metadata
@@ -904,8 +892,7 @@ class ArtifactPreviewSession:
     def generate(self) -> None:
         """Publish optional previews only after successful execution on the
         chief worker."""
-        # Recheck because the mounted policy can change while a component runs.
-        if not _deployment_allows_previews():
+        if not _pipeline_allows_previews():
             return
         for name, artifact in self.artifacts.items():
             if artifact.schema_title not in ('system.Dataset', 'system.Model'):

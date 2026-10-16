@@ -161,7 +161,7 @@ function SelectedArtifactPreview({
     return (
       <Banner
         mode='info'
-        message='No preview is available for this artifact. Automatic previews require deployment-level opt-in; check supported formats, the component SDK, and logs.'
+        message='No preview is available for this artifact. Check the pipeline and component preview settings, supported formats, component SDK, and logs.'
       />
     );
   }

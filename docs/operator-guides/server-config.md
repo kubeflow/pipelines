@@ -9,80 +9,39 @@ to customize the behavior of servers.
 
 ## Automatic artifact preview generation
 
-Automatic artifact preview generation is **off by default** and requires
-deployment-level opt-in. After enablement, Python components using a supporting
-SDK automatically preview supported dataframe and XGBoost/PyTorch/Transformers
-directory outputs without per-component opt-in. Dataset previews can contain up
-to ten rows and twenty columns; review whether exposing these samples and model
-configuration is appropriate for the deployment's data before enabling it.
+Automatic artifact preview generation is **enabled by default** for supported
+Python-component Dataset and Model outputs. It is controlled by pipeline authors,
+not by deployment configuration. Use
+`@dsl.pipeline(pipeline_config=dsl.PipelineConfig(artifact_previews=False))`
+to disable generation throughout a pipeline, or
+`@dsl.component(artifact_previews=False)` for a particular component. A pipeline
+opt-out also applies to nested pipelines and exit handlers and cannot be
+overridden by enabling previews on a component.
 
-Set `artifactPreviewsEnabled: "true"` in the existing `kfp-launcher` ConfigMap
-in the **installation namespace**. Preserve its other keys, including pipeline
-root and storage-provider settings. For an installation in `kubeflow`:
+These settings are compiled into the pipeline. Recompile and use the updated
+pipeline definition when changing them. No preview-specific ConfigMap, mounted
+configuration file, profile reconciliation, or API-server/driver setting is
+required. Earlier preview prototypes' deployment settings are no longer read;
+set pipeline or component opt-outs before upgrading sensitive workloads to a
+supporting SDK.
 
-```bash
-kubectl -n kubeflow patch configmap kfp-launcher --type merge \
-  -p '{"data":{"artifactPreviewsEnabled":"true"}}'
-```
-
-Persist the same override in your deployment configuration so subsequent
-upgrades do not restore the default. Set the value to `"false"` to disable
-generation. An absent setting disables generation; invalid values or read
-errors disable generation and produce a warning in the component logs.
-
-For a **standalone installation**, the existing runtime configuration volume
-mounts this ConfigMap directly into component pods. No API-server or Argo
-driver-plugin change is needed.
-
-For a **multi-user installation**, the profile controller reads this key through
-its `ARTIFACT_PREVIEWS_ENABLED` environment variable and writes it to the
-`kfp-launcher` ConfigMap in each pipeline-enabled profile namespace. After
-changing the installation ConfigMap, restart the controller to reload its
-environment:
-
-```bash
-kubectl -n kubeflow rollout restart deployment/kubeflow-pipelines-profile-controller
-kubectl -n kubeflow rollout status deployment/kubeflow-pipelines-profile-controller
-```
-
-Wait for profile reconciliation and verify the value in the execution namespaces
-before running sensitive workloads. Do not edit controller-managed copies as an
-alternative to changing the installation setting.
-
-Upgrades must also apply the updated `DecoratorController` manifest: ConfigMaps
-now reconcile in place instead of only being recreated after deletion. For
-existing profiles, the controller updates only `artifactPreviewsEnabled` in
-`kfp-launcher`, preserving namespace-specific roots, providers, other data, and
-customized Argo artifact repositories. Launcher ConfigMaps must remain mutable
-for policy updates to succeed.
-
-Periodic reconciliation can take up to one hour. To request an earlier sync,
-replace `PROFILE_NAMESPACE` below with each affected profile namespace:
-
-```bash
-kubectl annotate namespace PROFILE_NAMESPACE \
-  pipelines.kubeflow.org/preview-policy-refresh="$(date +%s)" --overwrite
-kubectl -n PROFILE_NAMESPACE get configmap kfp-launcher \
-  -o jsonpath='{.data.artifactPreviewsEnabled}'
-```
+Dataset previews can contain up to ten rows and twenty columns. Review row
+samples and model configuration for sensitive data; pipeline authors can keep
+only dataset schema with `@dsl.component(artifact_preview_rows=False)`.
+Disabling generation does not remove or hide previously generated, cached,
+imported, or manually written previews, and does not change ordinary artifact
+production, downloads, or access controls.
 
 The profile controller also propagates `pipeline-install-config`'s
 `USERID_HEADER` into namespace artifact servers as `KUBEFLOW_USERID_HEADER`.
 This preserves the shared UI's authenticated identity for preview metadata
 lookups. If the installation key is absent, both services retain their common
-server default. Restart the profile controller and wait for its artifact-server
-Deployment rollouts after changing that installation setting.
-
-The SDK reads `/etc/kfp/launcher-config/artifactPreviewsEnabled` before framework
-hooks and again before publishing a preview. Kubernetes volume updates are
-eventually consistent; the switch is not instantaneous for running pods.
-It takes precedence over component preview settings without recompiling
-pipelines. Disabling the setting stops **automatic generation**, not normal artifact
-production, access, or downloads. It does not remove or hide previously generated,
-cached, imported, or manually written previews.
+server default. Reload the shared UI's configuration and restart the profile
+controller, then wait for its artifact-server Deployment rollouts after changing
+that installation setting.
 
 See [Dataset and Model previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews)
-for supported formats, component-level privacy settings, and the file contract.
+for supported formats, pipeline/component privacy settings, and the file contract.
 
 ## API Server workflow service-account checks
 
