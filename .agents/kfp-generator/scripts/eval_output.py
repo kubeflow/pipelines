@@ -1,8 +1,9 @@
-import os
-import sys
-import subprocess
 import argparse
 import json
+import os
+import subprocess
+import sys
+
 
 def get_venv_python():
     """Locates the project's local virtual environment Python interpreter."""
@@ -12,7 +13,7 @@ def get_venv_python():
         os.path.abspath(os.path.join(script_dir, "..", "..", "..", "..")),
         os.getcwd(),
     ]
-   
+
     venv_paths = []
     for root in candidate_roots:
         venv_paths.extend([
@@ -26,9 +27,10 @@ def get_venv_python():
 
     return sys.executable
 
+
 def validate_pipeline(pipeline_path):
-    """
-    Attempts to compile the generated pipeline statically by executing it.
+    """Attempts to compile the generated pipeline statically by executing it.
+
     Returns exit code, stdout, and stderr.
     """
     if not os.path.exists(pipeline_path):
@@ -36,28 +38,35 @@ def validate_pipeline(pipeline_path):
 
     python_exe = get_venv_python()
     print(f"[*] Compiling pipeline statically using: {python_exe}")
-   
-    
+
     result = subprocess.run(
         [python_exe, pipeline_path],
         capture_output=True,
         text=True,
         timeout=300,
     )
-   
+
     return result.returncode, result.stdout, result.stderr
 
-def run_backend_verification(pipeline_path, host, namespace=None, timeout=600, pipeline_args=None):
-    """
-    Executes the compiled pipeline YAML package on a real KFP backend using create_run_from_pipeline_package, waits for completion, and captures evidence using get_run."""
+
+def run_backend_verification(pipeline_path,
+                             host,
+                             namespace=None,
+                             timeout=600,
+                             pipeline_args=None):
+    """Executes the compiled pipeline YAML package on a real KFP backend using
+    create_run_from_pipeline_package, waits for completion, and captures
+    evidence using get_run."""
     python_exe = get_venv_python()
     expected_yaml = pipeline_path + ".yaml"
-    
+
     if not os.path.exists(expected_yaml):
         return 1, "", f"Error: Compiled YAML package {expected_yaml} not found. Run validation first."
-    print(f"\n[*] Submitting compiled YAML package {expected_yaml} to live backend ({host}) for E2E verification...")
-    
-    runner_script = """ 
+    print(
+        f"\n[*] Submitting compiled YAML package {expected_yaml} to live backend ({host}) for E2E verification..."
+    )
+
+    runner_script = """
 import sys
 import os
 import json
@@ -74,14 +83,14 @@ try:
 except Exception as e:
     print(f"[!] Invalid JSON for pipeline arguments: {e}", file=sys.stderr)
     sys.exit(1)
-    
+
 # Instantiate the KFP Client
 client = kfp.Client(host=host, namespace=namespace)
 try:
     if client.get_kfp_healthz().multi_user:
         if namespace:
            client.set_user_namespace(namespace)
-           
+
         for api_attr in ('_experiment_api', '_pipelines_api', '_run_api', '_upload_api'):
            api_obj = getattr(client, api_attr, None)
            if api_obj and hasattr(api_obj, 'api_client'):
@@ -92,7 +101,7 @@ try:
 
 except Exception as e:
     pass
-    
+
 run_name = f"eval_{os.path.splitext(os.path.basename(yaml_path))[0]}"
 
 print(f"[*] Calling create_run_from_pipeline_package for package '{yaml_path}...'")
@@ -106,7 +115,7 @@ try:
 except Exception as e:
     print(f"[!] Failed during create_run_from_pipeline_package call: {e}", file=sys.stderr)
     sys.exit(1)
-    
+
 run_id = run_result.run_id
 print(f"[✓] Run created successfully with run_id: {run_id}")
 
@@ -127,40 +136,43 @@ try:
        "created_at": str(run_info.created_at),
        "finished_at": str(run_info.finished_at)
    }
-   
+
    output_file = yaml_path + ".run.json"
    with open(output_file, "w") as f:
         json.dump(run_data, f, indent=2)
    print(f"[✓] Execution evidence saved to: {output_file}")
-    
+
 except Exception as e:
     print(f"[!] Failed to retrieve run info using get_run: {e}", file=sys.stderr)
     sys.exit(1)
-    
+
 if "SUCCEEDED" in run_data["state"] or "COMPLETED" in run_data["state"]:
     print(f"[✓] BACKEND VERIFICATION PASSED: Pipeline run {run_id} executed and SUCCEEDED on backend.")
     sys.exit(0)
-    
+
 else:
     print(f"[!] BACKEND VERIFICATION FAILED: Pipeline run {run_id} finished with non-successful state: {run_data['state']}", file=sys.stderr)
     sys.exit(1)
-    
+
 """
 
     args_str = json.dumps(pipeline_args) if pipeline_args else "None"
     result = subprocess.run(
-       [python_exe, 
-       "-c", 
-       runner_script, 
-       expected_yaml, 
-       host, str(namespace) 
-       if namespace else "None", 
-       str(timeout), args_str,], 
-       capture_output=True, 
-       text=True, 
-       timeout=timeout + 30,
-   )
-   
+        [
+            python_exe,
+            "-c",
+            runner_script,
+            expected_yaml,
+            host,
+            str(namespace) if namespace else "None",
+            str(timeout),
+            args_str,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=timeout + 30,
+    )
+
     return result.returncode, result.stdout, result.stderr
 
 
@@ -171,12 +183,17 @@ def main():
     parser.add_argument(
         "pipeline_file",
         type=str,
-        help="Path to a Python pipeline file to evaluate."
-    )
-    parser.add_argument("--output-dir", type=str, default=None, help="Directory to save telemetry (timing.json, grading.json). Defaults to pipeline's directory.")
-    
+        help="Path to a Python pipeline file to evaluate.")
     parser.add_argument(
-        "--run", "--run-e2e",
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory to save telemetry (timing.json, grading.json). Defaults to pipeline's directory."
+    )
+
+    parser.add_argument(
+        "--run",
+        "--run-e2e",
         action="store_true",
         dest="run_e2e",
         help="Execute the pipeline on a real backend using create_run_from_pipeline_package and verify success using get_run."
@@ -191,8 +208,7 @@ def main():
         "--namespace",
         type=str,
         default=None,
-        help="Kubernetes namespace (for multi-user deployments)."
-    )
+        help="Kubernetes namespace (for multi-user deployments).")
     parser.add_argument(
         "--timeout",
         type=int,
@@ -203,18 +219,18 @@ def main():
         "--arguments",
         type=str,
         default=None,
-        help="JSON string of arguments to pass to the pipeline function."
-    )
+        help="JSON string of arguments to pass to the pipeline function.")
 
     args = parser.parse_args()
-    
+
     expected_yaml = args.pipeline_file + ".yaml"
     if os.path.exists(expected_yaml):
         try:
             os.remove(expected_yaml)
             print(f"[*] Removed stale YAML artifacts: {expected_yaml}")
         except Exception as e:
-            sys.stderr.write(f"[!] Warning: Could not remove stale YAML file: {e}\"\n")
+            sys.stderr.write(
+                f"[!] Warning: Could not remove stale YAML file: {e}\"\n")
 
     return_code, stdout, stderr = validate_pipeline(args.pipeline_file)
     is_success = (return_code == 0)
@@ -224,15 +240,18 @@ def main():
     backend_stdout = ""
     backend_stderr = ""
     run_evidence = "Live backend execution was not requested or skipped."
-    
+
     if return_code != 0:
-        sys.stderr.write(f"\n[!] STATIC COMPILATION FAILED (Exit Code {return_code})\n")
+        sys.stderr.write(
+            f"\n[!] STATIC COMPILATION FAILED (Exit Code {return_code})\n")
         sys.stderr.write("--- KFP Compiler Traceback Error ---\n")
         sys.stderr.write(stderr)
         sys.stderr.write("\n------------------------------------\n")
         sys.exit(1)
 
-    print("\n[✓] STATIC VALIDATION PASSED: The pipeline compiles into a valid KFP v2 YAML workflow specification.")
+    print(
+        "\n[✓] STATIC VALIDATION PASSED: The pipeline compiles into a valid KFP v2 YAML workflow specification."
+    )
     expected_yaml = args.pipeline_file + ".yaml"
     if not os.path.exists(expected_yaml):
         sys.stderr.write(
@@ -241,7 +260,7 @@ def main():
             f"the pipeline using the KFP compiler:\n\n"
             f"   if __name__ == '__main__':\n"
             f"       compiler.Compiler().compile(pipeline_file={args.pipeline_file.split('.')[0]}, __file__ + '.yaml')\n\n"
-            )
+        )
         sys.exit(1)
     print(f"[✓] Output specification saved successfully at: {expected_yaml}")
 
@@ -258,10 +277,12 @@ def main():
             print(backend_stdout)
         backend_passed = (backend_exit_code == 0)
         if backend_exit_code != 0:
-            sys.stderr.write(f"\n[!] BACKEND EXECUTION VERIFICATION FAILED (Exit Code {backend_exit_code})\n")
+            sys.stderr.write(
+                f"\n[!] BACKEND EXECUTION VERIFICATION FAILED (Exit Code {backend_exit_code})\n"
+            )
             if backend_stderr:
                 sys.stderr.write(backend_stderr)
-            
+
         run_json_path = expected_yaml + ".run.json"
         if os.path.exists(run_json_path):
             try:
@@ -275,29 +296,36 @@ def main():
             except Exception as e:
                 run_evidence = f"Failed to parse run.json evidence: {e}"
         else:
-            run_evidence = backend_stderr.strip() or "Backend connection refused or execution failed before completion."
-            
-            
+            run_evidence = backend_stderr.strip(
+            ) or "Backend connection refused or execution failed before completion."
+
     pipeline_path = args.pipeline_file
     output_dir = os.path.dirname(os.path.abspath(pipeline_path))
     yaml_exists = os.path.exists(expected_yaml)
-    assertions = [
-        {
-            "text": "Pipeline file exists on disk",
-            "passed": os.path.exists(pipeline_path),
-            "evidence": f"Found pipeline file at {pipeline_path}" if os.path.exists(pipeline_path) else "File missing"
-        },
-        {
-            "text": "Pipeline compiles successfully into a valid KFP v2 YAML workflow",
-            "passed": is_success,
-            "evidence": stdout.strip() if is_success else stderr.strip()
-        },
-        {
-            "text": "Compiled YAML artifact generated successfully",
-            "passed": yaml_exists,
-            "evidence": f"Found artifact {expected_yaml} ({os.path.getsize(expected_yaml)} bytes)" if yaml_exists else "YAML artifact missing"
-        }
-    ]
+    assertions = [{
+        "text":
+            "Pipeline file exists on disk",
+        "passed":
+            os.path.exists(pipeline_path),
+        "evidence":
+            f"Found pipeline file at {pipeline_path}"
+            if os.path.exists(pipeline_path) else "File missing"
+    }, {
+        "text":
+            "Pipeline compiles successfully into a valid KFP v2 YAML workflow",
+        "passed":
+            is_success,
+        "evidence":
+            stdout.strip() if is_success else stderr.strip()
+    }, {
+        "text":
+            "Compiled YAML artifact generated successfully",
+        "passed":
+            yaml_exists,
+        "evidence":
+            f"Found artifact {expected_yaml} ({os.path.getsize(expected_yaml)} bytes)"
+            if yaml_exists else "YAML artifact missing"
+    }]
 
     if args.run_e2e:
         assertions.append({
@@ -325,15 +353,16 @@ def main():
         json.dump(grading_data, f, indent=2)
     print(f"[✓] Saved grading scorecard to {grading_path}")
     if os.path.basename(output_dir) == "outputs":
-        parent_grading_path = os.path.join(os.path.dirname(output_dir), "grading.json")
+        parent_grading_path = os.path.join(
+            os.path.dirname(output_dir), "grading.json")
         with open(parent_grading_path, "w") as f:
             json.dump(grading_data, f, indent=2)
         print(f"[✓] Saved grading scorecard to {parent_grading_path}")
-    
+
     if not is_success or (args.run_e2e and not backend_passed):
         sys.exit(1)
     sys.exit(0)
-    
+
+
 if __name__ == "__main__":
     main()
-
