@@ -17,10 +17,12 @@ required."""
 from collections.abc import Iterator
 import csv
 import json
+import os
 from pathlib import Path
 from typing import Any
 from unittest import mock
 
+from artifact_previews import artifact_preview_disabled_pipeline
 from artifact_previews import artifact_preview_formats_pipeline
 from artifact_previews import artifact_preview_list_pipeline
 from artifact_previews import artifact_preview_pipeline
@@ -30,6 +32,7 @@ from artifact_previews import create_preview_artifacts
 from kfp import compiler
 from kfp import dsl
 from kfp.dsl import _artifact_preview
+from kfp.dsl import constants
 from kfp.dsl import executor
 import numpy as np
 import pyarrow as pa
@@ -47,11 +50,9 @@ from transformers import BertForSequenceClassification
 
 
 @pytest.fixture(autouse=True)
-def enabled_deployment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise producers under an explicitly enabled deployment policy."""
-    policy = tmp_path / 'artifactPreviewsEnabled'
-    policy.write_text('true')
-    monkeypatch.setattr(_artifact_preview, '_DEPLOYMENT_CONFIG_PATH', policy)
+def default_pipeline_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise the default without inheriting an enclosing task's opt-out."""
+    monkeypatch.delenv(constants.ARTIFACT_PREVIEWS_ENV_VAR, raising=False)
 
 
 def produce(
@@ -174,18 +175,25 @@ def test_model_summary_and_predictions_survive_native_io(
     assert 'weights' not in preview
 
 
-@pytest.mark.parametrize('control', ['component', 'deployment'])
+@pytest.mark.parametrize('control', ['component', 'pipeline'])
 def test_disabling_previews_preserves_dataset_and_model_outputs(
     tmp_path: Path,
     control: str,
 ) -> None:
     enabled_dataset, enabled_model = produce(tmp_path / 'enabled')
     with mock.patch.object(_artifact_preview, '_parquet_preview') as sample:
-        if control == 'deployment':
-            policy = tmp_path / 'artifactPreviewsEnabled'
-            policy.write_text('false')
-            with mock.patch.object(_artifact_preview, '_DEPLOYMENT_CONFIG_PATH',
-                                   policy):
+        if control == 'pipeline':
+            package = tmp_path / 'disabled.yaml'
+            compiler.Compiler().compile(artifact_preview_disabled_pipeline,
+                                        str(package))
+            specification = yaml.safe_load(package.read_text())
+            container = next(
+                iter(specification['deploymentSpec']
+                     ['executors'].values()))['container']
+            environment = {
+                item['name']: item['value'] for item in container['env']
+            }
+            with mock.patch.dict(os.environ, environment):
                 dataset, model = produce(tmp_path / 'disabled')
         else:
             dataset, model = produce(
@@ -636,21 +644,17 @@ def test_transformers_sharded_safetensors_need_no_weight_reads(
     assert load_preview(artifact)['framework']['name'] == 'transformers'
 
 
-@pytest.mark.parametrize('policy', [None, 'false'])
+@pytest.mark.parametrize('enabled', [True, False])
 @pytest.mark.parametrize('framework', ['pytorch', 'transformers'])
-def test_new_models_require_deployment_opt_in(tmp_path: Path,
-                                              policy: str | None,
-                                              framework: str) -> None:
-    setting = tmp_path / 'artifactPreviewsEnabled'
-    if policy is None:
-        setting.unlink()
-    else:
-        setting.write_text(policy)
+def test_pipeline_policy_controls_model_previews(tmp_path: Path, enabled: bool,
+                                                 framework: str) -> None:
     original = torch.save
-    artifact = execute_sample(tmp_path, 'Model', framework=framework)
+    policy = {} if enabled else {constants.ARTIFACT_PREVIEWS_ENV_VAR: 'false'}
+    with mock.patch.dict(os.environ, policy):
+        artifact = execute_sample(tmp_path, 'Model', framework=framework)
     assert torch.save is original
-    assert '_kfp_preview' not in artifact.metadata
-    assert not (Path(artifact.path) / 'preview.json').exists()
+    assert ('_kfp_preview' in artifact.metadata) is enabled
+    assert (Path(artifact.path) / 'preview.json').exists() is enabled
     assert any(Path(artifact.path).iterdir())
 
 

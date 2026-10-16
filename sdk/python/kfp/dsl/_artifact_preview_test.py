@@ -25,6 +25,7 @@ from unittest import mock
 
 from kfp import dsl
 from kfp.dsl import _artifact_preview as previews
+from kfp.dsl import constants
 from kfp.dsl import executor
 from kfp.dsl import executor_main
 
@@ -116,12 +117,10 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.policy = self.root / 'artifactPreviewsEnabled'
-        self.policy.write_text('true')
-        policy_path = mock.patch.object(previews, '_DEPLOYMENT_CONFIG_PATH',
-                                        self.policy)
-        policy_path.start()
-        self.addCleanup(policy_path.stop)
+        environment = mock.patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+        os.environ.pop(constants.ARTIFACT_PREVIEWS_ENV_VAR, None)
         self.model = dsl.Model(uri=str(self.root / 'model'))
         Path(self.model.path).mkdir()
         self.import_module = mock.patch.object(
@@ -170,22 +169,20 @@ class ArtifactPreviewTest(unittest.TestCase):
                          b'native-model')
         self.assertFalse((Path(self.model.path) / 'preview.json').exists())
 
-    def test_deployment_policy_requires_explicit_enablement(self) -> None:
-        self.policy.unlink()
-        self.assertFalse(previews._deployment_allows_previews())
+    def test_pipeline_previews_are_enabled_by_default(self) -> None:
+        self.assertTrue(previews._pipeline_allows_previews())
         for value, enabled in (('true', True), ('false', False),
                                (' TRUE\n', True), (' False\n', False)):
             with self.subTest(value=value):
-                self.policy.write_text(value)
-                self.assertEqual(previews._deployment_allows_previews(),
-                                 enabled)
+                os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = value
+                self.assertEqual(previews._pipeline_allows_previews(), enabled)
 
     def test_invalid_policy_disables_previews_without_framework_imports(
             self) -> None:
         original = FakeEstimator.save_model
-        for value in (b'', b'yes', b'0', b'1', b'invalid', b'\xff'):
+        for value in ('', 'yes', '0', '1', 'invalid'):
             with self.subTest(value=value):
-                self.policy.write_bytes(value)
+                os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = value
                 with mock.patch.object(previews.importlib,
                                        'import_module') as imported:
                     with self.assertLogs(previews.__name__, level='WARNING'):
@@ -198,17 +195,20 @@ class ArtifactPreviewTest(unittest.TestCase):
                     (Path(self.model.path) / 'preview.json').exists())
                 self.assertEqual(self.model.metadata, {})
 
-    def test_unreadable_policy_disables_previews_with_a_warning(self) -> None:
+    def test_previews_do_not_read_deployment_configuration(self) -> None:
         with mock.patch.object(
-                Path, 'read_text', side_effect=PermissionError('denied')):
-            with self.assertLogs(
-                    previews.__name__, level='WARNING') as messages:
-                self.assertFalse(previews._deployment_allows_previews())
-        self.assertIn('cannot read', '\n'.join(messages.output))
+                Path,
+                'read_text',
+                side_effect=AssertionError('No deployment configuration read')):
+            self.assertTrue(previews._pipeline_allows_previews())
+            with previews.ArtifactPreviewSession({'model': self.model
+                                                 }) as session:
+                FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
+                session.generate()
+        self.assertIn('_kfp_preview', self.model.metadata)
 
-    def test_missing_deployment_opt_in_overrides_component_enablement(
-            self) -> None:
-        self.policy.unlink()
+    def test_pipeline_opt_out_overrides_component_enablement(self) -> None:
+        os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = 'false'
         dataset = dsl.Dataset(uri=str(self.root / 'dataset'))
         original = FakeEstimator.save_model
 
@@ -238,26 +238,24 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertEqual((Path(self.model.path) / 'model.ubj').read_bytes(),
                          b'native-model')
 
-    def test_deployment_opt_out_during_execution_stops_publication(
-            self) -> None:
+    def test_pipeline_opt_out_is_checked_before_publication(self) -> None:
         original = FakeEstimator.save_model
         with previews.ArtifactPreviewSession({'model': self.model}) as session:
             FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
             self.assertIn('model', session.models)
-            self.policy.write_text('false')
+            os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = 'false'
             session.generate()
         self.assertIs(FakeEstimator.save_model, original)
         self.assertEqual(self.model.metadata, {})
         self.assertFalse((Path(self.model.path) / 'preview.json').exists())
 
-    def test_deployment_opt_out_does_not_remove_published_previews(
-            self) -> None:
+    def test_pipeline_opt_out_does_not_remove_published_previews(self) -> None:
         with previews.ArtifactPreviewSession({'model': self.model}) as session:
             FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
             session.generate()
         content = (Path(self.model.path) / 'preview.json').read_bytes()
         descriptor = dict(self.model.metadata['_kfp_preview'])
-        self.policy.write_text('false')
+        os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = 'false'
         with previews.ArtifactPreviewSession({'model': self.model}) as session:
             session.generate()
         self.assertEqual((Path(self.model.path) / 'preview.json').read_bytes(),
@@ -734,7 +732,9 @@ class ArtifactPreviewTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '64 KiB'):
             previews._transformers_preview(Path(self.model.path))
         path.unlink()
-        path.symlink_to(self.policy)
+        external_config = self.root / 'external-config.json'
+        external_config.write_text('{}')
+        path.symlink_to(external_config)
         with self.assertRaisesRegex(ValueError, 'regular file'):
             previews._transformers_preview(Path(self.model.path))
 

@@ -13,6 +13,9 @@
 # limitations under the License.
 """Constants."""
 
+# Internal task setting emitted by PipelineConfig, not an installation policy.
+ARTIFACT_PREVIEWS_ENV_VAR = 'KFP_ARTIFACT_PREVIEWS'
+
 # Workspace-related constants
 WORKSPACE_MOUNT_PATH = '/kfp-workspace'
 

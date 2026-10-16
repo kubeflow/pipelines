@@ -56,7 +56,7 @@ def executor_main():
         action='store_true',
         default=True,
         help='Allow bounded previews for supported directory artifacts. '
-        'Generation requires deployment-level opt-in.')
+        'Enabled by default unless the pipeline disables generation.')
     preview_options.add_argument(
         '--disable_artifact_previews',
         dest='artifact_previews',

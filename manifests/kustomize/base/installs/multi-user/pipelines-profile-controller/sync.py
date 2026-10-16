@@ -20,7 +20,6 @@ from http.server import ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
-from typing import Any
 
 try:
     import botocore.session
@@ -39,11 +38,11 @@ DRIVER_AGENT_CA_SECRET_NAME = 'argo-workflows-agent-ca-certificates'
 # Metacontroller records each returned attachment in this annotation and
 # three-way merges against it on the next sync.
 LAST_APPLIED_ANNOTATION = 'metacontroller.k8s.io/last-applied-configuration'
-# Metadata worth echoing back for attachments with externally managed fields.
+# Metadata worth echoing back for a Secret this controller does not rewrite.
 # Server- and Metacontroller-owned fields such as resourceVersion, uid, and
 # ownerReferences change on every write, so returning them would alter the
-# last-applied annotation each cycle and reconcile InPlace attachments forever.
-PRESERVED_ATTACHMENT_METADATA = ('name', 'namespace', 'labels', 'annotations')
+# last-applied annotation each cycle and reconcile InPlace Secrets forever.
+PRESERVED_SECRET_METADATA = ('name', 'namespace', 'labels', 'annotations')
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -53,22 +52,22 @@ s3 = session.create_client(
     's3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
-def preserved_attachment(observed: dict[str, Any]) -> dict[str, Any]:
-    """Retain observed data and intentional metadata without reconciliation
-    bookkeeping or volatile API-server fields."""
-    resource = copy.deepcopy(observed)
-    metadata = resource.get('metadata', {})
-    resource['metadata'] = {
+def preserved_secret(observed):
+    """Desired state for an observed Secret that only external controllers
+    populate: its data and intentional metadata, without volatile fields."""
+    secret = copy.deepcopy(observed)
+    metadata = secret.get('metadata', {})
+    secret['metadata'] = {
         key: metadata[key]
-        for key in PRESERVED_ATTACHMENT_METADATA
+        for key in PRESERVED_SECRET_METADATA
         if key in metadata
     }
-    annotations = resource['metadata'].get('annotations')
+    annotations = secret['metadata'].get('annotations')
     if annotations is not None:
         annotations.pop(LAST_APPLIED_ANNOTATION, None)
         if not annotations:
-            del resource['metadata']['annotations']
-    return resource
+            del secret['metadata']['annotations']
+    return secret
 
 
 def _normalize_domain(domain):
@@ -165,7 +164,6 @@ def get_settings_from_env(controller_port=None,
                           object_store_host=None,
                           http_base_url=None,
                           driver_agent_ca_cert_path=None,
-                          artifact_previews_enabled: str | None = None,
                           user_id_header: str | None = None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
@@ -219,10 +217,6 @@ def get_settings_from_env(controller_port=None,
         driver_agent_ca_cert_path if driver_agent_ca_cert_path is not None \
             else os.environ.get("DRIVER_AGENT_CA_CERT_PATH", "")
 
-    settings["artifact_previews_enabled"] = \
-        artifact_previews_enabled if artifact_previews_enabled is not None \
-            else os.environ.get("ARTIFACT_PREVIEWS_ENABLED", "false")
-
     settings["user_id_header"] = \
         user_id_header if user_id_header is not None \
             else os.environ.get("USERID_HEADER")
@@ -255,7 +249,6 @@ def server_factory(frontend_image,
                    controller_port=8080,
                    http_base_url="",
                    driver_agent_ca_cert_path="",
-                   artifact_previews_enabled: str = "false",
                    user_id_header: str | None = None):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
@@ -560,8 +553,6 @@ def server_factory(frontend_image,
                             f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
                         "clusterDomain":
                             cluster_domain,
-                        "artifactPreviewsEnabled":
-                            artifact_previews_enabled,
                     },
                 },
                 {
@@ -784,22 +775,17 @@ def server_factory(frontend_image,
                         },
                     })
 
-            # Preserve namespace-managed storage settings and credentials.
-            # Only the preview policy and CA are controlled by the installation.
+            # Only the CA rotates in place; retain observed credentials and
+            # service-account tokens, including controller-populated fields,
+            # but not the volatile metadata that would never converge.
             for index, resource in enumerate(desired_resources):
                 name = resource["metadata"]["name"]
-                kind = resource["kind"]
-                if (kind in ("Secret", "ConfigMap") and
+                if (resource["kind"] == "Secret" and
                         name != DRIVER_AGENT_CA_SECRET_NAME):
-                    existing = attachments[f"{kind}.v1"].get(
+                    existing = attachments["Secret.v1"].get(
                         f"{namespace}/{name}")
                     if existing:
-                        preserved = preserved_attachment(existing)
-                        if kind == "ConfigMap" and name == "kfp-launcher":
-                            preserved.setdefault(
-                                "data", {})["artifactPreviewsEnabled"] = \
-                                    artifact_previews_enabled
-                        desired_resources[index] = preserved
+                        desired_resources[index] = preserved_secret(existing)
 
             return {"status": desired_status, "attachments": desired_resources}
 

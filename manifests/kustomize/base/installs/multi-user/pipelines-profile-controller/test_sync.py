@@ -337,8 +337,7 @@ def metacontroller_merge(destination, last_applied, desired):
     """Port of dynamicapply.merge from Metacontroller v4.16.2: apply the diff
     from last_applied to desired onto destination.
 
-    ConfigMaps and Secrets hold no data lists, so lists take the desired
-    value.
+    Secrets hold no lists, so lists take the desired value.
     """
     if isinstance(destination, dict):
         last_applied = last_applied or {}
@@ -375,7 +374,7 @@ def metacontroller_apply_update(observed, desired):
 
 
 def metacontroller_create(desired, resource_versions):
-    """A resource as the API server stores it after Metacontroller creates it:
+    """A Secret as the API server stores it after Metacontroller creates it:
     the last-applied annotation, the controller ownerReference, and the
     system metadata that observed attachments carry."""
     stored = copy.deepcopy(desired)
@@ -398,8 +397,7 @@ def metacontroller_create(desired, resource_versions):
         }],
         "resourceVersion": str(next(resource_versions)),
     })
-    if stored["kind"] == "Secret":
-        stored.setdefault("type", "Opaque")
+    stored.setdefault("type", "Opaque")
     return stored
 
 
@@ -520,61 +518,17 @@ def test_driver_agent_ca_cert_path_default_and_override():
             driver_agent_ca_cert_path="")["driver_agent_ca_cert_path"] == ""
 
 
-@pytest.mark.parametrize(
-    "sync_server, expected",
-    [
-        (ENV_BASE, "false"),
-        ({
-            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": "false"
-        }, "false"),
-        ({
-            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": "true"
-        }, "true"),
-        ({
-            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": ""
-        }, ""),
-        ({
-            **ENV_BASE, "ARTIFACT_PREVIEWS_ENABLED": "invalid"
-        }, "invalid"),
-    ],
-    indirect=["sync_server"],
-)
-def test_artifact_preview_policy_reaches_each_profile(sync_server,
-                                                      expected: str) -> None:
-    """Propagate the installation policy without replacing invalid values."""
-    for namespace in (NAMESPACE, "second-profile"):
-        parent = copy.deepcopy(PARENT)
-        parent["metadata"]["name"] = namespace
-        attachments = observed_attachments()
-        secret = copy.deepcopy(EXISTING_SECRET)
-        secret["metadata"]["namespace"] = namespace
-        attachments["Secret.v1"] = {
-            f"{namespace}/mlpipeline-minio-artifact": secret
-        }
-        result = post_sync(sync_server, parent, attachments)
-        launcher = next(item for item in result["attachments"]
-                        if item["metadata"]["name"] == "kfp-launcher")
-        assert launcher["metadata"]["namespace"] == namespace
-        assert launcher["data"]["artifactPreviewsEnabled"] == expected
-        assert namespace in launcher["data"]["defaultPipelineRoot"]
-
-
-def test_artifact_preview_policy_is_sourced_from_installation_config() -> None:
-    """Keep the controller source aligned with the mounted runtime setting."""
+def test_artifact_identity_is_sourced_from_installation_config() -> None:
+    """Forward identity without introducing a deployment-level preview
+    policy."""
     directory = Path(__file__).parent
     deployment = yaml.safe_load((directory / "deployment.yaml").read_text())
     launcher = yaml.safe_load((directory.parents[2] / "pipeline" /
                                "kfp-launcher-configmap.yaml").read_text())
-    assert launcher["data"]["artifactPreviewsEnabled"] == "false"
+    assert "artifactPreviewsEnabled" not in launcher["data"]
     environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
-    setting = next(item for item in environment
-                   if item["name"] == "ARTIFACT_PREVIEWS_ENABLED")
-    assert setting["valueFrom"]["configMapKeyRef"] == {
-        "name": launcher["metadata"]["name"],
-        "key": "artifactPreviewsEnabled",
-        "optional": True,
-    }
-
+    assert not any(
+        item["name"] == "ARTIFACT_PREVIEWS_ENABLED" for item in environment)
     identity = next(
         item for item in environment if item["name"] == "USERID_HEADER")
     assert identity["valueFrom"]["configMapKeyRef"] == {
@@ -582,105 +536,6 @@ def test_artifact_preview_policy_is_sourced_from_installation_config() -> None:
         "key": "USERID_HEADER",
         "optional": True,
     }
-
-
-@pytest.mark.parametrize("previous_policy, policy", [
-    (None, "true"),
-    ("false", "true"),
-    ("true", "false"),
-    ("true", None),
-    ("true", ""),
-    ("true", "invalid"),
-])
-def test_existing_profile_preview_policy_reconciles_without_storage_changes(
-        start_sync_server, previous_policy: str | None,
-        policy: str | None) -> None:
-    """Apply enablement and disablement without overwriting profile-owned
-    data."""
-    controller = yaml.safe_load(
-        Path(sync.__file__).with_name("decorator-controller.yaml").read_text())
-    configmap_rules = [
-        rule for rule in controller["spec"]["attachments"]
-        if rule["resource"] == "configmaps"
-    ]
-    assert len(configmap_rules) == 1
-    assert configmap_rules[0]["updateStrategy"]["method"] == "InPlace"
-    with mock.patch.dict(os.environ, ENV_BASE, clear=True):
-        server = start_sync_server(**get_settings_from_env(
-            artifact_previews_enabled=policy))
-    observed = observed_attachments()
-    initial = post_sync(server, PARENT, observed)
-    versions = itertools.count(1)
-    for resource in initial["attachments"]:
-        if resource["kind"] != "ConfigMap":
-            continue
-        if resource["metadata"]["name"] == "kfp-launcher":
-            if previous_policy is None:
-                resource["data"].pop("artifactPreviewsEnabled")
-            else:
-                resource["data"]["artifactPreviewsEnabled"] = previous_policy
-        key = f"{NAMESPACE}/{resource['metadata']['name']}"
-        observed["ConfigMap.v1"][key] = metacontroller_create(
-            resource, versions)
-    launcher = observed["ConfigMap.v1"][f"{NAMESPACE}/kfp-launcher"]
-    repositories = observed["ConfigMap.v1"][
-        f"{NAMESPACE}/artifact-repositories"]
-    launcher["data"].update({
-        "defaultPipelineRoot":
-            "s3://tenant-bucket/custom-root",
-        "providers":
-            '{"s3":{"default":{"fromEnv":false,"secretName":"tenant-store"}}}',
-        "custom-setting":
-            "retain",
-    })
-    del launcher["data"]["clusterDomain"]
-    repositories["data"] = {
-        "tenant-repository": '{"s3":{"bucket":"tenant-logs"}}'
-    }
-    repositories["metadata"]["annotations"][
-        "workflows.argoproj.io/default-artifact-repository"] = "tenant-repository"
-    for configmap in observed["ConfigMap.v1"].values():
-        configmap["metadata"]["labels"] = {"tenant-customization": "retain"}
-        configmap["metadata"]["annotations"]["tenant-annotation"] = "retain"
-        configmap["binaryData"] = {"tenant-data": "cmV0YWlu"}
-    original = copy.deepcopy(observed["ConfigMap.v1"])
-
-    def reconcile() -> int:
-        """Apply one real hook response with Metacontroller's three-way
-        merge."""
-        writes = 0
-        result = post_sync(server, PARENT, observed)
-        for desired in result["attachments"]:
-            if desired["kind"] != "ConfigMap":
-                continue
-            key = f"{NAMESPACE}/{desired['metadata']['name']}"
-            assert not set(desired["metadata"]) & (
-                set(METACONTROLLER_SYSTEM_FIELDS) | {"ownerReferences"})
-            assert sync.LAST_APPLIED_ANNOTATION not in desired["metadata"].get(
-                "annotations", {})
-            current = observed["ConfigMap.v1"][key]
-            updated = metacontroller_apply_update(current, desired)
-            if updated != current:
-                updated["metadata"]["resourceVersion"] = str(next(versions))
-                observed["ConfigMap.v1"][key] = updated
-                writes += 1
-        return writes
-
-    assert reconcile() >= 1
-    for key, current in observed["ConfigMap.v1"].items():
-        expected_data = copy.deepcopy(original[key]["data"])
-        if current["metadata"]["name"] == "kfp-launcher":
-            expected_data["artifactPreviewsEnabled"] = (
-                policy if policy is not None else "false")
-        assert current["data"] == expected_data
-        assert current["binaryData"] == original[key]["binaryData"]
-        assert current["metadata"]["labels"] == original[key]["metadata"][
-            "labels"]
-        for name, value in original[key]["metadata"]["annotations"].items():
-            if name != sync.LAST_APPLIED_ANNOTATION:
-                assert current["metadata"]["annotations"][name] == value
-    for _ in range(3):
-        assert reconcile() == 0, observed["ConfigMap.v1"]
 
 
 def test_user_id_header_default_and_override() -> None:

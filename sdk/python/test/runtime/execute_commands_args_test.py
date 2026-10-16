@@ -21,6 +21,9 @@ import subprocess
 import sys
 from typing import Any, Dict
 
+from kfp import compiler
+from kfp import dsl
+from kfp.dsl import constants
 import pytest
 import yaml
 
@@ -155,7 +158,12 @@ def run_commands_and_args(
     return subprocess.run(
         command_and_args,
         cwd=temp_dir,
-        env=environment,
+        env={
+            **environment,
+            **{
+                item['name']: item['value'] for item in container.get('env', [])
+            }
+        },
         capture_output=True,
         text=True,
     )
@@ -258,7 +266,7 @@ class TestRuntime:
         self.environment = {
             key: value for key, value in os.environ.items() if key not in {
                 'PYTHONPATH', 'PYTHONHOME', 'PIP_TARGET', 'PIP_PREFIX',
-                'PIP_USER'
+                'PIP_USER', constants.ARTIFACT_PREVIEWS_ENV_VAR
             }
         }
         self.environment.update({
@@ -312,6 +320,67 @@ print(json.dumps({
             config.executor_input['outputs']['outputFile'].replace(
                 '/gcs/', f'{self.temp_dir}/'))
         assert output_file.is_file()
+        installation = self.get_installation()
+        assert installation['origin']['url'] == self.wheel.as_uri()
+        assert set(installation['packages']) == self.seed_packages | {'kfp'}
+
+    @pytest.mark.parametrize('pipeline_enabled', [True, False])
+    @pytest.mark.parametrize('component_enabled', [True, False])
+    def test_compiled_artifact_preview_policy(self, pipeline_enabled: bool,
+                                              component_enabled: bool) -> None:
+        """Execute the actual compiled policy with only the installed SDK
+        wheel."""
+
+        @dsl.component(
+            base_image='python:3.11', artifact_previews=component_enabled)
+        def produce(dataset: dsl.Output[dsl.Dataset]) -> None:
+            from pathlib import Path
+
+            directory = Path(dataset.path)
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / 'data.csv').write_text('value\n1\n')
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                artifact_previews=pipeline_enabled))
+        def pipeline() -> None:
+            produce()
+
+        package = self.temp_dir / 'preview-policy.yaml'
+        compiler.Compiler().compile(pipeline, str(package))
+        dataset = self.temp_dir / 'dataset'
+        output_file = self.temp_dir / 'executor_output.json'
+        config = RuntimeTestConfig(
+            pipeline_file_relpath=str(package),
+            executor_name='exec-produce',
+            executor_input={
+                'inputs': {},
+                'outputs': {
+                    'artifacts': {
+                        'dataset': {
+                            'artifacts': [{
+                                'uri': str(dataset),
+                                'type': {
+                                    'schemaTitle': 'system.Dataset'
+                                },
+                            }],
+                        },
+                    },
+                    'outputFile': str(output_file),
+                },
+            })
+        process = run_commands_and_args(config, self.temp_dir, self.wheel,
+                                        self.environment)
+        assert process.returncode == 0, process.stderr
+        assert (dataset / 'data.csv').read_text() == 'value\n1\n'
+        metadata = json.loads(output_file.read_text(
+        ))['artifacts']['dataset']['artifacts'][0]['metadata']
+        enabled = pipeline_enabled and component_enabled
+        assert ('_kfp_preview' in metadata) is enabled
+        assert (dataset / 'preview.json').exists() is enabled
+        if enabled:
+            assert json.loads(
+                (dataset / 'preview.json').read_text())['rows'] == [['1']]
         installation = self.get_installation()
         assert installation['origin']['url'] == self.wheel.as_uri()
         assert set(installation['packages']) == self.seed_packages | {'kfp'}
