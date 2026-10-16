@@ -46,7 +46,9 @@ the informational label.
 | Fresh complete CI for an open PR without the explicit hold | Recover to success | Same reconciliation path for all events |
 
 Publishing a commit status is not atomic with PR or CI updates. Tide must still
-reject pending/failing constituent contexts and honor strict branch protection.
+reject pending/failing constituent contexts. The deployed Tide required context
+is not strict branch protection; base-freshness enforcement remains in this
+publisher until replacement merge controls are deployed and verified.
 In particular, GitHub does not emit `workflow_run: requested` for reruns: do not
 claim immediate queued-rerun protection from this publisher alone. Verify that
 the deployed Tide configuration blocks that window before making the status
@@ -104,8 +106,9 @@ merges, update PR branches to include that base policy and trigger fresh upgrade
 coverage. A successful status records a bounded fingerprint of its validated
 base branch and SHA. Scheduled recovery revisits older successes without that
 stamp and successes for a different base branch or SHA; publication also rechecks
-the base before and after writing success. Branch
-protection must continue to require an up-to-date base as described above.
+the base before and after writing success. Base
+freshness remains enforced by the publisher; the deployed Tide context alone
+does not prove that the combined PR/base tree was tested.
 
 When changing workflow names, event triggers, or the checked-in upgrade pause,
 regenerate the inventory:
@@ -229,18 +232,37 @@ actual failure.
 
 The coordinated infrastructure change is
 [GoogleCloudPlatform/oss-test-infra#2674](https://github.com/GoogleCloudPlatform/oss-test-infra/pull/2674).
-It scopes required `ci-passed` protection to `master`, preserves strict protection,
-adds `needs-ok-to-test` exclusions to overlapping Tide queries, and makes Tide
-honor GitHub's blocked state. Release branches keep their existing requirements;
-requiring `ci-passed` before their publisher is upgraded would block releases.
-The infrastructure PR needs its own maintainer testing, review, and approval.
+Its [deployed rollout record](https://github.com/GoogleCloudPlatform/oss-test-infra/pull/2674#issuecomment-5991337150)
+requires `ci-passed` through Tide for `master` and explicitly describes the
+context as non-strict. The inactive branch-protection configuration was removed;
+it did not deploy strict GitHub protection or make Tide honor GitHub's blocked
+state. Release branches retain their existing requirements. The current rollout
+relies on this publisher's base-SHA binding and revalidation, with push revocation
+and the scheduled sweep narrowing the stale-green window.
 
-Inspect live GitHub protection and deployed Tide behavior; configuration in a PR
-or in the Prow repository is not evidence that protection was applied. Verify
-`master` requires `ci-passed` with `strict: true`, existing required checks retain
-their app bindings, release protections remain unchanged, and pending/failing
-constituent contexts and queued reruns block merges. Do not claim the external
-Tide rollout complete until its deployed effect is verified.
+Do not remove the workflow execution cutoff, base stamp, push revocation, or
+scheduled stale-base recovery merely because all current-head checks pass. Once
+one PR merges, another PR's earlier success does not establish that their combined
+tree works. Rerunning an old Actions execution retains its original checkout SHA
+and cannot establish fresh integration evidence.
+
+Preserving success across base advances requires a coordinated replacement:
+
+1. Deploy strict protection that the actual merge path honors, or a merge queue
+   that requires successful CI for its synthetic merge commit. Repository
+   workflow changes alone do not deploy either control.
+2. Verify live configuration and behavior with two competing PRs: after the first
+   merges, the second must be blocked until its combined tree has passed the
+   required checks. Verify that a failing or missing synthetic-merge check blocks
+   merging and that later base changes invalidate that evidence again.
+3. Record the configuration, execution evidence, and maintainer sign-off in the
+   infrastructure rollout. Only then change the publisher guards in a coordinated
+   follow-up, keeping the replacement protection active throughout rollout and
+   rollback.
+
+Configuration proposed in a PR is not evidence of deployed enforcement. Until
+these checks pass, retain the existing freshness guards even when they require a
+new PR head and a fresh CI run after master advances.
 
 Never remove or revert a required status's publisher without coordinating the
 corresponding protection and merge policy. If rollback is needed, retain a working
