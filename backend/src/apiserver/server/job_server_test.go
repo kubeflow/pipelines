@@ -37,22 +37,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var (
-	commonApiRecurringRun = &apiv2beta1.RecurringRun{
-		DisplayName:    "job1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
-		MaxConcurrency: 1,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: timestamppb.New(time.Unix(1, 0)),
-				Cron:      "1 * * * *",
-			}},
-		},
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: &structpb.Struct{}},
-		ExperimentId:   "123e4567-e89b-12d3-a456-426655440000",
-	}
-)
-
 func createJobServer(resourceManager *resource.ResourceManager) *JobServer {
 	return &JobServer{
 		BaseJobServer: &BaseJobServer{
