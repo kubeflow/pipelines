@@ -4014,13 +4014,18 @@ s3:
         AWS_S3_ENDPOINT: 'seaweedfs.kubeflow.svc.cluster.local:9000',
         AWS_S3_PORT: '9000',
         AWS_SSL: 'false',
+        FRONTEND_SERVER_NAMESPACE: 'kubeflow',
+        ALLOWED_ARTIFACT_ENDPOINTS: 'https://seaweedfs.kubeflow.svc.cluster.local:9000',
       });
       app = new UIServer(configs);
       const request = requests(app.app);
       const providerInfo = {
         Params: {
           accessKeyKey: 'accesskey',
-          disableSSL: 'true',
+          // No admin kfp-launcher provider config exists in this test, so
+          // this providerInfo is resolved on the unmanaged-query path, which
+          // never permits disableSSL: see the next test.
+          disableSSL: 'false',
           endpoint: 'seaweedfs.kubeflow.svc.cluster.local:9000',
           fromEnv: 'false',
           region: 'us-east-1',
@@ -4044,7 +4049,7 @@ s3:
         port: 9000,
         region: 'us-east-1',
         secretKey: 'someSecret',
-        useSSL: false,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledWith(
@@ -4053,6 +4058,37 @@ s3:
         namespace,
       );
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
+    });
+
+    it('rejects disableSSL:true from providerInfo when no admin provider config permits it (kubeflow/pipelines#14046)', async () => {
+      // Independent enforcement of the same policy backend/src/v2/config/s3.go
+      // applies: disableSSL is only ever honored via an admin-configured
+      // provider override, never from a client-supplied providerInfo query.
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('someSecret');
+      const configs = loadConfigs(argv, { FRONTEND_SERVER_NAMESPACE: 'kubeflow' });
+      app = new UIServer(configs);
+      const request = requests(app.app);
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'accesskey',
+          disableSSL: 'true',
+          endpoint: 'seaweedfs.kubeflow.svc.cluster.local:9000',
+          fromEnv: 'false',
+          region: 'us-east-1',
+          secretKeyKey: 'secretkey',
+          secretName: 'mlpipeline-minio-artifact',
+        },
+        Provider: 's3',
+      };
+      const namespace = 'kubeflow';
+      await request
+        .get(
+          `/artifacts/s3/ml-pipeline/hello/world.txt?namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(400);
     });
   });
 });
