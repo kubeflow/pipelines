@@ -306,6 +306,8 @@ export class Apis {
 
   /**
    * Starts a deployment and service for TensorBoard given the logdir.
+   * The podTemplateSpec is sent via the POST body (not the URL) to avoid
+   * leaking volume credentials in server access logs.
    */
   public static startTensorboardApp({
     logdir,
@@ -318,16 +320,23 @@ export class Apis {
     image?: string;
     podTemplateSpec?: any;
   }): Promise<string> {
+    const options: RequestInit = {
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    };
+    if (podTemplateSpec) {
+      options.body = JSON.stringify({ podTemplateSpec });
+    }
+
     return this._fetch(
       `apps/tensorboard${buildQuery({
         logdir,
         namespace,
         image,
-        podtemplatespec: podTemplateSpec && JSON.stringify(podTemplateSpec),
       })}`,
       undefined,
       undefined,
-      { headers: { 'content-type': 'application/json' }, method: 'POST' },
+      options,
     );
   }
 

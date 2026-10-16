@@ -253,7 +253,17 @@ function createUIServer(options: UIConfigs) {
   );
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
-  registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
+
+  const jsonParser = express.json({ limit: '1mb' });
+  registerHandler(app.post, '/apps/tensorboard', (req, res, next) => {
+    jsonParser(req, res, (err) => {
+      if (err) {
+        return next(err);
+      }
+      tensorboardCreateHandler(req, res, next);
+    });
+  });
+
   registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
   /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
