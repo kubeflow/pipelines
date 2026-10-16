@@ -26,6 +26,6 @@
         "Uses explicit directory artifact or OutputPath type annotations for passing image and feature directories",
         "Includes Apache 2.0 license header and standard compiler entrypoint block"
       ]
-    }   
+    }
   ]
 }
