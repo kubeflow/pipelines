@@ -67,6 +67,39 @@ describe('DynamicFlow', () => {
       expect(graph[0].data?.label).toBe('parallel-loop (Loop)');
     });
 
+    it('sets the lifecycle message on a sub-DAG node and clears it on recovery', () => {
+      const subDagElement = {
+        id: 'task.inner-dag',
+        type: NodeTypeNames.SUB_DAG,
+        position: { x: 0, y: 0 },
+        data: { label: 'inner-dag' },
+      };
+      const subDagTask: V2beta1PipelineTask = {
+        task_id: 'inner-dag-task',
+        parent_task_id: rootTask.task_id,
+        name: 'inner-dag',
+        type: PipelineTaskTaskType.DAG,
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled',
+      };
+
+      const withWarning = updateFlowElementsState(
+        ['root'],
+        [subDagElement],
+        [rootTask, subDagTask],
+      );
+      expect(withWarning[0].data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycleMessage: 'OOMKilled',
+      });
+
+      const recovered = updateFlowElementsState(['root'], withWarning, [
+        rootTask,
+        { ...subDagTask, lifecycle_message: undefined },
+      ]);
+      expect((recovered[0].data as any).lifecycleMessage).toBeUndefined();
+    });
+
     it('updates task and artifact nodes from hydrated task data', () => {
       const preprocessTask: V2beta1PipelineTask = {
         task_id: 'preprocess-task',
@@ -144,6 +177,62 @@ describe('DynamicFlow', () => {
       expect(
         runtimeGraph.find((element) => element.id === 'artifact.train.model')?.data,
       ).toMatchObject({ hasArtifact: true });
+    });
+
+    it('sets the lifecycle message on a task node without changing its state', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const stuckTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      };
+
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycleMessage: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      });
+    });
+
+    it('clears the lifecycle message when the task recovers', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const stuckTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'ImagePullBackOff',
+      };
+      const withWarning = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+      const recoveredTask = { ...stuckTask, lifecycle_message: undefined };
+
+      const recovered = updateFlowElementsState(['root'], withWarning, [rootTask, recoveredTask]);
+
+      expect(
+        (recovered.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleMessage,
+      ).toBeUndefined();
+    });
+
+    it('does not set a lifecycle message on a task that finished successfully', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const doneTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        lifecycle_message: 'ImagePullBackOff',
+      };
+
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, doneTask]);
+
+      expect(
+        (runtimeGraph.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleMessage,
+      ).toBeUndefined();
     });
 
     it('does not preserve React Flow hidden flags when applying task state', () => {

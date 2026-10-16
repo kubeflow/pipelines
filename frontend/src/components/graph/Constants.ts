@@ -27,6 +27,8 @@ export type SubDagTaskData = FlowElementDataBase & {
   groupKind?: SubDagKind;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the driver pod, same semantics as on execution nodes.
+  lifecycleMessage?: string;
 };
 
 export type SubDagFlowElementData = SubDagTaskData & {
@@ -36,6 +38,9 @@ export type SubDagFlowElementData = SubDagTaskData & {
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the execution engine. Set only while the task has an
+  // unresolved problem such as ImagePullBackOff, and cleared when the task recovers.
+  lifecycleMessage?: string;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {

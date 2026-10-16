@@ -19,6 +19,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ReactElement } from 'react';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import StopCircle from 'src/icons/StopCircle';
@@ -35,7 +36,10 @@ export interface ExecutionNodeProps {
 }
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
-  let icon = getIcon(data.state);
+  // A lifecycle message is a warning, not a failure: the node only turns red once the
+  // task itself is FAILED, so the failed icon takes precedence over the warning.
+  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  let icon = showWarning ? getWarningIcon() : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
@@ -109,6 +113,13 @@ export function getIcon(state: PipelineTaskTaskState | undefined) {
       console.error('Unknown exeuction state: ' + state);
       return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
   }
+}
+
+export function getWarningIcon() {
+  return getStateIconWrapper(
+    <WarningAmberIcon className='text-mui-yellow-800' />,
+    'bg-mui-yellow-100',
+  );
 }
 
 function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {

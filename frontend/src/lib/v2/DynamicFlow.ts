@@ -40,7 +40,7 @@ import {
   NodeTypeNames,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
-import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
 import {
   formatRuntimeIterationLayer,
   isRuntimeIterationLayer,
@@ -216,6 +216,8 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      // Always assign so the warning clears when the message is cleared on recovery.
+      data.lifecycleMessage = getTaskLifecycleMessage(runtimeInfo.task);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = getRuntimeTaskState(
@@ -225,6 +227,7 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      data.lifecycleMessage = getTaskLifecycleMessage(runtimeInfo.task);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
       data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
