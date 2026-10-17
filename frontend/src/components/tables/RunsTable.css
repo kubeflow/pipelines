@@ -21,7 +21,7 @@
 }
 .kfp-theme .kfp-runs-tabs a {
   flex-shrink: 0;
-  padding: 9px 12px;
+  padding: 7px 12px;
   border-bottom: 2px solid transparent;
   color: var(--muted-foreground);
   font-weight: 500;
@@ -38,8 +38,8 @@
   align-items: center;
   gap: var(--kfp-control-gap, 12px);
   flex-wrap: wrap;
-  min-height: 64px;
-  padding: 12px 0;
+  min-height: 48px;
+  padding: 6px 0;
 }
 .kfp-theme .kfp-collection-search {
   position: relative;
@@ -91,7 +91,7 @@
   text-align: left;
 }
 .kfp-theme .kfp-runs-table th {
-  padding: 10px 16px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--border);
   color: var(--muted-foreground);
   font-size: 12px;
@@ -109,8 +109,8 @@
   cursor: pointer;
 }
 .kfp-theme .kfp-runs-table td {
-  height: 48px;
-  padding: 10px 16px;
+  height: 40px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--border);
   color: var(--foreground-2);
   vertical-align: middle;
@@ -223,8 +223,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 56px;
-  padding: 8px 16px;
+  min-height: 44px;
+  padding: 6px 12px;
   border-top: 1px solid var(--border);
   color: var(--muted-foreground);
   font-size: 12px;
@@ -293,7 +293,7 @@
   height: 40px;
 }
 .kfp-theme .kfp-runs-data-table .kfp-runs-table tbody tr[data-row-id] {
-  height: 48px;
+  height: 40px;
 }
 .kfp-theme .kfp-runs-data-table .kfp-runs-name {
   min-width: 0;
