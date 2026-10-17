@@ -350,37 +350,12 @@
   justify-content: center;
   margin-bottom: 8px;
 }
-.kfp-theme .kfp-shell-appearance-settings {
-  width: 100%;
-  padding: 0 8px;
-}
-.kfp-theme .kfp-shell-appearance-heading,
 .kfp-theme .kfp-shell-dark-mode {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-.kfp-theme .kfp-shell-appearance-heading {
-  color: var(--muted-foreground);
-  font-size: 11px;
-}
-.kfp-theme .kfp-shell-appearance-heading button {
-  width: 28px;
-  height: 28px;
-  margin-right: -4px;
-}
-.kfp-theme .kfp-shell-dark-mode {
+  gap: 8px;
   min-height: 32px;
-  color: var(--foreground);
-  font-size: 13px;
-}
-.kfp-theme .kfp-shell-dark-mode label {
-  cursor: pointer;
-}
-.kfp-theme .kfp-shell-device-hint {
-  min-height: 16px;
   color: var(--muted-foreground);
-  font-size: 11px;
 }
 .kfp-theme .kfp-shell-theme-trigger {
   width: 40px;

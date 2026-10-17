@@ -191,16 +191,10 @@ describe('AppShell', () => {
     view.unmount();
     renderShell();
     expect(screen.getByRole('switch', { name: 'Dark mode' })).toBeChecked();
-    await userEvent.click(screen.getByRole('button', { name: 'Appearance options' }));
-    await userEvent.click(
-      await screen.findByRole('menuitemcheckbox', { name: 'Use device setting' }),
-    );
-    expect(localStorage.getItem('kfp.theme')).toBe('system');
-    expect(screen.getByText('Following device')).toBeVisible();
-    expect(screen.getByRole('switch', { name: 'Dark mode' })).not.toBeChecked();
     await userEvent.click(screen.getByRole('switch', { name: 'Dark mode' }));
-    expect(localStorage.getItem('kfp.theme')).toBe('dark');
-    expect(screen.queryByText('Following device')).not.toBeInTheDocument();
+    expect(localStorage.getItem('kfp.theme')).toBe('light');
+    expect(screen.queryByText('Appearance')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dark mode')).not.toBeInTheDocument();
     const toggle = screen.getByRole('switch', { name: 'Dark mode' });
     const links = screen.getByRole('link', { name: 'Documentation' });
     expect(toggle.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

@@ -31,7 +31,6 @@ import {
   Search,
   Sun,
   ChevronDown,
-  MoreHorizontal,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import KubeflowLogo from 'src/icons/kubeflowLogo';
@@ -231,58 +230,14 @@ export function AppShell({
             <Tooltip.Provider>
               <div className='kfp-shell-appearance'>
                 {!collapsed ? (
-                  <div className='kfp-shell-appearance-settings'>
-                    <div className='kfp-shell-appearance-heading'>
-                      <span>Appearance</span>
-                      <Menu.Root>
-                        <Menu.Trigger
-                          render={
-                            <Button variant='ghost' size='icon' aria-label='Appearance options' />
-                          }
-                        >
-                          <MoreHorizontal size={16} aria-hidden='true' />
-                        </Menu.Trigger>
-                        <Menu.Portal className={themeClassName}>
-                          <Menu.Positioner
-                            side='top'
-                            align='end'
-                            sideOffset={4}
-                            className='kfp-shell-utility-positioner'
-                          >
-                            <Menu.Popup
-                              className='kfp-shell-theme-menu'
-                              aria-label='Appearance options'
-                            >
-                              <Menu.CheckboxItem
-                                className='kfp-shell-theme-option'
-                                checked={theme === 'system'}
-                                onCheckedChange={(checked) =>
-                                  setTheme(checked ? 'system' : resolvedTheme)
-                                }
-                                closeOnClick
-                              >
-                                Use device setting
-                                <Menu.CheckboxItemIndicator className='kfp-shell-theme-check'>
-                                  <Check size={16} aria-hidden='true' />
-                                </Menu.CheckboxItemIndicator>
-                              </Menu.CheckboxItem>
-                            </Menu.Popup>
-                          </Menu.Positioner>
-                        </Menu.Portal>
-                      </Menu.Root>
-                    </div>
-                    <div className='kfp-shell-dark-mode'>
-                      <label htmlFor={`${appearanceId}-dark`}>Dark mode</label>
-                      <Switch
-                        id={`${appearanceId}-dark`}
-                        checked={resolvedTheme === 'dark'}
-                        aria-describedby={theme === 'system' ? `${appearanceId}-device` : undefined}
-                        onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                      />
-                    </div>
-                    <div id={`${appearanceId}-device`} className='kfp-shell-device-hint'>
-                      {theme === 'system' ? 'Following device' : ''}
-                    </div>
+                  <div className='kfp-shell-dark-mode'>
+                    <Sun size={16} strokeWidth={1.6} aria-hidden='true' />
+                    <Switch
+                      aria-label='Dark mode'
+                      checked={resolvedTheme === 'dark'}
+                      onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                    />
+                    <Moon size={16} strokeWidth={1.6} aria-hidden='true' />
                   </div>
                 ) : (
                   <Menu.Root>
