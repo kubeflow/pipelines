@@ -21,9 +21,8 @@ overridden by enabling previews on a component.
 These settings are compiled into the pipeline. Recompile and use the updated
 pipeline definition when changing them. No preview-specific ConfigMap, mounted
 configuration file, profile reconciliation, or API-server/driver setting is
-required. Earlier preview prototypes' deployment settings are no longer read;
-set pipeline or component opt-outs before upgrading sensitive workloads to a
-supporting SDK.
+required. Because generation is on by default, set pipeline or component
+opt-outs before upgrading sensitive workloads to a supporting SDK.
 
 Dataset previews can contain up to ten rows and twenty columns. Review row
 samples and model configuration for sensitive data; pipeline authors can keep
@@ -154,6 +153,22 @@ Previews and downloads share this budget across namespaces and base-path aliases
 Requests beyond the limit receive HTTP 429 with a `Retry-After` delay before any
 artifact lookup, authorization call, or storage read. The budget is local to each
 server process, not a distributed deployment-wide quota.
+
+When the `pipeline-install-config` key `ARTIFACTS_PROXY_ENABLED` is `true`, the
+shared UI applies each user's budget once, before forwarding a request to the
+namespace's `ml-pipeline-ui-artifact` server. The profile controller sets
+`ARTIFACTS_RATE_LIMIT_DISABLED=true` on those generated servers. They run with
+authorization disabled and see every forwarded request as coming from the shared
+UI, so a second limit would combine all of a namespace's users into one budget.
+If a namespace server returns HTTP 429, the shared UI preserves that status and
+its delay-seconds `Retry-After` value for previews and downloads.
+
+`ARTIFACTS_RATE_LIMIT_DISABLED` accepts `true` or `1`; any other value keeps the
+limit. Generated namespace servers rely on the shared UI for this limit, as they
+do for authorization. Do not set the variable on the shared UI or in standalone
+deployments, which have no upstream limit. After upgrading, the profile
+controller adds the variable to each existing generated Deployment at its next
+reconciliation, which rolls that Deployment once.
 
 ### Artifact storage endpoint allowlist
 

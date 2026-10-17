@@ -16,10 +16,11 @@ import requests from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
-import { commonSetup } from './test-helper.js';
+import { commonSetup, setupLoopbackServers } from './test-helper.js';
 
 describe('artifact request rate limiting', () => {
   const { argv } = commonSetup();
+  const listen = setupLoopbackServers();
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
@@ -42,7 +43,7 @@ describe('artifact request rate limiting', () => {
     });
     options.server.basePath = '/custom';
     const app = new UIServer(options);
-    const request = requests(app.app);
+    const request = requests(await listen(app.app));
     const query = '?source=s3&bucket=bucket&key=data&namespace=team-a';
     const paths = [
       `/artifacts/get${query}`,
@@ -86,7 +87,7 @@ describe('artifact request rate limiting', () => {
       KUBEFLOW_USERID_HEADER: 'x-kubeflow-user',
     });
     const app = new UIServer(options);
-    const request = requests(app.app);
+    const request = requests(await listen(app.app));
 
     for (let index = 0; index < 300; index++) {
       await request
@@ -102,12 +103,27 @@ describe('artifact request rate limiting', () => {
       .expect(429);
   });
 
+  it('lets namespace artifact servers skip the limit already enforced by the shared server', async () => {
+    const options = loadConfigs(argv, {
+      ENABLE_AUTHZ: 'false',
+      ARTIFACTS_RATE_LIMIT_DISABLED: 'true',
+    });
+    const app = new UIServer(options);
+    const request = requests(await listen(app.app));
+
+    for (let index = 0; index < 301; index++) {
+      const response = await request.get('/artifacts/get?source=s3&source=gs');
+      expect(response.status, `Artifact request ${index}: ${response.text}`).toBe(400);
+      expect(response.headers['ratelimit']).toBeUndefined();
+    }
+  });
+
   it('bounds unauthenticated requests before invoking the authorization service', async () => {
     const fetchArtifact = vi.fn();
     vi.stubGlobal('fetch', fetchArtifact);
     const options = loadConfigs(argv, { ENABLE_AUTHZ: 'true' });
     const app = new UIServer(options);
-    const request = requests(app.app);
+    const request = requests(await listen(app.app));
 
     for (let index = 0; index < 300; index++) {
       const response = await request.get('/artifacts/get');

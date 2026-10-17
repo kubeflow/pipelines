@@ -154,6 +154,7 @@ const SAFE_ARTIFACT_PROXY_RESPONSE_HEADERS = new Set([
   'content-range',
   'etag',
   'last-modified',
+  'retry-after',
 ]);
 
 function hardenArtifactProxyResponse(proxyResponse: IncomingMessage): void {
@@ -184,16 +185,31 @@ export function sendArtifactError(response: Response, status: number, message: s
   response.status(status).type('text/plain').send(message);
 }
 
+export const TOO_MANY_ARTIFACT_REQUESTS_MESSAGE =
+  'Too many artifact requests. Retry after the delay indicated by the Retry-After header.';
+
+export interface ArtifactsRateLimiterOptions {
+  authEnabled: boolean;
+  kubeflowUserIdHeader: string;
+  /** Counts nothing because an upstream KFP UI server has already limited each user's requests. */
+  disabled?: boolean;
+}
+
 /** Shares one request budget across artifact previews, downloads, and route aliases. */
-export function getArtifactsRateLimiter(
-  authEnabled: boolean,
-  kubeflowUserIdHeader: string,
-): Handler {
+export function getArtifactsRateLimiter({
+  authEnabled,
+  kubeflowUserIdHeader,
+  disabled = false,
+}: ArtifactsRateLimiterOptions): Handler {
   return rateLimit({
     windowMs: 60_000,
     limit: 300,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
+    // Skip instead of omitting the middleware, so every artifact route keeps one visible limiter.
+    // A namespace artifact server sees only the shared UI server's IP, which would otherwise give
+    // every proxied user one shared budget.
+    skip: () => disabled,
     keyGenerator: (request) => {
       // Use the same trusted upstream identity as authorization, not a shared ingress IP.
       const header = request.headers[kubeflowUserIdHeader.toLowerCase()];
@@ -205,11 +221,7 @@ export function getArtifactsRateLimiter(
     },
     handler: (_request, response) => {
       response.setHeader('Cache-Control', 'no-store');
-      sendArtifactError(
-        response,
-        429,
-        'Too many artifact requests. Retry after the delay indicated by the Retry-After header.',
-      );
+      sendArtifactError(response, 429, TOO_MANY_ARTIFACT_REQUESTS_MESSAGE);
     },
   });
 }

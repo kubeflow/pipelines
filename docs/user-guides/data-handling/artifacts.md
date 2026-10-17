@@ -381,10 +381,18 @@ the enclosing pipeline enables previews. Setting `artifact_previews=True` on a
 component does not override an enclosing pipeline's opt-out.
 
 For a component-wide opt-out, use `@dsl.component(artifact_previews=False)`.
-Both settings are compile-time options: recompile the pipeline when changing
-them. They affect generated previews, not native output files, and do not remove
-or hide previously generated, cached, imported, or manually written previews.
-There is no deployment-level preview switch.
+Both settings are compile-time options. The compiler records them as arguments
+to each KFP Python component's executor, such as `--disable_artifact_previews`,
+so they apply even when `task_config_passthroughs` forwards a component's
+environment variables to `dsl.TaskConfig` instead of its container. A pipeline
+opt-out also applies to components loaded from YAML. To change a setting,
+recompile the pipeline and submit the new definition; runs of earlier
+definitions keep their compiled settings. There is no deployment, launcher, or
+environment variable switch.
+
+These settings affect generated previews, not native output files. They do not
+remove or hide previously generated, cached, imported, or manually written
+previews.
 
 Automatic Dataset adapters require exactly one supported data file directly
 inside the artifact directory; partitioned datasets, archives, and symlinks are
@@ -458,18 +466,13 @@ propagate normally.
 
 Use an SDK supporting automatic previews inside the component image. Existing
 compiled Python components also get automatic previews when they execute with
-this SDK in an enabled deployment; images pinned to older SDKs do not.
-Use a supporting SDK when compiling
-component opt-out or schema-only settings, which are preserved in the compiled
-executor arguments, including when the component is saved and reloaded.
+this SDK, unless they are recompiled with an opt-out or used in a pipeline
+compiled with one. Images pinned to older SDKs do not generate previews and
+ignore the compiled settings. Compile opt-out and schema-only settings with a
+supporting SDK; they are preserved when a component is saved and reloaded.
 
-The deployment switch is read from the existing read-only launcher configuration
-mount before installing hooks and again before publishing previews. It does not
-require recompiling pipelines. Kubernetes configuration updates and multi-user
-reconciliation take time to reach component pods. Already-produced, cached, and
-manually written previews are not removed or hidden by disabling automatic
-generation, and older artifacts are not backfilled. Automatic generation does
-not change payload serialization or convert single-file artifacts into directories.
+Older artifacts are not backfilled. Automatic generation does not change payload
+serialization or convert single-file artifacts into directories.
 
 #### Artifact lists
 

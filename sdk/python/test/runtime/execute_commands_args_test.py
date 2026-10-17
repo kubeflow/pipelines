@@ -23,7 +23,6 @@ from typing import Any, Dict
 
 from kfp import compiler
 from kfp import dsl
-from kfp.dsl import constants
 import pytest
 import yaml
 
@@ -158,12 +157,7 @@ def run_commands_and_args(
     return subprocess.run(
         command_and_args,
         cwd=temp_dir,
-        env={
-            **environment,
-            **{
-                item['name']: item['value'] for item in container.get('env', [])
-            }
-        },
+        env=environment,
         capture_output=True,
         text=True,
     )
@@ -266,7 +260,7 @@ class TestRuntime:
         self.environment = {
             key: value for key, value in os.environ.items() if key not in {
                 'PYTHONPATH', 'PYTHONHOME', 'PIP_TARGET', 'PIP_PREFIX',
-                'PIP_USER', constants.ARTIFACT_PREVIEWS_ENV_VAR
+                'PIP_USER'
             }
         }
         self.environment.update({
@@ -324,15 +318,30 @@ print(json.dumps({
         assert installation['origin']['url'] == self.wheel.as_uri()
         assert set(installation['packages']) == self.seed_packages | {'kfp'}
 
-    @pytest.mark.parametrize('pipeline_enabled', [True, False])
-    @pytest.mark.parametrize('component_enabled', [True, False])
+    @pytest.mark.parametrize(
+        ('pipeline_enabled', 'component_enabled', 'env_passthrough'), [
+            (True, True, False),
+            (True, False, False),
+            (False, True, False),
+            (False, False, False),
+            (False, True, True),
+        ])
     def test_compiled_artifact_preview_policy(self, pipeline_enabled: bool,
-                                              component_enabled: bool) -> None:
+                                              component_enabled: bool,
+                                              env_passthrough: bool) -> None:
         """Execute the actual compiled policy with only the installed SDK
-        wheel."""
+        wheel.
+
+        The harness runs compiled commands and arguments without task
+        environment variables, as capture-only TaskConfig ENV
+        passthrough does.
+        """
 
         @dsl.component(
-            base_image='python:3.11', artifact_previews=component_enabled)
+            base_image='python:3.11',
+            artifact_previews=component_enabled,
+            task_config_passthroughs=[dsl.TaskConfigField.ENV]
+            if env_passthrough else None)
         def produce(dataset: dsl.Output[dsl.Dataset]) -> None:
             from pathlib import Path
 
@@ -344,7 +353,9 @@ print(json.dumps({
             pipeline_config=dsl.PipelineConfig(
                 artifact_previews=pipeline_enabled))
         def pipeline() -> None:
-            produce()
+            task = produce()
+            if env_passthrough:
+                task.set_env_variable('UNRELATED', 'captured')
 
         package = self.temp_dir / 'preview-policy.yaml'
         compiler.Compiler().compile(pipeline, str(package))

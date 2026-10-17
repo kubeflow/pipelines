@@ -15,20 +15,19 @@
 import express from 'express';
 import { Client as MinioClient } from 'minio';
 import { execFile } from 'node:child_process';
-import { once } from 'node:events';
-import type { Server } from 'node:http';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import requests from 'supertest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadConfigs, type ProcessEnv } from '../configs.js';
+import { loadConfigs, type ProcessEnv, type UIConfigs } from '../configs.js';
 import { getArtifactPreviewHandler } from '../handlers/artifact-preview.js';
 import * as artifacts from '../handlers/artifacts.js';
 import { getArtifactsHandler } from '../handlers/artifacts.js';
 import type { AuthorizeFn } from '../helpers/auth.js';
 import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
 import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
+import { setupLoopbackServers } from './test-helper.js';
 
 vi.mock('minio');
 vi.mock('../k8s-helper.js', () => ({
@@ -156,7 +155,20 @@ describe('profile-generated custom artifact endpoint configuration', () => {
 
 describe('profile-generated artifact preview identity', () => {
   const identityHeaders = ['kubeflow-userid', 'x-company-user', undefined];
-  const servers: Server[] = [];
+  const listen = setupLoopbackServers();
+  const artifact = {
+    artifact_id: 'model-1',
+    namespace: 'tenant',
+    type: 'Model',
+    uri: 'minio://mlpipeline/private-artifacts/tenant/model',
+    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+  };
+  const preview = {
+    version: 1,
+    kind: 'model',
+    framework: { name: 'pytorch', version: '2.14.1' },
+    structure: { tensor_element_count: 6 },
+  };
   let environments: Record<string, ProcessEnv>;
 
   beforeAll(async () => {
@@ -173,103 +185,112 @@ describe('profile-generated artifact preview identity', () => {
     launcherConfigTestOnly.clearLauncherConfigurationCache();
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
+    getObject.mockImplementation(async () => Readable.from([JSON.stringify(preview)]));
     vi.mocked(MinioClient.prototype.getObject).mockImplementation(getObject);
   });
 
-  afterEach(async () => {
-    await Promise.all(
-      servers.splice(0).map(
-        (server) =>
-          new Promise<void>((resolve, reject) => {
-            server.close((error) => (error ? reject(error) : resolve()));
-          }),
-      ),
-    );
+  afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  async function listen(app: express.Application): Promise<string> {
-    const server = app.listen(0, '127.0.0.1');
-    servers.push(server);
-    await once(server, 'listening');
-    const address = server.address();
-    if (!address || typeof address === 'string') {
-      throw new Error('Expected the test server to listen on a TCP port.');
-    }
-    return `http://127.0.0.1:${address.port}`;
+  /** Builds the artifact limiter from configuration, as the UI server does. */
+  function configuredRateLimiter(options: UIConfigs): express.Handler {
+    return artifacts.getArtifactsRateLimiter({
+      authEnabled: options.auth.enabled,
+      kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+      disabled: options.artifacts.rateLimitDisabled,
+    });
+  }
+
+  /**
+   * Starts a shared UI server that proxies previews to a profile-generated namespace receiver.
+   * Both servers resolve the artifact through a metadata API that accepts only the given readers.
+   * Every hop listens on loopback, so hundreds of requests never use per-request wildcard servers.
+   */
+  async function startPreviewChain({
+    configuredHeader,
+    readers,
+    receiverEnvironment = environments[configuredHeader ?? ''],
+  }: {
+    configuredHeader: string | undefined;
+    readers: string[];
+    receiverEnvironment?: ProcessEnv;
+  }) {
+    const sharedOptions = loadConfigs(['node', 'server.js', '/tmp', '3000'], {
+      ENABLE_AUTHZ: 'true',
+      KUBEFLOW_USERID_HEADER: configuredHeader,
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    const identityHeader = sharedOptions.auth.kubeflowUserIdHeader;
+    const metadataRequests: Array<{ path: string; identity: string | undefined }> = [];
+    const api = express();
+    api.use((req, res, next) => {
+      const identity = req.get(identityHeader);
+      metadataRequests.push({ path: req.path, identity });
+      if (!identity || !readers.includes(identity)) {
+        res.status(401).send('The metadata API requires the configured identity header.');
+        return;
+      }
+      next();
+    });
+    api.get('/apis/v2beta1/artifacts/model-1', (_req, res) => res.json(artifact));
+    const apiAddress = await listen(api);
+    const authorize = vi.fn<AuthorizeFn>().mockResolvedValue(undefined);
+    const receiverOptions = loadConfigs(['node', 'server.js', '/tmp', '3000'], receiverEnvironment);
+    const receiver = express();
+    receiver.get(
+      '/artifacts/:artifactId/preview',
+      configuredRateLimiter(receiverOptions),
+      getArtifactPreviewHandler(receiverOptions, apiAddress, authorize),
+    );
+    const receiverAddress = await listen(receiver);
+    const target = vi.fn((namespace: string) => {
+      expect(namespace).toBe('tenant');
+      return receiverAddress;
+    });
+    vi.spyOn(artifacts, 'getArtifactServiceGetter').mockReturnValue(target);
+    const shared = express();
+    shared.get(
+      '/artifacts/:artifactId/preview',
+      configuredRateLimiter(sharedOptions),
+      getArtifactPreviewHandler(sharedOptions, apiAddress, authorize),
+    );
+    const sharedAddress = await listen(shared);
+    return {
+      authorize,
+      identityHeader,
+      metadataRequests,
+      receiverAddress,
+      receiverOptions,
+      sharedAddress,
+      target,
+    };
   }
 
   it.each(identityHeaders)(
     'preserves %s through the real namespace receiver and its authenticated metadata lookup',
     async (configuredHeader) => {
       const identity = 'reader@example.com';
-      const sharedOptions = loadConfigs(['node', 'server.js', '/tmp', '3000'], {
-        ENABLE_AUTHZ: 'true',
-        KUBEFLOW_USERID_HEADER: configuredHeader,
-        ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
-      });
-      const identityHeader = sharedOptions.auth.kubeflowUserIdHeader;
-      const artifact = {
-        artifact_id: 'model-1',
-        namespace: 'tenant',
-        type: 'Model',
-        uri: 'minio://mlpipeline/private-artifacts/tenant/model',
-        metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
-      };
-      const preview = {
-        version: 1,
-        kind: 'model',
-        framework: { name: 'pytorch', version: '2.14.1' },
-        structure: { tensor_element_count: 6 },
-      };
-      getObject.mockImplementation(async () => Readable.from([JSON.stringify(preview)]));
-      const received: Array<{ path: string; identity: string | undefined }> = [];
-      const api = express();
-      api.use(artifacts.getArtifactsRateLimiter(true, identityHeader));
-      api.use((req, res, next) => {
-        received.push({ path: req.path, identity: req.get(identityHeader) });
-        if (req.get(identityHeader) !== identity) {
-          res.status(401).send('The metadata API requires the configured identity header.');
-          return;
-        }
-        next();
-      });
-      api.get('/apis/v2beta1/artifacts/model-1', (_req, res) => res.json(artifact));
-      const apiAddress = await listen(api);
-      const authorize = vi.fn<AuthorizeFn>().mockResolvedValue(undefined);
-      const receiverOptions = loadConfigs(
-        ['node', 'server.js', '/tmp', '3000'],
-        environments[configuredHeader ?? ''],
-      );
+      const {
+        authorize,
+        identityHeader,
+        metadataRequests,
+        receiverAddress,
+        receiverOptions,
+        sharedAddress,
+        target,
+      } = await startPreviewChain({ configuredHeader, readers: [identity] });
       expect(receiverOptions.auth.enabled).toBe(false);
       expect(receiverOptions.auth.kubeflowUserIdHeader).toBe(identityHeader);
-      const receiver = express();
-      receiver.get(
-        '/artifacts/:artifactId/preview',
-        artifacts.getArtifactsRateLimiter(false, receiverOptions.auth.kubeflowUserIdHeader),
-        getArtifactPreviewHandler(receiverOptions, apiAddress, authorize),
-      );
-      const receiverAddress = await listen(receiver);
-      const target = vi.fn((namespace: string) => {
-        expect(namespace).toBe('tenant');
-        return receiverAddress;
-      });
-      vi.spyOn(artifacts, 'getArtifactServiceGetter').mockReturnValue(target);
-      const shared = express();
-      shared.get(
-        '/artifacts/:artifactId/preview',
-        artifacts.getArtifactsRateLimiter(true, identityHeader),
-        getArtifactPreviewHandler(sharedOptions, apiAddress, authorize),
-      );
 
-      const response = await requests(shared)
+      const response = await requests(sharedAddress)
         .get('/artifacts/model-1/preview?namespace=tenant')
         .set(identityHeader, identity)
         .expect(200);
       expect(response.body).toEqual(preview);
       expect(authorize).toHaveBeenCalledOnce();
       expect(target).toHaveBeenCalledExactlyOnceWith('tenant');
-      expect(received).toEqual([
+      expect(metadataRequests).toEqual([
         { path: '/apis/v2beta1/artifacts/model-1', identity },
         { path: '/apis/v2beta1/artifacts/model-1', identity },
       ]);
@@ -278,11 +299,66 @@ describe('profile-generated artifact preview identity', () => {
         'private-artifacts/tenant/model/preview.json',
       );
 
-      await requests(shared).get('/artifacts/model-1/preview?namespace=tenant').expect(401);
-      expect(received).toHaveLength(2);
-      await requests(receiver).get('/artifacts/model-1/preview?namespace=tenant').expect(401);
-      expect(received.at(-1)?.identity).toBeUndefined();
+      await requests(sharedAddress).get('/artifacts/model-1/preview?namespace=tenant').expect(401);
+      expect(metadataRequests).toHaveLength(2);
+      await requests(receiverAddress)
+        .get('/artifacts/model-1/preview?namespace=tenant')
+        .expect(401);
+      expect(metadataRequests.at(-1)?.identity).toBeUndefined();
       expect(getObject).toHaveBeenCalledOnce();
     },
   );
+
+  it('enforces each user quota once at the shared server', async () => {
+    const [firstReader, secondReader] = ['first@example.com', 'second@example.com'];
+    const { identityHeader, receiverOptions, sharedAddress, target } = await startPreviewChain({
+      configuredHeader: 'kubeflow-userid',
+      readers: [firstReader, secondReader],
+    });
+    expect(receiverOptions.artifacts.rateLimitDisabled).toBe(true);
+    const previewAs = (reader: string) =>
+      requests(sharedAddress)
+        .get('/artifacts/model-1/preview?namespace=tenant')
+        .set(identityHeader, reader);
+
+    for (let index = 0; index < 300; index++) {
+      const response = await previewAs(firstReader);
+      expect(response.status, `Preview request ${index}: ${response.text}`).toBe(200);
+    }
+    // The receiver sees every proxied user at the shared server's address.
+    await previewAs(secondReader).expect(200);
+    expect(target).toHaveBeenCalledTimes(301);
+
+    const limited = await previewAs(firstReader).expect(429);
+    expect(limited.headers['retry-after']).toMatch(/^\d+$/);
+    expect(limited.text).toBe(artifacts.TOO_MANY_ARTIFACT_REQUESTS_MESSAGE);
+    expect(target).toHaveBeenCalledTimes(301);
+  }, 30_000);
+
+  it('preserves the rate limit and retry delay from a receiver that enforces its own quota', async () => {
+    const reader = 'reader@example.com';
+    const { identityHeader, receiverAddress, sharedAddress } = await startPreviewChain({
+      configuredHeader: 'kubeflow-userid',
+      readers: [reader],
+      receiverEnvironment: {
+        ...environments['kubeflow-userid'],
+        ARTIFACTS_RATE_LIMIT_DISABLED: 'false',
+      },
+    });
+    // Exhaust the receiver's loopback-address budget, which the shared server's proxied requests
+    // also use. Invalid IDs are rejected before any metadata lookup.
+    for (let index = 0; index < 300; index++) {
+      await requests(receiverAddress).get('/artifacts/invalid.id/preview').expect(400);
+    }
+
+    const response = await requests(sharedAddress)
+      .get('/artifacts/model-1/preview?namespace=tenant')
+      .set(identityHeader, reader)
+      .expect(429);
+    expect(Number(response.headers['retry-after'])).toBeGreaterThan(0);
+    expect(response.headers['ratelimit']).toContain('r=299');
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.text).toBe(artifacts.TOO_MANY_ARTIFACT_REQUESTS_MESSAGE);
+    expect(getObject).not.toHaveBeenCalled();
+  });
 });

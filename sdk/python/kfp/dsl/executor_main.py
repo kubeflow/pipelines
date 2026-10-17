@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 
+from kfp.dsl import constants
 from kfp.dsl import executor as component_executor
 from kfp.dsl import kfp_config
 from kfp.dsl import utils
@@ -50,20 +51,14 @@ def executor_main():
         help='JSON-serialized ExecutorInput from the orchestrator. '
         'This should contain inputs and placeholders for outputs.')
 
-    preview_options = parser.add_mutually_exclusive_group()
-    preview_options.add_argument(
-        '--artifact_previews',
-        action='store_true',
-        default=True,
-        help='Allow bounded previews for supported directory artifacts. '
-        'Enabled by default unless the pipeline disables generation.')
-    preview_options.add_argument(
-        '--disable_artifact_previews',
+    parser.add_argument(
+        constants.DISABLE_ARTIFACT_PREVIEWS_FLAG,
         dest='artifact_previews',
         action='store_false',
-        help='Disable automatic artifact previews for this component.')
+        help='Disable automatic artifact previews. Component and pipeline '
+        'opt-outs both compile to this flag.')
     parser.add_argument(
-        '--artifact_preview_schema_only',
+        constants.ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG,
         action='store_true',
         help='Omit dataset row values when automatic previews are enabled.')
 

@@ -59,7 +59,10 @@ function setup(auth = true, proxy = false) {
   const app = express();
   app.get(
     '/artifacts/:artifactId/preview',
-    artifacts.getArtifactsRateLimiter(options.auth.enabled, options.auth.kubeflowUserIdHeader),
+    artifacts.getArtifactsRateLimiter({
+      authEnabled: options.auth.enabled,
+      kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    }),
     getArtifactPreviewHandler(options, 'http://api-server', authorize),
   );
   return app;
@@ -333,6 +336,29 @@ describe('artifact preview endpoint', () => {
       headers: { [ARTIFACT_PREVIEW_RESPONSE_HEADER]: '1' },
     });
     await previewRequest(true, true).expect(413);
+    expect(storage.getObject).not.toHaveBeenCalled();
+  });
+
+  it('preserves a namespace receiver rate limit and only its delay-seconds retry guidance', async () => {
+    vi.spyOn(artifacts, 'getArtifactServiceGetter').mockReturnValue(
+      () => 'http://preview-service.team-a:3000',
+    );
+    proxyResponse = new Response('receiver quota exceeded', {
+      status: 429,
+      headers: { 'Retry-After': '17', RateLimit: '"300-in-1min"; r=0; t=17' },
+    });
+    const limited = await previewRequest(true, true).expect(429);
+    expect(limited.headers['retry-after']).toBe('17');
+    expect(limited.headers['ratelimit']).toContain('r=299');
+    expect(limited.text).toBe(artifacts.TOO_MANY_ARTIFACT_REQUESTS_MESSAGE);
+
+    proxyResponse = new Response('receiver quota exceeded', {
+      status: 429,
+      headers: { 'Retry-After': 'Wed, 21 Oct 2015 07:28:00 GMT' },
+    });
+    const undated = await previewRequest(true, true).expect(429);
+    expect(undated.headers['retry-after']).toBeUndefined();
+    expect(undated.text).toBe('Too many artifact requests. Retry later.');
     expect(storage.getObject).not.toHaveBeenCalled();
   });
 

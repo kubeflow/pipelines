@@ -160,10 +160,11 @@ function createUIServer(options: UIConfigs) {
 
   /** Authorize function - created early so it can be used by artifact handlers */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
-  const artifactsRateLimiter = getArtifactsRateLimiter(
-    options.auth.enabled,
-    options.auth.kubeflowUserIdHeader,
-  );
+  const artifactsRateLimiter = getArtifactsRateLimiter({
+    authEnabled: options.auth.enabled,
+    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    disabled: options.artifacts.rateLimitDisabled,
+  });
 
   /**
    * Artifact Authorization Middleware

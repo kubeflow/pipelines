@@ -30,6 +30,7 @@ import warnings
 import docstring_parser
 import kfp
 from kfp import dsl
+from kfp.dsl import constants
 from kfp.dsl import container_component_artifact_channel
 from kfp.dsl import container_component_class
 from kfp.dsl import graph_component
@@ -849,9 +850,9 @@ def create_component_from_func(
         )
 
     if not artifact_previews:
-        args.append('--disable_artifact_previews')
+        args.append(constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
     elif not artifact_preview_rows:
-        args.append('--artifact_preview_schema_only')
+        args.append(constants.ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG)
 
     component_spec = extract_component_interface(func)
     # Attach task_config_passthroughs to the ComponentSpec structure if provided.

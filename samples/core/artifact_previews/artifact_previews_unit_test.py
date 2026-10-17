@@ -17,8 +17,8 @@ required."""
 from collections.abc import Iterator
 import csv
 import json
-import os
 from pathlib import Path
+import sys
 from typing import Any
 from unittest import mock
 
@@ -32,8 +32,8 @@ from artifact_previews import create_preview_artifacts
 from kfp import compiler
 from kfp import dsl
 from kfp.dsl import _artifact_preview
-from kfp.dsl import constants
 from kfp.dsl import executor
+from kfp.dsl import executor_main
 import numpy as np
 import pyarrow as pa
 import pyarrow.feather as feather
@@ -49,21 +49,14 @@ from transformers import BertConfig
 from transformers import BertForSequenceClassification
 
 
-@pytest.fixture(autouse=True)
-def default_pipeline_policy(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Exercise the default without inheriting an enclosing task's opt-out."""
-    monkeypatch.delenv(constants.ARTIFACT_PREVIEWS_ENV_VAR, raising=False)
-
-
 def produce(
     directory: Path,
-    previews_enabled: bool = True,
-    include_rows: bool = True,
+    **preview_options: bool,
 ) -> tuple[dsl.Dataset, dsl.Model]:
-    """Run normal component code through the SDK executor's default policy."""
-    preview_options = {'artifact_preview_rows': include_rows}
-    if not previews_enabled:
-        preview_options['artifact_previews'] = False
+    """Run normal component code through the SDK executor.
+
+    Omitted preview options use the executor defaults.
+    """
     runtime = executor.Executor(
         {
             'inputs': {
@@ -103,7 +96,7 @@ def test_parquet_preview_matches_the_actual_file(
     tmp_path: Path,
     include_rows: bool,
 ) -> None:
-    dataset, model = produce(tmp_path, include_rows=include_rows)
+    dataset, model = produce(tmp_path, artifact_preview_rows=include_rows)
     for artifact in (dataset, model):
         assert artifact.metadata['_kfp_preview'] == {
             'version': 1,
@@ -175,29 +168,52 @@ def test_model_summary_and_predictions_survive_native_io(
     assert 'weights' not in preview
 
 
+def compiled_arguments(definition: Any, package: Path) -> list[str]:
+    """Compile a pipeline or component and return its only executor's
+    arguments."""
+    compiler.Compiler().compile(definition, str(package))
+    specification = yaml.safe_load(package.read_text(encoding='utf-8'))
+    (executor_spec,) = specification['deploymentSpec']['executors'].values()
+    return executor_spec['container']['args']
+
+
+def executor_preview_options(arguments: list[str]) -> dict[str, bool]:
+    """Parse compiled arguments with the executor's real command-line
+    interface."""
+    command_line = ['executor_main', '--component_module_path', 'component.py']
+    command_line += ['{}' if value == '{{$}}' else value for value in arguments]
+    with mock.patch.object(sys, 'argv', command_line), mock.patch.object(
+            executor_main.utils,
+            'load_module'), mock.patch.object(executor, 'Executor') as runtime:
+        executor_main.executor_main()
+    options = runtime.call_args.kwargs
+    return {
+        name: options[name]
+        for name in ('artifact_previews', 'artifact_preview_rows')
+    }
+
+
 @pytest.mark.parametrize('control', ['component', 'pipeline'])
 def test_disabling_previews_preserves_dataset_and_model_outputs(
     tmp_path: Path,
     control: str,
 ) -> None:
+    if control == 'pipeline':
+        definition = artifact_preview_disabled_pipeline
+    else:
+        definition = dsl.component(
+            base_image='python:3.11', artifact_previews=False)(
+                create_preview_artifacts.python_func)
+    arguments = compiled_arguments(definition, tmp_path / f'{control}.yaml')
+    assert '--disable_artifact_previews' in arguments
+    options = executor_preview_options(arguments)
+    assert options == {
+        'artifact_previews': False,
+        'artifact_preview_rows': True
+    }
     enabled_dataset, enabled_model = produce(tmp_path / 'enabled')
     with mock.patch.object(_artifact_preview, '_parquet_preview') as sample:
-        if control == 'pipeline':
-            package = tmp_path / 'disabled.yaml'
-            compiler.Compiler().compile(artifact_preview_disabled_pipeline,
-                                        str(package))
-            specification = yaml.safe_load(package.read_text())
-            container = next(
-                iter(specification['deploymentSpec']
-                     ['executors'].values()))['container']
-            environment = {
-                item['name']: item['value'] for item in container['env']
-            }
-            with mock.patch.dict(os.environ, environment):
-                dataset, model = produce(tmp_path / 'disabled')
-        else:
-            dataset, model = produce(
-                tmp_path / 'disabled', previews_enabled=False)
+        dataset, model = produce(tmp_path / 'disabled', **options)
     sample.assert_not_called()
     for artifact in (dataset, model):
         assert '_kfp_preview' not in artifact.metadata
@@ -218,7 +234,6 @@ def test_pipeline_needs_no_additional_preview_task(tmp_path: Path) -> None:
     container = next(
         iter(
             specification['deploymentSpec']['executors'].values()))['container']
-    assert '--artifact_previews' not in container['args']
     assert '--disable_artifact_previews' not in container['args']
     assert '_kfp_preview' not in '\n'.join(container['command'])
 
@@ -319,6 +334,83 @@ def test_optional_arrow_failures_do_not_fail_artifact_production(
     assert 'could not read a bounded Parquet sample' in caplog.text
 
 
+@pytest.mark.parametrize('suffix', ['.parquet', '.arrow'])
+@pytest.mark.parametrize('include_rows', [True, False])
+def test_unresolvable_time_zone_skips_only_the_affected_row_preview(
+    tmp_path: Path,
+    suffix: str,
+    include_rows: bool,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Optional sample conversion failures must not fail the component."""
+    tables = {
+        'zoned':
+            pa.table({
+                'time':
+                    pa.array([0], pa.timestamp('us', tz='Mars/Olympus_Mons'))
+            }),
+        'plain':
+            pa.table({'value': [1]}),
+    }
+
+    def write_tables(zoned: dsl.Output[dsl.Dataset],
+                     plain: dsl.Output[dsl.Dataset]) -> None:
+        for name, artifact in (('zoned', zoned), ('plain', plain)):
+            directory = Path(artifact.path)
+            directory.mkdir()
+            path = directory / f'data{suffix}'
+            if suffix == '.parquet':
+                pq.write_table(tables[name], path)
+            else:
+                with pa.OSFile(str(path), 'wb') as sink, pa.ipc.new_file(
+                        sink, tables[name].schema) as writer:
+                    writer.write_table(tables[name])
+
+    runtime = executor.Executor(
+        {
+            'inputs': {},
+            'outputs': {
+                'artifacts': {
+                    name: {
+                        'artifacts': [{
+                            'uri': str(tmp_path / name),
+                            'type': {
+                                'schemaTitle': 'system.Dataset'
+                            },
+                        }]
+                    } for name in tables
+                },
+                'outputFile': str(tmp_path / 'executor_output.json'),
+            },
+        },
+        write_tables,
+        artifact_preview_rows=include_rows)
+    output = json.loads(Path(runtime.execute()).read_text())
+    for name, artifact in runtime.output_artifacts.items():
+        assert output['artifacts'][name]['artifacts'][0][
+            'metadata'] == artifact.metadata
+    zoned = runtime.output_artifacts['zoned']
+    assert load_preview(runtime.output_artifacts['plain'])['columns'] == [{
+        'name': 'value',
+        'dtype': 'int64'
+    }]
+    if include_rows:
+        assert '_kfp_preview' not in zoned.metadata
+        assert not (Path(zoned.path) / 'preview.json').exists()
+        assert "Automatic preview unavailable for output 'zoned'" in caplog.text
+    else:
+        assert load_preview(zoned)['columns'] == [{
+            'name': 'time',
+            'dtype': 'timestamp[us, tz=Mars/Olympus_Mons]'
+        }]
+    if suffix == '.parquet':
+        assert pq.read_table(Path(zoned.path) / 'data.parquet').equals(
+            tables['zoned'])
+    else:
+        with pa.memory_map(str(Path(zoned.path) / 'data.arrow')) as source:
+            assert pa.ipc.open_file(source).read_all().equals(tables['zoned'])
+
+
 @pytest.mark.parametrize('booster_type', ['gbtree', 'dart'])
 def test_native_booster_preview_without_model_reload_or_tree_dump(
     tmp_path: Path,
@@ -360,6 +452,7 @@ def test_native_booster_preview_without_model_reload_or_tree_dump(
 def execute_sample(directory: Path,
                    kind: str,
                    include_rows: bool = True,
+                   artifact_previews: bool = True,
                    **parameters: str) -> dsl.Artifact:
     """Run each native writer through the real executor, without preview
     calls."""
@@ -385,6 +478,7 @@ def execute_sample(directory: Path,
             },
         },
         component,
+        artifact_previews=artifact_previews,
         artifact_preview_rows=include_rows)
     output = json.loads(Path(runtime.execute()).read_text())
     artifact = runtime.output_artifacts[name]
@@ -646,12 +740,11 @@ def test_transformers_sharded_safetensors_need_no_weight_reads(
 
 @pytest.mark.parametrize('enabled', [True, False])
 @pytest.mark.parametrize('framework', ['pytorch', 'transformers'])
-def test_pipeline_policy_controls_model_previews(tmp_path: Path, enabled: bool,
-                                                 framework: str) -> None:
+def test_preview_policy_controls_model_previews(tmp_path: Path, enabled: bool,
+                                                framework: str) -> None:
     original = torch.save
-    policy = {} if enabled else {constants.ARTIFACT_PREVIEWS_ENV_VAR: 'false'}
-    with mock.patch.dict(os.environ, policy):
-        artifact = execute_sample(tmp_path, 'Model', framework=framework)
+    artifact = execute_sample(
+        tmp_path, 'Model', artifact_previews=enabled, framework=framework)
     assert torch.save is original
     assert ('_kfp_preview' in artifact.metadata) is enabled
     assert (Path(artifact.path) / 'preview.json').exists() is enabled
@@ -665,7 +758,8 @@ def test_format_collection_pipeline_has_no_preview_tasks(
     specification = yaml.safe_load(package.read_text())
     assert len(specification['deploymentSpec']['executors']) == 3
     for container in specification['deploymentSpec']['executors'].values():
-        assert '--artifact_previews' not in container['container']['args']
+        assert '--disable_artifact_previews' not in container['container'][
+            'args']
         assert '_kfp_preview' not in '\n'.join(
             container['container']['command'])
     outputs = specification['root']['outputDefinitions']['artifacts']

@@ -28,14 +28,12 @@ import itertools
 import json
 import logging
 import math
-import os
 from pathlib import Path
 import tempfile
 import threading
 from types import ModuleType
 from typing import Any, Callable
 
-from kfp.dsl import constants
 from kfp.dsl.types.artifact_types import Artifact
 
 MAX_BYTES = 64 * 1024
@@ -55,21 +53,6 @@ _SAVE_METHODS: list[tuple[type | ModuleType, str, Callable[..., Any],
 class PreviewGenerationError(ValueError):
     """An optional preview cannot be generated without changing the
     artifact."""
-
-
-def _pipeline_allows_previews() -> bool:
-    """Read the compiled task setting; pipelines enable previews by default."""
-    value = os.environ.get(constants.ARTIFACT_PREVIEWS_ENV_VAR,
-                           'true').strip().lower()
-    if value == 'true':
-        return True
-    if value == 'false':
-        return False
-    _LOGGER.warning(
-        'Automatic artifact previews disabled: the compiled task setting %s '
-        'must be "true" or "false". Recompile with PipelineConfig(artifact_previews=...).',
-        constants.ARTIFACT_PREVIEWS_ENV_VAR)
-    return False
 
 
 def _encode(preview: dict[str, Any]) -> bytes:
@@ -830,8 +813,6 @@ class ArtifactPreviewSession:
     def __enter__(self) -> ArtifactPreviewSession:
         """Install only the supported framework hooks needed by declared
         outputs."""
-        if not _pipeline_allows_previews():
-            return self
         if not any(artifact.schema_title == 'system.Model' and
                    '_kfp_preview' not in artifact.metadata
                    for artifact in self.artifacts.values()):
@@ -883,8 +864,9 @@ class ArtifactPreviewSession:
                     self.models.pop(name, None)
                     self.models[name] = _SavedModel(
                         path, _fingerprint(path), preview_fn(model, framework))
-        except (OSError, ValueError, TypeError, AttributeError, KeyError,
-                OverflowError, RuntimeError) as error:
+        except Exception as error:
+            # The native save already succeeded; an optional preview must not
+            # turn it into a component failure.
             _LOGGER.warning(
                 'Could not capture an automatic model preview; the saved model is unchanged: %s',
                 error)
@@ -892,8 +874,6 @@ class ArtifactPreviewSession:
     def generate(self) -> None:
         """Publish optional previews only after successful execution on the
         chief worker."""
-        if not _pipeline_allows_previews():
-            return
         for name, artifact in self.artifacts.items():
             if artifact.schema_title not in ('system.Dataset', 'system.Model'):
                 continue
@@ -938,7 +918,10 @@ class ArtifactPreviewSession:
                         )
                     preview = saved.preview
                 self._publish(directory, artifact, preview)
-            except (OSError, ValueError, TypeError, RecursionError) as error:
+            except Exception as error:
+                # Library conversions can raise unexpected errors, such as an
+                # unresolvable Arrow time zone. Skip only this optional preview
+                # so executor output is still written.
                 _LOGGER.warning(
                     'Automatic preview unavailable for output %r; its artifact is unchanged: %s',
                     name, error)

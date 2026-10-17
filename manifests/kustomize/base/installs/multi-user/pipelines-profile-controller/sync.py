@@ -131,6 +131,12 @@ def artifact_server_environment(namespace,
             "name": "ALLOWED_GCS_UNIVERSE_DOMAINS",
             "value": allowed_gcs_universe_domains,
         },
+        # The shared UI server limits each user before proxying. With auth
+        # disabled here, a second limit would key every user by its address.
+        {
+            "name": "ARTIFACTS_RATE_LIMIT_DISABLED",
+            "value": "true",
+        },
     ]
 
 

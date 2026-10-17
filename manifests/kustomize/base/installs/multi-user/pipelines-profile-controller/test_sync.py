@@ -624,6 +624,10 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
         "name": "KUBEFLOW_USERID_HEADER",
         "value": "x-company-user",
     } in environment
+    assert {
+        "name": "ARTIFACTS_RATE_LIMIT_DISABLED",
+        "value": "true",
+    } in environment
     assert not any("METADATA" in variable["name"] for variable in environment)
     repositories = next(item for item in result["attachments"]
                         if item["metadata"]["name"] == "artifact-repositories")

@@ -23,6 +23,8 @@ export class ArtifactPreviewError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** Delay in seconds that a rate-limited caller should wait before retrying. */
+    public readonly retryAfterSeconds?: string,
   ) {
     super(message);
     this.name = 'ArtifactPreviewError';
