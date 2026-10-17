@@ -656,3 +656,100 @@ type errorRoundTripper struct {
 func (rt errorRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, rt.err
 }
+
+const (
+	parentTestPipelineA = "aaaaaaaa-0000-0000-0000-000000000001"
+	parentTestPipelineB = "bbbbbbbb-0000-0000-0000-000000000002"
+	parentTestVersionB  = "bbbbbbbb-0000-0000-0000-0000000000b1"
+)
+
+// initWithVersionUnderPipelineB creates pipelines A and B and one version under B.
+func initWithVersionUnderPipelineB(t *testing.T, httpClient *http.Client) (*resource.FakeClientManager, *resource.ResourceManager, *PipelineServer) {
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	var resourceManager *resource.ResourceManager
+	// The resource manager reads its UUID generator when it is created.
+	newResourceManager := func(uuid string) {
+		clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(uuid, nil))
+		resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	}
+	newResourceManager(parentTestPipelineA)
+	_, err := resourceManager.CreatePipeline(&model.Pipeline{Name: "pipeline-a"})
+	assert.Nil(t, err)
+	newResourceManager(parentTestPipelineB)
+	_, err = resourceManager.CreatePipeline(&model.Pipeline{Name: "pipeline-b"})
+	assert.Nil(t, err)
+	newResourceManager(parentTestVersionB)
+	_, err = resourceManager.CreatePipelineVersion(&model.PipelineVersion{Name: "version-b", PipelineId: parentTestPipelineB, PipelineSpec: model.LargeText(testIRPipeline)})
+	assert.Nil(t, err)
+	return clientManager, resourceManager, createPipelineServer(resourceManager, httpClient)
+}
+
+func TestPipelineServer_GetPipelineVersion_WrongParent(t *testing.T) {
+	clientManager, _, pipelineServer := initWithVersionUnderPipelineB(t, nil)
+	defer clientManager.Close()
+
+	_, err := pipelineServer.GetPipelineVersion(context.Background(), &apiv2.GetPipelineVersionRequest{PipelineId: parentTestPipelineA, PipelineVersionId: parentTestVersionB})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "not found")
+	}
+
+	version, err := pipelineServer.GetPipelineVersion(context.Background(), &apiv2.GetPipelineVersionRequest{PipelineId: parentTestPipelineB, PipelineVersionId: parentTestVersionB})
+	assert.Nil(t, err)
+	assert.Equal(t, parentTestVersionB, version.GetPipelineVersionId())
+}
+
+func TestPipelineServer_UpdatePipelineVersion_WrongParent(t *testing.T) {
+	clientManager, resourceManager, pipelineServer := initWithVersionUnderPipelineB(t, nil)
+	defer clientManager.Close()
+
+	_, err := pipelineServer.UpdatePipelineVersion(context.Background(), &apiv2.UpdatePipelineVersionRequest{PipelineVersion: &apiv2.PipelineVersion{PipelineId: parentTestPipelineA, PipelineVersionId: parentTestVersionB, DisplayName: "renamed"}})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "not found")
+	}
+	version, err := resourceManager.GetPipelineVersion(parentTestVersionB)
+	assert.Nil(t, err)
+	assert.NotEqual(t, "renamed", version.DisplayName)
+
+	_, err = pipelineServer.UpdatePipelineVersion(context.Background(), &apiv2.UpdatePipelineVersionRequest{PipelineVersion: &apiv2.PipelineVersion{PipelineId: parentTestPipelineB, PipelineVersionId: parentTestVersionB, DisplayName: "renamed"}})
+	assert.Nil(t, err)
+	version, err = resourceManager.GetPipelineVersion(parentTestVersionB)
+	assert.Nil(t, err)
+	assert.Equal(t, "renamed", version.DisplayName)
+}
+
+func TestPipelineServer_DeletePipelineVersion_WrongParent(t *testing.T) {
+	clientManager, resourceManager, pipelineServer := initWithVersionUnderPipelineB(t, nil)
+	defer clientManager.Close()
+
+	_, err := pipelineServer.DeletePipelineVersion(context.Background(), &apiv2.DeletePipelineVersionRequest{PipelineId: parentTestPipelineA, PipelineVersionId: parentTestVersionB})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "not found")
+	}
+	_, err = resourceManager.GetPipelineVersion(parentTestVersionB)
+	assert.Nil(t, err, "the version must survive a delete under the wrong pipeline")
+
+	_, err = pipelineServer.DeletePipelineVersion(context.Background(), &apiv2.DeletePipelineVersionRequest{PipelineId: parentTestPipelineB, PipelineVersionId: parentTestVersionB})
+	assert.Nil(t, err)
+	_, err = resourceManager.GetPipelineVersion(parentTestVersionB)
+	assert.NotNil(t, err)
+}
+
+func TestPipelineServer_CreatePipelineVersion_ParentMismatch(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+	clientManager, _, pipelineServer := initWithVersionUnderPipelineB(t, httpServer.Client())
+	defer clientManager.Close()
+
+	_, err := pipelineServer.CreatePipelineVersion(context.Background(), &apiv2.CreatePipelineVersionRequest{
+		PipelineId: parentTestPipelineA,
+		PipelineVersion: &apiv2.PipelineVersion{
+			PipelineId:  parentTestPipelineB,
+			DisplayName: "mismatched-parent",
+			PackageUrl:  &apiv2.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+		},
+	})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "does not match")
+	}
+}
