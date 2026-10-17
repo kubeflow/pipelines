@@ -30,6 +30,7 @@ import {
   Moon,
   Search,
   Sun,
+  SunMoon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import KubeflowLogo from 'src/icons/kubeflowLogo';
@@ -131,7 +132,6 @@ export function AppShell({
     : collapsed
       ? 'Expand navigation'
       : 'Collapse navigation';
-  const ThemeIcon = theme === 'system' ? Monitor : theme === 'dark' ? Moon : Sun;
 
   function toggleCollapsed() {
     const next = !preferredCollapsed;
@@ -233,7 +233,7 @@ export function AppShell({
                         />
                       }
                     >
-                      <ThemeIcon size={18} strokeWidth={1.6} aria-hidden='true' />
+                      <SunMoon size={18} strokeWidth={1.6} aria-hidden='true' />
                     </Menu.Trigger>
                   </FooterTooltip>
                   <Menu.Portal className={themeClassName}>

@@ -44,6 +44,7 @@ function RunsPreview({ empty = false, loading = false }: { empty?: boolean; load
           <div className='kfp-runs-name'>
             <a
               href={`#${id}`}
+              title={`${value} · ${id}`}
               onClick={(event) => {
                 event.preventDefault();
                 setOpened(id);
@@ -51,7 +52,6 @@ function RunsPreview({ empty = false, loading = false }: { empty?: boolean; load
             >
               {value}
             </a>
-            <span className='kfp-runs-id'>{id}</span>
           </div>
         ),
       },

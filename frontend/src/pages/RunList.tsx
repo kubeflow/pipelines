@@ -109,7 +109,16 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       { customRenderer: this._pipelineVersionCustomRenderer, label: 'Pipeline version', flex: 1 },
       { label: 'Duration', flex: 0.5 },
       { customRenderer: this._recurringRunCustomRenderer, label: 'Recurring Run', flex: 0.5 },
-      { label: 'Started', flex: 1, sortKey: RunSortKeys.CREATED_AT },
+      {
+        label: 'Started',
+        flex: 1,
+        sortKey: RunSortKeys.CREATED_AT,
+        customRenderer: ({ value }) => (
+          <span className='kfp-runs-started' title={value}>
+            {value}
+          </span>
+        ),
+      },
     ];
 
     if (!this.props.hideExperimentColumn) {
@@ -209,15 +218,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           data-testid='run-name-link'
           data-run-id={props.id}
           data-run-name={props.value || ''}
-          title={props.value || props.id}
+          title={props.value ? `${props.value} · ${props.id}` : props.id}
           onClick={(event) => event.stopPropagation()}
           to={RoutePageFactory.runDetails(props.id)}
         >
           {props.value || props.id}
         </Link>
-        <span className='kfp-runs-id' title={props.id}>
-          {props.id}
-        </span>
       </div>
     );
   };

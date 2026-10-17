@@ -129,7 +129,7 @@ describe('PrivateAndSharedPipelines', () => {
     );
     await flushPromisesInAct();
     expect(screen.queryByRole('tablist', { name: 'Pipeline visibility' })).toBeNull();
-    expect(screen.getByRole('list', { name: 'Pipelines' })).toBeVisible();
+    expect(screen.getByRole('table', { name: 'Pipelines' })).toBeVisible();
     expect(Apis.pipelineServiceApiV2.listPipelines).toHaveBeenLastCalledWith(
       undefined,
       '',

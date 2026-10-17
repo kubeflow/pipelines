@@ -594,49 +594,6 @@ export function RunDetailsView(props: RunDetailsViewProps) {
           mode='warning'
         />
       )}
-      <dl className='kfp-run-summary' aria-label='Run summary'>
-        <div>
-          <dt>Pipeline</dt>
-          <dd>{pipelineUrl ? <Link to={pipelineUrl}>{pipelineName}</Link> : pipelineName}</dd>
-        </div>
-        <div>
-          <dt>Started</dt>
-          <dd>{formatDateString(getActualStartTime(run))}</dd>
-        </div>
-        <div>
-          <dt>Elapsed</dt>
-          <dd className='kfp-run-summary-code'>{getRunDurationV2(run)}</dd>
-        </div>
-        <div>
-          <dt>Runtime tasks</dt>
-          <dd>
-            {runtimeTasks ? (
-              <>
-                {
-                  runtimeTasks.filter(
-                    (task) =>
-                      task.state === PipelineTaskTaskState.SUCCEEDED ||
-                      task.state === PipelineTaskTaskState.CACHED,
-                  ).length
-                }{' '}
-                done · {failedTasks.length} failed ·{' '}
-                {runtimeTasks.filter((task) => task.state === PipelineTaskTaskState.RUNNING).length}{' '}
-                running ·{' '}
-                {runtimeTasks.filter((task) => task.state === PipelineTaskTaskState.SKIPPED).length}{' '}
-                skipped
-              </>
-            ) : isError ? (
-              'Unavailable'
-            ) : (
-              'Loading…'
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Run ID</dt>
-          <dd className='kfp-run-summary-code'>{run.run_id || runId}</dd>
-        </div>
-      </dl>
       {failedTask && (
         <Alert className='kfp-run-failure'>
           <div>
@@ -716,6 +673,47 @@ export function RunDetailsView(props: RunDetailsViewProps) {
         {activeTab === 2 && (
           <div className='kfp-inspection-scroll'>
             <div className='kfp-inspection-details-card'>
+              <dl className='kfp-run-summary' aria-label='Run summary'>
+                <div>
+                  <dt>Pipeline</dt>
+                  <dd>
+                    {pipelineUrl ? <Link to={pipelineUrl}>{pipelineName}</Link> : pipelineName}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Runtime tasks</dt>
+                  <dd>
+                    {runtimeTasks ? (
+                      <>
+                        {
+                          runtimeTasks.filter(
+                            (task) =>
+                              task.state === PipelineTaskTaskState.SUCCEEDED ||
+                              task.state === PipelineTaskTaskState.CACHED,
+                          ).length
+                        }{' '}
+                        done · {failedTasks.length} failed ·{' '}
+                        {
+                          runtimeTasks.filter(
+                            (task) => task.state === PipelineTaskTaskState.RUNNING,
+                          ).length
+                        }{' '}
+                        running ·{' '}
+                        {
+                          runtimeTasks.filter(
+                            (task) => task.state === PipelineTaskTaskState.SKIPPED,
+                          ).length
+                        }{' '}
+                        skipped
+                      </>
+                    ) : isError ? (
+                      'Unavailable'
+                    ) : (
+                      'Loading…'
+                    )}
+                  </dd>
+                </div>
+              </dl>
               <DetailsTable title='Run details' fields={getDetailsFields(run)} />
               {!!run.runtime_config?.parameters && (
                 <DetailsTable
@@ -766,8 +764,11 @@ function updateToolBar(
   if (runMetadata) {
     const pageTitle = (
       <div className='kfp-inspection-run-title'>
+        <span className='kfp-inspection-run-name'>
+          {runMetadata.display_name || 'Run name unknown'}
+        </span>
         <RunStatus state={runMetadata.state} />
-        <span>{runMetadata.display_name || 'Run name unknown'}</span>
+        <span className='kfp-inspection-run-elapsed'>Elapsed {getRunDurationV2(runMetadata)}</span>
       </div>
     );
 

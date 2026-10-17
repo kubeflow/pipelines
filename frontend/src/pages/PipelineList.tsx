@@ -32,7 +32,7 @@ import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
-import { PipelineCards } from 'src/components/pipelines/PipelineCards';
+import { PipelineCollection } from 'src/components/pipelines/PipelineCollection';
 import { Menu } from '@base-ui/react/menu';
 import { MoreVertical } from 'lucide-react';
 import { Button } from 'src/components/ui/button';
@@ -128,7 +128,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       <div className='kfp-pipelines-page'>
         <CustomTable
           ref={this._tableRef}
-          renderTable={(table) => <PipelineCards table={table} />}
+          renderTable={(table) => <PipelineCollection table={table} />}
           errorMessage={this.state.loadError ? 'Unable to load pipelines. Try Refresh.' : undefined}
           columns={columns}
           rows={rows}

@@ -1109,6 +1109,24 @@ describe('RunDetailsV2', () => {
     );
   });
 
+  it('keeps metadata in Detail and the run name before status in the compact header', async () => {
+    renderRoutedRunDetails();
+    expect(screen.queryByLabelText('Run summary')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ pageTitleTooltip: 'test run' }),
+      ),
+    );
+    const title = updateToolbarSpy.mock.calls.find(([props]) => props.pageTitle)?.[0].pageTitle;
+    const header = render(<>{title}</>);
+    const name = header.getByText('test run');
+    expect(name.nextElementSibling).toHaveTextContent('Succeeded');
+    expect(header.getByText(/^Elapsed /)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Detail', exact: true }));
+    expect(screen.getByLabelText('Run summary')).toHaveTextContent('Pipeline');
+    expect(screen.getByRole('region', { name: 'Run details' })).toHaveTextContent('Run ID');
+  });
+
   it('shows top bar buttons', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
@@ -1627,7 +1645,12 @@ describe('RunDetailsV2', () => {
       .mockReturnValueOnce(nextPage.promise);
     render(
       <CommonTestWrapper>
-        <RunDetailsView pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+        <RunDetailsView
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+          location={{ ...generateProps().location, search: '?tab=details' }}
+        />
       </CommonTestWrapper>,
     );
     const summary = screen.getByLabelText('Run summary');
@@ -1718,6 +1741,7 @@ describe('RunDetailsV2', () => {
           pipeline_job={v2YamlTemplateString}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
           {...generateProps()}
+          location={{ ...generateProps().location, search: '?tab=details' }}
         />
       </CommonTestWrapper>,
     );

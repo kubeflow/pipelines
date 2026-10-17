@@ -16,7 +16,6 @@
 
 import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { ExternalLink } from 'lucide-react';
 import RecurringRunsManager from './RecurringRunsManager';
 import ExperimentRunTabs, { RunListsGroupTab } from './ExperimentRunTabs';
 import type { ToolbarProps } from 'src/lib/PageChromeTypes';
@@ -94,45 +93,18 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       <div className='kfp-workflow-page'>
         {experiment && (
           <div className='kfp-workflow-content'>
-            <div className='kfp-workflow-cards'>
-              <section
-                id='recurringRunsCard'
-                className='kfp-workflow-card'
-                aria-label='Recurring run configs'
-              >
-                <div className='kfp-workflow-card-heading'>
-                  <h2>Recurring run configs</h2>
+            <div className='kfp-experiment-summary'>
+              {description.trim() && (
+                <section
+                  id='experimentDescriptionCard'
+                  className='kfp-experiment-description'
+                  aria-label='Experiment description'
+                >
+                  <p>{description}</p>
                   <Button
                     variant='ghost'
                     size='sm'
-                    id='manageExperimentRecurringRunsBtn'
-                    onClick={() => this.setState({ recurringRunsManagerOpen: true })}
-                  >
-                    Manage
-                  </Button>
-                </div>
-                <div
-                  className='kfp-workflow-card-count'
-                  data-active={activeRecurringRunsCount > 0 ? '' : undefined}
-                >
-                  {activeRecurringRunsCount < 0
-                    ? 'Unavailable'
-                    : `${activeRecurringRunsCount} active`}
-                </div>
-              </section>
-              <section
-                id='experimentDescriptionCard'
-                className='kfp-workflow-card'
-                aria-label='Experiment description'
-              >
-                <div className='kfp-workflow-card-heading'>
-                  <h2>Experiment description</h2>
-                  <Button
-                    variant='ghost'
-                    size='icon'
                     id='expandExperimentDescriptionBtn'
-                    aria-label='Read more'
-                    title='Read more'
                     onClick={() =>
                       this.props.updateDialog({
                         content: description,
@@ -140,18 +112,29 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                       })
                     }
                   >
-                    <ExternalLink aria-hidden='true' />
+                    View description
                   </Button>
-                </div>
-                {description
-                  .split('\n')
-                  .slice(0, 2)
-                  .map((line, i) => (
-                    <div key={i} className='kfp-workflow-description-line'>
-                      {line}
-                    </div>
-                  ))}
-                {description.split('\n').length > 2 ? '...' : ''}
+                </section>
+              )}
+              <section
+                id='recurringRunsCard'
+                className='kfp-experiment-recurring-summary'
+                aria-label='Recurring run configs'
+              >
+                <span>Recurring run configs</span>
+                <span data-active={activeRecurringRunsCount > 0 ? '' : undefined}>
+                  {activeRecurringRunsCount < 0
+                    ? 'Unavailable'
+                    : `${activeRecurringRunsCount} active`}
+                </span>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  id='manageExperimentRecurringRunsBtn'
+                  onClick={() => this.setState({ recurringRunsManagerOpen: true })}
+                >
+                  Manage
+                </Button>
               </section>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />

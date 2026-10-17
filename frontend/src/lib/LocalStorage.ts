@@ -17,6 +17,7 @@
 export enum LocalStorageKey {
   navbarCollapsed = 'navbarCollapsed',
   tablePageSize = 'tablePageSize',
+  pipelineView = 'pipelineView',
 }
 
 export class LocalStorage {
@@ -37,6 +38,22 @@ export class LocalStorage {
       localStorage.setItem(LocalStorageKey.navbarCollapsed, value.toString());
     } catch {
       // Navigation remains usable when browser policy or quota blocks storage.
+    }
+  }
+
+  public static getPipelineView(): 'table' | 'cards' {
+    try {
+      return localStorage.getItem(LocalStorageKey.pipelineView) === 'cards' ? 'cards' : 'table';
+    } catch {
+      return 'table';
+    }
+  }
+
+  public static savePipelineView(value: 'table' | 'cards'): void {
+    try {
+      localStorage.setItem(LocalStorageKey.pipelineView, value);
+    } catch {
+      // The view can still change when browser policy or quota blocks storage.
     }
   }
 

@@ -19,11 +19,18 @@ import userEvent from '@testing-library/user-event';
 import { ExpandState } from '../CustomTable';
 import type { CustomTableRenderModel } from '../CustomTable';
 import { PipelineCards } from './PipelineCards';
+import { PipelineCollection } from './PipelineCollection';
+import { LocalStorageKey } from '../../lib/LocalStorage';
 
 function table(overrides: Partial<CustomTableRenderModel> = {}): CustomTableRenderModel {
   return {
     columns: [
-      { label: 'Pipeline name', sortKey: 'display_name', flex: 1 },
+      {
+        label: 'Pipeline name',
+        sortKey: 'display_name',
+        flex: 1,
+        customRenderer: ({ value }) => <span>{value.display_name}</span>,
+      },
       { label: 'Description', flex: 1 },
       { label: 'Uploaded on', sortKey: 'created_at', flex: 1 },
     ],
@@ -131,4 +138,63 @@ it('distinguishes initial loading, failure, and an empty filtered result', () =>
   expect(
     within(screen.getByRole('list', { name: 'Pipelines' })).queryAllByRole('listitem'),
   ).toHaveLength(0);
+});
+
+describe('pipeline view choice', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it('defaults to table and remembers an explicit cards choice across remounts', async () => {
+    const model = table({ selectedIds: ['0'], filter: 'First', pageSize: 20 });
+    const view = render(<PipelineCollection table={model} />);
+    expect(screen.getByRole('table', { name: 'Pipelines' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cards', exact: true }));
+    expect(screen.getByRole('list', { name: 'Pipelines' })).toBeVisible();
+    expect(screen.getByRole('checkbox', { name: 'Select pipeline First' })).toBeChecked();
+    expect(screen.getByRole('searchbox')).toHaveValue('First');
+    expect(screen.getByRole('combobox', { name: 'Rows per page' })).toHaveValue('20');
+    expect(model.onFilterChange).not.toHaveBeenCalled();
+    expect(model.onSort).not.toHaveBeenCalled();
+    expect(model.onPageSizeChange).not.toHaveBeenCalled();
+    view.unmount();
+    render(<PipelineCollection table={model} />);
+    expect(screen.getByRole('list', { name: 'Pipelines' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Table', exact: true }));
+    expect(localStorage.getItem(LocalStorageKey.pipelineView)).toBe('table');
+    expect(screen.getByRole('checkbox', { name: 'Select pipeline First' })).toBeChecked();
+  });
+
+  it('does not change the chosen view when the result count changes', async () => {
+    const model = table();
+    const view = render(<PipelineCollection table={model} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Cards', exact: true }));
+    view.rerender(<PipelineCollection table={{ ...model, rows: [] }} />);
+    expect(screen.getByRole('list', { name: 'Pipelines' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Cards', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('falls back to table for invalid preferences and stays usable with blocked storage', async () => {
+    localStorage.setItem(LocalStorageKey.pipelineView, 'invalid');
+    const view = render(<PipelineCollection table={table()} />);
+    expect(screen.getByRole('table', { name: 'Pipelines' })).toBeVisible();
+    view.unmount();
+    const storage = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    try {
+      render(<PipelineCollection table={table()} />);
+      expect(screen.getByRole('table', { name: 'Pipelines' })).toBeVisible();
+      await userEvent.click(screen.getByRole('button', { name: 'Cards', exact: true }));
+      expect(screen.getByRole('list', { name: 'Pipelines' })).toBeVisible();
+    } finally {
+      storage.mockRestore();
+    }
+  });
 });

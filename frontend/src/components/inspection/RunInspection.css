@@ -10,14 +10,14 @@
   min-height: 0;
 }
 .kfp-theme .kfp-run-inspection {
-  /* Let the page scroll when the summary and tabs exceed the available height. */
+  /* Keep graph and timeline space available below the page header. */
   min-height: min-content;
-  padding: 0 32px 32px;
-  gap: 16px;
+  padding: 0 32px 24px;
+  gap: 12px;
 }
 .kfp-theme .kfp-run-summary {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 140px 90px 190px minmax(240px, 1.5fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: 16px 28px;
   padding: 14px 0;
@@ -37,13 +37,9 @@
   text-transform: uppercase;
 }
 .kfp-theme .kfp-run-summary dd {
-  min-height: 3em;
   margin: 0;
   font-size: 13px;
   overflow-wrap: anywhere;
-}
-.kfp-theme .kfp-run-summary-code {
-  font-family: var(--kfp-font-mono);
 }
 .kfp-theme .kfp-inspection-tab-list {
   display: flex;
@@ -324,8 +320,19 @@
 .kfp-theme .kfp-inspection-run-title {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 6px 12px;
+}
+.kfp-theme .kfp-inspection-run-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-inspection-run-elapsed {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
 }
 .kfp-theme .kfp-inspection-link {
   color: var(--primary);
@@ -346,14 +353,6 @@
   background: var(--primary-soft);
 }
 
-@media (max-width: 1239px) {
-  .kfp-theme .kfp-run-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .kfp-theme .kfp-run-summary > div:last-child {
-    grid-column: 1 / -1;
-  }
-}
 @media (max-width: 480px) {
   .kfp-theme .kfp-run-summary {
     grid-template-columns: minmax(0, 1fr);

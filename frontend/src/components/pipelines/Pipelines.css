@@ -34,11 +34,11 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: end;
-  padding: 16px 0;
+  padding: 8px 0 12px;
 }
 .kfp-pipeline-filter {
   flex: 1 1 260px;
-  max-width: 420px;
+  max-width: 360px;
 }
 .kfp-pipeline-filter span {
   position: absolute;
@@ -112,12 +112,12 @@
 .kfp-pipeline-card header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 .kfp-pipeline-card h2 {
   margin: 0;
   min-width: 0;
+  flex: 1;
   font-size: 14px;
   font-weight: 600;
 }
@@ -280,4 +280,39 @@
     padding-right: 16px;
     padding-left: 16px;
   }
+}
+
+.kfp-pipeline-view-toggle {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.kfp-pipeline-controls .kfp-pipeline-sort {
+  margin-left: 0;
+}
+.kfp-pipeline-collection .kfp-runs-table td:last-child {
+  white-space: nowrap;
+}
+
+.kfp-pipeline-sort-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.kfp-pipeline-sort-select select {
+  appearance: none;
+  height: 36px;
+  padding: 4px 30px 4px 10px;
+}
+.kfp-pipeline-sort-select > svg {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+}
+.kfp-pipeline-sort + button {
+  width: 36px;
+  height: 36px;
 }

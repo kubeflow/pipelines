@@ -23,7 +23,7 @@ const columnWidths: Record<string, number> = {
   Experiment: 140,
   Duration: 100,
   'Recurring Run': 140,
-  Started: 170,
+  Started: 210,
 };
 
 export function RunsTable({
@@ -47,7 +47,7 @@ export function RunsTable({
       className='kfp-runs-data-table'
       columnWidths={table.columns.map((column) => columnWidths[column.label])}
       minScrollHeight={
-        reservedRowCount === undefined ? undefined : 40 + Math.max(0, reservedRowCount) * 64
+        reservedRowCount === undefined ? undefined : 40 + Math.max(0, reservedRowCount) * 48
       }
     />
   );

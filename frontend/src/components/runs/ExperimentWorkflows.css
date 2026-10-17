@@ -16,7 +16,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  gap: 20px;
+  gap: 8px;
 }
 .kfp-theme .kfp-workflow-form,
 .kfp-theme .kfp-workflow-details {
@@ -42,47 +42,45 @@
   font-size: 13px;
 }
 .kfp-theme .kfp-workflow-actions,
-.kfp-theme .kfp-workflow-card-heading,
 .kfp-theme .kfp-schedule-switch-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.kfp-theme .kfp-workflow-cards {
+.kfp-theme .kfp-experiment-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-}
-.kfp-theme .kfp-workflow-card {
-  flex: 1;
-  min-width: 220px;
-  max-width: 460px;
-  padding: 18px 20px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--card);
-}
-.kfp-theme .kfp-workflow-card-heading {
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.kfp-theme .kfp-workflow-card-heading h2 {
-  margin: 0;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
   font-size: 13px;
-  font-weight: 600;
 }
-.kfp-theme .kfp-workflow-card-count {
-  font-size: 20px;
-  font-weight: 600;
+.kfp-theme .kfp-experiment-description {
+  display: flex;
+  flex: 1 1 280px;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
 }
-.kfp-theme .kfp-workflow-card-count[data-active] {
-  color: var(--status-succeeded);
-}
-.kfp-theme .kfp-workflow-description-line {
+.kfp-theme .kfp-experiment-description p {
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+}
+.kfp-theme .kfp-experiment-description button {
+  flex-shrink: 0;
+}
+.kfp-theme .kfp-experiment-recurring-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.kfp-theme .kfp-experiment-recurring-summary [data-active] {
+  color: var(--status-succeeded);
 }
 .kfp-theme .kfp-workflow-link {
   color: var(--primary);

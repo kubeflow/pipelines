@@ -200,7 +200,7 @@ describe('ExperimentDetails', () => {
     });
   });
 
-  it('uses an empty string if the experiment has no description', async () => {
+  it('hides the description control if the experiment has no description', async () => {
     const experiment = newMockExperiment();
     delete experiment.description;
 
@@ -212,24 +212,34 @@ describe('ExperimentDetails', () => {
     expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
-  it('removes all description text after second newline and replaces with an ellipsis', async () => {
+  it('keeps the full description available from the compact summary', async () => {
     const experiment = newMockExperiment();
     experiment.description = 'Line 1\nLine 2\nLine 3\nLine 4';
-
     getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails();
     await waitForExperimentLoad();
-    screen.getByText('Line 1');
-    screen.getByText('Line 2');
-    screen.getByText('...');
+    fireEvent.click(screen.getByRole('button', { name: 'View description' }));
+    expect(updateDialogSpy).toHaveBeenCalledWith({
+      content: experiment.description,
+      title: 'Experiment description',
+    });
+  });
+
+  it('omits the description summary for blank descriptions', async () => {
+    getExperimentSpy.mockImplementation(() => ({ ...newMockExperiment(), description: '  ' }));
+    await renderExperimentDetails();
+    await waitForExperimentLoad();
+    expect(screen.queryByRole('region', { name: 'Experiment description' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'View description' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Manage' })).toBeEnabled();
   });
 
   it('opens the expanded description modal when the expand button is clicked', async () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Read more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View description' }));
     await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,

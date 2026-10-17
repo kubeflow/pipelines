@@ -15,6 +15,7 @@
  */
 
 import { useId } from 'react';
+import type { ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react';
 import { ExpandState } from '../CustomTable';
 import type { CustomTableRenderModel, Row } from '../CustomTable';
@@ -29,57 +30,21 @@ function rowName(row: Row): string {
   return value.display_name || value.name || row.id;
 }
 
-export function PipelineCards({ table }: { table: CustomTableRenderModel }) {
+export function PipelineCards({
+  table,
+  hideControls = false,
+}: {
+  table: CustomTableRenderModel;
+  hideControls?: boolean;
+}) {
   const id = useId();
   const NameRenderer = table.columns[0].customRenderer;
   const DescriptionRenderer = table.columns[1].customRenderer;
   const visibleSelected = table.rows.filter((row) => table.selectedIds.includes(row.id)).length;
   const allSelected = table.rows.length > 0 && visibleSelected === table.rows.length;
-  const SortIcon = table.sortOrder === 'asc' ? ArrowUp : ArrowDown;
   return (
     <div className='kfp-pipeline-cards-view'>
-      <div className='kfp-pipeline-controls'>
-        <label className='kfp-pipeline-filter' htmlFor={`${id}-filter`}>
-          <span>Filter pipelines</span>
-          <Input
-            id={`${id}-filter`}
-            type='search'
-            placeholder='Filter pipelines'
-            value={table.filter}
-            onChange={(event) => table.onFilterChange(event.target.value)}
-          />
-        </label>
-        {table.filter && (
-          <Button variant='ghost' onClick={() => table.onFilterChange('')}>
-            Clear filter
-          </Button>
-        )}
-        {table.filterActions}
-        <label className='kfp-pipeline-sort' htmlFor={`${id}-sort`}>
-          Sort pipelines
-          <select
-            id={`${id}-sort`}
-            value={table.sortBy}
-            onChange={(event) => table.onSort(event.target.value)}
-          >
-            {table.columns
-              .filter((column) => column.sortKey)
-              .map((column) => (
-                <option key={column.sortKey} value={column.sortKey}>
-                  {column.label}
-                </option>
-              ))}
-          </select>
-        </label>
-        <Button
-          variant='secondary'
-          size='icon'
-          aria-label={`Sort ${table.sortOrder === 'asc' ? 'descending' : 'ascending'}`}
-          onClick={() => table.onSort(table.sortBy)}
-        >
-          <SortIcon aria-hidden='true' />
-        </Button>
-      </div>
+      {!hideControls && <PipelineControls table={table} />}
       <div className='kfp-pipeline-selection'>
         <Checkbox
           aria-label='Select all pipelines on this page'
@@ -88,7 +53,8 @@ export function PipelineCards({ table }: { table: CustomTableRenderModel }) {
           disabled={!table.rows.length || table.isBusy}
           onCheckedChange={table.onSelectAll}
         />
-        <span>Select this page</span>
+        <span>Select all on this page</span>
+        {table.selectedIds.length > 0 && <span>{table.selectedIds.length} selected</span>}
         <span role='status'>
           {table.isBusy && table.rows.length ? 'Refreshing pipelines…' : ''}
         </span>
@@ -124,15 +90,15 @@ export function PipelineCards({ table }: { table: CustomTableRenderModel }) {
             >
               <div className='kfp-pipeline-card-main'>
                 <header>
-                  <h2>
-                    {NameRenderer ? <NameRenderer value={row.otherFields[0]} id={row.id} /> : name}
-                  </h2>
                   <Checkbox
                     aria-label={`Select pipeline ${name}`}
                     checked={table.selectedIds.includes(row.id)}
                     disabled={table.isBusy}
                     onCheckedChange={() => table.onSelect(row.id)}
                   />
+                  <h2>
+                    {NameRenderer ? <NameRenderer value={row.otherFields[0]} id={row.id} /> : name}
+                  </h2>
                 </header>
                 <div className='kfp-pipeline-description'>
                   {DescriptionRenderer ? (
@@ -176,6 +142,72 @@ export function PipelineCards({ table }: { table: CustomTableRenderModel }) {
         })}
       </ul>
       <TablePagination table={table} id={`${id}-page-size`} className='kfp-pipeline-pagination' />
+    </div>
+  );
+}
+
+export function PipelineControls({
+  table,
+  children,
+  showSort = true,
+}: {
+  table: CustomTableRenderModel;
+  children?: ReactNode;
+  showSort?: boolean;
+}) {
+  const id = useId();
+  const SortIcon = table.sortOrder === 'asc' ? ArrowUp : ArrowDown;
+  return (
+    <div className='kfp-pipeline-controls'>
+      <label className='kfp-pipeline-filter' htmlFor={`${id}-filter`}>
+        <span>Filter pipelines</span>
+        <Input
+          id={`${id}-filter`}
+          type='search'
+          placeholder='Filter pipelines'
+          value={table.filter}
+          onChange={(event) => table.onFilterChange(event.target.value)}
+        />
+      </label>
+      {table.filter && (
+        <Button variant='ghost' onClick={() => table.onFilterChange('')}>
+          Clear filter
+        </Button>
+      )}
+      {table.filterActions}
+      {children}
+      {showSort && (
+        <>
+          <label className='kfp-pipeline-sort' htmlFor={`${id}-sort`}>
+            Sort
+            <span className='kfp-pipeline-sort-select'>
+              <select
+                id={`${id}-sort`}
+                aria-label='Sort pipelines'
+                value={table.sortBy}
+                onChange={(event) => table.onSort(event.target.value)}
+              >
+                {table.columns
+                  .filter((column) => column.sortKey)
+                  .map((column) => (
+                    <option key={column.sortKey} value={column.sortKey}>
+                      {column.label}
+                    </option>
+                  ))}
+              </select>
+              <ChevronDown size={14} aria-hidden='true' />
+            </span>
+          </label>
+          <Button
+            variant='secondary'
+            size='icon'
+            aria-label={`Sort ${table.sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+            onClick={() => table.onSort(table.sortBy)}
+          >
+            <SortIcon aria-hidden='true' />
+          </Button>
+        </>
+      )}
     </div>
   );
 }

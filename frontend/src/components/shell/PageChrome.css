@@ -14,12 +14,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 28px 32px 20px;
+  gap: 12px;
+  padding: 16px 32px 12px;
 }
 /* Match a loaded breadcrumb row (26px), title/actions (34px), and vertical padding. */
 .kfp-theme .kfp-page-header[data-reserve-breadcrumb-header='true'] {
-  min-height: 108px;
+  min-height: 88px;
 }
 .kfp-theme .kfp-page-heading {
   min-width: 0;
@@ -145,10 +145,10 @@
 }
 @media (max-width: 767px) {
   .kfp-theme .kfp-page-header {
-    padding: 20px 16px 16px;
+    padding: 12px 16px 8px;
   }
   .kfp-theme .kfp-page-header[data-reserve-breadcrumb-header='true'] {
-    min-height: 96px;
+    min-height: 80px;
   }
   .kfp-theme .kfp-page-banner {
     margin-right: 16px;
@@ -157,7 +157,7 @@
 }
 
 .kfp-theme .kfp-page-header[data-embedded='true'] {
-  padding: 16px 0;
+  padding: 8px 0;
 }
 .kfp-theme .kfp-page-title-row h2 {
   margin: 0;

@@ -466,7 +466,7 @@ function sameGraph(before, after) {
   }
 }
 
-test('Run Details keeps summary geometry stable when runtime task counts arrive', async () => {
+test('Run Details keeps graph space stable and puts metadata in Detail', async () => {
   await withFixture({}, async (page, fixture) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     const pendingTasks = gate();
@@ -478,64 +478,43 @@ test('Run Details keeps summary geometry stable when runtime task counts arrive'
     await page.goto(`${origin}/#/runs/details/${runId}`);
     await requested;
     await page.getByTestId('page-title').getByText('Nested browser run', { exact: true }).waitFor();
-    const summary = page.locator('.kfp-run-summary');
-    await summary.getByText('Loading…', { exact: true }).waitFor();
-    assert.equal(await summary.getByText(runId, { exact: true }).count(), 1);
+    assert.equal(await page.locator('.kfp-run-summary').count(), 0);
     const measure = () =>
-      summary.evaluate(async (element) => {
+      page.locator('.kfp-run-graph').evaluate(async (element) => {
         await document.fonts.ready;
         await new Promise(requestAnimationFrame);
         await new Promise(requestAnimationFrame);
-        const bounds = (node) => {
-          const { x, y, width, height } = node.getBoundingClientRect();
-          return { x, y, width, height };
-        };
-        return {
-          summary: bounds(element),
-          fields: [...element.children].map((field) => ({
-            label: field.querySelector('dt').textContent,
-            bounds: bounds(field),
-          })),
-        };
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
       });
     const loading = await measure();
-    assert.deepEqual(
-      loading.fields.map((field) => field.label),
-      ['Pipeline', 'Started', 'Elapsed', 'Runtime tasks', 'Run ID'],
+    const received = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === tasksPath,
     );
     pendingTasks.release();
-    await summary.getByText('3 done · 0 failed · 0 running · 0 skipped', { exact: true }).waitFor();
+    await received;
     await graph(page);
     const loaded = await measure();
-    const unchanged = (label, before, after) => {
-      for (const field of ['x', 'y', 'width', 'height'])
-        assert.ok(
-          Math.abs(after[field] - before[field]) <= 1,
-          `${label} ${field} shifted from ${before[field]} to ${after[field]}`,
-        );
-    };
-    unchanged('Run summary', loading.summary, loaded.summary);
-    assert.deepEqual(
-      loaded.fields.map((field) => field.label),
-      loading.fields.map((field) => field.label),
-    );
-    loaded.fields.forEach((field, index) =>
-      unchanged(field.label, loading.fields[index].bounds, field.bounds),
-    );
+    for (const field of ['x', 'y', 'width', 'height']) {
+      assert.ok(
+        Math.abs(loaded[field] - loading[field]) <= 1,
+        `Graph ${field} shifted from ${loading[field]} to ${loaded[field]}`,
+      );
+    }
     assert.equal(fixture.requests.filter((request) => request.path === tasksPath).length, 1);
-
+    await tab(page, 'Detail').click();
+    const summary = page.locator('.kfp-run-summary');
+    await summary.getByText('3 done · 0 failed · 0 running · 0 skipped', { exact: true }).waitFor();
+    assert.equal(
+      await page
+        .getByRole('region', { name: 'Run details', exact: true })
+        .getByText(runId, { exact: true })
+        .count(),
+      1,
+    );
     for (const width of [1200, 375]) {
       await page.setViewportSize({ width, height: 650 });
       if (width === 375) await page.locator('.kfp-shell-sidebar[data-collapsed="true"]').waitFor();
-      const narrow = await measure();
-      assert.ok(narrow.summary.x >= 0 && narrow.summary.x + narrow.summary.width <= width);
-      for (const field of narrow.fields) {
-        assert.ok(
-          field.bounds.x >= narrow.summary.x &&
-            field.bounds.x + field.bounds.width <= narrow.summary.x + narrow.summary.width + 1,
-          `${field.label} must fit inside the narrow summary`,
-        );
-      }
       assert.equal(
         await summary.evaluate((element) => element.scrollWidth <= element.clientWidth),
         true,

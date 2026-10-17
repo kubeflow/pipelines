@@ -35,7 +35,7 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 18px 0 12px;
+  padding: 8px 0;
 }
 .kfp-theme .kfp-runs-filter-row > label {
   position: absolute;
@@ -45,7 +45,7 @@
   clip-path: inset(50%);
 }
 .kfp-theme .kfp-runs-filter-row > input {
-  width: 280px;
+  width: 360px;
   max-width: 100%;
   background: var(--card);
 }
@@ -126,14 +126,7 @@
   color: var(--primary);
   text-decoration: underline;
 }
-.kfp-theme .kfp-runs-id {
-  overflow: hidden;
-  color: var(--muted-foreground);
-  font-family: var(--kfp-font-mono);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+
 .kfp-theme .kfp-runs-resource-link {
   display: inline-block;
   max-width: 210px;
@@ -273,11 +266,16 @@
   height: 40px;
 }
 .kfp-theme .kfp-runs-data-table .kfp-runs-table tbody tr[data-row-id] {
-  height: 64px;
+  height: 48px;
 }
 .kfp-theme .kfp-runs-data-table .kfp-runs-name {
   min-width: 0;
 }
 .kfp-theme .kfp-runs-data-table .kfp-runs-resource-link {
   max-width: 100%;
+}
+
+.kfp-theme .kfp-runs-started {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }

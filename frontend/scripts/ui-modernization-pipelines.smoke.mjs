@@ -417,6 +417,7 @@ const card = (page, name) =>
 async function openList(page, fixture) {
   await page.goto(`${fixture.origin}/#/pipelines`);
   await page.getByRole('link', { name: 'Pipeline 01', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Cards', exact: true }).click();
   await waitForCards(page, 10);
 }
 async function waitForCards(page, count) {
@@ -425,6 +426,25 @@ async function waitForCards(page, count) {
     count,
   );
 }
+
+test('pipelines default to table and retain a user-selected cards view after reload', async () => {
+  await withFixture({}, async (page, fixture) => {
+    await page.goto(`${fixture.origin}/#/pipelines`);
+    await page.getByRole('table', { name: 'Pipelines', exact: true }).waitFor();
+    await page.getByRole('link', { name: 'Pipeline 01', exact: true }).waitFor();
+    await screenshot(page, 'pipelines-table-light');
+    await page.getByRole('button', { name: 'Cards', exact: true }).click();
+    await waitForCards(page, 10);
+    await page.reload();
+    await waitForCards(page, 10);
+    assert.equal(
+      await page.getByRole('button', { name: 'Cards', exact: true }).getAttribute('aria-pressed'),
+      'true',
+    );
+    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await page.getByRole('table', { name: 'Pipelines', exact: true }).waitFor();
+  });
+});
 
 // The card controls intentionally keep all server-backed capabilities from CustomTable.
 test('pipeline cards retain filtering, sorting, paging, selection and lazy version expansion', async () => {

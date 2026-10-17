@@ -144,13 +144,17 @@ it('does not report a stale list failure after a newer request succeeds', async 
   expect(screen.getByRole('link', { name: 'Latest run' })).toBeVisible();
 });
 
-it('retains embedded pipeline and recurring-run links alongside named state and full run ID', async () => {
+it('retains embedded pipeline and recurring-run links alongside named state and a run ID tooltip', async () => {
   vi.mocked(Apis.runServiceApiV2.listRuns).mockResolvedValue({
     runs: [{ ...initial, recurring_run_id: 'schedule', pipeline_spec: {} }],
   });
   renderList();
   await screen.findByRole('link', { name: 'Initial run' });
-  expect(screen.getByText('initial')).toBeVisible();
+  expect(screen.queryByText('initial')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Initial run' })).toHaveAttribute(
+    'title',
+    'Initial run · initial',
+  );
   expect(screen.getByText('Succeeded')).toBeVisible();
   expect(screen.getByRole('link', { name: '[View config]' })).toHaveAttribute(
     'href',
