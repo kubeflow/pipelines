@@ -24,6 +24,11 @@ type V2beta1CreateArtifactRequest struct {
 	// this field designates the iteration index
 	IterationIndex string `json:"iteration_index,omitempty"`
 
+	// Optional. A caller-generated operation ID used to make artifact creation
+	// idempotent across RPC retries. The same operation ID is scoped to the
+	// namespace, run, and task.
+	OperationID string `json:"operation_id,omitempty"`
+
 	// The outgoing parameter name of this Artifact within this task's component spec.
 	// For example:
 	// def preprocess(my_output: dsl.Outputs[dsl.Artifact]):

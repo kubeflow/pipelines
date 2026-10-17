@@ -218,6 +218,13 @@ type fakeS3Client struct {
 	lastCreateInput *s3.CreateBucketInput
 }
 
+func TestAutoMigrateCreatesArtifactWriteIdentityTable(t *testing.T) {
+	db := getTestSQLite(t)
+
+	require.NoError(t, autoMigrate(db))
+	assert.True(t, db.Migrator().HasTable(&model.ArtifactWriteIdentity{}))
+}
+
 func (f *fakeS3Client) HeadBucket(context.Context, *s3.HeadBucketInput, ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	f.headCalls++
 	if f.headErr != nil {
