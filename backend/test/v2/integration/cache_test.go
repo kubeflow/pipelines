@@ -170,21 +170,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 			return false
 		}
 
-		if len(allRuns) >= 2 {
-			// Only check the first 2 runs, not all runs (recurring run keeps creating new ones)
-			firstTwoSucceeded := true
-			for i := 0; i < 2 && i < len(allRuns); i++ {
-				run := allRuns[i]
-				if *run.State != *run_model.V2beta1RuntimeStateSUCCEEDED.Pointer() {
-					firstTwoSucceeded = false
-				}
-			}
-			if firstTwoSucceeded {
-				return true
-			}
-		}
-
-		return false
+		return cacheRecurringRunsSucceeded(t, allRuns)
 	}, 4*time.Minute, 5*time.Second)
 
 	// Wait a bit more to ensure the first run's launcher has finished writing cache to database
@@ -420,6 +406,47 @@ func (s *CacheTestSuite) getContainerExecutionState(t *testing.T, runID string) 
 	}
 	require.FailNowf(t, "no container execution found for run %s", runID)
 	return pb.Execution_UNKNOWN
+}
+
+func cacheRecurringRunsSucceeded(t *testing.T, runs []*run_model.V2beta1Run) bool {
+	t.Helper()
+	if len(runs) < 2 {
+		return false
+	}
+	// Later runs can still be starting while the first two have completed.
+	for _, run := range runs[:2] {
+		if run == nil || !cacheRunSucceeded(t, run.RunID, run, nil) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestCacheRecurringRunsSucceeded(t *testing.T) {
+	succeeded := &run_model.V2beta1Run{State: run_model.V2beta1RuntimeStateSUCCEEDED.Pointer()}
+	noState := &run_model.V2beta1Run{}
+	running := &run_model.V2beta1Run{State: run_model.V2beta1RuntimeStateRUNNING.Pointer()}
+	failed := &run_model.V2beta1Run{State: run_model.V2beta1RuntimeStateFAILED.Pointer()}
+	for _, tc := range []struct {
+		name string
+		runs []*run_model.V2beta1Run
+		want bool
+	}{
+		{name: "no runs"},
+		{name: "one succeeded run", runs: []*run_model.V2beta1Run{succeeded}},
+		{name: "nil run", runs: []*run_model.V2beta1Run{succeeded, nil}},
+		{name: "first state not reported", runs: []*run_model.V2beta1Run{noState, succeeded}},
+		{name: "second state not reported", runs: []*run_model.V2beta1Run{succeeded, noState}},
+		{name: "first still running", runs: []*run_model.V2beta1Run{running, succeeded}},
+		{name: "second still running", runs: []*run_model.V2beta1Run{succeeded, running}},
+		{name: "failed run", runs: []*run_model.V2beta1Run{succeeded, failed}},
+		{name: "both succeeded", runs: []*run_model.V2beta1Run{succeeded, succeeded}, want: true},
+		{name: "later run not ready", runs: []*run_model.V2beta1Run{succeeded, succeeded, noState}, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, cacheRecurringRunsSucceeded(t, tc.runs))
+		})
+	}
 }
 
 // cacheRunSucceeded reports each observation without losing the ID on a failed Get.
