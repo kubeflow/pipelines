@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'src/pages/DetailLayouts.css';
 import { LoaderCircle } from 'lucide-react';
 import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
@@ -102,7 +103,7 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
     const { artifact, hasError, visualizationRefreshGeneration } = this.state;
     if (!artifact && !hasError) {
       return (
-        <div className='kfp-artifact-detail'>
+        <div className='kfp-detail-page kfp-artifact-detail'>
           <span role='progressbar' aria-label='Loading artifact' className='kfp-artifact-loading'>
             <LoaderCircle aria-hidden='true' /> Loading artifact…
           </span>
@@ -110,11 +111,11 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
       );
     }
     if (!artifact) {
-      return <div className='kfp-artifact-detail' />;
+      return <div className='kfp-detail-page kfp-artifact-detail' />;
     }
 
     return (
-      <div className='kfp-artifact-detail'>
+      <div className='kfp-detail-page kfp-artifact-detail'>
         <Routes>
           <Route
             path='explorer'
@@ -298,7 +299,7 @@ function ArtifactOverview({
 
   return (
     <ArtifactTabs selectedTab={ArtifactDetailsTab.OVERVIEW} onSwitch={onSwitch}>
-      <div className='kfp-artifact-overview'>
+      <div className='kfp-detail-sections kfp-artifact-overview'>
         <InspectionFields title='Artifact details' fields={details} />
         {artifact.uri && (
           <InspectionFields

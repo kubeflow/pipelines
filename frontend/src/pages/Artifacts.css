@@ -1,12 +1,11 @@
-.kfp-theme .kfp-artifact-list,
-.kfp-theme .kfp-artifact-detail {
+.kfp-theme .kfp-artifact-list {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  gap: 16px;
-  padding: 0 32px 32px;
+  gap: var(--kfp-section-gap, 16px);
+  padding: 0 var(--kfp-page-gutter, 24px) var(--kfp-page-gutter, 24px);
   overflow: auto;
 }
 .kfp-theme .kfp-artifact-type-filters {
@@ -59,13 +58,12 @@
 .kfp-theme .kfp-artifact-type[data-kind='metric']::before {
   background: var(--status-warning);
 }
-.kfp-theme .kfp-artifact-overview,
 .kfp-theme .kfp-artifact-relationships {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 20px;
-  padding-top: 20px;
+  gap: var(--kfp-section-gap, 16px);
+  padding-top: var(--kfp-section-gap, 16px);
 }
 .kfp-theme .kfp-artifact-relationships h2 {
   font-size: 15px;
@@ -79,10 +77,9 @@
   padding: 24px 0;
   color: var(--muted-foreground);
 }
-@media (max-width: 700px) {
-  .kfp-theme .kfp-artifact-list,
-  .kfp-theme .kfp-artifact-detail {
-    padding: 0 16px 20px;
+@media (max-width: 600px) {
+  .kfp-theme .kfp-artifact-list {
+    padding: 0 16px 16px;
   }
 }
 

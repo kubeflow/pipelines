@@ -1122,7 +1122,7 @@ describe('RunDetailsV2', () => {
     const name = header.getByText('test run');
     expect(name.nextElementSibling).toHaveTextContent('Succeeded');
     expect(header.getByText(/^Elapsed /)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Detail', exact: true }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Details', exact: true }));
     expect(screen.getByLabelText('Run summary')).toHaveTextContent('Pipeline');
     expect(screen.getByRole('region', { name: 'Run details' })).toHaveTextContent('Run ID');
   });
@@ -1761,8 +1761,8 @@ describe('RunDetailsV2', () => {
       ['', 'Graph'],
       ['timeline', 'Timeline'],
       ['waterfall', 'Timeline'],
-      ['details', 'Detail'],
-      ['spec', 'Pipeline Spec'],
+      ['details', 'Details'],
+      ['spec', 'Pipeline spec'],
       ['unknown', 'Graph'],
     ])('uses the URL tab=%s on initial load', async (tab, label) => {
       renderRoutedRunDetails(`?tab=${tab}`, TEST_RUN, navigationSpec);
@@ -1775,8 +1775,8 @@ describe('RunDetailsV2', () => {
 
     it.each([
       ['Timeline', 'timeline'],
-      ['Detail', 'details'],
-      ['Pipeline Spec', 'spec'],
+      ['Details', 'details'],
+      ['Pipeline spec', 'spec'],
     ])('restores %s through router back and forward navigation', async (name, tab) => {
       renderRoutedRunDetails('?view=graph&context=retained', TEST_RUN, navigationSpec);
       const tabs = within(screen.getByLabelText('Run inspection'));
@@ -1908,7 +1908,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       details.getByText('Run details');
@@ -1933,7 +1933,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       details.getByText('test-run-id'); // 'Run ID'
@@ -1966,7 +1966,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       expect(details.getAllByText('-').length).toEqual(2); // create time and duration are empty.
@@ -1993,7 +1993,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       expect(details.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
@@ -2020,7 +2020,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       details.getByText(retryTime.toLocaleString());
@@ -2044,7 +2044,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       details.getByText(scheduledTime.toLocaleString());
@@ -2068,7 +2068,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
       const details = within(screen.getByRole('region', { name: 'Run details' }));
 
       expect(details.queryByText('Scheduled at')).toBeNull();
@@ -2085,7 +2085,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Details'));
 
       screen.getByText('param1'); // 'Parameter name'
       screen.getByText('value1'); // 'Parameter value'
@@ -2102,7 +2102,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Pipeline Spec'));
+      await userEvent.click(screen.getByText('Pipeline spec'));
       await screen.findByTestId('spec-ir');
     });
 

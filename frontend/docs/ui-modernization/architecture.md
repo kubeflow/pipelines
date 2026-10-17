@@ -42,3 +42,11 @@ Name route entry points `<Resource>Page` (for example `RunDetailsPage`, `Pipelin
 Use `WithContext` for small wrappers whose job is injecting namespace/query context, and `Controller` for an exported page controller behind a route wrapper. Use `Router` only for actual route selection, not data loading or an Active/Archived tab control. Avoid presentation names such as `Modern`, `Enhanced`, or `V2` when there is only one implementation. API schemas and format-specific utilities retain meaningful version labels such as `V2beta1Run`.
 
 The two feature-flagged query-based alternative page implementations live in `pages/query` as `CreateExperimentQueryPage` and `RecurringRunDetailsQueryPage`. They own requests, mutations and chrome, so they are not reusable form/view components. Their distinguishing names and existing feature flag remain until a separate ownership migration retires one implementation. Class pages otherwise remain unchanged.
+
+## Page layout
+
+Use a compact workbench layout across resource pages. `PageChrome` owns the title, primary actions, breadcrumbs and responsive page gutter (24px desktop, 16px narrow). Align collection controls, tabs and content to that gutter; nested collections inherit the parent content width without adding another gutter.
+
+List pages place filters on the left and view/sort controls on the right in one wrapping control strip. Selection, rows and pagination share the same collection surface. Keep row density and pagination consistent across resources. Pipeline cards remain an optional remembered view; they use the same collection controls and footer as the table.
+
+Detail pages use the same header and tab rhythm, with metadata grouped into readable sections. Graphs and timelines retain a large dedicated workspace and task inspectors; metadata views use responsive fields rather than narrow nested cards. Special-purpose content can differ, but spacing and control placement should not depend on the resource type.

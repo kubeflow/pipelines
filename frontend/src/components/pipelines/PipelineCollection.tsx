@@ -61,7 +61,7 @@ export function PipelineCollection({ table }: { table: CustomTableRenderModel })
         <PipelineCards table={table} hideControls />
       ) : (
         <ResourceTable
-          table={{ ...table, noFilterBox: true }}
+          table={{ ...table, noFilterBox: true, filterActions: undefined }}
           label='Pipelines'
           singular='pipeline'
           plural='pipelines'

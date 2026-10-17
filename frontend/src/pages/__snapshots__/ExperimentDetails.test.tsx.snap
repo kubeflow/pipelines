@@ -7,7 +7,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
     data-theme="light"
   >
     <div
-      class="kfp-workflow-page"
+      class="kfp-detail-page"
     >
       <div
         class="kfp-workflow-content"
@@ -309,7 +309,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
               role="tablist"
             >
               <button
-                aria-controls="base-ui-_r_2s_"
+                aria-controls="base-ui-_r_36_"
                 aria-disabled="false"
                 aria-selected="true"
                 class="kfp-inspection-tab"
@@ -317,7 +317,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 data-active=""
                 data-composite-item-active=""
                 data-orientation="horizontal"
-                id="base-ui-_r_2q_"
+                id="base-ui-_r_34_"
                 role="tab"
                 tabindex="0"
                 type="button"
@@ -330,7 +330,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 class="kfp-inspection-tab"
                 data-activation-direction="none"
                 data-orientation="horizontal"
-                id="base-ui-_r_2r_"
+                id="base-ui-_r_35_"
                 role="tab"
                 tabindex="-1"
                 type="button"
@@ -339,12 +339,12 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
               </button>
             </div>
             <div
-              aria-labelledby="base-ui-_r_2q_"
+              aria-labelledby="base-ui-_r_34_"
               class="kfp-inspection-tab-panel"
               data-activation-direction="none"
               data-index="0"
               data-orientation="horizontal"
-              id="base-ui-_r_2s_"
+              id="base-ui-_r_36_"
               role="tabpanel"
               tabindex="0"
             >
@@ -355,21 +355,47 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                   class="kfp-runs-table-view kfp-runs-data-table"
                 >
                   <div
-                    class="kfp-runs-filter-row"
+                    class="kfp-collection-toolbar"
                   >
-                    <label
-                      for="react-use-id-0"
+                    <div
+                      class="kfp-collection-search"
                     >
-                      Filter runs by name
-                    </label>
-                    <input
-                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
-                      data-slot="input"
-                      id="react-use-id-0"
-                      placeholder="Filter runs by name"
-                      type="search"
-                      value=""
-                    />
+                      <label
+                        for="react-use-id-0"
+                      >
+                        Filter runs by name
+                      </label>
+                      <svg
+                        aria-hidden="true"
+                        class="lucide lucide-search"
+                        fill="none"
+                        height="16"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="m21 21-4.34-4.34"
+                        />
+                        <circle
+                          cx="11"
+                          cy="11"
+                          r="8"
+                        />
+                      </svg>
+                      <input
+                        class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                        data-slot="input"
+                        id="react-use-id-0"
+                        placeholder="Filter runs by name"
+                        type="search"
+                        value=""
+                      />
+                    </div>
                   </div>
                   <div
                     class="kfp-runs-table-card"
@@ -420,14 +446,14 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                                 class="kfp-checkbox"
                                 data-disabled=""
                                 data-unchecked=""
-                                id="base-ui-_r_30_"
+                                id="base-ui-_r_3a_"
                                 role="checkbox"
                                 tabindex="-1"
                               />
                               <input
                                 aria-hidden="true"
                                 disabled=""
-                                id="base-ui-_r_31_"
+                                id="base-ui-_r_3b_"
                                 style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
                                 tabindex="-1"
                                 type="checkbox"
@@ -483,7 +509,9 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                       <span
                         aria-live="polite"
                         role="status"
-                      />
+                      >
+                        0 on this page
+                      </span>
                       <div
                         class="kfp-runs-pagination"
                       >
@@ -593,7 +621,7 @@ exports[`ExperimentDetails > hides the description control if the experiment has
     data-theme="light"
   >
     <div
-      class="kfp-workflow-page"
+      class="kfp-detail-page"
     >
       <div
         class="kfp-workflow-content"
@@ -875,7 +903,7 @@ exports[`ExperimentDetails > hides the description control if the experiment has
               role="tablist"
             >
               <button
-                aria-controls="base-ui-_r_t_"
+                aria-controls="base-ui-_r_10_"
                 aria-disabled="false"
                 aria-selected="true"
                 class="kfp-inspection-tab"
@@ -883,7 +911,7 @@ exports[`ExperimentDetails > hides the description control if the experiment has
                 data-active=""
                 data-composite-item-active=""
                 data-orientation="horizontal"
-                id="base-ui-_r_r_"
+                id="base-ui-_r_u_"
                 role="tab"
                 tabindex="0"
                 type="button"
@@ -896,7 +924,7 @@ exports[`ExperimentDetails > hides the description control if the experiment has
                 class="kfp-inspection-tab"
                 data-activation-direction="none"
                 data-orientation="horizontal"
-                id="base-ui-_r_s_"
+                id="base-ui-_r_v_"
                 role="tab"
                 tabindex="-1"
                 type="button"
@@ -905,12 +933,12 @@ exports[`ExperimentDetails > hides the description control if the experiment has
               </button>
             </div>
             <div
-              aria-labelledby="base-ui-_r_r_"
+              aria-labelledby="base-ui-_r_u_"
               class="kfp-inspection-tab-panel"
               data-activation-direction="none"
               data-index="0"
               data-orientation="horizontal"
-              id="base-ui-_r_t_"
+              id="base-ui-_r_10_"
               role="tabpanel"
               tabindex="0"
             >
@@ -921,21 +949,47 @@ exports[`ExperimentDetails > hides the description control if the experiment has
                   class="kfp-runs-table-view kfp-runs-data-table"
                 >
                   <div
-                    class="kfp-runs-filter-row"
+                    class="kfp-collection-toolbar"
                   >
-                    <label
-                      for="react-use-id-0"
+                    <div
+                      class="kfp-collection-search"
                     >
-                      Filter runs by name
-                    </label>
-                    <input
-                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
-                      data-slot="input"
-                      id="react-use-id-0"
-                      placeholder="Filter runs by name"
-                      type="search"
-                      value=""
-                    />
+                      <label
+                        for="react-use-id-0"
+                      >
+                        Filter runs by name
+                      </label>
+                      <svg
+                        aria-hidden="true"
+                        class="lucide lucide-search"
+                        fill="none"
+                        height="16"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="m21 21-4.34-4.34"
+                        />
+                        <circle
+                          cx="11"
+                          cy="11"
+                          r="8"
+                        />
+                      </svg>
+                      <input
+                        class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                        data-slot="input"
+                        id="react-use-id-0"
+                        placeholder="Filter runs by name"
+                        type="search"
+                        value=""
+                      />
+                    </div>
                   </div>
                   <div
                     class="kfp-runs-table-card"
@@ -986,14 +1040,14 @@ exports[`ExperimentDetails > hides the description control if the experiment has
                                 class="kfp-checkbox"
                                 data-disabled=""
                                 data-unchecked=""
-                                id="base-ui-_r_11_"
+                                id="base-ui-_r_14_"
                                 role="checkbox"
                                 tabindex="-1"
                               />
                               <input
                                 aria-hidden="true"
                                 disabled=""
-                                id="base-ui-_r_12_"
+                                id="base-ui-_r_15_"
                                 style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
                                 tabindex="-1"
                                 type="checkbox"
@@ -1049,7 +1103,9 @@ exports[`ExperimentDetails > hides the description control if the experiment has
                       <span
                         aria-live="polite"
                         role="status"
-                      />
+                      >
+                        0 on this page
+                      </span>
                       <div
                         class="kfp-runs-pagination"
                       >
@@ -1159,7 +1215,7 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
     data-theme="light"
   >
     <div
-      class="kfp-workflow-page"
+      class="kfp-detail-page"
     >
       <div
         class="kfp-workflow-content"
@@ -1505,21 +1561,47 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                   class="kfp-runs-table-view kfp-runs-data-table"
                 >
                   <div
-                    class="kfp-runs-filter-row"
+                    class="kfp-collection-toolbar"
                   >
-                    <label
-                      for="react-use-id-0"
+                    <div
+                      class="kfp-collection-search"
                     >
-                      Filter runs by name
-                    </label>
-                    <input
-                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
-                      data-slot="input"
-                      id="react-use-id-0"
-                      placeholder="Filter runs by name"
-                      type="search"
-                      value=""
-                    />
+                      <label
+                        for="react-use-id-0"
+                      >
+                        Filter runs by name
+                      </label>
+                      <svg
+                        aria-hidden="true"
+                        class="lucide lucide-search"
+                        fill="none"
+                        height="16"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="m21 21-4.34-4.34"
+                        />
+                        <circle
+                          cx="11"
+                          cy="11"
+                          r="8"
+                        />
+                      </svg>
+                      <input
+                        class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                        data-slot="input"
+                        id="react-use-id-0"
+                        placeholder="Filter runs by name"
+                        type="search"
+                        value=""
+                      />
+                    </div>
                   </div>
                   <div
                     class="kfp-runs-table-card"
@@ -1633,7 +1715,9 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                       <span
                         aria-live="polite"
                         role="status"
-                      />
+                      >
+                        0 on this page
+                      </span>
                       <div
                         class="kfp-runs-pagination"
                       >

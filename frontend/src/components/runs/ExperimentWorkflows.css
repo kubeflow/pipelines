@@ -4,8 +4,8 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  gap: 20px;
-  padding: 0 32px 32px;
+  gap: var(--kfp-section-gap, 16px);
+  padding: 0 var(--kfp-page-gutter, 24px) var(--kfp-page-gutter, 24px);
 }
 .kfp-theme .kfp-workflow-page .kfp-workflow-page {
   padding: 0;
@@ -18,8 +18,7 @@
   min-height: 0;
   gap: 8px;
 }
-.kfp-theme .kfp-workflow-form,
-.kfp-theme .kfp-workflow-details {
+.kfp-theme .kfp-workflow-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -149,8 +148,7 @@
   .kfp-theme .kfp-workflow-page {
     padding: 0 16px 16px;
   }
-  .kfp-theme .kfp-workflow-form,
-  .kfp-theme .kfp-workflow-details {
+  .kfp-theme .kfp-workflow-form {
     padding: 18px;
   }
 }

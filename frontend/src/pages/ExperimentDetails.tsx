@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'src/pages/DetailLayouts.css';
 import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RecurringRunsManager from './RecurringRunsManager';
@@ -90,7 +91,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     const description = experiment ? experiment.description || '' : '';
 
     return (
-      <div className='kfp-workflow-page'>
+      <div className='kfp-detail-page'>
         {experiment && (
           <div className='kfp-workflow-content'>
             <div className='kfp-experiment-summary'>

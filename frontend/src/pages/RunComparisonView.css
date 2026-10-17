@@ -2,7 +2,7 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 0 32px 32px;
+  padding: 0 var(--kfp-page-gutter, 24px) 24px;
 }
 .kfp-comparison-intro {
   margin: 0 0 20px;

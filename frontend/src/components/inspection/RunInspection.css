@@ -12,16 +12,14 @@
 .kfp-theme .kfp-run-inspection {
   /* Keep graph and timeline space available below the page header. */
   min-height: min-content;
-  padding: 0 32px 24px;
-  gap: 12px;
 }
 .kfp-theme .kfp-run-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: 16px 28px;
-  padding: 14px 0;
-  border-top: 1px solid var(--border);
+  grid-column: 1 / -1;
+  padding: 0 0 16px;
   border-bottom: 1px solid var(--border);
   margin: 0;
 }
@@ -102,7 +100,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 20px 0;
+  padding: var(--kfp-section-gap, 16px) 0;
 }
 .kfp-theme .kfp-inspector-content .kfp-inspection-scroll {
   padding: 16px;
@@ -254,9 +252,6 @@
   }
 }
 @media (max-width: 600px) {
-  .kfp-theme .kfp-run-inspection {
-    padding: 0 16px 16px;
-  }
   .kfp-theme .kfp-run-summary {
     gap: 12px 18px;
   }

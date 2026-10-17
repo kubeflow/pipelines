@@ -5,7 +5,7 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 0 32px 32px;
+  padding: 0 var(--kfp-page-gutter, 24px) var(--kfp-page-gutter, 24px);
 }
 .kfp-pipelines-tabs {
   min-height: 0;
@@ -14,7 +14,7 @@
   flex: 1;
 }
 .kfp-pipelines-tabs > .kfp-inspection-tab-list {
-  padding: 0 32px;
+  padding: 0 var(--kfp-page-gutter, 24px);
 }
 .kfp-pipelines-tabs > .kfp-inspection-tab-panel {
   min-height: 0;
@@ -22,30 +22,21 @@
 }
 .kfp-pipelines-scope {
   margin: 0;
-  padding: 8px 32px 0;
+  padding: 8px var(--kfp-page-gutter, 24px) 0;
   color: var(--muted-foreground);
   font-size: 12px;
 }
 .kfp-pipeline-cards-view {
   min-width: 0;
 }
-.kfp-pipeline-controls {
+.kfp-pipeline-collection {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: end;
-  padding: 8px 0 12px;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
-.kfp-pipeline-filter {
-  flex: 1 1 260px;
-  max-width: 360px;
-}
-.kfp-pipeline-filter span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
+.kfp-pipeline-cards-view > .kfp-runs-table-footer {
+  margin-top: var(--kfp-section-gap, 16px);
 }
 .kfp-pipeline-sort {
   display: flex;
@@ -55,9 +46,7 @@
   font-size: 12px;
   color: var(--muted-foreground);
 }
-.kfp-pipeline-controls select,
-.kfp-pipeline-pagination select,
-.kfp-pipeline-summary select {
+.kfp-collection-view-controls select {
   background: var(--card);
   color: var(--foreground);
   border: 1px solid var(--muted-foreground);
@@ -159,15 +148,6 @@
   text-align: center;
   color: var(--muted-foreground);
 }
-.kfp-pipeline-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 0;
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
 .kfp-pipeline-version-link {
   color: var(--primary);
   text-decoration: none;
@@ -185,9 +165,6 @@
   flex-direction: column;
   min-height: 0;
 }
-.kfp-pipeline-detail .kfp-inspection-tab-list {
-  padding: 0 32px;
-}
 .kfp-pipeline-detail .kfp-inspection-tab-panel {
   display: flex;
   flex: 1;
@@ -198,8 +175,11 @@
   position: relative;
   flex: 1;
   display: flex;
-  min-height: 300px;
+  min-height: 380px;
   overflow: hidden;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
 }
 .kfp-pipeline-spec {
   flex: 1;
@@ -213,54 +193,26 @@
   text-align: center;
   color: var(--muted-foreground);
 }
-.kfp-pipeline-summary {
-  position: absolute;
-  bottom: 16px;
-  left: 24px;
-  z-index: 10;
-  width: min(440px, calc(100% - 48px));
-  max-height: calc(100% - 32px);
-  overflow: auto;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--card);
-  color: var(--foreground);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
-}
-.kfp-pipeline-summary > header {
+.kfp-pipeline-version-control {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.kfp-pipeline-summary h2 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-.kfp-pipeline-summary dl {
-  margin: 0;
-}
-.kfp-pipeline-summary dt {
-  margin-top: 16px;
-  color: var(--muted-foreground);
-  font-size: 11px;
-  font-weight: 600;
-}
-.kfp-pipeline-summary dd {
-  margin: 4px 0 0;
+  flex-wrap: wrap;
+  gap: var(--kfp-control-gap, 12px);
   font-size: 13px;
-  overflow-wrap: anywhere;
 }
-.kfp-pipeline-summary a {
-  color: var(--primary);
+.kfp-pipeline-version-control label {
+  color: var(--muted-foreground);
 }
-.kfp-pipeline-show-summary {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
-  z-index: 10;
+.kfp-pipeline-version-control select {
+  max-width: 100%;
+  min-width: 180px;
+  height: 36px;
+  font: inherit;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
 }
 .kfp-pipeline-node-details {
   padding: 16px;
@@ -290,7 +242,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
 }
-.kfp-pipeline-controls .kfp-pipeline-sort {
+.kfp-collection-view-controls .kfp-pipeline-sort {
   margin-left: 0;
 }
 .kfp-pipeline-collection .kfp-runs-table td:last-child {

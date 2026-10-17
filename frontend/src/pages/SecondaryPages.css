@@ -1,6 +1,6 @@
 .kfp-theme .kfp-secondary-page {
   min-width: 0;
-  margin: 0 32px 32px;
+  margin: 0 var(--kfp-page-gutter, 24px) 24px;
   padding: 24px;
   color: var(--foreground);
   background: var(--card);

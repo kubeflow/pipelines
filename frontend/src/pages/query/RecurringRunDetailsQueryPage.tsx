@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'src/pages/DetailLayouts.css';
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
@@ -176,9 +177,9 @@ export function RecurringRunDetailsQueryPage(props: PageProps) {
   }
 
   return (
-    <div className='kfp-workflow-page'>
+    <div className='kfp-detail-page'>
       {recurringRun && (
-        <div className='kfp-workflow-details'>
+        <div className='kfp-detail-sections'>
           <div>
             <DetailsTable
               title='Recurring run details'

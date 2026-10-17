@@ -83,24 +83,26 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   public render(): React.JSX.Element {
     return (
       <div className='kfp-artifact-list'>
-        <div className='kfp-artifact-type-filters' role='group' aria-label='Artifact types'>
-          {TYPE_FILTERS.map((type, index) => (
-            <Button
-              key={type.label}
-              variant='ghost'
-              size='sm'
-              aria-pressed={this.state.selectedType === index}
-              onClick={() => {
-                if (this.state.selectedType === index) return;
-                this.activeReloadGeneration++;
-                this.setState({ selectedType: index, rows: [] });
-              }}
-            >
-              {type.label}
-            </Button>
-          ))}
-        </div>
         <CustomTable
+          filterActions={
+            <div className='kfp-artifact-type-filters' role='group' aria-label='Artifact types'>
+              {TYPE_FILTERS.map((type, index) => (
+                <Button
+                  key={type.label}
+                  variant='ghost'
+                  size='sm'
+                  aria-pressed={this.state.selectedType === index}
+                  onClick={() => {
+                    if (this.state.selectedType === index) return;
+                    this.activeReloadGeneration++;
+                    this.setState({ selectedType: index, rows: [] });
+                  }}
+                >
+                  {type.label}
+                </Button>
+              ))}
+            </div>
+          }
           filterPredicates={
             TYPE_FILTERS[this.state.selectedType].values.length
               ? [

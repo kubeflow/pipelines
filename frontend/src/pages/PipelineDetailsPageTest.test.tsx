@@ -116,7 +116,7 @@ it('preserves the selected tab on refresh and resets graph state only on version
   const ref = createRef<PipelineDetailsPage>();
   renderSpec(spec, ref);
   await screen.findByTestId('DagCanvas');
-  fireEvent.click(screen.getByRole('tab', { name: 'Pipeline Spec' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Pipeline spec' }));
   expect(screen.queryByTestId('DagCanvas')).toBeNull();
   await act(async () => {
     await ref.current!.refresh();

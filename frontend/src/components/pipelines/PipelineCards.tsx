@@ -21,8 +21,8 @@ import { ExpandState } from '../CustomTable';
 import type { CustomTableRenderModel, Row } from '../CustomTable';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
-import { Input } from '../ui/input';
-import { TablePagination } from '../tables/TablePagination';
+import { CollectionToolbar } from '../tables/CollectionToolbar';
+import { TableFooter } from '../tables/TableFooter';
 import './Pipelines.css';
 
 function rowName(row: Row): string {
@@ -54,10 +54,6 @@ export function PipelineCards({
           onCheckedChange={table.onSelectAll}
         />
         <span>Select all on this page</span>
-        {table.selectedIds.length > 0 && <span>{table.selectedIds.length} selected</span>}
-        <span role='status'>
-          {table.isBusy && table.rows.length ? 'Refreshing pipelines…' : ''}
-        </span>
       </div>
       {!table.rows.length && (
         <div className='kfp-pipeline-empty'>
@@ -141,7 +137,7 @@ export function PipelineCards({
           );
         })}
       </ul>
-      <TablePagination table={table} id={`${id}-page-size`} className='kfp-pipeline-pagination' />
+      <TableFooter table={table} plural='pipelines' />
     </div>
   );
 }
@@ -158,23 +154,7 @@ export function PipelineControls({
   const id = useId();
   const SortIcon = table.sortOrder === 'asc' ? ArrowUp : ArrowDown;
   return (
-    <div className='kfp-pipeline-controls'>
-      <label className='kfp-pipeline-filter' htmlFor={`${id}-filter`}>
-        <span>Filter pipelines</span>
-        <Input
-          id={`${id}-filter`}
-          type='search'
-          placeholder='Filter pipelines'
-          value={table.filter}
-          onChange={(event) => table.onFilterChange(event.target.value)}
-        />
-      </label>
-      {table.filter && (
-        <Button variant='ghost' onClick={() => table.onFilterChange('')}>
-          Clear filter
-        </Button>
-      )}
-      {table.filterActions}
+    <CollectionToolbar table={table} filterLabel='Filter pipelines'>
       {children}
       {showSort && (
         <>
@@ -208,6 +188,6 @@ export function PipelineControls({
           </Button>
         </>
       )}
-    </div>
+    </CollectionToolbar>
   );
 }

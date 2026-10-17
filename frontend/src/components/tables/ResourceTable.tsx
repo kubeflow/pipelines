@@ -21,8 +21,8 @@ import { ExpandState } from '../CustomTable';
 import type { CustomTableRenderModel, Row } from '../CustomTable';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
-import { Input } from '../ui/input';
-import { TablePagination } from './TablePagination';
+import { CollectionToolbar } from './CollectionToolbar';
+import { TableFooter } from './TableFooter';
 import './RunsTable.css';
 
 interface ResourceTableProps {
@@ -58,7 +58,6 @@ export function ResourceTable({
   getRowLabel = defaultRowLabel,
 }: ResourceTableProps) {
   const filterId = useId();
-  const pageSizeId = useId();
   const visibleSelected = table.rows.filter((row) => table.selectedIds.includes(row.id)).length;
   const allSelected = table.rows.length > 0 && visibleSelected === table.rows.length;
   const filteredEmpty = !table.rows.length && !!table.filter;
@@ -67,22 +66,8 @@ export function ResourceTable({
 
   return (
     <div className={className ? `kfp-runs-table-view ${className}` : 'kfp-runs-table-view'}>
-      {!table.noFilterBox && (
-        <div className='kfp-runs-filter-row'>
-          <label htmlFor={filterId}>{filterLabel}</label>
-          <Input
-            id={filterId}
-            type='search'
-            placeholder={filterLabel}
-            value={table.filter}
-            onChange={(event) => table.onFilterChange(event.target.value)}
-          />
-          {table.filter && (
-            <Button variant='ghost' onClick={() => table.onFilterChange('')}>
-              Clear filter
-            </Button>
-          )}
-        </div>
+      {(!table.noFilterBox || table.filterActions) && (
+        <CollectionToolbar table={table} filterLabel={filterLabel} />
       )}
       <div className='kfp-runs-table-card'>
         <div
@@ -289,12 +274,7 @@ export function ResourceTable({
             </tbody>
           </table>
         </div>
-        <div className='kfp-runs-table-footer'>
-          <span role='status' aria-live='polite'>
-            {table.isBusy && table.rows.length ? `Refreshing ${plural}…` : ''}
-          </span>
-          <TablePagination table={table} id={pageSizeId} className='kfp-runs-pagination' />
-        </div>
+        <TableFooter table={table} plural={plural} />
       </div>
     </div>
   );

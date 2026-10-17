@@ -198,3 +198,17 @@ describe('pipeline view choice', () => {
     }
   });
 });
+
+it('keeps one shared filter and pagination strip when switching presentations', async () => {
+  window.localStorage.clear();
+  const model = table({ filterActions: <button>More pipeline actions</button> });
+  render(<PipelineCollection table={model} />);
+  expect(screen.getAllByRole('searchbox')).toHaveLength(1);
+  expect(screen.getAllByRole('button', { name: 'More pipeline actions' })).toHaveLength(1);
+  expect(screen.getByText('2 on this page')).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Cards', exact: true }));
+  expect(screen.getAllByRole('searchbox')).toHaveLength(1);
+  expect(screen.getAllByRole('button', { name: 'More pipeline actions' })).toHaveLength(1);
+  expect(screen.getByText('2 on this page')).toBeVisible();
+  expect(screen.getAllByLabelText('Rows per page')).toHaveLength(1);
+});

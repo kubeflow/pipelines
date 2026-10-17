@@ -3,7 +3,7 @@
   grid-template-columns: minmax(0, 760px) minmax(250px, 330px);
   align-items: start;
   gap: 24px;
-  padding: 0 32px 32px;
+  padding: 0 var(--kfp-page-gutter, 24px) 24px;
 }
 .kfp-theme .kfp-new-run-fields,
 .kfp-theme .kfp-run-form-summary {

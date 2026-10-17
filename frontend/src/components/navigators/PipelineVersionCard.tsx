@@ -14,98 +14,58 @@
  * limitations under the License.
  */
 
-import { useId, useState } from 'react';
+import type { ReactNode } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Description } from 'src/components/Description';
-import { Button } from 'src/components/ui/button';
+import { InspectionFields } from 'src/components/inspection/InspectionFields';
 import { formatDateString, sanitizeExternalHref } from 'src/lib/Utils';
-import 'src/components/pipelines/Pipelines.css';
 
 interface PipelineVersionCardProps {
   pipeline: V2beta1Pipeline | null;
   selectedVersion: V2beta1PipelineVersion | undefined;
-  versions: V2beta1PipelineVersion[];
-  handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
-export function PipelineVersionCard({
-  pipeline,
-  selectedVersion,
-  versions,
-  handleVersionSelected,
-}: PipelineVersionCardProps) {
-  const [summaryShown, setSummaryShown] = useState(false);
-  const id = useId();
+const renderValue = ({ value }: { value?: ReactNode }) => <>{value}</>;
+
+export function PipelineVersionCard({ pipeline, selectedVersion }: PipelineVersionCardProps) {
+  if (!pipeline) return null;
   const sourceUrl = sanitizeExternalHref(selectedVersion?.code_source_url);
   return (
-    <>
-      {!!pipeline && summaryShown && (
-        <section className='kfp-pipeline-summary' aria-label='Static Pipeline Summary'>
-          <header>
-            <h2>Static Pipeline Summary</h2>
-            <Button variant='ghost' onClick={() => setSummaryShown(false)}>
-              Hide
-            </Button>
-          </header>
-          <dl>
-            <dt>Pipeline ID</dt>
-            <dd>{pipeline.pipeline_id || 'Unable to obtain Pipeline ID'}</dd>
-            {versions.length > 0 && (
-              <>
-                <dt>
-                  <label htmlFor={id}>Version</label>
-                </dt>
-                <dd>
-                  <select
-                    id={id}
-                    data-testid='version_selector'
-                    name='selectedVersion'
-                    value={selectedVersion?.pipeline_version_id || ''}
-                    onChange={(event) => handleVersionSelected(event.target.value)}
-                  >
-                    {!selectedVersion && <option value=''>Select a version</option>}
-                    {versions.map((version) => (
-                      <option key={version.pipeline_version_id} value={version.pipeline_version_id}>
-                        {version.display_name || version.name}
-                      </option>
-                    ))}
-                  </select>
-                </dd>
-                {sourceUrl && (
-                  <dd>
+    <div className='kfp-detail-sections'>
+      <InspectionFields<ReactNode>
+        title='Pipeline details'
+        valueComponent={renderValue}
+        fields={[
+          ['Pipeline ID', pipeline.pipeline_id || 'Unavailable'],
+          ['Uploaded on', formatDateString(pipeline.created_at)],
+          ['Description', <Description description={pipeline.description || 'No description'} />],
+        ]}
+      />
+      {selectedVersion && (
+        <InspectionFields<ReactNode>
+          title='Version details'
+          valueComponent={renderValue}
+          fields={[
+            ['Version', selectedVersion.display_name || selectedVersion.name || 'Unnamed version'],
+            ['Version ID', selectedVersion.pipeline_version_id || 'Unavailable'],
+            ['Uploaded on', formatDateString(selectedVersion.created_at)],
+            [
+              'Description',
+              <Description description={selectedVersion.description || 'No description'} />,
+            ],
+            ...(sourceUrl
+              ? [
+                  [
+                    'Source',
                     <a href={sourceUrl} target='_blank' rel='noopener noreferrer'>
                       Version source
-                    </a>
-                  </dd>
-                )}
-              </>
-            )}
-            <dt>Uploaded on</dt>
-            <dd>
-              {formatDateString(selectedVersion ? selectedVersion.created_at : pipeline.created_at)}
-            </dd>
-            <dt>Pipeline Description</dt>
-            <dd>
-              <Description description={pipeline.description || 'empty pipeline description'} />
-            </dd>
-            {selectedVersion?.description && (
-              <>
-                <dt>Version Description</dt>
-                <dd>
-                  <Description description={selectedVersion.description} />
-                </dd>
-              </>
-            )}
-          </dl>
-        </section>
+                    </a>,
+                  ] as [string, ReactNode],
+                ]
+              : []),
+          ]}
+        />
       )}
-      {!summaryShown && (
-        <div className='kfp-pipeline-show-summary'>
-          <Button variant='secondary' onClick={() => setSummaryShown(true)}>
-            Show Summary
-          </Button>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

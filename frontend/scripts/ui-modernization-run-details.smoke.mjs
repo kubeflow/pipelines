@@ -502,7 +502,7 @@ test('Run Details keeps graph space stable and puts metadata in Detail', async (
       );
     }
     assert.equal(fixture.requests.filter((request) => request.path === tasksPath).length, 1);
-    await tab(page, 'Detail').click();
+    await tab(page, 'Details').click();
     const summary = page.locator('.kfp-run-summary');
     await summary.getByText('3 done · 0 failed · 0 running · 0 skipped', { exact: true }).waitFor();
     assert.equal(
@@ -1019,11 +1019,11 @@ test('Run Details exposes semantic values and restores navigation after closing 
   await withFixture({}, async (page) => {
     await page.setViewportSize({ width: 780, height: 437 });
     await page.goto(`${origin}/#/runs/details/${runId}`);
-    await tab(page, 'Detail').click();
+    await tab(page, 'Details').click();
     const value = (label) =>
       page.getByText(label, { exact: true }).and(page.locator('dt')).locator('..').locator('dd');
     await value('Status').getByText('Succeeded', { exact: true }).waitFor();
-    const detailsPanel = page.getByRole('tabpanel', { name: 'Detail', exact: true });
+    const detailsPanel = page.getByRole('tabpanel', { name: 'Details', exact: true });
     for (const width of [780, 375]) {
       await page.setViewportSize({ width, height: 437 });
       await page.evaluate(async () => {

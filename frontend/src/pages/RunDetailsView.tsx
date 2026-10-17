@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'src/pages/DetailLayouts.css';
 import { NavigationProps } from 'src/lib/Navigation';
 import { Link } from 'react-router';
 import {
@@ -82,7 +83,7 @@ import DagCanvas from './v2/DagCanvas';
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS = 3;
-const TAB_NAMES = ['Graph', 'Timeline', 'Detail', 'Pipeline Spec'];
+const TAB_NAMES = ['Graph', 'Timeline', 'Details', 'Pipeline spec'];
 const RunTimeline = lazy(() => import('./v2/RunTimeline'));
 const ROOT_LAYERS = ['root'];
 
@@ -579,7 +580,7 @@ export function RunDetailsView(props: RunDetailsViewProps) {
   };
 
   return (
-    <div className='kfp-run-inspection'>
+    <div className='kfp-detail-page kfp-run-inspection'>
       {props.runRefreshError && (
         <Banner
           message='Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.'
@@ -672,7 +673,7 @@ export function RunDetailsView(props: RunDetailsViewProps) {
         )}
         {activeTab === 2 && (
           <div className='kfp-inspection-scroll'>
-            <div className='kfp-inspection-details-card'>
+            <div className='kfp-detail-sections'>
               <dl className='kfp-run-summary' aria-label='Run summary'>
                 <div>
                   <dt>Pipeline</dt>

@@ -23,7 +23,7 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
           class="kfp-inspection-tab"
           data-activation-direction="none"
           data-orientation="horizontal"
-          id="base-ui-_r_6_"
+          id="base-ui-_r_7_"
           role="tab"
           tabindex="-1"
           type="button"
@@ -31,7 +31,7 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
           Active
         </button>
         <button
-          aria-controls="base-ui-_r_8_"
+          aria-controls="base-ui-_r_9_"
           aria-disabled="false"
           aria-selected="true"
           class="kfp-inspection-tab"
@@ -39,7 +39,7 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
           data-active=""
           data-composite-item-active=""
           data-orientation="horizontal"
-          id="base-ui-_r_7_"
+          id="base-ui-_r_8_"
           role="tab"
           tabindex="0"
           type="button"
@@ -48,12 +48,12 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
         </button>
       </div>
       <div
-        aria-labelledby="base-ui-_r_7_"
+        aria-labelledby="base-ui-_r_8_"
         class="kfp-inspection-tab-panel"
         data-activation-direction="none"
         data-index="0"
         data-orientation="horizontal"
-        id="base-ui-_r_8_"
+        id="base-ui-_r_9_"
         role="tabpanel"
         tabindex="0"
       >
@@ -65,21 +65,47 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
               class="kfp-runs-table-view"
             >
               <div
-                class="kfp-runs-filter-row"
+                class="kfp-collection-toolbar"
               >
-                <label
-                  for="_r_9_"
+                <div
+                  class="kfp-collection-search"
                 >
-                  Filter experiments
-                </label>
-                <input
-                  class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
-                  data-slot="input"
-                  id="_r_9_"
-                  placeholder="Filter experiments"
-                  type="search"
-                  value=""
-                />
+                  <label
+                    for="_r_b_"
+                  >
+                    Filter experiments
+                  </label>
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-search"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="m21 21-4.34-4.34"
+                    />
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="8"
+                    />
+                  </svg>
+                  <input
+                    class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                    data-slot="input"
+                    id="_r_b_"
+                    placeholder="Filter experiments"
+                    type="search"
+                    value=""
+                  />
+                </div>
               </div>
               <div
                 class="kfp-runs-table-card"
@@ -172,13 +198,13 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
                     class="kfp-runs-pagination"
                   >
                     <label
-                      for="_r_a_"
+                      for="_r_d_"
                     >
                       Rows per page
                     </label>
                     <select
                       disabled=""
-                      id="_r_a_"
+                      id="_r_d_"
                     >
                       <option
                         value="10"
@@ -333,21 +359,47 @@ exports[`ExperimentsAndArchive > renders experiments page 1`] = `
             class="kfp-runs-table-view"
           >
             <div
-              class="kfp-runs-filter-row"
+              class="kfp-collection-toolbar"
             >
-              <label
-                for="_r_3_"
+              <div
+                class="kfp-collection-search"
               >
-                Filter experiments
-              </label>
-              <input
-                class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
-                data-slot="input"
-                id="_r_3_"
-                placeholder="Filter experiments"
-                type="search"
-                value=""
-              />
+                <label
+                  for="_r_4_"
+                >
+                  Filter experiments
+                </label>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-search"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 21-4.34-4.34"
+                  />
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="8"
+                  />
+                </svg>
+                <input
+                  class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                  data-slot="input"
+                  id="_r_4_"
+                  placeholder="Filter experiments"
+                  type="search"
+                  value=""
+                />
+              </div>
             </div>
             <div
               class="kfp-runs-table-card"
@@ -475,13 +527,13 @@ exports[`ExperimentsAndArchive > renders experiments page 1`] = `
                   class="kfp-runs-pagination"
                 >
                   <label
-                    for="_r_4_"
+                    for="_r_6_"
                   >
                     Rows per page
                   </label>
                   <select
                     disabled=""
-                    id="_r_4_"
+                    id="_r_6_"
                   >
                     <option
                       value="10"

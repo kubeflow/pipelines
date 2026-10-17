@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import 'src/pages/DetailLayouts.css';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { InspectionTabs } from 'src/components/inspection/InspectionTabs';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
@@ -32,7 +33,7 @@ import 'src/components/pipelines/Pipelines.css';
 import DagCanvas from './v2/DagCanvas';
 
 const ROOT_LAYERS = ['root'];
-const TAB_NAMES = ['Graph', 'Pipeline Spec'];
+const TAB_NAMES = ['Graph', 'Details', 'Pipeline spec'];
 
 interface PipelineDetailsViewProps {
   templateString?: string;
@@ -51,6 +52,7 @@ function PipelineDetailsView({
   versions,
   handleVersionSelected,
 }: PipelineDetailsViewProps) {
+  const versionSelectorId = useId();
   const layers = ROOT_LAYERS;
   const [selectedTab, setSelectedTab] = useState(0);
   const [selection, setSelection] = useState<LayerFlowElement | null>(null);
@@ -64,7 +66,25 @@ function PipelineDetailsView({
   );
 
   return (
-    <div className='kfp-pipeline-detail' data-testid='pipeline-detail-v2'>
+    <div className='kfp-detail-page kfp-pipeline-detail' data-testid='pipeline-detail-v2'>
+      {versions.length > 0 && (
+        <div className='kfp-pipeline-version-control'>
+          <label htmlFor={versionSelectorId}>Version</label>
+          <select
+            id={versionSelectorId}
+            data-testid='version_selector'
+            value={selectedVersion?.pipeline_version_id || ''}
+            onChange={(event) => handleVersionSelected(event.target.value)}
+          >
+            {!selectedVersion && <option value=''>Select a version</option>}
+            {versions.map((version) => (
+              <option key={version.pipeline_version_id} value={version.pipeline_version_id}>
+                {version.display_name || version.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <InspectionTabs
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
@@ -84,12 +104,6 @@ function PipelineDetailsView({
               selectedElement={selection}
               onElementClick={(_event, selection) => setSelection(selection)}
             ></DagCanvas>
-            <PipelineVersionCard
-              pipeline={pipeline}
-              selectedVersion={selectedVersion}
-              versions={versions}
-              handleVersionSelected={handleVersionSelected}
-            />
             {templateString && (
               <div className='z-20'>
                 <InspectionPanel
@@ -111,9 +125,14 @@ function PipelineDetailsView({
             )}
           </div>
         )}
-        {selectedTab === 1 && (
+        {selectedTab === 2 && (
           <div className='kfp-pipeline-spec' data-testid='spec-ir'>
             <PipelineSpecTabContent templateString={templateString || ''} />
+          </div>
+        )}
+        {selectedTab === 1 && (
+          <div className='kfp-inspection-scroll'>
+            <PipelineVersionCard pipeline={pipeline} selectedVersion={selectedVersion} />
           </div>
         )}
       </InspectionTabs>

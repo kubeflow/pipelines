@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import 'src/pages/DetailLayouts.css';
 import type * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { InspectionFields as DetailsTable } from 'src/components/inspection/InspectionFields';
@@ -108,9 +109,9 @@ class RecurringRunDetailsView extends Page<{}, RecurringRunConfigState> {
     }
 
     return (
-      <div className='kfp-workflow-page'>
+      <div className='kfp-detail-page'>
         {run && (
-          <div className='kfp-workflow-details'>
+          <div className='kfp-detail-sections'>
             <DetailsTable title='Recurring run details' fields={runDetails} />
 
             {!!triggerDetails.length && (

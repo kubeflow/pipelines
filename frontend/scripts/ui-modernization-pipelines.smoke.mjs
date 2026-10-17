@@ -542,7 +542,7 @@ test('pipeline details preserve encoded IDs, rendered IR, version switching and 
     await page.goto(`${fixture.origin}/#${pipelinePath(specialPipelineId, specialVersionId)}`);
     await page.getByTestId('DagCanvas').waitFor();
     await page.locator('.react-flow__node').first().waitFor();
-    await page.getByRole('button', { name: 'Show Summary', exact: true }).click();
+    await page.getByRole('tab', { name: 'Details', exact: true }).click();
     const version = page.getByRole('combobox', { name: 'Version', exact: true });
     assert.equal(await version.inputValue(), specialVersionId);
     await version.selectOption('version-2');
@@ -550,7 +550,7 @@ test('pipeline details preserve encoded IDs, rendered IR, version switching and 
     const workerResponse = page.waitForResponse((response) =>
       /\/worker-yaml[^/]*\.js$/.test(new URL(response.url()).pathname),
     );
-    await page.getByRole('tab', { name: 'Pipeline Spec', exact: true }).click();
+    await page.getByRole('tab', { name: 'Pipeline spec', exact: true }).click();
     assert.equal((await workerResponse).status(), 200);
     await page.getByTestId('spec-ir').waitFor();
     assert.ok((await page.getByTestId('spec-ir').textContent()).includes('comp-preprocess'));
@@ -596,7 +596,7 @@ test('pipeline details preserve encoded IDs, rendered IR, version switching and 
     await screenshot(page, 'pipeline-spec-dark');
     await page.reload();
     await page.getByTestId('DagCanvas').waitFor();
-    await page.getByRole('button', { name: 'Show Summary', exact: true }).click();
+    await page.getByRole('tab', { name: 'Details', exact: true }).click();
     assert.equal(
       await page.getByRole('combobox', { name: 'Version', exact: true }).inputValue(),
       'version-2',

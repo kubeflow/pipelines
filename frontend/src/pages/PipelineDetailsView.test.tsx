@@ -85,7 +85,7 @@ describe('PipelineDetailsV2', () => {
     expect(canvas.parentElement!.style.borderTop).toBe('');
   });
 
-  it('Render summary card', async () => {
+  it('opens the Details tab', async () => {
     render(
       <CommonTestWrapper>
         <PipelineDetailsView
@@ -99,10 +99,10 @@ describe('PipelineDetailsV2', () => {
         ></PipelineDetailsView>
       </CommonTestWrapper>,
     );
-    await userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Details', exact: true }));
   });
 
-  it('shows selected version in summary card', async () => {
+  it('shows selected version in the persistent selector', async () => {
     render(
       <CommonTestWrapper>
         <PipelineDetailsView
@@ -116,8 +116,16 @@ describe('PipelineDetailsV2', () => {
         ></PipelineDetailsView>
       </CommonTestWrapper>,
     );
-    await userEvent.click(screen.getByText('Show Summary'));
-    screen.getByText('test-pipeline-version-v2');
+    await userEvent.click(screen.getByRole('tab', { name: 'Details', exact: true }));
+    expect(screen.getByRole('combobox', { name: 'Version' })).toHaveValue(
+      testV2PipelineVersion.pipeline_version_id,
+    );
+    expect(screen.getByRole('region', { name: 'Version details' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline spec', exact: true }));
+    expect(screen.getByTestId('spec-ir')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Version' })).toHaveValue(
+      testV2PipelineVersion.pipeline_version_id,
+    );
   });
 
   it('requests version selection when switching to another v2 version', async () => {
@@ -134,7 +142,6 @@ describe('PipelineDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await userEvent.click(screen.getByText('Show Summary'));
     await userEvent.selectOptions(
       screen.getByRole('combobox', { name: 'Version' }),
       newTestV2PipelineVersion.pipeline_version_id!,
@@ -156,7 +163,6 @@ describe('PipelineDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await userEvent.click(screen.getByText('Show Summary'));
     await userEvent.selectOptions(
       screen.getByRole('combobox', { name: 'Version' }),
       thirdPipelineVersion.pipeline_version_id!,
