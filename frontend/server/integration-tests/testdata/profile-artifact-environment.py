@@ -37,10 +37,14 @@ with patch.dict(sys.modules, {
         "botocore.session": botocore.session,
 }):
     spec.loader.exec_module(producer)
+settings = producer.get_settings_from_env(frontend_tag="test")
 print(
     json.dumps({
         allowed_origins:
-            producer.artifact_server_environment("tenant", ".svc.cluster.local",
-                                                 allowed_origins)
+            producer.artifact_server_environment(
+                "tenant",
+                ".svc.cluster.local",
+                allowed_origins,
+                user_id_header=settings["user_id_header"])
         for allowed_origins in sys.argv[1:]
     }))

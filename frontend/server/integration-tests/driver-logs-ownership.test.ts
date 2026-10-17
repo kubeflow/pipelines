@@ -46,10 +46,12 @@ describe('driver log artifact ownership', () => {
         );
       });
       vi.stubGlobal('fetch', fetchArtifact);
-      const { getArtifactsAuthMiddleware } = await import('../handlers/artifacts.js');
+      const { getArtifactsAuthMiddleware, getArtifactsRateLimiter } =
+        await import('../handlers/artifacts.js');
       const app = express();
       app.get(
         '/artifacts/get',
+        getArtifactsRateLimiter({ authEnabled: true, kubeflowUserIdHeader: 'x-kubeflow-user' }),
         getArtifactsAuthMiddleware(
           async () => undefined,
           true,

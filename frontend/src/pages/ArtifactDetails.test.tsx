@@ -38,6 +38,7 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import EnhancedArtifactDetails, { ArtifactDetailsPage } from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import datasetPreview from '../../mock-backend/data/v2/artifact-previews/dataset.json';
 
 vi.mock('src/components/ArtifactPreview', () => ({ default: () => <div>Artifact preview</div> }));
 
@@ -206,6 +207,34 @@ describe('ArtifactDetails', () => {
       V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
     ]);
     expect(loadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps dataset samples collapsed until explicitly opened and refreshes them on demand', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      ...artifact,
+      metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+    });
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const { pageRef } = renderPageWithRef();
+    const show = await screen.findByRole('button', { name: 'Show artifact visualization' });
+    expect(read).not.toHaveBeenCalled();
+    fireEvent.click(show);
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(read.mock.calls.filter(([, , signal]) => !signal?.aborted)).toEqual([
+      [TEST_ARTIFACT_ID, 'kubeflow', expect.objectContaining({ aborted: false })],
+    ]);
+    const attempts = read.mock.calls.length;
+    await act(async () => pageRef.current!.refresh());
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(attempts + 1));
+    expect(screen.getByRole('button', { name: 'Hide artifact visualization' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Hide artifact visualization' }));
+    await act(async () => pageRef.current!.refresh());
+    expect(read).toHaveBeenCalledTimes(attempts + 1);
   });
 
   it('reconciles a delayed relationship when the browser clock is ahead of the server', async () => {

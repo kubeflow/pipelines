@@ -518,6 +518,40 @@ def test_driver_agent_ca_cert_path_default_and_override():
             driver_agent_ca_cert_path="")["driver_agent_ca_cert_path"] == ""
 
 
+def test_artifact_identity_is_sourced_from_installation_config() -> None:
+    """Forward identity without introducing a deployment-level preview
+    policy."""
+    directory = Path(__file__).parent
+    deployment = yaml.safe_load((directory / "deployment.yaml").read_text())
+    launcher = yaml.safe_load((directory.parents[2] / "pipeline" /
+                               "kfp-launcher-configmap.yaml").read_text())
+    assert "artifactPreviewsEnabled" not in launcher["data"]
+    environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert not any(
+        item["name"] == "ARTIFACT_PREVIEWS_ENABLED" for item in environment)
+    identity = next(
+        item for item in environment if item["name"] == "USERID_HEADER")
+    assert identity["valueFrom"]["configMapKeyRef"] == {
+        "name": "pipeline-install-config",
+        "key": "USERID_HEADER",
+        "optional": True,
+    }
+
+
+def test_user_id_header_default_and_override() -> None:
+    """Use the installation identity contract for generated artifact
+    servers."""
+    with mock.patch.dict(os.environ, ENV_BASE, clear=True):
+        assert get_settings_from_env()["user_id_header"] is None
+    with mock.patch.dict(
+            os.environ, {
+                **ENV_BASE, "USERID_HEADER": "x-company-user"
+            }, clear=True):
+        assert get_settings_from_env()["user_id_header"] == "x-company-user"
+        assert get_settings_from_env(
+            user_id_header="x-override")["user_id_header"] == "x-override"
+
+
 @pytest.mark.parametrize("sync_server", [ENV_BASE], indirect=True)
 def test_sync_server_without_pipeline_enabled(sync_server):
     assert post_sync(sync_server, {}, {}) == {"status": {}, "attachments": []}
@@ -565,6 +599,8 @@ def test_allowed_gcs_universe_domains_default_and_override():
             "https://objects.example.com:9443",
         "ALLOWED_GCS_UNIVERSE_DOMAINS":
             "googleapis.com,gdc.example",
+        "USERID_HEADER":
+            "x-company-user",
     }],
     indirect=True)
 def test_artifact_proxy_receives_allowed_endpoints(sync_server):
@@ -583,6 +619,14 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
     assert {
         "name": "ALLOWED_GCS_UNIVERSE_DOMAINS",
         "value": "googleapis.com,gdc.example",
+    } in environment
+    assert {
+        "name": "KUBEFLOW_USERID_HEADER",
+        "value": "x-company-user",
+    } in environment
+    assert {
+        "name": "ARTIFACTS_RATE_LIMIT_DISABLED",
+        "value": "true",
     } in environment
     assert not any("METADATA" in variable["name"] for variable in environment)
     repositories = next(item for item in result["attachments"]
