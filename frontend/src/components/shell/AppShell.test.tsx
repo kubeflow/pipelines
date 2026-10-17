@@ -183,23 +183,27 @@ describe('AppShell', () => {
     expect(localStorage.getItem('kfp.theme')).toBe('dark');
   });
 
-  it('shows a separate segmented theme control and remembers the selected choice', async () => {
+  it('persists the dark-mode switch and lets it override device following', async () => {
     const view = renderShell();
-    expect(screen.getByRole('group', { name: 'Theme' })).toBeVisible();
-    expect(screen.getByRole('radio', { name: 'Light', exact: true })).toBeChecked();
-    for (const name of ['Dark', 'System', 'Light']) {
-      await userEvent.click(screen.getByRole('radio', { name, exact: true }));
-      expect(screen.getByRole('radio', { name, exact: true })).toBeChecked();
-      expect(localStorage.getItem('kfp.theme')).toBe(name.toLowerCase());
-    }
-    await userEvent.click(screen.getByRole('radio', { name: 'Dark', exact: true }));
+    expect(screen.getByRole('switch', { name: 'Dark mode' })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('switch', { name: 'Dark mode' }));
+    expect(localStorage.getItem('kfp.theme')).toBe('dark');
     view.unmount();
     renderShell();
-    expect(screen.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
-    expect(sidebar().closest('.kfp-theme')).toHaveClass('dark');
-    const group = screen.getByRole('group', { name: 'Theme' });
+    expect(screen.getByRole('switch', { name: 'Dark mode' })).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Appearance options' }));
+    await userEvent.click(
+      await screen.findByRole('menuitemcheckbox', { name: 'Use device setting' }),
+    );
+    expect(localStorage.getItem('kfp.theme')).toBe('system');
+    expect(screen.getByText('Following device')).toBeVisible();
+    expect(screen.getByRole('switch', { name: 'Dark mode' })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('switch', { name: 'Dark mode' }));
+    expect(localStorage.getItem('kfp.theme')).toBe('dark');
+    expect(screen.queryByText('Following device')).not.toBeInTheDocument();
+    const toggle = screen.getByRole('switch', { name: 'Dark mode' });
     const links = screen.getByRole('link', { name: 'Documentation' });
-    expect(group.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(toggle.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('opens the theme menu by keyboard and restores focus on Escape', async () => {

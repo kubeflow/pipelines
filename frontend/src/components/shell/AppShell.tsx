@@ -31,11 +31,13 @@ import {
   Search,
   Sun,
   ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import KubeflowLogo from 'src/icons/kubeflowLogo';
 import { LocalStorage } from 'src/lib/LocalStorage';
 import { Button } from '../ui/button';
+import { Switch } from '../ui/switch';
 import { useTheme } from './ThemeProvider';
 import './AppShell.css';
 
@@ -128,7 +130,7 @@ export function AppShell({
   const [preferredCollapsed, setPreferredCollapsed] = useState(LocalStorage.isNavbarCollapsed);
   const isNarrow = useSyncExternalStore(subscribeToViewport, isNarrowViewport, () => false);
   const collapsed = isNarrow || preferredCollapsed;
-  const { theme, themeClassName, setTheme } = useTheme();
+  const { theme, resolvedTheme, themeClassName, setTheme } = useTheme();
   const mainId = useId();
   const appearanceId = useId();
   const mainRef = useRef<HTMLElement>(null);
@@ -229,27 +231,59 @@ export function AppShell({
             <Tooltip.Provider>
               <div className='kfp-shell-appearance'>
                 {!collapsed ? (
-                  <fieldset className='kfp-shell-theme-segments'>
-                    <legend className='kfp-shell-visually-hidden'>Theme</legend>
-                    {themeOptions.map(({ value, label, icon: Icon }) => (
-                      <label
-                        key={value}
-                        className='kfp-shell-theme-segment'
-                        data-selected={theme === value}
-                      >
-                        <input
-                          className='kfp-shell-visually-hidden'
-                          type='radio'
-                          name={appearanceId}
-                          value={value}
-                          checked={theme === value}
-                          onChange={() => setTheme(value)}
-                        />
-                        <Icon size={14} aria-hidden='true' />
-                        {label}
-                      </label>
-                    ))}
-                  </fieldset>
+                  <div className='kfp-shell-appearance-settings'>
+                    <div className='kfp-shell-appearance-heading'>
+                      <span>Appearance</span>
+                      <Menu.Root>
+                        <Menu.Trigger
+                          render={
+                            <Button variant='ghost' size='icon' aria-label='Appearance options' />
+                          }
+                        >
+                          <MoreHorizontal size={16} aria-hidden='true' />
+                        </Menu.Trigger>
+                        <Menu.Portal className={themeClassName}>
+                          <Menu.Positioner
+                            side='top'
+                            align='end'
+                            sideOffset={4}
+                            className='kfp-shell-utility-positioner'
+                          >
+                            <Menu.Popup
+                              className='kfp-shell-theme-menu'
+                              aria-label='Appearance options'
+                            >
+                              <Menu.CheckboxItem
+                                className='kfp-shell-theme-option'
+                                checked={theme === 'system'}
+                                onCheckedChange={(checked) =>
+                                  setTheme(checked ? 'system' : resolvedTheme)
+                                }
+                                closeOnClick
+                              >
+                                Use device setting
+                                <Menu.CheckboxItemIndicator className='kfp-shell-theme-check'>
+                                  <Check size={16} aria-hidden='true' />
+                                </Menu.CheckboxItemIndicator>
+                              </Menu.CheckboxItem>
+                            </Menu.Popup>
+                          </Menu.Positioner>
+                        </Menu.Portal>
+                      </Menu.Root>
+                    </div>
+                    <div className='kfp-shell-dark-mode'>
+                      <label htmlFor={`${appearanceId}-dark`}>Dark mode</label>
+                      <Switch
+                        id={`${appearanceId}-dark`}
+                        checked={resolvedTheme === 'dark'}
+                        aria-describedby={theme === 'system' ? `${appearanceId}-device` : undefined}
+                        onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                      />
+                    </div>
+                    <div id={`${appearanceId}-device`} className='kfp-shell-device-hint'>
+                      {theme === 'system' ? 'Following device' : ''}
+                    </div>
+                  </div>
                 ) : (
                   <Menu.Root>
                     <FooterTooltip label={themeLabel}>
