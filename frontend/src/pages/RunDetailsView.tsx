@@ -673,48 +673,44 @@ export function RunDetailsView(props: RunDetailsViewProps) {
         )}
         {activeTab === 2 && (
           <div className='kfp-inspection-scroll'>
+            <dl className='kfp-run-summary' aria-label='Run summary'>
+              <div>
+                <dt>Pipeline</dt>
+                <dd>{pipelineUrl ? <Link to={pipelineUrl}>{pipelineName}</Link> : pipelineName}</dd>
+              </div>
+              <div>
+                <dt>Runtime tasks</dt>
+                <dd>
+                  {runtimeTasks ? (
+                    <>
+                      {
+                        runtimeTasks.filter(
+                          (task) =>
+                            task.state === PipelineTaskTaskState.SUCCEEDED ||
+                            task.state === PipelineTaskTaskState.CACHED,
+                        ).length
+                      }{' '}
+                      done · {failedTasks.length} failed ·{' '}
+                      {
+                        runtimeTasks.filter((task) => task.state === PipelineTaskTaskState.RUNNING)
+                          .length
+                      }{' '}
+                      running ·{' '}
+                      {
+                        runtimeTasks.filter((task) => task.state === PipelineTaskTaskState.SKIPPED)
+                          .length
+                      }{' '}
+                      skipped
+                    </>
+                  ) : isError ? (
+                    'Unavailable'
+                  ) : (
+                    'Loading…'
+                  )}
+                </dd>
+              </div>
+            </dl>
             <div className='kfp-detail-sections'>
-              <dl className='kfp-run-summary' aria-label='Run summary'>
-                <div>
-                  <dt>Pipeline</dt>
-                  <dd>
-                    {pipelineUrl ? <Link to={pipelineUrl}>{pipelineName}</Link> : pipelineName}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Runtime tasks</dt>
-                  <dd>
-                    {runtimeTasks ? (
-                      <>
-                        {
-                          runtimeTasks.filter(
-                            (task) =>
-                              task.state === PipelineTaskTaskState.SUCCEEDED ||
-                              task.state === PipelineTaskTaskState.CACHED,
-                          ).length
-                        }{' '}
-                        done · {failedTasks.length} failed ·{' '}
-                        {
-                          runtimeTasks.filter(
-                            (task) => task.state === PipelineTaskTaskState.RUNNING,
-                          ).length
-                        }{' '}
-                        running ·{' '}
-                        {
-                          runtimeTasks.filter(
-                            (task) => task.state === PipelineTaskTaskState.SKIPPED,
-                          ).length
-                        }{' '}
-                        skipped
-                      </>
-                    ) : isError ? (
-                      'Unavailable'
-                    ) : (
-                      'Loading…'
-                    )}
-                  </dd>
-                </div>
-              </dl>
               <DetailsTable title='Run details' fields={getDetailsFields(run)} />
               {!!run.runtime_config?.parameters && (
                 <DetailsTable

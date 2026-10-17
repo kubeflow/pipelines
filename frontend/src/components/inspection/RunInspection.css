@@ -18,10 +18,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: 16px 28px;
-  grid-column: 1 / -1;
   padding: 0 0 16px;
   border-bottom: 1px solid var(--border);
-  margin: 0;
+  margin: 0 0 var(--kfp-section-gap, 16px);
 }
 .kfp-theme .kfp-run-summary > div {
   min-width: 0;
