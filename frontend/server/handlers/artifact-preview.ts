@@ -34,11 +34,18 @@ import {
   getArtifactsHandler,
   getArtifactServiceGetter,
   sendArtifactError,
+  TOO_MANY_ARTIFACT_REQUESTS_MESSAGE,
   waitForArtifactOperation,
 } from './artifacts.js';
 import { isAllowedDomain } from './domain-checker.js';
 
 const PREVIEW_REQUEST_TIMEOUT_MS = 30_000;
+
+/** Returns the receiver's delay-seconds retry guidance; express-rate-limit never sends a date. */
+function retryAfterSeconds(headers: Headers): string | undefined {
+  const value = headers.get('retry-after')?.trim();
+  return value && /^\d{1,9}$/.test(value) ? value : undefined;
+}
 
 function previewNamespace(request: Request, authEnabled: boolean): string | undefined {
   const namespace = request.query.namespace;
@@ -77,6 +84,16 @@ async function proxyPreview(
   // Forward identity, not caller-supplied storage coordinates or provider authority. The namespace
   // service resolves the same stored parent and applies its own credential configuration.
   const response = await fetch(url, { headers, signal, redirect: 'error' });
+  if (response.status === 429) {
+    await response.body?.cancel();
+    // Report the receiver's quota decision as retryable, not as a broken artifact service.
+    const retryAfter = retryAfterSeconds(response.headers);
+    throw new ArtifactPreviewError(
+      429,
+      retryAfter ? TOO_MANY_ARTIFACT_REQUESTS_MESSAGE : 'Too many artifact requests. Retry later.',
+      retryAfter,
+    );
+  }
   if (
     !response.ok ||
     response.headers.get(ARTIFACT_PREVIEW_RESPONSE_HEADER) !== '1' ||
@@ -94,6 +111,9 @@ async function proxyPreview(
 
 function sendPreviewFailure(error: unknown, response: Response): void {
   if (error instanceof ArtifactPreviewError) {
+    if (error.retryAfterSeconds && !response.headersSent) {
+      response.setHeader('Retry-After', error.retryAfterSeconds);
+    }
     sendArtifactError(response, error.status, error.message);
   } else if (error instanceof ResponseError && [401, 403, 404].includes(error.response.status)) {
     sendArtifactError(

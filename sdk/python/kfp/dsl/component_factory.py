@@ -32,6 +32,7 @@ import docstring_parser
 import kfp
 from kfp import dsl
 from kfp.dsl import (
+    constants,
     container_component_artifact_channel,
     container_component_class,
     graph_component,
@@ -872,9 +873,11 @@ def create_component_from_func(
     """
 
     if not isinstance(artifact_previews, bool) or not isinstance(
-            artifact_preview_rows, bool):
+        artifact_preview_rows, bool
+    ):
         raise TypeError(
-            'artifact_previews and artifact_preview_rows must be booleans.')
+            'artifact_previews and artifact_preview_rows must be booleans.'
+        )
     packages_to_install_command = _get_packages_to_install_command(
         install_kfp_package=install_kfp_package,
         target_image=target_image,
@@ -913,9 +916,9 @@ def create_component_from_func(
         )
 
     if not artifact_previews:
-        args.append('--disable_artifact_previews')
+        args.append(constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
     elif not artifact_preview_rows:
-        args.append('--artifact_preview_schema_only')
+        args.append(constants.ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG)
 
     component_spec = extract_component_interface(func)
     # Attach task_config_passthroughs to the ComponentSpec structure if provided.

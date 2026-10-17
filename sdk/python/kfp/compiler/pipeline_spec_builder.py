@@ -2479,22 +2479,10 @@ def create_pipeline_spec(
         platform_spec=platform_spec,
     )
 
-    # Apply after merging nested pipelines and exit handlers, without changing
-    # reusable component definitions or passing new CLI flags to older images.
+    # Apply after merging nested pipelines and exit handlers so the opt-out
+    # reaches every producer without changing reusable component definitions.
     if pipeline_config is not None and not pipeline_config.artifact_previews:
-        for executor in deployment_config.executors.values():
-            if not executor.HasField('container'):
-                continue
-            environment = executor.container.env
-            for index in reversed(range(len(environment))):
-                if (
-                    environment[index].name
-                    == constants.ARTIFACT_PREVIEWS_ENV_VAR
-                ):
-                    del environment[index]
-            environment.add(
-                name=constants.ARTIFACT_PREVIEWS_ENV_VAR, value='false'
-            )
+        _disable_artifact_previews(deployment_config)
         pipeline_spec.deployment_spec.update(
             json_format.MessageToDict(deployment_config)
         )
@@ -2511,6 +2499,56 @@ def create_pipeline_spec(
     )
 
     return pipeline_spec, platform_spec
+
+
+_PYTHON_EXECUTOR_FUNCTION_FLAG = '--function_to_execute'
+
+
+def _runs_python_executor(
+    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec,
+) -> bool:
+    """Returns whether a container runs the KFP Python component executor.
+
+    Args:
+        container: A compiled executor container.
+
+    Returns:
+        True when the command invokes the KFP executor module and the
+        arguments name the function to execute.
+    """
+    return any(
+        component_factory.EXECUTOR_MODULE in part for part in container.command
+    ) and any(
+        arg == _PYTHON_EXECUTOR_FUNCTION_FLAG
+        or arg.startswith(f'{_PYTHON_EXECUTOR_FUNCTION_FLAG}=')
+        for arg in container.args
+    )
+
+
+def _disable_artifact_previews(
+    deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
+) -> None:
+    """Adds the preview opt-out flag to every KFP Python executor.
+
+    Executor arguments always reach the producer, whereas capture-only
+    TaskConfig ENV passthrough keeps compiled environment variables out of
+    its pod. Older KFP executors ignore flags they do not recognize, so
+    images with older SDKs keep working. Container components and importers
+    are unchanged.
+
+    Args:
+        deployment_config: The pipeline's executors, including those merged
+            from nested pipelines and exit handlers.
+    """
+    for executor in deployment_config.executors.values():
+        if not executor.HasField('container'):
+            continue
+        container = executor.container
+        if (
+            _runs_python_executor(container)
+            and constants.DISABLE_ARTIFACT_PREVIEWS_FLAG not in container.args
+        ):
+            container.args.append(constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
 
 
 def _validate_dag_output_types(

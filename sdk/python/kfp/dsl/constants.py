@@ -13,8 +13,10 @@
 # limitations under the License.
 """Constants."""
 
-# Internal task setting emitted by PipelineConfig, not an installation policy.
-ARTIFACT_PREVIEWS_ENV_VAR = 'KFP_ARTIFACT_PREVIEWS'
+# KFP Python executor flags. Component and pipeline preview opt-outs both
+# compile to the disable flag because task arguments always reach the producer.
+DISABLE_ARTIFACT_PREVIEWS_FLAG = '--disable_artifact_previews'
+ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG = '--artifact_preview_schema_only'
 
 # Workspace-related constants
 WORKSPACE_MOUNT_PATH = '/kfp-workspace'

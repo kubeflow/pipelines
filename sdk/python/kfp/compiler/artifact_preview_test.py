@@ -61,9 +61,11 @@ class ArtifactPreviewPipelineTest(unittest.TestCase):
         ]
 
     def disabled(self, container: dict[str, Any]) -> bool:
-        return any(item['name'] == constants.ARTIFACT_PREVIEWS_ENV_VAR and
-                   item['value'] == 'false'
-                   for item in container.get('env', []))
+        """Return whether the executor receives exactly one opt-out flag."""
+        flags = container.get('args', []).count(
+            constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
+        self.assertLessEqual(flags, 1)
+        return flags == 1
 
     def test_default_and_explicit_enablement_preserve_the_original_ir(
             self) -> None:
@@ -79,6 +81,7 @@ class ArtifactPreviewPipelineTest(unittest.TestCase):
         self.assertEqual(implicit, explicit)
         self.assertTrue(dsl.PipelineConfig().artifact_previews)
         self.assertNotIn('env', self.containers(implicit)[0])
+        self.assertFalse(self.disabled(self.containers(implicit)[0]))
 
     def test_pipeline_and_component_opt_outs_combine(self) -> None:
         for pipeline_enabled in (False, True):
@@ -104,10 +107,57 @@ class ArtifactPreviewPipelineTest(unittest.TestCase):
 
                         container = self.containers(self.compile(pipeline))[0]
                         self.assertEqual(
-                            self.disabled(container), not pipeline_enabled)
-                        self.assertEqual(
-                            '--disable_artifact_previews' in container['args'],
-                            not component_enabled)
+                            self.disabled(container),
+                            not (pipeline_enabled and component_enabled))
+                        self.assertNotIn('env', container)
+
+    def test_pipeline_opt_out_does_not_depend_on_task_environment(self) -> None:
+        """Capture-only ENV passthrough keeps task environment variables out of
+        the producer, so the opt-out must be an executor argument."""
+        for passthrough in (dsl.TaskConfigField.ENV,
+                            dsl.TaskConfigPassthrough(
+                                field=dsl.TaskConfigField.ENV,
+                                apply_to_task=False)):
+            with self.subTest(passthrough=passthrough):
+                component = dsl.component(
+                    producer.python_func,
+                    base_image='python:3.11',
+                    install_kfp_package=False,
+                    task_config_passthroughs=[passthrough])
+
+                @dsl.pipeline(
+                    pipeline_config=dsl.PipelineConfig(artifact_previews=False))
+                def pipeline() -> None:
+                    component().set_env_variable('UNRELATED', 'retained')
+
+                specification = self.compile(pipeline)
+                self.assertEqual(
+                    specification['components']['comp-producer']
+                    ['taskConfigPassthroughs'], [{
+                        'field': 'ENV'
+                    }])
+                container = self.containers(specification)[0]
+                self.assertTrue(self.disabled(container))
+                self.assertEqual(container['env'], [{
+                    'name': 'UNRELATED',
+                    'value': 'retained'
+                }])
+
+    def test_pipeline_opt_out_overrides_schema_only_components(self) -> None:
+        component = dsl.component(
+            producer.python_func,
+            base_image='python:3.11',
+            install_kfp_package=False,
+            artifact_preview_rows=False)
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(artifact_previews=False))
+        def pipeline() -> None:
+            component()
+
+        args = self.containers(self.compile(pipeline))[0]['args']
+        self.assertTrue(self.disabled({'args': args}))
+        self.assertIn(constants.ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG, args)
 
     def test_nested_and_loaded_pipelines_keep_the_most_restrictive_setting(
             self) -> None:
@@ -186,34 +236,52 @@ class ArtifactPreviewPipelineTest(unittest.TestCase):
         self.assertTrue(
             all(self.disabled(item) for item in self.containers(specification)))
 
-    def test_native_commands_and_unrelated_environment_are_preserved(
-            self) -> None:
+    def test_only_kfp_python_executors_receive_the_opt_out(self) -> None:
+        """Native programs may reject unknown flags, so only commands that run
+        the KFP executor are changed."""
 
         @dsl.container_component
         def native() -> dsl.ContainerSpec:
             return dsl.ContainerSpec(
                 image='busybox', command=['sh', '-c'], args=['echo native'])
 
+        @dsl.container_component
+        def native_function_flag() -> dsl.ContainerSpec:
+            return dsl.ContainerSpec(
+                image='python:3.11',
+                command=['python3', 'main.py'],
+                args=['--function_to_execute', 'train'])
+
+        @dsl.container_component
+        def custom_executor() -> dsl.ContainerSpec:
+            return dsl.ContainerSpec(
+                image='producer:test',
+                command=['python3', '-m', 'kfp.dsl.executor_main'],
+                args=['--function_to_execute=train'])
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(artifact_previews=False))
         def pipeline() -> None:
-            task = native()
-            task.set_env_variable('UNRELATED', 'retained')
-            task.set_env_variable(constants.ARTIFACT_PREVIEWS_ENV_VAR, 'true')
+            native().set_env_variable('UNRELATED', 'retained')
+            native_function_flag()
+            custom_executor()
 
-        container = self.containers(self.compile(pipeline))[0]
-        self.assertEqual(container['command'], ['sh', '-c'])
-        self.assertEqual(container['args'], ['echo native'])
-        self.assertEqual(container['env'], [
-            {
-                'name': 'UNRELATED',
-                'value': 'retained'
-            },
-            {
-                'name': constants.ARTIFACT_PREVIEWS_ENV_VAR,
-                'value': 'false'
-            },
-        ])
+        executors = self.compile(pipeline)['deploymentSpec']['executors']
+        native_container = executors['exec-native']['container']
+        self.assertEqual(native_container['command'], ['sh', '-c'])
+        self.assertEqual(native_container['args'], ['echo native'])
+        self.assertEqual(native_container['env'], [{
+            'name': 'UNRELATED',
+            'value': 'retained'
+        }])
+        self.assertEqual(
+            executors['exec-native-function-flag']['container']['args'],
+            ['--function_to_execute', 'train'])
+        self.assertEqual(executors['exec-custom-executor']['container']['args'],
+                         [
+                             '--function_to_execute=train',
+                             constants.DISABLE_ARTIFACT_PREVIEWS_FLAG
+                         ])
         self.assertIsNone(native.component_spec.implementation.container.env)
 
     def test_pipeline_config_rejects_non_boolean_settings(self) -> None:

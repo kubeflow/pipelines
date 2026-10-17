@@ -22,10 +22,10 @@ import tempfile
 import types
 import unittest
 from unittest import mock
+import zoneinfo
 
 from kfp import dsl
 from kfp.dsl import _artifact_preview as previews
-from kfp.dsl import constants
 from kfp.dsl import executor
 from kfp.dsl import executor_main
 
@@ -109,6 +109,10 @@ def fake_framework_import(name: str) -> types.SimpleNamespace:
     raise ImportError(f'{name} is not installed in this test')
 
 
+class UnexpectedLibraryError(Exception):
+    """An error type that preview code does not anticipate."""
+
+
 class ArtifactPreviewTest(unittest.TestCase):
     """Automatic previews must never alter the primary artifact or native
     save."""
@@ -117,10 +121,6 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        environment = mock.patch.dict(os.environ)
-        environment.start()
-        self.addCleanup(environment.stop)
-        os.environ.pop(constants.ARTIFACT_PREVIEWS_ENV_VAR, None)
         self.model = dsl.Model(uri=str(self.root / 'model'))
         Path(self.model.path).mkdir()
         self.import_module = mock.patch.object(
@@ -152,63 +152,10 @@ class ArtifactPreviewTest(unittest.TestCase):
             },
         }
 
-    def test_component_can_opt_out(self) -> None:
-
-        def produce(model: dsl.Output[dsl.Model]) -> None:
-            FakeEstimator().save_model(Path(model.path) / 'model.ubj')
-
-        with mock.patch.object(previews.importlib, 'import_module') as imported:
-            runtime = executor.Executor(
-                self.runtime_input(model=self.model),
-                produce,
-                artifact_previews=False)
-            runtime.execute()
-        self.assertIsNone(runtime._artifact_previews)
-        imported.assert_not_called()
-        self.assertEqual((Path(self.model.path) / 'model.ubj').read_bytes(),
-                         b'native-model')
-        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
-
-    def test_pipeline_previews_are_enabled_by_default(self) -> None:
-        self.assertTrue(previews._pipeline_allows_previews())
-        for value, enabled in (('true', True), ('false', False),
-                               (' TRUE\n', True), (' False\n', False)):
-            with self.subTest(value=value):
-                os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = value
-                self.assertEqual(previews._pipeline_allows_previews(), enabled)
-
-    def test_invalid_policy_disables_previews_without_framework_imports(
+    def test_disabled_previews_leave_outputs_unchanged_without_framework_imports(
             self) -> None:
-        original = FakeEstimator.save_model
-        for value in ('', 'yes', '0', '1', 'invalid'):
-            with self.subTest(value=value):
-                os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = value
-                with mock.patch.object(previews.importlib,
-                                       'import_module') as imported:
-                    with self.assertLogs(previews.__name__, level='WARNING'):
-                        with previews.ArtifactPreviewSession(
-                            {'model': self.model}) as session:
-                            self.assertIs(FakeEstimator.save_model, original)
-                            session.generate()
-                imported.assert_not_called()
-                self.assertFalse(
-                    (Path(self.model.path) / 'preview.json').exists())
-                self.assertEqual(self.model.metadata, {})
-
-    def test_previews_do_not_read_deployment_configuration(self) -> None:
-        with mock.patch.object(
-                Path,
-                'read_text',
-                side_effect=AssertionError('No deployment configuration read')):
-            self.assertTrue(previews._pipeline_allows_previews())
-            with previews.ArtifactPreviewSession({'model': self.model
-                                                 }) as session:
-                FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
-                session.generate()
-        self.assertIn('_kfp_preview', self.model.metadata)
-
-    def test_pipeline_opt_out_overrides_component_enablement(self) -> None:
-        os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = 'false'
+        """Component and pipeline opt-outs both reach the executor as this
+        setting, which skips dataset sampling and model hooks."""
         dataset = dsl.Dataset(uri=str(self.root / 'dataset'))
         original = FakeEstimator.save_model
 
@@ -221,10 +168,12 @@ class ArtifactPreviewTest(unittest.TestCase):
 
         with mock.patch.object(previews.importlib, 'import_module') as imported:
             with mock.patch.object(previews, '_dataset_preview') as sample:
-                result = executor.Executor(
+                runtime = executor.Executor(
                     self.runtime_input(dataset=dataset, model=self.model),
                     produce,
-                    artifact_previews=True).execute()
+                    artifact_previews=False)
+                result = runtime.execute()
+        self.assertIsNone(runtime._artifact_previews)
         imported.assert_not_called()
         sample.assert_not_called()
         metadata = json.loads(Path(result).read_text())
@@ -238,29 +187,36 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertEqual((Path(self.model.path) / 'model.ubj').read_bytes(),
                          b'native-model')
 
-    def test_pipeline_opt_out_is_checked_before_publication(self) -> None:
-        original = FakeEstimator.save_model
-        with previews.ArtifactPreviewSession({'model': self.model}) as session:
-            FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
-            self.assertIn('model', session.models)
-            os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = 'false'
-            session.generate()
-        self.assertIs(FakeEstimator.save_model, original)
-        self.assertEqual(self.model.metadata, {})
-        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
+    def test_disabled_previews_keep_producer_written_previews(self) -> None:
+        """Opting out stops generation without hiding a manual preview."""
+        descriptor = {'version': 1, 'path': 'preview.json'}
+        content = b'{"version":1,"kind":"model"}'
 
-    def test_pipeline_opt_out_does_not_remove_published_previews(self) -> None:
-        with previews.ArtifactPreviewSession({'model': self.model}) as session:
-            FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
-            session.generate()
-        content = (Path(self.model.path) / 'preview.json').read_bytes()
-        descriptor = dict(self.model.metadata['_kfp_preview'])
-        os.environ[constants.ARTIFACT_PREVIEWS_ENV_VAR] = 'false'
-        with previews.ArtifactPreviewSession({'model': self.model}) as session:
-            session.generate()
+        def produce(model: dsl.Output[dsl.Model]) -> None:
+            (Path(model.path) / 'preview.json').write_bytes(content)
+            model.metadata['_kfp_preview'] = descriptor
+
+        result = executor.Executor(
+            self.runtime_input(model=self.model),
+            produce,
+            artifact_previews=False).execute()
+        metadata = json.loads(Path(result).read_text())
+        self.assertEqual(
+            metadata['artifacts']['model']['artifacts'][0]['metadata']
+            ['_kfp_preview'], descriptor)
         self.assertEqual((Path(self.model.path) / 'preview.json').read_bytes(),
                          content)
-        self.assertEqual(self.model.metadata['_kfp_preview'], descriptor)
+
+    def test_previews_do_not_read_deployment_configuration(self) -> None:
+        with mock.patch.object(
+                Path,
+                'read_text',
+                side_effect=AssertionError('No deployment configuration read')):
+            with previews.ArtifactPreviewSession({'model': self.model
+                                                 }) as session:
+                FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
+                session.generate()
+        self.assertIn('_kfp_preview', self.model.metadata)
 
     def test_native_save_is_unchanged_and_configuration_is_captured_at_save_time(
             self) -> None:
@@ -356,17 +312,22 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertNotIn('_kfp_preview', self.model.metadata)
 
     def test_capture_failure_does_not_fail_the_native_save(self) -> None:
-        with previews.ArtifactPreviewSession({'model': self.model}) as session:
-            with mock.patch.object(
-                    FakeEstimator,
-                    'get_params',
-                    side_effect=ValueError('bad config')):
-                with self.assertLogs(previews.__name__, level='WARNING'):
-                    result = FakeEstimator().save_model(
-                        Path(self.model.path) / 'model.ubj')
-            self.assertEqual(result, 'saved')
-            self.assertTrue((Path(self.model.path) / 'model.ubj').exists())
-        self.assertEqual(previews._SESSIONS, [])
+        for error in (ValueError('bad config'),
+                      UnexpectedLibraryError('unexpected library error')):
+            with self.subTest(error=type(error).__name__):
+                with previews.ArtifactPreviewSession({'model': self.model
+                                                     }) as session:
+                    with mock.patch.object(
+                            FakeEstimator, 'get_params', side_effect=error):
+                        with self.assertLogs(
+                                previews.__name__, level='WARNING'):
+                            result = FakeEstimator().save_model(
+                                Path(self.model.path) / 'model.ubj')
+                    self.assertEqual(result, 'saved')
+                    self.assertTrue(
+                        (Path(self.model.path) / 'model.ubj').exists())
+                    self.assertNotIn('model', session.models)
+                self.assertEqual(previews._SESSIONS, [])
 
     def test_hooks_restore_after_component_and_native_save_exceptions(
             self) -> None:
@@ -777,6 +738,50 @@ class ArtifactPreviewTest(unittest.TestCase):
             b'native-weights')
         self.assertEqual(self.load_preview(dataset)['rows'], [['1']])
 
+    def test_unexpected_conversion_errors_do_not_fail_executor_finalization(
+            self) -> None:
+        """Skip only a preview whose library conversion fails unexpectedly."""
+        failing = dsl.Dataset(uri=str(self.root / 'failing'))
+        dataset = dsl.Dataset(uri=str(self.root / 'dataset'))
+        sample = previews._dataset_preview
+
+        def produce(failing: dsl.Output[dsl.Dataset],
+                    dataset: dsl.Output[dsl.Dataset],
+                    model: dsl.Output[dsl.Model]) -> None:
+            for output in (failing, dataset):
+                Path(output.path).mkdir()
+                (Path(output.path) / 'data.csv').write_text('value\n1\n')
+            FakeEstimator().save_model(Path(model.path) / 'model.ubj')
+
+        def unresolvable_time_zone(directory: Path, include_rows: bool) -> dict:
+            # PyArrow raises this KeyError subclass for time zone-aware
+            # cells when no time zone database can resolve the zone.
+            if directory == Path(failing.path):
+                raise zoneinfo.ZoneInfoNotFoundError(
+                    'No time zone found with key America/New_York')
+            return sample(directory, include_rows)
+
+        with mock.patch.object(
+                previews, '_dataset_preview',
+                side_effect=unresolvable_time_zone):
+            with self.assertLogs(
+                    previews.__name__, level='WARNING') as messages:
+                result = executor.Executor(
+                    self.runtime_input(
+                        failing=failing, dataset=dataset, model=self.model),
+                    produce).execute()
+        self.assertIn("output 'failing'", '\n'.join(messages.output))
+        metadata = json.loads(Path(result).read_text())['artifacts']
+        self.assertNotIn('_kfp_preview',
+                         metadata['failing']['artifacts'][0]['metadata'])
+        self.assertFalse((Path(failing.path) / 'preview.json').exists())
+        self.assertEqual((Path(failing.path) / 'data.csv').read_text(),
+                         'value\n1\n')
+        for name in ('dataset', 'model'):
+            self.assertIn('_kfp_preview',
+                          metadata[name]['artifacts'][0]['metadata'])
+        self.assertEqual(self.load_preview(dataset)['rows'], [['1']])
+
     def test_large_model_structure_is_trimmed_to_the_byte_limit(self) -> None:
         preview = previews._model_preview('pytorch', '2', 'module', {}, {
             'tensors': {
@@ -865,9 +870,15 @@ class ArtifactPreviewTest(unittest.TestCase):
         ]
         for flags, enabled, rows in (
             ([], True, True),
-            (['--artifact_previews'], True, True),
             (['--disable_artifact_previews'], False, True),
             (['--artifact_preview_schema_only'], True, False),
+                # A pipeline opt-out overrides a schema-only component.
+            (['--artifact_preview_schema_only',
+              '--disable_artifact_previews'], False, False),
+            (['--disable_artifact_previews',
+              '--disable_artifact_previews'], False, True),
+                # Executors ignore flags introduced by newer SDKs.
+            (['--future_preview_option'], True, True),
         ):
             with self.subTest(flags=flags):
                 with mock.patch.object(sys, 'argv', arguments + flags):

@@ -51,7 +51,7 @@ describe('driver log artifact ownership', () => {
       const app = express();
       app.get(
         '/artifacts/get',
-        getArtifactsRateLimiter(true, 'x-kubeflow-user'),
+        getArtifactsRateLimiter({ authEnabled: true, kubeflowUserIdHeader: 'x-kubeflow-user' }),
         getArtifactsAuthMiddleware(
           async () => undefined,
           true,
