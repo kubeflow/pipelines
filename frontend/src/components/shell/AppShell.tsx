@@ -30,7 +30,7 @@ import {
   Moon,
   Search,
   Sun,
-  SunMoon,
+  ChevronDown,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import KubeflowLogo from 'src/icons/kubeflowLogo';
@@ -38,6 +38,12 @@ import { LocalStorage } from 'src/lib/LocalStorage';
 import { Button } from '../ui/button';
 import { useTheme } from './ThemeProvider';
 import './AppShell.css';
+
+const themeOptions = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor },
+] as const;
 
 export interface AppShellNavItem {
   id: string;
@@ -126,6 +132,7 @@ export function AppShell({
   const mainId = useId();
   const appearanceId = useId();
   const mainRef = useRef<HTMLElement>(null);
+  const ThemeIcon = themeOptions.find((option) => option.value === theme)!.icon;
   const themeLabel = `Theme: ${theme[0].toUpperCase()}${theme.slice(1)}`;
   const collapseLabel = isNarrow
     ? 'Expand navigation (available on wider screens)'
@@ -220,65 +227,86 @@ export function AppShell({
 
           <footer className='kfp-shell-footer'>
             <Tooltip.Provider>
-              <div className='kfp-shell-footer-tools'>
-                <Menu.Root>
-                  <FooterTooltip label={themeLabel}>
-                    <Menu.Trigger
-                      render={
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='kfp-shell-utility'
-                          aria-label={themeLabel}
+              <div className='kfp-shell-appearance'>
+                {!collapsed ? (
+                  <fieldset className='kfp-shell-theme-segments'>
+                    <legend className='kfp-shell-visually-hidden'>Theme</legend>
+                    {themeOptions.map(({ value, label, icon: Icon }) => (
+                      <label
+                        key={value}
+                        className='kfp-shell-theme-segment'
+                        data-selected={theme === value}
+                      >
+                        <input
+                          className='kfp-shell-visually-hidden'
+                          type='radio'
+                          name={appearanceId}
+                          value={value}
+                          checked={theme === value}
+                          onChange={() => setTheme(value)}
                         />
-                      }
-                    >
-                      <SunMoon size={18} strokeWidth={1.6} aria-hidden='true' />
-                    </Menu.Trigger>
-                  </FooterTooltip>
-                  <Menu.Portal className={themeClassName}>
-                    <Menu.Positioner
-                      side={collapsed ? 'right' : 'top'}
-                      align='start'
-                      sideOffset={8}
-                      className='kfp-shell-utility-positioner'
-                    >
-                      <Menu.Popup className='kfp-shell-theme-menu' aria-labelledby={appearanceId}>
-                        <div id={appearanceId} className='kfp-shell-theme-heading'>
-                          Appearance
-                        </div>
-                        <Menu.RadioGroup
-                          value={theme}
-                          onValueChange={(value: unknown) => {
-                            if (value === 'light' || value === 'dark' || value === 'system')
-                              setTheme(value);
-                          }}
-                        >
-                          {(
-                            [
-                              { value: 'light', label: 'Light', icon: Sun },
-                              { value: 'dark', label: 'Dark', icon: Moon },
-                              { value: 'system', label: 'System', icon: Monitor },
-                            ] as const
-                          ).map(({ value, label, icon: Icon }) => (
-                            <Menu.RadioItem
-                              key={value}
-                              value={value}
-                              className='kfp-shell-theme-option'
-                              closeOnClick
-                            >
-                              <Icon size={18} strokeWidth={1.6} aria-hidden='true' />
-                              {label}
-                              <Menu.RadioItemIndicator className='kfp-shell-theme-check'>
-                                <Check size={16} aria-hidden='true' />
-                              </Menu.RadioItemIndicator>
-                            </Menu.RadioItem>
-                          ))}
-                        </Menu.RadioGroup>
-                      </Menu.Popup>
-                    </Menu.Positioner>
-                  </Menu.Portal>
-                </Menu.Root>
+                        <Icon size={14} aria-hidden='true' />
+                        {label}
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  <Menu.Root>
+                    <FooterTooltip label={themeLabel}>
+                      <Menu.Trigger
+                        render={
+                          <Button
+                            variant='secondary'
+                            size='icon'
+                            className='kfp-shell-theme-trigger'
+                            aria-label={themeLabel}
+                          />
+                        }
+                      >
+                        <ThemeIcon size={16} strokeWidth={1.6} aria-hidden='true' />
+                        <ChevronDown size={10} aria-hidden='true' />
+                      </Menu.Trigger>
+                    </FooterTooltip>
+                    <Menu.Portal className={themeClassName}>
+                      <Menu.Positioner
+                        side={collapsed ? 'right' : 'top'}
+                        align='start'
+                        sideOffset={8}
+                        className='kfp-shell-utility-positioner'
+                      >
+                        <Menu.Popup className='kfp-shell-theme-menu' aria-labelledby={appearanceId}>
+                          <div id={appearanceId} className='kfp-shell-theme-heading'>
+                            Appearance
+                          </div>
+                          <Menu.RadioGroup
+                            value={theme}
+                            onValueChange={(value: unknown) => {
+                              if (value === 'light' || value === 'dark' || value === 'system')
+                                setTheme(value);
+                            }}
+                          >
+                            {themeOptions.map(({ value, label, icon: Icon }) => (
+                              <Menu.RadioItem
+                                key={value}
+                                value={value}
+                                className='kfp-shell-theme-option'
+                                closeOnClick
+                              >
+                                <Icon size={18} strokeWidth={1.6} aria-hidden='true' />
+                                {label}
+                                <Menu.RadioItemIndicator className='kfp-shell-theme-check'>
+                                  <Check size={16} aria-hidden='true' />
+                                </Menu.RadioItemIndicator>
+                              </Menu.RadioItem>
+                            ))}
+                          </Menu.RadioGroup>
+                        </Menu.Popup>
+                      </Menu.Positioner>
+                    </Menu.Portal>
+                  </Menu.Root>
+                )}
+              </div>
+              <div className='kfp-shell-footer-tools'>
                 {footerLinks.map(({ label, href, icon: Icon }) => (
                   <FooterTooltip key={label} label={label}>
                     <a

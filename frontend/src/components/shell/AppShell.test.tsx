@@ -183,7 +183,27 @@ describe('AppShell', () => {
     expect(localStorage.getItem('kfp.theme')).toBe('dark');
   });
 
+  it('shows a separate segmented theme control and remembers the selected choice', async () => {
+    const view = renderShell();
+    expect(screen.getByRole('group', { name: 'Theme' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Light', exact: true })).toBeChecked();
+    for (const name of ['Dark', 'System', 'Light']) {
+      await userEvent.click(screen.getByRole('radio', { name, exact: true }));
+      expect(screen.getByRole('radio', { name, exact: true })).toBeChecked();
+      expect(localStorage.getItem('kfp.theme')).toBe(name.toLowerCase());
+    }
+    await userEvent.click(screen.getByRole('radio', { name: 'Dark', exact: true }));
+    view.unmount();
+    renderShell();
+    expect(screen.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
+    expect(sidebar().closest('.kfp-theme')).toHaveClass('dark');
+    const group = screen.getByRole('group', { name: 'Theme' });
+    const links = screen.getByRole('link', { name: 'Documentation' });
+    expect(group.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('opens the theme menu by keyboard and restores focus on Escape', async () => {
+    localStorage.setItem('navbarCollapsed', 'true');
     renderShell();
     const user = userEvent.setup();
     const trigger = screen.getByRole('button', { name: 'Theme: Light' });
@@ -198,6 +218,7 @@ describe('AppShell', () => {
   });
 
   it('keeps the theme menu in the selected palette and persists all choices', async () => {
+    localStorage.setItem('navbarCollapsed', 'true');
     const view = renderShell();
     for (const name of ['Dark', 'System', 'Light']) {
       await userEvent.click(screen.getByRole('button', { name: /^Theme: / }));

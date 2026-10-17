@@ -344,3 +344,57 @@
   border-bottom: 1px solid var(--border);
   background: var(--card);
 }
+
+.kfp-theme .kfp-shell-appearance {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.kfp-theme .kfp-shell-theme-segments {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+}
+.kfp-theme .kfp-shell-theme-segment {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.kfp-theme .kfp-shell-theme-segment[data-selected='true'] {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+.kfp-theme .kfp-shell-theme-segment:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.kfp-theme .kfp-shell-theme-trigger {
+  width: 40px;
+  gap: 2px;
+}
+.kfp-theme .kfp-shell-theme-trigger > svg:last-child {
+  width: 10px;
+  height: 10px;
+}
+@media (pointer: coarse) {
+  .kfp-theme .kfp-shell-theme-segment,
+  .kfp-theme .kfp-shell-theme-trigger {
+    min-height: 44px;
+  }
+}
