@@ -268,3 +268,16 @@
   width: 36px;
   height: 36px;
 }
+
+.kfp-pipeline-cards-view[data-density='compact'] .kfp-pipeline-grid {
+  gap: 8px;
+}
+.kfp-pipeline-cards-view[data-density='compact'] .kfp-pipeline-card-main {
+  padding: 10px 12px;
+}
+.kfp-pipeline-cards-view[data-density='compact'] .kfp-pipeline-description {
+  margin-bottom: 8px;
+}
+.kfp-pipeline-cards-view[data-density='compact'] .kfp-pipeline-versions {
+  padding: 0 12px 10px;
+}

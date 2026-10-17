@@ -23,6 +23,7 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { CollectionToolbar } from './CollectionToolbar';
 import { TableFooter } from './TableFooter';
+import { useDensity } from './DensityProvider';
 import './RunsTable.css';
 
 interface ResourceTableProps {
@@ -58,6 +59,7 @@ export function ResourceTable({
   getRowLabel = defaultRowLabel,
 }: ResourceTableProps) {
   const filterId = useId();
+  const density = useDensity()?.density ?? 'comfortable';
   const visibleSelected = table.rows.filter((row) => table.selectedIds.includes(row.id)).length;
   const allSelected = table.rows.length > 0 && visibleSelected === table.rows.length;
   const filteredEmpty = !table.rows.length && !!table.filter;
@@ -65,7 +67,10 @@ export function ResourceTable({
     table.columns.length + (table.disableSelection ? 0 : 1) + (table.getExpandedContent ? 1 : 0);
 
   return (
-    <div className={className ? `kfp-runs-table-view ${className}` : 'kfp-runs-table-view'}>
+    <div
+      data-density={density}
+      className={className ? `kfp-runs-table-view ${className}` : 'kfp-runs-table-view'}
+    >
       {(!table.noFilterBox || table.filterActions) && (
         <CollectionToolbar table={table} filterLabel={filterLabel} />
       )}

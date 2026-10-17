@@ -23,6 +23,7 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { CollectionToolbar } from '../tables/CollectionToolbar';
 import { TableFooter } from '../tables/TableFooter';
+import { useDensity } from '../tables/DensityProvider';
 import './Pipelines.css';
 
 function rowName(row: Row): string {
@@ -38,12 +39,13 @@ export function PipelineCards({
   hideControls?: boolean;
 }) {
   const id = useId();
+  const density = useDensity()?.density ?? 'comfortable';
   const NameRenderer = table.columns[0].customRenderer;
   const DescriptionRenderer = table.columns[1].customRenderer;
   const visibleSelected = table.rows.filter((row) => table.selectedIds.includes(row.id)).length;
   const allSelected = table.rows.length > 0 && visibleSelected === table.rows.length;
   return (
-    <div className='kfp-pipeline-cards-view'>
+    <div className='kfp-pipeline-cards-view' data-density={density}>
       {!hideControls && <PipelineControls table={table} />}
       <div className='kfp-pipeline-selection'>
         <Checkbox
