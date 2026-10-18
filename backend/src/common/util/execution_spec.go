@@ -171,6 +171,10 @@ type ExecutionSpec interface {
 	// Decompress ExecutionSpec. In most case, decompress information in status
 	Decompress() error
 
+	// Compress the status the same way the workflow controller does when the
+	// ExecutionSpec is over the size limit. Undoes Decompress before a write.
+	Compress() error
+
 	// Check if the ExecutionSpec allows retry, return error if not
 	CanRetry() error
 

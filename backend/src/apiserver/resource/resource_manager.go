@@ -1438,6 +1438,12 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if err := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace, "retry_run"); err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to service account authorization error", runId)
 	}
+	// The node status was decompressed above to build the retry. Compress it
+	// again, as the workflow controller and `argo retry` do, so a large
+	// workflow is not written back at several times its stored size.
+	if err := newExecSpec.Compress(); err != nil {
+		return util.NewFailedPreconditionError(err, "Failed to retry run %s: the workflow is too large to update even with its node status compressed", runId)
+	}
 
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
 	// from overwriting with a stale terminal state. The returned claimGeneration
