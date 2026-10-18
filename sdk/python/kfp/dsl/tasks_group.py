@@ -22,7 +22,6 @@ from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
-from kfp.dsl.pipeline_channel import PipelineParameterChannel
 
 
 class TasksGroupType(str, enum.Enum):
@@ -151,9 +150,8 @@ class ExitHandler(TasksGroup):
             return False
 
         for task_input in self.exit_task.inputs.values():
-            if isinstance(
-                    task_input,
-                    PipelineParameterChannel) and task_input.task is not None:
+            if isinstance(task_input, pipeline_channel.PipelineChannel
+                         ) and task_input.task is not None:
                 return True
         return False
 
