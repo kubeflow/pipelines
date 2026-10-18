@@ -3333,7 +3333,7 @@ func TestRetryRun_CompressesLargeNodeStatus(t *testing.T) {
 
 	actualRun, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.RuntimeStateRunning, actualRun.RunDetails.State)
+	assert.Equal(t, model.RuntimeStateRunning, actualRun.State)
 }
 
 func TestRetryRun_TooLargeWhenCompressedLeavesRunUnchanged(t *testing.T) {
@@ -3348,7 +3348,7 @@ func TestRetryRun_TooLargeWhenCompressedLeavesRunUnchanged(t *testing.T) {
 
 	actualRun, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.RuntimeStateFailed, actualRun.RunDetails.State)
+	assert.Equal(t, model.RuntimeStateFailed, actualRun.State)
 	live, err := store.ExecClient().Execution(workflow.ExecutionNamespace()).Get(context.Background(), workflow.ExecutionName(), v1.GetOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, v1alpha1.WorkflowFailed, live.(*util.Workflow).Status.Phase)
