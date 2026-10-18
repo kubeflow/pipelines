@@ -368,7 +368,7 @@ class RetryPolicy:
     Attributes:
         num_retries (int): Number of times to retry on failure.
         backoff_duration (int): The the number of seconds to wait before triggering a retry.
-        backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
+        backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60s" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
         backoff_max_duration (int): The maximum duration during which the task will be retried.
         policy (str): Controls which failure types trigger a retry. Only
             supported when using Argo Workflows as the pipeline execution
