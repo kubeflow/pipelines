@@ -1172,7 +1172,7 @@ func newStandardBackoffPolicy() backoff.BackOff {
 
 // Deletes a run entry with a given id.
 func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
-	run, err := r.GetRun(runId)
+	run, err := r.GetRunWithHydration(runId, false)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete run %v as it does not exist", runId)
 	}

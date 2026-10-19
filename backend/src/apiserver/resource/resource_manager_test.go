@@ -9593,9 +9593,10 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks(t *testing.T) {
 	var rootTask *model.Task
 	var child204 *model.Task
 	for _, tsk := range allTasks {
-		if tsk.Name == "root-dag" {
+		switch tsk.Name {
+		case "root-dag":
 			rootTask = tsk
-		} else if tsk.Name == "child-204" {
+		case "child-204":
 			child204 = tsk
 		}
 	}
@@ -9867,9 +9868,10 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 	var foundWorker *model.Task
 	var foundDag *model.Task
 	for _, tsk := range hydratedRun.Tasks {
-		if tsk.UUID == workerTask.UUID {
+		switch tsk.UUID {
+		case workerTask.UUID:
 			foundWorker = tsk
-		} else if tsk.UUID == dagTask.UUID {
+		case dagTask.UUID:
 			foundDag = tsk
 		}
 	}

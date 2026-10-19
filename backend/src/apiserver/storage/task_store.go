@@ -1184,7 +1184,15 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 
 	runUUID := new.RunUUID
 	if runUUID == "" {
-		row := tx.QueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE %s = ?", q("RunUUID"), q(tableName), q("UUID")), new.UUID)
+		runUUIDSQL, runUUIDArgs, err := qb.
+			Select(q("RunUUID")).
+			From(q(tableName)).
+			Where(sq.Eq{q("UUID"): new.UUID}).
+			ToSql()
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to create query to get run UUID for task %s", new.UUID)
+		}
+		row := tx.QueryRow(runUUIDSQL, runUUIDArgs...)
 		if err := row.Scan(&runUUID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, util.NewResourceNotFoundError("task", new.UUID)
@@ -1249,14 +1257,15 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 	// 1. Verify active attempt pod identity.
 	// When pod UIDs are present on both sides, match strictly on pod UIDs to prevent
 	// pod name reuse across retries from accepting stale callbacks.
-	if len(oldUIDs) > 0 && len(newUIDs) > 0 {
+	switch {
+	case len(oldUIDs) > 0 && len(newUIDs) > 0:
 		if !slicesOverlap(newUIDs, oldUIDs) {
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: incoming pods %v do not match active pods %v", newUIDs, oldUIDs),
 				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
 			)
 		}
-	} else if len(oldUIDs) > 0 && len(newUIDs) == 0 {
+	case len(oldUIDs) > 0 && len(newUIDs) == 0:
 		// When the active attempt has registered pod UIDs, incoming callbacks cannot be verified by UID.
 		// On retried tasks (where stale callbacks from prior attempts could reuse pod names or omit pod identity),
 		// reject unfenced terminal updates because unverified callers could overwrite the active retry attempt's state.
@@ -1274,7 +1283,7 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
 			)
 		}
-	} else if len(oldNames) > 0 && len(newNames) > 0 {
+	case len(oldNames) > 0 && len(newNames) > 0:
 		if !slicesOverlap(newNames, oldNames) {
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: incoming pod names %v do not match active pod names %v", newNames, oldNames),
