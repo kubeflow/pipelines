@@ -67,6 +67,15 @@ export function isDebugPaused(task: V2PipelineTask | undefined): boolean {
  * endpoint would require. The launcher's own polling loop (in the running
  * pod) discovers this flag on its own next poll and continues by itself;
  * this call never reaches into the pod directly.
+ *
+ * UpdateTask replaces status_metadata wholesale, so this does the same
+ * read-merge-write the launcher does - the page's cached task snapshot can
+ * be seconds stale, and writing it back blindly could resurrect an older
+ * barrier and grant a resume meant for a previous pause. The task is
+ * refetched first, the write is refused if the barrier has changed (the
+ * poll loop and banner refetch will pick up the new state), and the resume
+ * flag is merged into the fresh custom_properties so keys written since
+ * the page loaded are not lost.
  */
 export async function requestDebugPauseResume(
   runId: string,
@@ -75,12 +84,26 @@ export async function requestDebugPauseResume(
   if (!task.task_id) {
     throw new Error('Cannot request resume for a task with no task_id.');
   }
-  const existingProperties = (task.status_metadata?.custom_properties as CustomProperties) || {};
+  const expectedBarrier = getDebugPauseBarrier(task);
+  if (!expectedBarrier) {
+    throw new Error('This task is not paused.');
+  }
+  const freshTask = await Apis.runServiceApiV2.task_1(runId, task.task_id);
+  const currentBarrier = getDebugPauseBarrier(freshTask);
+  if (currentBarrier !== expectedBarrier) {
+    throw new Error(
+      currentBarrier
+        ? `This task moved from the "${expectedBarrier}" barrier to "${currentBarrier}" - refresh and resume again.`
+        : 'This task is no longer paused - it may have already been resumed or finished.',
+    );
+  }
+  const existingProperties =
+    (freshTask.status_metadata?.custom_properties as CustomProperties) || {};
   return Apis.runServiceApiV2.task_2(runId, task.task_id, {
     task_id: task.task_id,
     run_id: runId,
     status_metadata: {
-      ...task.status_metadata,
+      ...freshTask.status_metadata,
       custom_properties: {
         ...existingProperties,
         [CUSTOM_PROP_DEBUG_PAUSE_RESUME_REQUESTED]: 'true',
