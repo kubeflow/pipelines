@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface V2beta1PipelineVersionReference {
   /**
-   * Input. Required. Unique ID of the parent pipeline.
+   * Input. Unique ID of the parent pipeline. Required unless pipeline_name is set.
    * @type {string}
    * @memberof V2beta1PipelineVersionReference
    */
@@ -31,6 +31,20 @@ export interface V2beta1PipelineVersionReference {
    * @memberof V2beta1PipelineVersionReference
    */
   pipeline_version_id?: string;
+  /**
+   * Input. Optional. Name of the parent pipeline in the run's namespace, used
+   * instead of pipeline_id. Not returned in responses.
+   * @type {string}
+   * @memberof V2beta1PipelineVersionReference
+   */
+  pipeline_name?: string;
+  /**
+   * Input. Optional. Name of a version of the pipeline named by pipeline_name,
+   * used instead of pipeline_version_id. Not returned in responses.
+   * @type {string}
+   * @memberof V2beta1PipelineVersionReference
+   */
+  pipeline_version_name?: string;
 }
 
 /**
@@ -59,6 +73,9 @@ export function V2beta1PipelineVersionReferenceFromJSONTyped(
     pipeline_id: json['pipeline_id'] == null ? undefined : json['pipeline_id'],
     pipeline_version_id:
       json['pipeline_version_id'] == null ? undefined : json['pipeline_version_id'],
+    pipeline_name: json['pipeline_name'] == null ? undefined : json['pipeline_name'],
+    pipeline_version_name:
+      json['pipeline_version_name'] == null ? undefined : json['pipeline_version_name'],
   };
 }
 
@@ -77,5 +94,7 @@ export function V2beta1PipelineVersionReferenceToJSONTyped(
   return {
     pipeline_id: value['pipeline_id'],
     pipeline_version_id: value['pipeline_version_id'],
+    pipeline_name: value['pipeline_name'],
+    pipeline_version_name: value['pipeline_version_name'],
   };
 }
