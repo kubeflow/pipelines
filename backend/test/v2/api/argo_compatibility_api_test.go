@@ -176,6 +176,59 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		Expect(runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateRUNNING)).To(BeTrue())
 	})
 
+	It("retries a failed run whose node status the controller stored compressed", func() {
+		pipelineFile := filepath.Join(pipelineFilesRootDir, "argo_compatibility", "large_status_retry.yaml")
+		createdExperiment := createExperiment(experimentName)
+		createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
+		createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
+		createdRun := createPipelineRun(
+			&createdPipeline.PipelineID,
+			&createdPipelineVersion.PipelineVersionID,
+			&createdExperiment.ExperimentID,
+			map[string]interface{}{"payload": strings.Repeat("x", 30*1024)},
+		)
+		diagnosticRunID = createdRun.RunID
+
+		retryTimeout := time.Duration(2 * argoLifecycleTimeout / time.Second)
+		testutil.WaitForRunToBeInState(
+			runClient,
+			&createdRun.RunID,
+			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
+			&retryTimeout,
+		)
+
+		// The test only covers the bug if the workflow is over the controller's
+		// size limit, so check that its node status was stored compressed.
+		restConfig, err := commonutil.GetKubernetesConfig()
+		Expect(err).NotTo(HaveOccurred())
+		argoClient, err := argoclient.NewForConfig(restConfig)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func(g Gomega) {
+			workflows, err := argoClient.ArgoprojV1alpha1().Workflows(testutil.GetNamespace()).List(context.Background(), metav1.ListOptions{
+				LabelSelector: fmt.Sprintf("%s=%s", commonutil.LabelKeyWorkflowRunId, createdRun.RunID),
+			})
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(workflows.Items).To(HaveLen(1))
+			g.Expect(workflows.Items[0].Status.CompressedNodes).NotTo(BeEmpty())
+		}, "30s", "1s").Should(Succeed())
+
+		failedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
+		stateHistoryLengthBeforeRetry := len(failedRun.StateHistory)
+
+		err = runClient.Retry(&runparams.RunServiceRetryRunParams{RunID: createdRun.RunID})
+		Expect(err).NotTo(HaveOccurred())
+
+		testutil.WaitForRunToBeInState(
+			runClient,
+			&createdRun.RunID,
+			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
+			&retryTimeout,
+		)
+		retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
+		Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
+		Expect(runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateRUNNING)).To(BeTrue())
+	})
+
 	It("writes task artifacts and serves archived logs after pod deletion", func() {
 		pipelineFile := filepath.Join(pipelineFilesRootDir, "argo_compatibility", "fast_artifact.yaml")
 		createdExperiment := createExperiment(experimentName)

@@ -1073,6 +1073,10 @@ func (w *Workflow) Decompress() error {
 	return packer.DecompressWorkflow(ArgoContext(), w.Workflow)
 }
 
+func (w *Workflow) Compress() error {
+	return packer.CompressWorkflowIfNeeded(ArgoContext(), w.Workflow)
+}
+
 func ArgoContext() context.Context {
 	return argoContext
 }

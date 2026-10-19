@@ -1,0 +1,514 @@
+# PIPELINE DEFINITION
+# Name: argo-compatibility-large-status-retry
+# Inputs:
+#    payload: str
+components:
+  comp-carry:
+    executorLabel: exec-carry
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-10:
+    executorLabel: exec-carry-10
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-11:
+    executorLabel: exec-carry-11
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-12:
+    executorLabel: exec-carry-12
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-13:
+    executorLabel: exec-carry-13
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-14:
+    executorLabel: exec-carry-14
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-15:
+    executorLabel: exec-carry-15
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-16:
+    executorLabel: exec-carry-16
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-17:
+    executorLabel: exec-carry-17
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-18:
+    executorLabel: exec-carry-18
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-19:
+    executorLabel: exec-carry-19
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-2:
+    executorLabel: exec-carry-2
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-20:
+    executorLabel: exec-carry-20
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-3:
+    executorLabel: exec-carry-3
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-4:
+    executorLabel: exec-carry-4
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-5:
+    executorLabel: exec-carry-5
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-6:
+    executorLabel: exec-carry-6
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-7:
+    executorLabel: exec-carry-7
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-8:
+    executorLabel: exec-carry-8
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-carry-9:
+    executorLabel: exec-carry-9
+    inputDefinitions:
+      parameters:
+        payload:
+          parameterType: STRING
+  comp-fail:
+    executorLabel: exec-fail
+deploymentSpec:
+  executors:
+    exec-carry:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-10:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-11:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-12:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-13:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-14:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-15:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-16:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-17:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-18:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-19:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-2:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-20:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-3:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-4:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-5:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-6:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-7:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-8:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-carry-9:
+      container:
+        command:
+        - sh
+        - -c
+        - 'true'
+        image: alpine:3.23
+    exec-fail:
+      container:
+        command:
+        - sh
+        - -c
+        - exit 1
+        image: alpine:3.23
+pipelineInfo:
+  name: argo-compatibility-large-status-retry
+root:
+  dag:
+    tasks:
+      carry:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry
+      carry-10:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-10
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-10
+      carry-11:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-11
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-11
+      carry-12:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-12
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-12
+      carry-13:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-13
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-13
+      carry-14:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-14
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-14
+      carry-15:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-15
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-15
+      carry-16:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-16
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-16
+      carry-17:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-17
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-17
+      carry-18:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-18
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-18
+      carry-19:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-19
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-19
+      carry-2:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-2
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-2
+      carry-20:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-20
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-20
+      carry-3:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-3
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-3
+      carry-4:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-4
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-4
+      carry-5:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-5
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-5
+      carry-6:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-6
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-6
+      carry-7:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-7
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-7
+      carry-8:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-8
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-8
+      carry-9:
+        cachingOptions: {}
+        componentRef:
+          name: comp-carry-9
+        inputs:
+          parameters:
+            payload:
+              componentInputParameter: payload
+        taskInfo:
+          name: carry-9
+      fail:
+        cachingOptions: {}
+        componentRef:
+          name: comp-fail
+        dependentTasks:
+        - carry
+        - carry-10
+        - carry-11
+        - carry-12
+        - carry-13
+        - carry-14
+        - carry-15
+        - carry-16
+        - carry-17
+        - carry-18
+        - carry-19
+        - carry-2
+        - carry-20
+        - carry-3
+        - carry-4
+        - carry-5
+        - carry-6
+        - carry-7
+        - carry-8
+        - carry-9
+        taskInfo:
+          name: fail
+  inputDefinitions:
+    parameters:
+      payload:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0

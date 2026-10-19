@@ -33,6 +33,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/util/file"
+	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -710,6 +711,42 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
+}
+
+// initWithOneTimeFailedRunLargeNodes reports a failed run whose succeeded
+// nodes repeat a large input parameter, the shape described in #13738: over
+// the workflow size limit when decompressed, small once compressed.
+func initWithOneTimeFailedRunLargeNodes(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run, *util.Workflow) {
+	store, manager, exp := initWithExperiment(t)
+	ctx := context.Background()
+	runDetail, err := manager.CreateRun(ctx, &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+		ExperimentId: exp.UUID,
+	})
+	require.NoError(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	podSpecPatch := v1alpha1.AnyStringPtr(strings.Repeat("a", 300*1024))
+	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"failed": {ID: "failed", Name: "pod-failed", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	for i := 0; i < 4; i++ {
+		id := fmt.Sprintf("succeeded-%d", i)
+		updatedWorkflow.Status.Nodes[id] = v1alpha1.NodeStatus{
+			ID: id, Name: "pod-" + id, Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded,
+			Inputs: &v1alpha1.Inputs{Parameters: []v1alpha1.Parameter{{Name: "pod-spec-patch", Value: podSpecPatch}}},
+		}
+	}
+	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
+	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	require.NoError(t, err)
+	return store, manager, runDetail, updatedWorkflow
 }
 
 type retryWorkflowExecClient struct {
@@ -3277,6 +3314,44 @@ func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Cannot retry workflow with offloaded node status")
+}
+
+func TestRetryRun_CompressesLargeNodeStatus(t *testing.T) {
+	store, manager, runDetail, workflow := initWithOneTimeFailedRunLargeNodes(t)
+	defer store.Close()
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+
+	live, err := store.ExecClient().Execution(workflow.ExecutionNamespace()).Get(context.Background(), workflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+	retried := live.(*util.Workflow)
+	assert.Empty(t, retried.Status.Nodes)
+	assert.NotEmpty(t, retried.Status.CompressedNodes)
+	assert.Less(t, len(retried.ToStringForStore()), 1024*1024)
+	require.NoError(t, retried.Decompress())
+	assert.Len(t, retried.Status.Nodes, 4, "succeeded nodes are carried into the retry")
+
+	actualRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, actualRun.State)
+}
+
+func TestRetryRun_TooLargeWhenCompressedLeavesRunUnchanged(t *testing.T) {
+	store, manager, runDetail, workflow := initWithOneTimeFailedRunLargeNodes(t)
+	defer store.Close()
+	defer packer.SetMaxWorkflowSize(1000)()
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	require.Error(t, err)
+	assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "too large")
+
+	actualRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, actualRun.State)
+	live, err := store.ExecClient().Execution(workflow.ExecutionNamespace()).Get(context.Background(), workflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, v1alpha1.WorkflowFailed, live.(*util.Workflow).Status.Phase)
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
