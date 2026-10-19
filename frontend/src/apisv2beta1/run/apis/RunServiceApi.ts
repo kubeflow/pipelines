@@ -57,6 +57,7 @@ export interface CachedTaskRequest {
 export interface CreateRunRequest {
   run: V2beta1Run;
   experiment_id?: string;
+  namespace?: string;
 }
 
 export interface DeleteRunRequest {
@@ -263,6 +264,10 @@ export class RunServiceApi extends runtime.BaseAPI {
       queryParameters['experiment_id'] = requestParameters['experiment_id'];
     }
 
+    if (requestParameters['namespace'] != null) {
+      queryParameters['namespace'] = requestParameters['namespace'];
+    }
+
     const headerParameters: runtime.HTTPHeaders = {};
 
     headerParameters['Content-Type'] = 'application/json';
@@ -293,10 +298,11 @@ export class RunServiceApi extends runtime.BaseAPI {
   async createRun(
     run: V2beta1Run,
     experiment_id?: string,
+    namespace?: string,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1Run> {
     const response = await this.createRunRaw(
-      { run: run, experiment_id: experiment_id },
+      { run: run, experiment_id: experiment_id, namespace: namespace },
       initOverrides,
     );
     return await response.value();

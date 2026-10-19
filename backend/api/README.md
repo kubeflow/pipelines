@@ -69,7 +69,11 @@ Alternatively, you can run the script directly if you have Java and Python3 inst
 ./build_kfp_server_api_python_package.sh
 ```
 
-Python client will be placed into `./${API_VERSION}/python_http_client`.
+For `API_VERSION=v2beta1`, the client is placed in
+`sdk/python/kfp/server_api` and ships only with `kfp`; generated REST documentation
+remains in `./v2beta1/python_http_client`. The v1beta1 client remains a standalone
+backend generation artifact at `./v1beta1/python_http_client`. Neither schema nor
+Go output locations change.
 
 ## Updating of API reference documentation
 

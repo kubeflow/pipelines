@@ -35,7 +35,7 @@ class TokenCredentialsBase(abc.ABC):
                 The configuration object that the client uses.
 
                 The Configuration object of the kubernetes client's is the same
-                with kfp_server_api.configuration.Configuration.
+                with kfp.server_api.configuration.Configuration.
         """
         raise NotImplementedError()
 

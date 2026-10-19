@@ -124,7 +124,7 @@ class PipelineTask:
     """
     _register_task_handler = _register_task_handler
 
-    # Fallback behavior for compiling a component. This should be overriden by
+    # Fallback behavior for compiling a component. This should be overridden by
     # pipeline `register_task_and_generate_id` if compiling a pipeline (more
     # than one component).
 
@@ -136,7 +136,7 @@ class PipelineTask:
         execution_caching_default: bool = True,
         execution_cache_key: Optional[str] = None,
     ) -> None:
-        """Initilizes a PipelineTask instance."""
+        """Initializes a PipelineTask instance."""
         # import within __init__ to avoid circular import
         from kfp.dsl.tasks_group import TasksGroup
         self.state = TaskState.FUTURE
@@ -518,7 +518,7 @@ class PipelineTask:
         type is also set via .add_accelerator_type().
 
         Args:
-            gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
+            gpu: The maximum GPU requests allowed. This string should be a positive integer number of GPUs.
 
         Returns:
             Self return to allow chained setting calls.
@@ -623,7 +623,7 @@ class PipelineTask:
         Args:
             num_retries : Number of times to retry on failure.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
-            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
+            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60s"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
             backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
             policy: Controls which failure types trigger a retry. Only supported
                 when using Argo Workflows as the pipeline execution engine. One of

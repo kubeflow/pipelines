@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
@@ -53,13 +52,18 @@ import {
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
-import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
+
+const SYSTEM_LOGS_UNAVAILABLE: ReadonlyMap<string, string> = new Map([
+  [LOGS_BANNER_MESSAGE, 'System logs are not available yet.'],
+]);
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -79,7 +83,6 @@ const NODE_STATE_UNAVAILABLE = (
 
 interface RuntimeNodeDetailsV2Props {
   layers: string[];
-  onLayerChange: (layers: string[]) => void;
   pipelineJobString?: string;
   runId?: string;
   element?: PipelineFlowElement | null;
@@ -90,7 +93,6 @@ interface RuntimeNodeDetailsV2Props {
 
 export function RuntimeNodeDetailsV2({
   layers,
-  onLayerChange,
   pipelineJobString,
   runId,
   element,
@@ -126,13 +128,7 @@ export function RuntimeNodeDetailsV2({
   }
   if (element.type === NodeTypeNames.SUB_DAG) {
     return (
-      <SubDAGNodeDetail
-        element={element}
-        task={elementRuntimeInfo?.task}
-        layers={layers}
-        onLayerChange={onLayerChange}
-        namespace={namespace}
-      />
+      <SubDAGNodeDetail element={element} task={elementRuntimeInfo?.task} namespace={namespace} />
     );
   }
   return NODE_INFO_UNKNOWN;
@@ -212,17 +208,37 @@ function TaskNodeDetail({
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
+  const driverLogUri = getDriverLogUri(task);
+  const { data: driverLogsInfo, refetch: refetchDriverLogs } = useQuery({
+    queryKey: queryKeys.driverLogs(
+      task?.task_id,
+      task?.state,
+      namespace,
+      driverLogUri,
+      sourceFinished,
+    ),
+    queryFn: () => {
+      if (!driverLogUri) {
+        throw new Error('No driver log URI is found.');
+      }
+      return getDriverLogsInfo(driverLogUri, namespace);
+    },
+    enabled: !!task && !!driverLogUri && selectedTab === 3,
+    refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
+  });
+
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage =
     logsInfo?.get(LOGS_BANNER_MESSAGE) ||
     (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
+  const systemLogsInfo = driverLogUri ? driverLogsInfo : SYSTEM_LOGS_UNAVAILABLE;
 
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'System Logs']}
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
       />
@@ -245,20 +261,21 @@ function TaskNodeDetail({
           </div>
         )}
         {selectedTab === 2 && (
-          <div className={commonCss.page}>
-            {logsBannerMessage && (
-              <Banner
-                message={logsBannerMessage}
-                additionalInfo={logsBannerAdditionalInfo}
-                mode={logsDetails ? 'info' : 'error'}
-              />
-            )}
-            {logsDetails && (
-              <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
-                <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
-              </div>
-            )}
-          </div>
+          <LogsTabPanel
+            details={logsDetails || undefined}
+            bannerMessage={logsBannerMessage}
+            bannerAdditionalInfo={logsBannerAdditionalInfo}
+            bannerMode={logsDetails ? 'info' : 'error'}
+          />
+        )}
+        {selectedTab === 3 && (
+          <LogsTabPanel
+            details={systemLogsInfo?.get(LOGS_DETAILS)}
+            bannerMessage={systemLogsInfo?.get(LOGS_BANNER_MESSAGE)}
+            bannerAdditionalInfo={systemLogsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO)}
+            bannerMode={driverLogUri ? 'error' : 'info'}
+            onRefresh={driverLogUri ? () => void refetchDriverLogs() : undefined}
+          />
         )}
       </div>
     </div>
@@ -437,6 +454,61 @@ function TaskVolumeMountsDetails({
   return <DetailsTable title='Volume Mounts' fields={fields} />;
 }
 
+interface LogsTabPanelProps {
+  details?: string;
+  bannerMessage?: string;
+  bannerAdditionalInfo?: string;
+  bannerMode: 'info' | 'error';
+  onRefresh?: () => void;
+}
+
+function LogsTabPanel({
+  details,
+  bannerMessage,
+  bannerAdditionalInfo,
+  bannerMode,
+  onRefresh,
+}: LogsTabPanelProps) {
+  return (
+    <div className={commonCss.page}>
+      {bannerMessage && (
+        <Banner
+          message={bannerMessage}
+          additionalInfo={bannerAdditionalInfo}
+          mode={bannerMode}
+          refresh={onRefresh}
+        />
+      )}
+      {details !== undefined && (
+        <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
+          <LogViewer logLines={details.split(/[\r\n]+/)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Location of the driver (system) log artifact recorded by the centralized driver, if any. */
+export function getDriverLogUri(task?: V2beta1PipelineTask): string | undefined {
+  const driverLogUri = task?.status_metadata?.custom_properties?.driver_logs_uri;
+  return typeof driverLogUri === 'string' && driverLogUri ? driverLogUri : undefined;
+}
+
+// Uses the same keys as getLogsInfo so both log tabs render through LogsTabPanel.
+export async function getDriverLogsInfo(
+  driverLogUri: string,
+  namespace?: string,
+): Promise<Map<string, string>> {
+  const logsInfo = new Map<string, string>();
+  try {
+    logsInfo.set(LOGS_DETAILS, await readArtifactFile({ uri: driverLogUri }, namespace));
+  } catch (error) {
+    logsInfo.set(LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.');
+    logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, `Error response: ${await errorToMessage(error)}`);
+  }
+  return logsInfo;
+}
+
 export async function getLogsInfo(
   task: V2beta1PipelineTask,
   runId?: string,
@@ -606,27 +678,13 @@ function ArtifactInfo({
 interface SubDAGNodeDetailProps {
   element: PipelineFlowElement;
   task?: V2beta1PipelineTask;
-  layers: string[];
-  onLayerChange: (layers: string[]) => void;
   namespace?: string;
 }
 
-function SubDAGNodeDetail({
-  element,
-  task,
-  layers,
-  onLayerChange,
-  namespace,
-}: SubDAGNodeDetailProps) {
+function SubDAGNodeDetail({ element, task, namespace }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
-  const taskKey = getTaskKeyFromNodeKey(element.id);
   return (
     <div className={commonCss.page}>
-      <div className={padding(20, 'blr')}>
-        <Button variant='contained' onClick={() => onLayerChange([...layers, taskKey])}>
-          Open Sub-DAG
-        </Button>
-      </div>
       <MD2Tabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}

@@ -91,5 +91,7 @@ func AllModels() []any {
 		&ArtifactTask{},
 		&ResourceReference{},
 		&MigrationStatus{},
+		&TransferIdentity{},
+		&TransferReceipt{},
 	}
 }

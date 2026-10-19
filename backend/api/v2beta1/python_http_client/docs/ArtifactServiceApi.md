@@ -1,4 +1,4 @@
-# kfp_server_api.ArtifactServiceApi
+# kfp.server_api.ArtifactServiceApi
 
 All URIs are relative to *http://localhost*
 
@@ -24,12 +24,12 @@ Creates multiple artifact-task relationships in bulk.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -39,7 +39,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -49,10 +49,10 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
-    body = kfp_server_api.V2beta1CreateArtifactTasksBulkRequest() # V2beta1CreateArtifactTasksBulkRequest | 
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
+    body = kfp.server_api.V2beta1CreateArtifactTasksBulkRequest() # V2beta1CreateArtifactTasksBulkRequest | 
 
     try:
         # Creates multiple artifact-task relationships in bulk.
@@ -100,12 +100,12 @@ Creates multiple artifacts in bulk.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -115,7 +115,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -125,10 +125,10 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
-    body = kfp_server_api.V2beta1CreateArtifactsBulkRequest() # V2beta1CreateArtifactsBulkRequest | 
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
+    body = kfp.server_api.V2beta1CreateArtifactsBulkRequest() # V2beta1CreateArtifactsBulkRequest | 
 
     try:
         # Creates multiple artifacts in bulk.
@@ -176,12 +176,12 @@ Creates a new artifact.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -191,7 +191,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -201,10 +201,10 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
-    body = kfp_server_api.V2beta1CreateArtifactRequest() # V2beta1CreateArtifactRequest | 
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
+    body = kfp.server_api.V2beta1CreateArtifactRequest() # V2beta1CreateArtifactRequest | 
 
     try:
         # Creates a new artifact.
@@ -252,12 +252,12 @@ Creates an artifact-task relationship.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -267,7 +267,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -277,10 +277,10 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
-    body = kfp_server_api.V2beta1CreateArtifactTaskRequest() # V2beta1CreateArtifactTaskRequest | 
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
+    body = kfp.server_api.V2beta1CreateArtifactTaskRequest() # V2beta1CreateArtifactTaskRequest | 
 
     try:
         # Creates an artifact-task relationship.
@@ -328,12 +328,12 @@ Finds a specific Artifact by ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -343,7 +343,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -353,9 +353,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
     artifact_id = 'artifact_id_example' # str | Required. The ID of the artifact to be retrieved.
 
     try:
@@ -404,12 +404,12 @@ Lists artifact-task relationships.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -419,7 +419,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -429,9 +429,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
     task_ids = ['task_ids_example'] # list[str] | At least one of task_ids, run_ids, or artifact_ids is required. Optional, filter artifact task by a set of task_ids. (optional)
 run_ids = ['run_ids_example'] # list[str] | Optional, filter artifact task by a set of run_ids. (optional)
 artifact_ids = ['artifact_ids_example'] # list[str] | Optional, filter artifact task by a set of artifact_ids. (optional)
@@ -494,12 +494,12 @@ Finds all artifacts within the specified namespace.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -509,7 +509,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -519,9 +519,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
+    api_instance = kfp.server_api.ArtifactServiceApi(api_client)
     namespace = 'namespace_example' # str | Optional input. Namespace for the artifacts. (optional)
 page_token = 'page_token_example' # str | A page token to request the results page. (optional)
 page_size = 56 # int | The number of artifacts to be listed per page. If there are more artifacts than this number, the response message will contain a valid value in the nextPageToken field. (optional)

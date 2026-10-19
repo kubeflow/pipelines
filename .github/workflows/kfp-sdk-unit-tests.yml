@@ -9,6 +9,10 @@ on:
       - 'uv.lock'
       - 'api/**'
       - 'sdk/**'
+      - 'kubernetes_platform/**'
+      - 'backend/api/**'
+      - '.github/actions/protobuf/**'
+      - '.github/resources/scripts/check_python_distribution.py'
       - 'test/presubmit-tests-sdk-unit.sh'
       - '.github/workflows/kfp-sdk-unit-tests.yml'
       - '.github/actions/setup-python/**'
@@ -49,6 +53,14 @@ jobs:
       run: |
         ./test/presubmit-tests-sdk-unit.sh
         echo "JUNIT_XML=$JUNIT_XML" >> "$GITHUB_OUTPUT"
+
+    - name: Run generated API client tests
+      run: uv run pytest backend/api/v2beta1/python_http_client_smoke
+
+    - name: Check unified wheel and standalone sdist
+      run: |
+        uv build --package kfp --out-dir "$RUNNER_TEMP/kfp-dist"
+        uv run python .github/resources/scripts/check_python_distribution.py "$RUNNER_TEMP/kfp-dist"
 
     - name: Publish Junit Summary
       id: summary

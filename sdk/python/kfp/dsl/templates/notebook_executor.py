@@ -110,7 +110,6 @@ def kfp_run_notebook(**kwargs):
     import subprocess
     import sys
 
-    from nbclient import NotebookClient
     import nbformat
 
     # Ensure a usable 'python3' kernel is present; install kernelspec if missing

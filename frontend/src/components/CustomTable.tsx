@@ -189,6 +189,7 @@ interface CustomTableProps {
   disableSorting?: boolean;
   emptyMessage?: string;
   filterLabel?: string;
+  filterActions?: React.ReactNode;
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
@@ -305,13 +306,20 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       <div className={commonCss.pageOverflowHidden}>
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
-          <div>
+          <div
+            style={
+              this.props.filterActions
+                ? { display: 'flex', alignItems: 'center', gap: 8 }
+                : undefined
+            }
+          >
             <Input
               id='tableFilterBox'
               label={this.props.filterLabel || 'Filter'}
               height={48}
               maxWidth={'100%'}
               className={css.filterBox}
+              sx={this.props.filterActions ? { flex: 1, minWidth: 0 } : undefined}
               InputLabelProps={{ classes: { root: css.noMargin } }}
               onChange={this.handleFilterChange}
               value={filterString}
@@ -328,6 +336,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 ),
               }}
             />
+            {this.props.filterActions && (
+              <div style={{ flexShrink: 0 }}>{this.props.filterActions}</div>
+            )}
           </div>
         )}
         {/* Header */}
@@ -469,6 +480,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
             <IconButton
               data-testid='prev-page-btn'
+              aria-label='Previous page'
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
               size='large'
@@ -477,6 +489,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             </IconButton>
             <IconButton
               data-testid='next-page-btn'
+              aria-label='Next page'
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
               size='large'

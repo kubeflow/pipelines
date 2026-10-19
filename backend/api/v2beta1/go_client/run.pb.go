@@ -637,8 +637,13 @@ type Run struct {
 	PipelineReference *PipelineVersionReference `protobuf:"bytes,21,opt,name=pipeline_reference,json=pipelineReference,proto3" json:"pipeline_reference,omitempty"`
 	TaskCount         int32                     `protobuf:"varint,22,opt,name=task_count,json=taskCount,proto3" json:"task_count,omitempty"`
 	Tasks             []*PipelineTask           `protobuf:"bytes,23,rep,name=tasks,proto3" json:"tasks,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Optional input field. Namespace this run belongs to. Derived from the
+	// parent experiment when experiment_id is set. In multi-user mode with
+	// experiment_id omitted, this selects the namespace whose default
+	// experiment the run is placed in.
+	Namespace     string `protobuf:"bytes,24,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Run) Reset() {
@@ -845,6 +850,13 @@ func (x *Run) GetTasks() []*PipelineTask {
 		return x.Tasks
 	}
 	return nil
+}
+
+func (x *Run) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
 }
 
 type isRun_PipelineSource interface {
@@ -1205,9 +1217,12 @@ type PipelineTask struct {
 	// always the last entry in a scope_path.
 	// Example of a scope_path:
 	// "root.primary-pipeline.secondary-pipeline.task"
-	ScopePath     string `protobuf:"bytes,18,opt,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ScopePath string `protobuf:"bytes,18,opt,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
+	// Latest pod lifecycle diagnostic from the execution engine.
+	// Read-only via REST; the persistence agent clears this field automatically on recovery.
+	LifecycleMessage *string `protobuf:"bytes,19,opt,name=lifecycle_message,json=lifecycleMessage,proto3,oneof" json:"lifecycle_message,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *PipelineTask) Reset() {
@@ -1366,6 +1381,13 @@ func (x *PipelineTask) GetScopePath() string {
 	return ""
 }
 
+func (x *PipelineTask) GetLifecycleMessage() string {
+	if x != nil && x.LifecycleMessage != nil {
+		return *x.LifecycleMessage
+	}
+	return ""
+}
+
 type CreateRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the parent experiment.
@@ -1373,7 +1395,9 @@ type CreateRunRequest struct {
 	// Deprecated: Marked as deprecated in backend/api/v2beta1/run.proto.
 	ExperimentId string `protobuf:"bytes,1,opt,name=experiment_id,json=experimentId,proto3" json:"experiment_id,omitempty"`
 	// Run to be created.
-	Run           *Run `protobuf:"bytes,2,opt,name=run,proto3" json:"run,omitempty"`
+	Run *Run `protobuf:"bytes,2,opt,name=run,proto3" json:"run,omitempty"`
+	// Optional input field. Namespace for the run. Ignored when run.namespace is set.
+	Namespace     string `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1421,6 +1445,13 @@ func (x *CreateRunRequest) GetRun() *Run {
 		return x.Run
 	}
 	return nil
+}
+
+func (x *CreateRunRequest) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
 }
 
 type GetRunRequest struct {
@@ -2991,7 +3022,7 @@ var File_backend_api_v2beta1_run_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\n" +
-	"\x1dbackend/api/v2beta1/run.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a(backend/api/v2beta1/runtime_config.proto\x1a\"backend/api/v2beta1/artifact.proto\"\xc9\x0e\n" +
+	"\x1dbackend/api/v2beta1/run.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a(backend/api/v2beta1/runtime_config.proto\x1a\"backend/api/v2beta1/artifact.proto\"\xe7\x0e\n" +
 	"\x03Run\x12#\n" +
 	"\rexperiment_id\x18\x01 \x01(\tR\fexperimentId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12!\n" +
@@ -3020,7 +3051,8 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x12pipeline_reference\x18\x15 \x01(\v2@.kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReferenceR\x11pipelineReference\x12\x1d\n" +
 	"\n" +
 	"task_count\x18\x16 \x01(\x05R\ttaskCount\x12J\n" +
-	"\x05tasks\x18\x17 \x03(\v24.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskR\x05tasks\x1aX\n" +
+	"\x05tasks\x18\x17 \x03(\v24.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskR\x05tasks\x12\x1c\n" +
+	"\tnamespace\x18\x18 \x01(\tR\tnamespace\x1aX\n" +
 	"\x11PluginsInputEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
 	"\x05value\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05value:\x028\x01\x1av\n" +
@@ -3060,7 +3092,7 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\n" +
 	"RunDetails\x12.\n" +
 	"\x13pipeline_context_id\x18\x01 \x01(\x03R\x11pipelineContextId\x125\n" +
-	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextIdJ\x04\b\x03\x10\x04R\ftask_details\"\x9d\x19\n" +
+	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextIdJ\x04\b\x03\x10\x04R\ftask_details\"\xe5\x19\n" +
 	"\fPipelineTask\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x17\n" +
@@ -3083,7 +3115,8 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x06inputs\x18\x10 \x01(\v2A.kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputsR\x06inputs\x12[\n" +
 	"\aoutputs\x18\x11 \x01(\v2A.kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputsR\aoutputs\x12\x1d\n" +
 	"\n" +
-	"scope_path\x18\x12 \x01(\tR\tscopePath\x1a\x85\x01\n" +
+	"scope_path\x18\x12 \x01(\tR\tscopePath\x120\n" +
+	"\x11lifecycle_message\x18\x13 \x01(\tH\x01R\x10lifecycleMessage\x88\x01\x01\x1a\x85\x01\n" +
 	"\aTaskPod\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\tR\x03uid\x12T\n" +
@@ -3151,10 +3184,12 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\fEXIT_HANDLER\x10\x06\x12\f\n" +
 	"\bIMPORTER\x10\a\x12\a\n" +
 	"\x03DAG\x10\bB\x11\n" +
-	"\x0f_parent_task_id\"z\n" +
+	"\x0f_parent_task_idB\x14\n" +
+	"\x12_lifecycle_message\"\x98\x01\n" +
 	"\x10CreateRunRequest\x12'\n" +
 	"\rexperiment_id\x18\x01 \x01(\tB\x02\x18\x01R\fexperimentId\x12=\n" +
-	"\x03run\x18\x02 \x01(\v2+.kubeflow.pipelines.backend.api.v2beta1.RunR\x03run\"\xd4\x01\n" +
+	"\x03run\x18\x02 \x01(\v2+.kubeflow.pipelines.backend.api.v2beta1.RunR\x03run\x12\x1c\n" +
+	"\tnamespace\x18\x03 \x01(\tR\tnamespace\"\xd4\x01\n" +
 	"\rGetRunRequest\x12'\n" +
 	"\rexperiment_id\x18\x01 \x01(\tB\x02\x18\x01R\fexperimentId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12W\n" +

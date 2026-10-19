@@ -40,6 +40,14 @@
   reference reads and deletion cleanup remain supported. See the
   [migration guide](../docs/user-guides/migration.md#existing-runs-and-recurring-runs).
 
+* Consolidate `kfp-pipeline-spec`, `kfp-server-api`, and `kfp-kubernetes` into
+  the `kfp` distribution. Before upgrading an existing environment, uninstall
+  those three distributions, then force-reinstall the new `kfp` release.
+  See the [migration instructions](python/README.md#migrating-from-the-split-packages).
+* The generated v2 REST client is now imported as `kfp.server_api` instead of
+  `kfp_server_api`. The `kfp.pipeline_spec` and `kfp.kubernetes` imports remain
+  unchanged, and `kfp[kubernetes]` remains a supported compatibility extra.
+
 ## Deprecations
 
 ## Bug fixes and other changes

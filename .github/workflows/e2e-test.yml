@@ -27,6 +27,7 @@ on:
       - '.github/actions/setup-python/**'
       - '.github/actions/protobuf/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
       - '.github/actions/install-fgo-fake/**'
       - '.github/actions/install-dra-driver/**'
       - '.github/actions/test-and-report/**'
@@ -85,7 +86,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.18", "v4.1.2" ]
+        argo_version: [ "v4.0.13", "v4.1.5" ]
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
@@ -94,7 +95,7 @@ jobs:
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "false"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.13"
             test_label: "E2ECritical"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"
@@ -110,14 +111,14 @@ jobs:
           # Schedule-only NVIDIA GPU lane (Kind + Fake GPU Operator fake backend).
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.13"
             proxy: "false"
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
           # DRA (Dynamic Resource Allocation) lane (Kind + dra-example-driver).
           - k8s_version: "v1.34.3"
             cache_enabled: "true"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.13"
             proxy: "false"
             test_label: "dra-check"
             pod_to_pod_tls_enabled: "false"
@@ -126,7 +127,7 @@ jobs:
           # TODO: expand when additional standalone/postgresql/* overlays exist.
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
-            argo_version: "v4.1.2"
+            argo_version: "v4.1.5"
             proxy: "false"
             pod_to_pod_tls_enabled: "false"
             db_type: "pgx"
@@ -170,9 +171,6 @@ jobs:
           retry 3 30 kfp component build "${BUILD_CONTEXT}" \
             --component-filepattern dra_passthrough_check.py \
             --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
-            --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
-            --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
-            --additional-package-path "${GITHUB_WORKSPACE}/backend/api/v2beta1/python_http_client" \
             --no-push-image
           kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
 
@@ -211,7 +209,7 @@ jobs:
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
       - name: Configure Input Variables
         shell: bash
@@ -267,6 +265,43 @@ jobs:
           report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
+
+  dag-scale-test:
+    name: DAG Scale Test - 120 nodes
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: "v1.36.1"
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        with:
+          cache_enabled: "false"
+          argo_version: "v4.1.5"
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+
+      - name: Run 120-node DAG scale test
+        uses: ./.github/actions/test-and-report
+        with:
+          cache_enabled: "false"
+          test_directory: ${{ env.E2E_TESTS_DIR }}
+          test_label: E2EScale
+          num_parallel_nodes: "1"
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: DAGScale120Nodes
 
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
@@ -389,7 +424,7 @@ jobs:
       matrix:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
-        argo_version: [ "v3.7.18" ]
+        argo_version: [ "v4.0.13" ]
         proxy: [ "false" ]
         test_label: [ "MLflow" ]
         pod_to_pod_tls_enabled: [ "false" ]
@@ -408,7 +443,7 @@ jobs:
           # PostgreSQL lane for KFP database — cache_enabled=true only.
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.13"
             proxy: "false"
             test_label: "MLflow"
             pod_to_pod_tls_enabled: "false"
@@ -450,12 +485,14 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b952a53c4b9066d0c1a8e369ec2b48ffcfb4d451
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@e0560763494dc93f858f479d7ef973c81cb5747a
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
-          mlflow_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow:odh-stable
-          mlflow_operator_image: quay.io/${{ github.repository_owner == 'red-hat-data-services' && 'rhoai' || 'opendatahub' }}/mlflow-operator:odh-stable
+          # ODH runtime 3.15.2 and matching operator; update both digests together.
+          # The operator rejects database migration when runtime versions differ.
+          mlflow_image: ${{ github.repository_owner == 'red-hat-data-services' && 'quay.io/rhoai/mlflow:odh-stable' || 'quay.io/opendatahub/mlflow@sha256:58b2649d85e20b7fb606f5a06e987d2114c1c698af6a4379745e3c428646d02f' }}
+          mlflow_operator_image: ${{ github.repository_owner == 'red-hat-data-services' && 'quay.io/rhoai/mlflow-operator:odh-stable' || 'quay.io/opendatahub/mlflow-operator@sha256:8b01358e2cb6c6caeaed19c5556db68717f8244cc267bf976fef2a5b5b4fc1e8' }}
           backend_store: ${{ matrix.backend_store }}
           artifact_storage: ${{ matrix.artifact_storage }}
           registry_store: ${{ matrix.registry_store }}

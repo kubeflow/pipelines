@@ -57,7 +57,7 @@ user_namespace = "jane-doe"
 
 # the KF_PIPELINES_SA_TOKEN_PATH environment variable is used when no `path` is set
 # the default KF_PIPELINES_SA_TOKEN_PATH is /var/run/secrets/kubeflow/pipelines/token
-credentials = kfp.auth.ServiceAccountTokenVolumeCredentials(path=None)
+credentials = kfp.client.ServiceAccountTokenVolumeCredentials(path=None)
 
 # create a client
 client = kfp.Client(host=f"http://ml-pipeline-ui.{kubeflow_namespace}", credentials=credentials)
@@ -87,24 +87,24 @@ print(client.list_runs(namespace=user_namespace))
 
 When calling the [Kubeflow Pipelines REST API](../reference/api/kubeflow-pipeline-api-spec.md), a namespace argument is required for experiment APIs.
 <br>
-Set `namespace` on experiments and runs. Runs also refer to their experiment by
-`experiment_id` and their uploaded pipeline version by `pipeline_version_reference`.
+Set `namespace` when creating experiments and listing runs. Runs refer to their
+parent experiment by `experiment_id` and their uploaded pipeline version by
+`pipeline_version_reference`.
 
 ```python
 import kfp
-from kfp_server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
+from kfp.server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
 
 user_namespace = "jane-doe"
-credentials = kfp.auth.ServiceAccountTokenVolumeCredentials(path=None)
+credentials = kfp.client.ServiceAccountTokenVolumeCredentials(path=None)
 client = kfp.Client(host="http://ml-pipeline-ui.kubeflow", credentials=credentials)
 
 experiment = client._experiment_api.experiment_service_create_experiment(
-    body=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
+    experiment=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
 )
 run = client._run_api.run_service_create_run(
-    body=V2beta1Run(
+    run=V2beta1Run(
         display_name="My run",
-        namespace=user_namespace,
         experiment_id=experiment.experiment_id,
         pipeline_version_reference=V2beta1PipelineVersionReference(
             pipeline_id="<YOUR_PIPELINE_ID>",

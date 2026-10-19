@@ -29,6 +29,8 @@ class ComponentMigrationTest(unittest.TestCase):
 
     def test_container_fixtures_compile_and_reload_ir(self):
         pipelines = {
+            'scale.dag_120':
+                'dag_120',
             'critical.producer_consumer_param':
                 'producer_consumer_param_pipeline',
             'critical.pipeline_with_env':
@@ -97,7 +99,8 @@ class ComponentMigrationTest(unittest.TestCase):
                 self.assertEqual(result.stdout, message + ' from node: A\n')
 
     def test_env_overrides_survive_container_conversion(self):
-        from test_data.sdk_compiled_pipelines.valid.critical import pipeline_with_env
+        from test_data.sdk_compiled_pipelines.valid.critical import \
+            pipeline_with_env
 
         @dsl.pipeline
         def defaults_pipeline():

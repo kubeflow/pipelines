@@ -28,34 +28,35 @@ PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
 UV_VERSION=0.10.3
 
+ifeq ($(USE_PREBUILT_IMAGE),true)
+GENERATOR_IMAGE=$(PREBUILT_REMOTE_IMAGE)
+else
+GENERATOR_IMAGE=$(IMAGE_TAG)
+endif
+
+.PHONY: generate-python
+generate-python:
+	$(MAKE) -C ../api python
+	$(MAKE) -C ../kubernetes_platform python
+	$(MAKE) -C ../backend/api API_VERSION=v2beta1 generate-kfp-server-api-package
+
 # Build Python package using either pre-built image (fast) or source build (accurate).
 # Use USE_PREBUILT_IMAGE=false to build from source for guaranteed accuracy.
 .PHONY: python
-python:
-ifeq ($(USE_PREBUILT_IMAGE),true)
+python: generate-python
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
-		$(PREBUILT_REMOTE_IMAGE) \
+		$(GENERATOR_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
 			pip install --user --break-system-packages uv==$(UV_VERSION) && \
 			~/.local/bin/uv build --package kfp --out-dir sdk/python/dist'
-else
-	$(MAKE) python-from-source
-endif
 
 # Build Python package by building api-generator image from source.
 .PHONY: python-from-source
-python-from-source: ensure-api-generator-image
-	docker run --interactive --rm \
-		--user $$(id -u):$$(id -g) \
-		-e HOME=/tmp \
-		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
-		$(IMAGE_TAG) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-			pip install --user --break-system-packages uv==$(UV_VERSION) && \
-			~/.local/bin/uv build --package kfp --out-dir sdk/python/dist'
+python-from-source:
+	$(MAKE) USE_PREBUILT_IMAGE=false python
 
 .PHONY: clean-python
 clean-python:

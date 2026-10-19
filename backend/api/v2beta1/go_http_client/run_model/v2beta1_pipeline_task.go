@@ -40,6 +40,10 @@ type V2beta1PipelineTask struct {
 	// inputs
 	Inputs *PipelineTaskInputOutputs `json:"inputs,omitempty"`
 
+	// Latest pod lifecycle diagnostic from the execution engine.
+	// Read-only via REST; the persistence agent clears this field automatically on recovery.
+	LifecycleMessage string `json:"lifecycle_message,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
 

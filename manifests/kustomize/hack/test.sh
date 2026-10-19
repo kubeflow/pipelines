@@ -31,6 +31,7 @@ kpt version
 kustomization_yamls=(
   "cluster-scoped-resources"
   "base/installs/generic"
+  "env/aws"
   "env/dev"
   "env/dev/postgresql"
   "env/gcp"
@@ -62,5 +63,6 @@ do
 done
 
 python3 "${DIR}/tensorboard_signing_key_test.py"
+python3 "${DIR}/driver_plugin_test.py"
 
 kpt pkg tree "${MANIFESTS_DIR}" >/dev/null

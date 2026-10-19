@@ -61,7 +61,7 @@ def artifact_repository(producer, object_store_host, cluster_domain, namespace):
     with patch.dict(
             producer.os.environ, controller_env, clear=True), patch.object(
                 producer,
-                "HTTPServer",
+                "ThreadingHTTPServer",
                 side_effect=lambda address, handler: SimpleNamespace(
                     RequestHandlerClass=handler),
             ):
@@ -79,7 +79,12 @@ def artifact_repository(producer, object_store_host, cluster_domain, namespace):
     attachments = {
         "Secret.v1": {
             f"{namespace}/mlpipeline-minio-artifact": {
-                "kind": "Secret"
+                "apiVersion": "v1",
+                "kind": "Secret",
+                "metadata": {
+                    "name": "mlpipeline-minio-artifact",
+                    "namespace": namespace,
+                },
             },
         },
         "ConfigMap.v1": {},

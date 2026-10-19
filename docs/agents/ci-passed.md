@@ -1,12 +1,32 @@
 # CI merge gate
 
-CI Check is the sole publisher of the `ci-passed` commit status. The label with
-the same name is informational. Tide remains the merge authority; human PRs
-still require review. Automatic Dependabot creation holds remain configured for every ecosystem;
-existing PR-specific holds remain separate maintainer decisions and are never
-removed by the publisher. Removing creation holds remains a separate change
-after the deployed merge policy has been verified. Required `ci-passed` protection is intended for
-`master` only: older release branches do not publish this commit status.
+CI Check is the publisher of the `ci-passed` commit status and the only writer
+of `success` or `pending`. A separate push-triggered workflow
+(`ci-passed-stale-revoke.yml`) is a second writer that revokes a stale `success`
+to `failure` the moment `master` advances, before the scheduled sweep runs; it
+narrows the stale-base window and does not close it (see the section below). The
+label with the same name is informational. Tide remains the merge authority;
+human PRs still require review. Automatic Dependabot creation holds have been
+removed; merging now relies on the required `ci-passed` status and the deployed
+Tide policy. Existing PR-specific holds remain separate maintainer decisions and
+are never removed by the publisher. Required `ci-passed` protection is intended
+for `master` only: older release branches do not publish this commit status.
+
+## Push-triggered stale revocation
+
+A push to `master` runs `ci-passed-stale-revoke.yml`, which flips a stale
+`ci-passed` success to `failure` as soon as the base advances instead of waiting
+up to 15 minutes for the scheduled sweep. It reuses the same freshness
+determination as recovery: a green is fresh only when its description still
+carries the stamp for the live base tip. This is mitigation, not a hard
+guarantee: the window between a base advance and the status write is narrowed
+but not closed, and merge-time freshness enforcement (a merge queue that checks
+its synthetic commit) is tracked separately. It resolves the live master tip and
+skips revocation when the tip has already moved past the triggering push, so an
+out-of-order job does not overwrite a green stamped for a newer base. It runs only
+trusted base-branch code and writes only the commit status (`contents: read`,
+`pull-requests: read`, `statuses: write`); the scheduled sweep still reconciles
+the informational label.
 
 ## Contract and enforcement
 
@@ -161,6 +181,41 @@ scheduled runs; manually rerunning CI Check remains the fallback. Do not rely
 solely on `check_run`: GitHub suppresses that trigger when the check suite's
 head SHA is associated with GitHub Actions. See the
 [GitHub event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+
+## Missing base merge record
+
+The freshness check establishes when the base revision became reachable on
+`master` by reading the merged-PR record for that commit. A commit merged
+through a pull request carries an authoritative `merged_at` timestamp. A direct
+push of a pre-existing commit has no merged PR, so its arrival cannot be
+established and the check fails closed to pending rather than passing stale
+evidence as fresh.
+
+The commit-to-PR association endpoint can omit a real merge. If it supplies no
+verified match, CI Check independently scans up to 500 recently updated closed
+PRs targeting the base branch (five pages of 100). Discovery only selects
+candidates whose merge SHA exactly equals the base SHA. Each candidate, including
+associated PRs, is reread through the individual PR endpoint and must have the
+same number, `merged: true`, the expected base repository and branch, the exact
+merge SHA, and a parseable string `merged_at`. Only that verified timestamp is
+used by the existing freshness check. A rerun of an execution created before
+that timestamp remains stale; commit dates, titles, and messages are never
+substituted for merge provenance.
+
+API failures remain pending with a retry diagnostic. Missing matches, including
+exhaustion of the bounded recent-PR window, remain pending and request maintainer
+investigation; malformed timestamps get a distinct diagnostic. Read the
+`ci-passed` status and CI Check logs to tell them apart. A missing association
+alone does not prove a direct push: inspect the authoritative merged PR record.
+Rerunning tests cannot establish missing provenance or expand the search window.
+
+Recovery for a missing record is a maintainer action. A maintainer should
+confirm whether the base revision landed through a pull request. If it did,
+investigate why the merge record is absent or malformed and correct it. If it
+landed through a direct push (for example a fast-forward integration), the
+maintainer decides the next step, such as merging a follow-up through a pull
+request to restore provenance. Do not weaken the freshness check to admit
+stale evidence.
 
 ## Validation and coordinated rollout
 

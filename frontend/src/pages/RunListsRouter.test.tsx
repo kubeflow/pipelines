@@ -72,7 +72,6 @@ describe('RunListsRouter', () => {
       disablePaging: false,
       disableSorting: true,
       disableSelection: false,
-      hideMetricMetadata: false,
       onError: consoleErrorSpy,
     };
     return runListsRouterProps;

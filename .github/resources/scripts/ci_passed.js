@@ -39,11 +39,36 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
-function successDescription(pr) {
-  // Bind green evidence to the exact checked-in workflow policy. Legacy
-  // statuses and statuses from another base must be reconsidered by recovery.
-  const stamp = require('node:crypto').createHash('sha256')
-    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+async function baseRevision(github, context, pr) {
+  // ONE validated base revision for policy loading, execution freshness,
+  // publication, and the post-publication check. GitHub freezes pr.base.sha at
+  // the PR's last sync, so any use of the frozen sha leaves a stale green
+  // untouched as the base advances. Key every use off the LIVE base branch tip
+  // instead, so an advance revokes the green and forces fresh CI against the
+  // new base. Release branches keep their frozen base.sha behavior.
+  let sha = pr.base.sha;
+  if (pr.base.ref === 'master') {
+    const {data} = await github.rest.git.getRef({
+      ...context.repo, ref: `heads/${pr.base.ref}`,
+    });
+    sha = data.object.sha;
+  }
+  return sha;
+}
+
+function basePolicyStamp(baseRef, baseSha) {
+  // Bind green evidence to the exact checked-in workflow policy. The base
+  // revision is resolved ONCE per cycle and threaded through every site, so
+  // this helper must never re-resolve the live tip (re-resolving can stamp a
+  // green with a base whose evidence was validated against another revision).
+  return require('node:crypto').createHash('sha256')
+    .update(JSON.stringify([baseRef, baseSha])).digest('hex');
+}
+
+function successDescription(pr, baseSha) {
+  // Legacy statuses and statuses from another base must be reconsidered by
+  // recovery. baseSha is the single validated revision resolved by the caller.
+  const stamp = basePolicyStamp(pr.base.ref, baseSha);
   return `Expected CI and all checks passed; base policy ${stamp}.`;
 }
 
@@ -57,11 +82,57 @@ async function recoveryCandidates({github, context}) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
-    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
+    if (status?.state === 'success' &&
+        status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
   return candidates;
+}
+
+async function revokeStaleGreens({github, context, tip}) {
+  // Push-triggered revocation narrows the stale-green merge window (#14762): the
+  // moment master advances, a ci-passed success stamped against any prior base
+  // revision is revoked instead of waiting for the next scheduled sweep.
+  // Freshness reuses the same determination as recovery: a green is fresh only
+  // when its description still carries the stamp for the live base tip. This
+  // writes only the commit status; the sweep reconciles the informational label
+  // with its broader permissions.
+  if (!/^[0-9a-f]{40}$/.test(tip || '')) {
+    throw new Error('Stale revocation requires a full base commit SHA');
+  }
+  // Only the most recent push may revoke. Push jobs can execute out of order:
+  // master may advance B then C, CI Check publish a success stamped for C, and
+  // a delayed B job would otherwise treat that valid C green as stale and
+  // overwrite it with failure. Resolve the LIVE master tip and bail out when it
+  // has already moved past this push's tip; the newer job (or the sweep) owns
+  // revocation for the advanced base.
+  const {data: ref} = await github.rest.git.getRef({
+    ...context.repo, ref: 'heads/master',
+  });
+  if (ref.object.sha !== tip) return 0;
+  const prs = await github.paginate(github.rest.pulls.list, {
+    ...context.repo, state: 'open', base: 'master', per_page: 100,
+  });
+  let revoked = 0;
+  for (const pr of prs) {
+    if (blocked(pr)) continue;
+    const status = await currentStatus(github, context, pr.head.sha);
+    // Revalidate AFTER reading the status: the combined-status lookup can
+    // paginate, and master may advance mid-read publishing a fresher success.
+    const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: 'heads/master'});
+    if (liveRef.object.sha !== tip) return revoked;
+    // Never revoke a head without a ci-passed success.
+    if (status?.state !== 'success') continue;
+    if (status.description === successDescription(pr, tip)) continue;
+    await github.rest.repos.createCommitStatus({
+      ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
+      description: 'Base advanced; re-test against new master.',
+      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    });
+    revoked++;
+  }
+  return revoked;
 }
 
 async function resolve(github, context, recovery) {
@@ -143,11 +214,17 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
+  const baseSha = await baseRevision(github, context, pr);
+  // Only the live master tip advances behind the publisher's back; release
+  // branches keep their frozen base.sha behavior (see baseRevision). The
+  // freshness check is scoped to the live base so release branches are
+  // unchanged.
+  const liveBase = pr.base.ref === 'master';
   const [inventory, cutoff] = await Promise.all([
-    loadBaseInventory({github, ...context.repo, pullRequest: pr, root}),
+    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, ...inventory, freshAfter: cutoff};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.
@@ -165,7 +242,7 @@ async function evidence(github, context, pr, root) {
       result = await verifyExpectedWorkflows({...args, registrationStartedAt: new Date(start).toISOString()});
     }
   }
-  return result;
+  return {...result, baseSha};
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
@@ -174,13 +251,18 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
     pr = await resolve(github, context, recovery);
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
-    if (sha) await github.rest.repos.createCommitStatus({
+    if (sha && context.payload.pull_request?.merged !== true) await github.rest.repos.createCommitStatus({
       ...context.repo, sha, context: 'ci-passed', state: 'failure',
       description: 'Cannot identify the PR for this head; inspect CI Check and retry.',
     });
     throw error;
   }
   if (!pr) return;
+  // A merged PR must keep its published status; never publish pending over it.
+  // Return before emitting the identity outputs so the always() finalize step
+  // is skipped (it bails when number/head are unset) and cannot republish a
+  // failure over the merged head.
+  if (pr.merged) return;
   // Set the identity before any further API operation so the always() step
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
@@ -201,7 +283,10 @@ async function finalize({github, context, core, number, head, before, pollPassed
   try {
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
+    // Preserve the status on merge; closure without merge still invalidates below.
+    if (pr.merged) return;
     let state = 'failure';
+    let validatedBaseSha;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
       'PR changed or is closed; complete current-head CI and retry.';
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
@@ -209,6 +294,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
         evidence(github, context, pr, root),
         verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
+      validatedBaseSha = workflows.baseSha;
       core.info(JSON.stringify({workflows, checks}));
       const results = [workflows, checks];
       state = results.some(result => result.state === 'failure') ? 'failure' :
@@ -226,11 +312,13 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? successDescription(pr) : reason);
+      state === 'success' ? successDescription(pr, validatedBaseSha) : reason);
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
       const after = await readPR(github, context, Number(number));
+      // A merge during publication preserves the success that authorized it.
+      if (after.merged) return;
       if (snapshot(after) !== before) {
         errorReason = 'PR changed during publication; rerun CI on the current head.';
         await publish(github, context, original, 'failure', errorReason);
@@ -248,9 +336,17 @@ async function finalize({github, context, core, number, head, before, pollPassed
       }
     }
   } catch (error) {
+    // A transient read failure must not flip a merged PR to failure. Re-read
+    // once: if the PR merged in the meantime, preserve its status and stop.
+    try {
+      const merged = await readPR(github, context, Number(number));
+      if (merged.merged) return;
+    } catch (retryError) {
+      // Still unreadable; fall through and fail closed.
+    }
     await publish(github, context, original, 'failure', errorReason);
     throw error;
   }
 }
 
-module.exports = {recoveryCandidates, snapshot, resolve, freshAfter, prepare, finalize};
+module.exports = {recoveryCandidates, revokeStaleGreens, snapshot, resolve, freshAfter, prepare, finalize};

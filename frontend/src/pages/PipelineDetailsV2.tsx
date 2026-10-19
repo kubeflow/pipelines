@@ -13,24 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import { getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { convertSubDagToFlowElements, getNodeName } from 'src/lib/v2/StaticFlow';
+import { tryConvertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import type {
+  LayerElementsResolver,
+  LayerFlowElement,
+  PipelineFlowElement,
+} from 'src/lib/v2/FlowTypes';
 
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
+const ROOT_LAYERS = ['root'];
 
 interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
-  setSubDagLayers: (layers: string[]) => void;
   pipeline: V2beta1Pipeline | null;
   selectedVersion: V2beta1PipelineVersion | undefined;
   versions: V2beta1PipelineVersion[];
@@ -40,34 +46,44 @@ interface PipelineDetailsV2Props {
 function PipelineDetailsV2({
   templateString,
   pipelineFlowElements,
-  setSubDagLayers,
   pipeline,
   selectedVersion,
   versions,
   handleVersionSelected,
 }: PipelineDetailsV2Props) {
-  const [layers, setLayers] = useState(['root']);
+  const layers = ROOT_LAYERS;
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
-
-  const layerChange = (l: string[]) => {
-    setSelectedNode(null);
-    setLayers(l);
-    setSubDagLayers(l);
-  };
+  const [selection, setSelection] = useState<LayerFlowElement | null>(null);
+  const pipelineSpec = useMemo(
+    () => (templateString ? tryConvertYamlToV2PipelineSpec(templateString) : undefined),
+    [templateString],
+  );
+  const getSubDagElements = useCallback<LayerElementsResolver>(
+    (layers) => (pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, layers) : []),
+    [pipelineSpec],
+  );
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
       <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
       {selectedTab === 0 && (
-        <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+        <div
+          className={commonCss.page}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
           <DagCanvas
+            graphId={
+              selectedVersion?.pipeline_version_id &&
+              `pipeline-version:${selectedVersion.pipeline_version_id}`
+            }
             layers={layers}
-            onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
-            onElementClick={(_event, element) => setSelectedNode(element)}
-            setFlowElements={() => {}}
-            nodesDraggable={false}
+            getSubDagElements={pipelineSpec ? getSubDagElements : undefined}
+            selectedElement={selection}
+            onElementClick={(_event, selection) => setSelection(selection)}
           ></DagCanvas>
           <PipelineVersionCard
             pipeline={pipeline}
@@ -78,18 +94,17 @@ function PipelineDetailsV2({
           {templateString && (
             <div className='z-20'>
               <SidePanel
-                isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
+                isOpen={!!selection}
+                title={getNodeName(selection?.element ?? null)}
+                onClose={() => setSelection(null)}
                 defaultWidth={'50%'}
               >
                 <div className={commonCss.page}>
                   <div className={padding(20, 'lr')}>
                     <StaticNodeDetailsV2
                       templateString={templateString}
-                      layers={layers}
-                      onLayerChange={layerChange}
-                      element={selectedNode}
+                      layers={selection?.layers ?? layers}
+                      element={selection?.element ?? null}
                     />
                   </div>
                 </div>

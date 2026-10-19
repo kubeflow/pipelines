@@ -67,6 +67,13 @@ def test_distributed_presubmit_reports_failed_subprocess_output(tmp_path):
     bin_dir.mkdir()
     uv = bin_dir / 'uv'
     uv.write_text('#!/bin/sh\n'
+                  'if [ "$1" = build ]; then\n'
+                  '  test "$#" = 6 && test "$2" = --package && '
+                  'test "$3" = kfp && test "$4" = --wheel && '
+                  'test "$5" = --out-dir || exit 2\n'
+                  '  touch "$6/kfp-test-py3-none-any.whl"\n'
+                  '  exit 0\n'
+                  'fi\n'
                   'test "$1" = run && test "$2" = python || exit 2\n'
                   'shift 2\n'
                   f'exec {shlex.quote(sys.executable)} "$@"\n')

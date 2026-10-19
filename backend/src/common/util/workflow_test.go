@@ -16,6 +16,7 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -1225,6 +1226,7 @@ func TestWorkflow_NodeStatuses(t *testing.T) {
 					StartedAt:   startTime,
 					FinishedAt:  finishTime,
 					Children:    []string{"node-2"},
+					Message:     "some message",
 				},
 			},
 		},
@@ -1239,6 +1241,22 @@ func TestWorkflow_NodeStatuses(t *testing.T) {
 	assert.Equal(t, startTime.Unix(), nodeStatus.StartTime)
 	assert.Equal(t, finishTime.Unix(), nodeStatus.FinishTime)
 	assert.Equal(t, []string{"node-2"}, nodeStatus.Children)
+	assert.Equal(t, "some message", nodeStatus.Message)
+
+	// Node without message → empty string
+	workflow = NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-2": {
+					ID:    "node-2",
+					Phase: workflowapi.NodePending,
+				},
+			},
+		},
+	})
+	statuses = workflow.NodeStatuses()
+	assert.Equal(t, "", statuses["node-2"].Message)
 
 	// Empty nodes → empty map
 	workflow = NewWorkflow(&workflowapi.Workflow{
@@ -2291,7 +2309,7 @@ func TestWorkflowInformer_List(t *testing.T) {
 	otherNamespaceResult, err := wfi.List("other-namespace", &selector)
 	assert.Nil(t, err)
 	assert.Len(t, otherNamespaceResult, 0)
-	// ---------- UpsertRuntimeEnvVars tests ----------
+	// ---------- UpsertRuntimeConfig tests ----------
 }
 
 // Helper that builds a Workflow with the supplied templates.
@@ -2311,27 +2329,27 @@ func dagTemplate(name string) workflowapi.Template {
 	}
 }
 
-func TestUpsertRuntimeEnvVars_EmptyInputs(t *testing.T) {
+func TestUpsertRuntimeConfig_EmptyInputs(t *testing.T) {
 	w := workflowWithTemplates(
 		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
 	)
 
-	// Empty env slice — should be a no-op.
-	assert.NoError(t, w.UpsertRuntimeEnvVars([]corev1.EnvVar{}, ExecutionRuntimeRoleDriver))
+	// Empty env map — should be a no-op.
+	assert.NoError(t, w.UpsertRuntimeConfig(map[string]string{}, ExecutionRuntimeRoleDriver))
 	assert.Empty(t, w.Spec.Templates[0].Container.Env)
 
-	// Nil env slice — should be a no-op.
-	assert.NoError(t, w.UpsertRuntimeEnvVars(nil, ExecutionRuntimeRoleDriver))
+	// Nil env map — should be a no-op.
+	assert.NoError(t, w.UpsertRuntimeConfig(nil, ExecutionRuntimeRoleDriver))
 
 	// No templates.
 	empty := NewWorkflow(&workflowapi.Workflow{})
-	assert.NoError(t, empty.UpsertRuntimeEnvVars([]corev1.EnvVar{{Name: "K", Value: "V"}}, ExecutionRuntimeRoleDriver))
+	assert.NoError(t, empty.UpsertRuntimeConfig(map[string]string{"K": "V"}, ExecutionRuntimeRoleDriver))
 }
 
-func TestUpsertRuntimeEnvVars_DAGTemplateSkipped(t *testing.T) {
+func TestUpsertRuntimeConfig_DAGTemplateSkipped(t *testing.T) {
 	w := workflowWithTemplates(dagTemplate("dag"))
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{{Name: "K", Value: "V"}},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"K": "V"},
 		ExecutionRuntimeRoleDriver,
 		ExecutionRuntimeRoleLauncher,
 	)
@@ -2358,13 +2376,24 @@ func annotatedTemplate(name string, role ExecutionRuntimeRole, existingEnv ...co
 	}
 }
 
-func TestUpsertRuntimeEnvVars_Annotation_DriverRole(t *testing.T) {
+func pluginTemplate(name string, pluginConfig string) workflowapi.Template {
+	return workflowapi.Template{
+		Name: name,
+		Plugin: &workflowapi.Plugin{
+			Object: workflowapi.Object{
+				Value: []byte(pluginConfig),
+			},
+		},
+	}
+}
+
+func TestUpsertRuntimeConfig_Annotation_DriverRole(t *testing.T) {
 	w := workflowWithTemplates(
 		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
 		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
 	)
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{{Name: "KEY", Value: "val"}},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"KEY": "val"},
 		ExecutionRuntimeRoleDriver,
 	)
 	assert.NoError(t, err)
@@ -2375,13 +2404,13 @@ func TestUpsertRuntimeEnvVars_Annotation_DriverRole(t *testing.T) {
 	assert.Empty(t, w.Spec.Templates[1].Container.Env)
 }
 
-func TestUpsertRuntimeEnvVars_Annotation_LauncherRole(t *testing.T) {
+func TestUpsertRuntimeConfig_Annotation_LauncherRole(t *testing.T) {
 	w := workflowWithTemplates(
 		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
 		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
 	)
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{{Name: "KEY", Value: "val"}},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"KEY": "val"},
 		ExecutionRuntimeRoleLauncher,
 	)
 	assert.NoError(t, err)
@@ -2391,14 +2420,14 @@ func TestUpsertRuntimeEnvVars_Annotation_LauncherRole(t *testing.T) {
 		w.Spec.Templates[1].Container.Env)
 }
 
-func TestUpsertRuntimeEnvVars_Annotation_MultipleRoles(t *testing.T) {
+func TestUpsertRuntimeConfig_Annotation_MultipleRoles(t *testing.T) {
 	w := workflowWithTemplates(
 		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
 		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
 		dagTemplate("dag"),
 	)
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{{Name: "KEY", Value: "val"}},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"KEY": "val"},
 		ExecutionRuntimeRoleDriver,
 		ExecutionRuntimeRoleLauncher,
 	)
@@ -2410,16 +2439,13 @@ func TestUpsertRuntimeEnvVars_Annotation_MultipleRoles(t *testing.T) {
 	assert.Nil(t, w.Spec.Templates[2].Container)
 }
 
-func TestUpsertRuntimeEnvVars_Annotation_UpsertReplacesExisting(t *testing.T) {
+func TestUpsertRuntimeConfig_Annotation_UpsertReplacesExisting(t *testing.T) {
 	w := workflowWithTemplates(
 		annotatedTemplate("driver", ExecutionRuntimeRoleDriver,
 			corev1.EnvVar{Name: "OLD", Value: "before"}),
 	)
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{
-			{Name: "OLD", Value: "after"},
-			{Name: "NEW", Value: "fresh"},
-		},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"OLD": "after", "NEW": "fresh"},
 		ExecutionRuntimeRoleDriver,
 	)
 	assert.NoError(t, err)
@@ -2430,41 +2456,41 @@ func TestUpsertRuntimeEnvVars_Annotation_UpsertReplacesExisting(t *testing.T) {
 	assert.Equal(t, corev1.EnvVar{Name: "NEW", Value: "fresh"}, env[1])
 }
 
-func TestUpsertRuntimeEnvVars_Annotation_UpsertsSecretKeyRef(t *testing.T) {
+func TestUpsertRuntimeConfig_DriverPluginRuntimeArgs(t *testing.T) {
 	w := workflowWithTemplates(
-		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
+		pluginTemplate(
+			"driver",
+			`{"driver-plugin":{"args":{"existing":"value","runtime_args":{"OLD":"before"}}}}`,
+		),
+		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
 	)
-
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{{
-			Name: "MLFLOW_TRACKING_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "mlflow-secret"},
-					Key:                  "token",
-				},
-			},
-		}},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"OLD": "after", "NEW": "fresh"},
 		ExecutionRuntimeRoleDriver,
 	)
 	assert.NoError(t, err)
 
-	env := w.Spec.Templates[0].Container.Env
-	assert.Len(t, env, 1)
-	require.NotNil(t, env[0].ValueFrom)
-	require.NotNil(t, env[0].ValueFrom.SecretKeyRef)
-	assert.Equal(t, "MLFLOW_TRACKING_TOKEN", env[0].Name)
-	assert.Equal(t, "mlflow-secret", env[0].ValueFrom.SecretKeyRef.Name)
-	assert.Equal(t, "token", env[0].ValueFrom.SecretKeyRef.Key)
+	var pluginConfig map[string]map[string]map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Spec.Templates[0].Plugin.Value, &pluginConfig))
+	args := pluginConfig["driver-plugin"]["args"]
+	assert.Equal(t, "value", args["existing"])
+	require.IsType(t, "", args["runtime_args"])
+	var runtimeArgs map[string]string
+	require.NoError(t, json.Unmarshal([]byte(args["runtime_args"].(string)), &runtimeArgs))
+	assert.Equal(t, map[string]string{
+		"OLD": "after",
+		"NEW": "fresh",
+	}, runtimeArgs)
+	assert.Empty(t, w.Spec.Templates[1].Container.Env)
 }
 
-func TestUpsertRuntimeEnvVars_Annotation_UnknownRoleIgnored(t *testing.T) {
+func TestUpsertRuntimeConfig_Annotation_UnknownRoleIgnored(t *testing.T) {
 	// A template with an unknown annotation value should not match any role.
 	w := workflowWithTemplates(
 		annotatedTemplate("unknown", "some-other-role"),
 	)
-	err := w.UpsertRuntimeEnvVars(
-		[]corev1.EnvVar{{Name: "KEY", Value: "val"}},
+	err := w.UpsertRuntimeConfig(
+		map[string]string{"KEY": "val"},
 		ExecutionRuntimeRoleDriver,
 		ExecutionRuntimeRoleLauncher,
 	)

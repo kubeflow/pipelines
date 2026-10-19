@@ -59,6 +59,19 @@ class DependabotConfigTest(unittest.TestCase):
             flags=re.MULTILINE | re.DOTALL,
         )
 
+    def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
+        docker = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'docker')
+        rules = [
+            rule for rule in docker['ignore']
+            if fnmatchcase('mysql', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'mysql',
+            'versions': ['<8.4', '>=8.5'],
+        }])
+
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [
             block for configured_ecosystem, block in self.update_blocks()
@@ -126,7 +139,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(
             len(configured_ecosystems), len(set(configured_ecosystems)))
 
-    def test_version_and_security_updates_start_held_with_defaults_preserved(
+    def test_version_and_security_updates_start_unheld_with_defaults_preserved(
             self):
         ecosystem_labels = {
             'gomod': 'go',
@@ -146,7 +159,7 @@ class DependabotConfigTest(unittest.TestCase):
                 )
                 self.assertEqual(
                     self.configured_labels(ecosystem),
-                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                    ['dependencies', ecosystem_label],
                 )
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):
@@ -228,7 +241,41 @@ class DependabotConfigTest(unittest.TestCase):
             if repository_directory(path) not in GENERATED_PYTHON_CLIENTS
         }
 
-        self.assertEqual(self.configured_directories('pip'), python_directories)
+        # Workspace manifests have one owner. Exported requirements are outputs,
+        # not an independent pip dependency graph.
+        workspace_directories = {'/', '/sdk/python'}
+        self.assertEqual(
+            self.configured_directories('pip'),
+            python_directories - workspace_directories)
+        self.assertEqual(self.configured_directories('uv'), {'/'})
+
+    def test_uv_has_no_obsolete_export_exclusions(self):
+        config = yaml.safe_load(self.config)
+        uv = next(update for update in config['updates']
+                  if update['package-ecosystem'] == 'uv')
+        self.assertNotIn('exclude-paths', uv)
+        self.assertNotIn('allow', uv)
+
+    def test_react_runtime_and_types_share_version_and_security_groups(self):
+        config = yaml.safe_load(self.config)
+        npm = next(update for update in config['updates']
+                   if update['package-ecosystem'] == 'npm')
+        dependencies = ('react', 'react-dom', '@types/react',
+                        '@types/react-dom')
+        for applies_to in ('version-updates', 'security-updates'):
+            groups = {
+                name: group
+                for name, group in npm['groups'].items()
+                if group.get('applies-to', 'version-updates') == applies_to
+            }
+            matches = []
+            for dependency in dependencies:
+                matches.append(
+                    next((name for name, group in groups.items() if any(
+                        fnmatchcase(dependency, pattern)
+                        for pattern in group.get('patterns', []))), None))
+            self.assertIsNotNone(matches[0])
+            self.assertEqual(len(set(matches)), 1)
 
     def test_all_uv_lockfiles_are_covered(self):
         tracked_locks = subprocess.check_output(

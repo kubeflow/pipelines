@@ -1,4 +1,4 @@
-# kfp_server_api.AuthServiceApi
+# kfp.server_api.AuthServiceApi
 
 All URIs are relative to *http://localhost*
 
@@ -18,12 +18,12 @@ Method | HTTP request | Description
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api
-from kfp_server_api.rest import ApiException
+import kfp.server_api
+from kfp.server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -33,7 +33,7 @@ configuration = kfp_server_api.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api.Configuration(
+configuration = kfp.server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -43,9 +43,9 @@ configuration = kfp_server_api.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient(configuration) as api_client:
+with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.AuthServiceApi(api_client)
+    api_instance = kfp.server_api.AuthServiceApi(api_client)
     namespace = 'namespace_example' # str | Namespace the resource belongs to. (optional)
 resources = 'UNASSIGNED_RESOURCES' # str | Resource type asking for authorization. (optional) (default to 'UNASSIGNED_RESOURCES')
 verb = 'UNASSIGNED_VERB' # str | Verb on the resource asking for authorization. (optional) (default to 'UNASSIGNED_VERB')

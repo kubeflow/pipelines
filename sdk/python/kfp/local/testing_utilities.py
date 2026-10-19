@@ -13,15 +13,19 @@
 # limitations under the License.
 """Utilities for testing local execution."""
 
+import contextlib
 import datetime
 import functools
 import os
 import pathlib
 import shutil
+import site
+import sysconfig
 import tempfile
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Iterator, Optional
 import unittest
 from unittest import mock
+import venv
 
 from absl.testing import parameterized
 from google.protobuf import json_format
@@ -30,6 +34,7 @@ from kfp import components
 from kfp import dsl
 from kfp.local import config as local_config
 from kfp.local import docker_task_handler
+from kfp.local import subprocess_task_handler
 
 _LOCAL_KFP_PACKAGE_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -61,9 +66,12 @@ def create_modify_volumes_decorator(isolated_kfp_path: str):
 
 
 class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
-    """Test class that uses an isolated filesystem and updates the
-    dsl.component decorator to install from the local KFP source, rather than
-    the latest release."""
+    """Isolate local-runner files and installs from other pytest workers.
+
+    Components install the checked-out SDK. Tests without per-task
+    virtual environments share a disposable interpreter for that test,
+    not pytest's interpreter.
+    """
 
     def setUp(self):
         # ENTER: start each test case without an uninitialized environment
@@ -84,6 +92,14 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
         self.isolated_kfp_package_path = os.path.join(self.isolated_kfp_dir,
                                                       'kfp_source')
 
+        self.isolated_current_python = self._create_current_python()
+        self.original_subprocess_environment = subprocess_task_handler.environment
+        environment_patch = mock.patch.object(subprocess_task_handler,
+                                              'environment',
+                                              self._isolated_environment)
+        environment_patch.start()
+        self.addCleanup(environment_patch.stop)
+
         # ENTER: use isolated KFP package path for this test
         self.original_component, dsl.component = dsl.component, functools.partial(
             dsl.component, kfp_package_path=self.isolated_kfp_package_path)
@@ -94,6 +110,39 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
             self.isolated_kfp_package_path)
         docker_task_handler.DockerTaskHandler.get_volumes_to_mount = modify_volumes_decorator(
             docker_task_handler.DockerTaskHandler.get_volumes_to_mount)
+
+    def _create_current_python(self) -> str:
+        """Create a test-local interpreter that reuses worker dependencies."""
+        directory = pathlib.Path(self.isolated_kfp_dir) / 'current-python'
+        venv.create(directory, with_pip=False, symlinks=True)
+        site_packages = pathlib.Path(
+            sysconfig.get_path(
+                'purelib',
+                scheme='venv',
+                vars={
+                    'base': str(directory),
+                    'platbase': str(directory)
+                }))
+        # A source copy alone does not isolate pip's installation destination.
+        dependencies = [self.isolated_kfp_package_path, *site.getsitepackages()]
+        (site_packages / 'test-dependencies.pth').write_text(
+            '\n'.join(dependencies) + '\n', encoding='utf-8')
+        return str(directory / 'bin/python')
+
+    @contextlib.contextmanager
+    def _isolated_environment(
+        self,
+        use_venv: bool,
+        runner_config: Optional[local_config.SubprocessRunner] = None,
+        has_pip_install: bool = False,
+    ) -> Iterator[str]:
+        """Isolate test installs while preserving real runner setup and
+        locking."""
+        with self.original_subprocess_environment(
+                use_venv=use_venv,
+                runner_config=runner_config,
+                has_pip_install=has_pip_install) as python:
+            yield python if use_venv else self.isolated_current_python
 
     def tearDown(self):
         # EXIT: restore original component decorator

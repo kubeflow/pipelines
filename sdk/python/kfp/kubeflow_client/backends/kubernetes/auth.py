@@ -19,13 +19,13 @@ import logging
 import os
 
 from kfp.kubeflow_client.backends.kubernetes import constants
-import kfp_server_api
+import kfp.server_api
 
 logger = logging.getLogger(__name__)
 
 
 def apply_in_cluster_credentials(
-    api_config: kfp_server_api.Configuration,) -> None:
+    api_config: kfp.server_api.Configuration,) -> None:
     """Apply default in-cluster service account credentials."""
     token_path = os.environ.get(constants.TOKEN_PATH_ENV)
     if not token_path:
@@ -60,7 +60,7 @@ def apply_in_cluster_credentials(
             exc_info=True)
 
 
-def refresh_credentials(api_config: kfp_server_api.Configuration,) -> None:
+def refresh_credentials(api_config: kfp.server_api.Configuration,) -> None:
     """Refresh the API token using the configured refresh hook."""
     if api_config.refresh_api_key_hook is not None:
         api_config.refresh_api_key_hook(api_config)

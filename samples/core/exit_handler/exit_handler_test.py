@@ -20,12 +20,12 @@ import unittest
 from kfp.samples.test.utils import KfpMlmdClient
 from kfp.samples.test.utils import run_pipeline_func
 from kfp.samples.test.utils import TestCase
-import kfp_server_api
+import kfp.server_api
 
 from .exit_handler import pipeline_exit_handler as pipeline_exit_handler
 
 
-def verify(mlmd_connection_config, run: kfp_server_api.V2beta1Run, **kwargs):
+def verify(mlmd_connection_config, run: kfp.server_api.V2beta1Run, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
 

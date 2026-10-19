@@ -13,11 +13,11 @@
 # limitations under the License.
 """Type aliases for PipelinesClient.
 
-These aliases provide clean names over the auto-generated kfp_server_api
+These aliases provide clean names over the auto-generated kfp.server_api
 model classes used by the KFP backend API.
 """
 
-import kfp_server_api
+import kfp.server_api
 
 __all__ = [
     'Pipeline',
@@ -30,13 +30,13 @@ __all__ = [
     'ListExperimentsResponse',
 ]
 
-Pipeline = kfp_server_api.V2beta1Pipeline
-PipelineVersion = kfp_server_api.V2beta1PipelineVersion
-Run = kfp_server_api.V2beta1Run
-Experiment = kfp_server_api.V2beta1Experiment
+Pipeline = kfp.server_api.V2beta1Pipeline
+PipelineVersion = kfp.server_api.V2beta1PipelineVersion
+Run = kfp.server_api.V2beta1Run
+Experiment = kfp.server_api.V2beta1Experiment
 
-ListPipelinesResponse = kfp_server_api.V2beta1ListPipelinesResponse
+ListPipelinesResponse = kfp.server_api.V2beta1ListPipelinesResponse
 ListPipelineVersionsResponse = (
-    kfp_server_api.V2beta1ListPipelineVersionsResponse)
-ListRunsResponse = kfp_server_api.V2beta1ListRunsResponse
-ListExperimentsResponse = kfp_server_api.V2beta1ListExperimentsResponse
+    kfp.server_api.V2beta1ListPipelineVersionsResponse)
+ListRunsResponse = kfp.server_api.V2beta1ListRunsResponse
+ListExperimentsResponse = kfp.server_api.V2beta1ListExperimentsResponse

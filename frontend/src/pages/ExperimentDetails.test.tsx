@@ -432,7 +432,7 @@ describe('ExperimentDetails', () => {
     fireEvent.click(compareButton);
 
     expect(navigateSpy).toHaveBeenCalledWith(
-      RoutePage.COMPARE + `?${QUERY_PARAMS.runlist}=run-1-id,run-2-id`,
+      RoutePage.COMPARE + `?${QUERY_PARAMS.runlist}=run-1-id%2Crun-2-id`,
     );
   });
 

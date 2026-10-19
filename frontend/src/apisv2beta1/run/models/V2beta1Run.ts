@@ -228,6 +228,15 @@ export interface V2beta1Run {
    * @memberof V2beta1Run
    */
   tasks?: Array<V2beta1PipelineTask>;
+  /**
+   * Optional input field. Namespace this run belongs to. Derived from the
+   * parent experiment when experiment_id is set. In multi-user mode with
+   * experiment_id omitted, this selects the namespace whose default
+   * experiment the run is placed in.
+   * @type {string}
+   * @memberof V2beta1Run
+   */
+  namespace?: string;
 }
 
 /**
@@ -292,6 +301,7 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
       json['tasks'] == null
         ? undefined
         : (json['tasks'] as Array<any>).map(V2beta1PipelineTaskFromJSON),
+    namespace: json['namespace'] == null ? undefined : json['namespace'],
   };
 }
 
@@ -345,5 +355,6 @@ export function V2beta1RunToJSONTyped(
       value['tasks'] == null
         ? undefined
         : (value['tasks'] as Array<any>).map(V2beta1PipelineTaskToJSON),
+    namespace: value['namespace'],
   };
 }

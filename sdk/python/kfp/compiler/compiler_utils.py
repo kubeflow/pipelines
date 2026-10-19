@@ -552,7 +552,7 @@ def get_outputs_for_all_groups(
 
                     # 1. get the oneof
                     # 2. find the task group that surfaced it
-                    # 3. find the inner tasks reponsible
+                    # 3. find the inner tasks responsible
 
                     for upstream_name in reversed(upstream_groups):
                         # skip the first task processed, since we don't need to add new outputs for the innermost task
@@ -626,7 +626,7 @@ def get_outputs_for_all_groups(
 
                 # 1. get the oneof
                 # 2. find the task group that surfaced it
-                # 3. find the inner tasks reponsible
+                # 3. find the inner tasks responsible
                 for upstream_name in reversed(upstream_groups):
                     # skip the first task processed, since we don't need to add new outputs for the innermost task
                     if upstream_name == inner_channel.task.name:
@@ -754,7 +754,7 @@ def get_dependencies(
         if task2 depends on task1, and their ancestors are
         [root, G1, G2, task1] and [root, G1, G3, G4, task2], then G3 is
         dependent on G2. Basically dependency only exists in the first
-        uncommon ancesters in their ancesters chain. Only sibling
+        uncommon ancestors in their ancestors chain. Only sibling
         groups/tasks can have dependencies.
 
     Raises:
@@ -842,7 +842,7 @@ def recursive_replace_placeholders(data: Any, old_value: str,
         new_value: The value to replace the old value with.
 
     Returns:
-        A copy of data with all occurences of old_value replaced by new_value.
+        A copy of data with all occurrences of old_value replaced by new_value.
     """
     if isinstance(data, dict):
         return {

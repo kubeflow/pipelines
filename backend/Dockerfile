@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.27.1-bookworm@sha256:69a7b9788769bec032d238959b61854e9ae87f57be9029ec04e9885fabf99195 AS builder
+FROM golang:1.27.2-bookworm@sha256:5cf287a799e6b94384bad13d16b14904c531f51ba65792237e122ce42b392f61 AS builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -32,7 +32,7 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.11-slim AS compiler
+FROM python:3.14-slim AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl protobuf-compiler make git
 RUN pip install uv
 
@@ -40,13 +40,14 @@ WORKDIR /workspace
 COPY pyproject.toml uv.lock ./
 COPY sdk/python ./sdk/python
 COPY kubernetes_platform/python ./kubernetes_platform/python
+COPY kubernetes_platform/proto ./kubernetes_platform/proto
 COPY api/Makefile ./api/Makefile
 COPY api/v2alpha1/python ./api/v2alpha1/python
 COPY api/v2alpha1/pipeline_spec.proto ./api/v2alpha1/pipeline_spec.proto
-COPY backend/api/v2beta1/python_http_client ./backend/api/v2beta1/python_http_client
 # Ensure clean checkouts include generated pipeline spec Python module.
 RUN make -C api fetch-protos && \
-    python3 /workspace/api/v2alpha1/python/generate_proto.py
+    python3 /workspace/api/v2alpha1/python/generate_proto.py && \
+    python3 /workspace/kubernetes_platform/python/generate_proto.py
 RUN uv sync --frozen --no-dev
 ENV PATH="/workspace/.venv/bin:$PATH"
 
