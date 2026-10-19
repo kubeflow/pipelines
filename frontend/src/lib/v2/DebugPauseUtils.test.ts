@@ -80,15 +80,20 @@ describe('requestDebugPauseResume', () => {
     );
   });
 
-  it('calls UpdateTask (task_2) with the resume flag merged into existing custom_properties', async () => {
+  it('calls UpdateTask (task_2) with the resume flag merged into the fresh custom_properties', async () => {
+    // The task is refetched right before the write: properties added since
+    // the page loaded are merged from the fresh read, not the stale copy.
+    vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+      taskWithCustomProperties({
+        debug_pause_barrier: 'after',
+        some_other_property: 'must-be-preserved',
+      }),
+    );
     const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({
       task_id: 'task-1',
     });
 
-    const task = taskWithCustomProperties({
-      debug_pause_barrier: 'after',
-      some_other_property: 'must-be-preserved',
-    });
+    const task = taskWithCustomProperties({ debug_pause_barrier: 'after' });
 
     await requestDebugPauseResume('run-1', task);
 
@@ -105,21 +110,53 @@ describe('requestDebugPauseResume', () => {
     });
   });
 
-  it('works when the task has no existing custom_properties at all', async () => {
+  it('works when the task has no custom_properties beyond the barrier', async () => {
+    vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+      taskWithCustomProperties({ debug_pause_barrier: 'before' }),
+    );
     const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({
       task_id: 'task-1',
     });
 
-    await requestDebugPauseResume('run-1', { task_id: 'task-1' });
+    await requestDebugPauseResume(
+      'run-1',
+      taskWithCustomProperties({ debug_pause_barrier: 'before' }),
+    );
 
     expect(updateSpy).toHaveBeenCalledWith('run-1', 'task-1', {
       task_id: 'task-1',
       run_id: 'run-1',
       status_metadata: {
         custom_properties: {
+          debug_pause_barrier: 'before',
           debug_pause_resume_requested: 'true',
         },
       },
     });
+  });
+
+  it('refuses to write when the barrier moved since the page loaded', async () => {
+    // The launcher parked at "after" but the page still shows "before" -
+    // writing the stale snapshot would resurrect the old barrier and grant
+    // a resume nobody requested for the new one.
+    vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+      taskWithCustomProperties({ debug_pause_barrier: 'after' }),
+    );
+    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2');
+
+    await expect(
+      requestDebugPauseResume('run-1', taskWithCustomProperties({ debug_pause_barrier: 'before' })),
+    ).rejects.toThrow(/moved from the "before" barrier to "after"/);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it('refuses to write when the task is no longer paused', async () => {
+    vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce({ task_id: 'task-1' });
+    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2');
+
+    await expect(
+      requestDebugPauseResume('run-1', taskWithCustomProperties({ debug_pause_barrier: 'before' })),
+    ).rejects.toThrow(/no longer paused/);
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });
