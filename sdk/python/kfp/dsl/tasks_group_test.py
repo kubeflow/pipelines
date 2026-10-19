@@ -61,6 +61,14 @@ class ParallelForTest(unittest.TestCase):
             with pipeline_context.Pipeline('pipeline') as p:
                 tasks_group.ParallelFor(items=loop_items, parallelism=-1)
 
+    def test_parallelfor_empty_dict_items_raises(self):
+        """Tests that ParallelFor rejects an empty dict item."""
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Dictionary items in ParallelFor cannot be empty\.'):
+            with pipeline_context.Pipeline('pipeline') as p:
+                tasks_group.ParallelFor(items=[{}])
+
 
 class TestConditionDeprecated(unittest.TestCase):
 

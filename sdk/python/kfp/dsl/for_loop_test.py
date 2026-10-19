@@ -314,6 +314,21 @@ class ForLoopTest(parameterized.TestCase):
                     subvar_name=subvar_name,
                 )
 
+    def test_from_raw_items_empty_dict_raises(self):
+        """Tests that an empty dict in raw items raises a ValueError."""
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Dictionary items in ParallelFor cannot be empty\.'):
+            for_loop.LoopParameterArgument.from_raw_items([{}], name_code='1')
+
+    def test_from_raw_items_empty_dict_first_raises(self):
+        """Tests that an empty first dict raises a ValueError."""
+        items = [{}, {'a': 1}]
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Dictionary items in ParallelFor cannot be empty\.'):
+            for_loop.LoopParameterArgument.from_raw_items(items, name_code='1')
+
 
 if __name__ == '__main__':
     unittest.main()
