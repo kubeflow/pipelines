@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -111,7 +111,7 @@ func TestGetPipelineByName_MultiUser_OmittedNamespaceIsRejected(t *testing.T) {
 	defer cleanup()
 
 	pipeline, err := pipelineServer.GetPipelineByName(userContext(),
-		&apiv2beta1.GetPipelineByNameRequest{Name: "shared-name", Namespace: ""})
+		&apiv2.GetPipelineByNameRequest{Name: "shared-name", Namespace: ""})
 
 	require.Error(t, err, "an omitted namespace must not resolve to the installation namespace")
 	assert.Nil(t, pipeline)
@@ -130,7 +130,7 @@ func TestGetPipelineByName_MultiUser_AuthorizedNamespaceSucceeds(t *testing.T) {
 	defer cleanup()
 
 	pipeline, err := pipelineServer.GetPipelineByName(userContext(),
-		&apiv2beta1.GetPipelineByNameRequest{Name: "shared-name", Namespace: "tenant-a"})
+		&apiv2.GetPipelineByNameRequest{Name: "shared-name", Namespace: "tenant-a"})
 
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -149,7 +149,7 @@ func TestGetPipelineByName_MultiUser_UnauthorizedNamespaceIsDenied(t *testing.T)
 	defer cleanup()
 
 	_, err := pipelineServer.GetPipelineByName(userContext(),
-		&apiv2beta1.GetPipelineByNameRequest{Name: "shared-name", Namespace: "tenant-a"})
+		&apiv2.GetPipelineByNameRequest{Name: "shared-name", Namespace: "tenant-a"})
 
 	require.Error(t, err)
 	assert.Equal(t, codes.PermissionDenied, err.(*util.UserError).ExternalStatusCode())

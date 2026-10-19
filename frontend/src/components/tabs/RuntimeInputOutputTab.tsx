@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import { V2PipelineTask } from 'src/apisv2/run';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
@@ -22,7 +22,7 @@ import { formatParameters } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 
 export interface RuntimeInputOutputTabProps {
-  task: V2beta1PipelineTask;
+  task: V2PipelineTask;
   namespace?: string;
 }
 

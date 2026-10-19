@@ -117,7 +117,7 @@ func TestConfiguredUploadHTTPSizeErrors(t *testing.T) {
 			{"tgz spec", "tgz", "pipeline.yaml", common.MaxPipelineSpecBytesEnv, 4096, 8, http.StatusRequestEntityTooLarge},
 			{"malformed archive", "zip", secret + ".txt", "", 4096, 1024, http.StatusBadRequest},
 		} {
-			t.Run(fmt.Sprintf("v2beta1/version=%t/%s", version, tc.name), func(t *testing.T) {
+			t.Run(fmt.Sprintf("v2/version=%t/%s", version, tc.name), func(t *testing.T) {
 				t.Setenv(common.MaxPipelineUploadBytesEnv, strconv.Itoa(tc.input))
 				t.Setenv(common.MaxPipelineSpecBytesEnv, strconv.Itoa(tc.spec))
 				t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "")
@@ -126,10 +126,10 @@ func TestConfiguredUploadHTTPSizeErrors(t *testing.T) {
 				buffer, writer := setupWriter("")
 				packed := sizeLimitedPackage(t, tc.format, tc.entry, []byte(secret))
 				setWriterWithBuffer("uploadfile", "package."+tc.format, string(packed), writer)
-				endpoint := "/apis/v2beta1" + "/pipelines/upload?name=test"
+				endpoint := "/apis/v2" + "/pipelines/upload?name=test"
 				handler := server.UploadPipeline
 				if version {
-					endpoint = "/apis/v2beta1" + "/pipelines/upload_version?pipelineid=" + DefaultFakeUUID
+					endpoint = "/apis/v2" + "/pipelines/upload_version?pipelineid=" + DefaultFakeUUID
 					handler = server.UploadPipelineVersion
 				}
 				response := uploadPipeline(endpoint, bytes.NewReader(buffer.Bytes()), writer, handler)

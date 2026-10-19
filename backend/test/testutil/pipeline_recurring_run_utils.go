@@ -15,22 +15,22 @@
 package testutil
 
 import (
-	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
+	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
 	"github.com/onsi/gomega"
 )
 
-func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurring_run_params.RecurringRunServiceListRecurringRunsParams, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
+func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurring_run_params.RecurringRunServiceListRecurringRunsParams, namespace string) ([]*recurring_run_model.V2RecurringRun, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
 	return client.List(parameters)
 }
 
-func GetRecurringRun(client *api_server.RecurringRunClient, runID string) *recurring_run_model.V2beta1RecurringRun {
+func GetRecurringRun(client *api_server.RecurringRunClient, runID string) *recurring_run_model.V2RecurringRun {
 	parameters := &recurring_run_params.RecurringRunServiceGetRecurringRunParams{
 		RecurringRunID: runID,
 	}
@@ -50,7 +50,7 @@ func DeleteRecurringRun(client *api_server.RecurringRunClient, runID string) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to delete recurring run with id=%s, due to %s", runID, err.Error())
 }
 
-func ListAllRecurringRuns(client *api_server.RecurringRunClient, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
+func ListAllRecurringRuns(client *api_server.RecurringRunClient, namespace string) ([]*recurring_run_model.V2RecurringRun, int, string, error) {
 	return ListRecurringRuns(client, &recurring_run_params.RecurringRunServiceListRecurringRunsParams{}, namespace)
 }
 

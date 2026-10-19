@@ -229,7 +229,7 @@ describe('artifact-validator', () => {
 
     const [requestUrl, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
     const url = new URL(requestUrl);
-    expect(url.pathname).toBe('/apis/v2beta1/artifacts');
+    expect(url.pathname).toBe('/apis/v2/artifacts');
     expect(url.searchParams.get('namespace')).toBe('team-a');
     expect(JSON.parse(decodeURIComponent(url.searchParams.get('filter') || '{}'))).toEqual({
       predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: 's3://bucket/shared/output' }],

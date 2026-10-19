@@ -19,7 +19,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import * as JsYaml from 'js-yaml';
 import { isEqual } from 'lodash';
 import { isCancelledError, useQuery, useQueryClient } from '@tanstack/react-query';
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2PipelineTask, V2Run } from 'src/apisv2/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
@@ -45,12 +45,12 @@ const RETRY_DISCOVERY_QUERY_FAMILY = ['run_retry_discovery'] as const;
 const INITIAL_RETRY_TASK_STATE: RunTaskRetryState = { version: 0 };
 
 interface PendingRetryDiscovery {
-  baseline: V2beta1Run;
-  preRetryTasks?: V2beta1PipelineTask[];
+  baseline: V2Run;
+  preRetryTasks?: V2PipelineTask[];
   remainingAttempts: number;
 }
 
-function isAttemptTransitionCandidate(current: V2beta1Run, baseline: V2beta1Run): boolean {
+function isAttemptTransitionCandidate(current: V2Run, baseline: V2Run): boolean {
   const baselineHistory = baseline.state_history ?? [];
   const currentHistory = current.state_history ?? [];
 
@@ -81,7 +81,7 @@ function isRunActive(state?: string): boolean {
     return true;
   }
   try {
-    return !hasFinishedV2(state as V2beta1Run['state']);
+    return !hasFinishedV2(state as V2Run['state']);
   } catch (_err) {
     return true;
   }
@@ -97,7 +97,7 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
     isLoading: runIsLoading,
     error: runError,
     data: v2Run,
-  } = useQuery<V2beta1Run, Error>({
+  } = useQuery<V2Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
     structuralSharing: preserveDeepEqualData,
@@ -251,7 +251,7 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     error: runRefreshError,
     isRefetchError,
     refetch: refetchRun,
-  } = useQuery<V2beta1Run, Error>({
+  } = useQuery<V2Run, Error>({
     queryKey: runQueryKey,
     queryFn: loadRun,
     retry: false,
@@ -288,7 +288,7 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
       if (
         event.action.type === 'success' &&
         event.query.state.data &&
-        isAttemptTransitionCandidate(event.query.state.data as V2beta1Run, pending.baseline)
+        isAttemptTransitionCandidate(event.query.state.data as V2Run, pending.baseline)
       ) {
         persistRetryTaskState({
           version: retryTaskState.version + 1,
@@ -325,7 +325,7 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     const currentTaskQueryKey = queryKeys.runTasks(runId, retryRefreshVersion || undefined);
     setRetryDiscovery({
       baseline: refreshedRun || props.run,
-      preRetryTasks: queryClient.getQueryData<V2beta1PipelineTask[]>(currentTaskQueryKey),
+      preRetryTasks: queryClient.getQueryData<V2PipelineTask[]>(currentTaskQueryKey),
       remainingAttempts: MAX_POST_RETRY_DISCOVERY_ATTEMPTS,
     });
     refreshRetryPoll((revision) => revision + 1);

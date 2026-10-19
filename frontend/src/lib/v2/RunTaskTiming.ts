@@ -3,7 +3,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2PipelineTask, V2Run } from 'src/apisv2/run';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
 import { isTaskFinished } from './RuntimeArtifactUtils';
 import { getTaskDisplayName } from './RunTaskUtils';
@@ -18,7 +18,7 @@ const GROUP_TYPES = new Set([
 ]);
 
 export interface TaskTiming {
-  task: V2beta1PipelineTask;
+  task: V2PipelineTask;
   id: string;
   label: string;
   created?: number;
@@ -39,7 +39,7 @@ function elapsedBetween(start?: number, end?: number): number | undefined {
   return start !== undefined && end !== undefined && end >= start ? end - start : undefined;
 }
 
-function hasRetryEvidence(task: V2beta1PipelineTask): boolean {
+function hasRetryEvidence(task: V2PipelineTask): boolean {
   let started = false;
   let failed = false;
   for (const { state } of task.state_history || []) {
@@ -61,7 +61,7 @@ function hasRetryEvidence(task: V2beta1PipelineTask): boolean {
 }
 
 /** Build component spans without double-counting their enclosing DAG/loop groups. */
-export function getRunTaskTiming(run: V2beta1Run, tasks: V2beta1PipelineTask[], now: number) {
+export function getRunTaskTiming(run: V2Run, tasks: V2PipelineTask[], now: number) {
   const active = !hasFinishedV2(run.state);
   const rows: TaskTiming[] = tasks
     .filter((task) => !GROUP_TYPES.has(task.type || ''))

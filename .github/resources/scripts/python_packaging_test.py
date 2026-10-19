@@ -15,6 +15,7 @@
 """Regression coverage for Python packaging and dependency tooling."""
 
 import fnmatch
+import json
 import os
 from pathlib import Path
 import re
@@ -243,7 +244,7 @@ class PythonPackagingTest(unittest.TestCase):
                           (ROOT /
                            f'sdk/python/kfp/{path}/__init__.py').read_text())
         for path in ('api/v2alpha1/python/pyproject.toml',
-                     'backend/api/v2beta1/python_http_client/pyproject.toml',
+                     'backend/api/v2/python_http_client/pyproject.toml',
                      'kubernetes_platform/python/pyproject.toml'):
             self.assertFalse((ROOT / path).exists(), path)
         self.assertNotIn('extend_path',
@@ -348,7 +349,7 @@ class PythonPackagingTest(unittest.TestCase):
 
     def test_server_generator_uses_sdk_version_and_rejects_v1(self) -> None:
         """Regenerate v2 metadata from the SDK and reject removed v1 APIs."""
-        for api_version in ('v2beta1', 'v1beta1'):
+        for api_version in ('v2', 'v1beta1'):
             with self.subTest(api_version=api_version
                              ), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -356,12 +357,29 @@ class PythonPackagingTest(unittest.TestCase):
                 api.mkdir(parents=True)
                 generator = api / 'build_kfp_server_api_python_package.sh'
                 shutil.copy(ROOT / 'backend/api' / generator.name, generator)
+                (api / 'hack').mkdir()
+                shutil.copy(ROOT / 'backend/api/hack/generate_python_compat.py',
+                            api / 'hack/generate_python_compat.py')
                 version_file = root / 'sdk/python/kfp/version.py'
                 version_file.parent.mkdir(parents=True)
                 (root / 'sdk/python/test').mkdir()
                 version_file.write_text("__version__ = '2.17.0'\n")
                 (root / 'VERSION').write_text('2.99.0\n')
                 (root / 'LICENSE').write_text('test license\n')
+                swagger = api / 'v2/swagger/kfp_api_single_file.swagger.json'
+                swagger.parent.mkdir(parents=True)
+                canonical_spec = json.dumps({
+                    'paths': {
+                        '/apis/v2/healthz': {},
+                        '/apis/v2/runs/{run_id}': {}
+                    },
+                    'definitions': {
+                        'V2Run': {
+                            'type': 'object'
+                        }
+                    },
+                })
+                swagger.write_text(canonical_spec)
                 fake_bin = root / 'bin'
                 fake_bin.mkdir()
                 curl = fake_bin / 'curl'
@@ -374,10 +392,14 @@ class PythonPackagingTest(unittest.TestCase):
                     import sys
                     args = sys.argv[1:]
                     config = json.loads(Path(args[args.index('-c') + 1]).read_text())
+                    spec = json.loads(Path(args[args.index('-i') + 1]).read_text())
+                    assert set(spec['paths']) == {'/apis/v2beta1/healthz', '/apis/v2beta1/runs/{run_id}'}
+                    assert spec['definitions'] == {'V2Run': {'type': 'object'}}
                     output = Path(args[args.index('-o') + 1])
                     models = output.joinpath(*config['packageName'].split('.'), 'models')
                     models.mkdir(parents=True)
                     (models / '__init__.py').touch()
+                    (models / 'v2_run.py').write_text('class V2Run: pass\\n')
                     (output / 'test').mkdir()
                     (models.parent / '__init__.py').write_text(
                         '__version__ = ' + repr(config['packageVersion']) + '\\n')
@@ -404,9 +426,10 @@ class PythonPackagingTest(unittest.TestCase):
                 )
                 output = api / api_version / 'python_http_client'
                 self.assertEqual((root / 'VERSION').read_text(), '2.99.0\n')
+                self.assertEqual(swagger.read_text(), canonical_spec)
                 if api_version == 'v1beta1':
                     self.assertNotEqual(result.returncode, 0)
-                    self.assertIn('Only the v2beta1 API is supported.',
+                    self.assertIn('Generate the canonical v2 API;',
                                   result.stderr)
                     self.assertFalse(output.exists())
                     continue

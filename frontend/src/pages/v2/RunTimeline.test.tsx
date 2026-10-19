@@ -6,12 +6,12 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { getContrastRatio } from '@mui/material/styles';
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2PipelineTask, V2Run } from 'src/apisv2/run';
 import RunTimeline, { RunTimelineProps } from './RunTimeline';
 
 const base = Date.parse('2026-01-01T00:00:00Z');
 const at = (seconds: number) => new Date(base + seconds * 1000);
-const run: V2beta1Run = {
+const run: V2Run = {
   run_id: 'run',
   state: 'SUCCEEDED',
   created_at: at(0),
@@ -21,8 +21,8 @@ const task = (
   name: string,
   start: number,
   finish?: number,
-  overrides: Partial<V2beta1PipelineTask> = {},
-): V2beta1PipelineTask => ({
+  overrides: Partial<V2PipelineTask> = {},
+): V2PipelineTask => ({
   task_id: name,
   name,
   display_name: name,
@@ -309,7 +309,7 @@ it('updates active elapsed times, freezes terminal tasks, and cleans up the cloc
   vi.useFakeTimers();
   vi.setSystemTime(at(60));
   const activeTask = task('Active', 0, undefined, { state: 'RUNNING' });
-  const runningRun: V2beta1Run = { ...run, state: 'RUNNING', finished_at: undefined };
+  const runningRun: V2Run = { ...run, state: 'RUNNING', finished_at: undefined };
   const { update, unmount } = setup({ run: runningRun, tasks: [activeTask] });
   const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   expect(within(chart).getByRole('button', { name: 'Select Active, 1m 00s' })).toBeInTheDocument();
