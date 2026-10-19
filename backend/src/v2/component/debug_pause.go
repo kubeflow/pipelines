@@ -17,6 +17,7 @@ package component
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -63,6 +64,13 @@ const (
 const (
 	customPropDebugPauseBarrier         = "debug_pause_barrier"
 	customPropDebugPauseResumeRequested = "debug_pause_resume_requested"
+	// customPropDebugPauseInstance fences each pause attempt: a unique ID
+	// generated per Pause() call and published alongside the barrier. It
+	// lets a publish retry tell "my write already committed" apart from
+	// "residue of an earlier pause epoch" (e.g. a dead pod's barrier at the
+	// same value), without which a retry could either erase an accepted
+	// resume or honor a stale one.
+	customPropDebugPauseInstance = "debug_pause_instance"
 )
 
 // defaultDebugPauseMaxDuration bounds how long a launcher will wait at a
@@ -122,22 +130,35 @@ func (c DebugPauseConfig) Enabled() bool {
 // PauseSignaler is the seam between the pause loop and however it talks to
 // the KFP API server. Abstracting this out lets debugPauseLoop be unit
 // tested with a mock, without a real network call or a running API server.
+// PauseState is the pause overlay as currently persisted on the task
+// record: which barrier is parked, which pause instance published it, and
+// whether resume has been requested.
+type PauseState struct {
+	Barrier         DebugPauseBarrier
+	Instance        string
+	ResumeRequested bool
+}
+
+// PauseSignaler is the seam between the pause loop and however it talks to
+// the KFP API server. Abstracting this out lets debugPauseLoop be unit
+// tested with a mock, without a real network call or a running API server.
 type PauseSignaler interface {
 	// PublishBarrier records that the task is now parked at the given
-	// barrier. Implementations must merge into the task's existing
-	// StatusMetadata.CustomProperties rather than overwrite it wholesale -
-	// UpdateTask replaces the whole StatusMetadata field, so a naive
-	// overwrite here would silently erase any other custom properties
-	// already recorded on the task (e.g. a prior failure message).
-	PublishBarrier(ctx context.Context, barrier DebugPauseBarrier) error
+	// barrier by this pause instance. Implementations must merge into the
+	// task's existing StatusMetadata.CustomProperties rather than overwrite
+	// it wholesale - UpdateTask replaces the whole StatusMetadata field, so
+	// a naive overwrite here would silently erase any other custom
+	// properties already recorded on the task (e.g. a prior failure
+	// message).
+	PublishBarrier(ctx context.Context, barrier DebugPauseBarrier, instance string) error
 
-	// IsResumeRequested reports whether a resume has been requested for
-	// this task since it parked.
-	IsResumeRequested(ctx context.Context) (bool, error)
+	// ReadPauseState returns the pause overlay currently persisted on the
+	// task record.
+	ReadPauseState(ctx context.Context) (PauseState, error)
 
-	// ClearBarrier removes the pause and resume-requested markers, best
-	// effort, once the launcher is done waiting (whether it was released
-	// normally or is exiting due to cancellation/timeout).
+	// ClearBarrier removes the pause, instance, and resume-requested
+	// markers, best effort, once the launcher is done waiting (whether it
+	// was released normally or is exiting due to cancellation/timeout).
 	ClearBarrier(ctx context.Context) error
 }
 
@@ -155,40 +176,42 @@ func NewKFPAPIPauseSignaler(client kfpapi.API, runID, taskID string) PauseSignal
 	return &kfpAPIPauseSignaler{client: client, runID: runID, taskID: taskID}
 }
 
-func (s *kfpAPIPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugPauseBarrier) error {
+func (s *kfpAPIPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugPauseBarrier, instance string) error {
 	// The resume flag must be reset at every publish, not just by
 	// ClearBarrier: ClearBarrier is best effort, so a stale "true" from a
 	// previous barrier can survive if its UpdateTask failed - and would
-	// otherwise release this barrier on the very first poll.
+	// otherwise release this barrier on the very first poll. The instance
+	// ID makes this write identifiable so a retry can reconcile "did my
+	// publish commit?" instead of blindly rewriting (which would erase a
+	// resume accepted between a committed write and its lost response).
 	return s.mergeCustomProperties(ctx, map[string]*structpb.Value{
 		customPropDebugPauseBarrier:         structpb.NewStringValue(string(barrier)),
 		customPropDebugPauseResumeRequested: structpb.NewStringValue("false"),
+		customPropDebugPauseInstance:        structpb.NewStringValue(instance),
 	})
 }
 
-func (s *kfpAPIPauseSignaler) IsResumeRequested(ctx context.Context) (bool, error) {
+func (s *kfpAPIPauseSignaler) ReadPauseState(ctx context.Context) (PauseState, error) {
 	task, err := s.client.GetTask(ctx, &apiV2beta1.GetTaskRequest{
 		TaskId: s.taskID,
 		RunId:  s.runID,
 	})
 	if err != nil {
-		return false, err
+		return PauseState{}, err
 	}
 	props := task.GetStatusMetadata().GetCustomProperties()
-	if props == nil {
-		return false, nil
-	}
-	v, ok := props[customPropDebugPauseResumeRequested]
-	if !ok {
-		return false, nil
-	}
-	return v.GetStringValue() == "true", nil
+	return PauseState{
+		Barrier:         DebugPauseBarrier(props[customPropDebugPauseBarrier].GetStringValue()),
+		Instance:        props[customPropDebugPauseInstance].GetStringValue(),
+		ResumeRequested: props[customPropDebugPauseResumeRequested].GetStringValue() == "true",
+	}, nil
 }
 
 func (s *kfpAPIPauseSignaler) ClearBarrier(ctx context.Context) error {
 	return s.mergeCustomProperties(ctx, map[string]*structpb.Value{
 		customPropDebugPauseBarrier:         structpb.NewStringValue(string(debugPauseBarrierNone)),
 		customPropDebugPauseResumeRequested: structpb.NewStringValue("false"),
+		customPropDebugPauseInstance:        structpb.NewStringValue(""),
 	})
 }
 
@@ -267,12 +290,20 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 	waitCtx, waitCancel := context.WithTimeout(ctx, cfg.MaxDuration)
 	defer waitCancel()
 
+	// A unique ID per Pause() call, published alongside the barrier. It
+	// lets a retry distinguish "my earlier publish actually committed and
+	// only its response was lost" (barrier AND instance match ours - safe
+	// to stop republishing without erasing a resume accepted meanwhile)
+	// from "the row holds an older epoch's pause" (instance differs -
+	// republish to fence it and reset its stale resume flag).
+	instance := fmt.Sprintf("pause-%d", time.Now().UnixNano())
+
 	// Publishing the barrier is what makes the pause visible and resumable,
 	// and it resets any stale resume flag - so a failed publish is retried
 	// on every poll tick, and resume signals are not honored until the
 	// barrier has actually been published.
 	published := false
-	if err := signaler.PublishBarrier(waitCtx, barrier); err != nil {
+	if err := signaler.PublishBarrier(waitCtx, barrier, instance); err != nil {
 		glog.Warningf("debug pause: failed to publish barrier %q, parking anyway and retrying: %v", barrier, err)
 	} else {
 		published = true
@@ -307,17 +338,7 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 			return waitCtx.Err()
 
 		case <-ticker.C:
-			if !published {
-				if err := signaler.PublishBarrier(waitCtx, barrier); err != nil {
-					consecutivePollErrors++
-					logDebugPausePollError(barrier, consecutivePollErrors, err)
-					continue
-				}
-				published = true
-				glog.Infof("debug pause: barrier %q published after retry", barrier)
-			}
-
-			resumed, err := signaler.IsResumeRequested(waitCtx)
+			state, err := signaler.ReadPauseState(waitCtx)
 			if err != nil {
 				consecutivePollErrors++
 				logDebugPausePollError(barrier, consecutivePollErrors, err)
@@ -325,7 +346,28 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 			}
 			consecutivePollErrors = 0
 
-			if resumed {
+			if !published {
+				if state.Barrier == barrier && state.Instance == instance {
+					// The earlier publish did commit - only its response was
+					// lost. Republishing would reset resume_requested and
+					// could erase a resume already accepted for this pause.
+					published = true
+					glog.Infof("debug pause: barrier %q publish confirmed by reconcile", barrier)
+				} else {
+					if err := signaler.PublishBarrier(waitCtx, barrier, instance); err != nil {
+						consecutivePollErrors++
+						logDebugPausePollError(barrier, consecutivePollErrors, err)
+						continue
+					}
+					published = true
+					glog.Infof("debug pause: barrier %q published after retry", barrier)
+					// The state read predates this write (which reset the
+					// resume flag); get a fresh read next tick.
+					continue
+				}
+			}
+
+			if state.ResumeRequested {
 				glog.Infof("debug pause: resume observed at barrier %q, continuing", barrier)
 				return nil
 			}
@@ -405,6 +447,7 @@ func clearDebugPauseProperties(metadata *apiV2beta1.PipelineTask_StatusMetadata)
 	}
 	props[customPropDebugPauseBarrier] = structpb.NewStringValue(string(debugPauseBarrierNone))
 	props[customPropDebugPauseResumeRequested] = structpb.NewStringValue("false")
+	props[customPropDebugPauseInstance] = structpb.NewStringValue("")
 	metadata.CustomProperties = props
 	return metadata
 }

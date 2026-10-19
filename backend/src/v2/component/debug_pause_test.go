@@ -27,63 +27,84 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// errLostResponse simulates a publish whose write committed on the server
+// but whose response never reached the caller - the failure mode that makes
+// a blind republish dangerous (it would reset a resume flag that may
+// already have been accepted for this pause).
+var errLostResponse = errors.New("lost response after commit")
+
 // mockPauseSignaler is a hand-rolled PauseSignaler for testing Pause()'s
-// control flow without any real network call. Each behavior is independently
-// configurable so tests can exercise the specific failure modes Pause() is
-// required to handle.
+// control flow without any real network call. It simulates the "server"
+// side of the task record: a failed publish does not commit, a successful
+// (or lost-response) publish does. This lets tests exercise the reconcile
+// path - distinguishing "my publish already landed" from "the row holds an
+// older epoch".
 type mockPauseSignaler struct {
 	mu sync.Mutex
 
-	// publishErrs is consumed one error per PublishBarrier call, like
-	// resumeErrs; publishErr applies once the sequence is exhausted (or when
-	// no sequence is given).
+	// server is the pause state the task record currently holds.
+	server PauseState
+
+	// publishErrs is consumed one error per PublishBarrier call; publishErr
+	// applies once the sequence is exhausted. errLostResponse commits the
+	// write but reports failure; any other error fails before committing.
 	publishErrs []error
 	publishErr  error
 	publishes   []DebugPauseBarrier
 
-	// resumeSequence is consumed one value per IsResumeRequested call; the
-	// last value is reused once exhausted. This lets a test express "not
-	// resumed for the first N polls, then resumed" concisely.
-	resumeSequence []bool
-	resumeErrs     []error
-	pollCount      int
+	// readErrs is consumed one error per ReadPauseState call; readErr
+	// applies once exhausted.
+	readErrs  []error
+	readErr   error
+	readCount int
+
+	// resumeAfter: on the Nth successful read (0-indexed) the server flips
+	// ResumeRequested to true - modelling the user's click landing at a
+	// particular moment. -1 means never.
+	resumeAfter int
 
 	clearErr    error
 	clearCalled bool
 }
 
-func (m *mockPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugPauseBarrier) error {
+func (m *mockPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugPauseBarrier, instance string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	idx := len(m.publishes)
 	m.publishes = append(m.publishes, barrier)
-	if idx < len(m.publishErrs) {
-		return m.publishErrs[idx]
-	}
-	return m.publishErr
-}
-
-func (m *mockPauseSignaler) IsResumeRequested(ctx context.Context) (bool, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	idx := m.pollCount
-	m.pollCount++
 
 	var err error
-	if idx < len(m.resumeErrs) {
-		err = m.resumeErrs[idx]
+	if idx < len(m.publishErrs) {
+		err = m.publishErrs[idx]
+	} else {
+		err = m.publishErr
 	}
-	if err != nil {
-		return false, err
+	if err != nil && !errors.Is(err, errLostResponse) {
+		return err
+	}
+	// The write commits: barrier + instance + resume flag reset, atomically.
+	m.server = PauseState{Barrier: barrier, Instance: instance, ResumeRequested: false}
+	return err
+}
+
+func (m *mockPauseSignaler) ReadPauseState(ctx context.Context) (PauseState, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	idx := m.readCount
+	m.readCount++
+
+	if idx < len(m.readErrs) {
+		if err := m.readErrs[idx]; err != nil {
+			return PauseState{}, err
+		}
+	} else if m.readErr != nil {
+		return PauseState{}, m.readErr
 	}
 
-	if len(m.resumeSequence) == 0 {
-		return false, nil
+	if m.resumeAfter >= 0 && idx >= m.resumeAfter {
+		m.server.ResumeRequested = true
 	}
-	if idx < len(m.resumeSequence) {
-		return m.resumeSequence[idx], nil
-	}
-	return m.resumeSequence[len(m.resumeSequence)-1], nil
+	return m.server, nil
 }
 
 func (m *mockPauseSignaler) ClearBarrier(ctx context.Context) error {
@@ -93,10 +114,10 @@ func (m *mockPauseSignaler) ClearBarrier(ctx context.Context) error {
 	return m.clearErr
 }
 
-func (m *mockPauseSignaler) pollCountSafe() int {
+func (m *mockPauseSignaler) readCountSafe() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.pollCount
+	return m.readCount
 }
 
 // stallingPauseSignaler simulates an API server whose calls accept the
@@ -107,12 +128,12 @@ type stallingPauseSignaler struct {
 	mockPauseSignaler
 }
 
-func (m *stallingPauseSignaler) IsResumeRequested(ctx context.Context) (bool, error) {
+func (m *stallingPauseSignaler) ReadPauseState(ctx context.Context) (PauseState, error) {
 	m.mu.Lock()
-	m.pollCount++
+	m.readCount++
 	m.mu.Unlock()
 	<-ctx.Done()
-	return false, ctx.Err()
+	return PauseState{}, ctx.Err()
 }
 
 func fastTestConfig() DebugPauseConfig {
@@ -124,16 +145,16 @@ func fastTestConfig() DebugPauseConfig {
 }
 
 func TestPause_ResumesOnFirstPollThatSaysYes(t *testing.T) {
-	signaler := &mockPauseSignaler{resumeSequence: []bool{false, false, true}}
+	signaler := &mockPauseSignaler{resumeAfter: 2}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.NoError(t, err)
 	require.Equal(t, []DebugPauseBarrier{DebugPauseBarrierBefore}, signaler.publishes)
 	require.True(t, signaler.clearCalled, "barrier must be cleared once resumed")
-	require.GreaterOrEqual(t, signaler.pollCountSafe(), 3)
+	require.GreaterOrEqual(t, signaler.readCountSafe(), 3)
 }
 
 func TestPause_NoOpWhenBarrierIsNone(t *testing.T) {
-	signaler := &mockPauseSignaler{}
+	signaler := &mockPauseSignaler{resumeAfter: -1}
 	err := Pause(context.Background(), signaler, debugPauseBarrierNone, fastTestConfig())
 	require.NoError(t, err)
 	require.Empty(t, signaler.publishes, "must not publish or poll when no barrier applies")
@@ -147,8 +168,8 @@ func TestPause_NoOpWhenBarrierIsNone(t *testing.T) {
 // barrier is actually visible (which also resets any stale resume flag).
 func TestPause_PublishFailuresStillParks(t *testing.T) {
 	signaler := &mockPauseSignaler{
-		publishErrs:    []error{errors.New("api server unreachable"), errors.New("still down")},
-		resumeSequence: []bool{false, true},
+		publishErrs: []error{errors.New("api server unreachable"), errors.New("still down")},
+		resumeAfter: 4,
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.NoError(t, err, "a publish failure must not prevent parking or resuming")
@@ -163,18 +184,19 @@ func TestPause_PublishFailuresStillParks(t *testing.T) {
 // first; publishing resets the flag, after which a resume read is trusted.
 func TestPause_ResumeNotHonoredBeforePublishSucceeds(t *testing.T) {
 	signaler := &mockPauseSignaler{
-		publishErrs: []error{errors.New("api server unreachable")},
 		// The record already reads resume_requested=true (stale). If Pause
 		// honored it before republishing, it would return after a single
 		// publish attempt.
-		resumeSequence: []bool{true},
+		server:      PauseState{ResumeRequested: true},
+		publishErrs: []error{errors.New("api server unreachable")},
+		resumeAfter: 2,
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.NoError(t, err)
 	require.Len(t, signaler.publishes, 2,
 		"resume must not release the barrier until a republish lands and resets the flag")
-	require.Equal(t, 1, signaler.pollCountSafe(),
-		"the stale flag must never be polled while the barrier is unpublished")
+	require.Equal(t, 3, signaler.readCountSafe(),
+		"the stale flag must never be trusted while the barrier is unpublished")
 }
 
 // TestPause_PermanentPublishFailureTimesOut covers a publish that never
@@ -183,8 +205,8 @@ func TestPause_ResumeNotHonoredBeforePublishSucceeds(t *testing.T) {
 // surfaces the failure.
 func TestPause_PermanentPublishFailureTimesOut(t *testing.T) {
 	signaler := &mockPauseSignaler{
-		publishErr:     errors.New("api server unreachable"),
-		resumeSequence: []bool{true},
+		publishErr:  errors.New("api server unreachable"),
+		resumeAfter: -1,
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.Error(t, err)
@@ -193,14 +215,49 @@ func TestPause_PermanentPublishFailureTimesOut(t *testing.T) {
 	require.True(t, signaler.clearCalled, "best-effort clear still runs on timeout")
 }
 
+// TestPause_LostPublishResponsePreservesResume reproduces the
+// committed-write / lost-response race: the publish lands on the server but
+// its response never arrives, so the launcher believes it failed. If a user
+// resumes before the retry, republishing would erase that accepted flag and
+// the task would sit until timeout. Reconciling on the published instance
+// ID lets the loop detect its own committed write and never republish.
+func TestPause_LostPublishResponsePreservesResume(t *testing.T) {
+	signaler := &mockPauseSignaler{
+		publishErrs: []error{errLostResponse}, // commits, reports failure
+		resumeAfter: 0,                        // resume already requested on first read
+	}
+	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
+	require.NoError(t, err, "a resume accepted for this pause must release it")
+	require.Len(t, signaler.publishes, 1,
+		"a committed publish must never be republished - republishing would erase the accepted resume")
+	require.True(t, signaler.clearCalled)
+}
+
+// TestPause_StaleEpochDoesNotBlockRepublish is the other side of the fence:
+// the row holds a barrier at our value but published by a dead epoch (e.g.
+// a restarted pod's earlier pause). Barrier match alone is not proof our
+// write committed - the instance ID must also match, or the stale resume
+// flag would be honored without a republish/reset.
+func TestPause_StaleEpochDoesNotBlockRepublish(t *testing.T) {
+	signaler := &mockPauseSignaler{
+		server:      PauseState{Barrier: DebugPauseBarrierBefore, Instance: "dead-epoch", ResumeRequested: true},
+		publishErrs: []error{errors.New("api server unreachable")}, // ours never commits
+		resumeAfter: 2,
+	}
+	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
+	require.NoError(t, err)
+	require.Len(t, signaler.publishes, 2,
+		"a barrier published by a dead epoch must be republished, resetting its stale resume flag")
+}
+
 // TestPause_PollErrorsDoNotAbortWait verifies that transient poll errors are
 // tolerated - the launcher keeps waiting and retrying rather than giving up
 // (which would either silently release or wedge the pause).
 func TestPause_PollErrorsDoNotAbortWait(t *testing.T) {
 	flaky := errors.New("transient network error")
 	signaler := &mockPauseSignaler{
-		resumeErrs:     []error{flaky, flaky, flaky, nil, nil},
-		resumeSequence: []bool{false, false, false, false, true},
+		readErrs:    []error{flaky, flaky, flaky},
+		resumeAfter: 4,
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierAfter, fastTestConfig())
 	require.NoError(t, err, "poll errors must not cause Pause to give up early")
@@ -212,7 +269,7 @@ func TestPause_PollErrorsDoNotAbortWait(t *testing.T) {
 // duration elapses. This must surface as a real, identifiable failure -
 // not a silent hang.
 func TestPause_SafetyValveTimesOut(t *testing.T) {
-	signaler := &mockPauseSignaler{} // never resumes
+	signaler := &mockPauseSignaler{resumeAfter: -1} // never resumes
 	cfg := DebugPauseConfig{
 		Before:       true,
 		MaxDuration:  30 * time.Millisecond,
@@ -253,7 +310,7 @@ func TestPause_StalledPollIsBoundedBySafetyValve(t *testing.T) {
 // promptly with the context's error, while still attempting a best-effort
 // clear using a fresh, uncanceled context for cleanup.
 func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
-	signaler := &mockPauseSignaler{} // never resumes
+	signaler := &mockPauseSignaler{resumeAfter: -1} // never resumes
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -295,11 +352,13 @@ func TestPublishBarrier_ResetsStaleResumeFlag(t *testing.T) {
 	})
 
 	signaler := NewKFPAPIPauseSignaler(api, "run-1", "task-1")
-	require.NoError(t, signaler.PublishBarrier(context.Background(), DebugPauseBarrierAfter))
+	require.NoError(t, signaler.PublishBarrier(context.Background(), DebugPauseBarrierAfter, "instance-1"))
 
-	resumed, err := signaler.IsResumeRequested(context.Background())
+	state, err := signaler.ReadPauseState(context.Background())
 	require.NoError(t, err)
-	require.False(t, resumed, "publishing a new barrier must reset a stale resume flag")
+	require.False(t, state.ResumeRequested, "publishing a new barrier must reset a stale resume flag")
+	require.Equal(t, DebugPauseBarrierAfter, state.Barrier)
+	require.Equal(t, "instance-1", state.Instance, "the publish must stamp its instance ID on the record")
 }
 
 // TestPause_StaleResumeFlagDoesNotReleaseBarrier reproduces the full scenario
