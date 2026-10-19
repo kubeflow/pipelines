@@ -994,4 +994,311 @@ describe('RuntimeNodeDetailsV2', () => {
     rerender(view(true));
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
   });
+
+  describe('debug-pause Resume banner', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('does not render a Resume banner for a task with no pause barrier set', () => {
+      renderTask(createTask({ state: PipelineTaskTaskState.RUNNING }));
+      expect(screen.queryByText('Resume')).not.toBeInTheDocument();
+    });
+
+    it('renders a Resume banner describing a "before" barrier', () => {
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+      expect(screen.getByText(/paused before running for debugging/)).toBeInTheDocument();
+      expect(screen.getByText('Resume')).toBeInTheDocument();
+    });
+
+    it('renders a Resume banner describing an "on_error" barrier', () => {
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'on_error' } as { [key: string]: object },
+          },
+        }),
+      );
+      expect(screen.getByText(/paused after failing for debugging/)).toBeInTheDocument();
+    });
+
+    it('calls UpdateTask via task_2 when Resume is clicked, and disables the button while pending', async () => {
+      // Resume refetches the task first, then writes resume_requested into
+      // the fresh custom_properties.
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'after' } as { [key: string]: object },
+          },
+        }),
+      );
+      const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({
+        task_id: TEST_TASK_ID,
+      });
+
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'after' } as { [key: string]: object },
+          },
+        }),
+      );
+
+      const resumeButton = screen.getByText('Resume');
+      fireEvent.click(resumeButton);
+
+      await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(1));
+      expect(updateSpy).toHaveBeenCalledWith(
+        TEST_RUN_ID,
+        TEST_TASK_ID,
+        expect.objectContaining({
+          task_id: TEST_TASK_ID,
+          run_id: TEST_RUN_ID,
+          status_metadata: expect.objectContaining({
+            custom_properties: expect.objectContaining({
+              debug_pause_barrier: 'after',
+              debug_pause_resume_requested: 'true',
+            }),
+          }),
+        }),
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
+      await screen.findByText('Resume requested. The task will continue shortly.');
+    });
+
+    it('shows an error message if the resume request fails', async () => {
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+      vi.spyOn(Apis.runServiceApiV2, 'task_2').mockRejectedValueOnce(
+        new Error('server unreachable'),
+      );
+
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+
+      fireEvent.click(screen.getByText('Resume'));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
+      await screen.findByText(/Failed to request resume: server unreachable/);
+    });
+
+    it('re-enables the Resume button when the task parks at a second barrier', async () => {
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValue(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+      vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValue({
+        task_id: TEST_TASK_ID,
+      });
+
+      const view = (barrier: string | undefined) => (
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            onLayerChange={() => {}}
+            runId={TEST_RUN_ID}
+            element={executionElement}
+            elementRuntimeInfo={{
+              task: createTask({
+                state: PipelineTaskTaskState.RUNNING,
+                status_metadata: {
+                  custom_properties: (barrier ? { debug_pause_barrier: barrier } : {}) as {
+                    [key: string]: object;
+                  },
+                },
+              }),
+            }}
+            namespace={TEST_NAMESPACE}
+          />
+        </CommonTestWrapper>
+      );
+
+      const { rerender } = render(view('before'));
+      fireEvent.click(screen.getByText('Resume'));
+      await screen.findByRole('button', { name: 'Details' });
+      expect(screen.getByText('Resume')).toBeDisabled();
+
+      // Task resumes, runs, then parks again at the "after" barrier.
+      rerender(view(undefined));
+      rerender(view('after'));
+
+      expect(screen.getByText(/paused after running for debugging/)).toBeInTheDocument();
+      expect(screen.getByText('Resume')).toBeEnabled();
+    });
+
+    it('re-enables the Resume button when a different task is selected at the same barrier', async () => {
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValue(
+        createTask({
+          task_id: 'task-a',
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+      const updateSpy = vi
+        .spyOn(Apis.runServiceApiV2, 'task_2')
+        .mockResolvedValue({ task_id: TEST_TASK_ID });
+
+      const view = (taskId: string) => (
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            onLayerChange={() => {}}
+            runId={TEST_RUN_ID}
+            element={executionElement}
+            elementRuntimeInfo={{
+              task: createTask({
+                task_id: taskId,
+                state: PipelineTaskTaskState.RUNNING,
+                status_metadata: {
+                  custom_properties: { debug_pause_barrier: 'before' } as {
+                    [key: string]: object;
+                  },
+                },
+              }),
+            }}
+            namespace={TEST_NAMESPACE}
+          />
+        </CommonTestWrapper>
+      );
+
+      // Task A is resumed at the "before" barrier.
+      const { rerender } = render(view('task-a'));
+      fireEvent.click(screen.getByText('Resume'));
+      await screen.findByRole('button', { name: 'Details' });
+      expect(screen.getByText('Resume')).toBeDisabled();
+
+      // Selecting task B, also paused at "before", must not inherit A's
+      // successful mutation state - B's Resume was never clicked.
+      rerender(view('task-b'));
+
+      expect(screen.getByText(/paused before running for debugging/)).toBeInTheDocument();
+      expect(screen.getByText('Resume')).toBeEnabled();
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy).not.toHaveBeenCalledWith(TEST_RUN_ID, 'task-b', expect.anything());
+    });
+
+    it('refuses to resume when the task has moved to a different barrier', async () => {
+      // The page's snapshot says "before", but the task has since parked at
+      // "after". Writing the stale snapshot back would resurrect the old
+      // barrier AND grant resume to the new one nobody approved.
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'after' } as { [key: string]: object },
+          },
+        }),
+      );
+      const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2');
+
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+
+      fireEvent.click(screen.getByText('Resume'));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
+      await screen.findByText(/moved from the "before" barrier to "after"/);
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it('refuses to resume when the task is no longer paused', async () => {
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+        createTask({ state: PipelineTaskTaskState.RUNNING }),
+      );
+      const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2');
+
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+
+      fireEvent.click(screen.getByText('Resume'));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
+      await screen.findByText(/no longer paused/);
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it('merges the resume flag into freshly fetched custom properties', async () => {
+      // A property written after the page loaded (e.g. driver_logs_uri) must
+      // survive the resume write-back.
+      vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: {
+              debug_pause_barrier: 'before',
+              driver_logs_uri: 's3://pipeline-root/driver-logs.txt',
+            } as unknown as { [key: string]: object },
+          },
+        }),
+      );
+      const updateSpy = vi
+        .spyOn(Apis.runServiceApiV2, 'task_2')
+        .mockResolvedValueOnce({ task_id: TEST_TASK_ID });
+
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+      );
+
+      fireEvent.click(screen.getByText('Resume'));
+
+      await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(1));
+      expect(updateSpy).toHaveBeenCalledWith(
+        TEST_RUN_ID,
+        TEST_TASK_ID,
+        expect.objectContaining({
+          status_metadata: expect.objectContaining({
+            custom_properties: expect.objectContaining({
+              debug_pause_barrier: 'before',
+              debug_pause_resume_requested: 'true',
+              driver_logs_uri: 's3://pipeline-root/driver-logs.txt',
+            }),
+          }),
+        }),
+      );
+    });
+  });
 });

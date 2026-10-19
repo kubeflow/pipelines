@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { DebugPauseBarrier } from 'src/lib/v2/DebugPauseUtils';
 
 export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
 
@@ -36,6 +37,11 @@ export type SubDagFlowElementData = SubDagTaskData & {
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
+  // Set when the task is currently parked at a debug-pause barrier, as
+  // reported live by the launcher (see DebugPauseUtils.ts). This is a
+  // separate overlay on top of `state`, not a replacement for it - the task
+  // continues to report RUNNING while this is set.
+  debugPauseBarrier?: DebugPauseBarrier;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {
