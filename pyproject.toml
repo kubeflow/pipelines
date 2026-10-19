@@ -47,7 +47,7 @@ test = [
   "pytest>=9.0.3",
   "pytest-cov>=7.1.0",
   "pytest-mock",
-  "pytest-randomly>=3.12",
+  "pytest-randomly>=5.0.0",
   "pytest-xdist>=3.8.0",
   "setuptools",
   "wheel",
