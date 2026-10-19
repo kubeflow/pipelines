@@ -14,8 +14,11 @@
 # limitations under the License.
 """Deployment and generation wiring for the supported KFP API."""
 
+import os
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 
 import yaml
@@ -127,8 +130,103 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertNotIn('LEGACY_API_COMPATIBILITY_TESTS', specs)
         self.assertNotIn('Skip(', specs)
         self.assertIn('constants.APIServerTests', specs)
-        self.assertFalse(
-            any('compatibility' in name for name in workflow['jobs']))
+        self.assertNotIn('config.UseLegacyAPIPrefix', specs)
+
+    def test_full_api_version_matrix_is_master_only(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text())
+        job = workflow['jobs']['api-test-versions']
+        self.assertEqual(
+            job['if'],
+            "${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}"
+        )
+        self.assertEqual(job['strategy']['matrix']['api_version'],
+                         ['v2', 'v2beta1'])
+        self.assertEqual(
+            set(job['strategy']['matrix']), {'api_version', 'k8s_version'})
+        self.assertEqual(len(job['strategy']['matrix']['k8s_version']), 1)
+        steps = {step['name']: step for step in job['steps']}
+        self.assertEqual(steps['Deploy KFP']['with']['pipeline_store'],
+                         'database')
+        self.assertEqual(steps['Deploy KFP']['with']['db_type'], 'mysql')
+        tests = steps['Run Tests']
+        self.assertEqual(tests['uses'], './.github/actions/test-and-report')
+        self.assertEqual(tests['with']['test_directory'],
+                         '${{ env.API_TESTS_DIR }}')
+        self.assertEqual(tests['with']['test_label'], '${{ env.TESTS_LABEL }}')
+        self.assertEqual(tests['with']['use_legacy_api_prefix'],
+                         "${{ matrix.api_version == 'v2beta1' }}")
+        self.assertIn('${{ matrix.api_version }}', tests['with']['report_name'])
+
+    def test_shared_action_passes_explicit_legacy_prefix_flag(self):
+        action = yaml.safe_load(
+            (ROOT / '.github/actions/test-and-report/action.yml').read_text())
+        self.assertEqual(action['inputs']['use_legacy_api_prefix']['default'],
+                         'false')
+        step = next(step for step in action['runs']['steps']
+                    if step['name'] == 'Run Tests')
+        self.assertEqual(step['env']['INPUT_USE_LEGACY_API_PREFIX'],
+                         '${{ inputs.use_legacy_api_prefix }}')
+        script = step['run']
+        prefix = script[script.index('API_PREFIX_FLAGS=()'):script
+                        .index('BASE_IMAGE_FLAG=""')]
+        self.assertIn(
+            '"${API_PREFIX_FLAGS[@]}"',
+            next(line for line in script.splitlines()
+                 if line.startswith('go run ')))
+        for enabled, expected in [('true', '-useLegacyAPIPrefix=true'),
+                                  ('false', '')]:
+            with self.subTest(enabled=enabled):
+                result = subprocess.run([
+                    'bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c',
+                    prefix + '\nprintf "%s" "${API_PREFIX_FLAGS[@]}"'
+                ],
+                                        env={
+                                            **os.environ,
+                                            'INPUT_USE_LEGACY_API_PREFIX':
+                                                enabled
+                                        },
+                                        text=True,
+                                        capture_output=True,
+                                        check=True)
+                self.assertEqual(result.stdout, expected)
+
+    def test_generator_rejects_missing_tasks_omitempty_fix(self):
+        generator = (ROOT / 'backend/api/hack/generator.sh').read_text()
+        guard = generator.split("if ! grep -Eq '^[[:space:]]*Tasks", 1)[1]
+        guard = "if ! grep -Eq '^[[:space:]]*Tasks" + guard.split('\nfi',
+                                                                  1)[0] + '\nfi'
+        subprocess.run(['bash', '-eu', '-c', guard],
+                       cwd=ROOT,
+                       env={
+                           **os.environ, 'API_VERSION': 'v2'
+                       },
+                       check=True)
+        for field, succeeds in [
+            ('Tasks []*V2PipelineTask `json:"tasks,omitempty"`', True),
+            ('Tasks []*V2PipelineTask `json:"tasks"`', False),
+            ('Tasks []*ChangedTask `json:"tasks,omitempty"`', False),
+            ('Other string `json:"other"`', False)
+        ]:
+            with self.subTest(
+                    field=field), tempfile.TemporaryDirectory() as directory:
+                model = Path(
+                    directory
+                ) / 'backend/api/v2/go_http_client/run_model/v2_run.go'
+                model.parent.mkdir(parents=True)
+                model.write_text('\t' + field + '\n')
+                result = subprocess.run(['bash', '-eu', '-c', guard],
+                                        cwd=directory,
+                                        env={
+                                            **os.environ, 'API_VERSION': 'v2'
+                                        },
+                                        text=True,
+                                        capture_output=True)
+                self.assertEqual(result.returncode == 0, succeeds)
+                if not succeeds:
+                    self.assertIn(
+                        'update the go-swagger compatibility substitution',
+                        result.stderr)
 
     def test_visualization_service_is_not_deployed_or_generated(self):
         for root in ('manifests/kustomize', '.github/resources/manifests'):

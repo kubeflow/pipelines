@@ -4,20 +4,20 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**batch_update_tasks**](RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
-[**create_task**](RunServiceApi.md#create_task) | **POST** /apis/v2/runs/{run_id}/tasks | Creates a new task.
-[**find_cached_task**](RunServiceApi.md#find_cached_task) | **POST** /apis/v2/tasks:findCached | Finds a cached successful task by namespace and fingerprint.
-[**get_task**](RunServiceApi.md#get_task) | **GET** /apis/v2/runs/{run_id}/tasks/{task_id} | Gets a specific task by ID.
-[**list_tasks**](RunServiceApi.md#list_tasks) | **GET** /apis/v2/runs/{run_id}/tasks | Lists tasks with optional filtering.
-[**run_service_archive_run**](RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
-[**run_service_create_run**](RunServiceApi.md#run_service_create_run) | **POST** /apis/v2/runs | Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
-[**run_service_delete_run**](RunServiceApi.md#run_service_delete_run) | **DELETE** /apis/v2/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
-[**run_service_get_run**](RunServiceApi.md#run_service_get_run) | **GET** /apis/v2/runs/{run_id} | Finds a specific run by ID.
-[**run_service_list_runs**](RunServiceApi.md#run_service_list_runs) | **GET** /apis/v2/runs | Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
-[**run_service_retry_run**](RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2/runs/{run_id}:retry | Re-initiates a failed or terminated run.
-[**run_service_terminate_run**](RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2/runs/{run_id}:terminate | Terminates an active run.
-[**run_service_unarchive_run**](RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
-[**update_task**](RunServiceApi.md#update_task) | **PATCH** /apis/v2/runs/{run_id}/tasks/{task_id} | Updates an existing task.
+[**batch_update_tasks**](RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
+[**create_task**](RunServiceApi.md#create_task) | **POST** /apis/v2beta1/runs/{run_id}/tasks | Creates a new task.
+[**find_cached_task**](RunServiceApi.md#find_cached_task) | **POST** /apis/v2beta1/tasks:findCached | Finds a cached successful task by namespace and fingerprint.
+[**get_task**](RunServiceApi.md#get_task) | **GET** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Gets a specific task by ID.
+[**list_tasks**](RunServiceApi.md#list_tasks) | **GET** /apis/v2beta1/runs/{run_id}/tasks | Lists tasks with optional filtering.
+[**run_service_archive_run**](RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
+[**run_service_create_run**](RunServiceApi.md#run_service_create_run) | **POST** /apis/v2beta1/runs | Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
+[**run_service_delete_run**](RunServiceApi.md#run_service_delete_run) | **DELETE** /apis/v2beta1/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
+[**run_service_get_run**](RunServiceApi.md#run_service_get_run) | **GET** /apis/v2beta1/runs/{run_id} | Finds a specific run by ID.
+[**run_service_list_runs**](RunServiceApi.md#run_service_list_runs) | **GET** /apis/v2beta1/runs | Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
+[**run_service_retry_run**](RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
+[**run_service_terminate_run**](RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
+[**run_service_unarchive_run**](RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
+[**update_task**](RunServiceApi.md#update_task) | **PATCH** /apis/v2beta1/runs/{run_id}/tasks/{task_id} | Updates an existing task.
 
 
 # **batch_update_tasks**

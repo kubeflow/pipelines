@@ -60,6 +60,11 @@ pushd "$(dirname "$0")"
 CURRENT_DIR="$(pwd)"
 DIR="$CURRENT_DIR/$API_VERSION/python_http_client"
 swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json"
+# Keep SDK upgrades usable with servers that predate the stable HTTP prefix.
+python_swagger_file=$(mktemp)
+trap 'rm -f "$python_swagger_file"' EXIT
+jq '.paths |= with_entries(.key |= sub("^/apis/v2/"; "/apis/v2beta1/"))' \
+    "$swagger_file" > "$python_swagger_file"
 
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
@@ -69,7 +74,7 @@ rm -rf "$DIR"
 generator_options=(--global-property apiTests=false,modelTests=false)
 
 echo "Generating python code from swagger json in $DIR."
-java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$swagger_file" -o "$DIR" \
+java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$python_swagger_file" -o "$DIR" \
     "${generator_options[@]}" -c <(echo '{
     "packageName": "'"$package_name"'",
     "packageVersion": "'"$VERSION"'",

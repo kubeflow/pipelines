@@ -33,7 +33,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
@@ -66,6 +65,7 @@ func TestCompatibleRegistrarDoesNotMutateCanonicalHandlers(t *testing.T) {
 	require.Equal(t, original, reflect.ValueOf(descriptor.Methods[0].Handler).Pointer())
 	require.Equal(t, canonicalRPCPackage+"ExperimentService", recorder.descriptors[0].ServiceName)
 	require.Equal(t, legacyRPCPackage+"ExperimentService", recorder.descriptors[1].ServiceName)
+	require.Equal(t, descriptor.Metadata, recorder.descriptors[1].Metadata)
 }
 
 func TestLegacyUsageMetricsDistinguishCanonicalRequests(t *testing.T) {
@@ -236,7 +236,7 @@ func (compatibilityExperimentServer) CreateExperiment(ctx context.Context, reque
 
 func legacyMessage(t *testing.T, name string) *dynamicpb.Message {
 	t.Helper()
-	descriptor, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(legacyRPCPackage + name))
+	descriptor, err := legacyDescriptors(t).FindDescriptorByName(protoreflect.FullName(legacyRPCPackage + name))
 	require.NoError(t, err)
 	message, ok := descriptor.(protoreflect.MessageDescriptor)
 	require.True(t, ok)
@@ -307,14 +307,14 @@ func TestLegacyGRPCValidationAndAuthentication(t *testing.T) {
 	require.Equal(t, int32(2), intercepted.Load())
 }
 
-func TestLegacyGRPCReflection(t *testing.T) {
+func TestGRPCReflectionUsesCanonicalDescriptors(t *testing.T) {
 	connection, _ := compatibilityRPCConnection(t)
 	deadline, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	stream, err := reflectionv1.NewServerReflectionClient(connection).ServerReflectionInfo(deadline)
 	require.NoError(t, err)
 	require.NoError(t, stream.Send(&reflectionv1.ServerReflectionRequest{
-		MessageRequest: &reflectionv1.ServerReflectionRequest_FileContainingSymbol{FileContainingSymbol: legacyRPCPackage + "ExperimentService"},
+		MessageRequest: &reflectionv1.ServerReflectionRequest_FileContainingSymbol{FileContainingSymbol: canonicalRPCPackage + "ExperimentService"},
 	}))
 	response, err := stream.Recv()
 	require.NoError(t, err)
@@ -323,11 +323,18 @@ func TestLegacyGRPCReflection(t *testing.T) {
 	for _, encoded := range response.GetFileDescriptorResponse().FileDescriptorProto {
 		file := new(descriptorpb.FileDescriptorProto)
 		require.NoError(t, proto.Unmarshal(encoded, file))
-		if file.GetName() == "backend/api/v2beta1/experiment.proto" {
+		if file.GetName() == "backend/api/v2/experiment.proto" {
 			found = true
-			require.Equal(t, strings.TrimSuffix(legacyRPCPackage, "."), file.GetPackage())
+			require.Equal(t, strings.TrimSuffix(canonicalRPCPackage, "."), file.GetPackage())
 		}
 	}
-	require.True(t, found, "reflection must expose the frozen legacy contract")
+	require.True(t, found, "reflection must expose the shared canonical contract")
+	require.NoError(t, stream.Send(&reflectionv1.ServerReflectionRequest{
+		MessageRequest: &reflectionv1.ServerReflectionRequest_FileContainingSymbol{FileContainingSymbol: legacyRPCPackage + "ExperimentService"},
+	}))
+	response, err = stream.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, response.GetErrorResponse())
+	require.Equal(t, int32(codes.NotFound), response.GetErrorResponse().GetErrorCode())
 	require.NoError(t, stream.CloseSend())
 }

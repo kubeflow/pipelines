@@ -80,7 +80,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	if *config.UseLegacyAPIPrefix {
-		Expect(testutil.WaitForReady(time.Minute)).To(Succeed(), "Old API server must be ready before upgrade preparation")
+		Expect(testutil.WaitForReady(time.Minute)).To(Succeed(), "Legacy API prefix must be ready before running tests")
 	}
 
 	if *config.KubeflowMode {

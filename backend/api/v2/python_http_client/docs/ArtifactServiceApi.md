@@ -4,13 +4,13 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**batch_create_artifact_tasks**](ArtifactServiceApi.md#batch_create_artifact_tasks) | **POST** /apis/v2/artifact_tasks:batchCreate | Creates multiple artifact-task relationships in bulk.
-[**batch_create_artifacts**](ArtifactServiceApi.md#batch_create_artifacts) | **POST** /apis/v2/artifacts:batchCreate | Creates multiple artifacts in bulk.
-[**create_artifact**](ArtifactServiceApi.md#create_artifact) | **POST** /apis/v2/artifacts | Creates a new artifact.
-[**create_artifact_task**](ArtifactServiceApi.md#create_artifact_task) | **POST** /apis/v2/artifact_tasks | Creates an artifact-task relationship.
-[**get_artifact**](ArtifactServiceApi.md#get_artifact) | **GET** /apis/v2/artifacts/{artifact_id} | Finds a specific Artifact by ID.
-[**list_artifact_tasks**](ArtifactServiceApi.md#list_artifact_tasks) | **GET** /apis/v2/artifact_tasks | Lists artifact-task relationships.
-[**list_artifacts**](ArtifactServiceApi.md#list_artifacts) | **GET** /apis/v2/artifacts | Finds all artifacts within the specified namespace.
+[**batch_create_artifact_tasks**](ArtifactServiceApi.md#batch_create_artifact_tasks) | **POST** /apis/v2beta1/artifact_tasks:batchCreate | Creates multiple artifact-task relationships in bulk.
+[**batch_create_artifacts**](ArtifactServiceApi.md#batch_create_artifacts) | **POST** /apis/v2beta1/artifacts:batchCreate | Creates multiple artifacts in bulk.
+[**create_artifact**](ArtifactServiceApi.md#create_artifact) | **POST** /apis/v2beta1/artifacts | Creates a new artifact.
+[**create_artifact_task**](ArtifactServiceApi.md#create_artifact_task) | **POST** /apis/v2beta1/artifact_tasks | Creates an artifact-task relationship.
+[**get_artifact**](ArtifactServiceApi.md#get_artifact) | **GET** /apis/v2beta1/artifacts/{artifact_id} | Finds a specific Artifact by ID.
+[**list_artifact_tasks**](ArtifactServiceApi.md#list_artifact_tasks) | **GET** /apis/v2beta1/artifact_tasks | Lists artifact-task relationships.
+[**list_artifacts**](ArtifactServiceApi.md#list_artifacts) | **GET** /apis/v2beta1/artifacts | Finds all artifacts within the specified namespace.
 
 
 # **batch_create_artifact_tasks**

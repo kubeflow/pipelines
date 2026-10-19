@@ -14,7 +14,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 )
 
-// withLegacyAPIPrefix opts test clients into the old server's wire routes.
+// withLegacyAPIPrefix opts test clients into the legacy wire routes.
 // It is explicit rather than a 404 fallback, and never changes shared clients.
 func withLegacyAPIPrefix(client *http.Client, basePath string) *http.Client {
 	if !*config.UseLegacyAPIPrefix {

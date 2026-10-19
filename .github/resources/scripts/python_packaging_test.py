@@ -15,6 +15,7 @@
 """Regression coverage for Python packaging and dependency tooling."""
 
 import fnmatch
+import json
 import os
 from pathlib import Path
 import re
@@ -365,6 +366,20 @@ class PythonPackagingTest(unittest.TestCase):
                 version_file.write_text("__version__ = '2.17.0'\n")
                 (root / 'VERSION').write_text('2.99.0\n')
                 (root / 'LICENSE').write_text('test license\n')
+                swagger = api / 'v2/swagger/kfp_api_single_file.swagger.json'
+                swagger.parent.mkdir(parents=True)
+                canonical_spec = json.dumps({
+                    'paths': {
+                        '/apis/v2/healthz': {},
+                        '/apis/v2/runs/{run_id}': {}
+                    },
+                    'definitions': {
+                        'V2Run': {
+                            'type': 'object'
+                        }
+                    },
+                })
+                swagger.write_text(canonical_spec)
                 fake_bin = root / 'bin'
                 fake_bin.mkdir()
                 curl = fake_bin / 'curl'
@@ -377,6 +392,9 @@ class PythonPackagingTest(unittest.TestCase):
                     import sys
                     args = sys.argv[1:]
                     config = json.loads(Path(args[args.index('-c') + 1]).read_text())
+                    spec = json.loads(Path(args[args.index('-i') + 1]).read_text())
+                    assert set(spec['paths']) == {'/apis/v2beta1/healthz', '/apis/v2beta1/runs/{run_id}'}
+                    assert spec['definitions'] == {'V2Run': {'type': 'object'}}
                     output = Path(args[args.index('-o') + 1])
                     models = output.joinpath(*config['packageName'].split('.'), 'models')
                     models.mkdir(parents=True)
@@ -408,6 +426,7 @@ class PythonPackagingTest(unittest.TestCase):
                 )
                 output = api / api_version / 'python_http_client'
                 self.assertEqual((root / 'VERSION').read_text(), '2.99.0\n')
+                self.assertEqual(swagger.read_text(), canonical_spec)
                 if api_version == 'v1beta1':
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn('Generate the canonical v2 API;',

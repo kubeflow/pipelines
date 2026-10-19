@@ -8,9 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	// Register the frozen legacy descriptors for reflection, without loading a
-	// second generated message or client implementation.
-	_ "github.com/kubeflow/pipelines/backend/api/v2beta1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"
@@ -57,9 +54,6 @@ func (r compatibleServiceRegistrar) RegisterService(desc *grpc.ServiceDesc, impl
 			legacyAPIRequests.WithLabelValues("grpc").Inc()
 			return handler(srv, stream)
 		}
-	}
-	if filename, ok := desc.Metadata.(string); ok {
-		legacy.Metadata = strings.Replace(filename, "backend/api/v2/", "backend/api/v2beta1/", 1)
 	}
 	r.ServiceRegistrar.RegisterService(&legacy, impl)
 }

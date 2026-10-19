@@ -12,25 +12,28 @@ services use `kubeflow.pipelines.backend.api.v2`, and generated clients use
   including uploads, health checks, log/artifact streams, and data transfer.
   There are no HTTP redirects or additional upstream requests.
 - The old gRPC service names register the same v2 handlers. Authentication,
-  validation, persistence, and error handling remain shared. A small frozen
-  descriptor snapshot supports legacy reflection and independent wire tests.
+  validation, persistence, and error handling remain shared. Reflection and
+  protobuf `Any` type URLs use canonical v2 names; historical descriptors are
+  loaded only by compatibility tests, never registered by the server.
 - Old Go client import paths and exported names are generated aliases and
   forwarding functions to v2, not duplicate clients or message implementations.
   Recompiled callers use canonical v2 endpoints and protobuf identities;
   already-built clients still work through the legacy server aliases.
 - Generated Python `V2beta1…` imports, including module-qualified imports under
   `kfp.server_api.models.v2beta1_*`, are aliases of the canonical `V2…` classes.
-  They serialize the same fields and use the v2 endpoints.
+  They serialize the same fields. Python clients keep using `/apis/v2beta1`
+  until v2 is available across supported server versions, without fallback.
 - Request/response fields, resource names, filter syntax, and page tokens are
   unchanged. Removed v1 APIs are not supported.
 
 PipelineSpec IR (`api/v2alpha1`) and Kubernetes CRDs
 (`pipelines.kubeflow.org/v2beta1`) have version lifecycles independent of the backend API. Old clients can call the new server;
-new v2 clients require a server that exposes v2 (upgrade the server first).
+UI and Go clients using v2 require a server that exposes v2 (upgrade the server
+first); the Python SDK retains the legacy HTTP prefix.
 
 Make schema changes under `backend/api/v2`. The descriptor compatibility regression
-in `backend/src/apiserver/api_compat_test.go` checks v2 against the frozen
-`v2beta1/legacy_descriptor.pb` snapshot: existing fields, enums, RPCs, and HTTP
+in `backend/src/apiserver/api_contract_test.go` checks v2 against the frozen
+`backend/src/apiserver/testdata/legacy_descriptor.pb` snapshot: existing fields, enums, RPCs, and HTTP
 bindings must remain compatible, but additive v2 changes are allowed.
 Incompatible future changes require explicit compatibility adapters rather than
 changes to that historical baseline. There is no second editable proto tree.

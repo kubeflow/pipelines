@@ -147,7 +147,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifact_tasks:batchCreate', 'POST',
+            '/apis/v2beta1/artifact_tasks:batchCreate', 'POST',
             path_params,
             query_params,
             header_params,
@@ -273,7 +273,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifacts:batchCreate', 'POST',
+            '/apis/v2beta1/artifacts:batchCreate', 'POST',
             path_params,
             query_params,
             header_params,
@@ -399,7 +399,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifacts', 'POST',
+            '/apis/v2beta1/artifacts', 'POST',
             path_params,
             query_params,
             header_params,
@@ -525,7 +525,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifact_tasks', 'POST',
+            '/apis/v2beta1/artifact_tasks', 'POST',
             path_params,
             query_params,
             header_params,
@@ -647,7 +647,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifacts/{artifact_id}', 'GET',
+            '/apis/v2beta1/artifacts/{artifact_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -817,7 +817,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifact_tasks', 'GET',
+            '/apis/v2beta1/artifact_tasks', 'GET',
             path_params,
             query_params,
             header_params,
@@ -963,7 +963,7 @@ class ArtifactServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/artifacts', 'GET',
+            '/apis/v2beta1/artifacts', 'GET',
             path_params,
             query_params,
             header_params,

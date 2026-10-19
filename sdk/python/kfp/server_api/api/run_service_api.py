@@ -158,7 +158,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}/tasks:batchUpdate', 'POST',
+            '/apis/v2beta1/runs/{run_id}/tasks:batchUpdate', 'POST',
             path_params,
             query_params,
             header_params,
@@ -295,7 +295,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}/tasks', 'POST',
+            '/apis/v2beta1/runs/{run_id}/tasks', 'POST',
             path_params,
             query_params,
             header_params,
@@ -421,7 +421,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/tasks:findCached', 'POST',
+            '/apis/v2beta1/tasks:findCached', 'POST',
             path_params,
             query_params,
             header_params,
@@ -554,7 +554,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}/tasks/{task_id}', 'GET',
+            '/apis/v2beta1/runs/{run_id}/tasks/{task_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -711,7 +711,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}/tasks', 'GET',
+            '/apis/v2beta1/runs/{run_id}/tasks', 'GET',
             path_params,
             query_params,
             header_params,
@@ -840,7 +840,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}:archive', 'POST',
+            '/apis/v2beta1/runs/{run_id}:archive', 'POST',
             path_params,
             query_params,
             header_params,
@@ -980,7 +980,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs', 'POST',
+            '/apis/v2beta1/runs', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1109,7 +1109,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}', 'DELETE',
+            '/apis/v2beta1/runs/{run_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -1245,7 +1245,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}', 'GET',
+            '/apis/v2beta1/runs/{run_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1412,7 +1412,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs', 'GET',
+            '/apis/v2beta1/runs', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1541,7 +1541,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}:retry', 'POST',
+            '/apis/v2beta1/runs/{run_id}:retry', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1670,7 +1670,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}:terminate', 'POST',
+            '/apis/v2beta1/runs/{run_id}:terminate', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1799,7 +1799,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}:unarchive', 'POST',
+            '/apis/v2beta1/runs/{run_id}:unarchive', 'POST',
             path_params,
             query_params,
             header_params,
@@ -1947,7 +1947,7 @@ class RunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/runs/{run_id}/tasks/{task_id}', 'PATCH',
+            '/apis/v2beta1/runs/{run_id}/tasks/{task_id}', 'PATCH',
             path_params,
             query_params,
             header_params,

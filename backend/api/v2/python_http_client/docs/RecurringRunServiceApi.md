@@ -4,12 +4,12 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**recurring_run_service_create_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_create_recurring_run) | **POST** /apis/v2/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
-[**recurring_run_service_delete_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_delete_recurring_run) | **DELETE** /apis/v2/recurringruns/{recurring_run_id} | Deletes a recurring run.
-[**recurring_run_service_disable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_disable_recurring_run) | **POST** /apis/v2/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
-[**recurring_run_service_enable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_enable_recurring_run) | **POST** /apis/v2/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.
-[**recurring_run_service_get_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_get_recurring_run) | **GET** /apis/v2/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
-[**recurring_run_service_list_recurring_runs**](RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2/recurringruns | Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.
+[**recurring_run_service_create_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
+[**recurring_run_service_delete_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
+[**recurring_run_service_disable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
+[**recurring_run_service_enable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.
+[**recurring_run_service_get_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
+[**recurring_run_service_list_recurring_runs**](RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.
 
 
 # **recurring_run_service_create_recurring_run**

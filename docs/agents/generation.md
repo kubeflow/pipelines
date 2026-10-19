@@ -3,14 +3,16 @@
 Never edit generated files. Update their source and regenerate them.
 
 `backend/api/v2` is canonical. `backend/api/v2beta1` contains generated Go
-import shims plus a frozen descriptor snapshot for wire compatibility/reflection,
-not another implementation or editable proto tree. Backend generation creates
-its aliases automatically; `make -C backend/api generate-compat` regenerates
-only the Go shims. Never regenerate the frozen snapshot from v2.
-Python generation also creates legacy `V2beta1…` model import aliases.
+import shims, not another implementation or editable proto tree. Backend
+generation creates its aliases automatically; `make -C backend/api generate-compat`
+regenerates only the Go shims, including canonical file-descriptor aliases.
+The checksum-pinned `backend/src/apiserver/testdata/legacy_descriptor.pb` snapshot
+is loaded only by tests into a private registry; never regenerate it from v2.
+Python generation uses the canonical schema but rewrites its temporary input's
+HTTP paths to `/apis/v2beta1` until v2 is available across supported servers.
+It also creates legacy `V2beta1…` model import aliases.
 Backend generation refreshes `docs/_static/kfp_api_single_file.swagger.json`;
-frontend generation writes only selected canonical output trees. Legacy Go file
-descriptor exports resolve to the frozen snapshot, while model aliases use v2.
+frontend generation writes only selected canonical output trees.
 Do not rename the independent PipelineSpec IR or Kubernetes CRD versions.
 
 | Output | Source | Regenerate |
@@ -40,6 +42,7 @@ Do not rename the independent PipelineSpec IR or Kubernetes CRD versions.
   remains independent. Regenerate the server client after SDK version changes.
 - Go HTTP generation omits unset `Run.tasks` from JSON create bodies: the field
   is an output list and older servers reject it even when its value is null.
+  The generator asserts the resulting tag so upstream output changes fail explicitly.
 - Python HTTP client generation omits OpenAPI's unimplemented API/model test
   stubs and unused tox configuration. Real coverage remains in SDK client tests
   and `backend/api/v2/python_http_client_smoke`.

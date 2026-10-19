@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-func TestLegacyFileHandlesMatchFrozenRegistry(t *testing.T) {
+func TestLegacyFileHandlesUseCanonicalRegistry(t *testing.T) {
 	for _, file := range []protoreflect.FileDescriptor{
 		legacy.File_backend_api_v2beta1_artifact_proto,
 		legacy.File_backend_api_v2beta1_auth_proto,
@@ -36,7 +36,7 @@ func TestLegacyFileHandlesMatchFrozenRegistry(t *testing.T) {
 		legacy.File_backend_api_v2beta1_runtime_config_proto,
 	} {
 		t.Run(file.Path(), func(t *testing.T) {
-			require.Equal(t, protoreflect.FullName("kubeflow.pipelines.backend.api.v2beta1"), file.Package())
+			require.Equal(t, protoreflect.FullName("kubeflow.pipelines.backend.api.v2"), file.Package())
 			registered, err := protoregistry.GlobalFiles.FindFileByPath(file.Path())
 			require.NoError(t, err)
 			require.Same(t, registered, file)
@@ -49,8 +49,8 @@ func TestLegacyGoModelsAreCanonicalAliases(t *testing.T) {
 	require.IsType(t, new(canonical.Experiment), old)
 	require.Equal(t, canonical.Experiment_ARCHIVED, legacy.Experiment_ARCHIVED)
 	require.Equal(t, canonical.ExperimentService_CreateExperiment_FullMethodName, legacy.ExperimentService_CreateExperiment_FullMethodName)
-	// Recompiled Go aliases have canonical protobuf identity; frozen clients
-	// still use legacy method names and descriptors at the server boundary.
+	// Recompiled Go aliases have canonical protobuf identity; already-built
+	// clients can still invoke legacy method names with their own descriptors.
 	require.Equal(t, "kubeflow.pipelines.backend.api.v2.Experiment", string(old.ProtoReflect().Descriptor().FullName()))
 }
 

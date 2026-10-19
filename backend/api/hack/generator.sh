@@ -161,6 +161,11 @@ sed -i -- 's/Tags map\[string\]string `json:"tags,omitempty"`/Tags map[string]st
 # older v2beta1 servers reject even null values of this newer field.
 sed -i -- 's/Tasks \[\]\*V2PipelineTask `json:"tasks"`/Tasks []*V2PipelineTask `json:"tasks,omitempty"`/g' \
     backend/api/${API_VERSION}/go_http_client/run_model/${API_VERSION}_run.go
+if ! grep -Eq '^[[:space:]]*Tasks \[\]\*V2PipelineTask `json:"tasks,omitempty"`$' \
+    backend/api/${API_VERSION}/go_http_client/run_model/${API_VERSION}_run.go; then
+    echo 'Generated Run.tasks must have json:"tasks,omitempty"; update the go-swagger compatibility substitution.' >&2
+    exit 1
+fi
 
 # Generate legacy import shims from the canonical implementation.
 go run ./backend/api/hack/generate_compat

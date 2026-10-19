@@ -143,7 +143,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/experiments/{experiment_id}:archive', 'POST',
+            '/apis/v2beta1/experiments/{experiment_id}:archive', 'POST',
             path_params,
             query_params,
             header_params,
@@ -269,7 +269,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/experiments', 'POST',
+            '/apis/v2beta1/experiments', 'POST',
             path_params,
             query_params,
             header_params,
@@ -391,7 +391,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/experiments/{experiment_id}', 'DELETE',
+            '/apis/v2beta1/experiments/{experiment_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -513,7 +513,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/experiments/{experiment_id}', 'GET',
+            '/apis/v2beta1/experiments/{experiment_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -659,7 +659,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/experiments', 'GET',
+            '/apis/v2beta1/experiments', 'GET',
             path_params,
             query_params,
             header_params,
@@ -781,7 +781,7 @@ class ExperimentServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/experiments/{experiment_id}:unarchive', 'POST',
+            '/apis/v2beta1/experiments/{experiment_id}:unarchive', 'POST',
             path_params,
             query_params,
             header_params,

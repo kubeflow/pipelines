@@ -591,10 +591,11 @@ class TestClient(parameterized.TestCase):
 
     @patch('kfp.client.client.time.sleep')
     @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
-    def test_healthz_missing_v2_fails_without_retry(self, get_healthz, sleep):
+    def test_healthz_missing_api_fails_without_retry(self, get_healthz, sleep):
         get_healthz.side_effect = kfp.server_api.ApiException(status=404)
-        with self.assertRaisesRegex(RuntimeError,
-                                    r'/apis/v2/healthz.*upgrade the backend'):
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'/apis/v2beta1/healthz.*Verify the client host/base path'):
             self.client.get_kfp_healthz()
         get_healthz.assert_called_once()
         sleep.assert_not_called()

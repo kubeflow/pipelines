@@ -101,7 +101,7 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
             [
                 {
                     "method": "POST",
-                    "path": "/apis/v2/artifact_tasks",
+                    "path": "/apis/v2beta1/artifact_tasks",
                     "body": create_body,
                     "query_params": [],
                     "headers": {
@@ -113,7 +113,7 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
                 },
                 {
                     "method": "GET",
-                    "path": "/apis/v2/artifact_tasks",
+                    "path": "/apis/v2beta1/artifact_tasks",
                     "body": None,
                     "query_params": [
                         ("task_ids", ["task-1"]),
@@ -145,7 +145,7 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
             [
                 {
                     "method": "POST",
-                    "path": "/apis/v2/runs/run-1/tasks",
+                    "path": "/apis/v2beta1/runs/run-1/tasks",
                     "body": create_body,
                     "query_params": [],
                     "headers": {
@@ -157,7 +157,7 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
                 },
                 {
                     "method": "GET",
-                    "path": "/apis/v2/runs/run-1/tasks/task-1",
+                    "path": "/apis/v2beta1/runs/run-1/tasks/task-1",
                     "body": None,
                     "query_params": [],
                     "headers": {
@@ -168,7 +168,7 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
                 },
                 {
                     "method": "GET",
-                    "path": "/apis/v2/runs/run-1/tasks",
+                    "path": "/apis/v2beta1/runs/run-1/tasks",
                     "body": None,
                     "query_params": [("page_size", 10)],
                     "headers": {
@@ -179,7 +179,7 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
                 },
                 {
                     "method": "POST",
-                    "path": "/apis/v2/runs/run-1/tasks:batchUpdate",
+                    "path": "/apis/v2beta1/runs/run-1/tasks:batchUpdate",
                     "body": batch_body,
                     "query_params": [],
                     "headers": {

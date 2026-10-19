@@ -132,7 +132,7 @@ class DummyFilterServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/filters', 'GET',
+            '/apis/v2beta1/filters', 'GET',
             path_params,
             query_params,
             header_params,

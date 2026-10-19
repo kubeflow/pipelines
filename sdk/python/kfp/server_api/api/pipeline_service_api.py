@@ -147,7 +147,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines', 'POST',
+            '/apis/v2beta1/pipelines', 'POST',
             path_params,
             query_params,
             header_params,
@@ -273,7 +273,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/create', 'POST',
+            '/apis/v2beta1/pipelines/create', 'POST',
             path_params,
             query_params,
             header_params,
@@ -410,7 +410,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_id}/versions', 'POST',
+            '/apis/v2beta1/pipelines/{pipeline_id}/versions', 'POST',
             path_params,
             query_params,
             header_params,
@@ -539,7 +539,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_id}', 'DELETE',
+            '/apis/v2beta1/pipelines/{pipeline_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -672,7 +672,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'DELETE',
+            '/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -794,7 +794,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_id}', 'GET',
+            '/apis/v2beta1/pipelines/{pipeline_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -923,7 +923,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/names/{name}', 'GET',
+            '/apis/v2beta1/pipelines/names/{name}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1056,7 +1056,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'GET',
+            '/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1206,7 +1206,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_id}/versions', 'GET',
+            '/apis/v2beta1/pipelines/{pipeline_id}/versions', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1352,7 +1352,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines', 'GET',
+            '/apis/v2beta1/pipelines', 'GET',
             path_params,
             query_params,
             header_params,
@@ -1489,7 +1489,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline.pipeline_id}', 'PATCH',
+            '/apis/v2beta1/pipelines/{pipeline.pipeline_id}', 'PATCH',
             path_params,
             query_params,
             header_params,
@@ -1637,7 +1637,7 @@ class PipelineServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}', 'PATCH',
+            '/apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id}', 'PATCH',
             path_params,
             query_params,
             header_params,

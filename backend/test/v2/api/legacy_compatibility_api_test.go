@@ -108,7 +108,6 @@ var _ = Describe("Legacy API compatibility on the deployed server >", Serial, La
 	var diagnosticRunID string
 
 	BeforeEach(func(ctx SpecContext) {
-		Expect(*config.UseLegacyAPIPrefix).To(BeFalse(), "do not use old-server preparation mode to test parallel route support")
 		var tlsConfig *tls.Config
 		if *config.TLSEnabled {
 			var err error

@@ -175,7 +175,7 @@ func legacyFileCompatible(old, current protoreflect.FileDescriptor) error {
 
 func TestLegacyAPIContractCompatibility(t *testing.T) {
 	files := 0
-	protoregistry.GlobalFiles.RangeFiles(func(file protoreflect.FileDescriptor) bool {
+	legacyDescriptors(t).RangeFiles(func(file protoreflect.FileDescriptor) bool {
 		if !strings.HasPrefix(file.Path(), "backend/api/v2beta1/") {
 			return true
 		}

@@ -167,8 +167,15 @@ This command does not create or upgrade a cluster. It does create a few
 short-lived KFP resources and execute one small pipeline. For TLS, supply an
 HTTPS `-apiUrl`, `-tlsEnabled=true`, and `-caCertPath`; for multi-user mode use
 `-multiUserMode=true` and the existing user namespace/service-account flags.
-Do **not** set `-useLegacyAPIPrefix`: that flag tests preparation on an old
-server, whereas these specs require both prefixes on the same deployment.
+These specs always use both literal prefixes on the same deployment,
+independently of `-useLegacyAPIPrefix`. That flag directs the rest of the API
+suite through `/apis/v2beta1` and also supports old-server upgrade preparation.
+
+On pushes to master, `api-server-tests.yml` runs the full `ApiServerTests` suite
+with an API-version matrix (`v2` and `v2beta1`) against a representative standalone
+MySQL deployment. This adds no PR-time clusters. Both lanes retain the small
+cross-version smoke above; independent single-prefix runs alone cannot prove
+that resources created through one prefix are readable through the other.
 
 ## Test Coverage
 

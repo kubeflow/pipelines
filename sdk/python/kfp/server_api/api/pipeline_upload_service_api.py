@@ -189,7 +189,7 @@ class PipelineUploadServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/upload', 'POST',
+            '/apis/v2beta1/pipelines/upload', 'POST',
             path_params,
             query_params,
             header_params,
@@ -357,7 +357,7 @@ class PipelineUploadServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/pipelines/upload_version', 'POST',
+            '/apis/v2beta1/pipelines/upload_version', 'POST',
             path_params,
             query_params,
             header_params,

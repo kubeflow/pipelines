@@ -4,7 +4,7 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2/auth | 
+[**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
 
 
 # **auth_service_authorize**

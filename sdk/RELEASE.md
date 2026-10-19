@@ -2,15 +2,13 @@
 
 ## Features
 
-* Backend clients now use the stable `/apis/v2` API and `V2…` models. Upgrade
-  the backend before the SDK. The backend retains `/apis/v2beta1` and legacy
-  gRPC service names as compatibility aliases; Python `V2beta1…` model imports
-  remain aliases of the new models. If `/apis/v2/healthz` returns 404, the SDK
-  fails immediately with backend-upgrade/base-path guidance instead of retrying.
+* The backend's canonical API is now `/apis/v2`, with `V2…` models. The Python
+  SDK keeps calling `/apis/v2beta1` so a routine SDK update does not require a
+  server prefix upgrade. Python `V2beta1…` model imports remain aliases of the
+  new models. New features may still require a matching backend version.
   Operators must finish the API-server rollout before updating the UI,
-  persistence agent, scheduled-workflow controller, driver/launcher images, or
-  SDK clients; a single simultaneous rollout can temporarily strand new clients
-  on old API replicas. See [rollout order](../docs/reference/version-compatibility.md#rollout-order).
+  persistence agent, scheduled-workflow controller, or driver/launcher images,
+  which use v2. See [rollout order](../docs/reference/version-compatibility.md#rollout-order).
 * The accompanying backend enables live pod-log following for direct API callers
   through `GET /apis/v2/runs/{run_id}/nodes/{node_id}/log?follow=true`.
   Omitting `follow` still returns a snapshot. Clients should set a deadline or

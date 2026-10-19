@@ -4,7 +4,7 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**dummy_filter_service_get_filter**](DummyFilterServiceApi.md#dummy_filter_service_get_filter) | **GET** /apis/v2/filters | 
+[**dummy_filter_service_get_filter**](DummyFilterServiceApi.md#dummy_filter_service_get_filter) | **GET** /apis/v2beta1/filters | 
 
 
 # **dummy_filter_service_get_filter**

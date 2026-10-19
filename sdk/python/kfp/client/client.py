@@ -159,7 +159,7 @@ class Client:
         """Create a new instance of kfp client."""
         warnings.warn(
             'This client requires a Kubeflow Pipelines backend that exposes '
-            'the stable /apis/v2 API. Upgrade the backend before the SDK.',
+            'the v2 pipeline runtime. The SDK uses /apis/v2beta1 for server compatibility.',
             category=FutureWarning)
 
         host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
@@ -474,10 +474,9 @@ class Client:
             except kfp.server_api.ApiException as error:
                 if error.status == 404:
                     raise RuntimeError(
-                        'Backend does not expose /apis/v2/healthz (HTTP 404). '
-                        'Verify the client host/base path; if the backend only '
-                        'serves v2beta1, upgrade the backend before the SDK.'
-                    ) from error
+                        'Backend does not expose /apis/v2beta1/healthz (HTTP 404). '
+                        'Verify the client host/base path and that the backend '
+                        'supports the v2beta1 API.') from error
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
                     f'Failed to get healthz info attempt {count} of {max_attempts}.'

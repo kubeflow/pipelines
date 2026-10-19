@@ -4,18 +4,18 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**pipeline_service_create_pipeline**](PipelineServiceApi.md#pipeline_service_create_pipeline) | **POST** /apis/v2/pipelines | Creates a pipeline.
-[**pipeline_service_create_pipeline_and_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_and_version) | **POST** /apis/v2/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
-[**pipeline_service_create_pipeline_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_version) | **POST** /apis/v2/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
-[**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline) | **DELETE** /apis/v2/pipelines/{pipeline_id} | Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
-[**pipeline_service_delete_pipeline_version**](PipelineServiceApi.md#pipeline_service_delete_pipeline_version) | **DELETE** /apis/v2/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.
-[**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline) | **GET** /apis/v2/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
-[**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name) | **GET** /apis/v2/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
-[**pipeline_service_get_pipeline_version**](PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
-[**pipeline_service_list_pipeline_versions**](PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
-[**pipeline_service_list_pipelines**](PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2/pipelines | Finds all pipelines within a namespace.
-[**pipeline_service_update_pipeline**](PipelineServiceApi.md#pipeline_service_update_pipeline) | **PATCH** /apis/v2/pipelines/{pipeline.pipeline_id} | Updates a pipeline&#39;s mutable fields (display_name, tags).
-[**pipeline_service_update_pipeline_version**](PipelineServiceApi.md#pipeline_service_update_pipeline_version) | **PATCH** /apis/v2/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id} | Updates a pipeline version&#39;s mutable fields (display_name, tags).
+[**pipeline_service_create_pipeline**](PipelineServiceApi.md#pipeline_service_create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
+[**pipeline_service_create_pipeline_and_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
+[**pipeline_service_create_pipeline_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
+[**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+[**pipeline_service_delete_pipeline_version**](PipelineServiceApi.md#pipeline_service_delete_pipeline_version) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.
+[**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline) | **GET** /apis/v2beta1/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
+[**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name) | **GET** /apis/v2beta1/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
+[**pipeline_service_get_pipeline_version**](PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
+[**pipeline_service_list_pipeline_versions**](PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
+[**pipeline_service_list_pipelines**](PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
+[**pipeline_service_update_pipeline**](PipelineServiceApi.md#pipeline_service_update_pipeline) | **PATCH** /apis/v2beta1/pipelines/{pipeline.pipeline_id} | Updates a pipeline&#39;s mutable fields (display_name, tags).
+[**pipeline_service_update_pipeline_version**](PipelineServiceApi.md#pipeline_service_update_pipeline_version) | **PATCH** /apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id} | Updates a pipeline version&#39;s mutable fields (display_name, tags).
 
 
 # **pipeline_service_create_pipeline**

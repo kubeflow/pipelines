@@ -154,7 +154,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/recurringruns', 'POST',
+            '/apis/v2beta1/recurringruns', 'POST',
             path_params,
             query_params,
             header_params,
@@ -283,7 +283,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/recurringruns/{recurring_run_id}', 'DELETE',
+            '/apis/v2beta1/recurringruns/{recurring_run_id}', 'DELETE',
             path_params,
             query_params,
             header_params,
@@ -405,7 +405,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/recurringruns/{recurring_run_id}:disable', 'POST',
+            '/apis/v2beta1/recurringruns/{recurring_run_id}:disable', 'POST',
             path_params,
             query_params,
             header_params,
@@ -527,7 +527,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/recurringruns/{recurring_run_id}:enable', 'POST',
+            '/apis/v2beta1/recurringruns/{recurring_run_id}:enable', 'POST',
             path_params,
             query_params,
             header_params,
@@ -649,7 +649,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/recurringruns/{recurring_run_id}', 'GET',
+            '/apis/v2beta1/recurringruns/{recurring_run_id}', 'GET',
             path_params,
             query_params,
             header_params,
@@ -802,7 +802,7 @@ class RecurringRunServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2/recurringruns', 'GET',
+            '/apis/v2beta1/recurringruns', 'GET',
             path_params,
             query_params,
             header_params,

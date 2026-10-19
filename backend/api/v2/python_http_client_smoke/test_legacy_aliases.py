@@ -1,7 +1,9 @@
 # Copyright 2026 The Kubeflow Authors
 # Licensed under the Apache License, Version 2.0.
-"""Old Python imports resolve to canonical v2 models and issue v2 requests."""
+"""Python models share the canonical schema while retaining legacy wire
+paths."""
 
+import ast
 import importlib
 import json
 from pathlib import Path
@@ -32,7 +34,7 @@ class TestLegacyAliases(unittest.TestCase):
                 self.assertIs(
                     getattr(server_api.models, export['name']), canonical)
 
-    def test_legacy_model_uses_canonical_endpoint_and_serialization(self):
+    def test_legacy_model_keeps_legacy_endpoint_and_serialization(self):
         from kfp.server_api.models.v2beta1_experiment import V2beta1Experiment
 
         model = V2beta1Experiment(
@@ -49,8 +51,34 @@ class TestLegacyAliases(unittest.TestCase):
                 api.experiment_service_create_experiment(experiment=model),
                 model)
         self.assertEqual(call.call_args.args[:2],
-                         ('/apis/v2/experiments', 'POST'))
+                         ('/apis/v2beta1/experiments', 'POST'))
         self.assertIs(call.call_args.kwargs['body'], model)
+
+    def test_all_generated_operations_use_legacy_prefix(self):
+        paths = []
+        for source in Path(
+                server_api.__file__).parent.joinpath('api').glob('*.py'):
+            for node in ast.walk(ast.parse(source.read_text())):
+                if (isinstance(node, ast.Call) and
+                        isinstance(node.func, ast.Attribute) and
+                        node.func.attr == 'call_api'):
+                    self.assertIsInstance(node.args[0], ast.Constant)
+                    paths.append(node.args[0].value)
+        self.assertGreater(len(paths), 50)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertTrue(path.startswith('/apis/v2beta1/'), path)
+
+    def test_health_check_uses_legacy_prefix_without_fallback(self):
+        client = server_api.ApiClient()
+        health = server_api.V2GetHealthzResponse(multi_user=False)
+        with mock.patch.object(client, 'call_api', return_value=health) as call:
+            response = server_api.HealthzServiceApi(
+                client).healthz_service_get_healthz()
+        self.assertIs(response, health)
+        call.assert_called_once()
+        self.assertEqual(call.call_args.args[:2],
+                         ('/apis/v2beta1/healthz', 'GET'))
 
 
 if __name__ == '__main__':

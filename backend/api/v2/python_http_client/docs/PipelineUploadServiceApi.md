@@ -4,8 +4,8 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2/pipelines/upload | 
-[**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2/pipelines/upload_version | 
+[**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload | 
+[**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version | 
 
 
 # **upload_pipeline**

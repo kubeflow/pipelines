@@ -10,8 +10,8 @@ client implementation, Swagger, Python documentation, or templates.
 functions. Old names such as `V2beta1Run` refer to the actual v2 types; methods,
 serialization, validation, and transport logic come from v2. Recompiled callers
 keep their import paths but use canonical v2 HTTP/gRPC endpoints and protobuf
-message identities. Explicit `File_backend_api_v2beta1_*_proto` exports retain
-the frozen legacy file descriptors and agree with the reflection registry.
+message identities. Explicit `File_backend_api_v2beta1_*_proto` exports alias
+the canonical v2 file descriptors.
 The small HTTP constructor wrappers preserve assignments
 to the legacy packages' `DefaultSchemes` variable.
 
@@ -30,14 +30,16 @@ The server still internally routes `/apis/v2beta1/...` to `/apis/v2/...` and
 registers the old gRPC service names against the same canonical handlers.
 Already-built clients do not need to be regenerated.
 
-`legacy_descriptor.pb` is a frozen 34,519-byte `FileDescriptorSet`, captured
-from the ten legacy v2beta1 file descriptors. Its SHA-256 is pinned by
-`TestFrozenDescriptorSnapshot` in `descriptors_test.go`. It contains schema metadata only, not executable client/server
-logic. `descriptors.go` registers this snapshot for legacy gRPC reflection and
-uses generic dynamic protobuf types to preserve legacy `Any` type URLs, resolving
-external dependencies from the canonical API. Do not regenerate the
-snapshot from v2: it is the independent historical baseline used by schema
-compatibility and real legacy-wire tests. Additive v2 fields, enum values, and
+Reflection and protobuf `Any` type URLs use canonical v2 names. The runtime
+does not register historical descriptors or dynamic legacy message types.
+Clients that discover schemas through reflection must use v2 names; already-built
+clients with their own schemas retain the legacy HTTP/gRPC wire routes.
+
+`backend/src/apiserver/testdata/legacy_descriptor.pb` is the frozen 34,519-byte
+`FileDescriptorSet` captured from the ten legacy v2beta1 files. The test-only
+loader in `legacy_descriptors_test.go` verifies its SHA-256 and loads it into a
+private registry for contract and legacy-wire tests. Do not regenerate this
+independent historical baseline from v2. Additive v2 fields, enum values, and
 RPCs are allowed; changes to the existing contract need explicit adapters.
 
 Python legacy model imports are separately generated aliases in
