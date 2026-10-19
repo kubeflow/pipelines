@@ -86,13 +86,21 @@ func (r *ResourceManager) synchronizeRunFromLiveWorkflow(ctx context.Context, ru
 					run.UUID, run.K8SName, namespace)
 			}
 
-			// For ordinary reads (where authoritative final status is not required), a missing workflow
-			// is expected after workflow garbage collection, in test harnesses, or prior to workflow creation.
-			// Reconcile DAG inconsistencies if present and return safely.
-			if hasDAGInconsistencies(tasks) {
-				return r.aggregateDAGTaskStatuses(run.UUID, run.RetryGeneration, true)
+			// If the run in the database is already terminal, then workflow garbage collection after completion
+			// is normal and safe. But for non-terminal runs, a missing workflow means state cannot be
+			// authoritatively verified, so fail closed.
+			switch run.State.ToV2() {
+			case model.RuntimeStateSucceeded,
+				model.RuntimeStateFailed,
+				model.RuntimeStateSkipped,
+				model.RuntimeStateCancelling,
+				model.RuntimeStateCanceled:
+				if hasDAGInconsistencies(tasks) {
+					return r.aggregateDAGTaskStatuses(run.UUID, run.RetryGeneration, true)
+				}
+				return false, nil
 			}
-			return false, nil
+			return false, fmt.Errorf("live workflow %s not found in namespace %s for non-terminal run %s: %w", run.K8SName, namespace, run.UUID, err)
 		}
 		return false, fmt.Errorf("failed to get live workflow %s in namespace %s: %w", run.K8SName, namespace, err)
 	}
