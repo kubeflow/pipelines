@@ -366,6 +366,68 @@ func TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata(t *testin
 		"nil in-memory metadata must still write an explicitly cleared resume flag")
 }
 
+// TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure covers the
+// interaction between the debug-pause clear and failure-path StatusMetadata
+// preservation: when a task fails while parked (e.g. resumed out of an
+// on_error barrier and finalized with the executor error), the final write
+// must set the failure Message AND clear the pause keys, while preserving
+// unrelated custom properties like driver_logs_uri. Now that the failure path
+// retains StatusMetadata instead of replacing it wholesale, the pause-key
+// clear is the only thing preventing a failed task from staying marked paused.
+func TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure(t *testing.T) {
+	t.Setenv(envKFPDebugPauseOnError, "true")
+	baseAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{
+		RunId: "run",
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	baseAPI.AddRun(run)
+	task := &apiv2beta1.PipelineTask{
+		TaskId: "task",
+		RunId:  run.GetRunId(),
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				customPropDebugPauseBarrier:         structpb.NewStringValue("on_error"),
+				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+				"driver_logs_uri":                   structpb.NewStringValue("s3://pipeline-root/driver-logs.txt"),
+			},
+		},
+	}
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task:  task,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	capturingAPI := &captureBulkUpdateAPI{API: baseAPI}
+	launcher := &LauncherV2{
+		options: LauncherV2Options{
+			Run:  run,
+			Task: task,
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), capturingAPI),
+		pipelineSpec:  &structpb.Struct{},
+		batchUpdater:  NewBatchUpdater(),
+	}
+
+	_ = launcher.finalizeExecution(context.Background(), errors.New("executor failed"))
+
+	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
+	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[task.GetTaskId()]
+	require.NotNil(t, flushedTask)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, flushedTask.GetState())
+	assert.Equal(t, "executor failed", flushedTask.GetStatusMetadata().GetMessage())
+	props := flushedTask.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
+		"a failed task must not stay marked paused")
+	assert.Equal(t, "false", props[customPropDebugPauseResumeRequested].GetStringValue(),
+		"the resume flag must be explicitly cleared")
+	assert.Equal(t, "s3://pipeline-root/driver-logs.txt", props["driver_logs_uri"].GetStringValue(),
+		"unrelated custom properties must survive the failure path")
+}
+
 func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
 	pipelineSpec := &pipelinespec.PipelineSpec{
 		Root: &pipelinespec.ComponentSpec{
