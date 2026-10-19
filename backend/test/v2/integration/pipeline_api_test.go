@@ -203,7 +203,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 			PipelineVersion: &model.V2beta1PipelineVersion{
 				DisplayName: "argumenturl-v1",
 				Description: "1st version of argument url pipeline",
-				PipelineID:  sequentialPipeline.PipelineID,
+				PipelineID:  argumentUrlPipeline.PipelineID,
 				PackageURL: &model.V2beta1URL{
 					PipelineURL: pipelineURL,
 				},
