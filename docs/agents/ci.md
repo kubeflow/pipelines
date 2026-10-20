@@ -89,6 +89,8 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
 
+- The recurring-run cache integration test must use one concurrent execution and list only its own schedule's runs in ascending creation order. Concurrent cold runs may legitimately both execute; explicit filtering and ordering keep the assertion scoped to the intended warm run. Preserve the cached-state and no-executor-pod assertions.
+
 - Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache

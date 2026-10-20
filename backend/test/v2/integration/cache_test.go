@@ -139,7 +139,9 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
-		MaxConcurrency: 10,
+		// The second run must start after the first has published its cache entry.
+		// Overlapping cold runs are both allowed to execute instead of hitting cache.
+		MaxConcurrency: 1,
 		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		Trigger: &recurring_run_model.V2Trigger{
 			PeriodicSchedule: &recurring_run_model.V2PeriodicSchedule{
@@ -158,8 +160,9 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 	s.diagnosticRecurringRunID = helloWorldRecurringRun.RecurringRunID
 
 	var allRuns []*run_model.V2Run
+	listParams := cacheRecurringRunListParams(helloWorldRecurringRun.RecurringRunID)
 	require.Eventually(s.T(), func() bool {
-		allRuns, err = s.runClient.ListAll(runParams.NewRunServiceListRunsParams(), 10)
+		allRuns, err = s.runClient.ListAll(listParams, 10)
 		if err != nil {
 			return false
 		}
@@ -167,6 +170,8 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		return cacheRecurringRunsSucceeded(t, allRuns)
 	}, 4*time.Minute, 5*time.Second)
 
+	// Verify that the cache assertion targets a later execution of this schedule.
+	require.True(t, time.Time(allRuns[0].CreatedAt).Before(time.Time(allRuns[1].CreatedAt)))
 	task := s.getTask(t, allRuns[1].RunID, "comp")
 	if *cacheEnabled {
 		require.Equal(t, run_model.PipelineTaskTaskStateCACHED, *task.State)
@@ -421,7 +426,13 @@ func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2Pip
 	}
 }
 
-// Only the first two runs must finish; the schedule keeps creating new runs.
+func cacheRecurringRunListParams(recurringRunID string) *runParams.RunServiceListRunsParams {
+	filter := cacheDiagnosticRecurringFilter(recurringRunID)
+	order := "created_at asc"
+	return runParams.NewRunServiceListRunsParams().WithFilter(&filter).WithSortBy(&order)
+}
+
+// Only the first two chronological runs must finish; the schedule keeps creating new runs.
 func cacheRecurringRunsSucceeded(t *testing.T, runs []*run_model.V2Run) bool {
 	t.Helper()
 	if len(runs) < 2 {
