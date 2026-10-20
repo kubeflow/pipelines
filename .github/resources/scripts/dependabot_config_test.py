@@ -321,20 +321,27 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(self.configured_directories('uv'), lock_directories)
 
     def test_vitest_runner_and_providers_share_update_groups(self):
-        npm = next(update for update in yaml.safe_load(self.config)['updates']
-                   if update['package-ecosystem'] == 'npm')
-        for applies_to in ('version-updates', 'security-updates'):
+        npm = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'npm')
+        group_names = list(npm['groups'])
+        for applies_to, expected_group in (('version-updates',
+                                            'vitest-version'),
+                                           ('security-updates',
+                                            'vitest-security')):
+            self.assertLess(
+                group_names.index(expected_group),
+                group_names.index('npm-dependencies'))
             matches = []
             for dependency in ('vitest', '@vitest/coverage-v8',
                                '@vitest/coverage-istanbul', '@vitest/ui'):
-                matches.append(next(
-                    (name for name, group in npm['groups'].items()
-                     if group.get('applies-to', 'version-updates') == applies_to
-                     and any(fnmatchcase(dependency, pattern)
-                             for pattern in group.get('patterns', []))),
-                    None))
-            self.assertIsNotNone(matches[0])
-            self.assertEqual(len(set(matches)), 1)
+                matches.append(
+                    next((name for name, group in npm['groups'].items()
+                          if group.get('applies-to', 'version-updates') ==
+                          applies_to and any(
+                              fnmatchcase(dependency, pattern)
+                              for pattern in group.get('patterns', []))), None))
+            self.assertEqual(matches, [expected_group] * 4)
 
     def test_frontend_vitest_coverage_matches_locked_runner(self):
         frontend = REPOSITORY_ROOT / 'frontend'
