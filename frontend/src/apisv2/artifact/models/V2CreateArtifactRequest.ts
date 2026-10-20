@@ -51,7 +51,7 @@ export interface V2CreateArtifactRequest {
    * idempotent across RPC retries. The same operation ID is scoped to the
    * namespace, run, and task.
    * @type {string}
-   * @memberof V2beta1CreateArtifactRequest
+   * @memberof V2CreateArtifactRequest
    */
   operation_id?: string;
   /**
