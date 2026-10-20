@@ -72,6 +72,19 @@ class DependabotConfigTest(unittest.TestCase):
             'versions': ['<8.4', '>=8.5'],
         }])
 
+    def test_protobuf_updates_stay_compatible_with_gcpc(self):
+        uv = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'uv')
+        rules = [
+            rule for rule in uv['ignore']
+            if fnmatchcase('protobuf', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'protobuf',
+            'versions': ['>=7'],
+        }])
+
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [
             block for configured_ecosystem, block in self.update_blocks()

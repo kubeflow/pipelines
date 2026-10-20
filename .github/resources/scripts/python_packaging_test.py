@@ -27,6 +27,8 @@ import tempfile
 import textwrap
 import unittest
 
+import tomllib
+
 ROOT = Path(__file__).resolve().parents[3]
 EXPORTS = (
     'requirements.txt',
@@ -41,6 +43,28 @@ PACKAGE_PATHS = {
 
 
 class PythonPackagingTest(unittest.TestCase):
+
+    def test_gcpc_and_protobuf_supported_dependency_graph(self) -> None:
+        workspace = tomllib.loads((ROOT / 'pyproject.toml').read_text())
+        sdk = tomllib.loads((ROOT / 'sdk/python/pyproject.toml').read_text())
+        lock = tomllib.loads((ROOT / 'uv.lock').read_text())
+        self.assertIn('google-cloud-pipeline-components>=2.22.0',
+                      workspace['project']['optional-dependencies']['test'])
+        for requirements in (workspace['tool']['uv']['constraint-dependencies'],
+                             sdk['project']['dependencies']):
+            self.assertIn('protobuf>=6.33.5,<7', requirements)
+        versions = {
+            package['name']: package['version']
+            for package in lock['package']
+            if package['name'] in ('google-cloud-pipeline-components',
+                                   'protobuf')
+        }
+        self.assertGreaterEqual(
+            tuple(
+                map(int,
+                    versions['google-cloud-pipeline-components'].split('.'))),
+            (2, 22, 0))
+        self.assertEqual(versions['protobuf'].split('.')[0], '6')
 
     def test_backend_compiler_reuses_proto_downloader(self) -> None:
         """Keep compiler dependencies and retry behavior in the API
