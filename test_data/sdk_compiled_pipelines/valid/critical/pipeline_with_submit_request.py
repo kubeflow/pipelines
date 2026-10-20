@@ -39,7 +39,7 @@ def pipeline_with_submit_request():
 
     submit_request(url='httpbin.org/get').set_caching_options(False)
     submit_request(
-        url='ml-pipeline:8888/apis/v2beta1/healthz').set_caching_options(False)
+        url='ml-pipeline:8888/apis/v2/healthz').set_caching_options(False)
 
 
 if __name__ == '__main__':

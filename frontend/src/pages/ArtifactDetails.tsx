@@ -18,14 +18,9 @@ import { CircularProgress } from '@mui/material';
 import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Link, Route, Routes } from 'react-router';
-import {
-  ArtifactArtifactType,
-  V2beta1Artifact,
-  V2beta1ArtifactTask,
-  V2beta1IOType,
-} from 'src/apisv2beta1/artifact';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, V2Artifact, V2ArtifactTask, V2IOType } from 'src/apisv2/artifact';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
+import { PipelineTaskTaskType } from 'src/apisv2/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import NativeArtifactLineage from 'src/components/NativeArtifactLineage';
@@ -79,7 +74,7 @@ interface LegacyUiMetadataKeyResult {
 }
 
 interface ArtifactDetailsState {
-  artifact?: V2beta1Artifact;
+  artifact?: V2Artifact;
   hasError?: boolean;
   visualizationRefreshGeneration: number;
 }
@@ -221,7 +216,7 @@ function ArtifactOverview({
   onSwitch,
   refreshGeneration,
 }: {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   onSwitch: (selectedTab: number) => void;
   refreshGeneration: number;
 }) {
@@ -330,11 +325,11 @@ function ArtifactOverview({
 async function findLegacyUiMetadataArtifactKey(
   artifactId: string,
 ): Promise<LegacyUiMetadataKeyResult> {
-  const filter: V2beta1Filter = {
+  const filter: V2Filter = {
     predicates: [
       {
         key: 'key',
-        operation: V2beta1PredicateOperation.IN,
+        operation: V2PredicateOperation.IN,
         string_values: { values: [...LEGACY_UI_METADATA_ARTIFACT_KEYS] },
       },
     ],
@@ -503,11 +498,11 @@ function buildArtifactTaskRows(response: ArtifactTasksResponse, pageToken?: stri
   }));
 }
 
-function relatedTaskRenderer(props: CustomRendererProps<V2beta1ArtifactTask>) {
+function relatedTaskRenderer(props: CustomRendererProps<V2ArtifactTask>) {
   return <RelatedTaskLink {...props} />;
 }
 
-function RelatedTaskLink({ value }: CustomRendererProps<V2beta1ArtifactTask>) {
+function RelatedTaskLink({ value }: CustomRendererProps<V2ArtifactTask>) {
   const artifactTask = value;
   const producerName =
     artifactTask && isOutputArtifactTaskType(artifactTask.type)
@@ -573,7 +568,7 @@ function ArtifactTabs({
   );
 }
 
-function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): string {
+function relationshipLabel(artifactTask: V2ArtifactTask, index: number): string {
   const relationshipName = artifactTask.key || artifactTask.producer?.task_name || index + 1;
   if (isOutputArtifactTaskType(artifactTask.type)) {
     return `Produced as ${relationshipName}`;
@@ -582,9 +577,7 @@ function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): st
     return `Consumed as ${relationshipName}`;
   }
   const relationshipType =
-    artifactTask.type && artifactTask.type !== V2beta1IOType.UNSPECIFIED
-      ? artifactTask.type
-      : 'unknown';
+    artifactTask.type && artifactTask.type !== V2IOType.UNSPECIFIED ? artifactTask.type : 'unknown';
   return `Related as ${relationshipType}: ${relationshipName}`;
 }
 

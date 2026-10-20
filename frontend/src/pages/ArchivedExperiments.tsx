@@ -18,7 +18,7 @@ import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import ExperimentListTable from '../components/ExperimentList';
 import { Page, PageProps } from './Page';
-import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { V2ExperimentStorageState } from 'src/apisv2/experiment';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -48,7 +48,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
         <ExperimentListTable
           onError={this.showPageError.bind(this)}
           ref={this._experimentlistRef}
-          storageState={V2beta1ExperimentStorageState.ARCHIVED}
+          storageState={V2ExperimentStorageState.ARCHIVED}
           {...this.props}
         />
       </div>

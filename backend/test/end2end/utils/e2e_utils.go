@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -28,7 +28,7 @@ import (
 const defaultContainerAnnotation = "kubectl.kubernetes.io/default-container"
 
 // CreatePipelineRun - Create a pipeline run
-func CreatePipelineRun(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
+func CreatePipelineRun(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2Run {
 	runName := fmt.Sprintf("E2e Test Run-%v", testContext.TestStartTimeUTC)
 	runDescription := fmt.Sprintf("Run for %s", runName)
 	logger.Log("Create a pipeline run for pipeline with id=%s and versionId=%s", *pipelineID, *pipelineVersionID)
@@ -44,18 +44,18 @@ func CreatePipelineRun(runClient *apiserver.RunClient, testContext *apitests.Tes
 }
 
 // CreatePipelineRunPayload - Create a pipeline run payload
-func CreatePipelineRunPayload(runName string, runDescription string, pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
+func CreatePipelineRunPayload(runName string, runDescription string, pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2Run {
 	logger.Log("Create a pipeline run body")
-	return &run_model.V2beta1Run{
+	return &run_model.V2Run{
 		DisplayName:    runName,
 		Description:    runDescription,
 		ExperimentID:   testutil.ParsePointersToString(experimentID),
 		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        testutil.ParsePointersToString(pipelineID),
 			PipelineVersionID: testutil.ParsePointersToString(pipelineVersionID),
 		},
-		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+		RuntimeConfig: &run_model.V2RuntimeConfig{
 			Parameters: inputParams,
 		},
 	}
@@ -71,7 +71,7 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Cli
 	if k8Client != nil {
 		checks = append(checks, testutil.NewRunImagePullCheck(k8Client, testutil.GetNamespace(), uploadedPipelineRun.RunID))
 	}
-	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout, checks...)
+	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2RuntimeState{run_model.V2RuntimeStateSUCCEEDED, run_model.V2RuntimeStateSKIPPED, run_model.V2RuntimeStateFAILED, run_model.V2RuntimeStateCANCELED}, &timeout, checks...)
 	return uploadedPipelineRun.RunID
 }
 
@@ -82,15 +82,16 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	actualTasks := updatedRun.Tasks
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
-	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
-		logger.Log("Pipeline run did not finish, checking workflow controller logs")
+	if *updatedRun.State == run_model.V2RuntimeStateRUNNING {
+		logger.Log("Pipeline run did not finish")
+		logger.Log("Checking workflow controller logs")
 		podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 		logger.Log("Attaching Workflow Controller logs to the report")
 		ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
 		ginkgo.Fail("Pipeline run did not complete, it stayed in RUNNING state")
 
 	} else {
-		if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+		if *updatedRun.State != run_model.V2RuntimeStateSUCCEEDED {
 			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
 			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTasks)
 			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
@@ -103,8 +104,9 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 }
 
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
-func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, tasks []*run_model.V2beta1PipelineTask) {
+func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, tasks []*run_model.V2PipelineTask) {
 	failedTasks := make(map[string]string)
+	capturedPods := make(map[string]bool)
 	sort.Slice(tasks, func(i, j int) bool {
 		return time.Time(tasks[i].EndTime).After(time.Time(tasks[j].EndTime)) // Sort tasks by end time in descending order.
 	})
@@ -128,15 +130,17 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 				{
 					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
 					for _, pod := range task.Pods {
-						podName := pod.Name
-						if podName != "" {
-							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
-							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
-							logger.Log("Attaching pod logs to the report")
-							ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), podLog)
-							logger.Log("Attached pod logs to the report")
+						if pod == nil || pod.Name == "" || capturedPods[pod.Name] {
+							continue
 						}
+						podName := pod.Name
+						logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+						podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+						capturedPods[podName] = true
+						logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
+						logger.Log("Attaching pod logs to the report")
+						ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log (%s)", task.DisplayName, podName), podLog)
+						logger.Log("Attached pod logs to the report")
 					}
 					failedTasks[task.DisplayName] = string(*task.State)
 				}

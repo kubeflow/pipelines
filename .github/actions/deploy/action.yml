@@ -58,6 +58,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Ensure GitHub CLI is available
+      shell: bash
+      run: bash .github/resources/scripts/setup-github-cli.sh
+
     - name: Wait for branch image artifacts
       id: image-artifacts
       shell: bash

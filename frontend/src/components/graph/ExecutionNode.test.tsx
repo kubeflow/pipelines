@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ExecutionNode', () => {
@@ -79,6 +79,20 @@ describe('ExecutionNode', () => {
     expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
     expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
     expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+  });
+
+  it('gives the warning icon an accessible name', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ImagePullBackOff',
+        }}
+      />,
+    );
+    expect(screen.getByTitle('Pod lifecycle warning')).toBeInTheDocument();
   });
 
   it('shows the failed icon, not the warning, once the task has failed', () => {

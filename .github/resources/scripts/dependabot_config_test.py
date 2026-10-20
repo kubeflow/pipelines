@@ -27,7 +27,7 @@ DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
 CI_SCRIPTS_WORKFLOW_PATH = (
     REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml')
 GENERATED_PYTHON_CLIENTS = {
-    '/backend/api/v2beta1/python_http_client',
+    '/backend/api/v2/python_http_client',
 }
 
 
@@ -58,6 +58,47 @@ class DependabotConfigTest(unittest.TestCase):
             self.config,
             flags=re.MULTILINE | re.DOTALL,
         )
+
+    def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
+        docker = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'docker')
+        rules = [
+            rule for rule in docker['ignore']
+            if fnmatchcase('mysql', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'mysql',
+            'versions': ['<8.4', '>=8.5'],
+        }])
+
+    def test_go_generators_are_separate_from_runtime_batches(self):
+        gomod = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'gomod')
+        for dependency in ('github.com/grpc-ecosystem/grpc-gateway/v2',
+                           'google.golang.org/protobuf',
+                           'google.golang.org/grpc/cmd/protoc-gen-go-grpc',
+                           'github.com/go-swagger/go-swagger'):
+            matching = [
+                name for name, group in gomod['groups'].items() if any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in group.get('patterns', []))
+            ]
+            self.assertEqual(matching[0], 'go-api-generators', dependency)
+
+    def test_protobuf_updates_stay_compatible_with_gcpc(self):
+        uv = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'uv')
+        rules = [
+            rule for rule in uv['ignore']
+            if fnmatchcase('protobuf', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'protobuf',
+            'versions': ['>=7'],
+        }])
 
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [

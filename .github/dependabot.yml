@@ -32,6 +32,15 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # These versions select generators as well as runtime libraries. Keep
+      # output-changing upgrades out of routine runtime dependency batches;
+      # regeneration and validation are required before they can merge.
+      go-api-generators:
+        patterns:
+          - "github.com/grpc-ecosystem/grpc-gateway/v2"
+          - "google.golang.org/protobuf"
+          - "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+          - "github.com/go-swagger/go-swagger"
       # Keep the golang.org/x/* modules together; they release in lockstep and
       # bumping one (e.g. x/net) usually drags the others along via go mod tidy.
       golang-x:
@@ -63,6 +72,11 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # Keep the bundled database on 8.4 LTS. Patch and digest updates remain
+      # enabled; changing release lines requires a tested database migration.
+      - dependency-name: "mysql"
+        versions: ["<8.4", ">=8.5"]
     groups:
       # The controller injects argoexec into workflow pods, so update the two
       # runtime images together when Dependabot finds a new release.
@@ -144,6 +158,11 @@ updates:
       - "python:uv"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # GCPC/Vertex AI do not support protobuf 7. Revisit the SDK/workspace
+      # constraints together when upstream supports it; keep 6.x updates on.
+      - dependency-name: "protobuf"
+        versions: [">=7"]
   - package-ecosystem: github-actions
     # Root covers .github/workflows; the glob covers reusable actions.
     directories:

@@ -15,7 +15,7 @@ import {
   manySubDagsSpec,
   nestedArtifactSpec,
 } from 'src/data/test/groupedFlow';
-import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import { V2PipelineTask } from 'src/apisv2/run';
 import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
 import type { LayerElementsResolver, LayerFlowElement } from 'src/lib/v2/FlowTypes';
 import { createRuntimeLayerResolver } from 'src/lib/v2/DynamicFlow';
@@ -29,7 +29,7 @@ function GroupedDag({
   nodesDraggable = true,
 }: {
   spec: PipelineSpec;
-  tasks?: V2beta1PipelineTask[];
+  tasks?: V2PipelineTask[];
   title: string;
   nodesDraggable?: boolean;
 }) {

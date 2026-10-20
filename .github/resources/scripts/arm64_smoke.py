@@ -24,6 +24,8 @@ import time
 import urllib.error
 import urllib.request
 
+import yaml
+
 CI_IMAGES = {
     "kfp-api-server": "apiserver",
     "kfp-persistence-agent": "persistenceagent",
@@ -36,6 +38,9 @@ CI_IMAGES = {
 IMAGES = set(CI_IMAGES)
 CONTROL_IMAGES = IMAGES - {"kfp-driver", "kfp-launcher"}
 MARKER = "KFP_NATIVE_ARM64_EXECUTION_OK"
+DRIVER_PLUGIN_MANIFEST = (
+    Path(__file__).resolve().parents[3] / "manifests/kustomize/base/pipeline/"
+    "ml-pipeline-driver-plugin-cm.yaml")
 
 
 def image_refs(directory, source_sha, mode):
@@ -93,6 +98,36 @@ def load_images(archives, cluster, refs):
         check=True)
 
 
+def driver_plugin_patch(reference):
+    """Replace the embedded executor-plugin image without duplicating its
+    spec."""
+    manifest = yaml.safe_load(DRIVER_PLUGIN_MANIFEST.read_text())
+    data = manifest.get("data") if isinstance(manifest, dict) else None
+    embedded = data.get("sidecar.container") if isinstance(data, dict) else None
+    if not isinstance(embedded, str):
+        raise ValueError(
+            f"{DRIVER_PLUGIN_MANIFEST} has no data.sidecar.container string; "
+            "point DRIVER_PLUGIN_MANIFEST at the executor-plugin ConfigMap")
+    # Argo's sidecar.container is one container spec, not a list of containers.
+    sidecar = yaml.safe_load(embedded)
+    if not isinstance(sidecar, dict) or not isinstance(
+            sidecar.get("image"), str):
+        raise ValueError(
+            f"{DRIVER_PLUGIN_MANIFEST} sidecar.container has no image field; "
+            "restore the driver-plugin container image in the ConfigMap")
+    sidecar["image"] = reference
+    return {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {
+            "name": "ml-pipeline-driver-agent"
+        },
+        "data": {
+            "sidecar.container": yaml.safe_dump(sidecar, sort_keys=False)
+        },
+    }
+
+
 def overlay_spec(refs, base, mode="published"):
     images = []
     for name in sorted(CONTROL_IMAGES):
@@ -115,22 +150,20 @@ def overlay_spec(refs, base, mode="published"):
                     "containers": [{
                         "name":
                             "ml-pipeline-api-server",
-                        "env": [
-                            {
-                                "name": "V2_DRIVER_IMAGE",
-                                "value": refs["kfp-driver"]
-                            },
-                            {
-                                "name": "V2_LAUNCHER_IMAGE",
-                                "value": refs["kfp-launcher"]
-                            },
-                        ],
+                        "env": [{
+                            "name": "V2_LAUNCHER_IMAGE",
+                            "value": refs["kfp-launcher"]
+                        }],
                     }]
                 }
             }
         },
     }
-    patches = [{"patch": json.dumps(patch)}]
+    patches = [{
+        "patch": json.dumps(patch)
+    }, {
+        "patch": json.dumps(driver_plugin_patch(refs["kfp-driver"]))
+    }]
     if mode == "local":
         patches.append({
             "patch":
@@ -228,9 +261,21 @@ def executes_launcher(command):
     return command[:1] == ["/kfp-launcher/launch"]
 
 
-def assert_execution(pods, refs, arm_nodes):
-    """Require successful driver and launcher execution on ARM nodes."""
-    driver_pods = []
+def assert_execution(workflow, pods, refs, arm_nodes):
+    """Require successful plugin nodes and native driver/launcher
+    containers."""
+    driver_templates = {
+        template["name"]
+        for template in workflow["spec"]["templates"]
+        if "driver-plugin" in template.get("plugin", {})
+    }
+    driver_nodes = [
+        node["name"]
+        for node in workflow["status"].get("nodes", {}).values()
+        if node.get("type") == "Plugin" and node.get("phase") == "Succeeded" and
+        node.get("templateName") in driver_templates
+    ]
+    driver_agent_pods = []
     launcher_pods = []
     for pod in pods["items"]:
         if pod["spec"].get("nodeName") not in arm_nodes:
@@ -248,10 +293,17 @@ def assert_execution(pods, refs, arm_nodes):
                                                 {}).get("exitCode") == 0 and
                     bool(status.get("imageID")))
 
-        for container in pod["spec"]["containers"]:
-            if container["image"] == refs["kfp-driver"] and succeeded(
-                    container["name"]):
-                driver_pods.append(pod["metadata"]["name"])
+        if pod["metadata"].get(
+                "labels", {}).get("workflows.argoproj.io/component") == "agent":
+            for container in pod["spec"]["containers"]:
+                if container["name"] != "driver-plugin" or container[
+                        "image"] != refs["kfp-driver"]:
+                    continue
+                status = statuses.get(container["name"], {})
+                if status.get("imageID") and (
+                        status.get("state", {}).get("running") is not None or
+                        status.get("state", {}).get("terminated") is not None):
+                    driver_agent_pods.append(pod["metadata"]["name"])
         for init in pod["spec"].get("initContainers", []):
             if init["name"] != "kfp-launcher" or init["image"] != refs[
                     "kfp-launcher"]:
@@ -262,10 +314,21 @@ def assert_execution(pods, refs, arm_nodes):
             if (succeeded("kfp-launcher") and succeeded("main") and
                     executes_launcher(main.get("command", []))):
                 launcher_pods.append(pod["metadata"]["name"])
-    if not driver_pods or not launcher_pods:
-        raise ValueError(
-            "Missing successful ARM64 driver or launcher execution")
-    return {"driver_pods": driver_pods, "launcher_pods": launcher_pods}
+    missing = []
+    if not driver_nodes:
+        missing.append("successful driver plugin Workflow node")
+    if not driver_agent_pods:
+        missing.append("ARM64 driver sidecar in agent Pod")
+    if not launcher_pods:
+        missing.append("successful ARM64 launcher Pod")
+    if missing:
+        raise ValueError("Missing successful ARM64 execution: " +
+                         ", ".join(missing))
+    return {
+        "driver_nodes": driver_nodes,
+        "driver_agent_pods": driver_agent_pods,
+        "launcher_pods": launcher_pods,
+    }
 
 
 def api_request(url, body=None):
@@ -284,6 +347,18 @@ def wait_for_deployments(kubectl):
     # Unlike kubectl wait, rollout status has no --all flag.
     kubectl("-n", "kubeflow", "rollout", "status", *deployments,
             "--timeout=600s")
+
+
+def observe_agent_pods(kubectl, workflow_name, observed):
+    """Keep the last agent Pod snapshot before Argo deletes it at
+    completion."""
+    pods = json.loads(
+        kubectl(
+            "-n", "kubeflow", "get", "pods", "-l",
+            f"workflows.argoproj.io/workflow={workflow_name},"
+            "workflows.argoproj.io/component=agent", "-o", "json"))
+    for pod in pods["items"]:
+        observed[pod["metadata"]["name"]] = pod
 
 
 def run_smoke(args, refs):
@@ -322,7 +397,7 @@ def run_smoke(args, refs):
                                    stdout=log,
                                    stderr=subprocess.STDOUT)
         try:
-            base = "http://127.0.0.1:8888/apis/v2beta1"
+            base = "http://127.0.0.1:8888/apis/v2"
             deadline = time.monotonic() + 120
             while True:
                 if forward.poll() is not None:
@@ -343,6 +418,8 @@ def run_smoke(args, refs):
                     "service_account": "pipeline-runner",
                 })
             run_id = run["run_id"]
+            workflow_name = None
+            observed_agent_pods = {}
             deadline = time.monotonic() + 600
             while run.get("state") not in {
                     "SUCCEEDED", "FAILED", "CANCELED", "CANCELLED", "SKIPPED"
@@ -350,7 +427,19 @@ def run_smoke(args, refs):
                 if time.monotonic() >= deadline:
                     raise TimeoutError(
                         f"Run {run_id} did not finish within 600 seconds")
-                time.sleep(5)
+                if workflow_name is None:
+                    current = json.loads(
+                        kubectl("-n", "kubeflow", "get", "workflows", "-l",
+                                f"pipeline/runid={run_id}", "-o", "json"))
+                    if len(current["items"]) > 1:
+                        raise ValueError(
+                            f"Multiple workflows found for run {run_id}")
+                    if current["items"]:
+                        workflow_name = current["items"][0]["metadata"]["name"]
+                if workflow_name is not None:
+                    observe_agent_pods(kubectl, workflow_name,
+                                       observed_agent_pods)
+                time.sleep(2)
                 run = api_request(f"{base}/runs/{run_id}")
             (output / "run.json").write_text(json.dumps(run, indent=2))
             if run["state"] != "SUCCEEDED":
@@ -381,7 +470,14 @@ def run_smoke(args, refs):
                 ))
             (output / "pipeline-pods.json").write_text(
                 json.dumps(pods, indent=2))
-            evidence = assert_execution(pods, refs, arm_nodes)
+            (output / "observed-agent-pods.json").write_text(
+                json.dumps(list(observed_agent_pods.values()), indent=2))
+            all_pods = dict(observed_agent_pods)
+            all_pods.update(
+                {pod["metadata"]["name"]: pod for pod in pods["items"]})
+            evidence = assert_execution(workflow,
+                                        {"items": list(all_pods.values())},
+                                        refs, arm_nodes)
             for pod in evidence["launcher_pods"]:
                 logs = kubectl("-n", "kubeflow", "logs", pod, "-c", "main")
                 (output / f"{pod}.log").write_text(logs)

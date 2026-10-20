@@ -18,7 +18,7 @@ import { produce as immerProduce } from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router';
 import { classes } from 'typestyle';
-import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2ListPipelinesResponse } from 'src/apisv2/pipeline';
 import CustomTable, {
   Column,
   CustomRendererProps,
@@ -37,7 +37,7 @@ import PipelineVersionList from './PipelineVersionList';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
-interface DisplayPipeline extends V2beta1Pipeline {
+interface DisplayPipeline extends V2Pipeline {
   expandState?: ExpandState;
 }
 
@@ -199,7 +199,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private async _reload(request: ListRequest): Promise<string> {
-    let response: V2beta1ListPipelinesResponse | null = null;
+    let response: V2ListPipelinesResponse | null = null;
     let displayPipelines: DisplayPipeline[];
     try {
       response = await Apis.pipelineServiceApiV2.listPipelines(

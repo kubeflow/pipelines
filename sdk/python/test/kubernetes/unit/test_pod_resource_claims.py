@@ -16,7 +16,7 @@ from google.protobuf import json_format
 from kfp import dsl
 from kfp import kubernetes
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.server_api import V2beta1RuntimeConfig
+from kfp.server_api import V2RuntimeConfig
 from kfp.server_api.api_client import ApiClient
 import pytest
 
@@ -395,8 +395,7 @@ class TestResourceClaimConfig:
         ],
     )
     def test_serializes_as_runtime_parameter(self, config, expected):
-        runtime_config = V2beta1RuntimeConfig(
-            parameters={'resource_claim': config},)
+        runtime_config = V2RuntimeConfig(parameters={'resource_claim': config},)
 
         with ApiClient() as api_client:
             serialized = api_client.sanitize_for_serialization(runtime_config)

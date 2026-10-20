@@ -18,7 +18,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-import { UIConfigs } from './configs.js';
+import { UIConfigs, legacyApiVersion2Prefix } from './configs.js';
 import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
@@ -58,7 +58,10 @@ function getRegisterHandler(app: Application, basePath: string) {
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
-    return func.call(app, `${basePath}${route}`, handler);
+    const prefixedRoutes = Array.isArray(route)
+      ? route.map((entry) => `${basePath}${entry}`)
+      : `${basePath}${route}`;
+    return func.call(app, prefixedRoutes, handler);
   };
 }
 
@@ -143,6 +146,24 @@ function createUIServer(options: UIConfigs) {
   /** log to stdout */
   app.use((req, res, next) => {
     console.info(req.method + ' ' + req.originalUrl);
+    next();
+  });
+
+  // Normalize legacy API paths before health, deny-list, and proxy handlers.
+  // Rewriting only req.url preserves the method, stream, headers, query, and
+  // originalUrl for logging; no client-visible redirect is necessary.
+  app.use((req, _res, next) => {
+    for (const prefix of ['', basePath]) {
+      const legacy = `${prefix}/${legacyApiVersion2Prefix}`;
+      if (
+        req.url === legacy ||
+        req.url.startsWith(`${legacy}/`) ||
+        req.url.startsWith(`${legacy}?`)
+      ) {
+        req.url = `${prefix}/${apiVersion2Prefix}${req.url.slice(legacy.length)}`;
+        break;
+      }
+    }
     next();
   });
 

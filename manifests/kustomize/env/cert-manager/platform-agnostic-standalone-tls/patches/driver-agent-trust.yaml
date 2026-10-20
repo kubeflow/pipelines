@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+data:
+  workflowDefaults: |
+    spec:
+      ttlStrategy:
+        secondsAfterCompletion: 3600
+        secondsAfterSuccess: 3600
+        secondsAfterFailure: 3600
+      templateDefaults:
+        retryStrategy:
+          limit: '2'
+          retryPolicy: OnError
+      podSpecPatch: |
+        volumes:
+          - name: argo-workflows-agent-ca-certificates
+            secret:
+              secretName: argo-workflows-agent-ca-certificates
+              items:
+                - key: ca.crt
+                  path: ca.crt

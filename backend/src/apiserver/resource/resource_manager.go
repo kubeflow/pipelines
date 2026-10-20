@@ -31,7 +31,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -109,10 +109,10 @@ var (
 	})
 
 	// Map API enum values to Kubernetes DeletionPropagation values
-	propagationPolicyMap = map[apiv2beta1.DeletePropagationPolicy]v1.DeletionPropagation{
-		apiv2beta1.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
-		apiv2beta1.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
-		apiv2beta1.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
+	propagationPolicyMap = map[apiv2.DeletePropagationPolicy]v1.DeletionPropagation{
+		apiv2.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
+		apiv2.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
+		apiv2.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
 	}
 )
 
@@ -1014,6 +1014,12 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
+		// The names are informational, so a failed lookup keeps the current
+		// names instead of blocking reconciliation.
+		namesErr := r.setScheduledWorkflowPipelineNames(newScheduledWorkflow)
+		if namesErr != nil {
+			glog.Warningf("Keeping the pipeline names of ScheduledWorkflow %v/%v: %v", jobs[i].Namespace, jobs[i].K8SName, namesErr)
+		}
 
 		for {
 			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
@@ -1022,6 +1028,10 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 					break
 				}
 				return failedToReconcileSwfCrsError(err)
+			}
+			if namesErr != nil {
+				newScheduledWorkflow.Spec.PipelineName = currentScheduledWorkflow.Spec.PipelineName
+				newScheduledWorkflow.Spec.PipelineVersionName = currentScheduledWorkflow.Spec.PipelineVersionName
 			}
 
 			if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
@@ -1656,9 +1666,9 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 
 func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
 	switch task.State {
-	case model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
-		model.TaskStatus(apiv2beta1.PipelineTask_CACHED),
-		model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED):
+	case model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		model.TaskStatus(apiv2.PipelineTask_CACHED),
+		model.TaskStatus(apiv2.PipelineTask_SKIPPED):
 		return true
 	default:
 		return false
@@ -1973,8 +1983,38 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
+	// The names are informational, so a failed lookup must not block creation.
+	if err := r.setScheduledWorkflowPipelineNames(scheduledWorkflow); err != nil {
+		glog.Warningf("Creating recurring run %q in namespace %q without pipeline names: %v", job.DisplayName, k8sNamespace, err)
+	}
 
 	return scheduledWorkflow, nil
+}
+
+// setScheduledWorkflowPipelineNames records the names of the pipeline and
+// pipeline version the ScheduledWorkflow references by ID. Names of deleted
+// pipelines or versions are left empty.
+func (r *ResourceManager) setScheduledWorkflowPipelineNames(scheduledWorkflow *scheduledworkflow.ScheduledWorkflow) error {
+	spec := &scheduledWorkflow.Spec
+	if spec.PipelineId != "" {
+		pipeline, err := r.GetPipeline(spec.PipelineId)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return util.Wrap(err, "Failed to read the pipeline name")
+		}
+		if pipeline != nil {
+			spec.PipelineName = pipeline.Name
+		}
+	}
+	if spec.PipelineVersionId != "" {
+		pipelineVersion, err := r.GetPipelineVersion(spec.PipelineVersionId)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return util.Wrap(err, "Failed to read the pipeline version name")
+		}
+		if pipelineVersion != nil {
+			spec.PipelineVersionName = pipelineVersion.Name
+		}
+	}
+	return nil
 }
 
 // Enables or disables a recurring run with given id.
@@ -2034,7 +2074,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 }
 
 // DeleteJob deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2beta1.DeletePropagationPolicy) error {
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2.DeletePropagationPolicy) error {
 	job, err := r.GetJob(jobID)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)

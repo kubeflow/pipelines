@@ -81,8 +81,8 @@ You can learn more about npm in https://docs.npmjs.com/about-npm/.
 You can then do `npm start` to run a Vite dev server at port 3000 that
 watches the source files. It also redirects api requests to localhost:3001. For
 example, requesting the pipelines page sends a fetch request to
-http://localhost:3000/apis/v2beta1/pipelines, which is proxied by the
-webserver to http://localhost:3001/apis/v2beta1/pipelines,
+http://localhost:3000/apis/v2/pipelines, which is proxied by the
+webserver to http://localhost:3001/apis/v2/pipelines,
 which should return the list of pipelines. To override the port, run
 `npm run start -- --port 3002` or update `frontend/vite.config.mts`.
 
@@ -100,7 +100,7 @@ This is the easiest way to start developing fixture-backed UI flows, but it does
 not support every backend API used by KFP.
 
 Run `npm run mock:api` to start a mock backend api server handler so it can
-serve basic api calls with mock data. The mock backend includes enough v2beta1
+serve basic api calls with mock data. The mock backend includes enough v2
 fixtures for the primary Pipelines, Experiments, Runs, and Recurring Runs list
 pages, using native v2 fixtures.
 
@@ -272,9 +272,9 @@ frontend and server surface in one pass.
 You can also generate individual surfaces, for example:
 
 ```bash
-npm run apis:v2beta1:run
+npm run apis:v2:run
 # or invoke the generator directly from the repo root:
-node frontend/scripts/generate_openapi_typescript_fetch.js v2beta1:run
+node frontend/scripts/generate_openapi_typescript_fetch.js v2:run
 ```
 Code generation formats the generated files automatically.
 

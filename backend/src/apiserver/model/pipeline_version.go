@@ -77,14 +77,14 @@ func (p *PipelineVersion) DefaultSortField() string {
 // PipelineVersion.
 func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	return map[string]string{
-		"id":                  "UUID",        // Legacy filter alias retained in the v2beta1 filter contract
-		"pipeline_version_id": "UUID",        // v2beta1 API
-		"name":                "Name",        // Legacy filter alias retained in the v2beta1 filter contract
-		"display_name":        "DisplayName", // v2beta1 API
+		"id":                  "UUID",        // Legacy filter alias retained in the v2 filter contract
+		"pipeline_version_id": "UUID",        // v2 API
+		"name":                "Name",        // Legacy filter alias retained in the v2 filter contract
+		"display_name":        "DisplayName", // v2 API
 		"created_at":          "CreatedAtInSec",
 		"status":              "Status",
-		"description":         "Description",  // v2beta1 API
-		"pipeline_spec":       "PipelineSpec", // v2beta1 API
+		"description":         "Description",  // v2 API
+		"pipeline_spec":       "PipelineSpec", // v2 API
 	}
 }
 

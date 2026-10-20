@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Apis } from 'src/lib/Apis';
-import { PipelineTaskTaskState, PipelineTaskTaskType } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState, PipelineTaskTaskType } from 'src/apisv2/run';
 import {
   getRunDisplayName,
   getTaskDisplayName,

@@ -100,7 +100,7 @@ test(
 
 for (const kind of ['pipeline', 'run']) {
   test(
-    `${kind} graph retains its 8px gap and expansion choices across reloads`,
+    `${kind} graph is flush with tabs and retains expansion choices across reloads`,
     { timeout: 30000 },
     async () => {
       const browser = await chromium.launch({
@@ -150,19 +150,19 @@ for (const kind of ['pipeline', 'run']) {
           pipeline_spec: pipelineSpec,
         };
         await routeProductionBundle(page, {
-          '/apis/v2beta1/pipelines/graph-spacing': {
+          '/apis/v2/pipelines/graph-spacing': {
             pipeline_id: 'graph-spacing',
             display_name: 'Graph spacing',
           },
-          '/apis/v2beta1/pipelines/graph-spacing/versions/version': version,
-          '/apis/v2beta1/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
-          '/apis/v2beta1/runs/graph-spacing': {
+          '/apis/v2/pipelines/graph-spacing/versions/version': version,
+          '/apis/v2/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
+          '/apis/v2/runs/graph-spacing': {
             run_id: 'graph-spacing',
             display_name: 'Graph spacing',
             state: 'SUCCEEDED',
             pipeline_spec: pipelineSpec,
           },
-          '/apis/v2beta1/runs/graph-spacing/tasks': { tasks: [] },
+          '/apis/v2/runs/graph-spacing/tasks': { tasks: [] },
         });
         const route =
           kind === 'pipeline'
@@ -177,12 +177,8 @@ for (const kind of ['pipeline', 'run']) {
           const tabsBottom = await page
             .getByRole('button', { name: 'Graph', exact: true })
             .evaluate((button) => button.parentElement.getBoundingClientRect().bottom);
-          assert.equal(
-            canvas.y - tabsBottom,
-            8,
-            'Graph starts exactly 8px below the existing tab divider',
-          );
-          const strip = PNG.sync.read(
+          assert.equal(canvas.y - tabsBottom, 0, 'Graph starts directly below the tab divider');
+          const canvasTop = PNG.sync.read(
             await page.screenshot({
               clip: {
                 x: canvas.x + 1,
@@ -193,8 +189,8 @@ for (const kind of ['pipeline', 'run']) {
             }),
           );
           assert.ok(
-            strip.data.every((channel) => channel === 255),
-            'The entire strip is opaque white',
+            canvasTop.data.some((channel) => channel !== 255),
+            'The canvas starts without an opaque white strip',
           );
           assert.ok(
             canvas.height > 0 && canvas.y + canvas.height <= height,
@@ -274,14 +270,14 @@ test(
         },
       };
       await routeProductionBundle(page, {
-        '/apis/v2beta1/runs/timeline-layout-test': {
+        '/apis/v2/runs/timeline-layout-test': {
           run_id: 'timeline-layout-test',
           state: 'SUCCEEDED',
           created_at: at(0),
           finished_at: at(400),
           pipeline_spec: pipelineSpec,
         },
-        '/apis/v2beta1/runs/timeline-layout-test/tasks': { tasks },
+        '/apis/v2/runs/timeline-layout-test/tasks': { tasks },
       });
       await page.goto('http://kfp.test/#/runs/details/timeline-layout-test?tab=timeline');
       const timeline = page.getByRole('region', { name: 'Run timeline' });

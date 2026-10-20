@@ -19,6 +19,7 @@ import (
 	"context"
 	stdjson "encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ import (
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -815,6 +817,36 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 	}
 }
 
+// UpsertRuntimeConfig adds or replaces runtime config for the specified
+// runtime roles. Container templates receive it as env vars using the
+// AnnotationKeyRuntimeRole annotation stamped by the compiler.
+// Driver runtime config is passed through executor plugin args because Argo
+// executor plugins do not expose a pod container env block here.
+func (w *Workflow) UpsertRuntimeConfig(runtimeConfig map[string]string, roles ...ExecutionRuntimeRole) error {
+	if len(runtimeConfig) == 0 || len(w.Spec.Templates) == 0 {
+		return nil
+	}
+	envList := make([]corev1.EnvVar, 0, len(runtimeConfig))
+	for k, v := range runtimeConfig {
+		envList = append(envList, corev1.EnvVar{Name: k, Value: v})
+	}
+	if err := w.UpsertRuntimeEnvVars(envList, roles...); err != nil {
+		return err
+	}
+	if !slices.Contains(roles, ExecutionRuntimeRoleDriver) {
+		return nil
+	}
+	for i := range w.Spec.Templates {
+		tmpl := &w.Spec.Templates[i]
+		if tmpl.Plugin != nil {
+			if err := upsertRuntimeArgs(tmpl, runtimeConfig); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // UpsertRuntimeEnvVars adds or replaces env vars on workflow containers
 // matching the specified runtime roles using the AnnotationKeyRuntimeRole
 // annotation stamped by the compiler. Templates without the annotation are
@@ -832,12 +864,46 @@ func (w *Workflow) UpsertRuntimeEnvVars(envVars []corev1.EnvVar, roles ...Execut
 		if tmpl.Container == nil {
 			continue
 		}
-
 		role := tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole]
-		if role != "" && roleSet[ExecutionRuntimeRole(role)] {
-			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envVars)
+		if role == "" || !roleSet[ExecutionRuntimeRole(role)] {
+			continue
+		}
+		tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envVars)
+	}
+	return nil
+}
+
+func upsertRuntimeArgs(tmpl *workflowapi.Template, runtimeArgs map[string]string) error {
+	plugin, owned, err := driverapi.DecodePluginConfig(tmpl.Plugin.Value)
+	if err != nil {
+		return fmt.Errorf("template %q: %w", tmpl.Name, err)
+	}
+	if !owned {
+		return nil
+	}
+	existingRuntimeArgs := make(map[string]string)
+	if existing, ok := plugin.Args["runtime_args"].(string); ok && existing != "" {
+		if err := stdjson.Unmarshal([]byte(existing), &existingRuntimeArgs); err != nil {
+			return fmt.Errorf("template %q has invalid runtime_args; recompile the pipeline: %w", tmpl.Name, err)
 		}
 	}
+	if existingRuntimeArgs == nil { // a JSON "null" string unmarshals to a nil map
+		existingRuntimeArgs = make(map[string]string)
+	}
+	for key, value := range runtimeArgs {
+		existingRuntimeArgs[key] = value
+	}
+	runtimeArgsValue, err := stdjson.Marshal(existingRuntimeArgs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal runtime args for template %q: %w", tmpl.Name, err)
+	}
+	plugin.Args["runtime_args"] = string(runtimeArgsValue)
+	// An Argo template carries exactly one plugin, so re-encoding only ours is lossless.
+	value, err := driverapi.EncodePluginValue(plugin.Args)
+	if err != nil {
+		return fmt.Errorf("template %q: %w", tmpl.Name, err)
+	}
+	tmpl.Plugin.Value = value
 	return nil
 }
 

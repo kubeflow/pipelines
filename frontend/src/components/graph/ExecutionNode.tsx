@@ -21,7 +21,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ReactElement } from 'react';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import StopCircle from 'src/icons/StopCircle';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
@@ -115,9 +115,12 @@ export function getIcon(state: PipelineTaskTaskState | undefined) {
   }
 }
 
+// Screen readers get the same signal sighted users get from the amber color.
+export const LIFECYCLE_WARNING_ICON_TITLE = 'Pod lifecycle warning';
+
 export function getWarningIcon() {
   return getStateIconWrapper(
-    <WarningAmberIcon className='text-mui-yellow-800' />,
+    <WarningAmberIcon className='text-mui-yellow-800' titleAccess={LIFECYCLE_WARNING_ICON_TITLE} />,
     'bg-mui-yellow-100',
   );
 }

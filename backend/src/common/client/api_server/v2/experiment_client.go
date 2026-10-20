@@ -21,9 +21,9 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
@@ -32,10 +32,10 @@ import (
 )
 
 type ExperimentInterface interface {
-	Create(params *params.ExperimentServiceCreateExperimentParams) (*model.V2beta1Experiment, error)
-	Get(params *params.ExperimentServiceGetExperimentParams) (*model.V2beta1Experiment, error)
-	List(params *params.ExperimentServiceListExperimentsParams) ([]*model.V2beta1Experiment, int, string, error)
-	ListAll(params *params.ExperimentServiceListExperimentsParams, maxResultSize int) ([]*model.V2beta1Experiment, error)
+	Create(params *params.ExperimentServiceCreateExperimentParams) (*model.V2Experiment, error)
+	Get(params *params.ExperimentServiceGetExperimentParams) (*model.V2Experiment, error)
+	List(params *params.ExperimentServiceListExperimentsParams) ([]*model.V2Experiment, int, string, error)
+	ListAll(params *params.ExperimentServiceListExperimentsParams, maxResultSize int) ([]*model.V2Experiment, error)
 	Archive(params *params.ExperimentServiceArchiveExperimentParams) error
 	Unarchive(params *params.ExperimentServiceUnarchiveExperimentParams) error
 }
@@ -89,7 +89,7 @@ func NewMultiUserExperimentClient(clientConfig clientcmd.ClientConfig, userToken
 	}, nil
 }
 
-func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExperimentParams) (*model.V2beta1Experiment,
+func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExperimentParams) (*model.V2Experiment,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -106,7 +106,7 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	return response.Payload, nil
 }
 
-func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperimentParams) (*model.V2beta1Experiment,
+func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperimentParams) (*model.V2Experiment,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -124,7 +124,7 @@ func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperiment
 }
 
 func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperimentsParams) (
-	[]*model.V2beta1Experiment, int, string, error) {
+	[]*model.V2Experiment, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -157,17 +157,17 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 }
 
 func (c *ExperimentClient) ListAll(parameters *params.ExperimentServiceListExperimentsParams, maxResultSize int) (
-	[]*model.V2beta1Experiment, error) {
+	[]*model.V2Experiment, error) {
 	return listAllForExperiment(c, parameters, maxResultSize)
 }
 
 func listAllForExperiment(client ExperimentInterface, parameters *params.ExperimentServiceListExperimentsParams,
-	maxResultSize int) ([]*model.V2beta1Experiment, error) {
+	maxResultSize int) ([]*model.V2Experiment, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.V2beta1Experiment, 0)
+	allResults := make([]*model.V2Experiment, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

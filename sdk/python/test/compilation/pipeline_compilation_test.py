@@ -1141,43 +1141,72 @@ class TestPipelineCompilation:
         ],
         ids=str)
     def test_compilation(self, pipeline_data: TestData):
-        temp_compiled_pipeline_file = os.path.join(
-            tempfile.gettempdir(), pipeline_data.compiled_file_name)
-        original_sdk_version = pipeline_data.pipeline_func.pipeline_spec.sdk_version
-        try:
-            if pipeline_data.sdk_version_override:
-                pipeline_data.pipeline_func.pipeline_spec.sdk_version = (
-                    f'kfp-{pipeline_data.sdk_version_override}')
-            Compiler().compile(
-                pipeline_func=pipeline_data.pipeline_func,
-                pipeline_name=pipeline_data.pipeline_name,
-                pipeline_parameters=pipeline_data.pipeline_func_args,
-                package_path=temp_compiled_pipeline_file,
-            )
-            print(f'Pipeline Created at : {temp_compiled_pipeline_file}')
-            print(
-                f'Parsing expected yaml {pipeline_data.expected_compiled_file_path} for comparison'
-            )
-            expected_pipeline_specs, expected_platform_specs = FileUtils.read_yaml_file(
-                pipeline_data.expected_compiled_file_path)
-            print(
-                f'Parsing compiled yaml {temp_compiled_pipeline_file} for comparison'
-            )
-            generated_pipeline_specs, generated_platform_specs = FileUtils.read_yaml_file(
-                temp_compiled_pipeline_file)
-            print('Verify that the generated yaml matches expected yaml or not')
-            ComparisonUtils.compare_pipeline_spec_dicts(
-                actual=generated_pipeline_specs,
-                expected=expected_pipeline_specs,
-                name=pipeline_data.pipeline_name,
-                runtime_params=pipeline_data.pipeline_func_args,
-                sdk_version=pipeline_data.sdk_version_override,
-            )
-            ComparisonUtils.compare_pipeline_spec_dicts(
-                actual=generated_platform_specs,
-                expected=expected_platform_specs)
-        finally:
-            pipeline_data.pipeline_func.pipeline_spec.sdk_version = original_sdk_version
-            print(f'Deleting temp compiled file: {temp_compiled_pipeline_file}')
-            os.remove(temp_compiled_pipeline_file)
-            print(f'Deleted temp compiled file: {temp_compiled_pipeline_file}')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_compiled_pipeline_file = os.path.join(
+                temp_dir, pipeline_data.compiled_file_name)
+            original_sdk_version = pipeline_data.pipeline_func.pipeline_spec.sdk_version
+            try:
+                if pipeline_data.sdk_version_override:
+                    pipeline_data.pipeline_func.pipeline_spec.sdk_version = (
+                        f'kfp-{pipeline_data.sdk_version_override}')
+                Compiler().compile(
+                    pipeline_func=pipeline_data.pipeline_func,
+                    pipeline_name=pipeline_data.pipeline_name,
+                    pipeline_parameters=pipeline_data.pipeline_func_args,
+                    package_path=temp_compiled_pipeline_file,
+                )
+                print(f'Pipeline Created at : {temp_compiled_pipeline_file}')
+                print(
+                    f'Parsing expected yaml {pipeline_data.expected_compiled_file_path} for comparison'
+                )
+                expected_pipeline_specs, expected_platform_specs = FileUtils.read_yaml_file(
+                    pipeline_data.expected_compiled_file_path)
+                print(
+                    f'Parsing compiled yaml {temp_compiled_pipeline_file} for comparison'
+                )
+                generated_pipeline_specs, generated_platform_specs = FileUtils.read_yaml_file(
+                    temp_compiled_pipeline_file)
+                print(
+                    'Verify that the generated yaml matches expected yaml or not'
+                )
+                ComparisonUtils.compare_pipeline_spec_dicts(
+                    actual=generated_pipeline_specs,
+                    expected=expected_pipeline_specs,
+                    name=pipeline_data.pipeline_name,
+                    runtime_params=pipeline_data.pipeline_func_args,
+                    sdk_version=pipeline_data.sdk_version_override,
+                )
+                ComparisonUtils.compare_pipeline_spec_dicts(
+                    actual=generated_platform_specs,
+                    expected=expected_platform_specs)
+            finally:
+                pipeline_data.pipeline_func.pipeline_spec.sdk_version = original_sdk_version
+
+    def test_compilation_isolates_overlapping_output_files(self, monkeypatch):
+        pipeline_data = self.TestData(
+            pipeline_name='container-with-if-placeholder',
+            pipeline_func=container_with_if_placeholder,
+            pipeline_func_args=None,
+            compiled_file_name='container_with_if_placeholder.yaml',
+            expected_compiled_file_path=(
+                f'{self._VALID_PIPELINE_FILES}/container_with_if_placeholder.yaml'
+            ),
+        )
+        generated_paths = []
+        read_yaml_file = FileUtils.read_yaml_file
+
+        def read_with_overlapping_compilation(path):
+            if path != pipeline_data.expected_compiled_file_path:
+                generated_paths.append(path)
+                if len(generated_paths) == 1:
+                    # Finish a second case before the first reads its output,
+                    # reproducing an xdist worker's cleanup without timing races.
+                    self.test_compilation(pipeline_data)
+            return read_yaml_file(path)
+
+        monkeypatch.setattr(FileUtils, 'read_yaml_file',
+                            staticmethod(read_with_overlapping_compilation))
+        self.test_compilation(pipeline_data)
+        assert len(generated_paths) == 2
+        assert generated_paths[0] != generated_paths[1]
+        assert all(not os.path.exists(path) for path in generated_paths)

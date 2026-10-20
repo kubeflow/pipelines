@@ -23,7 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	authorizationv1 "k8s.io/api/authorization/v1"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -35,7 +35,7 @@ type BaseReportServer struct {
 
 type ReportServer struct {
 	*BaseReportServer
-	apiv2beta1.UnimplementedReportServiceServer
+	apiv2.UnimplementedReportServiceServer
 }
 
 // Reports a workflow.
@@ -64,7 +64,7 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 }
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
-	request *apiv2beta1.ReportWorkflowRequest,
+	request *apiv2.ReportWorkflowRequest,
 ) (*emptypb.Empty, error) {
 	return s.reportWorkflow(ctx, request.GetWorkflow())
 }
@@ -92,7 +92,7 @@ func (s *BaseReportServer) reportScheduledWorkflow(ctx context.Context, swf stri
 }
 
 func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
-	request *apiv2beta1.ReportScheduledWorkflowRequest,
+	request *apiv2.ReportScheduledWorkflowRequest,
 ) (*emptypb.Empty, error) {
 	return s.reportScheduledWorkflow(ctx, request.GetScheduledWorkflow())
 }

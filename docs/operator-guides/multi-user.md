@@ -93,20 +93,20 @@ parent experiment by `experiment_id` and their uploaded pipeline version by
 
 ```python
 import kfp
-from kfp.server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
+from kfp.server_api import V2Experiment, V2PipelineVersionReference, V2Run
 
 user_namespace = "jane-doe"
 credentials = kfp.client.ServiceAccountTokenVolumeCredentials(path=None)
 client = kfp.Client(host="http://ml-pipeline-ui.kubeflow", credentials=credentials)
 
 experiment = client._experiment_api.experiment_service_create_experiment(
-    experiment=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
+    experiment=V2Experiment(display_name="My experiment", namespace=user_namespace)
 )
 run = client._run_api.run_service_create_run(
-    run=V2beta1Run(
+    run=V2Run(
         display_name="My run",
         experiment_id=experiment.experiment_id,
-        pipeline_version_reference=V2beta1PipelineVersionReference(
+        pipeline_version_reference=V2PipelineVersionReference(
             pipeline_id="<YOUR_PIPELINE_ID>",
             pipeline_version_id="<YOUR_PIPELINE_VERSION_ID>",
         ),

@@ -71,7 +71,7 @@ async function listComparableRunIds(request = apiRequest, minimumRunCount = 2) {
   const seenPageTokens = new Set();
   do {
     const pageTokenQuery = pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : '';
-    const response = await request('GET', `/apis/v2beta1/runs?page_size=20${pageTokenQuery}`);
+    const response = await request('GET', `/apis/v2/runs?page_size=20${pageTokenQuery}`);
     runIds = unique([...runIds, ...selectComparableRunIds(pickList(response, ['runs']))]);
     const nextPageToken = response.next_page_token || response.nextPageToken || '';
     if (!nextPageToken || seenPageTokens.has(nextPageToken)) break;
@@ -87,10 +87,10 @@ function delay(ms) {
 
 async function fetchResourceIds() {
   const [pipelinesResp, experimentsResp, runIds, recurringResp] = await Promise.all([
-    apiRequest('GET', '/apis/v2beta1/pipelines?page_size=20'),
-    apiRequest('GET', '/apis/v2beta1/experiments?page_size=20'),
+    apiRequest('GET', '/apis/v2/pipelines?page_size=20'),
+    apiRequest('GET', '/apis/v2/experiments?page_size=20'),
     listComparableRunIds(),
-    apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=20'),
+    apiRequest('GET', '/apis/v2/recurringruns?page_size=20'),
   ]);
 
   return {
@@ -154,7 +154,7 @@ async function createRelatedTaskArtifact(runId, request = apiRequest) {
 
   const tasksResponse = await request(
     'GET',
-    `/apis/v2beta1/runs/${encodeURIComponent(runId)}/tasks?page_size=200`,
+    `/apis/v2/runs/${encodeURIComponent(runId)}/tasks?page_size=200`,
   );
   const seededTasks = pickList(tasksResponse, ['tasks']).filter(
     (task) => (task.name || '') === 'ui-smoke-related-task',
@@ -162,7 +162,7 @@ async function createRelatedTaskArtifact(runId, request = apiRequest) {
   for (const seededTask of seededTasks) {
     const taskId = seededTask.task_id || seededTask.taskId || seededTask.id;
     if (!taskId) continue;
-    const relationshipPath = `/apis/v2beta1/artifact_tasks?task_ids=${encodeURIComponent(taskId)}&page_size=1`;
+    const relationshipPath = `/apis/v2/artifact_tasks?task_ids=${encodeURIComponent(taskId)}&page_size=1`;
     const relationshipResponse = await request('GET', relationshipPath);
     const relationship = pickList(relationshipResponse, ['artifact_tasks', 'artifactTasks'])[0];
     const artifactId = relationship?.artifact_id || relationship?.artifactId;
@@ -173,7 +173,7 @@ async function createRelatedTaskArtifact(runId, request = apiRequest) {
   }
 
   log(`Creating native artifact/task relationship for run: ${runId}`);
-  const task = await request('POST', `/apis/v2beta1/runs/${encodeURIComponent(runId)}/tasks`, {
+  const task = await request('POST', `/apis/v2/runs/${encodeURIComponent(runId)}/tasks`, {
     display_name: 'UI Smoke Related Task',
     name: 'ui-smoke-related-task',
     scope_path: 'root.ui-smoke-related-task',
@@ -185,7 +185,7 @@ async function createRelatedTaskArtifact(runId, request = apiRequest) {
     throw new Error('Task service returned a seeded task without an ID.');
   }
 
-  const artifact = await request('POST', '/apis/v2beta1/artifacts', {
+  const artifact = await request('POST', '/apis/v2/artifacts', {
     artifact: {
       name: 'UI Smoke Related Tasks Artifact',
       namespace: process.env.UI_SMOKE_NAMESPACE || 'kubeflow',
@@ -201,7 +201,7 @@ async function createRelatedTaskArtifact(runId, request = apiRequest) {
     throw new Error('Artifact service returned a seeded artifact without an ID.');
   }
 
-  const relationshipPath = `/apis/v2beta1/artifact_tasks?artifact_ids=${encodeURIComponent(artifactId)}&page_size=1`;
+  const relationshipPath = `/apis/v2/artifact_tasks?artifact_ids=${encodeURIComponent(artifactId)}&page_size=1`;
   for (let attempt = 0; attempt < 10; attempt++) {
     const response = await request('GET', relationshipPath);
     const relationships = pickList(response, ['artifact_tasks', 'artifactTasks']);
@@ -279,7 +279,7 @@ async function apiRequest(method, endpoint, body = null) {
  */
 async function checkHealth() {
   try {
-    await apiRequest('GET', '/apis/v2beta1/healthz');
+    await apiRequest('GET', '/apis/v2/healthz');
     return true;
   } catch (e) {
     return false;
@@ -292,7 +292,7 @@ async function checkHealth() {
 async function createExperiment(name, description) {
   log(`Creating experiment: ${name}`);
   try {
-    const result = await apiRequest('POST', '/apis/v2beta1/experiments', {
+    const result = await apiRequest('POST', '/apis/v2/experiments', {
       display_name: name,
       description: description,
     });
@@ -362,7 +362,7 @@ async function uploadPipeline(name, description, request = apiRequest) {
   log(`Creating pipeline: ${name}`);
 
   try {
-    const result = await request('POST', '/apis/v2beta1/pipelines', {
+    const result = await request('POST', '/apis/v2/pipelines', {
       display_name: name,
       description: description,
     });
@@ -393,7 +393,7 @@ async function createRun(name, _pipelineId, experimentId, request = apiRequest) 
       body.experiment_id = experimentId;
     }
 
-    const result = await request('POST', '/apis/v2beta1/runs', body);
+    const result = await request('POST', '/apis/v2/runs', body);
     log(`  ✓ Created run: ${result.run_id || result.name}`);
     return result;
   } catch (e) {
@@ -428,7 +428,7 @@ async function createRecurringRun(name, _pipelineId, experimentId, request = api
       body.experiment_id = experimentId;
     }
 
-    const result = await request('POST', '/apis/v2beta1/recurringruns', body);
+    const result = await request('POST', '/apis/v2/recurringruns', body);
     log(`  ✓ Created recurring run: ${result.recurring_run_id || result.name}`);
     return result;
   } catch (e) {
@@ -449,14 +449,14 @@ async function getExistingCounts() {
   };
 
   try {
-    const pipelines = await apiRequest('GET', '/apis/v2beta1/pipelines?page_size=1');
+    const pipelines = await apiRequest('GET', '/apis/v2/pipelines?page_size=1');
     counts.pipelines = pipelines.total_size || 0;
   } catch (e) {
     /* ignore */
   }
 
   try {
-    const experiments = await apiRequest('GET', '/apis/v2beta1/experiments?page_size=1');
+    const experiments = await apiRequest('GET', '/apis/v2/experiments?page_size=1');
     counts.experiments = experiments.total_size || 0;
   } catch (e) {
     /* ignore */
@@ -469,7 +469,7 @@ async function getExistingCounts() {
   }
 
   try {
-    const recurringRuns = await apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=1');
+    const recurringRuns = await apiRequest('GET', '/apis/v2/recurringruns?page_size=1');
     counts.recurringRuns = recurringRuns.total_size || 0;
   } catch (e) {
     /* ignore */

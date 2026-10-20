@@ -126,8 +126,7 @@ def test_sample_runner_uses_uv_workspace_and_preserves_arguments(tmp_path):
     subprocess.run([
         'sh', '-ec', run_sample.SHELL_COMMAND, '/artifacts/compiler',
         'samples.v2.hello_world', 'gs://bucket/output/hello',
-        'http://ml-pipeline:8888', 'http://pipeline-ui', 'launcher:test',
-        'driver:test'
+        'http://ml-pipeline:8888', 'http://pipeline-ui', 'launcher:test'
     ],
                    cwd=repo,
                    env=env,
@@ -137,5 +136,5 @@ def test_sample_runner_uses_uv_workspace_and_preserves_arguments(tmp_path):
         'http://ml-pipeline:8888', 'http://pipeline-ui', 'run', '--frozen',
         '--extra', 'backend-v2-test', 'python3', '-u', '-m',
         'samples.v2.hello_world', '--pipeline_root', 'gs://bucket/output/hello',
-        '--launcher_v2_image', 'launcher:test', '--driver_image', 'driver:test'
+        '--launcher_v2_image', 'launcher:test'
     ]

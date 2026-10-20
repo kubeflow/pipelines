@@ -21,8 +21,8 @@ import {
   PipelineTaskTaskPod,
   PipelineTaskTaskPodType,
   PipelineTaskTaskState,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
 import Banner from 'src/components/Banner';
@@ -62,10 +62,18 @@ export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
 export const LIFECYCLE_WARNING_MESSAGE =
   "Kubernetes reported a problem with this task's pod. The task has not failed yet and may recover. Select Details to see the raw message.";
+export const LIFECYCLE_ENDED_MESSAGE =
+  "Kubernetes reported a problem with this task's pod before the run ended. Select Details to see the raw message.";
 export const LIFECYCLE_FAILURE_MESSAGE =
   'The task failed after Kubernetes reported a problem with its pod. Select Details to see the raw message.';
 
-function LifecycleBanner({ task }: { task?: V2beta1PipelineTask }) {
+function LifecycleBanner({
+  task,
+  sourceFinished,
+}: {
+  task?: V2PipelineTask;
+  sourceFinished?: boolean;
+}) {
   const lifecycleMessage = getTaskLifecycleMessage(task);
   if (!lifecycleMessage) {
     return null;
@@ -74,11 +82,21 @@ function LifecycleBanner({ task }: { task?: V2beta1PipelineTask }) {
   return (
     <Banner
       mode={failed ? 'error' : 'warning'}
-      message={failed ? LIFECYCLE_FAILURE_MESSAGE : LIFECYCLE_WARNING_MESSAGE}
+      message={
+        failed
+          ? LIFECYCLE_FAILURE_MESSAGE
+          : sourceFinished
+            ? LIFECYCLE_ENDED_MESSAGE
+            : LIFECYCLE_WARNING_MESSAGE
+      }
       additionalInfo={lifecycleMessage}
     />
   );
 }
+
+const SYSTEM_LOGS_UNAVAILABLE: ReadonlyMap<string, string> = new Map([
+  [LOGS_BANNER_MESSAGE, 'System logs are not available yet.'],
+]);
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -143,7 +161,12 @@ export function RuntimeNodeDetailsV2({
   }
   if (element.type === NodeTypeNames.SUB_DAG) {
     return (
-      <SubDAGNodeDetail element={element} task={elementRuntimeInfo?.task} namespace={namespace} />
+      <SubDAGNodeDetail
+        element={element}
+        task={elementRuntimeInfo?.task}
+        namespace={namespace}
+        sourceFinished={sourceFinished}
+      />
     );
   }
   return NODE_INFO_UNKNOWN;
@@ -153,14 +176,14 @@ interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
   element?: PipelineFlowElement | null;
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   layers: string[];
   namespace?: string;
   sourceFinished?: boolean;
 }
 
 function getLatestTaskPod(
-  task: V2beta1PipelineTask | undefined,
+  task: V2PipelineTask | undefined,
   type: PipelineTaskTaskPodType,
 ): PipelineTaskTaskPod | undefined {
   const pods = task?.pods || [];
@@ -223,18 +246,38 @@ function TaskNodeDetail({
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
+  const driverLogUri = getDriverLogUri(task);
+  const { data: driverLogsInfo, refetch: refetchDriverLogs } = useQuery({
+    queryKey: queryKeys.driverLogs(
+      task?.task_id,
+      task?.state,
+      namespace,
+      driverLogUri,
+      sourceFinished,
+    ),
+    queryFn: () => {
+      if (!driverLogUri) {
+        throw new Error('No driver log URI is found.');
+      }
+      return getDriverLogsInfo(driverLogUri, namespace);
+    },
+    enabled: !!task && !!driverLogUri && selectedTab === 3,
+    refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
+  });
+
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage =
     logsInfo?.get(LOGS_BANNER_MESSAGE) ||
     (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
+  const systemLogsInfo = driverLogUri ? driverLogsInfo : SYSTEM_LOGS_UNAVAILABLE;
 
   return (
     <div className={commonCss.page}>
-      <LifecycleBanner task={task} />
+      <LifecycleBanner task={task} sourceFinished={sourceFinished} />
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'System Logs']}
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
       />
@@ -257,20 +300,21 @@ function TaskNodeDetail({
           </div>
         )}
         {selectedTab === 2 && (
-          <div className={commonCss.page}>
-            {logsBannerMessage && (
-              <Banner
-                message={logsBannerMessage}
-                additionalInfo={logsBannerAdditionalInfo}
-                mode={logsDetails ? 'info' : 'error'}
-              />
-            )}
-            {logsDetails && (
-              <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
-                <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
-              </div>
-            )}
-          </div>
+          <LogsTabPanel
+            details={logsDetails || undefined}
+            bannerMessage={logsBannerMessage}
+            bannerAdditionalInfo={logsBannerAdditionalInfo}
+            bannerMode={logsDetails ? 'info' : 'error'}
+          />
+        )}
+        {selectedTab === 3 && (
+          <LogsTabPanel
+            details={systemLogsInfo?.get(LOGS_DETAILS)}
+            bannerMessage={systemLogsInfo?.get(LOGS_BANNER_MESSAGE)}
+            bannerAdditionalInfo={systemLogsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO)}
+            bannerMode={driverLogUri ? 'error' : 'info'}
+            onRefresh={driverLogUri ? () => void refetchDriverLogs() : undefined}
+          />
         )}
       </div>
     </div>
@@ -279,7 +323,7 @@ function TaskNodeDetail({
 
 export function getTaskDetailsFields(
   element?: PipelineFlowElement | null,
-  task?: V2beta1PipelineTask,
+  task?: V2PipelineTask,
 ): Array<KeyValue<string>> {
   if (!element) {
     return [];
@@ -352,7 +396,7 @@ function RuntimeTaskDetails({
   task,
 }: {
   element?: PipelineFlowElement | null;
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
 }) {
   return (
     <>
@@ -449,8 +493,63 @@ function TaskVolumeMountsDetails({
   return <DetailsTable title='Volume Mounts' fields={fields} />;
 }
 
+interface LogsTabPanelProps {
+  details?: string;
+  bannerMessage?: string;
+  bannerAdditionalInfo?: string;
+  bannerMode: 'info' | 'error';
+  onRefresh?: () => void;
+}
+
+function LogsTabPanel({
+  details,
+  bannerMessage,
+  bannerAdditionalInfo,
+  bannerMode,
+  onRefresh,
+}: LogsTabPanelProps) {
+  return (
+    <div className={commonCss.page}>
+      {bannerMessage && (
+        <Banner
+          message={bannerMessage}
+          additionalInfo={bannerAdditionalInfo}
+          mode={bannerMode}
+          refresh={onRefresh}
+        />
+      )}
+      {details !== undefined && (
+        <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
+          <LogViewer logLines={details.split(/[\r\n]+/)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Location of the driver (system) log artifact recorded by the centralized driver, if any. */
+export function getDriverLogUri(task?: V2PipelineTask): string | undefined {
+  const driverLogUri = task?.status_metadata?.custom_properties?.driver_logs_uri;
+  return typeof driverLogUri === 'string' && driverLogUri ? driverLogUri : undefined;
+}
+
+// Uses the same keys as getLogsInfo so both log tabs render through LogsTabPanel.
+export async function getDriverLogsInfo(
+  driverLogUri: string,
+  namespace?: string,
+): Promise<Map<string, string>> {
+  const logsInfo = new Map<string, string>();
+  try {
+    logsInfo.set(LOGS_DETAILS, await readArtifactFile({ uri: driverLogUri }, namespace));
+  } catch (error) {
+    logsInfo.set(LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.');
+    logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, `Error response: ${await errorToMessage(error)}`);
+  }
+  return logsInfo;
+}
+
 export async function getLogsInfo(
-  task: V2beta1PipelineTask,
+  task: V2PipelineTask,
   runId?: string,
   namespace?: string,
 ): Promise<Map<string, string>> {
@@ -534,7 +633,7 @@ export async function getLogsInfo(
 }
 
 interface ArtifactNodeDetailProps {
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
   namespace?: string;
   sourceFinished?: boolean;
@@ -617,15 +716,16 @@ function ArtifactInfo({
 
 interface SubDAGNodeDetailProps {
   element: PipelineFlowElement;
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
-function SubDAGNodeDetail({ element, task, namespace }: SubDAGNodeDetailProps) {
+function SubDAGNodeDetail({ element, task, namespace, sourceFinished }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   return (
     <div className={commonCss.page}>
-      <LifecycleBanner task={task} />
+      <LifecycleBanner task={task} sourceFinished={sourceFinished} />
       <MD2Tabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}

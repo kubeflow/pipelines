@@ -82,7 +82,6 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
                 encoding='utf-8').strip()
 
         self.assertTrue({
-            'docker.io/library/mysql:8.4',
             f'quay.io/argoproj/workflow-controller:{compatibility_version}',
             f'quay.io/argoproj/argoexec:{compatibility_version}',
             f'quay.io/argoproj/workflow-controller:{current_version}',
@@ -131,6 +130,9 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         match = re.search(r'^\s*image:\s*(mysql:[^\s]+)', deployment,
                           re.MULTILINE)
         self.assertIsNotNone(match)
+
+        self.assertRegex(
+            match.group(1), r'^mysql:8\.4\.\d+@sha256:[0-9a-f]{64}$')
 
         canonical_image = f'docker.io/library/{match.group(1)}'
         self.assertIn(canonical_image, runtime_images())

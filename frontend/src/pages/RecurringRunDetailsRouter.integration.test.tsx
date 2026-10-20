@@ -15,7 +15,7 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
-import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 import { RouteParams } from 'src/components/Router';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
@@ -44,7 +44,7 @@ describe.each([false, true])('native recurring-run details (functional=%s)', (fu
           pipeline_version_id: pipelineVersionId,
         },
         runtime_config: { parameters: { dataset: 'training-data' } },
-        status: V2beta1RecurringRunStatus.ENABLED,
+        status: V2RecurringRunStatus.ENABLED,
         trigger: { periodic_schedule: { interval_second: '3600' } },
       });
       const getPipelineVersion = vi

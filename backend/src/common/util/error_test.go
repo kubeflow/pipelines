@@ -216,10 +216,10 @@ func TestErrorConstructors(t *testing.T) {
 		{
 			name: "NewUnknownApiVersionError",
 			constructor: func() *UserError {
-				return NewUnknownApiVersionError("v2beta1", "pipeline")
+				return NewUnknownApiVersionError("v2", "pipeline")
 			},
 			expectedCode:       codes.InvalidArgument,
-			expectedExtMessage: "Error using v2beta1 with string",
+			expectedExtMessage: "Error using v2 with string",
 		},
 	}
 

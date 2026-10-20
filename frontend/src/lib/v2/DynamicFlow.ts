@@ -19,8 +19,8 @@ import {
   InputOutputsIOArtifact,
   PipelineTaskTaskState,
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
@@ -48,19 +48,19 @@ import {
 } from 'src/lib/v2/RuntimeLayerUtils';
 
 export interface NodeRuntimeInfo {
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
 }
 
 interface TaskIndex {
-  rootTask?: V2beta1PipelineTask;
-  tasksById: Map<string, V2beta1PipelineTask>;
-  childrenByParentId: Map<string, V2beta1PipelineTask[]>;
-  childrenByParentAndIteration: Map<string, Map<number, V2beta1PipelineTask[]>>;
+  rootTask?: V2PipelineTask;
+  tasksById: Map<string, V2PipelineTask>;
+  childrenByParentId: Map<string, V2PipelineTask[]>;
+  childrenByParentAndIteration: Map<string, Map<number, V2PipelineTask[]>>;
 }
 
 interface RuntimeLayerContext {
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   iterationIndex?: number;
 }
 
@@ -88,7 +88,7 @@ function normalizeRuntimeScopePath(scopePath?: string): string | undefined {
 export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
 ): PipelineFlowElement[] {
@@ -148,7 +148,7 @@ function buildRuntimeLayer(
 /** Resolve many visible scopes from one task index, rather than re-indexing each iteration. */
 export function createRuntimeLayerResolver(
   spec: PipelineSpec,
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
 ): LayerElementsResolver {
@@ -168,7 +168,7 @@ export function createRuntimeLayerResolver(
 export function updateFlowElementsState(
   layers: string[],
   elements: PipelineFlowElement[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
@@ -217,7 +217,7 @@ export function updateFlowElementsState(
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
       // Always assign so the warning clears when the message is cleared on recovery.
-      data.lifecycleMessage = getTaskLifecycleMessage(runtimeInfo.task);
+      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = getRuntimeTaskState(
@@ -227,7 +227,7 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
-      data.lifecycleMessage = getTaskLifecycleMessage(runtimeInfo.task);
+      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
       data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
@@ -249,7 +249,7 @@ function taskCompletedSuccessfully(state: PipelineTaskTaskState | undefined): bo
 export function reconcileRuntimeFlowElements(
   layers: string[],
   elements: PipelineFlowElement[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
@@ -272,7 +272,7 @@ export function reconcileRuntimeFlowElements(
 
 function hasParallelForStructure(
   elements: PipelineFlowElement[],
-  loopTask: V2beta1PipelineTask,
+  loopTask: V2PipelineTask,
 ): boolean {
   const iterationCount = getParallelForIterationCount(loopTask);
   if (iterationCount === undefined) {
@@ -294,7 +294,7 @@ function hasParallelForStructure(
 
 export function getNodeRuntimeInfo(
   element: PipelineFlowElement | null,
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   layers: string[],
   existingFlowContext?: RuntimeFlowContext,
 ): NodeRuntimeInfo {
@@ -321,7 +321,7 @@ export function getNodeRuntimeInfo(
 
 export function buildRuntimeFlowContext(
   layers: string[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
 ): RuntimeFlowContext {
@@ -348,18 +348,18 @@ function buildIndexedRuntimeFlowContext(
 }
 
 export function getTaskRuntimeLayers(
-  task: V2beta1PipelineTask,
-  tasks: V2beta1PipelineTask[],
+  task: V2PipelineTask,
+  tasks: V2PipelineTask[],
 ): string[] | undefined {
-  const tasksById = new Map<string, V2beta1PipelineTask>();
+  const tasksById = new Map<string, V2PipelineTask>();
   for (const candidate of tasks) {
     if (candidate.task_id) {
       tasksById.set(candidate.task_id, candidate);
     }
   }
-  const ancestry: V2beta1PipelineTask[] = [];
+  const ancestry: V2PipelineTask[] = [];
   const visited = new Set<string>();
-  let current: V2beta1PipelineTask | undefined = task;
+  let current: V2PipelineTask | undefined = task;
   while (current) {
     ancestry.unshift(current);
     if (current.type === PipelineTaskTaskType.ROOT || !current.parent_task_id) {
@@ -459,11 +459,11 @@ export function getTaskRuntimeLayers(
   return layers;
 }
 
-function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
-  const tasksById = new Map<string, V2beta1PipelineTask>();
-  const childrenByParentId = new Map<string, V2beta1PipelineTask[]>();
-  const childrenByParentAndIteration = new Map<string, Map<number, V2beta1PipelineTask[]>>();
-  let rootTask: V2beta1PipelineTask | undefined;
+function buildTaskIndex(tasks: V2PipelineTask[]): TaskIndex {
+  const tasksById = new Map<string, V2PipelineTask>();
+  const childrenByParentId = new Map<string, V2PipelineTask[]>();
+  const childrenByParentAndIteration = new Map<string, Map<number, V2PipelineTask[]>>();
+  let rootTask: V2PipelineTask | undefined;
 
   for (const task of tasks) {
     if (task.task_id) {
@@ -485,7 +485,7 @@ function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
       ) {
         const childrenByIteration =
           childrenByParentAndIteration.get(task.parent_task_id) ||
-          new Map<number, V2beta1PipelineTask[]>();
+          new Map<number, V2PipelineTask[]>();
         const iterationChildren = childrenByIteration.get(iterationIndex) || [];
         iterationChildren.push(task);
         childrenByIteration.set(iterationIndex, iterationChildren);
@@ -502,7 +502,7 @@ function getIterationTasks(
   taskIndex: TaskIndex,
   parentTaskId: string | undefined,
   iterationIndex: number,
-): V2beta1PipelineTask[] {
+): V2PipelineTask[] {
   return taskIndex.childrenByParentAndIteration.get(parentTaskId || '')?.get(iterationIndex) || [];
 }
 
@@ -539,7 +539,7 @@ function findTaskForElement(
   element: Node<FlowElementDataBase>,
   runtimeContext: RuntimeLayerContext,
   taskIndex: TaskIndex,
-): V2beta1PipelineTask | undefined {
+): V2PipelineTask | undefined {
   if (element.data?.taskId) {
     const task = taskIndex.tasksById.get(element.data.taskId);
     if (task) {
@@ -589,7 +589,7 @@ function getArtifactRuntimeInfo(
 function getTasksUnderContext(
   runtimeContext: RuntimeLayerContext,
   taskIndex: TaskIndex,
-): V2beta1PipelineTask[] {
+): V2PipelineTask[] {
   const children = taskIndex.childrenByParentId.get(runtimeContext.task?.task_id || '') || [];
   if (runtimeContext.iterationIndex === undefined) {
     return children;
@@ -597,7 +597,7 @@ function getTasksUnderContext(
   return getIterationTasks(taskIndex, runtimeContext.task?.task_id, runtimeContext.iterationIndex);
 }
 
-function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | undefined {
+function getParallelForIterationCount(loopTask: V2PipelineTask): number | undefined {
   const value = loopTask.type_attributes?.iteration_count;
   if (value === undefined || value === '') {
     return undefined;
@@ -644,7 +644,7 @@ function buildParallelForDag(
 }
 
 function getIterationState(
-  iterationTasks: V2beta1PipelineTask[],
+  iterationTasks: V2PipelineTask[],
   expectedTaskCount?: number,
   loopState?: PipelineTaskTaskState,
   runIsTerminal = false,
@@ -709,6 +709,22 @@ function getIterationState(
     return PipelineTaskTaskState.SUCCEEDED;
   }
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+}
+
+// The amber warning has to agree with the state the node is drawn in. When a RUNNING
+// task was reset to unspecified because its run or parent already ended, the pod
+// problem is old news and the node should not claim something is still in flight.
+function getNodeLifecycleMessage(
+  task: V2PipelineTask,
+  displayedState: PipelineTaskTaskState | undefined,
+): string | undefined {
+  if (
+    task.state === PipelineTaskTaskState.RUNNING &&
+    displayedState !== PipelineTaskTaskState.RUNNING
+  ) {
+    return undefined;
+  }
+  return getTaskLifecycleMessage({ ...task, state: displayedState });
 }
 
 function getRuntimeTaskState(

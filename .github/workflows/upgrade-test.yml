@@ -23,6 +23,7 @@ on:
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -117,24 +118,23 @@ jobs:
         if: ${{ steps.deploy-release.outcome == 'success' }}
         shell: bash
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
 
       - name: Prepare for Upgrade
         id: prepare-upgrade
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: ${{ env.TESTS_DIR }}
         run: |
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
-        continue-on-error: true
+          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation" -- -useLegacyAPIPrefix=true
 
       - name: Stop port forwarding
+        if: ${{ always() }}
         run: |
           pkill -f "port-forward"
         continue-on-error: true
 
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
           image_path: images_${{ github.run_id }}
@@ -144,7 +144,7 @@ jobs:
 
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.prepare-upgrade.outcome == 'success' && steps.deploy.outcome == 'success' }}
         with:
           test_directory: ${{ env.TESTS_DIR }}
           test_label: "UpgradeVerification"

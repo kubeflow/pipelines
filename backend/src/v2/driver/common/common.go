@@ -21,11 +21,14 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/types/known/structpb"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -37,11 +40,11 @@ type Options struct {
 	// required, pipeline context name
 	PipelineName string
 	// required, KFP run ID
-	Run *apiv2beta1.Run
+	Run *apiv2.Run
 	// required, Component spec
 	Component *pipelinespec.ComponentSpec
 	// required
-	ParentTask *apiv2beta1.PipelineTask
+	ParentTask *apiv2.PipelineTask
 	// required
 	ScopePath util.ScopePath
 
@@ -85,6 +88,13 @@ type Options struct {
 	DefaultHostUsers           *bool
 	CaCertPath                 string
 	PluginDispatcher           plugins.TaskPluginDispatcher
+	// ProxyConfig supplies this invocation's workload proxy env; nil adds none.
+	ProxyConfig proxy.Config
+	// LauncherConfig resolves the kfp-launcher config; nil reads the cluster on
+	// every call. Long-lived drivers supply a cache bounded to one workflow.
+	LauncherConfig config.LauncherConfigLoader `json:"-"`
+	// OutputPathPrefix aligns this invocation's outputs and uploaded driver log.
+	OutputPathPrefix string
 }
 
 // Info provides information used for debugging
@@ -125,7 +135,7 @@ func IsLoopArgument(name string) bool {
 	return strings.HasSuffix(nameWithoutPrefix, "loop-item") || strings.HasPrefix(nameWithoutPrefix, "loop-item")
 }
 
-func IsRuntimeIterationTask(task *apiv2beta1.PipelineTask) bool {
+func IsRuntimeIterationTask(task *apiv2.PipelineTask) bool {
 	return task != nil && task.TypeAttributes != nil && task.TypeAttributes.IterationIndex != nil
 }
 
@@ -219,4 +229,12 @@ func extractParameterName(s string) (string, bool) {
 // isPipelineChannel checks if a parameter name follows the "pipelinechannel--" prefix convention
 func isPipelineChannel(name string) bool {
 	return strings.HasPrefix(name, "pipelinechannel--")
+}
+
+// LauncherConfigLoader returns the configured loader, or a per-call cluster read.
+func (o *Options) LauncherConfigLoader(k8sClient kubernetes.Interface) config.LauncherConfigLoader {
+	if o.LauncherConfig != nil {
+		return o.LauncherConfig
+	}
+	return config.ClusterLauncherConfigLoader(k8sClient)
 }
