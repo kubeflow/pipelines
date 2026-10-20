@@ -1285,7 +1285,7 @@ func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
 func TestToModelAndAPITask_LifecycleCategory(t *testing.T) {
 	category := "image-pull"
 	msg := "ImagePullBackOff"
-	apiTask := &apiv2beta1.PipelineTask{
+	apiTask := &apiv2.PipelineTask{
 		TaskId:            "task-1",
 		RunId:             "run-1",
 		LifecycleMessage:  &msg,
@@ -1309,7 +1309,7 @@ func TestToModelAndAPITask_LifecycleCategory(t *testing.T) {
 	require.NotNil(t, cleared.LifecycleCategory)
 	assert.Equal(t, "", *cleared.LifecycleCategory)
 
-	unset, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "task-2", RunId: "run-1"})
+	unset, err := toModelTask(&apiv2.PipelineTask{TaskId: "task-2", RunId: "run-1"})
 	require.NoError(t, err)
 	assert.Nil(t, unset.LifecycleCategory)
 }
@@ -1320,21 +1320,21 @@ func TestToModelTask_LifecycleCategoryRequiresMessage(t *testing.T) {
 	msg := "ImagePullBackOff"
 
 	// A category without a message is rejected, whether the message is unset or empty.
-	_, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleCategory: &category})
+	_, err := toModelTask(&apiv2.PipelineTask{TaskId: "t", RunId: "r", LifecycleCategory: &category})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "lifecycle_category requires a non-empty lifecycle_message")
 
-	_, err = toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &empty, LifecycleCategory: &category})
+	_, err = toModelTask(&apiv2.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &empty, LifecycleCategory: &category})
 	require.Error(t, err)
 
 	// A category together with a message is accepted.
-	ok, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &msg, LifecycleCategory: &category})
+	ok, err := toModelTask(&apiv2.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &msg, LifecycleCategory: &category})
 	require.NoError(t, err)
 	require.NotNil(t, ok.LifecycleCategory)
 	assert.Equal(t, "image-pull", *ok.LifecycleCategory)
 
 	// Clearing the message without a category clears the category too.
-	cleared, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &empty})
+	cleared, err := toModelTask(&apiv2.PipelineTask{TaskId: "t", RunId: "r", LifecycleMessage: &empty})
 	require.NoError(t, err)
 	require.NotNil(t, cleared.LifecycleCategory)
 	assert.Equal(t, "", *cleared.LifecycleCategory)

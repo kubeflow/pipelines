@@ -559,7 +559,7 @@ func TestUpdateTask_LifecycleCategorySetAndCleared(t *testing.T) {
 	created, err := taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
 		RunUUID:          "run-1",
-		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
 		Fingerprint:      "fp-0",
 		State:            1,
 		StateHistory:     model.JSONSlice{},
