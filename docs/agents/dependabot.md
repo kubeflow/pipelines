@@ -25,3 +25,9 @@ release source checkouts that contain tracked exports retain their original beha
 React, ReactDOM, and their typings are grouped together for both version and
 security updates. Grouping does not waive peer compatibility, source review,
 or the normal CI and merge requirements.
+
+Vitest and `@vitest/*` packages are grouped for version and security updates:
+coverage providers require the exact runner release. Keep these groups before
+the generic npm group and update the frontend manifest and lock together.
+Security grouping does not guarantee a non-vulnerable peer is updated; verify
+the resolved peer versions and the coverage suite before merging.

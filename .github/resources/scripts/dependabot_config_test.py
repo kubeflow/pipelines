@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from fnmatch import fnmatchcase
+import json
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
@@ -318,6 +319,34 @@ class DependabotConfigTest(unittest.TestCase):
         }
         self.assertTrue(lock_directories)
         self.assertEqual(self.configured_directories('uv'), lock_directories)
+
+    def test_vitest_runner_and_providers_share_update_groups(self):
+        npm = next(update for update in yaml.safe_load(self.config)['updates']
+                   if update['package-ecosystem'] == 'npm')
+        for applies_to in ('version-updates', 'security-updates'):
+            matches = []
+            for dependency in ('vitest', '@vitest/coverage-v8',
+                               '@vitest/coverage-istanbul', '@vitest/ui'):
+                matches.append(next(
+                    (name for name, group in npm['groups'].items()
+                     if group.get('applies-to', 'version-updates') == applies_to
+                     and any(fnmatchcase(dependency, pattern)
+                             for pattern in group.get('patterns', []))),
+                    None))
+            self.assertIsNotNone(matches[0])
+            self.assertEqual(len(set(matches)), 1)
+
+    def test_frontend_vitest_coverage_matches_locked_runner(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        manifest = json.loads((frontend / 'package.json').read_text())
+        self.assertEqual(manifest['devDependencies']['vitest'],
+                         manifest['devDependencies']['@vitest/coverage-v8'])
+        packages = json.loads(
+            (frontend / 'package-lock.json').read_text())['packages']
+        runner = packages['node_modules/vitest']['version']
+        coverage = packages['node_modules/@vitest/coverage-v8']
+        self.assertEqual(coverage['version'], runner)
+        self.assertEqual(coverage['peerDependencies']['vitest'], runner)
 
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')
