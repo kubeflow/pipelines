@@ -127,8 +127,7 @@ func (invocationS3URLOpener) OpenBucketURL(ctx context.Context, u *url.URL) (*bl
 	// Go CDK can install the URL endpoint after LoadDefaultConfig, so it is
 	// not necessarily represented in ConfigSources. Preserve that resolver
 	// while reloading credentials and custom CAs with the invocation client.
-	storageEndpointResolver := config.EndpointResolverWithOptions
-	config, err = awsconfig.LoadDefaultConfig(ctx, func(options *awsconfig.LoadOptions) error {
+	invocationConfig, err := awsconfig.LoadDefaultConfig(ctx, func(options *awsconfig.LoadOptions) error {
 		*options = *loadOptions
 		options.HTTPClient = client
 		return nil
@@ -136,7 +135,8 @@ func (invocationS3URLOpener) OpenBucketURL(ctx context.Context, u *url.URL) (*bl
 	if err != nil {
 		return nil, err
 	}
-	config.EndpointResolverWithOptions = storageEndpointResolver
+	config.HTTPClient = invocationConfig.HTTPClient
+	config.Credentials = invocationConfig.Credentials
 	if role != "" {
 		// The URL's endpoint= names the storage service, so STS must resolve
 		// its own endpoint as the Go CDK opener does, while still using the
