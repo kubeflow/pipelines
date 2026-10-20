@@ -199,7 +199,7 @@ export interface V2PipelineTask {
    * One of image-pull, scheduling, runtime, admission, or unknown.
    * Empty when lifecycle_message is empty.
    * @type {string}
-   * @memberof V2beta1PipelineTask
+   * @memberof V2PipelineTask
    */
   lifecycle_category?: string;
 }
