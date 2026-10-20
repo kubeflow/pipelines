@@ -17,11 +17,10 @@ kfp = { workspace = true }
 [tool.uv]
 # Shared constraints applied during resolution for ALL workspace members
 constraint-dependencies = [
-  "protobuf>=6.31.1,<7.0",
-  "kubernetes>=8.0.0,<31",
+  # GCPC's supported Vertex AI dependency does not support protobuf 7 yet.
+  "protobuf>=6.33.5,<7",
+  "kubernetes>=8.0.0",
   "google-auth>=1.6.1,<3",
-  "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
-  "google-cloud-storage>=2.2.1,<4",
   "PyYAML>=5.3,<7",
   "urllib3<3.0.0",
 ]
@@ -29,9 +28,9 @@ constraint-dependencies = [
 [project.optional-dependencies]
 # Linting tools (pinned to avoid new lint failures)
 lint = [
-  "docformatter==1.4",
+  "docformatter==1.7.7",
   "isort==5.10.1",  "pre-commit-hooks",  "pycln==2.6.0",
-  "pylint==2.17.7",
+  "pylint==4.1.3",
   "yapf==0.43.0",
 ]
 
@@ -39,16 +38,19 @@ lint = [
 test = [
   "absl-py",
   "docker",
-  "google-cloud-pipeline-components",
+  # Older 1.x releases import removed kfp.dsl internals. Do not let dependency
+  # resolution backtrack to them when a newer protobuf is incompatible.
+  "google-cloud-pipeline-components>=2.22.0",
+  "kfp[notebooks]",
   "kubernetes",
   "nbformat",
   "pip",
   "pydantic>=2",
   # pytest 9.0.3 contains the tmpdir handling fix.
-  "pytest==9.0.3",
+  "pytest>=9.0.3",
   "pytest-cov>=7.1.0",
   "pytest-mock",
-  "pytest-randomly>=3.12",
+  "pytest-randomly>=5.0.0",
   "pytest-xdist>=3.8.0",
   "setuptools",
   "wheel",
@@ -58,7 +60,7 @@ test = [
 dev = [
   "kfp-workspace[lint,test]",
   "mypy",
-  "pre-commit>=3.2",
+  "pre-commit>=4.7.0",
   "types-protobuf",
   "types-PyYAML",
   "types-requests",
@@ -71,11 +73,11 @@ docs = [
   "m2r2",
   "sphinx>=7.2.0,<8.0.0",
   "sphinx-click",
-  "sphinx-immaterial>=0.9.0,<1",
+  "sphinx-immaterial>=0.13.9,<1",
   "sphinx-rtd-theme",
   "furo>=2024.8.6",
   "myst-parser>=3.0.0,<4.0.0",
-  "sphinxcontrib-mermaid>=0.9.0,<1.0.0",
+  "sphinxcontrib-mermaid>=2.1.1,<3.0.0",
   "sphinx-copybutton>=0.5.2,<1.0.0",
   "sphinx-design>=0.6.0,<1.0.0",
   "sphinx-autobuild>=2024.10.3",
@@ -91,39 +93,7 @@ ci = [
   "twine",
 ]
 
-# Shared dependency set for non-workspace runtime code paths still modeled by
-# requirements-style files.
-legacy-shared = [
-  "certifi>=14.05.14",
-  "future; python_version <= '2.7'",
-  "protobuf>=6.33.5,<7.0",
-  "python-dateutil>=2.5.3",
-  "PyYAML>=5.3,<7",
-  "six>=1.10",
-  "urllib3>=1.15.1,<3.0.0",
-]
-
 # Legacy backend v2 test helpers
 backend-v2-test = [
   "fire",
-]
-
-# Legacy SageMaker development tools
-sagemaker-dev-tools = [
-  "black==26.10.0",
-  "coverage>=5.2.1",
-]
-
-# Legacy requirement entries that are compatible with the workspace's
-# protobuf>=6 dependency floor.
-legacy-compatible-runtime = [
-  "flake8==7.4.*",
-  "flake8-black==0.1.*",
-  "kubernetes>=8.0.0,<=31.0.0",
-  "lru-dict>=1.1.7,<2.0.0",
-  "minio==7.2.20",
-  "mypy-extensions==1.1.0",
-  "numpy==1.23.1",
-  "pathlib2==2.3.7.post1",
-  "PyYAML>=5.3,<7",
 ]

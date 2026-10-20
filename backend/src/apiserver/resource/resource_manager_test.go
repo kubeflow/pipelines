@@ -33,7 +33,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/util/file"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -315,7 +315,7 @@ func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
 
 type serviceAccountMutatingDispatcher struct {
 	apiserverPlugins.NoOpDispatcher
-	output    *apiv2beta1.PluginOutput
+	output    *apiv2.PluginOutput
 	endedRuns []*apiserverPlugins.PersistedRun
 }
 
@@ -2451,7 +2451,7 @@ func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	require.NoError(t, err)
 	output := outputs["mlflow"]
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Equal(t, "mlflow-exp-1", output.Entries["experiment_id"].Value.GetStringValue())
 	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
 	assert.Contains(t, output.Entries[apiserverPlugins.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
@@ -3077,7 +3077,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
-	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -3096,7 +3096,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	require.NoError(t, err)
 	updatedOutput := updatedOutputs["mlflow"]
 	require.NotNil(t, updatedOutput)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
 	assert.Equal(t, "", updatedOutput.StateMessage)
 }
 
@@ -3128,14 +3128,14 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	_, err = manager.ReportWorkflowResource(context.Background(), updatedWorkflow)
 	require.NoError(t, err)
 
-	failedPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	failedPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
-	failedOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	failedOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{{
 		ParameterKey: "result",
 		Value:        structpb.NewStringValue("stale"),
-		Type:         apiv2beta1.IOType_OUTPUT,
+		Type:         apiv2.IOType_OUTPUT,
 	}})
 	require.NoError(t, err)
 	failedTask, err := store.TaskStore().CreateTask(&model.Task{
@@ -3143,8 +3143,8 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		RunUUID:          runDetail.UUID,
 		Name:             "failed-task",
 		ScopePath:        "root.failed-task",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Fingerprint:      "fp-failed-task",
 		Pods:             failedPods,
 		StatusMetadata:   model.JSONData{"message": "old failure"},
@@ -3156,18 +3156,18 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 
 	artifact, err := store.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:       util.StringPointer("s3://bucket/stale-artifact"),
 		Name:      "stale-artifact",
 	})
 	require.NoError(t, err)
-	producer, err := model.ProtoMessageToJSONData(&apiv2beta1.IOProducer{TaskName: failedTask.Name})
+	producer, err := model.ProtoMessageToJSONData(&apiv2.IOProducer{TaskName: failedTask.Name})
 	require.NoError(t, err)
 	_, err = store.ArtifactTaskStore().CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  artifact.UUID,
 		TaskID:      failedTask.UUID,
 		RunUUID:     runDetail.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		Producer:    producer,
 		ArtifactKey: "result",
 	})
@@ -3176,16 +3176,16 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		ArtifactID:  artifact.UUID,
 		TaskID:      failedTask.UUID,
 		RunUUID:     runDetail.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		Producer:    producer,
 		ArtifactKey: "dataset",
 	})
 	require.NoError(t, err)
 
-	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{{
 		ParameterKey: "result",
 		Value:        structpb.NewStringValue("stable"),
-		Type:         apiv2beta1.IOType_OUTPUT,
+		Type:         apiv2.IOType_OUTPUT,
 	}})
 	require.NoError(t, err)
 	succeededTask, err := store.TaskStore().CreateTask(&model.Task{
@@ -3193,8 +3193,8 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		RunUUID:          runDetail.UUID,
 		Name:             "succeeded-task",
 		ScopePath:        "root.succeeded-task",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 		Fingerprint:      "fp-succeeded-task",
 		OutputParameters: succeededOutputs,
 		TypeAttrs:        model.JSONData{},
@@ -3215,7 +3215,7 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 
 	retriedFailedTask := tasksByName[failedTask.Name]
 	require.NotNil(t, retriedFailedTask)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retriedFailedTask.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), retriedFailedTask.State)
 	assert.Equal(t, int64(0), retriedFailedTask.FinishedInSec)
 	assert.Nil(t, retriedFailedTask.StatusMetadata)
 	assert.Empty(t, retriedFailedTask.Pods)
@@ -3236,7 +3236,7 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 
 	preservedSucceededTask := tasksByName[succeededTask.Name]
 	require.NotNil(t, preservedSucceededTask)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED), preservedSucceededTask.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), preservedSucceededTask.State)
 	assert.NotEmpty(t, preservedSucceededTask.OutputParameters)
 }
 
@@ -3895,7 +3895,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3906,7 +3906,7 @@ func TestDeleteJob(t *testing.T) {
 func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_FOREGROUND)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_FOREGROUND)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3917,7 +3917,7 @@ func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
 func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_BACKGROUND)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_BACKGROUND)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3928,7 +3928,7 @@ func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
 func TestDeleteJob_WithOrphanPolicy(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_ORPHAN)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3940,7 +3940,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	err := manager.DeleteJob(context.Background(), "1", apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), "1", apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -3950,7 +3950,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check if the scheduled workflow exists")
 }
@@ -3963,7 +3963,7 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -3978,7 +3978,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -4040,10 +4040,10 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
 
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
 		Name: "executor-pod",
 		Uid:  "uid-1",
-		Type: apiv2beta1.PipelineTask_EXECUTOR,
+		Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	task, err := store.TaskStore().CreateTask(&model.Task{
@@ -4051,8 +4051,8 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 		RunUUID:          run.UUID,
 		Name:             "train",
 		DisplayName:      "train",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint:      "fp-train",
 		Pods:             pods,
 		TypeAttrs:        model.JSONData{},
@@ -5074,7 +5074,7 @@ func TestReportWorkflowResource_OrphanedRecurringWorkflowSucceeds(t *testing.T) 
 		PipelineSpec:   job.PipelineSpec,
 	})
 	require.NoError(t, err)
-	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN))
+	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2.DeletePropagationPolicy_ORPHAN))
 
 	orphanedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
 		ctx, run.K8SName, v1.GetOptions{})
@@ -5215,7 +5215,7 @@ func TestReportWorkflowResource_FinalizesDeletedOrphanedRecurringWorkflow(t *tes
 		PipelineSpec:   job.PipelineSpec,
 	})
 	require.NoError(t, err)
-	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN))
+	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2.DeletePropagationPolicy_ORPHAN))
 
 	orphanedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
 		ctx, run.K8SName, v1.GetOptions{})
@@ -5830,7 +5830,7 @@ func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsSta
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
-	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.State = model.RuntimeStateRunning
 	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV2())
@@ -6023,7 +6023,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
-	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = pluginsOutput
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -6575,6 +6575,137 @@ func TestReconcileSwfCrs(t *testing.T) {
 	swf, err = swfClient.Get(ctx, "job-", options)
 	require.Nil(t, err)
 	require.NotNil(t, swf.Spec.Workflow.Spec)
+}
+
+func TestScheduledWorkflowPipelineNames(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		multiUser bool
+		pinned    bool
+	}{
+		{name: "single-user latest version"},
+		{name: "single-user pinned version", pinned: true},
+		{name: "multi-user latest version", multiUser: true},
+		{name: "multi-user pinned version", multiUser: true, pinned: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			configureRecurringRunAccountTest(t)
+			viper.Set(common.MultiUserMode, tc.multiUser)
+			store, _, pipeline, version := initWithPipeline(t)
+			defer store.Close()
+			store.SubjectAccessReviewClientFake = &recurringRunAccountReview{allowedAccount: "override-runner"}
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+			experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+			require.NoError(t, err)
+			pipelineSpec := model.PipelineSpec{
+				PipelineId:    pipeline.UUID,
+				RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
+			}
+			expectedVersionName := ""
+			if tc.pinned {
+				pipelineSpec.PipelineVersionId = version.UUID
+				expectedVersionName = version.Name
+			}
+			job, err := manager.CreateJob(multiUserContext(), &model.Job{
+				DisplayName: "j1", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true,
+				ServiceAccount: "override-runner", PipelineSpec: pipelineSpec,
+			})
+			require.NoError(t, err)
+
+			ctx := context.Background()
+			swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+			swf, err := swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, pipeline.UUID, swf.Spec.PipelineId)
+			require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+			require.Equal(t, pipelineSpec.PipelineVersionId, swf.Spec.PipelineVersionId)
+			require.Equal(t, expectedVersionName, swf.Spec.PipelineVersionName)
+
+			// Emulate a ScheduledWorkflow created before the names were recorded.
+			swf.Spec.PipelineName = version.Name
+			swf.Spec.PipelineVersionName = ""
+			_, err = swfClient.Update(ctx, swf)
+			require.NoError(t, err)
+			require.NoError(t, manager.ReconcileSwfCrs(ctx))
+			swf, err = swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			if tc.pinned {
+				require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+				require.Equal(t, version.Name, swf.Spec.PipelineVersionName)
+			} else {
+				// Startup reconciliation only rebuilds pinned schedules.
+				require.Equal(t, version.Name, swf.Spec.PipelineName)
+			}
+		})
+	}
+}
+
+func TestSetScheduledWorkflowPipelineNamesMissingReferences(t *testing.T) {
+	store, manager, _, _ := initWithPipeline(t)
+	swf := &swfapi.ScheduledWorkflow{Spec: swfapi.ScheduledWorkflowSpec{
+		PipelineId: "deleted-pipeline", PipelineVersionId: "deleted-version",
+	}}
+	require.NoError(t, manager.setScheduledWorkflowPipelineNames(swf))
+	require.Empty(t, swf.Spec.PipelineName)
+	require.Empty(t, swf.Spec.PipelineVersionName)
+
+	require.NoError(t, store.Close())
+	for _, spec := range []swfapi.ScheduledWorkflowSpec{{PipelineId: "p1"}, {PipelineVersionId: "v1"}} {
+		require.Error(t, manager.setScheduledWorkflowPipelineNames(&swfapi.ScheduledWorkflow{Spec: spec}),
+			"lookup failures other than NotFound must not be ignored")
+	}
+}
+
+type unavailablePipelineStore struct{ storage.PipelineStoreInterface }
+
+func (unavailablePipelineStore) GetPipeline(string) (*model.Pipeline, error) {
+	return nil, util.NewInternalServerError(fmt.Errorf("store unavailable"), "Failed to get a pipeline")
+}
+
+func TestCreateJobSucceedsWhenPipelineNameLookupFails(t *testing.T) {
+	store, manager, _, version := initWithPipeline(t)
+	defer store.Close()
+	manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1", Enabled: true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+	})
+	require.NoError(t, err)
+	swf, err := store.SwfClient().ScheduledWorkflow(job.Namespace).Get(context.Background(), job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, version.UUID, swf.Spec.PipelineVersionId)
+	require.Empty(t, swf.Spec.PipelineName)
+}
+
+func TestReconcileSwfCrsKeepsPipelineNamesWhenLookupFails(t *testing.T) {
+	store, manager, pipeline, version := initWithPipeline(t)
+	defer store.Close()
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1", Enabled: true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+	swf, err := swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	swf.Spec.Workflow.Spec = nil
+	_, err = swfClient.Update(ctx, swf)
+	require.NoError(t, err)
+
+	manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+	require.NoError(t, manager.ReconcileSwfCrs(ctx))
+	swf, err = swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, swf.Spec.Workflow.Spec, "the rest of the spec must still be reconciled")
+	require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+	require.Equal(t, version.Name, swf.Spec.PipelineVersionName)
 }
 
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
@@ -8674,8 +8805,8 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 }
 
 func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	task := &model.Task{Name: "train", Pods: pods}
@@ -8702,12 +8833,12 @@ func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
 func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	// Only the failing iteration's pod should be attributed; the healthy iteration must not
 	// inherit the aggregate node's message via DisplayName.
-	failPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "loop-pod-0", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	failPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "loop-pod-0", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
-	healthyPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "loop-pod-1", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	healthyPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "loop-pod-1", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	failTask := &model.Task{Name: "loop(0)", DisplayName: "loop", Pods: failPods}
@@ -8738,8 +8869,8 @@ func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
 }
 
 func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	lm := model.LargeText("old")

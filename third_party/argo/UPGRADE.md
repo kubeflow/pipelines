@@ -4,13 +4,23 @@ Argo upgrades must keep the Go client and CLI, controller and executor images,
 upstream manifests and CRDs, CI matrices, and runtime preload images aligned.
 Use the complete update command for both Dependabot proposals and manual upgrades.
 
-## Planned KFP 3.0 support boundary
+## KFP 3.0 support boundary
 
-Argo Workflows 3.x remains supported for KFP 2.x, but is deprecated and will not be supported by
-Kubeflow Pipelines 3.0. Before the KFP 3.0 release, replace the 3.x compatibility lane with the
-oldest supported 4.x release, update the public compatibility matrix and operator upgrade
-documentation, and verify the resulting minimum and maximum versions through the API and end-to-end
-CI matrices. Track this work in
+Master supports Argo Workflows 4.0.x and 4.1.x, with exact patch versions pinned in
+`COMPATIBILITY_VERSION` and `VERSION`. The default runtime uses 4.1.x; API and
+end-to-end CI also exercise the 4.0.x compatibility runtime. Keep each lane on its
+latest stable patch through coordinated upgrades, not floating image tags.
+
+[Upstream maintains the two most recent minor releases](https://argo-workflows.readthedocs.io/en/latest/releases/).
+As of October 2026 these are 4.0 and 4.1. Reassess the support floor when upstream
+introduces a new release line; do not silently drop a supported line in a patch upgrade.
+
+Argo 3.x is not supported by KFP 3.0. KFP 2.x release branches retain their
+documented 3.x compatibility coverage, independently of upstream maintenance.
+Before upgrading KFP 2.x to 3.0, operators must upgrade the Argo controller and
+executor together to a supported 4.x patch and follow the
+[upstream upgrade guide](https://argo-workflows.readthedocs.io/en/latest/upgrading/).
+Track the broader migration work in
 [the KFP 3.0 compatibility issue](https://github.com/kubeflow/pipelines/issues/14139).
 
 ## Upgrade the current release
@@ -18,7 +28,7 @@ CI matrices. Track this work in
 From the repository root, select an exact stable tag:
 
 ```bash
-ARGO_TAG=v4.1.2
+ARGO_TAG=v4.1.5
 make -C third_party/argo update ARGO_VERSION="${ARGO_TAG}"
 ```
 

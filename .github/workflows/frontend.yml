@@ -12,7 +12,7 @@ on:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
-      - 'backend/api/v2beta1/swagger/**'
+      - 'backend/api/v2/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -66,9 +66,9 @@ jobs:
         npm run apis:all
         git diff --exit-code -- \
           src/apis \
-          src/apisv2beta1 \
+          src/apisv2 \
           server/src/generated/apis \
-          server/src/generated/apisv2beta1
+          server/src/generated/apisv2
 
     - name: Verify pipeline and platform spec generation
       working-directory: frontend

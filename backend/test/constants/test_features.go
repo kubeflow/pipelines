@@ -40,6 +40,9 @@ const (
 	E2eGpuSchedulingCheck string = "gpu-scheduling-check"
 	// E2eDraCheck - DRA (Dynamic Resource Allocation) checks (e.g. Kind + dra-example-driver).
 	E2eDraCheck string = "dra-check"
+	// E2eDriverPlugin - Verifies drivers run as the Argo executor plugin
+	// ("driver-plugin" sidecar of the per-workflow agent pod) instead of per-task pods.
+	E2eDriverPlugin string = "E2EDriverPlugin"
 
 	WorkflowCompiler       string = "WorkflowCompiler"
 	WorkflowCompilerVisits string = "WorkflowCompilerVisits"

@@ -33,7 +33,6 @@ var (
 	specPath          = flag.String("spec", "", "path to pipeline spec file")
 	jobPath           = flag.String("job", "", "path to pipeline job file")
 	launcher          = flag.String("launcher", "", "v2 launcher image")
-	driver            = flag.String("driver", "", "v2 driver image")
 	pipelineRoot      = flag.String("pipeline_root", "", "pipeline root")
 	cacheDisabledFlag = flag.Bool("cache_disabled", false, "disable caching")
 )
@@ -67,7 +66,6 @@ func main() {
 
 func compile(job *pipelinespec.PipelineJob) error {
 	wf, err := argocompiler.Compile(job, nil, &argocompiler.Options{
-		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
 		CacheDisabled: *cacheDisabledFlag,

@@ -23,7 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -120,11 +120,11 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	var apiExperiment *apiv2beta1.Experiment
+	var apiExperiment *apiv2.Experiment
 	if common.IsMultiUserMode() {
-		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: "ns1"}
+		apiExperiment = &apiv2.Experiment{DisplayName: "exp1", Namespace: "ns1"}
 	} else {
-		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
+		apiExperiment = &apiv2.Experiment{DisplayName: "exp1", Namespace: ""}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -138,9 +138,9 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
+	apiExperiment := &apiv2.Experiment{DisplayName: "exp1", Namespace: ""}
 	if common.IsMultiUserMode() {
-		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: "ns1"}
+		apiExperiment = &apiv2.Experiment{DisplayName: "exp1", Namespace: "ns1"}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	modelExperiment.Namespace = resourceManager.ReplaceNamespace(modelExperiment.Namespace)
@@ -156,7 +156,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	// Create an experiment.
-	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
+	apiExperiment := &apiv2.Experiment{DisplayName: "exp1", Namespace: ""}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
 	experiment, err := resourceManager.CreateExperiment(modelExperiment)
@@ -195,7 +195,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	// Create an experiment.
-	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
+	apiExperiment := &apiv2.Experiment{DisplayName: "exp1", Namespace: ""}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
 	_, err = resourceManager.CreateExperiment(modelExperiment)
@@ -271,7 +271,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 		ctx = metadata.NewIncomingContext(context.Background(), md)
 	}
-	apiRun := &apiv2beta1.Run{DisplayName: "run1", ExperimentId: exp.UUID, PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: mustTestPipelineSpec(t)}}
+	apiRun := &apiv2.Run{DisplayName: "run1", ExperimentId: exp.UUID, PipelineSource: &apiv2.Run_PipelineSpec{PipelineSpec: mustTestPipelineSpec(t)}}
 	modelRun, err := toModelRun(apiRun)
 	assert.Nil(t, err)
 	runDetail, err := manager.CreateRun(ctx, modelRun)
@@ -288,11 +288,11 @@ func initWithOneTimeRunV2(t *testing.T) (*resource.FakeClientManager, *resource.
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	// Create an experiment depending on multi-user mode
-	var apiExperiment *apiv2beta1.Experiment
+	var apiExperiment *apiv2.Experiment
 	if common.IsMultiUserMode() {
-		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: "ns1"}
+		apiExperiment = &apiv2.Experiment{DisplayName: "exp1", Namespace: "ns1"}
 	} else {
-		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
+		apiExperiment = &apiv2.Experiment{DisplayName: "exp1", Namespace: ""}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -304,7 +304,7 @@ func initWithOneTimeRunV2(t *testing.T) (*resource.FakeClientManager, *resource.
 		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 		ctx = metadata.NewIncomingContext(context.Background(), md)
 	}
-	apiRun := &apiv2beta1.Run{DisplayName: "run1", ExperimentId: exp.UUID, PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: mustTestPipelineSpec(t)}}
+	apiRun := &apiv2.Run{DisplayName: "run1", ExperimentId: exp.UUID, PipelineSource: &apiv2.Run_PipelineSpec{PipelineSpec: mustTestPipelineSpec(t)}}
 	modelRun, err := toModelRun(apiRun)
 	assert.Nil(t, err)
 	runDetail, err := resourceManager.CreateRun(ctx, modelRun)

@@ -50,6 +50,7 @@ const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
     workflow_run: {event: 'pull_request', head_sha: 'head', head_branch: 'feature',
       head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'}}}};
 let published = false;
+let pullReads = 0;
 let status = options.initialStatus;
 let description = options.initialDescription;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
@@ -79,11 +80,17 @@ jobs:
         isBinary: false, isTruncated: false}}))}}};
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
-    get: async request => ({data: request.pull_number === 100 ? {
-      number: 100, merged: true, merge_commit_sha: baseTip,
-      merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z',
-      base: {ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
-    } : structuredClone(pr)})},
+    get: async request => {
+      pullReads += 1;
+      if (options.pullFailure) throw Error('Pull read unavailable');
+      if (options.finalizeReadFailure && pullReads === 2) throw Error('Pull read unavailable');
+      if (request.pull_number === 100) return {data: {
+        number: 100, merged: true, merge_commit_sha: baseTip,
+        merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z',
+        base: {ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
+      }};
+      return {data: structuredClone(pr)};
+    }},
   actions: {listWorkflowRunsForRepo: methods.runs},
   checks: {listForRef: async () => {
     if (options.checkApiFailure) throw Error('Checks API unavailable');
@@ -119,6 +126,7 @@ jobs:
       if (options.drift === 'base-sha') pr.base.sha = 'new-base';
       if (options.drift === 'head') pr.head.sha = 'new-head';
       if (options.drift === 'closed') pr.state = 'closed';
+      if (options.drift === 'merged') {pr.merged = true; pr.state = 'closed';}
     }
   }},
   git: {getRef: async () => ({data: {object: {sha: baseTip}}})},
@@ -157,6 +165,7 @@ github.paginate.iterator = async function* () {
   try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   if (options.recoverBeforeFinal) options.conclusion = 'success';
+  if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
   try {
     await gate.finalize({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
@@ -785,23 +794,97 @@ async function run(liveTip) {
             with self.subTest(pr=pr):
                 self.assert_last_status(exercise({'pr': pr}), 'failure')
 
-    def test_closed_pr_invalidates_prior_success_without_polling(self):
-        for merged in [False, True]:
-            with self.subTest(merged=merged):
-                result = exercise({
-                    'action': 'closed',
-                    'initialStatus': 'success',
-                    'pr': {
-                        'state': 'closed',
-                        'merged': merged
-                    },
-                })
-                self.assertNotIn('error', result)
-                self.assert_last_status(result, 'failure')
-                self.assertNotIn('ready', result['outputs'])
-                self.assertIn(['remove-label', 'ci-passed'], result['calls'])
-                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
-                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+    def test_closed_unmerged_pr_invalidates_prior_success_without_polling(self):
+        result = exercise({
+            'action': 'closed',
+            'initialStatus': 'success',
+            'pr': {
+                'state': 'closed',
+                'merged': False
+            },
+        })
+        self.assertNotIn('error', result)
+        self.assert_last_status(result, 'failure')
+        self.assertNotIn('ready', result['outputs'])
+        self.assertIn(['remove-label', 'ci-passed'], result['calls'])
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+        self.assertNotIn(['status', 'success', 'head'], result['calls'])
+
+    def test_merged_pr_preserves_published_status(self):
+        result = exercise({
+            'action': 'closed',
+            'initialStatus': 'success',
+            'pr': {
+                'state': 'closed',
+                'merged': True
+            },
+        })
+        self.assertNotIn('error', result)
+        # prepare returns before emitting identity outputs, so the always()
+        # finalize step is skipped entirely for a merged PR.
+        self.assertNotIn('pr_number', result['outputs'])
+        self.assertNotIn('head_sha', result['outputs'])
+        self.assertNotIn('snapshot', result['outputs'])
+        self.assertNotIn('ready', result['outputs'])
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+        self.assertNotIn(['remove-label', 'ci-passed'], result['calls'])
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_merge_during_success_publication_preserves_status(self):
+        # The PR merges between the success write and the post-publication
+        # re-read; finalize must not republish failure over the merged head.
+        result = exercise({
+            'initialStatus': 'success',
+            'drift': 'merged',
+        })
+        self.assertNotIn('error', result)
+        self.assertIn(['status', 'success', 'head'], result['calls'])
+        self.assertNotIn(['status', 'failure', 'head'], result['calls'])
+        self.assert_last_status(result, 'success')
+        self.assertIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_merge_during_reconciliation_preserves_status(self):
+        # PR open when prepare runs (publishes provisional pending), merged by
+        # the time finalize re-reads it. finalize must publish nothing.
+        result = exercise({
+            'initialStatus': 'success',
+            'mergeBeforeFinal': True,
+        })
+        self.assertNotIn('error', result)
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'pending', 'head']])
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_merge_before_finalize_read_failure_preserves_status(self):
+        # PR merges between prepare and finalize, then finalize's first read
+        # fails transiently. The catch re-reads, sees the PR merged, and must
+        # not publish failure onto the merged head.
+        result = exercise({
+            'initialStatus': 'success',
+            'mergeBeforeFinal': True,
+            'finalizeReadFailure': True,
+        })
+        self.assertNotIn('error', result)
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'pending', 'head']])
+        self.assertNotIn(['status', 'failure', 'head'], result['calls'])
+
+    def test_merged_pr_resolve_failure_does_not_publish_failure(self):
+        # A transient pull read failure on a merged PR's closed event must not
+        # republish a failure onto the merged head.
+        result = exercise({
+            'action': 'closed',
+            'pr': {
+                'state': 'closed',
+                'merged': True
+            },
+            'pullFailure': True,
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+
+    def test_open_pr_resolve_failure_publishes_failure(self):
+        result = exercise({'pullFailure': True})
+        self.assertIn(['status', 'failure', 'head'], result['calls'])
 
     def test_revocation_before_publication_fails(self):
         self.assert_last_status(
@@ -846,6 +929,140 @@ async function run(liveTip) {
                     'repo': 'pipelines',
                     'expression': 'b' * 40 + ':.github/workflows',
                 })
+
+    REVOKE_SCRIPT = r"""
+const {revokeStaleGreens} = require(process.argv[1]);
+const crypto = require('node:crypto');
+const B0 = 'b'.repeat(40);
+const B1 = 'a'.repeat(40);
+const B2 = 'c'.repeat(40);
+const LIVE = process.argv[2];
+const TIP = process.argv[3];
+const ADVANCE_AFTER = process.argv[4] || undefined;
+const FLIP = process.argv[5] || undefined;
+let statusPaginationFlip = false;
+let getRefCalls = 0;
+const nextLiveTip = () => {
+  const n = getRefCalls++;
+  if (FLIP === 'status-pagination') return statusPaginationFlip ? B2 : LIVE;
+  return (ADVANCE_AFTER !== undefined && n >= Number(ADVANCE_AFTER)) ? B2 : LIVE;
+};
+const stamp = base => crypto.createHash('sha256')
+  .update(JSON.stringify(['master', base])).digest('hex');
+const successDesc = base =>
+  'Expected CI and all checks passed; base policy ' + stamp(base) + '.';
+const statuses = {
+  stale: {state: 'success', description: successDesc(B0)},
+  fresh: {state: 'success', description: successDesc(B2)},
+  legacy: {state: 'success', description: 'Expected CI and all checks passed for this head.'},
+  failure: {state: 'failure', description: 'some failure'},
+  pending: {state: 'pending', description: 'some pending'},
+  blocked: {state: 'success', description: successDesc(B1)},
+};
+const prs = FLIP === 'status-pagination'
+  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []}]
+  : [
+  {number: 1, head: {sha: 'stale'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 2, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 3, head: {sha: 'legacy'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 4, head: {sha: 'failure'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 5, head: {sha: 'pending'}, base: {ref: 'master', sha: B1}, labels: []},
+  {number: 6, head: {sha: 'blocked'}, base: {ref: 'master', sha: B1},
+    labels: [{name: 'needs-ok-to-test'}]},
+];
+const listCalls = [];
+const writes = [];
+const github = {
+  rest: {pulls: {list: {}},
+    git: {getRef: async () => ({data: {object: {sha: nextLiveTip()}}})},
+    repos: {
+    getCombinedStatusForRef: async ({ref}) => ({
+      data: {statuses: statuses[ref] ?
+        [{context: 'ci-passed', ...statuses[ref]}] : []}}),
+    createCommitStatus: async request => {writes.push(request);},
+  }},
+  paginate: async (method, params) => {listCalls.push(params); return prs;},
+};
+github.paginate.iterator = async function* (method, params) {
+  yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+  if (FLIP === 'status-pagination') statusPaginationFlip = true;
+  yield await github.rest.repos.getCombinedStatusForRef(params);
+};
+const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
+revokeStaleGreens({github, context, tip: TIP}).then(count => {
+  console.log(JSON.stringify({count, writes, listCalls}));
+}).catch(e => {console.error(e); process.exit(1);});
+"""
+
+    def _run_revoke(self, live_tip, tip, advance_after=None, flip=None):
+        argv = [
+            'node', '-e', self.REVOKE_SCRIPT,
+            str(MODULE), live_tip, tip,
+            str(advance_after or ''), flip or ''
+        ]
+        result = subprocess.run(
+            argv, check=True, capture_output=True, text=True)
+        return json.loads(result.stdout)
+
+    def test_push_revocation_revokes_only_stale_success(self):
+        actual = self._run_revoke('c' * 40, 'c' * 40)
+        self.assertEqual(actual['count'], 2)
+        self.assertEqual([write['sha'] for write in actual['writes']],
+                         ['stale', 'legacy'])
+        for write in actual['writes']:
+            self.assertEqual(write['context'], 'ci-passed')
+            self.assertEqual(write['state'], 'failure')
+            self.assertEqual(write['description'],
+                             'Base advanced; re-test against new master.')
+            self.assertLessEqual(len(write['description']), 140)
+        self.assertEqual(actual['listCalls'][0]['base'], 'master')
+        self.assertEqual(actual['listCalls'][0]['state'], 'open')
+        self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_bails_when_master_has_advanced(self):
+        # A delayed job for an older push (tip=B1) must not revoke a green
+        # stamped for the newer live tip (B2); revokeStaleGreens resolves the
+        # live tip and skips when it has moved past the triggering push.
+        actual = self._run_revoke('c' * 40, 'a' * 40)
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
+        self.assertEqual(actual['listCalls'], [])
+
+    def test_push_revocation_revalidates_live_tip_mid_scan(self):
+        # tip = B1. getRef returns B1 for the initial guard and the first PR,
+        # then B2 for later PRs (master advanced mid-scan). A fresh B2-stamped
+        # success appears on a later PR. The B1 job must revoke only the
+        # pre-advance stale PR and BAIL before touching the fresh B2 success.
+        actual = self._run_revoke('a' * 40, 'a' * 40, advance_after=2)
+        self.assertEqual(actual['count'], 1)
+        self.assertEqual([w['sha'] for w in actual['writes']], ['stale'])
+
+    def test_push_revocation_revalidates_after_status_pagination(self):
+        # tip = B1. The status lookup paginates: page 1 is an unrelated status,
+        # then master advances B1->B2 and a fresh B2-stamped success is
+        # published before page 2. The B1 job must read that fresh success,
+        # re-check the live tip (now B2 != B1), and BAIL without writing failure.
+        actual = self._run_revoke('a' * 40, 'a' * 40, flip='status-pagination')
+        self.assertEqual(actual['count'], 0)
+        self.assertEqual(actual['writes'], [])
+
+    def test_push_revocation_rejects_non_sha_tip(self):
+        script = r"""
+const {revokeStaleGreens} = require(process.argv[1]);
+const github = {rest: {pulls: {list: {}}},
+  paginate: async () => {throw new Error('must not list');}};
+revokeStaleGreens({github, context: {repo: {owner: 'o', repo: 'r'}}, tip: 'main'})
+  .then(() => console.log(JSON.stringify({error: null})))
+  .catch(e => console.log(JSON.stringify({error: e.message})));
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertEqual(actual['error'],
+                         'Stale revocation requires a full base commit SHA')
 
 
 if __name__ == '__main__':

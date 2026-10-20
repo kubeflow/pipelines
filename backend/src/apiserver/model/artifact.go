@@ -15,9 +15,9 @@
 // Package model contains data models for the KFP API server.
 package model
 
-import apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+import apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 
-type ArtifactType apiv2beta1.Artifact_ArtifactType
+type ArtifactType apiv2.Artifact_ArtifactType
 
 // Artifact represents an artifact in the KFP system
 type Artifact struct {

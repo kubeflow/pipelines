@@ -32,6 +32,8 @@ runs:
       run: |
         test "$(uname -m)" = aarch64
         test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+        # The smoke script parses the driver-plugin ConfigMap with PyYAML.
+        python3 -c 'import yaml' 2>/dev/null || sudo apt-get install -y -q python3-yaml
         if command -v kind >/dev/null && kind get clusters | grep -Fxq -- "$CLUSTER_NAME"; then
           echo "Refusing to reuse existing cluster $CLUSTER_NAME" >&2
           exit 1

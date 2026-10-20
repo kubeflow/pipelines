@@ -15,6 +15,7 @@
 import json
 from logging import WARNING
 import os
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -497,7 +498,7 @@ class TestClient(parameterized.TestCase):
             experiment_name='foo', namespace='ns1')
         mock_get_url_prefix.assert_called_once()
 
-    @patch('kfp.server_api.V2beta1Experiment')
+    @patch('kfp.server_api.V2Experiment')
     @patch(
         'kfp.Client.get_experiment',
         side_effect=ValueError('No experiment is found with name'))
@@ -587,6 +588,28 @@ class TestClient(parameterized.TestCase):
         with self.assertRaises(TimeoutError):
             self.client.get_kfp_healthz(sleep_duration=0)
             mock_get_kfp_healthz.assert_called()
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_healthz_missing_api_fails_without_retry(self, get_healthz, sleep):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=404)
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'/apis/v2beta1/healthz.*Verify the client host/base path'):
+            self.client.get_kfp_healthz()
+        get_healthz.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_healthz_transient_failure_still_retries(self, get_healthz, sleep):
+        response = kfp.server_api.V2GetHealthzResponse(multi_user=False)
+        get_healthz.side_effect = [
+            kfp.server_api.ApiException(status=503), response
+        ]
+        self.assertIs(self.client.get_kfp_healthz(), response)
+        self.assertEqual(get_healthz.call_count, 2)
+        sleep.assert_called_once_with(5)
 
     def test_upload_pipeline_without_name(self):
 
@@ -989,6 +1012,68 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
         )
         kwargs.update(overrides)
         return self.client._load_config(**kwargs)
+
+    def test_kube_config_exec_credentials_refresh_authorization(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        token_path = os.path.join(directory, 'token')
+        config_path = os.path.join(directory, 'config')
+        # Expired exec credentials force the real kubeconfig loader to refresh
+        # on each request, including replacement of its refresh hook.
+        script = ('import json, pathlib, sys; '
+                  'print(json.dumps({"apiVersion": '
+                  '"client.authentication.k8s.io/v1beta1", '
+                  '"kind": "ExecCredential", "status": {'
+                  '"token": pathlib.Path(sys.argv[1]).read_text(), '
+                  '"expirationTimestamp": "2000-01-01T00:00:00Z"}}))')
+        kube_config = {
+            'apiVersion':
+                'v1',
+            'kind':
+                'Config',
+            'clusters': [{
+                'name': 'test',
+                'cluster': {
+                    'server': 'https://127.0.0.1:6443'
+                },
+            }],
+            'contexts': [{
+                'name': 'test',
+                'context': {
+                    'cluster': 'test',
+                    'user': 'test'
+                },
+            }],
+            'current-context':
+                'test',
+            'users': [{
+                'name': 'test',
+                'user': {
+                    'exec': {
+                        'apiVersion': 'client.authentication.k8s.io/v1beta1',
+                        'command': sys.executable,
+                        'args': ['-c', script, token_path],
+                    },
+                },
+            }],
+        }
+        with open(config_path, 'w') as stream:
+            yaml.safe_dump(kube_config, stream)
+        with open(token_path, 'w') as stream:
+            stream.write('initial-token')
+        with patch.dict(
+                os.environ,
+            {}, clear=True), patch(
+                'kubernetes.config.kube_config.KUBE_CONFIG_DEFAULT_LOCATION',
+                config_path):
+            config = self._load_config(kube_context='test')
+            self.assertEqual(
+                config.host, 'https://127.0.0.1:6443/' +
+                client.Client._KUBE_PROXY_PATH.format('my-namespace'))
+            for token in ('initial-token', 'refreshed-token', 'rotated-token'):
+                with open(token_path, 'w') as stream:
+                    stream.write(token)
+                self.assertEqual(config.auth_settings()['Bearer']['value'],
+                                 'Bearer ' + token)
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')

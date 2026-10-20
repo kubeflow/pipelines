@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,25 +27,25 @@ func TestMockAPI_CreateTask_DifferentParentsCreateDistinctTasks(t *testing.T) {
 	parentA := "parent-a"
 	parentB := "parent-b"
 
-	first, err := api.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	first, err := api.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: "run-1",
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			RunId:        "run-1",
 			Name:         "child",
 			ScopePath:    "root.child",
-			Type:         apiv2beta1.PipelineTask_RUNTIME,
+			Type:         apiv2.PipelineTask_RUNTIME,
 			ParentTaskId: &parentA,
 		},
 	})
 	require.NoError(t, err)
 
-	second, err := api.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	second, err := api.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: "run-1",
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			RunId:        "run-1",
 			Name:         "child",
 			ScopePath:    "root.child",
-			Type:         apiv2beta1.PipelineTask_RUNTIME,
+			Type:         apiv2.PipelineTask_RUNTIME,
 			ParentTaskId: &parentB,
 		},
 	})
@@ -58,27 +58,27 @@ func TestMockAPI_CreateTask_DifferentParentsCreateDistinctTasks(t *testing.T) {
 
 func TestSameLogicalTaskIdentity_NormalizesEmptyParent(t *testing.T) {
 	emptyParent := ""
-	existing := &apiv2beta1.PipelineTask{
+	existing := &apiv2.PipelineTask{
 		RunId:     "run-1",
 		Name:      "task",
 		ScopePath: "root.task",
-		Type:      apiv2beta1.PipelineTask_RUNTIME,
+		Type:      apiv2.PipelineTask_RUNTIME,
 	}
-	candidateWithEmpty := &apiv2beta1.PipelineTask{
+	candidateWithEmpty := &apiv2.PipelineTask{
 		RunId:        "run-1",
 		Name:         "task",
 		ScopePath:    "root.task",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: &emptyParent,
 	}
 	require.True(t, sameLogicalTaskIdentity(existing, candidateWithEmpty, "run-1"))
 
 	parent := "parent-1"
-	candidateWithParent := &apiv2beta1.PipelineTask{
+	candidateWithParent := &apiv2.PipelineTask{
 		RunId:        "run-1",
 		Name:         "task",
 		ScopePath:    "root.task",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: &parent,
 	}
 	require.False(t, sameLogicalTaskIdentity(existing, candidateWithParent, "run-1"))
@@ -86,16 +86,16 @@ func TestSameLogicalTaskIdentity_NormalizesEmptyParent(t *testing.T) {
 
 func TestMockAPI_CreateArtifact_IteratorCreateHydrateParity(t *testing.T) {
 	api := NewMockAPI()
-	run := &apiv2beta1.Run{RunId: "run-iter"}
+	run := &apiv2.Run{RunId: "run-iter"}
 	api.AddRun(run)
 
-	task, err := api.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	task, err := api.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: run.GetRunId(),
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			TaskId:    "loop-body",
 			RunId:     run.GetRunId(),
 			Name:      "loop-body",
-			Type:      apiv2beta1.PipelineTask_RUNTIME,
+			Type:      apiv2.PipelineTask_RUNTIME,
 			ScopePath: "root.loop-body",
 		},
 	})
@@ -103,26 +103,26 @@ func TestMockAPI_CreateArtifact_IteratorCreateHydrateParity(t *testing.T) {
 
 	iter0 := int64(0)
 	iter1 := int64(1)
-	_, err = api.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact:       &apiv2beta1.Artifact{ArtifactId: "art-0a", Name: "out-0a", Uri: strPtr("gs://b/0a")},
+	_, err = api.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact:       &apiv2.Artifact{ArtifactId: "art-0a", Name: "out-0a", Uri: strPtr("gs://b/0a")},
 		TaskId:         task.GetTaskId(),
 		RunId:          run.GetRunId(),
 		ProducerKey:    "models",
 		IterationIndex: &iter0,
 	})
 	require.NoError(t, err)
-	_, err = api.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact:       &apiv2beta1.Artifact{ArtifactId: "art-0b", Name: "out-0b", Uri: strPtr("gs://b/0b")},
+	_, err = api.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact:       &apiv2.Artifact{ArtifactId: "art-0b", Name: "out-0b", Uri: strPtr("gs://b/0b")},
 		TaskId:         task.GetTaskId(),
 		RunId:          run.GetRunId(),
 		ProducerKey:    "models",
 		IterationIndex: &iter0,
 	})
 	require.NoError(t, err)
-	_, err = api.CreateArtifactsBulk(context.Background(), &apiv2beta1.CreateArtifactsBulkRequest{
-		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+	_, err = api.CreateArtifactsBulk(context.Background(), &apiv2.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2.CreateArtifactRequest{
 			{
-				Artifact:       &apiv2beta1.Artifact{ArtifactId: "art-1a", Name: "out-1a", Uri: strPtr("gs://b/1a")},
+				Artifact:       &apiv2.Artifact{ArtifactId: "art-1a", Name: "out-1a", Uri: strPtr("gs://b/1a")},
 				TaskId:         task.GetTaskId(),
 				RunId:          run.GetRunId(),
 				ProducerKey:    "models",
@@ -133,8 +133,8 @@ func TestMockAPI_CreateArtifact_IteratorCreateHydrateParity(t *testing.T) {
 	require.NoError(t, err)
 
 	// Reuse path should also preserve ITERATOR_OUTPUT.
-	_, err = api.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
-		Artifact:       &apiv2beta1.Artifact{Name: "out-0a", Uri: strPtr("gs://b/0a")},
+	_, err = api.CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
+		Artifact:       &apiv2.Artifact{Name: "out-0a", Uri: strPtr("gs://b/0a")},
 		TaskId:         task.GetTaskId(),
 		RunId:          run.GetRunId(),
 		ProducerKey:    "models",
@@ -143,14 +143,14 @@ func TestMockAPI_CreateArtifact_IteratorCreateHydrateParity(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	hydrated, err := api.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: task.GetTaskId(), RunId: run.GetRunId()})
+	hydrated, err := api.GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: task.GetTaskId(), RunId: run.GetRunId()})
 	require.NoError(t, err)
 	require.NotNil(t, hydrated.GetOutputs())
 	require.Len(t, hydrated.GetOutputs().GetArtifacts(), 2)
 
-	byIteration := map[int64]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{}
+	byIteration := map[int64]*apiv2.PipelineTask_InputOutputs_IOArtifact{}
 	for _, artifactIO := range hydrated.GetOutputs().GetArtifacts() {
-		require.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, artifactIO.GetType())
+		require.Equal(t, apiv2.IOType_ITERATOR_OUTPUT, artifactIO.GetType())
 		require.Equal(t, "models", artifactIO.GetArtifactKey())
 		require.NotNil(t, artifactIO.GetProducer())
 		require.NotNil(t, artifactIO.GetProducer().Iteration)

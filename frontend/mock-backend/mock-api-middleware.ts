@@ -16,40 +16,35 @@ import * as express from 'express';
 import { Response } from 'express-serve-static-core';
 import * as fs from 'fs';
 import * as _path from 'path';
+import { ArtifactArtifactType, V2Artifact, V2ArtifactTask, V2IOType } from '../src/apisv2/artifact';
 import {
-  ArtifactArtifactType,
-  V2beta1Artifact,
-  V2beta1ArtifactTask,
-  V2beta1IOType,
-} from '../src/apisv2beta1/artifact';
+  V2Experiment,
+  V2ExperimentStorageState,
+  V2ListExperimentsResponse,
+} from '../src/apisv2/experiment';
+import { V2Filter, V2PredicateOperation } from '../src/apisv2/filter';
 import {
-  V2beta1Experiment,
-  V2beta1ExperimentStorageState,
-  V2beta1ListExperimentsResponse,
-} from '../src/apisv2beta1/experiment';
-import { V2beta1Filter, V2beta1PredicateOperation } from '../src/apisv2beta1/filter';
+  V2ListPipelineVersionsResponse,
+  V2ListPipelinesResponse,
+  V2Pipeline,
+  V2PipelineVersion,
+} from '../src/apisv2/pipeline';
 import {
-  V2beta1ListPipelineVersionsResponse,
-  V2beta1ListPipelinesResponse,
-  V2beta1Pipeline,
-  V2beta1PipelineVersion,
-} from '../src/apisv2beta1/pipeline';
-import {
-  V2beta1ListRecurringRunsResponse,
-  V2beta1RecurringRun,
-  V2beta1RecurringRunStatus,
-  V2beta1Trigger,
-} from '../src/apisv2beta1/recurringrun';
+  V2ListRecurringRunsResponse,
+  V2RecurringRun,
+  V2RecurringRunStatus,
+  V2Trigger,
+} from '../src/apisv2/recurringrun';
 import {
   PipelineTaskTaskPodType,
   PipelineTaskTaskState,
   PipelineTaskTaskType,
-  V2beta1ListRunsResponse,
-  V2beta1PipelineTask,
-  V2beta1Run,
-  V2beta1RunStorageState,
-  V2beta1RuntimeState,
-} from '../src/apisv2beta1/run';
+  V2ListRunsResponse,
+  V2PipelineTask,
+  V2Run,
+  V2RunStorageState,
+  V2RuntimeState,
+} from '../src/apisv2/run';
 import {
   ExperimentSortKeys,
   JobSortKeys,
@@ -71,10 +66,10 @@ const confusionMatrixPath = './model-output/confusion_matrix.csv';
 const helloWorldHtmlPath = './model-output/hello-world.html';
 const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
-const v2beta1Prefix = '/apis/v2beta1';
+const v2Prefix = '/apis/v2';
 const mockNativeRunId = 'e0115ac1-0479-4194-a22d-01e65e09a32b';
 
-const mockV2Artifacts: V2beta1Artifact[] = [
+const mockV2Artifacts: V2Artifact[] = [
   {
     artifact_id: 'mock-artifact-1',
     created_at: new Date('2026-01-01T00:00:00.000Z'),
@@ -85,7 +80,7 @@ const mockV2Artifacts: V2beta1Artifact[] = [
     uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-dataset',
   },
 ];
-const mockV2Tasks: V2beta1PipelineTask[] = [
+const mockV2Tasks: V2PipelineTask[] = [
   {
     child_tasks: [
       { name: 'chicago-taxi-trips-dataset', task_id: 'mock-task-producer' },
@@ -111,7 +106,7 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
         {
           artifact_key: 'table',
           artifacts: mockV2Artifacts,
-          type: V2beta1IOType.OUTPUT,
+          type: V2IOType.OUTPUT,
         },
       ],
     },
@@ -139,7 +134,7 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
           artifact_key: 'data',
           artifacts: mockV2Artifacts,
           producer: { task_name: 'chicago-taxi-trips-dataset' },
-          type: V2beta1IOType.TASK_OUTPUT_INPUT,
+          type: V2IOType.TASK_OUTPUT_INPUT,
         },
       ],
     },
@@ -164,14 +159,14 @@ const mockV2Tasks: V2beta1PipelineTask[] = [
     type: PipelineTaskTaskType.RUNTIME,
   },
 ];
-const mockV2ArtifactTasks: V2beta1ArtifactTask[] = [
+const mockV2ArtifactTasks: V2ArtifactTask[] = [
   {
     artifact_id: 'mock-artifact-1',
     id: 'mock-artifact-task-output',
     key: 'table',
     run_id: mockNativeRunId,
     task_id: 'mock-task-producer',
-    type: V2beta1IOType.OUTPUT,
+    type: V2IOType.OUTPUT,
   },
   {
     artifact_id: 'mock-artifact-1',
@@ -180,7 +175,7 @@ const mockV2ArtifactTasks: V2beta1ArtifactTask[] = [
     producer: { task_name: 'chicago-taxi-trips-dataset' },
     run_id: mockNativeRunId,
     task_id: 'mock-task-consumer',
-    type: V2beta1IOType.TASK_OUTPUT_INPUT,
+    type: V2IOType.TASK_OUTPUT_INPUT,
   },
 ];
 
@@ -348,20 +343,20 @@ function filterV2Resources<T extends V2FilterableResource>(
   if (!filterString) {
     return resources;
   }
-  const filter: V2beta1Filter = JSON.parse(decodeURIComponent(filterString));
+  const filter: V2Filter = JSON.parse(decodeURIComponent(filterString));
   return ((filter && filter.predicates) || []).reduce((filteredResources, predicate) => {
     const key = predicate.key || '';
     const stringValue = predicate.string_value || '';
     switch (predicate.operation) {
-      case V2beta1PredicateOperation.EQUALS:
+      case V2PredicateOperation.EQUALS:
         return filteredResources.filter(
           (resource) => String(getV2ResourceValue(resource, key) || '') === stringValue,
         );
-      case V2beta1PredicateOperation.NOT_EQUALS:
+      case V2PredicateOperation.NOT_EQUALS:
         return filteredResources.filter(
           (resource) => String(getV2ResourceValue(resource, key) || '') !== stringValue,
         );
-      case V2beta1PredicateOperation.IS_SUBSTRING:
+      case V2PredicateOperation.IS_SUBSTRING:
         return filteredResources.filter((resource) =>
           String(getV2ResourceValue(resource, key) || '')
             .toLocaleLowerCase()
@@ -386,7 +381,7 @@ function getPage<T>(
   };
 }
 
-function getV2PipelineVersions(pipelineId: string): V2beta1PipelineVersion[] {
+function getV2PipelineVersions(pipelineId: string): V2PipelineVersion[] {
   return fixedData.versions.filter((version) => version.pipeline_id === pipelineId);
 }
 function getV2PipelineVersion(pipelineId: string, versionId: string) {
@@ -408,7 +403,7 @@ export default (app: express.Application) => {
   app.set('json spaces', 2);
   app.use(express.json());
 
-  app.get(v2beta1Prefix + '/healthz', (_, res) => {
+  app.get(v2Prefix + '/healthz', (_, res) => {
     res.header('Content-Type', 'application/json');
     res.send({
       apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
@@ -420,7 +415,7 @@ export default (app: express.Application) => {
     });
   });
 
-  app.get(v2beta1Prefix + '/experiments', (req, res) => {
+  app.get(v2Prefix + '/experiments', (req, res) => {
     res.header('Content-Type', 'application/json');
     const experiments = sortV2Resources(
       filterV2Resources(fixedData.experiments, getQueryString(req.query.filter)),
@@ -428,7 +423,7 @@ export default (app: express.Application) => {
       getQueryString(req.query.sort_by),
     );
     const page = getPage(experiments, req.query.page_token, req.query.page_size);
-    const response: V2beta1ListExperimentsResponse = {
+    const response: V2ListExperimentsResponse = {
       experiments: page.page,
       next_page_token: page.nextPageToken,
       total_size: experiments.length,
@@ -437,7 +432,7 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v2beta1Prefix + '/experiments/:eid', (req, res) => {
+  app.get(v2Prefix + '/experiments/:eid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const experiment = fixedData.experiments.find((exp) => exp.experiment_id === req.params.eid);
     if (!experiment) {
@@ -447,7 +442,7 @@ export default (app: express.Application) => {
     res.json(experiment);
   });
 
-  app.get(v2beta1Prefix + '/pipelines', (req, res) => {
+  app.get(v2Prefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pipelines = sortV2Resources(
       filterV2Resources(fixedData.pipelines, getQueryString(req.query.filter)),
@@ -455,7 +450,7 @@ export default (app: express.Application) => {
       getQueryString(req.query.sort_by),
     );
     const page = getPage(pipelines, req.query.page_token, req.query.page_size);
-    const response: V2beta1ListPipelinesResponse = {
+    const response: V2ListPipelinesResponse = {
       next_page_token: page.nextPageToken,
       pipelines: page.page,
       total_size: pipelines.length,
@@ -464,7 +459,7 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v2beta1Prefix + '/pipelines/:pid', (req, res) => {
+  app.get(v2Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pipeline = fixedData.pipelines.find(
       (candidate) => candidate.pipeline_id === req.params.pid,
@@ -476,7 +471,7 @@ export default (app: express.Application) => {
     res.json(pipeline);
   });
 
-  app.get<{ pid: string }>(v2beta1Prefix + '/pipelines/:pid/versions', (req, res) => {
+  app.get<{ pid: string }>(v2Prefix + '/pipelines/:pid/versions', (req, res) => {
     res.header('Content-Type', 'application/json');
     const versions = sortV2Resources(
       filterV2Resources(getV2PipelineVersions(req.params.pid), getQueryString(req.query.filter)),
@@ -484,7 +479,7 @@ export default (app: express.Application) => {
       getQueryString(req.query.sort_by),
     );
     const page = getPage(versions, req.query.page_token, req.query.page_size);
-    const response: V2beta1ListPipelineVersionsResponse = {
+    const response: V2ListPipelineVersionsResponse = {
       next_page_token: page.nextPageToken,
       pipeline_versions: page.page,
       total_size: versions.length,
@@ -494,7 +489,7 @@ export default (app: express.Application) => {
   });
 
   app.get<{ pid: string; pvid: string }>(
-    v2beta1Prefix + '/pipelines/:pid/versions/:pvid',
+    v2Prefix + '/pipelines/:pid/versions/:pvid',
     (req, res) => {
       res.header('Content-Type', 'application/json');
       const version = getV2PipelineVersion(req.params.pid, req.params.pvid);
@@ -506,7 +501,7 @@ export default (app: express.Application) => {
     },
   );
 
-  app.get(v2beta1Prefix + '/runs', (req, res) => {
+  app.get(v2Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     let runs = fixedData.runs;
     const experimentId = getQueryString(req.query.experiment_id);
@@ -519,7 +514,7 @@ export default (app: express.Application) => {
       getQueryString(req.query.sort_by),
     );
     const page = getPage(runs, req.query.page_token, req.query.page_size);
-    const response: V2beta1ListRunsResponse = {
+    const response: V2ListRunsResponse = {
       next_page_token: page.nextPageToken,
       runs: page.page,
       total_size: runs.length,
@@ -528,7 +523,7 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v2beta1Prefix + '/runs/:rid', (req, res) => {
+  app.get(v2Prefix + '/runs/:rid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const run = fixedData.runs.find((runDetail) => runDetail.run_id === req.params.rid);
     if (!run) {
@@ -538,15 +533,15 @@ export default (app: express.Application) => {
     res.json(run);
   });
 
-  app.get(v2beta1Prefix + '/runs/:rid/tasks', (req, res) => {
+  app.get(v2Prefix + '/runs/:rid/tasks', (req, res) => {
     res.json({ tasks: req.params.rid === mockNativeRunId ? mockV2Tasks : [] });
   });
 
-  app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
+  app.get(v2Prefix + '/artifacts', (_req, res) => {
     res.json({ artifacts: mockV2Artifacts, total_size: mockV2Artifacts.length });
   });
 
-  app.get(v2beta1Prefix + '/artifacts/:artifactId', (req, res) => {
+  app.get(v2Prefix + '/artifacts/:artifactId', (req, res) => {
     const artifact = mockV2Artifacts.find(
       (candidate) => candidate.artifact_id === req.params.artifactId,
     );
@@ -557,11 +552,11 @@ export default (app: express.Application) => {
     res.json(artifact);
   });
 
-  app.get(v2beta1Prefix + '/artifact_tasks', (_req, res) => {
+  app.get(v2Prefix + '/artifact_tasks', (_req, res) => {
     res.json({ artifact_tasks: mockV2ArtifactTasks });
   });
 
-  app.get(v2beta1Prefix + '/recurringruns', (req, res) => {
+  app.get(v2Prefix + '/recurringruns', (req, res) => {
     res.header('Content-Type', 'application/json');
     let recurringRuns = fixedData.recurringRuns;
     const experimentId = getQueryString(req.query.experiment_id);
@@ -576,7 +571,7 @@ export default (app: express.Application) => {
       getQueryString(req.query.sort_by),
     );
     const page = getPage(recurringRuns, req.query.page_token, req.query.page_size);
-    const response: V2beta1ListRecurringRunsResponse = {
+    const response: V2ListRecurringRunsResponse = {
       next_page_token: page.nextPageToken,
       recurringRuns: page.page,
       total_size: recurringRuns.length,
@@ -585,7 +580,7 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v2beta1Prefix + '/recurringruns/:rid', (req, res) => {
+  app.get(v2Prefix + '/recurringruns/:rid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const recurringRun = fixedData.recurringRuns.find(
       (job) => job.recurring_run_id === req.params.rid,
@@ -679,7 +674,7 @@ export default (app: express.Application) => {
     res.send('mock-project-id');
   });
 
-  app.all(/^\/apis\/v2beta1(?:\/.*)?$/i, (req, res) => {
+  app.all(/^\/apis\/v2(?:\/.*)?$/i, (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
 };

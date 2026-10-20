@@ -8,6 +8,8 @@ Read the guide relevant to the files or task you are changing:
 - [Architecture and runtime](docs/agents/architecture.md)
 - [Development and deployment](docs/agents/development.md)
 - [Testing and formatting](docs/agents/testing.md)
+- [Nonblocking database changes](docs/agents/database-migrations.md) before changing
+  models, indexes, migrations, startup SQL or backfills
 - [Generated code and APIs](docs/agents/generation.md)
 - [Frontend](docs/agents/frontend.md)
 - [CI and workflows](docs/agents/ci.md)
@@ -17,3 +19,10 @@ Read the guide relevant to the files or task you are changing:
 - [Domain documentation](docs/agents/domain.md) when exploring domain behavior or architecture decisions
 - [GitHub issue tracking](docs/agents/issue-tracker.md) for issue or pull-request work
 - [Triage labels](docs/agents/triage-labels.md) for issue triage
+
+## Pull request descriptions
+
+When applicable, start PR descriptions with a `## Problem` section. Explain the
+underlying problem and why it matters, assuming the reader has no prior context,
+so they can understand the proposed solution. Omit this section for trivial,
+self-explanatory changes, such as fixing a hyperlink.

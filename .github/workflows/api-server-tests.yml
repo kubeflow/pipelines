@@ -45,6 +45,7 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -62,6 +63,52 @@ jobs:
   build:
     uses: ./.github/workflows/image-builds.yml
 
+  api-test-versions:
+    # Full prefix coverage after merges, without adding PR-time clusters.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        api_version: ["v2", "v2beta1"]
+        k8s_version: ["v1.36.1"]
+    name: KFP API Server version coverage - ${{ matrix.api_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        with:
+          pipeline_store: database
+          cache_enabled: 'true'
+          db_type: mysql
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        with:
+          pipeline_store: database
+          cache_enabled: 'true'
+          use_legacy_api_prefix: ${{ matrix.api_version == 'v2beta1' }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "APIVersion_${{ matrix.api_version }}"
+
   api-test-standalone:
     runs-on: ubuntu-latest
     permissions:
@@ -72,18 +119,18 @@ jobs:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.18", "v4.1.2" ]
+        argo_version: [ "v4.0.13", "v4.1.5" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         db_type: [ "mysql", "pgx" ]
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.13"
             db_type: "mysql"
           - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v4.1.2"
+            argo_version: "v4.1.5"
             db_type: "mysql"
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
@@ -134,7 +181,7 @@ jobs:
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
 
@@ -173,7 +220,7 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
         env:
-          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.2' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
+          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.5' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -198,7 +245,7 @@ jobs:
         k8s_version: [ "v1.36.1", "v1.33.12" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.18", "v4.1.2" ]
+        argo_version: [ "v4.0.13", "v4.1.5" ]
         pipeline_store: [ "kubernetes" ]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
@@ -308,6 +355,7 @@ jobs:
             A) TEST_LABEL="($TEST_LABEL) && (ApiPipelineShardA || Pipeline)" ;;
             B) TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline)" ;;
           esac
+          TEST_LABEL="($TEST_LABEL) || LegacyAPICompatibility"
           NAMESPACE=${{ env.NAMESPACE }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES

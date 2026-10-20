@@ -69,32 +69,19 @@ docker build . -f backend/Dockerfile.conformance -t <tag>
 
 ## API Server Configuration
 
-### Driver Pod Labels and Annotations
+### Driver Pod metadata migration
 
-The API server supports configuring custom labels and annotations for driver pods through the configuration file or the Kubernetes ConfigMap. This is useful for integration with service mesh (Istio), monitoring systems, or other infrastructure requirements.
+`DRIVER_POD_LABELS` and `DRIVER_POD_ANNOTATIONS` are no longer supported with
+executor-plugin drivers. The API server rejects nonempty values at startup and
+configuration reload instead of silently ignoring them. Remove these settings
+from `config.json`, the API server environment, and any ConfigMap that supplies
+them before upgrading. Unset, blank, `null`, and empty-object values remain valid.
 
-**Configuration via config.json:**
-```json
-{
-  "DRIVER_POD_LABELS": {
-    "sidecar.istio.io/inject": "true",
-    "app": "ml-pipeline-driver"
-  },
-  "DRIVER_POD_ANNOTATIONS": {
-    "proxy.istio.io/config": "{\"holdApplicationUntilProxyStarts\":true}"
-  }
-}
-```
-
-**Configuration via Kubernetes ConfigMap (`pipeline-install-config`):**
-```yaml
-DRIVER_POD_LABELS: '{"sidecar.istio.io/inject":"true"}'
-DRIVER_POD_ANNOTATIONS: '{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}"}'
-```
-
-When configured via the ConfigMap, every value must be a JSON string. Write `"true"` rather than the bare boolean `true`, and never `null`. The configuration is validated at API server startup: malformed JSON, any value that is not a JSON string, and label keys, label values, or annotation keys that Kubernetes would reject all cause startup to fail with a descriptive error rather than being silently ignored. Annotation values are free form, so a value such as an inline JSON document is accepted.
-
-Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata. Changes to driver pod configuration require an API server restart.
+Argo now runs the driver in its agent Pod. Argo's workflow-level `podMetadata`
+also applies to component Pods, so it is not a driver-only replacement. For
+agent-only mesh or monitoring metadata, configure Pod admission targeting the
+agent label. See the [migration guidance](../manifests/kustomize/README.md#driver-pod-metadata-migration)
+for the selector, workflow-wide alternative, and rollout checks.
 
 ## API Server Development
 
@@ -223,8 +210,7 @@ server locally.
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master"
       },
       "args": [
         "--config",
@@ -263,8 +249,7 @@ server locally.
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master"
       },
       "args": [
         "--config",
@@ -280,7 +265,7 @@ server locally.
 
 Once the cluster is provisioned and the API server is running, you can access:
 
-- **API server**: [http://localhost:8888](http://localhost:8888) (e.g. [http://localhost:8888/apis/v2beta1/pipelines](http://localhost:8888/apis/v2beta1/pipelines))
+- **API server**: [http://localhost:8888](http://localhost:8888) (e.g. [http://localhost:8888/apis/v2/pipelines](http://localhost:8888/apis/v2/pipelines))
 - **KFP web interface**: [http://localhost:3000](http://localhost:3000)
 
 **Connect to the database directly:**
@@ -369,78 +354,37 @@ Alternatively, you can use this Make target that does both.
 make -C kind-build-and-load-driver-debug
 ```
 
-#### Run the API Server With Debug Configuration
+#### Configure the Executor Plugin for Delve
 
-You may use the following VS Code `launch.json` file to run the API server which overrides the Driver
-command to use Delve and the Driver image to use debug image built previously.
+The driver runs in the Argo agent Pod, so configure its image and command in the
+`ml-pipeline-driver-agent` executor-plugin ConfigMap. Update the embedded
+`sidecar.container` specification to use `kfp-driver:debug`, expose port 2345,
+and start the driver through Delve:
 
-VSCode configuration:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Launch API server (Kind) (Debug Driver)",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/backend/src/apiserver",
-      "env": {
-        "POD_NAMESPACE": "kubeflow",
-        "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-        "OBJECTSTORECONFIG_HOST": "localhost",
-        "OBJECTSTORECONFIG_PORT": "9000",
-        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
-        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "kfp-driver:debug",
-        "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
-      }
-    }
-  ]
-}
+```yaml
+image: kfp-driver:debug
+command: [/bin/dlv]
+args:
+  - --listen=:2345
+  - --headless=true
+  - --api-version=2
+  - --accept-multiclient
+  - exec
+  - /bin/driver
+  - --
+ports:
+  - containerPort: 8080
+  - containerPort: 2345
 ```
 
-GoLand configuration:
-
-1. Create a new Go Build configuration
-2. Set **Run Kind** to Directory and set **Directory** to /backend/src/apiserver absolute path
-3. Set the following environment variables
-
-   | Argument                                     | Value                                                                                       |
-   | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-   | POD_NAMESPACE                                | kubeflow                                                                                    |
-   | DBCONFIG_MYSQLCONFIG_HOST                    | localhost                                                                                   |
-   | OBJECTSTORECONFIG_HOST                       | localhost                                                                                   |
-   | OBJECTSTORECONFIG_PORT                       | 9000                                                                                        |
-   | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost                                                                                   |
-   | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080                                                                                        |
-   | V2_LAUNCHER_IMAGE                            | ghcr.io/kubeflow/kfp-launcher:master                                                        |
-   | V2_DRIVER_IMAGE                              | kfp-driver:debug                                                                            |
-   | V2_DRIVER_COMMAND                            | dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver -- |
-
-4. Set the following program arguments: --config ./backend/src/apiserver/config -logtostderr=true --sampleconfig ./backend/src/apiserver/config/test_sample_config.json
-
-#### Starting a Remote Debug Session
-
-Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
-
-You can see the pods with the following command.
+Apply the ConfigMap before starting a new pipeline. Once its agent Pod appears,
+forward the Delve port from that Pod:
 
 ```bash
-kubectl -n kubeflow get pods -w
+kubectl -n kubeflow port-forward <agent-pod-name> 2345:2345
 ```
 
-Once you see a pod with `-driver` in the name such as `hello-world-clph9-system-dag-driver-10974850`, port forward
-the Delve port in the pod to your localhost (replace `<driver pod name>` with the actual name).
-
-```bash
-kubectl -n kubeflow port-forward <driver pod name> 2345:2345
-```
-
-Set a breakpoint on the Driver code in VS Code. Then remotely connect to the Delve debug session with the following VS
-Code `launch.json` file:
+Set a breakpoint in the driver code and connect with this VS Code configuration:
 
 VSCode configuration:
 
@@ -467,19 +411,14 @@ VSCode configuration:
 }
 ```
 
-GoLand configuration
+GoLand configuration:
 
 1. Create a new Go Remote configuration and title it "Delve debug session"
 2. Set **Host** to localhost
 3. Set **Port** to 2345
 
-Once the Driver pod succeeds, the remote debug session will close. Then repeat the process of forwarding the port
-of subsequent Driver pods and starting remote debug sessions in VS Code until the pipeline completes.
-
-For debugging a specific Driver pod, you'll need to continuously port forward and connect to the remote debug session
-without a breakpoint so that Delve will continue execution until the Driver pod you are interested in starts up. At that
-point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
-pod.
+The agent invokes the centralized driver for every driver task in its Workflow,
+so the same debug session can inspect all driver invocations for that run.
 
 ### Using a Webhook Proxy for Local Development in a Kind Cluster
 

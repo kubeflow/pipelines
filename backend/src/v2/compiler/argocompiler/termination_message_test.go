@@ -96,7 +96,13 @@ func TestCompileRuntimeTerminationMessagePolicy(t *testing.T) {
 			for _, template := range workflow.Spec.Templates {
 				templates[template.Name] = template
 			}
-			containerTemplates := append([]string{"system-container-driver", "system-dag-driver"}, test.executorTemplates...)
+			for _, name := range []string{"system-container-driver", "system-dag-driver"} {
+				template, found := templates[name]
+				require.True(t, found, "missing driver template %q", name)
+				require.NotNil(t, template.Plugin, "template %q must use the executor plugin", name)
+				require.Nil(t, template.Container, "template %q must not create a driver pod", name)
+			}
+			containerTemplates := append([]string{}, test.executorTemplates...)
 			if test.importerTemplate != "" {
 				containerTemplates = append(containerTemplates, test.importerTemplate)
 			}

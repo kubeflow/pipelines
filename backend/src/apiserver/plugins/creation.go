@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -68,7 +68,7 @@ func (d *RunPluginDispatcherImpl) OnRunCreationDiscarded(ctx context.Context, ru
 	}
 	discarded := &PersistedRun{
 		RunID: run.RunID, Namespace: run.Namespace, State: string(model.RuntimeStateCanceled),
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{},
+		PluginsOutput: map[string]*apiv2.PluginOutput{},
 	}
 	for name, output := range outputs {
 		if parentID := GetParentRunID(output); parentID != "" && parentID != parents[name] {
@@ -95,7 +95,7 @@ func (d *RunPluginDispatcherImpl) OnRunCreationDiscarded(ctx context.Context, ru
 		pluginCtx, cancel := context.WithTimeout(ctx, handler.GetPluginOperationTimeout(cfg))
 		retryable, err := handler.OnRunEnd(pluginCtx, discarded, cfg)
 		cancel()
-		if err != nil || retryable || discarded.PluginsOutput[handler.Name()].GetState() == apiv2beta1.PluginState_PLUGIN_FAILED {
+		if err != nil || retryable || discarded.PluginsOutput[handler.Name()].GetState() == apiv2.PluginState_PLUGIN_FAILED {
 			cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to finalize %s parent for discarded creation: %v", handler.Name(), err))
 		}
 	}

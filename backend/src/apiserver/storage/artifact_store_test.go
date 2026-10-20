@@ -20,7 +20,7 @@ import (
 	"sync"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -59,7 +59,7 @@ func TestCreateArtifact_Success(t *testing.T) {
 
 	art := &model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:       strPTR("s3://bucket/path/file"),
 		Name:      "model.pt",
 		Metadata:  model.JSONData(map[string]interface{}{"k": "v"}),
@@ -71,7 +71,7 @@ func TestCreateArtifact_Success(t *testing.T) {
 	assert.Greater(t, created.CreatedAtInSec, int64(0))
 	assert.Equal(t, created.CreatedAtInSec, created.LastUpdateInSec)
 	assert.Equal(t, "ns1", created.Namespace)
-	assert.Equal(t, model.ArtifactType(apiv2beta1.Artifact_Artifact), created.Type)
+	assert.Equal(t, model.ArtifactType(apiv2.Artifact_Artifact), created.Type)
 	assert.Equal(t, "s3://bucket/path/file", *created.URI)
 	assert.Equal(t, artifactURIHash("s3://bucket/path/file"), created.URIHash)
 	assert.Equal(t, "model.pt", created.Name)
@@ -272,8 +272,8 @@ func TestListArtifacts_BasicFiltersAndPagination(t *testing.T) {
 	assert.Equal(t, 2, total2)
 
 	// Filter predicate on Type equals 1
-	fProto := &apiv2beta1.Filter{Predicates: []*apiv2beta1.Predicate{
-		{Key: "type", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_IntValue{IntValue: 1}},
+	fProto := &apiv2.Filter{Predicates: []*apiv2.Predicate{
+		{Key: "type", Operation: apiv2.Predicate_EQUALS, Value: &apiv2.Predicate_IntValue{IntValue: 1}},
 	}}
 	f, err := filter.New(fProto)
 	assert.NoError(t, err)
@@ -312,13 +312,13 @@ func TestCreateArtifactWithTask_RollsBackArtifactOnLinkFailure(t *testing.T) {
 	_, _, err := store.CreateArtifactWithTask(
 		&model.Artifact{
 			Namespace: "ns1",
-			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			Type:      model.ArtifactType(apiv2.Artifact_Model),
 			Name:      "should-rollback",
 		},
 		&model.ArtifactTask{
 			TaskID:      "task-id",
 			RunUUID:     "run-id",
-			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			Type:        model.IOType(apiv2.IOType_OUTPUT),
 			ArtifactKey: "output",
 			Producer: model.JSONData{
 				"taskName": "task-name",
@@ -350,12 +350,12 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 		[]*model.Artifact{
 			{
 				Namespace: "ns1",
-				Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+				Type:      model.ArtifactType(apiv2.Artifact_Model),
 				Name:      "first-artifact",
 			},
 			{
 				Namespace: "ns1",
-				Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+				Type:      model.ArtifactType(apiv2.Artifact_Model),
 				Name:      "second-artifact",
 			},
 		},
@@ -363,7 +363,7 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 			{
 				TaskID:      "task-id-1",
 				RunUUID:     "run-id-1",
-				Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+				Type:        model.IOType(apiv2.IOType_OUTPUT),
 				ArtifactKey: "first-output",
 				Producer: model.JSONData{
 					"taskName": "task-1",
@@ -372,7 +372,7 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 			{
 				TaskID:      "task-id-2",
 				RunUUID:     "run-id-2",
-				Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+				Type:        model.IOType(apiv2.IOType_OUTPUT),
 				ArtifactKey: "second-output",
 				Producer: model.JSONData{
 					"taskName": "task-2",
@@ -410,7 +410,7 @@ func TestFindOrCreateArtifactWithTask_ConcurrentReuseCreatesOneArtifact(t *testi
 			createdArtifact, _, err := taskStore.FindOrCreateArtifactWithTask(
 				&model.Artifact{
 					Namespace: "ns1",
-					Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+					Type:      model.ArtifactType(apiv2.Artifact_Model),
 					URI:       strPTR(sharedURI),
 					Name:      "shared-model",
 					Metadata:  model.JSONData{"source": "importer"},
@@ -418,7 +418,7 @@ func TestFindOrCreateArtifactWithTask_ConcurrentReuseCreatesOneArtifact(t *testi
 				&model.ArtifactTask{
 					TaskID:      fmt.Sprintf("task-%d", taskIndex),
 					RunUUID:     fmt.Sprintf("run-%d", taskIndex),
-					Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+					Type:        model.IOType(apiv2.IOType_OUTPUT),
 					ArtifactKey: "artifact",
 					Producer: model.JSONData{
 						"taskName": fmt.Sprintf("importer-%d", taskIndex),
@@ -466,14 +466,14 @@ func TestFindOrCreateArtifactWithTask_UnconditionalCreateAllowsDuplicates(t *tes
 	first, _, err := store.CreateArtifactWithTask(
 		&model.Artifact{
 			Namespace: "ns1",
-			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			Type:      model.ArtifactType(apiv2.Artifact_Model),
 			URI:       strPTR(sharedURI),
 			Name:      "shared-model",
 		},
 		&model.ArtifactTask{
 			TaskID:      "task-1",
 			RunUUID:     "run-1",
-			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			Type:        model.IOType(apiv2.IOType_OUTPUT),
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-1"},
 		},
@@ -484,14 +484,14 @@ func TestFindOrCreateArtifactWithTask_UnconditionalCreateAllowsDuplicates(t *tes
 	second, _, err := store.CreateArtifactWithTask(
 		&model.Artifact{
 			Namespace: "ns1",
-			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			Type:      model.ArtifactType(apiv2.Artifact_Model),
 			URI:       strPTR(sharedURI),
 			Name:      "shared-model",
 		},
 		&model.ArtifactTask{
 			TaskID:      "task-2",
 			RunUUID:     "run-2",
-			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			Type:        model.IOType(apiv2.IOType_OUTPUT),
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-2"},
 		},
@@ -512,7 +512,7 @@ func TestFindOrCreateArtifactWithTask_ReplaysSameTaskLinkIdempotently(t *testing
 	sharedURI := "s3://bucket/shared-model"
 	artifact := &model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		URI:       strPTR(sharedURI),
 		Name:      "shared-model",
 		Metadata:  model.JSONData{"source": "importer"},
@@ -520,7 +520,7 @@ func TestFindOrCreateArtifactWithTask_ReplaysSameTaskLinkIdempotently(t *testing
 	link := &model.ArtifactTask{
 		TaskID:      "task-1",
 		RunUUID:     "run-1",
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		ArtifactKey: "artifact",
 		Producer:    model.JSONData{"taskName": "importer"},
 	}
@@ -546,7 +546,7 @@ func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testin
 	sharedURI := "s3://bucket/shared-model"
 	artifact := &model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Type:      model.ArtifactType(apiv2.Artifact_Model),
 		URI:       strPTR(sharedURI),
 		Name:      "shared-model",
 		Metadata:  model.JSONData{"source": "importer"},
@@ -560,7 +560,7 @@ func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testin
 		&model.ArtifactTask{
 			TaskID:      "task-1",
 			RunUUID:     "run-1",
-			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			Type:        model.IOType(apiv2.IOType_OUTPUT),
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-1"},
 		},
@@ -571,7 +571,7 @@ func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testin
 	reused, reusedLink, err := store.FindOrCreateArtifactWithTask(
 		&model.Artifact{
 			Namespace: "ns1",
-			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			Type:      model.ArtifactType(apiv2.Artifact_Model),
 			URI:       strPTR(sharedURI),
 			Name:      "shared-model",
 			Metadata:  model.JSONData{"source": "importer"},
@@ -579,7 +579,7 @@ func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testin
 		&model.ArtifactTask{
 			TaskID:      "task-2",
 			RunUUID:     "run-2",
-			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			Type:        model.IOType(apiv2.IOType_OUTPUT),
 			ArtifactKey: "artifact",
 			Producer:    model.JSONData{"taskName": "importer-2"},
 		},
