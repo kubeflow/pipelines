@@ -1181,6 +1181,50 @@ describe('DynamicFlow', () => {
       ]);
     });
 
+    it('does not show an amber warning for stale task rows after a successful run', () => {
+      const staleExecution: V2PipelineTask = {
+        task_id: 'execution-task',
+        parent_task_id: rootTask.task_id,
+        name: 'execution',
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled',
+      };
+      const staleSubDag: V2PipelineTask = {
+        task_id: 'sub-dag-task',
+        parent_task_id: rootTask.task_id,
+        name: 'sub-dag',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled',
+      };
+      const elements: Node<FlowElementDataBase>[] = [
+        {
+          id: 'task.execution',
+          data: { label: 'execution' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.EXECUTION,
+        },
+        {
+          id: 'task.sub-dag',
+          data: { label: 'sub-dag' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.SUB_DAG,
+        },
+      ];
+      const tasks = [rootTask, staleExecution, staleSubDag];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        elements,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true, true),
+      );
+
+      graph.forEach((element) => {
+        expect(element.data?.state).toBe(PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED);
+        expect((element.data as any).lifecycleMessage).toBeUndefined();
+      });
+    });
+
     it('does not show stale failed or running children below a successful nested DAG', () => {
       const successfulDag: V2PipelineTask = {
         task_id: 'successful-dag',

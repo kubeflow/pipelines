@@ -48,6 +48,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
     <>
       <div title={data.label} className='container'>
         <button
+          aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
           className={classes(
             'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
             fullWidth,
@@ -115,12 +116,15 @@ export function getIcon(state: PipelineTaskTaskState | undefined) {
   }
 }
 
-// Screen readers get the same signal sighted users get from the amber color.
-export const LIFECYCLE_WARNING_ICON_TITLE = 'Pod lifecycle warning';
+// The amber icon is hidden from screen readers, so the warning goes into the name of the
+// focusable node instead.
+export function getLifecycleWarningLabel(label: string) {
+  return `${label}, pod lifecycle warning`;
+}
 
 export function getWarningIcon() {
   return getStateIconWrapper(
-    <WarningAmberIcon className='text-mui-yellow-800' titleAccess={LIFECYCLE_WARNING_ICON_TITLE} />,
+    <WarningAmberIcon className='text-mui-yellow-800' />,
     'bg-mui-yellow-100',
   );
 }

@@ -711,20 +711,17 @@ function getIterationState(
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
 }
 
-// The amber warning has to agree with the state the node is drawn in. When a RUNNING
-// task was reset to unspecified because its run or parent already ended, the pod
-// problem is old news and the node should not claim something is still in flight.
+// The amber warning has to agree with the state the node is drawn in. When the state was
+// reset because the run or a parent scope already finished, the old diagnostic no longer
+// describes an unresolved problem, so the node stays neutral instead of turning amber.
 function getNodeLifecycleMessage(
   task: V2PipelineTask,
   displayedState: PipelineTaskTaskState | undefined,
 ): string | undefined {
-  if (
-    task.state === PipelineTaskTaskState.RUNNING &&
-    displayedState !== PipelineTaskTaskState.RUNNING
-  ) {
+  if (displayedState !== task.state) {
     return undefined;
   }
-  return getTaskLifecycleMessage({ ...task, state: displayedState });
+  return getTaskLifecycleMessage(task);
 }
 
 function getRuntimeTaskState(

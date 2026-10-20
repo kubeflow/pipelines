@@ -8,7 +8,7 @@ import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
 import { color } from 'src/Css';
-import { getIcon, getWarningIcon } from './ExecutionNode';
+import { getIcon, getLifecycleWarningLabel, getWarningIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
@@ -66,6 +66,7 @@ export default function SubDagGroupNode({
             type='button'
             className='focus:outline-none focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
             title={data.label}
+            aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
             style={{ background: 'transparent', border: 0, fontWeight: 400 }}
           >
             <span className='truncate' data-testid='subdag-label'>

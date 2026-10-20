@@ -111,7 +111,7 @@ it('shows a warning icon for a running sub-DAG with a lifecycle message', () => 
   expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
 });
 
-it('gives the sub-DAG warning icon an accessible name', () => {
+it('announces the warning in the sub-DAG node name', () => {
   render(
     <ReactFlowProvider>
       <SubDagGroupNode
@@ -126,7 +126,9 @@ it('gives the sub-DAG warning icon an accessible name', () => {
       />
     </ReactFlowProvider>,
   );
-  expect(screen.getByTitle('Pod lifecycle warning')).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Training, pod lifecycle warning' }),
+  ).toBeInTheDocument();
 });
 
 it('shows the failed icon, not the warning, once the sub-DAG has failed', () => {

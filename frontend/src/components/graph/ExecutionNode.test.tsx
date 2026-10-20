@@ -81,7 +81,7 @@ describe('ExecutionNode', () => {
     expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
   });
 
-  it('gives the warning icon an accessible name', () => {
+  it('announces the warning in the node name', () => {
     renderWithProvider(
       <ExecutionNode
         id='exec-1'
@@ -92,7 +92,9 @@ describe('ExecutionNode', () => {
         }}
       />,
     );
-    expect(screen.getByTitle('Pod lifecycle warning')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'stuck-step, pod lifecycle warning' }),
+    ).toBeInTheDocument();
   });
 
   it('shows the failed icon, not the warning, once the task has failed', () => {
