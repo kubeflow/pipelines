@@ -2,6 +2,8 @@
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
+- External artifact authorization has two complementary fixtures. Frontend CI runs `test/seaweedfs/external_storage_test.sh`: disposable real OIDC/STS and S3 storage, broker-written named profiles, historical roots, rotation/expiry/recovery and cross-tenant read/list denial; Kubernetes observations and SAR responses are fixtures. Changes to the external broker, cluster fixture and their unit tests also trigger this frontend lane. The `e2e-test.yml` artifact-authorization lane runs automatically on every path-matched PR and configured push, and on release merge-group checks; it reuses the workflow image builds and adds one cluster runner. The existing path filters cover frontend server code and image inputs, deployment manifests, fixtures and workflow changes; Markdown-only PRs remain excluded. Manual runs use `artifact_authorization_only=true` to select just image builds and this lane, while ordinary manual E2E runs leave it disabled. The lane runs `test/artifact-proxy/external_storage_acceptance.py` after managed-store acceptance, using real Profiles, Metacontroller, projected ServiceAccount JWTs and broker sidecars. It publishes one administrator-owned adoption policy with protected identity bindings and a shared receiver template, then verifies existing/new namespace enrollment without explicit per-namespace approvals. It also checks stale UID rejection, tenant-local source forgery, actual denial of tenant writes to central configuration, binding/template removal and recovery, pending/ready reconciliation, unchanged receiver Pod identity during renewal, and expiry recovery. Evidence is nested under `artifact-authorization/external`; cleanup restores the central configuration and removes fixture-owned sources and namespaces. Run only against disposable installations. Neither fixture certifies ingress login or arbitrary external IAM policies.
+
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
 - `presubmit-backend.yml` exercises the self-service namespace transfer engine against disposable MySQL and MLMD services, using `KFP_TRANSFER_MYSQL_DSN` and `KFP_TRANSFER_MLMD_ADDRESS`. `KFP_TRANSFER_REQUIRE_INTEGRATION=1` prevents silent skips. SQL tests create/drop isolated databases; MLMD fixtures use unique resource names. The MLMD image matches the release deployment manifest. HTTP/authorization and frontend tests cover the end-user transfer boundary; no Python operator tool is required.
 - `presubmit-backend.yml` runs recurring-run transaction concurrency tests against disposable MySQL 8.0 and PostgreSQL 16 services using `KFP_RECURRING_MYSQL_TEST_DSN` and `KFP_RECURRING_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and independent connections; the configured test roles need permission to create and drop their test database/schema and observe session lock metadata. These checks cover storage transaction behavior, not a live KFP upgrade.
@@ -206,3 +208,17 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the profile controller; the pin selects more than Istio images.
 
 - The shared deploy action provisions GitHub CLI before image artifact polling. It reuses an installed CLI or downloads a checksum-pinned Linux AMD64/ARM64 release into runner temporary storage and exports its path for later steps. Missing CLI prerequisites fail immediately instead of consuming the artifact wait window.
+
+- Frontend Tests runs `test/seaweedfs/artifact_authorization_test.sh` against
+  the branch's shipped SeaweedFS version. IAM and object storage are real;
+  namespace authorization and Kubernetes observations/readiness are fixtures.
+  This suite covers object/list isolation, provider selection and protocol
+  regressions; it does not establish live CNI enforcement or full-cluster rollout.
+- The focused `e2e-test.yml` dispatch (`artifact_authorization_only=true`) builds
+  the selected revision and runs
+  `test/artifact-proxy/test-artifact-authorization.sh` against real multi-user KFP
+  on stock Kind. See the [fixture README](../../test/artifact-proxy/README.md) for
+  mutation, cleanup, image evidence and branch-specific old-UI scope. Port
+  forwarding supplies trusted identity headers; ingress login and header
+  sanitization require separate checks. Installation-specific storage, mesh and
+  additive NetworkPolicies still require effective access checks.

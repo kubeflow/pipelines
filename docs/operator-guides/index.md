@@ -7,6 +7,7 @@ Documentation for operators deploying and configuring Kubeflow Pipelines.
 
 installation
 server-config
+artifact-authorization
 scheduled-service-accounts
 multi-user
 rbac-migration-2.18

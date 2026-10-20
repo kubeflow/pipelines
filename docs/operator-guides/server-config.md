@@ -138,11 +138,59 @@ When deploying frontend server called `ml-pipeline-ui`, you can pass various env
 variables to customize the server behavior for your namespace. Some examples are shown
 in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/pipeline/ml-pipeline-ui-deployment.yaml#L32-L50).
 
+### Artifact authorization boundary
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` defaults to `auto`. Managed
+`minio://mlpipeline/...` artifacts and administrator-approved external S3
+credential-file brokers use centrally verified namespace readiness and the
+namespace's storage identity. Pending readiness, revoked external approval or
+lookup failure returns an actionable HTTP 503 without shared-credential fallback.
+A ready record does not certify least privilege of all effective storage grants.
+Namespace viewers inherit read/list access from retained administrator grants and
+the stock all-namespace writable `shared/` area. Review grants and viewer roles
+[before upgrading](artifact-authorization.md#review-existing-grants-before-upgrading).
+Invalid records and record-read permission failures return corrective HTTP 503
+without `Retry-After`; pending readiness, transient API errors and old-receiver
+rollout remain retryable. Incompatible receiver bodies are discarded.
+Managed IAM verification failures request controller reconciliation again after
+10 seconds; recovery preserves credentials and requires current verification.
+This is not a guarantee of recovery within 10 seconds. Invalid generated external
+configuration fails startup with an error naming
+`KFP_ARTIFACT_EXTERNAL_STORAGE_CONFIG` without exposing configuration contents.
+Unapproved custom storage retains prefix/metadata enforcement. Both `auto` and explicit `storage`
+keep that policy on `minio://mlpipeline/artifacts/`, including the root itself,
+which contains pre-SeaweedFS tenant history
+covered by a broad stock grant. An existing credential Secret on a store without
+the controller's IAM API can remain pending indefinitely. Select `key-prefix`
+before rollout to retain ownership enforcement, or review actual namespace
+isolation and receiver compatibility before selecting explicit `storage`.
+
+The [external broker adapter](artifact-authorization.md#external-storage-with-rotating-broker-credentials)
+requires administrator approval of the namespace identity, exact store and receiver
+Pod template in the central `kfp-artifact-storage-config` ConfigMap. A reusable
+`adoption-policies.json` policy can derive approvals automatically from protected
+namespace identity bindings and a receiver template in labelled ConfigMaps in the
+installation namespace. Explicit `approvals.json` entries remain available for
+exceptions; overlapping authorities are rejected. Its exact endpoint is pinned
+by that approval. Credentials refresh from a named file profile
+on each request, with no ambient credential fallback or receiver restart. KFP does
+not automatically discover arbitrary workload identities or prove external IAM
+isolation; the administrator must verify the broker's grants.
+
+Explicit `key-prefix` keeps that policy for all applicable requests. Explicit
+`storage` supports reviewed S3, MinIO and GCS storage identities without a fixed key
+layout or metadata lookup, except for the legacy `minio://mlpipeline/artifacts`
+root and its descendants. It requires `ENABLE_AUTHZ=true`, namespace proxying,
+updated receivers and effective network/storage isolation. The standard multi-user
+overlay enables managed proxies; standalone serving is unchanged. HTTP artifacts
+and archived logs retain their separate policies. See
+[configuration and rollout](artifact-authorization.md).
+
 ### Artifact storage endpoint allowlist
 
 For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact
 trusted origins; a permissive domain regex alone does not authorize a custom
-storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
+storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
 for ConfigMap, profile-proxy rollout, alias, and archived-log credential guidance.
 HTTP artifact bases use the separate setting described below.
 
@@ -246,10 +294,10 @@ use tenant proxies and support their legacy download route during rolling upgrad
 
 The installation also propagates the base to profile proxies for their direct
 HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
-wait for its rollout to finish. The controller watches enabled Namespace objects;
-restarting its webhook does not enqueue them. Wait for the next hourly resync or
-change an annotation on each affected Namespace, as shown in the
-[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
+wait for its rollout to finish. Restarting its webhook does not itself enqueue
+Namespace reconciliation for this environment change. Wait for the next hourly
+resync or change an annotation on each affected Namespace, as shown in the
+[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
 Confirm each generated `ml-pipeline-ui-artifact` pod template contains the expected
 `HTTP_BASE_URL` before checking its rollout status, which could otherwise report
 the previous rollout's completion. This propagation does not change the shared

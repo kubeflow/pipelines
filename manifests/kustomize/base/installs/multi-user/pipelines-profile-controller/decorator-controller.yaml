@@ -14,7 +14,7 @@ spec:
   - apiVersion: v1
     resource: secrets
     updateStrategy:
-      method: OnDelete
+      method: InPlace
   - apiVersion: v1
     resource: configmaps
     updateStrategy:
@@ -27,6 +27,10 @@ spec:
     resource: services
     updateStrategy:
       method: InPlace
+  - apiVersion: networking.k8s.io/v1
+    resource: networkpolicies
+    updateStrategy:
+      method: InPlace
   - apiVersion: networking.istio.io/v1alpha3
     resource: destinationrules
     updateStrategy:
@@ -36,6 +40,9 @@ spec:
     updateStrategy:
       method: InPlace
   hooks:
+    customize:
+      webhook:
+        url: http://kubeflow-pipelines-profile-controller/customize
     sync:
       webhook:
         url: http://kubeflow-pipelines-profile-controller/sync

@@ -23,6 +23,9 @@ import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
   getArtifactsHandler,
+  getArtifactReceiverNamespaceMiddleware,
+  getArtifactStorageReceiverMiddleware,
+  ARTIFACT_STORAGE_PROXY_PREFIX,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
@@ -182,6 +185,9 @@ function createUIServer(options: UIConfigs) {
     options.auth.enabled,
     options.auth.kubeflowUserIdHeader,
     envoyServiceAddress,
+    options.artifacts.proxy.enabled,
+    options.artifacts.authorizationMode,
+    options.server.serverNamespace,
   );
 
   /** Artifact */
@@ -190,9 +196,18 @@ function createUIServer(options: UIConfigs) {
   // handler calls next() and falls through to the specific handler below.
   // Security fix for https://github.com/kubeflow/pipelines/issues/9889
 
+  app.get(
+    `${ARTIFACT_STORAGE_PROXY_PREFIX}/artifacts/*`,
+    getArtifactStorageReceiverMiddleware(options),
+  );
+
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    getArtifactReceiverNamespaceMiddleware(
+      options.auth.enabled ? undefined : options.server.serverNamespace,
+      options.artifacts.requireProxyNamespace === true,
+    ),
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -202,6 +217,10 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    getArtifactReceiverNamespaceMiddleware(
+      options.auth.enabled ? undefined : options.server.serverNamespace,
+      options.artifacts.requireProxyNamespace === true,
+    ),
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,

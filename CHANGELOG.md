@@ -2,6 +2,63 @@ Changelog
 
 ## Unreleased
 
+### Artifact authorization
+
+- The default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` preserves already
+  authorized historical roots for managed `minio://mlpipeline/...` artifacts and
+  administrator-approved external S3 credential-file brokers. Objects need not
+  move when keeping the existing storage destination; these reads do not depend
+  on metadata records, except the legacy managed `artifacts/` root described below.
+  Switching a namespace from bundled MinIO to an approved
+  external S3 store replaces its receiver: earlier `minio://mlpipeline/...`
+  artifacts become unreadable through KFP. Migrate authorized objects and their
+  persisted references before cutover, or postpone external adoption. For external storage,
+  a reusable cluster policy can automatically approve existing and new namespaces
+  from administrator-controlled identity bindings and a receiver template. Configure
+  `adoption-policies.json` in `kfp-artifact-storage-config`; referenced, labelled
+  ConfigMaps stay in the installation namespace. Trusted provisioning automation
+  publishes actual namespace UIDs and principals, avoiding repeated manual
+  per-namespace approvals. Explicit `approvals.json` entries remain available.
+  Missing, invalid or overlapping authority fails closed. The controller reconciles
+  receiver rollout automatically; routine temporary-credential renewal needs no
+  receiver restart. The administrator still verifies the provisioner and storage
+  grants; this does not discover arbitrary workload identities or certify IAM policy.
+- Both `auto` and explicit `storage` retain ownership/prefix checks for
+  `minio://mlpipeline/artifacts/` and the root itself: pre-SeaweedFS
+  V1 outputs used `artifacts/<workflow>/...`, and the stock shared grant must not
+  expose that tenant history. Old namespace-less outputs may need migration of
+  authorized objects and persisted references; untracked V1 artifacts cannot use
+  the narrow MLMD-backed audit exception.
+- Review effective namespace storage grants and namespace viewer roles **before
+  upgrading**. Storage authorization makes existing read/list grants available to
+  namespace viewers, including `shared/` and retained administrator additions.
+  A `ready` record does not certify that all grants are narrowly scoped. Broad
+  grants such as `mlpipeline/*` can expose other tenants' private artifacts through
+  the UI. Every stock namespace can write/delete under `shared/`; it is not a
+  private pipeline root. Narrow unintended grants, or select `key-prefix` before
+  rollout until the intended viewer access is reviewed.
+- Custom stores without the controller's IAM verification API can remain pending
+  even with pre-created credential Secrets, returning HTTP 503 under `auto`.
+  Before rollout, select `key-prefix` to retain ownership checks, or use reviewed
+  `storage` with genuinely isolated identities and a compatible namespace receiver.
+  S3 compatibility and distinct Secret names alone do not prove that isolation.
+- Standard multi-user manifests enable managed proxies. Controller readiness and
+  a versioned receiver protocol support either UI/controller upgrade order; old
+  UIs remain compatible with the legacy route. Readiness convergence can return
+  actionable HTTP 503 responses that require retry. No storage-authorized request
+  falls back to shared credentials after a readiness or receiver failure.
+  Unapproved custom storage retains prefix enforcement; reviewed custom identities
+  outside the adapter can explicitly select `storage`, while `key-prefix` remains
+  available. Storage policies are not widened, but namespace viewers can gain UI
+  access to objects previously available only to workloads. Generated standard
+  NetworkPolicies still need effective enforcement, and direct proxy consumers
+  must use the authenticated shared UI.
+  Enabling managed proxies adds one receiver Pod per previously unserved enabled
+  namespace: requests 10m CPU/70 MiB memory, limits 100m CPU/500 MiB memory, before
+  broker or mesh sidecars and rollout surge. Large fleets should review capacity
+  and quotas. HTTP artifacts and archived logs retain separate policies. See the
+  [authorization and rollout guide](docs/operator-guides/artifact-authorization.md).
+
 ### Upgrade notes
 
 #### Python support in 2.18

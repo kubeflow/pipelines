@@ -51,6 +51,10 @@ images:
     newTag: latest
 
 patches:
+  - path: ../profile-controller-env.yaml
+    target:
+      kind: Deployment
+      name: kubeflow-pipelines-profile-controller
   - path: ../../base/apiserver-env.yaml
     target:
       kind: Deployment
