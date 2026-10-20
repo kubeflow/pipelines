@@ -73,13 +73,12 @@ data:
   ## ignored. aws-iam requires it.
   dbTLSCAPath: ""
   LOG_LEVEL: "info"
-  ## ARTIFACTS_PROXY_ENABLED: Controls whether the artifact proxy is enabled
-  ## to support accessing out-of-kubeflow scope buckets. The artifact proxy
-  ## has known security and architectural flaws, so it should only be enabled
-  ## if you specifically need to access unique pipeline root buckets per
-  ## namespace that are outside the kubeflow namespace's access.
-  ## Valid values are 'true' and 'false'. Defaults to 'false'.
-  ## For more information see: https://github.com/kubeflow/pipelines/pull/11965
+  ## ARTIFACTS_PROXY_ENABLED: Controls managed namespace artifact services.
+  ## The generic/single-user installation keeps this false. The multi-user
+  ## overlay sets it true so automatic storage authorization can use verified
+  ## namespace identities after controller readiness and receiver rollout.
+  ## Managed services require enforced NetworkPolicy and scoped storage access.
+  ## Valid values are 'true' and 'false'. See docs/operator-guides/artifact-authorization.md.
   ARTIFACTS_PROXY_ENABLED: "false"
   ## HTTP_BASE_URL: Operator-approved HTTP(S) base URL for HTTP artifact reads.
   ## Include the full trusted path prefix, if needed; leave empty to disable HTTP

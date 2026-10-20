@@ -19,7 +19,7 @@ import requests from 'supertest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
 import * as artifacts from '../handlers/artifacts.js';
-import { getConfigMap } from '../k8s-helper.js';
+import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
 import { commonSetup } from './test-helper.js';
 
 vi.mock('../k8s-helper.js', () => ({
@@ -40,6 +40,7 @@ describe('artifact proxy ownership with the production validator', () => {
 
   beforeEach(async () => {
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
+    vi.mocked(getK8sSecret).mockRejectedValue({ code: 404 });
     forwarded = [];
     // Model a tenant service with shared storage access. The central route must deny
     // the victim URI before sending anything to this service.

@@ -314,23 +314,69 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials. Authenticated
-multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
-operator-configured namespace prefix), including through tenant proxies. Configuring
-an endpoint or proxy does not make an existing custom-root object belong to a
-namespace. See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership)
-for migrating those object paths.
+Allowlisting does not grant bucket access or configure credentials.
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` uses namespace storage authorization
+for managed `minio://mlpipeline/...` artifacts and administrator-approved external
+S3 credential-file brokers after controller readiness. For the
+[external broker adapter](../../docs/operator-guides/artifact-authorization.md#external-storage-with-rotating-broker-credentials),
+configure a reusable `adoption-policies.json` policy in the central
+`kfp-artifact-storage-config` ConfigMap. Protected, labelled binding/template
+ConfigMaps in the installation namespace let trusted provisioning automation
+publish namespace identities and enroll existing/new namespaces without repeated
+manual approval. Explicit `approvals.json` entries remain available for exceptions;
+overlapping policies/explicit approvals fail closed. The resulting approval pins
+endpoint trust for this adapter; an additional `ALLOWED_ARTIFACT_ENDPOINTS` entry
+is not required. The controller watches approval/source changes and reconciles
+receiver rollout automatically.
+Routine temporary-credential renewal needs neither a namespace annotation nor a
+receiver restart. Administrators remain responsible for verifying broker grants;
+KFP does not automatically discover arbitrary workload identities or prove their
+external IAM isolation.
+
+Before rollout, review effective storage grants and namespace viewer roles. Ready
+storage authorization exposes the identity's read/list grants to those viewers,
+including retained administrator additions and the stock all-namespace writable
+`shared/` area. Readiness does not certify the absence of broader permissions.
+Narrow unintended grants or select `key-prefix` until that review is complete;
+see [storage-grant preflight](../../docs/operator-guides/artifact-authorization.md#review-existing-grants-before-upgrading).
+
+Both `auto` and explicit `storage` keep ownership/prefix checks on
+`minio://mlpipeline/artifacts/`, including the root itself, whose broad stock
+grant can also cover pre-SeaweedFS tenant outputs. Custom S3-compatible stores
+without the controller's IAM API cannot become managed-ready merely because
+namespace credential Secrets already exist. Configure `key-prefix` before rollout,
+or use reviewed explicit `storage` with isolated identities and a compatible
+receiver; do not treat persistent HTTP 503 as a transient readiness delay.
+
+Unapproved custom storage retains prefix/metadata enforcement. To preserve custom
+roots outside the adapter, explicitly select `storage` only after reviewing
+namespace credential permissions, endpoint trust, versioned receiver support and
+ingress isolation. Explicit `key-prefix` retains namespace path checks. See
+[authorization and rollout](../../docs/operator-guides/artifact-authorization.md).
+
+The standard multi-user overlay enables managed proxies. Managed artifact upgrades
+accept either UI/controller order: the new receiver protocol enforces namespace
+binding, while the legacy route remains compatible with old UIs during overlap.
+Pending readiness or proxy startup can temporarily return HTTP 503; retry after
+reconciliation. The new UI never falls back to the old route or shared credentials
+for a storage-authorized request. The generated standard NetworkPolicy must be
+enforced, and broader additive policies must not allow direct tenant access.
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
-providers require namespace-isolated artifact proxies. Set
-`ARTIFACTS_PROXY_ENABLED: "true"` in the installation configuration if needed.
+providers require namespace-isolated artifact proxies. Standard multi-user
+manifests enable `ARTIFACTS_PROXY_ENABLED`; custom deployments must enable it
+explicitly if they use namespace proxying.
 Adding an origin alone does not enable these providers through the shared UI.
 The profile controller propagates the allowlist to profile artifact proxies;
 configuring `AWS_S3_ENDPOINT` directly on the shared UI does not propagate that
 trust to those proxies.
 
-After applying the configuration, restart the processes that consume these
-settings as environment variables. For the standard multi-user installation
+For changes to `ALLOWED_ARTIFACT_ENDPOINTS`, restart the processes that consume
+that setting as an environment variable. This procedure does not apply to the
+external broker approval ConfigMap, which the controller watches directly.
+These restarts have no required relative order.
+For the standard multi-user installation
 (replace `kubeflow` with your installation namespace):
 
 ```sh
@@ -341,11 +387,11 @@ kubectl -n kubeflow rollout status deployment/kubeflow-pipelines-profile-control
 ```
 
 After the controller rollout completes, it must reconcile the new environment
-into each enabled Namespace's `ml-pipeline-ui-artifact` Deployment. The controller
-watches Namespace objects; restarting its webhook does not enqueue them. Wait for
-the next hourly resync or change an annotation on each affected Namespace. For
-example, use a fresh timestamp on the enabled Namespace named `tenant` (replace
-it with your profile namespace):
+into each enabled Namespace's `ml-pipeline-ui-artifact` Deployment. Restarting its
+webhook does not itself enqueue Namespace reconciliation for these environment
+changes. Wait for the next hourly resync or change an annotation on each affected
+Namespace. For example, use a fresh timestamp on the enabled Namespace named
+`tenant` (replace it with your profile namespace):
 
 ```sh
 kubectl annotate namespace tenant \

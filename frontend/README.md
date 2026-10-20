@@ -178,14 +178,18 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Multi-user artifact ownership
 
-With `ENABLE_AUTHZ=true`, artifact previews and downloads require an object key under
+With `ENABLE_AUTHZ=true`, explicit `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`
+or `auto` handling an unsupported custom store, artifact previews and downloads
+require an object key under
 `private-artifacts/<namespace>/...`, or the equivalent prefix configured by the operator through
 `ARTIFACT_NAMESPACE_KEY_PREFIX`. This applies to MinIO, S3, GCS, and HTTP(S) artifacts, including
 requests made with `ARTIFACTS_SERVICE_PROXY_ENABLED=true`. A namespace-scoped metadata record does
 not establish ownership of an arbitrary object: a pipeline can import an existing URI.
 
-**Compatibility change:** custom-root objects outside that namespace prefix return HTTP 403,
-even when a tenant proxy has isolated credentials. To retain frontend previews/downloads, configure
+**Compatibility change where prefix enforcement applies:** custom-root objects outside that
+namespace prefix return HTTP 403. Deployments with isolated namespace storage credentials can
+select [storage authorization](#storage-authoritative-artifact-access) to retain existing roots.
+For shared credentials, configure
 pipeline roots with the tenant namespace segment and write or copy authorized artifacts to those
 paths. Updating metadata alone does not move existing objects. Keep storage credentials and tenant
 proxy access isolated; the path policy does not replace storage or network authorization.
@@ -204,6 +208,49 @@ Redirects must stay on the configured origin and under the same namespace prefix
 signed URLs and same-origin signed URLs outside that prefix return HTTP 403. Standalone mode keeps
 its existing redirect behavior.
 
-Standalone mode and namespace-proxied volume artifacts are unchanged. The `artifact-only` mode
+Standalone mode and namespace-proxied volume artifacts are unchanged. Under `key-prefix`, the `artifact-only` mode
 (also accepted as legacy `mlmd-only`) requires metadata evidence in addition to the namespace
 path policy; it does not enable arbitrary custom roots.
+
+## Storage-authoritative artifact access
+
+`KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` is the default. Managed
+`minio://mlpipeline/...` artifacts and administrator-approved external S3
+credential-file brokers use namespace storage identities after trusted controller
+readiness, without moving already authorized objects or requiring metadata records.
+The multi-user overlay enables managed proxies. Pending readiness, revoked external
+approval or a failed lookup returns an actionable HTTP 503, never a shared-credential
+fallback. Unapproved custom layouts retain prefix enforcement. Both `auto` and explicit `storage`
+retain ownership/prefix checks for `minio://mlpipeline/artifacts/`, which may hold private V1
+outputs from before the SeaweedFS switch despite its stock shared storage grant.
+A ready record does not make those historical objects public. It also does not
+certify that all effective storage grants are narrow: retained administrator
+grants and the intentionally all-namespace writable `shared/` root become
+readable to namespace viewers. Review effective grants, viewer roles and existing
+roots before rollout; use `key-prefix` until broader viewer access is intended.
+
+Custom stores without the controller's IAM verification API can stay pending even
+with pre-created namespace Secrets. Select `key-prefix` before rollout to retain
+ownership checks, or explicitly use `storage` only after verifying genuinely
+restricted identities and the namespace receiver. See the
+[legacy-root and custom-store guidance](../docs/operator-guides/artifact-authorization.md).
+
+For the [external broker adapter](../docs/operator-guides/artifact-authorization.md#external-storage-with-rotating-broker-credentials),
+the administrator can configure a reusable `adoption-policies.json` policy in
+`kfp-artifact-storage-config`. Trusted provisioning automation publishes current
+namespace UID/principal bindings; labelled binding/template ConfigMaps in the
+installation namespace supply the approved identity and receiver configuration.
+KFP enrolls matching existing and new namespaces automatically. Explicit
+`approvals.json` entries remain available; overlapping authorities fail closed.
+The controller reconciles receiver rollout; temporary credentials refresh from
+the approved file without receiver restarts. Administrators must verify the
+provisioner and its storage grants; this does not discover arbitrary workload
+identities or verify their external IAM policies.
+
+Explicit `storage` remains available for reviewed custom identities and trusted
+namespace launcher-provider configuration; explicit `key-prefix` retains the
+prefix/metadata policy. Versioned receivers enforce namespace binding while legacy
+routes preserve old-UI compatibility during normal rolling deployment. No manual
+UI/controller ordering or opt-in is needed for the supported managed path; reads
+can need retry during convergence. See
+[enforcement scope and rollout](../docs/operator-guides/artifact-authorization.md).

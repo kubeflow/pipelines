@@ -4,6 +4,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
 
+- External artifact authorization has two complementary fixtures. Frontend CI runs `test/seaweedfs/external_storage_test.sh`: disposable real OIDC/STS and S3 storage, broker-written named profiles, historical roots, rotation/expiry/recovery and cross-tenant read/list denial; Kubernetes observations and SAR responses are fixtures. Changes to the external broker, cluster fixture and their unit tests also trigger this frontend lane. The `e2e-test.yml` artifact-authorization lane runs automatically on every path-matched PR and configured push; it reuses the workflow image builds and adds one cluster runner. The existing path filters cover frontend server code and image inputs, deployment manifests, fixtures and workflow changes; Markdown-only PRs remain excluded. Manual runs use `artifact_authorization_only=true` to select just image builds and this lane, while ordinary manual E2E runs leave it disabled. The lane runs `test/artifact-proxy/external_storage_acceptance.py` after managed-store acceptance, using real Profiles, Metacontroller, projected ServiceAccount JWTs and broker sidecars. It publishes one administrator-owned adoption policy with protected identity bindings and a shared receiver template, then verifies existing/new namespace enrollment without explicit per-namespace approvals. It also checks stale UID rejection, tenant-local source forgery, actual denial of tenant writes to central configuration, binding/template removal and recovery, pending/ready reconciliation, unchanged receiver Pod identity during renewal, and expiry recovery. Evidence is nested under `artifact-authorization/external`; cleanup restores the central configuration and removes fixture-owned sources and namespaces. Run only against disposable installations. Neither fixture certifies ingress login or arbitrary external IAM policies.
+
 - The Kubernetes-native migration experiment-creation test uses a 60-second polling budget for a reported run state. Initial Workflow persistence may temporarily omit the state before Argo reports a phase. API errors and observed failed/canceled runs fail immediately; an unreported state times out with the run ID and log guidance. CI Scripts Tests covers delayed state, timeout, and error behavior without a cluster.
 
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
@@ -230,3 +232,16 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   invoked without `gh`; missing runner dependencies are not publication delays.
 
 - `release-promote-latest.yml` is upstream/master dispatch-only. Its read-only job derives the image matrix from the immutable published release tag commit. The serialized promotion job alone has `packages: write`, rechecks highest stable release eligibility, snapshots every published full index, and copies only `@digest` to `:latest` without builds. It verifies full indexes and unchanged versioned tags and always uploads partial/success evidence. Dispatch through `kfpr promote-latest --version X.Y.Z`; this workflow must first be merged upstream. Test with `PYTHONPATH=release python -m unittest kfpr.promotion_test`.
+- Frontend Tests runs `test/seaweedfs/artifact_authorization_test.sh` against
+  the branch's shipped SeaweedFS version. IAM and object storage are real;
+  namespace authorization and Kubernetes observations/readiness are fixtures.
+  This suite covers object/list isolation, provider selection and protocol
+  regressions; it does not establish live CNI enforcement or full-cluster rollout.
+- The focused `e2e-test.yml` dispatch (`artifact_authorization_only=true`) builds
+  the selected revision and runs
+  `test/artifact-proxy/test-artifact-authorization.sh` against real multi-user KFP
+  on stock Kind. See the [fixture README](../../test/artifact-proxy/README.md) for
+  mutation, cleanup, image evidence and branch-specific old-UI scope. Port
+  forwarding supplies trusted identity headers; ingress login and header
+  sanitization require separate checks. Installation-specific storage, mesh and
+  additive NetworkPolicies still require effective access checks.

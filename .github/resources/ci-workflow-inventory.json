@@ -322,7 +322,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "593f38af09ca8065fdd48c3eba6004cd4724b5d672d36a5fcd856b70e90661fd",
+      "header_sha256": "20a658312d26587980c9b3759eac5d1ee52596f15e1c067f5e2d1725c341c9ae",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -342,10 +342,19 @@
           "go.mod",
           "go.sum",
           "backend/**",
-          "frontend/server/handlers/artifacts.ts",
+          "frontend/server/**",
+          "frontend/Dockerfile",
+          "frontend/.nvmrc",
+          "frontend/.npmrc",
+          "frontend/package*.json",
+          "frontend/tsconfig*.json",
+          "frontend/vite.config.*",
+          "frontend/scripts/**",
+          "frontend/src/third_party/**",
           "proxy/**",
           "manifests/kustomize/**",
           "test/artifact-proxy/**",
+          "test/seaweedfs/**",
           "test_data/sdk_compiled_pipelines/**",
           "sdk/**",
           "kubernetes_platform/**",
@@ -357,13 +366,16 @@
     {
       "path": ".github/workflows/frontend.yml",
       "name": "Frontend Tests",
-      "header_sha256": "ad213cb370af3e573a7e0c7bdcec60c0a93cb6c882ac2fe3b148934ba46d964b",
+      "header_sha256": "0e5f230858de825c259bba06bf850d1faefecf1ab199ce392e9476729d8c50b4",
       "pull_request": {
         "branches": [
           "master"
         ],
         "paths": [
           "frontend/**",
+          "test/seaweedfs/artifact_authorization*",
+          "test/seaweedfs/external_storage*",
+          "test/artifact-proxy/*external_storage*",
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py",
           "api/v2alpha1/*.proto",
           "kubernetes_platform/proto/*.proto",

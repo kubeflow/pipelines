@@ -9,6 +9,9 @@ on:
       - master
     paths:
       - 'frontend/**'
+      - 'test/seaweedfs/artifact_authorization*'
+      - 'test/seaweedfs/external_storage*'
+      - 'test/artifact-proxy/*external_storage*'
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
@@ -90,6 +93,26 @@ jobs:
 
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
+
+    - name: Verify artifact authorization against real namespace storage
+      timeout-minutes: 10
+      run: |
+        python -m venv /tmp/kfp-artifact-storage-test
+        /tmp/kfp-artifact-storage-test/bin/pip install 'boto3==1.35.99'
+        PYTHON=/tmp/kfp-artifact-storage-test/bin/python bash test/seaweedfs/artifact_authorization_test.sh
+
+    - name: Verify external artifact storage with rotating session credentials
+      timeout-minutes: 10
+      run: |
+        PYTHON=/tmp/kfp-artifact-storage-test/bin/python bash test/seaweedfs/external_storage_test.sh --evidence "$RUNNER_TEMP/external-storage-evidence.json"
+
+    - name: Upload external artifact storage evidence
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: external-artifact-storage-evidence
+        path: ${{ runner.temp }}/external-storage-evidence.json
+        if-no-files-found: ignore
 
     - name: Verify production bundle startup
       working-directory: frontend
