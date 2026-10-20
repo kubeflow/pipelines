@@ -60,7 +60,7 @@ test = [
 dev = [
   "kfp-workspace[lint,test]",
   "mypy",
-  "pre-commit>=3.2",
+  "pre-commit>=4.7.0",
   "types-protobuf",
   "types-PyYAML",
   "types-requests",
