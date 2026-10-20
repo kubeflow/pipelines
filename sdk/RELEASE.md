@@ -59,6 +59,12 @@
 
 ## Bug fixes and other changes
 
+* `kfp recurring-run create` now creates the recurring run enabled when neither
+  `--enabled` nor `--disabled` is passed, matching `Client.create_recurring_run()`.
+  Omitting `--catchup`/`--no-catchup` now leaves `no_catchup` unset instead of
+  sending `no_catchup=True`. Pass `--disabled` or `--no-catchup` to keep the old
+  behavior. (#14954)
+
 # 2.15.2
 
 ## Bug fixes and other changes

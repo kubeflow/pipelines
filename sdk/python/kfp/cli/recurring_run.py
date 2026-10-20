@@ -32,6 +32,7 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 @click.option(
     '--catchup/--no-catchup',
     type=bool,
+    default=None,
     help=parsing.get_param_descr(client.Client.create_recurring_run,
                                  'no_catchup'),
 )
@@ -53,6 +54,8 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 @click.option(
     '--enabled/--disabled',
     type=bool,
+    default=True,
+    show_default=True,
     help=parsing.get_param_descr(client.Client.create_recurring_run, 'enabled'))
 @click.option(
     '--end-time',
@@ -105,7 +108,7 @@ def create(ctx: click.Context,
            experiment_name: Optional[str] = None,
            catchup: Optional[bool] = None,
            cron_expression: Optional[str] = None,
-           enabled: Optional[bool] = None,
+           enabled: bool = True,
            description: Optional[str] = None,
            enable_caching: Optional[bool] = None,
            end_time: Optional[str] = None,
@@ -151,7 +154,7 @@ def create(ctx: click.Context,
         interval_second=interval_second,
         job_name=job_name,
         max_concurrency=max_concurrency,
-        no_catchup=not catchup,
+        no_catchup=None if catchup is None else not catchup,
         params=params,
         pipeline_package_path=pipeline_package_path,
         pipeline_id=pipeline_id,

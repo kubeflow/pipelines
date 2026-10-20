@@ -29,6 +29,8 @@ from kfp.cli import cli
 from kfp.cli import compile_
 from kfp.cli import output
 from kfp.cli import pipeline
+from kfp.cli import recurring_run
+from kfp.client import client as kfp_client
 from kfp.dsl import pipeline_context
 import yaml
 
@@ -189,6 +191,65 @@ class TestPipelineVersionCommands(unittest.TestCase):
             output.ModelType.PIPELINE_VERSION,
             output.OutputFormat.table,
         )
+
+
+class TestRecurringRunCreate(parameterized.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.client = kfp_client.Client.__new__(kfp_client.Client)
+        self.client._recurring_run_api = mock.MagicMock()
+        self.client.get_user_namespace = lambda: None
+        self.runner = testing.CliRunner()
+
+    def invoke_create(self, extra_args: List[str]):
+        with mock.patch('kfp.cli.recurring_run.output.print_output'):
+            result = self.runner.invoke(
+                recurring_run.recurring_run,
+                [
+                    'create',
+                    '--job-name',
+                    'nightly',
+                    '--experiment-id',
+                    'experiment-id',
+                    '--pipeline-id',
+                    'pipeline-id',
+                    '--cron-expression',
+                    '0 0 2 * * *',
+                ] + extra_args,
+                obj={
+                    'client': self.client,
+                    'output': output.OutputFormat.table,
+                })
+        self.assertEqual(result.exit_code, 0, result.output)
+        create_call = (
+            self.client._recurring_run_api
+            .recurring_run_service_create_recurring_run.call_args)
+        return create_call.kwargs['recurring_run']
+
+    @parameterized.parameters(
+        ([], 'ENABLE'),
+        (['--enabled'], 'ENABLE'),
+        (['--disabled'], 'DISABLE'),
+    )
+    def test_enabled(self, extra_args: List[str], expected_mode: str):
+        recurring_run_body = self.invoke_create(extra_args)
+        self.assertEqual(recurring_run_body.mode, expected_mode)
+
+    @parameterized.parameters(
+        ([], None),
+        (['--catchup'], False),
+        (['--no-catchup'], True),
+    )
+    def test_catchup(self, extra_args: List[str], expected_no_catchup):
+        recurring_run_body = self.invoke_create(extra_args)
+        self.assertEqual(recurring_run_body.no_catchup, expected_no_catchup)
+
+    def test_help_shows_enabled_default(self):
+        result = self.runner.invoke(recurring_run.recurring_run,
+                                    ['create', '--help'])
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertRegex(result.output, r'default:\s+enabled')
 
 
 class TestDslCompile(parameterized.TestCase):
