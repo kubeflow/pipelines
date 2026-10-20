@@ -32,6 +32,15 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # These versions select generators as well as runtime libraries. Keep
+      # output-changing upgrades out of routine runtime dependency batches;
+      # regeneration and validation are required before they can merge.
+      go-api-generators:
+        patterns:
+          - "github.com/grpc-ecosystem/grpc-gateway/v2"
+          - "google.golang.org/protobuf"
+          - "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+          - "github.com/go-swagger/go-swagger"
       # Keep the golang.org/x/* modules together; they release in lockstep and
       # bumping one (e.g. x/net) usually drags the others along via go mod tidy.
       golang-x:

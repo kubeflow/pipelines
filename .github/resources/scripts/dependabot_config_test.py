@@ -72,6 +72,21 @@ class DependabotConfigTest(unittest.TestCase):
             'versions': ['<8.4', '>=8.5'],
         }])
 
+    def test_go_generators_are_separate_from_runtime_batches(self):
+        gomod = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'gomod')
+        for dependency in ('github.com/grpc-ecosystem/grpc-gateway/v2',
+                           'google.golang.org/protobuf',
+                           'google.golang.org/grpc/cmd/protoc-gen-go-grpc',
+                           'github.com/go-swagger/go-swagger'):
+            matching = [
+                name for name, group in gomod['groups'].items() if any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in group.get('patterns', []))
+            ]
+            self.assertEqual(matching[0], 'go-api-generators', dependency)
+
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [
             block for configured_ecosystem, block in self.update_blocks()

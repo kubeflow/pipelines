@@ -33,6 +33,7 @@ Do not rename the independent PipelineSpec IR or Kubernetes CRD versions.
   protoc or Java when consumers build wheels.
 - For backend generator changes, use `USE_PREBUILT_IMAGE=false make -C backend/api API_VERSION=v2 generate`.
 - Go-based API generator versions are selected by the root `go.mod` when they must match runtime libraries, or by `backend/api/tools/go.mod` for standalone tooling.
+- Dependabot groups these versions in `go-api-generators`, before the general runtime group. Generator updates still require regeneration and generated-file validation; this isolates output drift from unrelated runtime bumps without bypassing the check. Transitive generator upgrades can still require regeneration.
 - Register standalone Go tools with a `tool` directive in `backend/api/tools/go.mod` and commit its tidied `go.mod` and `go.sum`. A bare `require` is removed by Dependabot's `go mod tidy`, even when the Dockerfile downloads that tool's binary.
 - `sdk/python/kfp/server_api` is generated
   from `backend/api/v2/swagger/kfp_api_single_file.swagger.json` with
