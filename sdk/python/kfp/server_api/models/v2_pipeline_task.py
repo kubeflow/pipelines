@@ -52,7 +52,8 @@ class V2PipelineTask(object):
         'outputs': 'PipelineTaskInputOutputs',
         'scope_path': 'str',
         'lifecycle_message': 'str',
-        'lifecycle_category': 'str'
+        'lifecycle_category': 'str',
+        'log_history': 'list[PipelineTaskLogHistory]'
     }
 
     attribute_map = {
@@ -75,10 +76,11 @@ class V2PipelineTask(object):
         'outputs': 'outputs',
         'scope_path': 'scope_path',
         'lifecycle_message': 'lifecycle_message',
-        'lifecycle_category': 'lifecycle_category'
+        'lifecycle_category': 'lifecycle_category',
+        'log_history': 'log_history'
     }
 
-    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, lifecycle_category=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, lifecycle_category=None, log_history=None, local_vars_configuration=None):  # noqa: E501
         """V2PipelineTask - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -104,6 +106,7 @@ class V2PipelineTask(object):
         self._scope_path = None
         self._lifecycle_message = None
         self._lifecycle_category = None
+        self._log_history = None
         self.discriminator = None
 
         if name is not None:
@@ -146,6 +149,8 @@ class V2PipelineTask(object):
             self.lifecycle_message = lifecycle_message
         if lifecycle_category is not None:
             self.lifecycle_category = lifecycle_category
+        if log_history is not None:
+            self.log_history = log_history
 
     @property
     def name(self):
@@ -586,6 +591,29 @@ class V2PipelineTask(object):
         """
 
         self._lifecycle_category = lifecycle_category
+
+    @property
+    def log_history(self):
+        """Gets the log_history of this V2PipelineTask.  # noqa: E501
+
+        Output only. Prior executions archived by manual retries, oldest first. History begins when preservation is enabled; older retries are not backfilled.  # noqa: E501
+
+        :return: The log_history of this V2PipelineTask.  # noqa: E501
+        :rtype: list[PipelineTaskLogHistory]
+        """
+        return self._log_history
+
+    @log_history.setter
+    def log_history(self, log_history):
+        """Sets the log_history of this V2PipelineTask.
+
+        Output only. Prior executions archived by manual retries, oldest first. History begins when preservation is enabled; older retries are not backfilled.  # noqa: E501
+
+        :param log_history: The log_history of this V2PipelineTask.  # noqa: E501
+        :type log_history: list[PipelineTaskLogHistory]
+        """
+
+        self._log_history = log_history
 
     def to_dict(self):
         """Returns the model properties as a dict"""
