@@ -136,3 +136,7 @@ create-backend-release
 sync-master
 confirm-website-and-slack
 ```
+
+## Maintenance release preparation
+
+See [2.17.3 preparation](2.17.3-preparation.md) for the selected fixes, Python 3.9 compatibility, verification and publication gates.

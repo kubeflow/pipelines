@@ -1,3 +1,4 @@
 docker.io/alpine:3.23
 python:3.11
+python:3.12
 registry.access.redhat.com/ubi9/python-311:latest

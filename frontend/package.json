@@ -5,7 +5,7 @@
   "private": true,
   "packageManager": "npm@11.17.0",
   "engines": {
-    "node": "24.14.0"
+    "node": "24.21.0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -23,7 +23,7 @@
     "grpc-web": "^1.2.1",
     "http-proxy-middleware": "^3.0.7",
     "immer": "^9.0.6",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^4.3.2",
     "lodash": "^4.18.1",
     "lodash.debounce": "^4.0.8",
     "lodash.flatten": "^4.4.0",
@@ -33,7 +33,7 @@
     "pako": "^2.0.4",
 
     "proto3-json-serializer": "^3.0.4",
-    "protobufjs": "~8.6.0",
+    "protobufjs": "~8.6.6",
     "re-resizable": "^6.11.2",
     "react": "^19",
     "react-ace": "^14.0.1",
