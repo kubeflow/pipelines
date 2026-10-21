@@ -26,7 +26,7 @@ endif
 endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
-UV_VERSION=0.10.3
+UV_VERSION=0.13.4
 
 ifeq ($(USE_PREBUILT_IMAGE),true)
 GENERATOR_IMAGE=$(PREBUILT_REMOTE_IMAGE)

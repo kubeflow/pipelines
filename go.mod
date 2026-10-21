@@ -2,7 +2,7 @@ module github.com/kubeflow/pipelines
 
 go 1.27.0
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
