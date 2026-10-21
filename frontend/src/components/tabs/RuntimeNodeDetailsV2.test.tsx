@@ -30,6 +30,9 @@ import {
   getLogsInfo,
   LOGS_BANNER_ADDITIONAL_INFO,
   LOGS_BANNER_MESSAGE,
+  LIFECYCLE_ENDED_MESSAGE,
+  LIFECYCLE_FAILURE_MESSAGE,
+  LIFECYCLE_WARNING_MESSAGE,
   LOGS_DETAILS,
   RuntimeNodeDetailsV2,
 } from 'src/components/tabs/RuntimeNodeDetailsV2';
@@ -661,6 +664,111 @@ describe('RuntimeNodeDetailsV2', () => {
 
     expect(logsInfo.get(LOGS_DETAILS)).toBe('This step output is taken from cache.');
     expect(getPodLogsSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows a warning banner with the raw lifecycle message behind Details', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_WARNING_MESSAGE)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Back-off pulling image "ghcr.io/example/does-not-exist:v1"'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(
+      screen.getByText('Back-off pulling image "ghcr.io/example/does-not-exist:v1"'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not say the task may recover once the run has finished', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled (exit code 137)',
+      }),
+      { sourceFinished: true },
+    );
+
+    expect(screen.getByText(LIFECYCLE_ENDED_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('says the task failed, not that it has not failed yet, once a task with a lifecycle message fails', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled (exit code 137)',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_FAILURE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows the lifecycle warning banner on a sub-DAG node', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, type: 'SUB_DAG' } as any}
+          elementRuntimeInfo={{
+            task: createTask({
+              type: PipelineTaskTaskType.DAG,
+              state: PipelineTaskTaskState.RUNNING,
+              lifecycle_message: 'OOMKilled',
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByText(LIFECYCLE_WARNING_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('uses the finished-run wording on a sub-DAG node too', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, type: 'SUB_DAG' } as any}
+          elementRuntimeInfo={{
+            task: createTask({
+              type: PipelineTaskTaskType.DAG,
+              state: PipelineTaskTaskState.RUNNING,
+              lifecycle_message: 'OOMKilled',
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+          sourceFinished={true}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByText(LIFECYCLE_ENDED_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows no lifecycle banner when the task has no lifecycle message', () => {
+    renderTask(createTask({ state: PipelineTaskTaskState.RUNNING }));
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows no lifecycle banner for a task that already succeeded', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.SUCCEEDED,
+        lifecycle_message: 'ImagePullBackOff',
+      }),
+    );
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
   });
 
   it('displays volume mounts in the task details tab', async () => {
