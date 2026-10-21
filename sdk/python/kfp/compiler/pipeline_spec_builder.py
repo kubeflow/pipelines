@@ -16,12 +16,8 @@
 import copy
 import json
 import typing
-
-# SDK CI uses isort 5.10.1; pre-commit CI uses isort 9.0.1.
-# isort: off
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
                     Union)
-# isort: on
 import warnings
 
 from google.protobuf import json_format
