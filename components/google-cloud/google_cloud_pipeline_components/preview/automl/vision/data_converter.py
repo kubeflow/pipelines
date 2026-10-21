@@ -15,16 +15,11 @@
 
 from typing import Optional
 
-from kfp import dsl
-
-from google_cloud_pipeline_components import _image, _placeholders
-
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 # pylint: disable-next=g-importing-member, g-multiple-import
-from google_cloud_pipeline_components.preview.automl.vision.json_utils import (
-    Concat,
-    IfPresent,
-    Json,
-)
+from google_cloud_pipeline_components.preview.automl.vision.json_utils import Concat, IfPresent, Json
+from kfp import dsl
 
 
 # pylint: disable=singleton-comparison
@@ -48,8 +43,8 @@ def data_converter(
     encryption_spec_key_name: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-    # fmt: off
-    """Runs AutoML Vision data conversion. It will be launched as a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
+  # fmt: off
+  """Runs AutoML Vision data conversion. It will be launched as a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
 
   Args:
     display_name: The name of the CustomJob.
@@ -69,72 +64,70 @@ def data_converter(
     output_dir: Cloud Storage directory storing converted data.
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
-    # fmt: on
-    payload = {
-        'display_name': display_name,
-        'job_spec': {
-            'worker_pool_specs': [
-                {
-                    'machine_spec': {
-                        'machine_type': machine_type,
-                    },
-                    'replica_count': 1,
-                    'container_spec': {
-                        'image_uri': 'us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/data-converter',
-                        'args': [
-                            '--enable_input_validation',
-                            str(enable_input_validation),
-                            '--input_file_path',
-                            input_file_path,
-                            '--input_file_type',
-                            input_file_type,
-                            '--objective',
-                            objective,
-                            '--output_dir',
-                            output_dir.path,
-                            IfPresent(
-                                input_name='output_shape',
-                                then=Concat('--output_shape', output_shape),
-                            ),
-                            IfPresent(
-                                input_name='split_ratio',
-                                then=Concat('--split_ratio', split_ratio),
-                            ),
-                            IfPresent(
-                                input_name='num_shard',
-                                then=Concat('--num_shard', num_shard),
-                            ),
-                        ],
-                    },
-                }
-            ],
-            'scheduling': {'timeout': timeout},
-            'service_account': IfPresent(
-                input_name='service_account',
-                then=service_account,
-            ),
-            'enable_web_access': False,
-        },
-        'encryption_spec': {'kms_key_name': encryption_spec_key_name},
-    }
-    return dsl.ContainerSpec(
-        image=_image.GCPC_IMAGE_TAG,
-        command=[
-            'python3',
-            '-u',
-            '-m',
-            'google_cloud_pipeline_components.container.v1.custom_job.launcher',
-        ],
-        args=[
-            '--type',
-            'CustomJob',
-            '--payload',
-            Json(payload),
-            '--project',
-            project,
-            '--location',
-            location,
-            '--gcp_resources',
-            gcp_resources,
-        ],
-    )
+  # fmt: on
+  payload = {
+      'display_name': display_name,
+      'job_spec': {
+          'worker_pool_specs': [{
+              'machine_spec': {
+                  'machine_type': machine_type,
+              },
+              'replica_count': 1,
+              'container_spec': {
+                  'image_uri': 'us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/data-converter',
+                  'args': [
+                      '--enable_input_validation',
+                      str(enable_input_validation),
+                      '--input_file_path',
+                      input_file_path,
+                      '--input_file_type',
+                      input_file_type,
+                      '--objective',
+                      objective,
+                      '--output_dir',
+                      output_dir.path,
+                      IfPresent(
+                          input_name='output_shape',
+                          then=Concat('--output_shape', output_shape),
+                      ),
+                      IfPresent(
+                          input_name='split_ratio',
+                          then=Concat('--split_ratio', split_ratio),
+                      ),
+                      IfPresent(
+                          input_name='num_shard',
+                          then=Concat('--num_shard', num_shard),
+                      ),
+                  ],
+              },
+          }],
+          'scheduling': {'timeout': timeout},
+          'service_account': IfPresent(
+              input_name='service_account',
+              then=service_account,
+          ),
+          'enable_web_access': False,
+      },
+      'encryption_spec': {'kms_key_name': encryption_spec_key_name},
+  }
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.custom_job.launcher',
+      ],
+      args=[
+          '--type',
+          'CustomJob',
+          '--payload',
+          Json(payload),
+          '--project',
+          project,
+          '--location',
+          location,
+          '--gcp_resources',
+          gcp_resources,
+      ],
+  )

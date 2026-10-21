@@ -17,54 +17,50 @@ import argparse
 import logging
 import sys
 
-from google_cloud_pipeline_components.container.v1.dataproc.create_spark_batch import (
-    remote_runner,
-)
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import (
-    parser_util,
-)
+from google_cloud_pipeline_components.container.v1.dataproc.create_spark_batch import remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 
 def _parse_args(args):
-    """Parse command line arguments."""
-    parser, parsed_args = parser_util.parse_default_args(args)
-    # Parse the conditionally required arguments
-    parser.add_argument(
-        '--batch_id',
-        dest='batch_id',
-        type=str,
-        required=True,
-        default=argparse.SUPPRESS,
-    )
-    parsed_args, _ = parser.parse_known_args(args)
-    return vars(parsed_args)
+  """Parse command line arguments."""
+  parser, parsed_args = parser_util.parse_default_args(args)
+  # Parse the conditionally required arguments
+  parser.add_argument(
+      '--batch_id',
+      dest='batch_id',
+      type=str,
+      required=True,
+      default=argparse.SUPPRESS,
+  )
+  parsed_args, _ = parser.parse_known_args(args)
+  return vars(parsed_args)
 
 
 def main(argv):
-    """Main entry.
+  """Main entry.
 
-    Expected input args are as follows:
-      Project - Required. The project of which the resource will be launched.
-      Region - Required. The region of which the resource will be launched.
-      Type - Required. GCP launcher is a single container. This Enum will
-          specify which resource to be launched.
-      Request payload - Required. The full serialized json of the resource spec.
-          Note this can contain the Pipeline Placeholders.
-      gcp_resources - placeholder output for returning job_id.
+  Expected input args are as follows:
+    Project - Required. The project of which the resource will be launched.
+    Region - Required. The region of which the resource will be launched.
+    Type - Required. GCP launcher is a single container. This Enum will
+        specify which resource to be launched.
+    Request payload - Required. The full serialized json of the resource spec.
+        Note this can contain the Pipeline Placeholders.
+    gcp_resources - placeholder output for returning job_id.
 
-    Args:
-      argv: A list of system arguments.
-    """
-    parsed_args = _parse_args(argv)
-    job_type = parsed_args['type']
+  Args:
+    argv: A list of system arguments.
+  """
+  parsed_args = _parse_args(argv)
+  job_type = parsed_args['type']
 
-    if job_type != 'DataprocSparkBatch':
-        raise ValueError('Incorrect job type: ' + job_type)
+  if job_type != 'DataprocSparkBatch':
+    raise ValueError('Incorrect job type: ' + job_type)
 
-    logging.info('Job started for type: ' + job_type)
+  logging.info('Job started for type: ' + job_type)
 
-    remote_runner.create_spark_batch(**parsed_args)
+  remote_runner.create_spark_batch(**parsed_args)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+  main(sys.argv[1:])

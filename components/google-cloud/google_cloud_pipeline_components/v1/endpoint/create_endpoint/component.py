@@ -14,16 +14,14 @@
 
 from typing import Dict
 
-from kfp.dsl import (
-    ConcatPlaceholder,
-    ContainerSpec,
-    Output,
-    OutputPath,
-    container_component,
-)
-
-from google_cloud_pipeline_components import _image, _placeholders
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
+from kfp.dsl import ConcatPlaceholder
+from kfp.dsl import container_component
+from kfp.dsl import ContainerSpec
+from kfp.dsl import Output
+from kfp.dsl import OutputPath
 
 
 @container_component
@@ -38,8 +36,8 @@ def endpoint_create(
     network: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-    # fmt: off
-    """[Creates](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints) and waits for it to be ready. See the [Endpoint create](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create) method for more information.
+  # fmt: off
+  """[Creates](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints) and waits for it to be ready. See the [Endpoint create](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create) method for more information.
 
   Args:
       location: Location to create the Endpoint. If not set, default to us-central1.
@@ -54,46 +52,44 @@ def endpoint_create(
       endpoint: Artifact tracking the created Endpoint.
       gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the create Endpoint's long-running operation.
   """
-    # fmt: on
-    return ContainerSpec(
-        image=_image.GCPC_IMAGE_TAG,
-        command=[
-            'python3',
-            '-u',
-            '-m',
-            'google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher',
-        ],
-        args=[
-            '--type',
-            'CreateEndpoint',
-            '--payload',
-            ConcatPlaceholder(
-                [
-                    '{',
-                    '"display_name": "',
-                    display_name,
-                    '"',
-                    ', "description": "',
-                    description,
-                    '"',
-                    ', "labels": ',
-                    labels,
-                    ', "encryption_spec": {"kms_key_name":"',
-                    encryption_spec_key_name,
-                    '"}',
-                    ', "network": "',
-                    network,
-                    '"',
-                    '}',
-                ]
-            ),
-            '--project',
-            project,
-            '--location',
-            location,
-            '--gcp_resources',
-            gcp_resources,
-            '--executor_input',
-            '{{$}}',
-        ],
-    )
+  # fmt: on
+  return ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher',
+      ],
+      args=[
+          '--type',
+          'CreateEndpoint',
+          '--payload',
+          ConcatPlaceholder([
+              '{',
+              '"display_name": "',
+              display_name,
+              '"',
+              ', "description": "',
+              description,
+              '"',
+              ', "labels": ',
+              labels,
+              ', "encryption_spec": {"kms_key_name":"',
+              encryption_spec_key_name,
+              '"}',
+              ', "network": "',
+              network,
+              '"',
+              '}',
+          ]),
+          '--project',
+          project,
+          '--location',
+          location,
+          '--gcp_resources',
+          gcp_resources,
+          '--executor_input',
+          '{{$}}',
+      ],
+  )

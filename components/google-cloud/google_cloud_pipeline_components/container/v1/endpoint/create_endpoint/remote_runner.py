@@ -13,15 +13,10 @@
 # limitations under the License.
 
 import json
-
 from google_cloud_pipeline_components.container.utils import artifact_utils
-from google_cloud_pipeline_components.container.v1.gcp_launcher import (
-    lro_remote_runner,
-)
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import (
-    gcp_labels_util,
-    json_util,
-)
+from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 
 _LABELS_PAYLOAD_KEY = 'labels'
@@ -35,31 +30,30 @@ def create_endpoint(
     gcp_resources,
     executor_input,
 ):
-    """Create endpoint and poll the LongRunningOperator till it reaches a final
-    state."""
-    api_endpoint = location + '-aiplatform.googleapis.com'
-    vertex_uri_prefix = f'https://{api_endpoint}/v1/'
-    create_endpoint_url = (
-        f'{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints'
-    )
-    endpoint_spec = json.loads(payload, strict=False)
-    endpoint_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
-        endpoint_spec[_LABELS_PAYLOAD_KEY]
-        if _LABELS_PAYLOAD_KEY in endpoint_spec
-        else {}
-    )
-    create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
+  """Create endpoint and poll the LongRunningOperator till it reaches a final state."""
+  api_endpoint = location + '-aiplatform.googleapis.com'
+  vertex_uri_prefix = f'https://{api_endpoint}/v1/'
+  create_endpoint_url = (
+      f'{vertex_uri_prefix}projects/{project}/locations/{location}/endpoints'
+  )
+  endpoint_spec = json.loads(payload, strict=False)
+  endpoint_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+      endpoint_spec[_LABELS_PAYLOAD_KEY]
+      if _LABELS_PAYLOAD_KEY in endpoint_spec
+      else {}
+  )
+  create_endpoint_request = json_util.recursive_remove_empty(endpoint_spec)
 
-    remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    create_endpoint_lro = remote_runner.create_lro(
-        create_endpoint_url, json.dumps(create_endpoint_request), gcp_resources
-    )
-    create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
-    endpoint_resource_name = create_endpoint_lro['response']['name']
+  remote_runner = lro_remote_runner.LroRemoteRunner(location)
+  create_endpoint_lro = remote_runner.create_lro(
+      create_endpoint_url, json.dumps(create_endpoint_request), gcp_resources
+  )
+  create_endpoint_lro = remote_runner.poll_lro(lro=create_endpoint_lro)
+  endpoint_resource_name = create_endpoint_lro['response']['name']
 
-    vertex_endpoint = VertexEndpoint.create(
-        'endpoint',
-        vertex_uri_prefix + endpoint_resource_name,
-        endpoint_resource_name,
-    )
-    artifact_utils.update_output_artifacts(executor_input, [vertex_endpoint])
+  vertex_endpoint = VertexEndpoint.create(
+      'endpoint',
+      vertex_uri_prefix + endpoint_resource_name,
+      endpoint_resource_name,
+  )
+  artifact_utils.update_output_artifacts(executor_input, [vertex_endpoint])

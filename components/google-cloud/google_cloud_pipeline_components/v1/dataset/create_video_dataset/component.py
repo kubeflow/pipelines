@@ -15,11 +15,11 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
+from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Output
-
-from google_cloud_pipeline_components import _image, _placeholders
-from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 
 
 @dsl.container_component
@@ -34,8 +34,8 @@ def video_dataset_create(
     encryption_spec_key_name: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-    # fmt: off
-    """Creates a new video [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets) and optionally imports data into Dataset when `source` and `import_schema_uri` are passed.
+  # fmt: off
+  """Creates a new video [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets) and optionally imports data into Dataset when `source` and `import_schema_uri` are passed.
 
   Args:
       display_name: The user-defined name of the Dataset. The name can be up to 128 characters long and can be consist of any UTF-8 characters.
@@ -50,48 +50,47 @@ def video_dataset_create(
   Returns:
       dataset: Instantiated representation of the managed video Datasetresource.
   """
-    # fmt: on
+  # fmt: on
 
-    return dsl.ContainerSpec(
-        image=_image.GCPC_IMAGE_TAG,
-        command=[
-            'python3',
-            '-m',
-            'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
-            '--cls_name',
-            'VideoDataset',
-            '--method_name',
-            'create',
-        ],
-        args=[
-            '--method.project',
-            project,
-            '--method.location',
-            location,
-            '--method.display_name',
-            display_name,
-            '--method.data_item_labels',
-            data_item_labels,
-            dsl.IfPresentPlaceholder(
-                input_name='gcs_source',
-                then=['--method.gcs_source', gcs_source],
-            ),
-            dsl.IfPresentPlaceholder(
-                input_name='import_schema_uri',
-                then=['--method.import_schema_uri', import_schema_uri],
-            ),
-            '--method.labels',
-            labels,
-            dsl.IfPresentPlaceholder(
-                input_name='encryption_spec_key_name',
-                then=[
-                    '--method.encryption_spec_key_name',
-                    encryption_spec_key_name,
-                ],
-            ),
-            '--executor_input',
-            '{{$}}',
-            '--resource_name_output_artifact_uri',
-            dataset.uri,
-        ],
-    )
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          'python3',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
+          '--cls_name',
+          'VideoDataset',
+          '--method_name',
+          'create',
+      ],
+      args=[
+          '--method.project',
+          project,
+          '--method.location',
+          location,
+          '--method.display_name',
+          display_name,
+          '--method.data_item_labels',
+          data_item_labels,
+          dsl.IfPresentPlaceholder(
+              input_name='gcs_source', then=['--method.gcs_source', gcs_source]
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name='import_schema_uri',
+              then=['--method.import_schema_uri', import_schema_uri],
+          ),
+          '--method.labels',
+          labels,
+          dsl.IfPresentPlaceholder(
+              input_name='encryption_spec_key_name',
+              then=[
+                  '--method.encryption_spec_key_name',
+                  encryption_spec_key_name,
+              ],
+          ),
+          '--executor_input',
+          '{{$}}',
+          '--resource_name_output_artifact_uri',
+          dataset.uri,
+      ],
+  )

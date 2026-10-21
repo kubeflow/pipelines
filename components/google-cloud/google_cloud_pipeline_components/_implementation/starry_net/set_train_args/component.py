@@ -24,12 +24,12 @@ def set_train_args(
     model_blocks: List[str],
     static_covariates: List[str],
 ) -> NamedTuple(
-    'TrainArgs',
-    quantiles=str,
-    use_static_covariates=bool,
-    static_covariate_names=str,
-    model_blocks=str,
-    freeze_point_forecasts=bool,
+        'TrainArgs',
+        quantiles=str,
+        use_static_covariates=bool,
+        static_covariate_names=str,
+        model_blocks=str,
+        freeze_point_forecasts=bool,
 ):
     # fmt: off
     """Creates Trainer model args.

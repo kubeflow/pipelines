@@ -13,9 +13,7 @@
 # limitations under the License.
 """Email the completion status of a pipeline's sub-DAG."""
 
-from google_cloud_pipeline_components.v1.vertex_notification_email.component import (
-    vertex_pipelines_notification_email as VertexNotificationEmailOp,
-)
+from google_cloud_pipeline_components.v1.vertex_notification_email.component import vertex_pipelines_notification_email as VertexNotificationEmailOp
 
 __all__ = [
     'VertexNotificationEmailOp',

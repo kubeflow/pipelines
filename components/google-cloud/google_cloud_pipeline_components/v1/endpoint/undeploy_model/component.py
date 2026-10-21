@@ -14,14 +14,12 @@
 
 from typing import Dict
 
-from kfp import dsl
-from kfp.dsl import Input, OutputPath
-
 from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components.types.artifact_types import (
-    VertexEndpoint,
-    VertexModel,
-)
+from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
+from google_cloud_pipeline_components.types.artifact_types import VertexModel
+from kfp import dsl
+from kfp.dsl import Input
+from kfp.dsl import OutputPath
 
 
 @dsl.container_component
@@ -31,8 +29,8 @@ def model_undeploy(
     gcp_resources: OutputPath(str),
     traffic_split: Dict[str, str] = {},
 ):
-    # fmt: off
-    """[Undeploys](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel) a Google Cloud Vertex [DeployedModel](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel) within an [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints). See the [undeploy Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel) method for more information.
+  # fmt: off
+  """[Undeploys](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel) a Google Cloud Vertex [DeployedModel](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel) within an [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints). See the [undeploy Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel) method for more information.
 
   Args:
       model: The model that was deployed to the Endpoint.
@@ -42,38 +40,36 @@ def model_undeploy(
   Returns:
       gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the undeploy Model's long-running operation.
   """
-    # fmt: on
-    return dsl.ContainerSpec(
-        image=_image.GCPC_IMAGE_TAG,
-        command=[
-            'python3',
-            '-u',
-            '-m',
-            'google_cloud_pipeline_components.container.v1.endpoint.undeploy_model.launcher',
-        ],
-        args=[
-            '--type',
-            'UndeployModel',
-            '--payload',
-            dsl.ConcatPlaceholder(
-                [
-                    '{',
-                    '"endpoint": "',
-                    endpoint.metadata['resourceName'],
-                    '"',
-                    ', "model": "',
-                    model.metadata['resourceName'],
-                    '"',
-                    ', "traffic_split": ',
-                    traffic_split,
-                    '}',
-                ]
-            ),
-            '--project',
-            '',
-            '--location',
-            '',
-            '--gcp_resources',
-            gcp_resources,
-        ],
-    )
+  # fmt: on
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.endpoint.undeploy_model.launcher',
+      ],
+      args=[
+          '--type',
+          'UndeployModel',
+          '--payload',
+          dsl.ConcatPlaceholder([
+              '{',
+              '"endpoint": "',
+              endpoint.metadata['resourceName'],
+              '"',
+              ', "model": "',
+              model.metadata['resourceName'],
+              '"',
+              ', "traffic_split": ',
+              traffic_split,
+              '}',
+          ]),
+          '--project',
+          '',
+          '--location',
+          '',
+          '--gcp_resources',
+          gcp_resources,
+      ],
+  )

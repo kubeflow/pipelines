@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-from kfp import dsl
-from kfp.dsl import Input
-
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
+from kfp import dsl
+from kfp.dsl import Input
 
 
 @dsl.container_component
@@ -25,8 +24,8 @@ def endpoint_delete(
     endpoint: Input[VertexEndpoint],
     gcp_resources: dsl.OutputPath(str),
 ):
-    # fmt: off
-    """[Deletes](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints). See the [Endpoint delete](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) method for more information.
+  # fmt: off
+  """[Deletes](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints). See the [Endpoint delete](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) method for more information.
 
   Args:
       endpoint: The Endpoint to be deleted.
@@ -34,33 +33,31 @@ def endpoint_delete(
   Returns:
       gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the delete Endpoint's long-running operation.
   """
-    # fmt: on
-    return dsl.ContainerSpec(
-        image=_image.GCPC_IMAGE_TAG,
-        command=[
-            'python3',
-            '-u',
-            '-m',
-            'google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint.launcher',
-        ],
-        args=[
-            '--type',
-            'DeleteEndpoint',
-            '--payload',
-            dsl.ConcatPlaceholder(
-                [
-                    '{',
-                    '"endpoint": "',
-                    endpoint.metadata['resourceName'],
-                    '"',
-                    '}',
-                ]
-            ),
-            '--project',
-            '',  # not being used
-            '--location',
-            '',  # not being used
-            '--gcp_resources',
-            gcp_resources,
-        ],
-    )
+  # fmt: on
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint.launcher',
+      ],
+      args=[
+          '--type',
+          'DeleteEndpoint',
+          '--payload',
+          dsl.ConcatPlaceholder([
+              '{',
+              '"endpoint": "',
+              endpoint.metadata['resourceName'],
+              '"',
+              '}',
+          ]),
+          '--project',
+          '',  # not being used
+          '--location',
+          '',  # not being used
+          '--gcp_resources',
+          gcp_resources,
+      ],
+  )

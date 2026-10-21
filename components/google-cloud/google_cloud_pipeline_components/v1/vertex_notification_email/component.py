@@ -14,9 +14,10 @@
 
 from typing import List
 
-from kfp.dsl import ContainerSpec, PipelineTaskFinalStatus, container_component
-
 from google_cloud_pipeline_components import _image
+from kfp.dsl import container_component
+from kfp.dsl import ContainerSpec
+from kfp.dsl import PipelineTaskFinalStatus
 
 
 @container_component
@@ -24,27 +25,27 @@ def vertex_pipelines_notification_email(
     recipients: List[str],
     pipeline_task_final_status: PipelineTaskFinalStatus,
 ):
-    # fmt: off
-    """Send notification email(s) when an upstream task/DAG completes.
+  # fmt: off
+  """Send notification email(s) when an upstream task/DAG completes.
 
-    This component can only be used as an [ExitHandler](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/control-flow/#exit-handling-dslexithandler)'s exit task. Note that the [PipelineTaskFinalStatus](https://kubeflow-pipelines.readthedocs.io/en/latest/source/dsl.html#kfp.dsl.PipelineTaskFinalStatus) is provided automatically by Vertex Pipelines at runtime. You should not provide any input to this parameter when you instantiate this component as a task. This component works only on Vertex Pipelines. This component raises an exception when run on Kubeflow Pipelines. See a [usage example](https://cloud.google.com/vertex-ai/docs/pipelines/email-notifications).
+  This component can only be used as an [ExitHandler](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/control-flow/#exit-handling-dslexithandler)'s exit task. Note that the [PipelineTaskFinalStatus](https://kubeflow-pipelines.readthedocs.io/en/latest/source/dsl.html#kfp.dsl.PipelineTaskFinalStatus) is provided automatically by Vertex Pipelines at runtime. You should not provide any input to this parameter when you instantiate this component as a task. This component works only on Vertex Pipelines. This component raises an exception when run on Kubeflow Pipelines. See a [usage example](https://cloud.google.com/vertex-ai/docs/pipelines/email-notifications).
 
-    Args:
-      recipients: A list of email addresses to send a notification to.
-    """
-    # fmt: on
-    return ContainerSpec(
-        image=_image.GCPC_IMAGE_TAG,
-        command=[
-            'python3',
-            '-u',
-            '-m',
-            'google_cloud_pipeline_components.container.v1.vertex_notification_email.executor',
-        ],
-        args=[
-            '--type',
-            'VertexNotificationEmail',
-            '--payload',
-            '',
-        ],
-    )
+  Args:
+    recipients: A list of email addresses to send a notification to.
+  """
+  # fmt: on
+  return ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          'python3',
+          '-u',
+          '-m',
+          'google_cloud_pipeline_components.container.v1.vertex_notification_email.executor',
+      ],
+      args=[
+          '--type',
+          'VertexNotificationEmail',
+          '--payload',
+          '',
+      ],
+  )

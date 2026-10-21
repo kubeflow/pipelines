@@ -17,10 +17,9 @@ import sys
 
 
 def exit_with_internal_error(error_message: str):
-    """Exit with internal error code and log error with the given error
-    message.
+  """Exit with internal error code and log error with the given error message.
 
-    This function can be used when handling non-user errors.
-    """
-    logging.error(error_message)
-    sys.exit(13)
+  This function can be used when handling non-user errors.
+  """
+  logging.error(error_message)
+  sys.exit(13)

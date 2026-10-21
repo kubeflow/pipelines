@@ -13,8 +13,6 @@
 # limitations under the License.
 """GCP remote runner for Dataproc Create Spark R Batch."""
 
-from google_cloud_pipeline_components.container.v1.dataproc.utils import (
-    dataproc_util,
-)
+from google_cloud_pipeline_components.container.v1.dataproc.utils import dataproc_util
 
 create_spark_r_batch = dataproc_util.create_batch

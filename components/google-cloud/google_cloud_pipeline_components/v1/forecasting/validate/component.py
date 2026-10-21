@@ -24,33 +24,33 @@ def forecasting_validation(
     validation_theme: str,
     location: Optional[str] = 'US',
 ):
-    # fmt: off
-    """Validates BigQuery tables for training or prediction.
+  # fmt: off
+  """Validates BigQuery tables for training or prediction.
 
-    Validates BigQuery tables for training or prediction based on predefined
-    requirements. For training, a primary table is required. Optionally, you
-    can include some attribute tables. For prediction, you need to include all
-    the tables that were used in the training, plus a plan table.
+  Validates BigQuery tables for training or prediction based on predefined
+  requirements. For training, a primary table is required. Optionally, you
+  can include some attribute tables. For prediction, you need to include all
+  the tables that were used in the training, plus a plan table.
 
-    Args:
-      input_tables: Serialized Json array that specifies input BigQuery tables and specs.
-      validation_theme: Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
-      location: Optional location for the BigQuery data, default is US.
-    """
-    # fmt: on
+  Args:
+    input_tables: Serialized Json array that specifies input BigQuery tables and specs.
+    validation_theme: Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+    location: Optional location for the BigQuery data, default is US.
+  """
+  # fmt: on
 
-    return dsl.ContainerSpec(
-        image=(
-            'us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod'
-        ),
-        command=['python', '/launcher.py'],
-        args=[
-            'forecasting_validation',
-            '--input_table_specs',
-            input_tables,
-            '--validation_theme',
-            validation_theme,
-            '--location',
-            location,
-        ],
-    )
+  return dsl.ContainerSpec(
+      image=(
+          'us-docker.pkg.dev/vertex-ai/time-series-forecasting/forecasting:prod'
+      ),
+      command=['python', '/launcher.py'],
+      args=[
+          'forecasting_validation',
+          '--input_table_specs',
+          input_tables,
+          '--validation_theme',
+          validation_theme,
+          '--location',
+          location,
+      ],
+  )

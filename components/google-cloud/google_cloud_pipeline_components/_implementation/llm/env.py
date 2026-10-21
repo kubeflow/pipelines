@@ -15,22 +15,20 @@
 
 import os
 
-from google_cloud_pipeline_components._implementation.llm.generated import (
-    refined_image_versions,
-)
+from google_cloud_pipeline_components._implementation.llm.generated import refined_image_versions
 
 
 def get_private_image_tag() -> str:
-    return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
+  return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
 
 
 def get_autosxs_image_tag() -> str:
-    return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
+  return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
 
 
 def get_use_test_machine_spec() -> bool:
-    str_value = os.getenv('USE_TEST_MACHINE_SPEC', 'False')
-    return str_value.lower() in {'true', '1'}
+  str_value = os.getenv('USE_TEST_MACHINE_SPEC', 'False')
+  return str_value.lower() in {'true', '1'}
 
 
 # Variables associated with private images:

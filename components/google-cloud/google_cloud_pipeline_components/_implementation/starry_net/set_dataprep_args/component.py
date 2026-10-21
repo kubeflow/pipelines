@@ -27,12 +27,12 @@ def set_dataprep_args(
     previous_run_dir: str,
     location: str,
 ) -> NamedTuple(
-    'DataprepArgs',
-    model_blocks=str,
-    ts_identifier_columns=str,
-    static_covariate_columns=str,
-    create_tf_records=bool,
-    docker_region=str,
+        'DataprepArgs',
+        model_blocks=str,
+        ts_identifier_columns=str,
+        static_covariate_columns=str,
+        create_tf_records=bool,
+        docker_region=str,
 ):
     # fmt: off
     """Creates Dataprep args.

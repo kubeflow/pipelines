@@ -11,20 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Preview AutoML tabular components."""
 
-from google_cloud_pipeline_components.preview.automl.tabular.auto_feature_engineering import (
-    automated_feature_engineering as AutoFeatureEngineeringOp,
-)
-from google_cloud_pipeline_components.preview.automl.tabular.distillation_stage_feature_transform_engine import (
-    distillation_stage_feature_transform_engine as DistillationStageFeatureTransformEngineOp,
-)
-from google_cloud_pipeline_components.preview.automl.tabular.feature_selection import (
-    tabular_feature_ranking_and_selection as FeatureSelectionOp,
-)
-from google_cloud_pipeline_components.preview.automl.tabular.feature_transform_engine import (
-    feature_transform_engine as FeatureTransformEngineOp,
-)
+from google_cloud_pipeline_components.preview.automl.tabular.auto_feature_engineering import automated_feature_engineering as AutoFeatureEngineeringOp
+from google_cloud_pipeline_components.preview.automl.tabular.distillation_stage_feature_transform_engine import distillation_stage_feature_transform_engine as DistillationStageFeatureTransformEngineOp
+from google_cloud_pipeline_components.preview.automl.tabular.feature_selection import tabular_feature_ranking_and_selection as FeatureSelectionOp
+from google_cloud_pipeline_components.preview.automl.tabular.feature_transform_engine import feature_transform_engine as FeatureTransformEngineOp
 
 __all__ = [
     'AutoFeatureEngineeringOp',

@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Starry Net Forecasting Pipeline."""
 
-from google_cloud_pipeline_components.preview.starry_net.component import (
-    starry_net,  # pylint: disable=g-importing-member
-)
+from google_cloud_pipeline_components.preview.starry_net.component import starry_net  # pylint: disable=g-importing-member
 
 __all__ = ['starry_net']

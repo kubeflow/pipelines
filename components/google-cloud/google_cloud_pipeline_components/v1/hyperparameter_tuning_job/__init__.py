@@ -15,13 +15,9 @@
 """Create [hyperparameter tuning jobs](https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning) via a [Vertex AI Custom Training Job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job)."""
 # fmt: on
 
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.component import (
-    hyperparameter_tuning_job as HyperparameterTuningJobRunOp,
-)
-from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import (
-    serialize_metrics,
-    serialize_parameters,
-)
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.component import hyperparameter_tuning_job as HyperparameterTuningJobRunOp
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_metrics
+from google_cloud_pipeline_components.v1.hyperparameter_tuning_job.utils import serialize_parameters
 
 __all__ = [
     'HyperparameterTuningJobRunOp',

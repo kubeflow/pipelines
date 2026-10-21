@@ -11,17 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """GA AutoML forecasting components."""
 
-from google_cloud_pipeline_components.v1.automl.forecasting.prophet_trainer import (
-    prophet_trainer as ProphetTrainerOp,
-)
-from google_cloud_pipeline_components.v1.automl.forecasting.utils import (
-    get_bqml_arima_predict_pipeline_and_parameters,
-    get_bqml_arima_train_pipeline_and_parameters,
-    get_prophet_prediction_pipeline_and_parameters,
-    get_prophet_train_pipeline_and_parameters,
-)
+from google_cloud_pipeline_components.v1.automl.forecasting.prophet_trainer import prophet_trainer as ProphetTrainerOp
+from google_cloud_pipeline_components.v1.automl.forecasting.utils import get_bqml_arima_predict_pipeline_and_parameters
+from google_cloud_pipeline_components.v1.automl.forecasting.utils import get_bqml_arima_train_pipeline_and_parameters
+from google_cloud_pipeline_components.v1.automl.forecasting.utils import get_prophet_prediction_pipeline_and_parameters
+from google_cloud_pipeline_components.v1.automl.forecasting.utils import get_prophet_train_pipeline_and_parameters
 
 __all__ = [
     'ProphetTrainerOp',

@@ -15,16 +15,15 @@
 
 
 def main():
-    """Raises an error when notifications are requested on Kubeflow Pipelines.
+  """Raises an error when notifications are requested on Kubeflow Pipelines.
 
-    The notification email component works only on Vertex Pipelines.
-    This function raises an exception when this component is used on
-    Kubeflow Pipelines.
-    """
-    raise NotImplementedError(
-        'The notification email component is supported only on Vertex Pipelines.'
-    )
+  The notification email component works only on Vertex Pipelines. This function
+  raises an exception when this component is used on Kubeflow Pipelines.
+  """
+  raise NotImplementedError(
+      'The notification email component is supported only on Vertex Pipelines.'
+  )
 
 
 if __name__ == '__main__':
-    main()
+  main()

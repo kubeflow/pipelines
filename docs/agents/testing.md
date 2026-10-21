@@ -44,7 +44,8 @@ bash test/presubmit-docformatter-sdk.sh
 
 Ruff checks all handwritten Python sources, including scripts and fixtures, using
 `pyproject.toml`; generated protobuf and OpenAPI modules are excluded even when
-passed explicitly. It owns import sorting, unused-import cleanup, invalid escape
+passed explicitly. The soon-to-be-deleted `components/google-cloud` tree is also
+excluded from Ruff and all pre-commit hooks; leave it unchanged by this migration. It owns import sorting, unused-import cleanup, invalid escape
 checks, and formatting. Package imports in `__init__.py` are retained as public
 re-exports. Notebooks and Markdown are outside the Python formatting check.
 Docformatter still wraps docstring prose: run it before `ruff format`, and run

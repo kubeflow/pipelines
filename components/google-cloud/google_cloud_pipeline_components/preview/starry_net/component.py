@@ -15,29 +15,24 @@
 
 from typing import List
 
-from kfp import dsl
-
 # pylint: disable=g-importing-member
 from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components._implementation.starry_net import (
-    DataprepOp,
-    EvaluationOp,
-    GetTrainingArtifactsOp,
-    MaybeSetTfrecordArgsOp,
-    SetDataprepArgsOp,
-    SetEvalArgsOp,
-    SetTestSetOp,
-    SetTfrecordArgsOp,
-    SetTrainArgsOp,
-    TrainOp,
-    UploadDecompositionPlotsOp,
-    UploadModelOp,
-)
-from google_cloud_pipeline_components.preview.model_evaluation import (
-    model_evaluation_import_component,
-)
+from google_cloud_pipeline_components._implementation.starry_net import DataprepOp
+from google_cloud_pipeline_components._implementation.starry_net import EvaluationOp
+from google_cloud_pipeline_components._implementation.starry_net import GetTrainingArtifactsOp
+from google_cloud_pipeline_components._implementation.starry_net import MaybeSetTfrecordArgsOp
+from google_cloud_pipeline_components._implementation.starry_net import SetDataprepArgsOp
+from google_cloud_pipeline_components._implementation.starry_net import SetEvalArgsOp
+from google_cloud_pipeline_components._implementation.starry_net import SetTestSetOp
+from google_cloud_pipeline_components._implementation.starry_net import SetTfrecordArgsOp
+from google_cloud_pipeline_components._implementation.starry_net import SetTrainArgsOp
+from google_cloud_pipeline_components._implementation.starry_net import TrainOp
+from google_cloud_pipeline_components._implementation.starry_net import UploadDecompositionPlotsOp
+from google_cloud_pipeline_components._implementation.starry_net import UploadModelOp
+from google_cloud_pipeline_components.preview.model_evaluation import model_evaluation_import_component
 from google_cloud_pipeline_components.types import artifact_types
 from google_cloud_pipeline_components.v1 import batch_predict_job
+from kfp import dsl
 
 
 @dsl.pipeline
@@ -90,148 +85,148 @@ def starry_net(  # pylint: disable=dangerous-default-value
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-    # fmt: off
-    """Starry Net is a state-of-the-art forecaster used internally by Google.
+  # fmt: off
+  """Starry Net is a state-of-the-art forecaster used internally by Google.
 
-    Starry Net is a glass-box neural network inspired by statistical time series
-    models, capable of cleaning step changes and spikes, modeling seasonality and
-    events, forecasting trend, and providing both point and prediction interval
-    forecasts in a single, lightweight model. Starry Net stands out among neural
-    network based forecasting models by providing the explainability,
-    interpretability and tunability of traditional statistical forecasters.
-    For example, it features time series feature decomposition and damped local
-    linear exponential smoothing model as the trend structure.
+  Starry Net is a glass-box neural network inspired by statistical time series
+  models, capable of cleaning step changes and spikes, modeling seasonality and
+  events, forecasting trend, and providing both point and prediction interval
+  forecasts in a single, lightweight model. Starry Net stands out among neural
+  network based forecasting models by providing the explainability,
+  interpretability and tunability of traditional statistical forecasters.
+  For example, it features time series feature decomposition and damped local
+  linear exponential smoothing model as the trend structure.
 
-    Args:
-      tensorboard_instance_id: The tensorboard instance ID. This must be in same
-        location as the pipeline job.
-      dataprep_backcast_length: The length of the context window to feed into the
-        model.
-      dataprep_forecast_length: The length of the forecast horizon used in the
-        loss function during training and during evaluation, so that the model is
-        optimized to produce forecasts from 0 to H.
-      dataprep_train_end_date: The last date of data to use in the training and
-        validation set. All dates after a train_end_date are part of the test set.
-        If last_forecasted_date is equal to the final day forecasted in the test
-        set, then last_forecasted_date =
-            train_end_date + forecast_length + (n_test_windows * test_set_stride).
-        last_forecasted_date must be included in the dataset.
-      dataprep_n_val_windows: The number of windows to use for the val set. If 0,
-        no validation set is used.
-      dataprep_n_test_windows: The number of windows to use for the test set. Must
-        be >= 1. See note in dataprep_train_end_date.
-      dataprep_test_set_stride: The number of timestamps to roll forward
-        when constructing each window of the val and test sets. See note in
-        dataprep_train_end_date.
-      dataprep_test_set_bigquery_dataset: The bigquery dataset where the test set
-        is saved in the format bq://project.dataset. This must be in the same
-        region or multi-region as the output or staging bucket of the pipeline and
-        the dataprep_bigquery_data_path, if using a Big Query data source.
-      dataflow_machine_type: The type of machine to use for dataprep,
-        batch prediction, and evaluation jobs..
-      dataflow_max_replica_count: The maximum number of replicas to scale the
-        dataprep, batch prediction, and evaluation jobs.
-      dataflow_starting_replica_count: The number of replicas to start the
-        dataprep, batch prediction, and evaluation jobs.
-      dataflow_disk_size_gb: The disk size of dataflow workers in GB for the
-        dataprep, batch prediction, and evaluation jobs.
-      dataprep_csv_data_path: The path to the training data csv in the format
-        gs://bucket_name/sub_dir/blob_name.csv. Each row of the csv represents
-        a time series, where the column names are the dates, and the index is the
-        unique time series names.
-      dataprep_csv_static_covariates_path: The path to the static covariates csv.
-        Each row of the csv represents the static covariate values for the series,
-        where the column names are the static covariate names, and the
-        index is the unique time series names. The index values must match the
-        index values of dataprep_csv_data_path. The column values must match
-        dataprep_static_covariate_columns.
-      dataprep_bigquery_data_path: The path to the training data on BigQuery in
-        the format bq://project.dataset.table_id. You should only set this or
-         csv_data_path. This must be in the same region or multi-region as the
-         output or staging bucket of the pipeline and the
-         dataprep_test_set_bigquery_dataset.
-      dataprep_ts_identifier_columns: The list of ts_identifier columns from the
-        BigQuery data source. These columns are used to distinguish the different
-        time series, so that if multiple rows have identical ts_identifier
-        columns, the series is generated by summing the target columns for each
-        timestamp. This is only used if dataprep_bigquery_data_path is set.
-      dataprep_time_column: The time column from the BigQuery data source. This is
-        only used if dataprep_bigquery_data_path is set.
-      dataprep_target_column: The column to be forecasted from the BigQuery data
-        source. This is only used if dataprep_bigquery_data_path is set.
-      dataprep_static_covariate_columns: The list of strings of static covariate
-        names. This needs to be set if training with static covariates regardless
-        of whether you're using bigquery_data_path or csv_static_covariates_path.
-      dataprep_previous_run_dir: The dataprep dir from a previous run. Use this
-        to save time if you've already created TFRecords from your BigQuery
-        dataset with the same dataprep parameters as this run.
-      dataprep_nan_threshold: Series having more nan / missing values than
-        nan_threshold (inclusive) in percentage for either backtest or forecast
-        will not be sampled in the training set (including missing due to
-        train_start and train_end). All existing nans are replaced by zeros.
-      dataprep_zero_threshold: Series having more 0.0 values than zero_threshold
-        (inclusive) in percentage for either backtest or forecast will not be
-        sampled in the training set.
-      trainer_machine_type: The machine type for training. Must be compatible with
-        trainer_accelerator_type.
-      trainer_accelerator_type: The accelerator type for training.
-      trainer_num_epochs: The number of epochs to train for.
-      trainer_cleaning_activation_regularizer_coeff: The L1 regularization
-        coefficient for the anomaly detection activation in the cleaning block.
-        The larger the value, the less aggressive the cleaning, so fewer and only
-        the most extreme anomalies are detected. A rule of thumb is that this
-        value should be about the same scale of your series.
-      trainer_change_point_activation_regularizer_coeff: The L1 regularization
-        coefficient for the change point detection activation in the change point
-        block. The larger the value, the less aggressive the cleaning, so fewer
-        and only the most extreme change points are detected. A rule of thumb is
-        that this value should be a ratio of the
-        trainer_change_point_output_regularizer_coeff to determine the sparsity
-        of the changes. If you want the model to detect many small step changes
-        this number should be smaller than the
-        trainer_change_point_output_regularizer_coeff. To detect fewer large step
-        changes, this number should be about equal to or larger than the
-        trainer_change_point_output_regularizer_coeff.
-      trainer_change_point_output_regularizer_coeff: The L2 regularization
-        penalty applied to the mean lag-one difference of the cleaned output of
-        the change point block. Intutively,
-        trainer_change_point_activation_regularizer_coeff determines how many
-        steps to detect in the series, while this parameter determines how
-        aggressively to clean the detected steps. The higher this value, the more
-        aggressive the cleaning. A rule of thumb is that this value should be
-        about the same scale of your series.
-      trainer_trend_alpha_upper_bound: The upper bound for data smooth parameter
-        alpha in the trend block.
-      trainer_trend_beta_upper_bound: The upper bound for trend smooth parameter
-        beta in the trend block.
-      trainer_trend_phi_lower_bound: The lower bound for damping param phi in the
-        trend block.
-      trainer_trend_b_fixed_val: The fixed value for long term trend parameter b
-        in the trend block. If set to anything other than -1, the trend block will
-        not learn to provide estimates but use the fixed value directly.
-      trainer_trend_b0_fixed_val: The fixed value for starting short-term trend
-        parameter b0 in the trend block. If set to anything other than -1, the
-        trend block will not learn to provide estimates but use the fixed value
-        directly.
-      trainer_trend_phi_fixed_val: The fixed value for the damping parameter phi
-        in the trend block. If set to anything other than -1, the trend block will
-        not learn to provide estimates but use the fixed value directly.
-      trainer_quantiles: The list of floats representing quantiles. Leave blank if
-        only training to produce point forecasts.
-      trainer_model_blocks: The list of model blocks to use in the order they will
-        appear in the model. Possible values are `cleaning`, `change_point`,
-        `trend`, `hour_of_week`, `day_of_week`, `day_of_year`, `week_of_year`,
-        `month_of_year`, `residual`.
-      tensorboard_n_decomposition_plots: How many decomposition plots from the
-        test set to save to tensorboard.
-      encryption_spec_key_name: Customer-managed encryption key options for the
-        CustomJob. If this is set, then all resources created by the CustomJob
-        will be encrypted with the provided encryption key.
-      location: The location where the pipeline components are run.
-      project: The project where the pipeline is run. Defaults to current project.
-    """
-    job_id = dsl.PIPELINE_JOB_NAME_PLACEHOLDER
-    create_dataprep_args_task = SetDataprepArgsOp(
+  Args:
+    tensorboard_instance_id: The tensorboard instance ID. This must be in same
+      location as the pipeline job.
+    dataprep_backcast_length: The length of the context window to feed into the
+      model.
+    dataprep_forecast_length: The length of the forecast horizon used in the
+      loss function during training and during evaluation, so that the model is
+      optimized to produce forecasts from 0 to H.
+    dataprep_train_end_date: The last date of data to use in the training and
+      validation set. All dates after a train_end_date are part of the test set.
+      If last_forecasted_date is equal to the final day forecasted in the test
+      set, then last_forecasted_date =
+          train_end_date + forecast_length + (n_test_windows * test_set_stride).
+      last_forecasted_date must be included in the dataset.
+    dataprep_n_val_windows: The number of windows to use for the val set. If 0,
+      no validation set is used.
+    dataprep_n_test_windows: The number of windows to use for the test set. Must
+      be >= 1. See note in dataprep_train_end_date.
+    dataprep_test_set_stride: The number of timestamps to roll forward
+      when constructing each window of the val and test sets. See note in
+      dataprep_train_end_date.
+    dataprep_test_set_bigquery_dataset: The bigquery dataset where the test set
+      is saved in the format bq://project.dataset. This must be in the same
+      region or multi-region as the output or staging bucket of the pipeline and
+      the dataprep_bigquery_data_path, if using a Big Query data source.
+    dataflow_machine_type: The type of machine to use for dataprep,
+      batch prediction, and evaluation jobs..
+    dataflow_max_replica_count: The maximum number of replicas to scale the
+      dataprep, batch prediction, and evaluation jobs.
+    dataflow_starting_replica_count: The number of replicas to start the
+      dataprep, batch prediction, and evaluation jobs.
+    dataflow_disk_size_gb: The disk size of dataflow workers in GB for the
+      dataprep, batch prediction, and evaluation jobs.
+    dataprep_csv_data_path: The path to the training data csv in the format
+      gs://bucket_name/sub_dir/blob_name.csv. Each row of the csv represents
+      a time series, where the column names are the dates, and the index is the
+      unique time series names.
+    dataprep_csv_static_covariates_path: The path to the static covariates csv.
+      Each row of the csv represents the static covariate values for the series,
+      where the column names are the static covariate names, and the
+      index is the unique time series names. The index values must match the
+      index values of dataprep_csv_data_path. The column values must match
+      dataprep_static_covariate_columns.
+    dataprep_bigquery_data_path: The path to the training data on BigQuery in
+      the format bq://project.dataset.table_id. You should only set this or
+       csv_data_path. This must be in the same region or multi-region as the
+       output or staging bucket of the pipeline and the
+       dataprep_test_set_bigquery_dataset.
+    dataprep_ts_identifier_columns: The list of ts_identifier columns from the
+      BigQuery data source. These columns are used to distinguish the different
+      time series, so that if multiple rows have identical ts_identifier
+      columns, the series is generated by summing the target columns for each
+      timestamp. This is only used if dataprep_bigquery_data_path is set.
+    dataprep_time_column: The time column from the BigQuery data source. This is
+      only used if dataprep_bigquery_data_path is set.
+    dataprep_target_column: The column to be forecasted from the BigQuery data
+      source. This is only used if dataprep_bigquery_data_path is set.
+    dataprep_static_covariate_columns: The list of strings of static covariate
+      names. This needs to be set if training with static covariates regardless
+      of whether you're using bigquery_data_path or csv_static_covariates_path.
+    dataprep_previous_run_dir: The dataprep dir from a previous run. Use this
+      to save time if you've already created TFRecords from your BigQuery
+      dataset with the same dataprep parameters as this run.
+    dataprep_nan_threshold: Series having more nan / missing values than
+      nan_threshold (inclusive) in percentage for either backtest or forecast
+      will not be sampled in the training set (including missing due to
+      train_start and train_end). All existing nans are replaced by zeros.
+    dataprep_zero_threshold: Series having more 0.0 values than zero_threshold
+      (inclusive) in percentage for either backtest or forecast will not be
+      sampled in the training set.
+    trainer_machine_type: The machine type for training. Must be compatible with
+      trainer_accelerator_type.
+    trainer_accelerator_type: The accelerator type for training.
+    trainer_num_epochs: The number of epochs to train for.
+    trainer_cleaning_activation_regularizer_coeff: The L1 regularization
+      coefficient for the anomaly detection activation in the cleaning block.
+      The larger the value, the less aggressive the cleaning, so fewer and only
+      the most extreme anomalies are detected. A rule of thumb is that this
+      value should be about the same scale of your series.
+    trainer_change_point_activation_regularizer_coeff: The L1 regularization
+      coefficient for the change point detection activation in the change point
+      block. The larger the value, the less aggressive the cleaning, so fewer
+      and only the most extreme change points are detected. A rule of thumb is
+      that this value should be a ratio of the
+      trainer_change_point_output_regularizer_coeff to determine the sparsity
+      of the changes. If you want the model to detect many small step changes
+      this number should be smaller than the
+      trainer_change_point_output_regularizer_coeff. To detect fewer large step
+      changes, this number should be about equal to or larger than the
+      trainer_change_point_output_regularizer_coeff.
+    trainer_change_point_output_regularizer_coeff: The L2 regularization
+      penalty applied to the mean lag-one difference of the cleaned output of
+      the change point block. Intutively,
+      trainer_change_point_activation_regularizer_coeff determines how many
+      steps to detect in the series, while this parameter determines how
+      aggressively to clean the detected steps. The higher this value, the more
+      aggressive the cleaning. A rule of thumb is that this value should be
+      about the same scale of your series.
+    trainer_trend_alpha_upper_bound: The upper bound for data smooth parameter
+      alpha in the trend block.
+    trainer_trend_beta_upper_bound: The upper bound for trend smooth parameter
+      beta in the trend block.
+    trainer_trend_phi_lower_bound: The lower bound for damping param phi in the
+      trend block.
+    trainer_trend_b_fixed_val: The fixed value for long term trend parameter b
+      in the trend block. If set to anything other than -1, the trend block will
+      not learn to provide estimates but use the fixed value directly.
+    trainer_trend_b0_fixed_val: The fixed value for starting short-term trend
+      parameter b0 in the trend block. If set to anything other than -1, the
+      trend block will not learn to provide estimates but use the fixed value
+      directly.
+    trainer_trend_phi_fixed_val: The fixed value for the damping parameter phi
+      in the trend block. If set to anything other than -1, the trend block will
+      not learn to provide estimates but use the fixed value directly.
+    trainer_quantiles: The list of floats representing quantiles. Leave blank if
+      only training to produce point forecasts.
+    trainer_model_blocks: The list of model blocks to use in the order they will
+      appear in the model. Possible values are `cleaning`, `change_point`,
+      `trend`, `hour_of_week`, `day_of_week`, `day_of_year`, `week_of_year`,
+      `month_of_year`, `residual`.
+    tensorboard_n_decomposition_plots: How many decomposition plots from the
+      test set to save to tensorboard.
+    encryption_spec_key_name: Customer-managed encryption key options for the
+      CustomJob. If this is set, then all resources created by the CustomJob
+      will be encrypted with the provided encryption key.
+    location: The location where the pipeline components are run.
+    project: The project where the pipeline is run. Defaults to current project.
+  """
+  job_id = dsl.PIPELINE_JOB_NAME_PLACEHOLDER
+  create_dataprep_args_task = SetDataprepArgsOp(
       model_blocks=trainer_model_blocks,
       ts_identifier_columns=dataprep_ts_identifier_columns,
       static_covariate_columns=dataprep_static_covariate_columns,
@@ -239,14 +234,14 @@ def starry_net(  # pylint: disable=dangerous-default-value
       previous_run_dir=dataprep_previous_run_dir,
       location=location,
   )
-    create_trainer_args_task = SetTrainArgsOp(
+  create_trainer_args_task = SetTrainArgsOp(
       quantiles=trainer_quantiles,
       model_blocks=trainer_model_blocks,
       static_covariates=dataprep_static_covariate_columns,
   )
-    with dsl.If(create_dataprep_args_task.outputs['create_tf_records'] == True,  # pylint: disable=singleton-comparison
+  with dsl.If(create_dataprep_args_task.outputs['create_tf_records'] == True,  # pylint: disable=singleton-comparison
               'create-tf-records'):
-      create_tf_records_task = DataprepOp(
+    create_tf_records_task = DataprepOp(
         backcast_length=dataprep_backcast_length,
         forecast_length=dataprep_forecast_length,
         train_end_date=dataprep_train_end_date,
@@ -279,24 +274,24 @@ def starry_net(  # pylint: disable=dangerous-default-value
         gcs_static_covariate_source=dataprep_csv_static_covariates_path,
         encryption_spec_key_name=encryption_spec_key_name
     )
-      create_tf_records_task.set_display_name('create-tf-records')
-      set_tfrecord_args_this_run_task = (
+    create_tf_records_task.set_display_name('create-tf-records')
+    set_tfrecord_args_this_run_task = (
         SetTfrecordArgsOp(
             dataprep_dir=create_tf_records_task.outputs['dataprep_dir'],
             static_covariates=dataprep_static_covariate_columns))
-    with dsl.Else('skip-tf-record-generation'):
-      set_tfrecord_args_previous_run_task = (
+  with dsl.Else('skip-tf-record-generation'):
+    set_tfrecord_args_previous_run_task = (
         MaybeSetTfrecordArgsOp(
             dataprep_previous_run_dir=dataprep_previous_run_dir,
             static_covariates=dataprep_static_covariate_columns))
-      set_tfrecord_args_previous_run_task.set_display_name(
+    set_tfrecord_args_previous_run_task.set_display_name(
         'set_tfrecord_args_previous_run')
-    static_covariates_vocab_path = dsl.OneOf(
+  static_covariates_vocab_path = dsl.OneOf(
       set_tfrecord_args_previous_run_task.outputs[
           'static_covariates_vocab_path'],
       set_tfrecord_args_this_run_task.outputs['static_covariates_vocab_path']
   )
-    test_set_task = DataprepOp(
+  test_set_task = DataprepOp(
       backcast_length=dataprep_backcast_length,
       forecast_length=dataprep_forecast_length,
       train_end_date=dataprep_train_end_date,
@@ -329,22 +324,22 @@ def starry_net(  # pylint: disable=dangerous-default-value
       gcs_static_covariate_source=dataprep_csv_static_covariates_path,
       encryption_spec_key_name=encryption_spec_key_name
   )
-    test_set_task.set_display_name('create-test-set')
-    set_test_set_task = SetTestSetOp(
+  test_set_task.set_display_name('create-test-set')
+  set_test_set_task = SetTestSetOp(
       dataprep_dir=test_set_task.outputs['dataprep_dir'])
-    train_tf_record_patterns = dsl.OneOf(
+  train_tf_record_patterns = dsl.OneOf(
       set_tfrecord_args_previous_run_task.outputs['train_tf_record_patterns'],
       set_tfrecord_args_this_run_task.outputs['train_tf_record_patterns']
   )
-    val_tf_record_patterns = dsl.OneOf(
+  val_tf_record_patterns = dsl.OneOf(
       set_tfrecord_args_previous_run_task.outputs['val_tf_record_patterns'],
       set_tfrecord_args_this_run_task.outputs['val_tf_record_patterns']
   )
-    test_tf_record_patterns = dsl.OneOf(
+  test_tf_record_patterns = dsl.OneOf(
       set_tfrecord_args_previous_run_task.outputs['test_tf_record_patterns'],
       set_tfrecord_args_this_run_task.outputs['test_tf_record_patterns']
   )
-    trainer_task = TrainOp(
+  trainer_task = TrainOp(
       num_epochs=trainer_num_epochs,
       backcast_length=dataprep_backcast_length,
       forecast_length=dataprep_forecast_length,
@@ -386,16 +381,16 @@ def starry_net(  # pylint: disable=dangerous-default-value
       project=project,
       encryption_spec_key_name=encryption_spec_key_name
   )
-    _ = UploadDecompositionPlotsOp(
+  _ = UploadDecompositionPlotsOp(
       project=project,
       location=location,
       tensorboard_id=tensorboard_instance_id,
       display_name=job_id,
       trainer_dir=trainer_task.outputs['trainer_dir'])
-    training_artifacts_task = GetTrainingArtifactsOp(
+  training_artifacts_task = GetTrainingArtifactsOp(
       docker_region=create_dataprep_args_task.outputs['docker_region'],
       trainer_dir=trainer_task.outputs['trainer_dir'])
-    model = dsl.importer(
+  model = dsl.importer(
       artifact_uri=training_artifacts_task.outputs['artifact_uri'],
       artifact_class=artifact_types.UnmanagedContainerModel,
       metadata={
@@ -412,16 +407,16 @@ def starry_net(  # pylint: disable=dangerous-default-value
           }
       },
   )
-    model.set_display_name('set-model')
-    upload_model_task = UploadModelOp(
+  model.set_display_name('set-model')
+  upload_model_task = UploadModelOp(
       project=project,
       location=location,
       display_name=job_id,
       unmanaged_container_model=model.output,
       encryption_spec_key_name=encryption_spec_key_name,
   )
-    upload_model_task.set_display_name('upload-model')
-    batch_predict_task = batch_predict_job.ModelBatchPredictOp(
+  upload_model_task.set_display_name('upload-model')
+  batch_predict_task = batch_predict_job.ModelBatchPredictOp(
       project=project,
       location=location,
       unmanaged_container_model=model.output,
@@ -436,11 +431,11 @@ def starry_net(  # pylint: disable=dangerous-default-value
       encryption_spec_key_name=encryption_spec_key_name,
       generate_explanation=False,
   )
-    batch_predict_task.set_display_name('run-batch-prediction')
-    set_eval_args_task = SetEvalArgsOp(
+  batch_predict_task.set_display_name('run-batch-prediction')
+  set_eval_args_task = SetEvalArgsOp(
       big_query_source=batch_predict_task.outputs['bigquery_output_table'],
       quantiles=trainer_quantiles)
-    eval_task = EvaluationOp(
+  eval_task = EvaluationOp(
       project=project,
       location=location,
       root_dir=test_set_task.outputs['dataprep_dir'],
@@ -464,7 +459,7 @@ def starry_net(  # pylint: disable=dangerous-default-value
       dataflow_use_public_ips=True,
       encryption_spec_key_name=encryption_spec_key_name,
   )
-    model_evaluation_import_component.model_evaluation_import(
+  model_evaluation_import_component.model_evaluation_import(
       forecasting_metrics=eval_task.outputs['evaluation_metrics'],
       model=upload_model_task.outputs['model'],
       dataset_type='bigquery',

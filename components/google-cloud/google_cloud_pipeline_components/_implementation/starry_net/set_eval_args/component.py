@@ -22,11 +22,11 @@ from kfp import dsl
 def set_eval_args(
     big_query_source: dsl.Input[dsl.Artifact], quantiles: List[float]
 ) -> NamedTuple(
-    'EvalArgs',
-    big_query_source=str,
-    forecasting_type=str,
-    quantiles=List[float],
-    prediction_score_column=str,
+        'EvalArgs',
+        big_query_source=str,
+        forecasting_type=str,
+        quantiles=List[float],
+        prediction_score_column=str,
 ):
     # fmt: off
     """Creates Evaluation args.

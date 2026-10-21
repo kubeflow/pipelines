@@ -139,7 +139,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
             {'yapf', 'isort', 'flake8', 'pycln'}.isdisjoint(hook_ids)
         )
 
-    def test_ruff_preserves_generated_code_and_public_exports(self) -> None:
+    def test_ruff_preserves_excluded_trees_and_public_exports(self) -> None:
         project = tomllib.loads(
             (REPOSITORY_ROOT / 'pyproject.toml').read_text(encoding='utf-8')
         )
@@ -149,11 +149,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
             'sdk/python/kfp/pipeline_spec/pipeline_spec_pb2.py',
             'sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2.py',
             'components/google-cloud/google_cloud_pipeline_components/proto/gcp_resources_pb2.py',
+            'components/google-cloud/setup.py',
+            'components/google-cloud/google_cloud_pipeline_components/version.py',
             'sdk/python/kfp/server_api/api_client.py',
             'backend/api/v2/python_http_client/setup.py',
             'backend/api/v2beta1/python_http_client/setup.py',
         ):
-            with self.subTest(generated_file=path):
+            with self.subTest(excluded_file=path):
                 self.assertRegex(path, hook_exclude)
         self.assertIsNone(
             hook_exclude.search('sdk/python/kfp/dsl/structures.py')
@@ -167,15 +169,12 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 'backend/api/v2beta1/python_http_client',
                 'sdk/python/kfp/server_api',
                 '*_pb2.py',
+                'components/google-cloud',
             },
         )
         self.assertEqual(set(ruff['lint']['select']), {'F401', 'I', 'W605'})
         self.assertIn('F401', ruff['lint']['per-file-ignores']['__init__.py'])
         self.assertEqual(ruff['target-version'], 'py311')
-        self.assertEqual(
-            ruff['per-file-target-version']['components/google-cloud/**/*.py'],
-            'py38',
-        )
 
     def test_ruff_presubmit_checks_the_whole_repository_without_writing(self):
         script = (REPOSITORY_ROOT / 'test/presubmit-ruff.sh').read_text()

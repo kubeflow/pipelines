@@ -10,18 +10,16 @@ dependencies = [
 target-version = "py311"
 line-length = 80
 include = ["*.py", "*.pyi"]
-# Keep generated code untouched, including when pre-commit passes explicit paths.
+# Apply exclusions even when pre-commit passes explicit paths.
 force-exclude = true
 extend-exclude = [
   "backend/api/v2/python_http_client",
   "backend/api/v2beta1/python_http_client",
   "sdk/python/kfp/server_api",
   "*_pb2.py",
+  # Scheduled for deletion; leave this tree untouched by the tooling migration.
+  "components/google-cloud",
 ]
-
-[tool.ruff.per-file-target-version]
-# This independently packaged library still supports Python 3.8.
-"components/google-cloud/**/*.py" = "py38"
 
 [tool.ruff.format]
 quote-style = "single"

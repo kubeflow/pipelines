@@ -24,11 +24,11 @@ from kfp import dsl
     ],
 )
 def upload_decomposition_plots(
-    project: str,
-    location: str,
-    tensorboard_id: str,
-    display_name: str,
-    trainer_dir: dsl.InputPath(),
+        project: str,
+        location: str,
+        tensorboard_id: str,
+        display_name: str,
+        trainer_dir: dsl.InputPath(),
 ) -> dsl.Artifact:
     # fmt: off
     """Uploads decomposition plots to Tensorboard.

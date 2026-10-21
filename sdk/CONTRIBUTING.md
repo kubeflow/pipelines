@@ -88,8 +88,9 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
-This formats Python sources throughout the repository, excluding generated clients
-and protobuf bindings. Notebooks and Markdown are outside this check. Run
+This formats Python sources throughout the repository, excluding generated clients,
+protobuf bindings, and the `components/google-cloud` tree scheduled for deletion.
+Notebooks and Markdown are outside this check. Run
 `bash test/presubmit-ruff.sh` for the same read-only lint and formatting checks as CI.
 
 #### Docformatter [Required]

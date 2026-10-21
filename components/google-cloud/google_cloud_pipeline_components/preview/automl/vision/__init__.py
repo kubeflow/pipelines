@@ -13,6 +13,4 @@
 # limitations under the License.
 """AutoML Vision components."""
 
-from google_cloud_pipeline_components.preview.automl.vision.data_converter import (
-    data_converter as DataConverterJobOp,
-)
+from google_cloud_pipeline_components.preview.automl.vision.data_converter import data_converter as DataConverterJobOp

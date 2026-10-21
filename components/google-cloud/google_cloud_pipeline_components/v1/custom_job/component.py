@@ -14,9 +14,9 @@
 
 from typing import Dict, List, Union
 
+from google_cloud_pipeline_components import _placeholders
+from google_cloud_pipeline_components import utils
 from kfp import dsl
-
-from google_cloud_pipeline_components import _placeholders, utils
 
 
 # keep identical to create_custom_training_job_from_component
@@ -42,8 +42,8 @@ def custom_training_job(
     max_wait_duration: str = '86400s',
     psc_interface_config: Dict[str, Union[str, List[Dict[str, str]]]] = {},
 ):
-    # fmt: off
-    """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
+  # fmt: off
+  """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
 
   Args:
     location: Location for creating the custom training job. If not set, default to the location where the PipelineJob is run.
@@ -68,35 +68,35 @@ def custom_training_job(
   Returns:
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
-    # fmt: on
-    return utils.build_serverless_customjob_container_spec(
-        project=project,
-        location=location,
-        custom_job_payload={
-            'display_name': display_name,
-            'job_spec': {
-                'worker_pool_specs': worker_pool_specs,
-                'scheduling': {
-                    'timeout': timeout,
-                    'restart_job_on_worker_restart': (
-                        restart_job_on_worker_restart
-                    ),
-                    'strategy': strategy,
-                    'max_wait_duration': max_wait_duration,
-                },
-                'service_account': service_account,
-                'tensorboard': tensorboard,
-                'enable_web_access': enable_web_access,
-                'network': network,
-                'reserved_ip_ranges': reserved_ip_ranges,
-                'base_output_directory': {
-                    'output_uri_prefix': base_output_directory
-                },
-                'persistent_resource_id': persistent_resource_id,
-                'psc_interface_config': psc_interface_config,
-            },
-            'labels': labels,
-            'encryption_spec': {'kms_key_name': encryption_spec_key_name},
-        },
-        gcp_resources=gcp_resources,
-    )
+  # fmt: on
+  return utils.build_serverless_customjob_container_spec(
+      project=project,
+      location=location,
+      custom_job_payload={
+          'display_name': display_name,
+          'job_spec': {
+              'worker_pool_specs': worker_pool_specs,
+              'scheduling': {
+                  'timeout': timeout,
+                  'restart_job_on_worker_restart': (
+                      restart_job_on_worker_restart
+                  ),
+                  'strategy': strategy,
+                  'max_wait_duration': max_wait_duration,
+              },
+              'service_account': service_account,
+              'tensorboard': tensorboard,
+              'enable_web_access': enable_web_access,
+              'network': network,
+              'reserved_ip_ranges': reserved_ip_ranges,
+              'base_output_directory': {
+                  'output_uri_prefix': base_output_directory
+              },
+              'persistent_resource_id': persistent_resource_id,
+              'psc_interface_config': psc_interface_config,
+          },
+          'labels': labels,
+          'encryption_spec': {'kms_key_name': encryption_spec_key_name},
+      },
+      gcp_resources=gcp_resources,
+  )

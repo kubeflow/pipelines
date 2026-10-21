@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Auto Feature Engineering component spec."""
 
 from typing import Optional
@@ -33,9 +34,9 @@ def automated_feature_engineering(
     bigquery_staging_full_dataset_id: Optional[str] = '',
     materialized_examples_format: Optional[str] = 'tfrecords_gzip',
 ):
-    """Find the top features from the dataset."""
-    # fmt: off
-    return dsl.ContainerSpec(
+  """Find the top features from the dataset."""
+  # fmt: off
+  return dsl.ContainerSpec(
       image='gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44',
       command=[
           'python3',

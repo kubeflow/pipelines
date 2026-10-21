@@ -1,4 +1,4 @@
-exclude: (^backend/api/(v2|v2beta1)/python_http_client/|^sdk/python/kfp/server_api/|_pb2\.py$)
+exclude: (^backend/api/(v2|v2beta1)/python_http_client/|^sdk/python/kfp/server_api/|^components/google-cloud/|_pb2\.py$)
 
 repos:
   # other fast helpful checks
