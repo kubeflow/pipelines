@@ -34,3 +34,7 @@ jobs:
       - name: Verify Argo compatibility matrix freshness
         run: |
           python3 .github/scripts/verify-argo-matrix.py
+
+      - name: Verify release image workflow permissions
+        run: |
+          python3 .github/scripts/verify-release-workflow-permissions.py
