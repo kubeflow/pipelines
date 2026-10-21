@@ -155,7 +155,7 @@ func CreateWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, pers
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Argo offload DB session: %w", err)
 	}
-	argosqldb.ConfigureDBSession(sessionProxy.Session(), persist.ConnectionPool)
+	argosqldb.ConfigureDBSession(sessionProxy.Session(loggerCtx), persist.ConnectionPool)
 	repo, err := persistsqldb.NewOffloadNodeStatusRepo(
 		loggerCtx,
 		argologging.RequireLoggerFromContext(ArgoContext()),
