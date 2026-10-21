@@ -92,6 +92,8 @@ def build_task_spec_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str],
+    name_to_for_loop_group: Optional[Mapping[str,
+                                             tasks_group.ParallelFor]] = None,
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
     """Builds PipelineTaskSpec for a pipeline task.
 
@@ -175,18 +177,27 @@ def build_task_spec_for_task(
                     component_input_artifact)
 
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
-
-            component_input_parameter = (
+            subvar_input_name = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
-            pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{input_value.subvar_name}"]')
+                    input_value))
+            if subvar_input_name in parent_component_inputs.parameters:
+                pipeline_task_spec.inputs.parameters[
+                    input_name].component_input_parameter = subvar_input_name
+            elif input_value.full_name in parent_component_inputs.parameters:
+                pipeline_task_spec.inputs.parameters[
+                    input_name].component_input_parameter = input_value.full_name
+            else:
+                component_input_parameter = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value.loop_argument))
+                assert component_input_parameter in parent_component_inputs.parameters, \
+                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                pipeline_task_spec.inputs.parameters[
+                    input_name].component_input_parameter = (
+                        component_input_parameter)
+                pipeline_task_spec.inputs.parameters[
+                    input_name].parameter_expression_selector = (
+                        f'parseJson(string_value)["{input_value.subvar_name}"]')
         elif isinstance(input_value,
                         pipeline_channel.PipelineArtifactChannel) or (
                             isinstance(input_value, dsl.Collected) and
@@ -291,7 +302,69 @@ def build_task_spec_for_task(
                 input_value = compiler_utils.recursive_replace_placeholders(
                     input_value, channel.pattern, additional_input_placeholder)
 
-                if channel.task_name:
+                if name_to_for_loop_group is None:
+                    from kfp.dsl import pipeline_context
+                    p = pipeline_context.Pipeline.get_default_pipeline()
+                    if p and p.groups:
+                        name_to_for_loop_group = {
+                            group.name: group
+                            for group in compiler_utils.get_all_groups(
+                                p.groups[0])
+                            if isinstance(group, tasks_group.ParallelFor)
+                        }
+                    else:
+                        name_to_for_loop_group = {}
+
+                matched_channel = channel
+                for loop_group in name_to_for_loop_group.values():
+                    loop_arg = loop_group.loop_argument
+                    if loop_arg.full_name == channel.full_name:
+                        matched_channel = loop_arg
+                        break
+                    elif hasattr(loop_arg, '_referenced_subvars'):
+                        for subvar in loop_arg._referenced_subvars.values():
+                            if subvar.full_name == channel.full_name:
+                                matched_channel = subvar
+                                break
+
+                if isinstance(matched_channel, for_loop.LoopArgumentVariable):
+                    if (additional_input_name
+                            in parent_component_inputs.parameters or
+                            channel.full_name
+                            in parent_component_inputs.parameters):
+                        component_input_parameter = (
+                            additional_input_name if additional_input_name
+                            in parent_component_inputs.parameters else
+                            channel.full_name)
+                        pipeline_task_spec.inputs.parameters[
+                            additional_input_name].component_input_parameter = (
+                                component_input_parameter)
+                    else:
+                        loop_item_input_name = (
+                            compiler_utils
+                            .additional_input_name_for_pipeline_channel(
+                                matched_channel.loop_argument))
+                        assert loop_item_input_name in parent_component_inputs.parameters, \
+                            f'component_input_parameter: {loop_item_input_name} not found. All inputs: {parent_component_inputs}'
+                        pipeline_task_spec.inputs.parameters[
+                            additional_input_name].component_input_parameter = (
+                                loop_item_input_name)
+                        pipeline_task_spec.inputs.parameters[
+                            additional_input_name].parameter_expression_selector = (
+                                f'parseJson(string_value)["{matched_channel.subvar_name}"]'
+                            )
+                elif isinstance(matched_channel,
+                                for_loop.LoopParameterArgument):
+                    component_input_parameter = (
+                        compiler_utils
+                        .additional_input_name_for_pipeline_channel(
+                            matched_channel))
+                    assert component_input_parameter in parent_component_inputs.parameters, \
+                        f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                    pipeline_task_spec.inputs.parameters[
+                        additional_input_name].component_input_parameter = (
+                            component_input_parameter)
+                elif channel.task_name:
                     # Value is produced by an upstream task.
                     if channel.task_name in tasks_in_current_dag:
                         # Dependent task within the same DAG.
@@ -1398,6 +1471,7 @@ def build_spec_by_group(
                 task=subgroup,
                 parent_component_inputs=group_component_spec.input_definitions,
                 tasks_in_current_dag=tasks_in_current_dag,
+                name_to_for_loop_group=name_to_for_loop_group,
             )
             task_name_to_task_spec[subgroup.name] = subgroup_task_spec
             subgroup_component_spec = build_component_spec_for_task(
