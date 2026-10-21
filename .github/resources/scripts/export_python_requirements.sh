@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run with uv 0.10.3, matching the Python dependency check.
+# Run with uv 0.13.4, matching the Python dependency check.
 set -euo pipefail
 
 if [[ $# -ne 1 || -z "$1" ]]; then

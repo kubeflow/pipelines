@@ -9,7 +9,7 @@ There are no duplicate workspace pip exports for Dependabot to update separately
 
 CI checks lock consistency, installs the frozen workspace, builds SDK distributions,
 and installs the wheel in a clean Python 3.11 pip environment. Optional pip consumers
-can generate dependency-only artifacts with uv 0.10.3:
+can generate dependency-only artifacts with uv 0.13.4:
 
 ```bash
 bash .github/resources/scripts/export_python_requirements.sh /tmp/kfp-python-exports

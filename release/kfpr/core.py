@@ -468,7 +468,7 @@ cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
 if [ -f pyproject.toml ]; then
-  python3 -m pip install --user --break-system-packages uv==0.10.3
+  python3 -m pip install --user --break-system-packages uv==0.13.4
   ~/.local/bin/uv build --package kfp-kubernetes --out-dir dist
 else
   python3 -m pip install --user --break-system-packages -r requirements.txt
