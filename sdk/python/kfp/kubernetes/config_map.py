@@ -15,8 +15,8 @@
 from typing import Dict, Union
 
 from google.protobuf import json_format
-from kfp.dsl import pipeline_channel
-from kfp.dsl import PipelineTask
+
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
@@ -46,15 +46,19 @@ def use_config_map_as_env(
         pb.ConfigMapAsEnv.ConfigMapKeyToEnvMap(
             config_map_key=config_map_key,
             env_var=env_var,
-        ) for config_map_key, env_var in config_map_key_to_env.items()
+        )
+        for config_map_key, env_var in config_map_key_to_env.items()
     ]
     config_map_as_env = pb.ConfigMapAsEnv(
-        key_to_env=key_to_env, optional=optional)
+        key_to_env=key_to_env, optional=optional
+    )
 
     config_map_name_parameter = common.parse_k8s_parameter_input(
-        config_map_name, task)
+        config_map_name, task
+    )
     config_map_as_env.config_map_name_parameter.CopyFrom(
-        config_map_name_parameter)
+        config_map_name_parameter
+    )
 
     # deprecated: for backwards compatibility
     if isinstance(config_map_name, str):
@@ -94,9 +98,11 @@ def use_config_map_as_volume(
     )
 
     config_map_name_parameter = common.parse_k8s_parameter_input(
-        config_map_name, task)
+        config_map_name, task
+    )
     config_map_as_vol.config_map_name_parameter.CopyFrom(
-        config_map_name_parameter)
+        config_map_name_parameter
+    )
 
     # deprecated: for backwards compatibility
     if isinstance(config_map_name, str):

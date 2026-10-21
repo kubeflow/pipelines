@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestEmptyDirMounts:
-
     def test_add_one(self):
 
         @dsl.pipeline
@@ -29,7 +27,8 @@ class TestEmptyDirMounts:
                 volume_name='emptydir-vol-1',
                 mount_path='/mnt/my_vol_1',
                 medium='Memory',
-                size_limit='1Gi')
+                size_limit='1Gi',
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -37,12 +36,14 @@ class TestEmptyDirMounts:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'emptyDirMounts': [{
-                                    'medium': 'Memory',
-                                    'mountPath': '/mnt/my_vol_1',
-                                    'sizeLimit': '1Gi',
-                                    'volumeName': 'emptydir-vol-1'
-                                }]
+                                'emptyDirMounts': [
+                                    {
+                                        'medium': 'Memory',
+                                        'mountPath': '/mnt/my_vol_1',
+                                        'sizeLimit': '1Gi',
+                                        'volumeName': 'emptydir-vol-1',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -60,9 +61,11 @@ class TestEmptyDirMounts:
                 volume_name='emptydir-vol-1',
                 mount_path='/mnt/my_vol_1',
                 medium='Memory',
-                size_limit='1Gi')
+                size_limit='1Gi',
+            )
             kubernetes.empty_dir_mount(
-                task, volume_name='emptydir-vol-2', mount_path='/mnt/my_vol_2')
+                task, volume_name='emptydir-vol-2', mount_path='/mnt/my_vol_2'
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -70,15 +73,18 @@ class TestEmptyDirMounts:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'emptyDirMounts': [{
-                                    'medium': 'Memory',
-                                    'mountPath': '/mnt/my_vol_1',
-                                    'sizeLimit': '1Gi',
-                                    'volumeName': 'emptydir-vol-1'
-                                }, {
-                                    'mountPath': '/mnt/my_vol_2',
-                                    'volumeName': 'emptydir-vol-2'
-                                }]
+                                'emptyDirMounts': [
+                                    {
+                                        'medium': 'Memory',
+                                        'mountPath': '/mnt/my_vol_1',
+                                        'sizeLimit': '1Gi',
+                                        'volumeName': 'emptydir-vol-1',
+                                    },
+                                    {
+                                        'mountPath': '/mnt/my_vol_2',
+                                        'volumeName': 'emptydir-vol-2',
+                                    },
+                                ]
                             }
                         }
                     }
@@ -97,7 +103,8 @@ class TestEmptyDirMounts:
                 volume_name='emptydir-vol-1',
                 mount_path='/mnt/my_vol_1',
                 medium='Memory',
-                size_limit='1Gi')
+                size_limit='1Gi',
+            )
 
             # this should exist too
             kubernetes.set_image_pull_secrets(task, ['secret-name'])
@@ -108,20 +115,24 @@ class TestEmptyDirMounts:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'emptyDirMounts': [{
-                                    'medium': 'Memory',
-                                    'mountPath': '/mnt/my_vol_1',
-                                    'sizeLimit': '1Gi',
-                                    'volumeName': 'emptydir-vol-1'
-                                }],
-                                'imagePullSecret': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                }]
+                                'emptyDirMounts': [
+                                    {
+                                        'medium': 'Memory',
+                                        'mountPath': '/mnt/my_vol_1',
+                                        'sizeLimit': '1Gi',
+                                        'volumeName': 'emptydir-vol-1',
+                                    }
+                                ],
+                                'imagePullSecret': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                    }
+                                ],
                             }
                         }
                     }

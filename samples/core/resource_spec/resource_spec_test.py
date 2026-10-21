@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
+from kfp.samples.test.utils import TestCase, run_pipeline_func
 from resource_spec import my_pipeline
 
 
@@ -22,11 +21,15 @@ def EXPECTED_OOM(run_id, run, **kwargs):
     assert run.state == 'FAILED'
 
 
-run_pipeline_func([
-    TestCase(pipeline_func=my_pipeline,),
-    TestCase(
-        pipeline_func=my_pipeline,
-        arguments={'n': 21234567},
-        verify_func=EXPECTED_OOM,
-    ),
-])
+run_pipeline_func(
+    [
+        TestCase(
+            pipeline_func=my_pipeline,
+        ),
+        TestCase(
+            pipeline_func=my_pipeline,
+            arguments={'n': 21234567},
+            verify_func=EXPECTED_OOM,
+        ),
+    ]
+)

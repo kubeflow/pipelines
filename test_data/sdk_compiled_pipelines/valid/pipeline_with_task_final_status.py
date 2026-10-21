@@ -13,10 +13,8 @@
 # limitations under the License.
 """Pipeline using ExitHandler with PipelineTaskFinalStatus."""
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import component
-from kfp.dsl import PipelineTaskFinalStatus
+from kfp import compiler, dsl
+from kfp.dsl import PipelineTaskFinalStatus, component
 
 
 @component
@@ -39,6 +37,7 @@ def print_op(message: str):
 def fail_op(message: str):
     """Fails."""
     import sys
+
     print(message)
     sys.exit(1)
 
@@ -54,5 +53,5 @@ def my_pipeline(message: str = 'Hello World!'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

@@ -14,8 +14,7 @@
 import os
 
 from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import Model
+from kfp.dsl import Dataset, Model
 
 PACKAGES_TO_INSTALL = ['dill==0.3.7']
 if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
@@ -52,12 +51,15 @@ def make_language_model_pipeline() -> Model:
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
         artifact_class=Dataset,
         reimport=False,
-        metadata={'key': 'value'})
+        metadata={'key': 'value'},
+    )
     return make_language_model(text_dataset=importer.output).output
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=make_language_model_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

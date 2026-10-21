@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Lightweight functions v2 with outputs."""
-from typing import NamedTuple
+
 import os
+from typing import NamedTuple
 
 from kfp import compiler, dsl
-from kfp.dsl import Input, Dataset, Model, Metrics, component
+from kfp.dsl import Dataset, Input, Metrics, Model, component
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -40,29 +41,36 @@ def output_artifact(number: int, message: str) -> Dataset:
 
 
 @component(kfp_package_path=_KFP_PACKAGE_PATH)
-def output_named_tuple(
-    artifact: Input[Dataset]
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('metrics', Metrics),
-    ('model', Model),
-]):
-    scalar = "123"
+def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
+    'Outputs',
+    [
+        ('scalar', str),
+        ('metrics', Metrics),
+        ('model', Model),
+    ],
+):
+    scalar = '123'
 
     import json
-    metrics = json.dumps({
-        'metrics': [{
-            'name': 'accuracy',
-            'numberValue': 0.9,
-            'format': "PERCENTAGE",
-        }]
-    })
+
+    metrics = json.dumps(
+        {
+            'metrics': [
+                {
+                    'name': 'accuracy',
+                    'numberValue': 0.9,
+                    'format': 'PERCENTAGE',
+                }
+            ]
+        }
+    )
 
     with open(artifact.path, 'r') as f:
         artifact_contents = f.read()
-    model = "Model contents: " + artifact_contents
+    model = 'Model contents: ' + artifact_contents
 
     from collections import namedtuple
+
     output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])
     return output(scalar, metrics, model)
 
@@ -77,10 +85,12 @@ def pipeline(
     concat_task = concat_message(first=first_message, second=second_message)
     add_numbers_task = add_numbers(first=first_number, second=second_number)
     output_artifact_task = output_artifact(
-        number=add_numbers_task.output, message=concat_task.output)
+        number=add_numbers_task.output, message=concat_task.output
+    )
     output_name_tuple = output_named_tuple(artifact=output_artifact_task.output)
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__ + '.yaml')
+        pipeline_func=pipeline, package_path=__file__ + '.yaml'
+    )

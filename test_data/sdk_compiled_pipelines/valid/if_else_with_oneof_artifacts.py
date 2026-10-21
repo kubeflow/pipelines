@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp.dsl import Artifact, Input, Output
 
 
 @dsl.component
@@ -54,6 +52,8 @@ def outer_pipeline():
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=outer_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

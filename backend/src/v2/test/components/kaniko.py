@@ -14,10 +14,9 @@
 
 from pathlib import Path
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
-SHELL_COMMAND = r'''dockerfile="$0"
+SHELL_COMMAND = r"""dockerfile="$0"
 context_uri="$1"
 context_artifact_path="$2"
 context_sub_path="$3"
@@ -45,7 +44,7 @@ digest_file="$(mktemp)"
 mkdir -p "$(dirname "${digest_output_path}")"
 digest="$(cat $digest_file)"
 echo "${destination}@${digest}" > "${digest_output_path}"
-'''
+"""
 
 
 @dsl.container_component
@@ -87,4 +86,5 @@ def kaniko(
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        kaniko, package_path=str(Path(__file__).with_suffix('.yaml')))
+        kaniko, package_path=str(Path(__file__).with_suffix('.yaml'))
+    )

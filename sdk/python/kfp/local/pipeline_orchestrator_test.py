@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for pipeline_orchestrator.py."""
+
 import io as stdlib_io
 import os
-import sys
-from typing import List, NamedTuple
 import unittest
+from typing import List, NamedTuple
 from unittest import mock
 
-from kfp import dsl
-from kfp import local
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Model
-from kfp.dsl import Output
-from kfp.dsl import pipeline_task
+from kfp import dsl, local
+from kfp.dsl import Dataset, Input, Model, Output, pipeline_task
 from kfp.local import testing_utilities
 
 ROOT_FOR_TESTING = './testing_root'
@@ -34,7 +29,6 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
 class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
-
     def assert_output_dir_contents(
         self,
         expected_dirs_in_pipeline_root: int,
@@ -53,7 +47,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             os.path.join(
                 ROOT_FOR_TESTING,
                 actual_dirs_in_pipeline_root[0],
-            ))
+            )
+        )
         self.assertLen(
             actual_contents_of_pipeline_dir,
             expected_files_in_pipeline_dir,
@@ -70,15 +65,16 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             identity(string='foo')
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Local environment not initialized\. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
+            RuntimeError,
+            r"Local environment not initialized\. Please run 'kfp\.local\.init\(\)' before executing tasks locally\.",
         ):
             my_pipeline()
 
     def test_no_io(self):
         local.init(
             local.SubprocessRunner(use_venv=False),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         @dsl.component()
         def pass_op():
@@ -108,8 +104,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             return t2.output
 
         with self.assertRaisesRegex(
-                TypeError,
-                r'my-pipeline\(\) missing 1 required argument: string\.'):
+            TypeError, r'my-pipeline\(\) missing 1 required argument: string\.'
+        ):
             my_pipeline()
 
     def test_single_return(self):
@@ -143,7 +139,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             return t2.output
 
         my_pipeline_loaded = testing_utilities.compile_and_load_component(
-            my_pipeline)
+            my_pipeline
+        )
 
         task = my_pipeline_loaded(string='foo')
         self.assertEqual(task.output, 'foo')
@@ -168,13 +165,13 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             an_integer: int = 12,
             a_list: list = ['item1', 'item2'],
         ) -> NamedTuple(
-                'outputs',
-                a_string=str,
-                a_float=float,
-                an_integer=int,
-                a_boolean=bool,
-                a_list=list,
-                a_dict=dict,
+            'outputs',
+            a_string=str,
+            a_float=float,
+            an_integer=int,
+            a_boolean=bool,
+            a_list=list,
+            a_dict=dict,
         ):
             outputs = NamedTuple(
                 'outputs',
@@ -200,13 +197,13 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             boolean: bool,
             dictionary: dict = {'foo': 'bar'},
         ) -> NamedTuple(
-                'outputs',
-                another_string=str,
-                another_float=float,
-                another_integer=int,
-                another_boolean=bool,
-                another_list=list,
-                another_dict=dict,
+            'outputs',
+            another_string=str,
+            another_float=float,
+            another_integer=int,
+            another_boolean=bool,
+            another_list=list,
+            another_dict=dict,
         ):
 
             t1 = many_parameter_component(
@@ -281,12 +278,10 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertIsInstance(output_model, Model)
         self.assertEqual(output_model.name, 'model')
         self.assertTrue(output_model.uri.endswith('/make-model/model'))
-        self.assertEqual(output_model.metadata, {
-            'framework': 'tensorflow',
-            'dataset': {
-                'framework': 'pandas'
-            }
-        })
+        self.assertEqual(
+            output_model.metadata,
+            {'framework': 'tensorflow', 'dataset': {'framework': 'pandas'}},
+        )
         self.assert_output_dir_contents(1, 2)
 
     def test_notebook_component_local_exec(self):
@@ -301,17 +296,13 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 {
                     'cell_type': 'code',
                     'execution_count': None,
-                    'metadata': {
-                        'tags': ['parameters']
-                    },
+                    'metadata': {'tags': ['parameters']},
                     'outputs': [],
                     'source': ['# parameters\n', "text='hello'\n"],
                 },
                 {
-                    'cell_type':
-                        'code',
-                    'execution_count':
-                        None,
+                    'cell_type': 'code',
+                    'execution_count': None,
                     'metadata': {},
                     'outputs': [],
                     'source': [
@@ -327,10 +318,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                     'language': 'python',
                     'name': 'python3',
                 },
-                'language_info': {
-                    'name': 'python',
-                    'version': '3.11'
-                },
+                'language_info': {'name': 'python', 'version': '3.11'},
             },
             'nbformat': 4,
             'nbformat_minor': 5,
@@ -342,13 +330,14 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 _json.dump(nb, f)
 
             @dsl.notebook_component(
-                notebook_path=nb_path, kfp_package_path=_KFP_PACKAGE_PATH)
+                notebook_path=nb_path, kfp_package_path=_KFP_PACKAGE_PATH
+            )
             def nb_comp(msg: str) -> str:
                 dsl.run_notebook(text=msg)
 
                 with open(
-                        '/tmp/kfp_nb_outputs/log.txt', 'r',
-                        encoding='utf-8') as f:
+                    '/tmp/kfp_nb_outputs/log.txt', 'r', encoding='utf-8'
+                ) as f:
                     return f.read()
 
             @dsl.pipeline
@@ -369,8 +358,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         with _tempfile.TemporaryDirectory() as srcdir:
             with open(
-                    _os.path.join(srcdir, 'data.txt'), 'w',
-                    encoding='utf-8') as f:
+                _os.path.join(srcdir, 'data.txt'), 'w', encoding='utf-8'
+            ) as f:
                 f.write('EMBED')
 
             @dsl.component(embedded_artifact_path=srcdir)
@@ -378,6 +367,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 out = dsl.Dataset(uri=dsl.get_uri('out'))
                 import os
                 import shutil
+
                 shutil.copy(os.path.join(cfg.path, 'data.txt'), out.path)
                 return out
 
@@ -395,7 +385,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         local.init(
             local.SubprocessRunner(),
             pipeline_root=ROOT_FOR_TESTING,
-            raise_on_error=True)
+            raise_on_error=True,
+        )
 
         import os as _os
         import tempfile as _tempfile
@@ -405,7 +396,9 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         with open(bad_nb, 'w', encoding='utf-8') as f:
             f.write('not a json')
 
-        @dsl.notebook_component(notebook_path=bad_nb,)
+        @dsl.notebook_component(
+            notebook_path=bad_nb,
+        )
         def nb_comp():
             dsl.run_notebook()
 
@@ -426,8 +419,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             print(model.metadata)
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Input artifacts are not supported\. Got input artifact of type 'Model'\."
+            ValueError,
+            r"Input artifacts are not supported\. Got input artifact of type 'Model'\.",
         ):
 
             @dsl.pipeline
@@ -454,7 +447,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 artifact_class=Dataset,
                 metadata={
                     message_op.output: [greeting, world_op.output],
-                })
+                },
+            )
             artifact_printer(a=imp_op.outputs['artifact'])
             return imp_op.outputs['artifact']
 
@@ -463,9 +457,12 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertIsInstance(output_model, Dataset)
         self.assertEqual(output_model.name, 'artifact')
         self.assertEqual(output_model.uri, '/local/path/to/dataset')
-        self.assertEqual(output_model.metadata, {
-            'message': ['hello', 'world'],
-        })
+        self.assertEqual(
+            output_model.metadata,
+            {
+                'message': ['hello', 'world'],
+            },
+        )
         # importer doesn't have an output directory
         self.assert_output_dir_contents(1, 3)
 
@@ -501,7 +498,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         @dsl.component
         def square_root(x: float) -> float:
-            return x**.5
+            return x**0.5
 
         @dsl.component
         def convert_to_artifact(val: float) -> Dataset:
@@ -525,7 +522,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         def pythagorean(a: float = 1.2, b: float = 1.2) -> float:
             sq_and_sum_task = square_and_sum(a=a, b=b)
             make_float_task = convert_from_artifact(
-                dataset=sq_and_sum_task.output)
+                dataset=sq_and_sum_task.output
+            )
             return square_root(x=make_float_task.output).output
 
         @dsl.pipeline
@@ -545,7 +543,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # packages in parallel virtual environments
         local.init(
             local.SubprocessRunner(use_venv=False),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         @dsl.component
         def pass_op():
@@ -565,7 +564,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
     def test_parallel_for_uses_iterator_policy_parallelism_limit(self):
         local.init(
             local.SubprocessRunner(use_venv=False),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         @dsl.component
         def pass_op():
@@ -580,17 +580,20 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         captured_parallelism_limits = []
         original_execute_parallel_tasks = (
-            enhanced_dag_orchestrator.ParallelExecutor.execute_parallel_tasks)
+            enhanced_dag_orchestrator.ParallelExecutor.execute_parallel_tasks
+        )
 
         def wrapped_execute_parallel_tasks(self, *args, **kwargs):
             captured_parallelism_limits.append(
-                kwargs.get('parallelism_limit', 0))
+                kwargs.get('parallelism_limit', 0)
+            )
             return original_execute_parallel_tasks(self, *args, **kwargs)
 
         with mock.patch.object(
-                enhanced_dag_orchestrator.ParallelExecutor,
-                'execute_parallel_tasks',
-                new=wrapped_execute_parallel_tasks):
+            enhanced_dag_orchestrator.ParallelExecutor,
+            'execute_parallel_tasks',
+            new=wrapped_execute_parallel_tasks,
+        ):
             task = my_pipeline()
 
         self.assertIsInstance(task, pipeline_task.PipelineTask)
@@ -602,18 +605,22 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         local.init(
             local.SubprocessRunner(
                 use_venv=True,
-                serialize_pip_installs=True  # Enable serialization to prevent race conditions
+                serialize_pip_installs=True,  # Enable serialization to prevent race conditions
             ),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
         import sys
-        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
-            3, 13) else 'numpy==1.24.3'
+
+        numpy_version = (
+            'numpy>=1.26.0' if sys.version_info >= (3, 13) else 'numpy==1.24.3'
+        )
 
         @dsl.component(packages_to_install=[numpy_version])
         def package_using_op() -> List[int]:
             import numpy as np
+
             return np.array([1, 2, 3]).tolist()
 
         @dsl.pipeline
@@ -632,18 +639,22 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         local.init(
             local.SubprocessRunner(
                 use_venv=True,
-                serialize_pip_installs=True  # Enable serialization to prevent race conditions
+                serialize_pip_installs=True,  # Enable serialization to prevent race conditions
             ),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
         import sys
-        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
-            3, 13) else 'numpy==1.24.3'
+
+        numpy_version = (
+            'numpy>=1.26.0' if sys.version_info >= (3, 13) else 'numpy==1.24.3'
+        )
 
         @dsl.component(packages_to_install=[numpy_version])
         def package_using_op() -> List[int]:
             import numpy as np
+
             return np.array([1, 2, 3]).tolist()
 
         @dsl.pipeline
@@ -665,7 +676,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 max_concurrent_pip_installs=2,  # But limit to 2 concurrent
             ),
             pipeline_root=ROOT_FOR_TESTING,
-            raise_on_error=False)
+            raise_on_error=False,
+        )
 
         # Use packages that require installation to demonstrate serialization
         @dsl.component(packages_to_install=['requests==2.28.2'])
@@ -686,9 +698,11 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         # Check concurrent execution stats
         from kfp.local.pip_install_manager import pip_install_manager
+
         stats = pip_install_manager.get_stats()
-        self.assertLessEqual(stats['concurrent_peak'],
-                             2)  # Should respect max concurrent limit
+        self.assertLessEqual(
+            stats['concurrent_peak'], 2
+        )  # Should respect max concurrent limit
 
     def test_condition_supported(self):
         local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
@@ -721,8 +735,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             raise_component()
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'raise-component\'\x1b\[0m\.",
+            RuntimeError,
+            r'Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'raise-component\'\x1b\[0m\.',
         ):
             my_pipeline()
 
@@ -753,8 +767,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             inner_pipeline()
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m inside \x1b\[96m\'inner-pipeline\'\x1b\[0m\.",
+            RuntimeError,
+            r'Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m inside \x1b\[96m\'inner-pipeline\'\x1b\[0m\.',
         ):
             my_pipeline()
 
@@ -785,8 +799,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             mid_pipeline()
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Pipeline \x1b\[95m\'outer-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m\ inside \x1b\[96m\'deep-pipeline\'\x1b\[0m inside \x1b\[96m\'mid-pipeline\'\x1b\[0m\.",
+            RuntimeError,
+            r'Pipeline \x1b\[95m\'outer-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m\ inside \x1b\[96m\'deep-pipeline\'\x1b\[0m inside \x1b\[96m\'mid-pipeline\'\x1b\[0m\.',
         ):
             outer_pipeline()
 
@@ -860,7 +874,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         )
         self.assertRegex(
             logged_output,
-            r"ERROR - Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m inside \x1b\[96m\'inner-pipeline\'\x1b\[0m.\n"
+            r'ERROR - Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m inside \x1b\[96m\'inner-pipeline\'\x1b\[0m.\n',
         )
         self.assertEqual(task.outputs, {})
 
@@ -931,11 +945,13 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             local.init(
                 local.SubprocessRunner(),
                 pipeline_root=ROOT_FOR_TESTING,
-                workspace_root=workspace_root)
+                workspace_root=workspace_root,
+            )
 
             @dsl.component
             def write_to_workspace(text: str, workspace_path: str) -> str:
                 import os
+
                 output_file = os.path.join(workspace_path, 'output.txt')
                 with open(output_file, 'w') as f:
                     f.write(text)
@@ -948,11 +964,14 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
             @dsl.pipeline(
                 pipeline_config=dsl.PipelineConfig(
-                    workspace=dsl.WorkspaceConfig(size='1Gi')))
+                    workspace=dsl.WorkspaceConfig(size='1Gi')
+                )
+            )
             def my_pipeline(text: str = 'Hello workspace!') -> str:
                 # Write to workspace
                 write_task = write_to_workspace(
-                    text=text, workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+                    text=text, workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER
+                )
 
                 # Read from workspace
                 read_task = read_from_workspace(file_path=write_task.output)
@@ -975,20 +994,23 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             local.init(
                 local.DockerRunner(),
                 pipeline_root=ROOT_FOR_TESTING,
-                workspace_root=workspace_root)
+                workspace_root=workspace_root,
+            )
 
             # Verify that the workspace is properly configured
             self.assertEqual(
                 local.config.LocalExecutionConfig.instance.workspace_root,
-                workspace_root)
+                workspace_root,
+            )
             self.assertEqual(
                 type(local.config.LocalExecutionConfig.instance.runner),
-                local.DockerRunner)
+                local.DockerRunner,
+            )
 
 
 class TestFstringContainerComponent(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     @classmethod
     def setUpClass(cls):
         from kfp.local import subprocess_task_handler
@@ -998,20 +1020,30 @@ class TestFstringContainerComponent(
         # We do this here because we only want to test the very specific
         # f-string logic in container components without the presence of
         # Docker in the test environment.
-        cls.original_validate_image = subprocess_task_handler.SubprocessTaskHandler.validate_image
-        subprocess_task_handler.SubprocessTaskHandler.validate_image = lambda slf, image: None
+        cls.original_validate_image = (
+            subprocess_task_handler.SubprocessTaskHandler.validate_image
+        )
+        subprocess_task_handler.SubprocessTaskHandler.validate_image = (
+            lambda slf, image: None
+        )
 
         cls.original_validate_not_container_component = subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component
-        subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = lambda slf, full_command: None
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = (
+            lambda slf, full_command: None
+        )
 
         cls.original_validate_not_containerized_python_component = subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component
-        subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = lambda slf, full_command: None
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = (
+            lambda slf, full_command: None
+        )
 
     @classmethod
     def tearDownClass(cls):
         from kfp.local import subprocess_task_handler
 
-        subprocess_task_handler.SubprocessTaskHandler.validate_image = cls.original_validate_image
+        subprocess_task_handler.SubprocessTaskHandler.validate_image = (
+            cls.original_validate_image
+        )
         subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = cls.original_validate_not_container_component
         subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = cls.original_validate_not_containerized_python_component
 
@@ -1026,7 +1058,8 @@ class TestFstringContainerComponent(
                     'sh',
                     '-c',
                     f"""mkdir -p $(dirname {outpath}) && printf '%s' {string} > {outpath}""",
-                ])
+                ],
+            )
 
         @dsl.pipeline
         def my_pipeline(string: str = 'baz') -> str:

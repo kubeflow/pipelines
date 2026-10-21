@@ -27,21 +27,24 @@ LOGIN_PATTERN = r'[A-Za-z0-9][A-Za-z0-9-]{0,38}'
 
 
 class _UniqueKeySafeLoader(yaml.SafeLoader):
-
     def construct_mapping(self, node, deep=False):
         mapping = super().construct_mapping(node, deep=deep)
         # SafeLoader flattens YAML merges before construction; reject overrides too.
         if len(mapping) != len(node.value):
             raise yaml.constructor.ConstructorError(
-                None, None, 'Duplicate YAML mapping keys are not allowed',
-                node.start_mark)
+                None,
+                None,
+                'Duplicate YAML mapping keys are not allowed',
+                node.start_mark,
+            )
         return mapping
 
 
 def _parse_members(yaml_text: str) -> set[str]:
     try:
-        org = yaml.load(
-            yaml_text, Loader=_UniqueKeySafeLoader)['orgs']['kubeflow']
+        org = yaml.load(yaml_text, Loader=_UniqueKeySafeLoader)['orgs'][
+            'kubeflow'
+        ]
         groups = [org['admins'], org['members']]
     except (yaml.YAMLError, KeyError, TypeError) as error:
         raise RuntimeError(
@@ -49,10 +52,10 @@ def _parse_members(yaml_text: str) -> set[str]:
         ) from error
 
     if any(not isinstance(group, list) for group in groups) or any(
-            not isinstance(login, str) or
-            not re.fullmatch(LOGIN_PATTERN, login)
-            for group in groups
-            for login in group):
+        not isinstance(login, str) or not re.fullmatch(LOGIN_PATTERN, login)
+        for group in groups
+        for login in group
+    ):
         raise RuntimeError(
             'Invalid Kubeflow ACL member lists. Expected lists of GitHub usernames; verify org.yaml before retrying.'
         )
@@ -71,12 +74,16 @@ def is_kubeflow_member(username: str) -> bool:
     """
     if not re.fullmatch(LOGIN_PATTERN, username):
         raise ValueError(
-            'Provide a valid GitHub username for membership lookup.')
+            'Provide a valid GitHub username for membership lookup.'
+        )
     try:
         result = subprocess.run(
             [
-                'gh', 'api', ACL_PATH, '--header',
-                'Accept: application/vnd.github.raw+json'
+                'gh',
+                'api',
+                ACL_PATH,
+                '--header',
+                'Accept: application/vnd.github.raw+json',
             ],
             check=True,
             capture_output=True,

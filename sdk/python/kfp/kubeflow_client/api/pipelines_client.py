@@ -20,21 +20,25 @@ designed for re-export by the Kubeflow SDK at ``kubeflow.pipelines``.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from kfp.client import Client
 
-from kfp.kubeflow_client.backends.kubernetes import KubernetesBackend
-from kfp.kubeflow_client.backends.kubernetes import KubernetesBackendConfig
-from kfp.kubeflow_client.types import Experiment
-from kfp.kubeflow_client.types import ListExperimentsResponse
-from kfp.kubeflow_client.types import ListPipelinesResponse
-from kfp.kubeflow_client.types import ListPipelineVersionsResponse
-from kfp.kubeflow_client.types import ListRunsResponse
-from kfp.kubeflow_client.types import Pipeline
-from kfp.kubeflow_client.types import PipelineVersion
-from kfp.kubeflow_client.types import Run
+from kfp.kubeflow_client.backends.kubernetes import (
+    KubernetesBackend,
+    KubernetesBackendConfig,
+)
+from kfp.kubeflow_client.types import (
+    Experiment,
+    ListExperimentsResponse,
+    ListPipelinesResponse,
+    ListPipelineVersionsResponse,
+    ListRunsResponse,
+    Pipeline,
+    PipelineVersion,
+    Run,
+)
 
 __all__ = ['PipelinesClient']
 
@@ -100,7 +104,8 @@ class PipelinesClient:
             A ``PipelineVersion`` object representing the uploaded version.
         """
         return self._backend.upload_pipeline(
-            pipeline, name=name, version_name=version, description=description)
+            pipeline, name=name, version_name=version, description=description
+        )
 
     def get_pipeline(self, name: str) -> Pipeline:
         """Get a pipeline by name.
@@ -152,7 +157,8 @@ class PipelinesClient:
             ``.next_page_token``.
         """
         return self._backend.list_pipelines(
-            page_token=page_token, page_size=page_size)
+            page_token=page_token, page_size=page_size
+        )
 
     def list_pipeline_versions(
         self,
@@ -173,7 +179,8 @@ class PipelinesClient:
             and ``.next_page_token``.
         """
         return self._backend.list_pipeline_versions(
-            name, page_token=page_token, page_size=page_size)
+            name, page_token=page_token, page_size=page_size
+        )
 
     def delete_pipeline(
         self,
@@ -387,7 +394,8 @@ class PipelinesClient:
             ``.next_page_token``.
         """
         return self._backend.list_experiments(
-            page_token=page_token, page_size=page_size)
+            page_token=page_token, page_size=page_size
+        )
 
     def delete_experiment(self, name: str) -> None:
         """Delete an experiment by name.
@@ -413,6 +421,7 @@ class PipelinesClient:
         """
         if self._kfp_client_instance is None:
             from kfp.client import Client
+
             config = self._backend.config
             kwargs: dict[str, Any] = {}
             if config.base_url:

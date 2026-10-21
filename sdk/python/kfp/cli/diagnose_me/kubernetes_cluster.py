@@ -21,6 +21,7 @@ from kfp.cli.diagnose_me import utility
 
 class Commands(enum.Enum):
     """Enum for kubernetes commands."""
+
     GET_CONFIGURED_CONTEXT = 1
     GET_PODS = 2
     GET_PVCS = 3
@@ -44,8 +45,8 @@ _command_string = {
 
 
 def execute_kubectl_command(
-        kubectl_command_list: List[Text],
-        human_readable: bool = False) -> utility.ExecutorResponse:
+    kubectl_command_list: List[Text], human_readable: bool = False
+) -> utility.ExecutorResponse:
     """Invokes  the kubectl command.
 
     Args:
@@ -65,10 +66,11 @@ def execute_kubectl_command(
 
 
 def get_kubectl_configuration(
-        configuration: Commands,
-        kubernetes_context: Text = None,
-        namespace: Text = None,
-        human_readable: bool = False) -> utility.ExecutorResponse:
+    configuration: Commands,
+    kubernetes_context: Text = None,
+    namespace: Text = None,
+    human_readable: bool = False,
+) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
     Captures the environment state for the specified setting such as current
@@ -97,10 +99,13 @@ def get_kubectl_configuration(
       configuration,or an error message if any occurs during execution.
     """
 
-    if configuration in (Commands.GET_CONFIGURED_CONTEXT,
-                         Commands.GET_KUBECTL_VERSION):
+    if configuration in (
+        Commands.GET_CONFIGURED_CONTEXT,
+        Commands.GET_KUBECTL_VERSION,
+    ):
         return execute_kubectl_command(
-            (_command_string[configuration]).split(' '), human_readable)
+            (_command_string[configuration]).split(' '), human_readable
+        )
 
     execution_command = _command_string[configuration].split(' ')
     if kubernetes_context:

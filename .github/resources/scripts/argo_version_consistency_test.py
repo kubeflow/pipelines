@@ -14,9 +14,9 @@
 """Repository-level consistency checks for pinned Argo versions."""
 
 import importlib.util
-from pathlib import Path
 import re
 import unittest
+from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 SYNC_SCRIPT = Path(__file__).with_name('sync_argo_versions.py')
@@ -26,12 +26,13 @@ SPEC.loader.exec_module(sync_argo_versions)
 
 
 class ArgoVersionConsistencyTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
-        cls.current_version = (REPOSITORY_ROOT /
-                               'third_party/argo/VERSION').read_text(
-                                   encoding='utf-8').strip()
+        cls.current_version = (
+            (REPOSITORY_ROOT / 'third_party/argo/VERSION')
+            .read_text(encoding='utf-8')
+            .strip()
+        )
 
     def assert_version_matches(self, relative_path, pattern):
         contents = (REPOSITORY_ROOT / relative_path).read_text(encoding='utf-8')
@@ -46,8 +47,10 @@ class ArgoVersionConsistencyTest(unittest.TestCase):
 
     def test_current_runtime_references_match_version(self):
         checks = (
-            ('go.mod',
-             r'github\.com/argoproj/argo-workflows/v\d+ (v\d+\.\d+\.\d+)'),
+            (
+                'go.mod',
+                r'github\.com/argoproj/argo-workflows/v\d+ (v\d+\.\d+\.\d+)',
+            ),
             ('third_party/argo/UPGRADE.md', r'ARGO_TAG=(v\d+\.\d+\.\d+)'),
             (
                 'manifests/kustomize/third-party/argo/base/kustomization.yaml',
@@ -86,7 +89,8 @@ class ArgoVersionConsistencyTest(unittest.TestCase):
 
     def test_backend_dockerfile_derives_argo_cli_from_go_module(self):
         contents = (REPOSITORY_ROOT / 'backend/Dockerfile').read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
         self.assertIn(
             "go list -mod=readonly -m -f '{{.Version}}' "
             'github.com/argoproj/argo-workflows/v4',
@@ -96,7 +100,8 @@ class ArgoVersionConsistencyTest(unittest.TestCase):
 
     def test_argo_install_script_reads_canonical_version_file(self):
         contents = (REPOSITORY_ROOT / 'test/install-argo-cli.sh').read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
         self.assertIn(
             'ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"',
             contents,

@@ -13,8 +13,8 @@
 # limitations under the License.
 """Assorted utilities."""
 
-from google.protobuf import json_format
-from google.protobuf import struct_pb2
+from google.protobuf import json_format, struct_pb2
+
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 

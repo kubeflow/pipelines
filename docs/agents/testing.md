@@ -38,13 +38,18 @@ Pipeline inputs live in `test_data/pipeline_files/valid/`; compiler goldens live
 
 ```bash
 golangci-lint run
-bash test/presubmit-isort-sdk.sh
-bash test/presubmit-yapf-sdk.sh
+bash test/presubmit-ruff.sh
 bash test/presubmit-docformatter-sdk.sh
 ```
 
-These SDK scripts exclude generated protobuf and OpenAPI modules. The YAPF
-script also normalizes Python string quotes before checking formatting.
+Ruff checks all handwritten Python sources, including scripts and fixtures, using
+`pyproject.toml`; generated protobuf and OpenAPI modules are excluded even when
+passed explicitly. The soon-to-be-deleted `components/google-cloud` tree is also
+excluded from Ruff and all pre-commit hooks; leave it unchanged by this migration. It owns import sorting, unused-import cleanup, invalid escape
+checks, and formatting. Package imports in `__init__.py` are retained as public
+re-exports. Notebooks and Markdown are outside the Python formatting check.
+Docformatter still wraps docstring prose: run it before `ruff format`, and run
+the hook chain twice to check that both tools agree.
 
 Run the complete SDK unit selection with both Python 3.11 and 3.13 after
 changing packaging or local-runner test setup; a runtime-only or serial subset

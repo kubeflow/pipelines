@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -26,15 +25,15 @@ def my_pipeline():
     task = comp()
     kubernetes.add_toleration(
         task,
-        key="key1",
-        operator="Equal",
-        value="value1",
-        effect="NoExecute",
+        key='key1',
+        operator='Equal',
+        value='value1',
+        effect='NoExecute',
         toleration_seconds=10,
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     from kfp import compiler
 
-    compiler.Compiler().compile(my_pipeline, __file__.replace(".py", ".yaml"))
+    compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))

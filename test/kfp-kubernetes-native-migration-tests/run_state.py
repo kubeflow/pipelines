@@ -40,4 +40,5 @@ def wait_for_run_state(client, run_id, timeout=60, poll_interval=1):
     raise TimeoutError(
         f'Run {run_id!r} did not report a state within {timeout}s '
         f'(last state: {state!r}). Check workflow-controller and '
-        'persistence-agent logs.')
+        'persistence-agent logs.'
+    )

@@ -13,9 +13,9 @@
 # limitations under the License.
 """Keep temporary gh-aw syntax exceptions narrow and validate their values."""
 
-from pathlib import Path
 import re
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -24,10 +24,10 @@ WORKFLOW = '.github/workflows/ai-analyzer.lock.yml'
 
 
 class ActionlintCompatibilityTest(unittest.TestCase):
-
     def setUp(self):
         self.config = yaml.safe_load(
-            (ROOT / '.github/actionlint.yaml').read_text())
+            (ROOT / '.github/actionlint.yaml').read_text()
+        )
         self.patterns = self.config['paths'][WORKFLOW]['ignore']
 
     def test_exceptions_only_match_known_diagnostics(self):
@@ -40,15 +40,17 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         )
         for diagnostic in known:
             self.assertTrue(
-                any(re.search(p, diagnostic) for p in self.patterns))
+                any(re.search(p, diagnostic) for p in self.patterns)
+            )
         for diagnostic in (
-                known[0].replace('"queue"', '"queues"'),
-                known[0].replace('"concurrency"', '"jobs"'),
-                known[1].replace('copilot-requests', 'unknown-scope'),
-                'undefined variable "missing". available variables are "github"',
+            known[0].replace('"queue"', '"queues"'),
+            known[0].replace('"concurrency"', '"jobs"'),
+            known[1].replace('copilot-requests', 'unknown-scope'),
+            'undefined variable "missing". available variables are "github"',
         ):
             self.assertFalse(
-                any(re.search(p, diagnostic) for p in self.patterns))
+                any(re.search(p, diagnostic) for p in self.patterns)
+            )
 
     def test_exceptions_are_not_global_or_shared(self):
         self.assertNotIn('ignore', self.config)
@@ -65,8 +67,10 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             if isinstance(concurrency, dict) and 'queue' in concurrency:
                 queues.append(concurrency['queue'])
             permission = scope.get('permissions', {})
-            if isinstance(permission,
-                          dict) and 'copilot-requests' in permission:
+            if (
+                isinstance(permission, dict)
+                and 'copilot-requests' in permission
+            ):
                 permissions.append(permission['copilot-requests'])
         self.assertTrue(queues)
         self.assertEqual(set(queues), {'max'})

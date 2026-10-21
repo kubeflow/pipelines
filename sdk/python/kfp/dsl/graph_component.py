@@ -14,18 +14,20 @@
 """Pipeline as a component (aka graph component)."""
 
 import inspect
-from typing import Callable, List, Optional
 import uuid
+from typing import Callable, List, Optional
 
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
-from kfp.dsl import base_component
-from kfp.dsl import pipeline_channel
-from kfp.dsl import pipeline_config
-from kfp.dsl import pipeline_context
-from kfp.dsl import pipeline_task
-from kfp.dsl import structures
-from kfp.dsl import tasks_group
+from kfp.dsl import (
+    base_component,
+    pipeline_channel,
+    pipeline_config,
+    pipeline_context,
+    pipeline_task,
+    structures,
+    tasks_group,
+)
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -57,10 +59,12 @@ class GraphComponent(base_component.BaseComponent):
                     name=arg_name,
                     channel_type=input_spec.type,
                     is_artifact_list=input_spec.is_artifact_list,
-                ))
+                )
+            )
 
         with pipeline_context.Pipeline(
-                self.component_spec.name) as dsl_pipeline:
+            self.component_spec.name
+        ) as dsl_pipeline:
             pipeline_outputs = pipeline_func(*args_list)
 
         if not dsl_pipeline.tasks:
@@ -93,7 +97,8 @@ class GraphComponent(base_component.BaseComponent):
         self.component_spec.platform_spec = platform_spec
 
     def _detect_workspace_usage_in_tasks(
-            self, tasks: List[pipeline_task.PipelineTask]) -> bool:
+        self, tasks: List[pipeline_task.PipelineTask]
+    ) -> bool:
         """Detects if any task in the list uses workspace features.
 
         Args:
@@ -107,15 +112,19 @@ class GraphComponent(base_component.BaseComponent):
             if hasattr(task, 'inputs') and task.inputs:
                 for input_value in task.inputs.values():
                     if isinstance(input_value, str):
-                        if (dsl.WORKSPACE_PATH_PLACEHOLDER in input_value or
-                                input_value.startswith(
-                                    dsl.constants.WORKSPACE_MOUNT_PATH)):
+                        if (
+                            dsl.WORKSPACE_PATH_PLACEHOLDER in input_value
+                            or input_value.startswith(
+                                dsl.constants.WORKSPACE_MOUNT_PATH
+                            )
+                        ):
                             return True
 
         return False
 
     def _detect_workspace_usage_in_groups(
-            self, groups: List[tasks_group.TasksGroup]) -> bool:
+        self, groups: List[tasks_group.TasksGroup]
+    ) -> bool:
         """Detects if any task group uses workspace features.
 
         Args:
@@ -138,8 +147,10 @@ class GraphComponent(base_component.BaseComponent):
         return False
 
     def _validate_workspace_requirements(
-            self, pipeline: pipeline_context.Pipeline,
-            pipeline_config: Optional[pipeline_config.PipelineConfig]) -> None:
+        self,
+        pipeline: pipeline_context.Pipeline,
+        pipeline_config: Optional[pipeline_config.PipelineConfig],
+    ) -> None:
         """Validates that workspace is configured if workspace features are
         used in the pipeline.
 
@@ -155,12 +166,16 @@ class GraphComponent(base_component.BaseComponent):
 
         if pipeline.groups:
             workspace_used = self._detect_workspace_usage_in_groups(
-                pipeline.groups)
+                pipeline.groups
+            )
 
         # If workspace features are used, ensure workspace is configured
         if workspace_used:
-            if (pipeline_config is None or pipeline_config.workspace is None or
-                    not getattr(pipeline_config.workspace, 'size', None)):
+            if (
+                pipeline_config is None
+                or pipeline_config.workspace is None
+                or not getattr(pipeline_config.workspace, 'size', None)
+            ):
                 raise ValueError(
                     'Workspace features are used (e.g., dsl.WORKSPACE_PATH_PLACEHOLDER) but PipelineConfig.workspace.size is not set.'
                 )

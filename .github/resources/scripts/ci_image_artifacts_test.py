@@ -14,54 +14,54 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).parents[3]
 ARTIFACTS_SCRIPT = Path(__file__).with_name('ci-image-artifacts.sh')
 IMAGE_BUILDS_WORKFLOW = ROOT / '.github' / 'workflows' / 'image-builds.yml'
-FRONTEND_E2E_WORKFLOW = (
-    ROOT / '.github' / 'workflows' / 'e2e-test-frontend.yml')
+FRONTEND_E2E_WORKFLOW = ROOT / '.github' / 'workflows' / 'e2e-test-frontend.yml'
 CI_SCRIPTS_WORKFLOW = ROOT / '.github' / 'workflows' / 'ci-scripts-tests.yml'
 
 
 class CiImageArtifactsTest(unittest.TestCase):
-
     def test_inventory_cli_runs_from_its_own_directory(self):
         result = subprocess.run(
             ['bash', ARTIFACTS_SCRIPT.name, 'published-image-files'],
             cwd=ARTIFACTS_SCRIPT.parent,
-            env={
-                **os.environ, 'PYTHONSAFEPATH': '1'
-            },
+            env={**os.environ, 'PYTHONSAFEPATH': '1'},
             capture_output=True,
             text=True,
-            check=False)
+            check=False,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         from arm64_smoke import IMAGES
+
         self.assertEqual(
             set(result.stdout.splitlines()),
-            {f'{image}.json' for image in IMAGES})
+            {f'{image}.json' for image in IMAGES},
+        )
 
     def test_failed_inventory_does_not_emit_partial_actions_output(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'output'
             output.write_text('previous=value\n')
-            result = subprocess.run([
-                'bash',
-                str(ARTIFACTS_SCRIPT), '--github-output',
-                'platform-digest-files', 'not-a-platform'
-            ],
-                                    env={
-                                        **os.environ, 'GITHUB_OUTPUT':
-                                            str(output)
-                                    },
-                                    capture_output=True,
-                                    text=True,
-                                    check=False)
+            result = subprocess.run(
+                [
+                    'bash',
+                    str(ARTIFACTS_SCRIPT),
+                    '--github-output',
+                    'platform-digest-files',
+                    'not-a-platform',
+                ],
+                env={**os.environ, 'GITHUB_OUTPUT': str(output)},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(output.read_text(), 'previous=value\n')
 
@@ -82,21 +82,24 @@ class CiImageArtifactsTest(unittest.TestCase):
 
         workflow = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
         built_images = set(
-            re.findall(r'^\s+- image:\s+([^\s]+)\s*$', workflow, re.MULTILINE))
+            re.findall(r'^\s+- image:\s+([^\s]+)\s*$', workflow, re.MULTILINE)
+        )
         expected_artifacts = built_images | {'runtime-base-images'}
 
         self.assertEqual(configured_artifacts, expected_artifacts)
 
     def test_deleted_metadata_envoy_is_not_referenced(self):
         frontend_e2e_workflow = FRONTEND_E2E_WORKFLOW.read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
         image_builds_workflow = IMAGE_BUILDS_WORKFLOW.read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
         ci_scripts_workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
         pull_request_block = frontend_e2e_workflow.split(
-            '  pull_request:\n', maxsplit=1)[1].split(
-                '\n\nconcurrency:', maxsplit=1)[0]
+            '  pull_request:\n', maxsplit=1
+        )[1].split('\n\nconcurrency:', maxsplit=1)[0]
 
         self.assertNotIn('metadata_envoy', pull_request_block)
         self.assertIn(
@@ -105,8 +108,10 @@ class CiImageArtifactsTest(unittest.TestCase):
         )
         self.assertNotIn('metadata-envoy', image_builds_workflow)
         self.assertNotIn('metadata_envoy', image_builds_workflow)
-        self.assertIn("      - '.github/workflows/e2e-test-frontend.yml'",
-                      ci_scripts_workflow)
+        self.assertIn(
+            "      - '.github/workflows/e2e-test-frontend.yml'",
+            ci_scripts_workflow,
+        )
 
 
 if __name__ == '__main__':

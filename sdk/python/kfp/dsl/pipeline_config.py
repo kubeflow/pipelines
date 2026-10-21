@@ -44,9 +44,9 @@ class WorkspaceConfig:
         kubernetes: (Optional) Kubernetes-specific configuration for the underlying PVC.
     """
 
-    def __init__(self,
-                 size: str,
-                 kubernetes: Optional[KubernetesWorkspaceConfig] = None):
+    def __init__(
+        self, size: str, kubernetes: Optional[KubernetesWorkspaceConfig] = None
+    ):
         self.size = size
         self.kubernetes = kubernetes or KubernetesWorkspaceConfig()
 
@@ -69,7 +69,8 @@ class WorkspaceConfig:
         if normalized is None:
             raise ValueError(
                 f'Workspace size "{size}" is invalid. Must be a valid Kubernetes resource quantity '
-                '(e.g., "10Gi", "500Mi", "1Ti")')
+                '(e.g., "10Gi", "500Mi", "1Ti")'
+            )
         self._size = normalized
 
     def get_workspace(self) -> dict:
@@ -83,8 +84,9 @@ class WorkspaceConfig:
     def set_size(self, size: str):
         self.size = size
 
-    def set_kubernetes_config(self,
-                              kubernetes_config: KubernetesWorkspaceConfig):
+    def set_kubernetes_config(
+        self, kubernetes_config: KubernetesWorkspaceConfig
+    ):
         self.kubernetes = kubernetes_config
 
 
@@ -133,14 +135,17 @@ class PipelineConfig:
                 continue
             if isinstance(value, bool) or not isinstance(value, int):
                 raise TypeError(
-                    f'{name} must be an int. Got: {type(value).__name__}')
+                    f'{name} must be an int. Got: {type(value).__name__}'
+                )
             if value < 0:
                 raise ValueError(
-                    f'{name} must be a non-negative integer. Got: {value}')
+                    f'{name} must be a non-negative integer. Got: {value}'
+                )
             if value > 2147483647:
                 raise ValueError(
                     f'{name} must not exceed the int32 maximum (2147483647).'
-                    f' Got: {value}')
+                    f' Got: {value}'
+                )
         self.ttl_seconds_after_finished = ttl_seconds_after_finished
         self.ttl_seconds_after_success = ttl_seconds_after_success
         self.ttl_seconds_after_failure = ttl_seconds_after_failure

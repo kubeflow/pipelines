@@ -45,9 +45,11 @@ class KubernetesBackendConfig:
 
     def __repr__(self) -> str:
         token_display = '***' if self.user_token else None
-        return (f'KubernetesBackendConfig('
-                f'base_url={self.base_url!r}, '
-                f'user_token={token_display!r}, '
-                f'is_secure={self.is_secure!r}, '
-                f'custom_ca={self.custom_ca!r}, '
-                f'namespace={self.namespace!r})')
+        return (
+            f'KubernetesBackendConfig('
+            f'base_url={self.base_url!r}, '
+            f'user_token={token_display!r}, '
+            f'is_secure={self.is_secure!r}, '
+            f'custom_ca={self.custom_ca!r}, '
+            f'namespace={self.namespace!r})'
+        )

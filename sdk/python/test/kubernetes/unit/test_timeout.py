@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
 import pytest
+from google.protobuf import json_format
+from kfp import dsl, kubernetes
 
 
 class TestTimeout:
-
     def test_timeout(self):
 
         @dsl.pipeline
@@ -32,9 +30,7 @@ class TestTimeout:
                 'kubernetes': {
                     'deploymentSpec': {
                         'executors': {
-                            'exec-comp': {
-                                'activeDeadlineSeconds': '20'
-                            }
+                            'exec-comp': {'activeDeadlineSeconds': '20'}
                         }
                     }
                 }
@@ -52,11 +48,7 @@ class TestTimeout:
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
                 'kubernetes': {
-                    'deploymentSpec': {
-                        'executors': {
-                            'exec-comp': {}
-                        }
-                    }
+                    'deploymentSpec': {'executors': {'exec-comp': {}}}
                 }
             }
         }
@@ -64,8 +56,8 @@ class TestTimeout:
     def test_bad_value_timeout(self):
 
         with pytest.raises(
-                ValueError,
-                match=r'Argument for "seconds" must be an integer greater or equals to 0. Got invalid input: -20.',
+            ValueError,
+            match=r'Argument for "seconds" must be an integer greater or equals to 0. Got invalid input: -20.',
         ):
 
             @dsl.pipeline

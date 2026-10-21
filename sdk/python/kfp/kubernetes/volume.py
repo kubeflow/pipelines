@@ -14,8 +14,8 @@
 
 from typing import Dict, List, Optional, Union
 
-from google.protobuf import json_format
-from google.protobuf import message
+from google.protobuf import json_format, message
+
 from kfp import dsl
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
@@ -133,8 +133,9 @@ def DeletePVC(pvc_name: str):
     return dsl.ContainerSpec(image='argostub/deletepvc')
 
 
-def _assign_pvc_name_to_msg(msg: message.Message,
-                            pvc_name: Union[str, 'PipelineChannel']) -> bool:
+def _assign_pvc_name_to_msg(
+    msg: message.Message, pvc_name: Union[str, 'PipelineChannel']
+) -> bool:
     """Assigns pvc_name to the msg's pvc_reference oneof.
 
     Returns True if pvc_name is an upstream task output; otherwise, False.
@@ -211,8 +212,11 @@ def add_ephemeral_volume(
             metadata=pb.PodMetadata(
                 annotations=annotations or {},
                 labels=labels or {},
-            ) if annotations or labels else None,
-        ))
+            )
+            if annotations or labels
+            else None,
+        )
+    )
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task

@@ -16,21 +16,25 @@ from kfp import dsl
 
 
 @dsl.container_component
-def component_with_optional_inputs(required_input: str,
-                                   optional_input_1: str = None,
-                                   optional_input_2: str = None):
+def component_with_optional_inputs(
+    required_input: str,
+    optional_input_1: str = None,
+    optional_input_2: str = None,
+):
     return dsl.ContainerSpec(
         image='ghcr.io/containerd/busybox:1.36',
         command=['echo'],
         args=[
-            '--arg0', required_input,
+            '--arg0',
+            required_input,
             dsl.IfPresentPlaceholder(
-                input_name='optional_input_1',
-                then=['--arg1', optional_input_1]),
+                input_name='optional_input_1', then=['--arg1', optional_input_1]
+            ),
             dsl.IfPresentPlaceholder(
                 input_name='optional_input_2',
                 then=['--arg2', optional_input_2],
-                else_=['--arg2', 'default value'])
+                else_=['--arg2', 'default value'],
+            ),
         ],
     )
 
@@ -39,12 +43,13 @@ component_op = component_with_optional_inputs
 
 
 @dsl.pipeline(name='one-step-pipeline-with-if-placeholder-supply-both')
-def pipeline_both(input0: str = 'input0',
-                  input1: str = 'input1',
-                  input2: str = 'input2'):
+def pipeline_both(
+    input0: str = 'input0', input1: str = 'input1', input2: str = 'input2'
+):
     # supply both optional_input_1 and optional_input_2
     component = component_op(
-        required_input=input0, optional_input_1=input1, optional_input_2=input2)
+        required_input=input0, optional_input_1=input1, optional_input_2=input2
+    )
 
 
 @dsl.pipeline(name='one-step-pipeline-with-if-placeholder-supply-none')
@@ -59,6 +64,8 @@ def pipeline_none(input0: str = 'input0'):
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=pipeline_none,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

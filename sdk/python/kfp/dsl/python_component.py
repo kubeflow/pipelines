@@ -15,8 +15,7 @@
 
 from typing import Callable
 
-from kfp.dsl import base_component
-from kfp.dsl import structures
+from kfp.dsl import base_component, structures
 
 
 class PythonComponent(base_component.BaseComponent):
