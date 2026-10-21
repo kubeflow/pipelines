@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Sample pipeline for passing data in KFP v2."""
-from typing import Dict, List
-import os
 
-from kfp import dsl
-from kfp.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
+import os
+from typing import Dict, List
+
 import kfp.compiler as compiler
+from kfp import dsl
+from kfp.dsl import (
+    Dataset,
+    Input,
+    InputPath,
+    Model,
+    Output,
+    OutputPath,
+    component,
+)
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -43,9 +52,9 @@ def preprocess(
     # A locally accessible filepath for an output parameter of type list.
     output_list_parameter_path: OutputPath(List[str]),
     # An input message that defaults to empty.
-    empty_message: str = "",
+    empty_message: str = '',
 ):
-    """Dummy preprocessing step"""
+    """Dummy preprocessing step."""
 
     # Use Dataset.path to access a local file path for writing.
     # One can also use Dataset.uri to access the actual URI file path.
@@ -66,6 +75,7 @@ def preprocess(
         )  # use either `str()` or `json.dumps()` for bool values.
 
     import json
+
     with open(output_dict_parameter_path, 'w') as f:
         f.write(json.dumps({'A': 1, 'B': 2}))
 
@@ -95,7 +105,7 @@ def train(
     # An input parameter of type int with a default value.
     num_steps: int = 100,
 ):
-    """Dummy Training step"""
+    """Dummy Training step."""
     with open(dataset_one_path, 'r') as input_file:
         dataset_one_contents = input_file.read()
 

@@ -44,6 +44,9 @@ Do not rename the independent PipelineSpec IR or Kubernetes CRD versions.
 - Go HTTP generation omits unset `Run.tasks` from JSON create bodies: the field
   is an output list and older servers reject it even when its value is null.
   The generator asserts the resulting tag so upstream output changes fail explicitly.
+- Go HTTP generation preserves the exported `ProtobufAny` additional-properties
+  map field across upstream Swagger schema changes. Keep the normalization and
+  canonical/legacy client JSON compatibility tests aligned when updating generators.
 - Python HTTP client generation omits OpenAPI's unimplemented API/model test
   stubs and unused tox configuration. Real coverage remains in SDK client tests
   and `backend/api/v2/python_http_client_smoke`.

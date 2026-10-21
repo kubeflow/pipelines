@@ -19,16 +19,17 @@ from kfp.dsl.types.artifact_types import Dataset
 
 
 class TestNotebookComponentDecorator(unittest.TestCase):
-
     def _make_temp_notebook(self, cells_source: str) -> str:
         nb = {
-            'cells': [{
-                'cell_type': 'code',
-                'execution_count': None,
-                'metadata': {},
-                'outputs': [],
-                'source': cells_source,
-            }],
+            'cells': [
+                {
+                    'cell_type': 'code',
+                    'execution_count': None,
+                    'metadata': {},
+                    'outputs': [],
+                    'source': cells_source,
+                }
+            ],
             'metadata': {
                 'kernelspec': {
                     'display_name': 'Python 3',
@@ -51,7 +52,8 @@ class TestNotebookComponentDecorator(unittest.TestCase):
 
     def test_notebook_component_default_packages_install(self):
         nb_path = self._make_temp_notebook(
-            "import os\nos.makedirs('/tmp/kfp_nb_outputs', exist_ok=True)\n")
+            "import os\nos.makedirs('/tmp/kfp_nb_outputs', exist_ok=True)\n"
+        )
 
         @dsl.notebook_component(notebook_path=nb_path)
         def my_nb(text: str):
@@ -80,41 +82,55 @@ class TestNotebookComponentDecorator(unittest.TestCase):
 
 
 class TestNotebookExecutorTemplate(unittest.TestCase):
-
     def test_template_binds_run_notebook(self):
         from kfp.dsl.templates import notebook_executor
 
         source = notebook_executor.get_notebook_executor_source(
-            'ARCHIVE_B64', 'nb.ipynb')
+            'ARCHIVE_B64', 'nb.ipynb'
+        )
         self.assertIn('dsl.run_notebook = kfp_run_notebook', source)
-        self.assertIn('class KFPStreamingNotebookClient(NotebookClient):',
-                      source)
+        self.assertIn(
+            'class KFPStreamingNotebookClient(NotebookClient):', source
+        )
 
     @unittest.skipUnless(
         all(
             importlib.util.find_spec(name) is not None
-            for name in ('nbclient', 'ipykernel', 'jupyter_client')),
-        'Install kfp[notebooks] to exercise the notebook kernel')
+            for name in ('nbclient', 'ipykernel', 'jupyter_client')
+        ),
+        'Install kfp[notebooks] to exercise the notebook kernel',
+    )
     def test_generated_executor_runs_python_kernel(self):
-        from kfp.dsl.templates import notebook_executor
         import nbformat
+
+        from kfp.dsl.templates import notebook_executor
 
         with tempfile.TemporaryDirectory() as tmpdir:
             kernel_dir = pathlib.Path(tmpdir, 'jupyter', 'kernels', 'python3')
             kernel_dir.mkdir(parents=True)
             kernel_dir.joinpath('kernel.json').write_text(
-                json.dumps({
-                    'argv': [
-                        sys.executable, '-m', 'ipykernel_launcher', '-f',
-                        '{connection_file}'
-                    ],
-                    'display_name': 'Test Python',
-                    'language': 'python',
-                }),
-                encoding='utf-8')
+                json.dumps(
+                    {
+                        'argv': [
+                            sys.executable,
+                            '-m',
+                            'ipykernel_launcher',
+                            '-f',
+                            '{connection_file}',
+                        ],
+                        'display_name': 'Test Python',
+                        'language': 'python',
+                    }
+                ),
+                encoding='utf-8',
+            )
             env = dict(os.environ, JUPYTER_PATH=str(kernel_dir.parent.parent))
-            for name in ('JUPYTER_CONFIG_DIR', 'JUPYTER_DATA_DIR',
-                         'JUPYTER_RUNTIME_DIR', 'IPYTHONDIR'):
+            for name in (
+                'JUPYTER_CONFIG_DIR',
+                'JUPYTER_DATA_DIR',
+                'JUPYTER_RUNTIME_DIR',
+                'IPYTHONDIR',
+            ):
                 directory = pathlib.Path(tmpdir, name.lower())
                 directory.mkdir()
                 env[name] = str(directory)
@@ -126,20 +142,25 @@ class TestNotebookExecutorTemplate(unittest.TestCase):
                         cells.append(
                             nbformat.v4.new_code_cell(
                                 'value = -1\npayload = {}',
-                                metadata={'tags': ['parameters']}))
+                                metadata={'tags': ['parameters']},
+                            )
+                        )
                     cells.append(
-                        nbformat.v4.new_code_cell('''import json, sys
+                        nbformat.v4.new_code_cell("""import json, sys
 from pathlib import Path
 print('notebook stdout', flush=True)
 print('notebook stderr', file=sys.stderr, flush=True)
 Path(output_path).write_text(json.dumps({
     'value': value, 'payload': payload, 'python': sys.executable
 }))
-'''))
+""")
+                    )
                     if fail:
                         cells.append(
                             nbformat.v4.new_code_cell(
-                                "raise ValueError('notebook failure')"))
+                                "raise ValueError('notebook failure')"
+                            )
+                        )
                     notebook = nbformat.v4.new_notebook(cells=cells)
                     raw = nbformat.writes(notebook).encode('utf-8')
                     archive = io.BytesIO()
@@ -149,42 +170,47 @@ Path(output_path).write_text(json.dumps({
                         tar.addfile(info, io.BytesIO(raw))
                     source = notebook_executor.get_notebook_executor_source(
                         base64.b64encode(archive.getvalue()).decode('ascii'),
-                        'notebook.ipynb')
+                        'notebook.ipynb',
+                    )
                     output_path = pathlib.Path(tmpdir, 'result.json')
                     output_path.unlink(missing_ok=True)
                     params = {
                         'value': 42,
-                        'payload': {
-                            'text': "quoted ' value",
-                            'enabled': True
-                        },
+                        'payload': {'text': "quoted ' value", 'enabled': True},
                         'output_path': str(output_path),
                     }
                     script = pathlib.Path(tmpdir, 'executor.py')
                     script.write_text(
-                        'from kfp import dsl\n' + source +
-                        f'\ndsl.run_notebook(**{params!r})\n',
-                        encoding='utf-8')
+                        'from kfp import dsl\n'
+                        + source
+                        + f'\ndsl.run_notebook(**{params!r})\n',
+                        encoding='utf-8',
+                    )
                     result = subprocess.run(
                         [sys.executable, str(script)],
                         env=env,
                         capture_output=True,
                         text=True,
-                        timeout=60)
+                        timeout=60,
+                    )
                     self.assertIn('notebook stdout', result.stdout)
-                    self.assertIn('notebook stderr',
-                                  result.stdout + result.stderr)
+                    self.assertIn(
+                        'notebook stderr', result.stdout + result.stderr
+                    )
                     self.assertIn('[nb cell ', result.stdout)
                     self.assertEqual(
-                        json.loads(output_path.read_text(encoding='utf-8')), {
+                        json.loads(output_path.read_text(encoding='utf-8')),
+                        {
                             'value': 42,
                             'payload': params['payload'],
                             'python': sys.executable,
-                        })
+                        },
+                    )
                     if fail:
                         self.assertNotEqual(result.returncode, 0)
-                        self.assertIn('Notebook execution failed',
-                                      result.stderr)
+                        self.assertIn(
+                            'Notebook execution failed', result.stderr
+                        )
                         self.assertIn('notebook failure', result.stderr)
                         self.assertNotIn('Execution complete', result.stdout)
                     else:
@@ -193,9 +219,9 @@ Path(output_path).write_text(json.dumps({
 
 
 class TestNotebookParameterInjection(unittest.TestCase):
-
     def _make_nb(self, with_parameters_cell: bool) -> dict:
         import nbformat
+
         nb = {
             'cells': [],
             'metadata': {
@@ -213,35 +239,38 @@ class TestNotebookParameterInjection(unittest.TestCase):
             'nbformat_minor': 5,
         }
         if with_parameters_cell:
-            nb['cells'].append({
+            nb['cells'].append(
+                {
+                    'cell_type': 'code',
+                    'execution_count': None,
+                    'metadata': {
+                        'tags': ['parameters'],
+                    },
+                    'outputs': [],
+                    'source': '# default parameters\n',
+                }
+            )
+        # Regular code cell
+        nb['cells'].append(
+            {
                 'cell_type': 'code',
                 'execution_count': None,
-                'metadata': {
-                    'tags': ['parameters'],
-                },
+                'metadata': {},
                 'outputs': [],
-                'source': '# default parameters\n',
-            })
-        # Regular code cell
-        nb['cells'].append({
-            'cell_type': 'code',
-            'execution_count': None,
-            'metadata': {},
-            'outputs': [],
-            'source': 'print("hello")\n',
-        })
+                'source': 'print("hello")\n',
+            }
+        )
         return nbformat.from_dict(nb)
 
     def test_injects_after_parameters_cell(self):
         from kfp.dsl.templates import notebook_executor as nb_exec
+
         nb = self._make_nb(with_parameters_cell=True)
 
         params = {
             'x': 1,
             's': 'abc',
-            'd': {
-                'a': 1
-            },
+            'd': {'a': 1},
         }
 
         getattr(nb_exec, '__kfp_write_parameters_cell')(nb, params)
@@ -261,6 +290,7 @@ class TestNotebookParameterInjection(unittest.TestCase):
 
     def test_injects_at_top_when_no_parameters_cell(self):
         from kfp.dsl.templates import notebook_executor as nb_exec
+
         nb = self._make_nb(with_parameters_cell=False)
 
         getattr(nb_exec, '__kfp_write_parameters_cell')(nb, {'p': 42})
@@ -275,7 +305,6 @@ class TestNotebookParameterInjection(unittest.TestCase):
 
 
 class TestEmbeddedArtifacts(unittest.TestCase):
-
     def _make_tar_gz_b64_for_paths(self, root_dir: str) -> str:
         buf = io.BytesIO()
         with tarfile.open(fileobj=buf, mode='w') as tar:
@@ -288,13 +317,14 @@ class TestEmbeddedArtifacts(unittest.TestCase):
         tmpdir = tempfile.mkdtemp()
         file_basename = 'data.txt'
         with open(
-                os.path.join(tmpdir, file_basename), 'w',
-                encoding='utf-8') as f:
+            os.path.join(tmpdir, file_basename), 'w', encoding='utf-8'
+        ) as f:
             f.write('hello')
 
         archive_b64 = self._make_tar_gz_b64_for_paths(tmpdir)
         helper_src = component_factory._generate_shared_extraction_helper(
-            embedded_archive_b64=archive_b64, file_basename=file_basename)
+            embedded_archive_b64=archive_b64, file_basename=file_basename
+        )
 
         g: dict = {}
         exec(helper_src, g, g)
@@ -306,6 +336,7 @@ class TestEmbeddedArtifacts(unittest.TestCase):
             self.assertEqual(f.read(), 'hello')
         # sys.path must include the extracted dir (at position 0 per helper)
         import sys
+
         self.assertIn(g['__KFP_EMBEDDED_ASSET_DIR'], sys.path)
 
     def test_embedded_input_excluded_from_interface_and_runtime_injected(self):
@@ -321,12 +352,14 @@ class TestEmbeddedArtifacts(unittest.TestCase):
         with open(payload_path, 'w', encoding='utf-8') as f:
             f.write('PAYLOAD')
 
-        def use_embedded(cfg: dsl.EmbeddedInput[Dataset],
-                         out: dsl.Output[Dataset]):
+        def use_embedded(
+            cfg: dsl.EmbeddedInput[Dataset], out: dsl.Output[Dataset]
+        ):
             import os as _os
+
             with open(
-                    _os.path.join(cfg.path, 'x.txt'), 'r',
-                    encoding='utf-8') as _f:
+                _os.path.join(cfg.path, 'x.txt'), 'r', encoding='utf-8'
+            ) as _f:
                 data = _f.read()
             with open(out.path, 'w', encoding='utf-8') as _g:
                 _g.write(data)
@@ -337,19 +370,22 @@ class TestEmbeddedArtifacts(unittest.TestCase):
             'outputs': {
                 'artifacts': {
                     'out': {
-                        'artifacts': [{
-                            'name': 'out',
-                            'type': {
-                                'schemaTitle': 'system.Dataset',
-                                'schemaVersion': '0.0.1',
-                            },
-                            'uri': os.path.join(tempfile.mkdtemp(), 'out'),
-                            'metadata': {},
-                        }]
+                        'artifacts': [
+                            {
+                                'name': 'out',
+                                'type': {
+                                    'schemaTitle': 'system.Dataset',
+                                    'schemaVersion': '0.0.1',
+                                },
+                                'uri': os.path.join(tempfile.mkdtemp(), 'out'),
+                                'metadata': {},
+                            }
+                        ]
                     }
                 },
-                'outputFile':
-                    os.path.join(tempfile.mkdtemp(), 'executor_output.json'),
+                'outputFile': os.path.join(
+                    tempfile.mkdtemp(), 'executor_output.json'
+                ),
             },
         }
 
@@ -385,13 +421,16 @@ class TestEmbeddedArtifacts(unittest.TestCase):
                 pass
 
             component_factory.create_component_from_func(
-                func=f, embedded_artifact_path=tmpdir)
+                func=f, embedded_artifact_path=tmpdir
+            )
             self.assertTrue(
                 any(
-                    isinstance(ww.message, UserWarning) and
-                    'Embedded artifact archive is large' in str(ww.message)
-                    for ww in w),
-                msg='Expected a UserWarning about large embedded artifact')
+                    isinstance(ww.message, UserWarning)
+                    and 'Embedded artifact archive is large' in str(ww.message)
+                    for ww in w
+                ),
+                msg='Expected a UserWarning about large embedded artifact',
+            )
 
 
 if __name__ == '__main__':

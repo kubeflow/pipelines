@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Input
+from kfp import compiler, components, dsl
+from kfp.dsl import Artifact, Input
+
 from sdk.python.test.test_utils.file_utils import FileUtils
 
 
@@ -27,8 +24,11 @@ def print_op1(data: Input[Artifact]):
     with open(data.path, 'r') as f:
         print(f.read())
 
+
 PIPELINE_FILES_DIR = FileUtils.VALID_PIPELINE_FILES
-reuse_yaml_pipeline = components.load_component_from_file(file_path=f'{PIPELINE_FILES_DIR}/essential/pipeline_with_outputs.yaml')
+reuse_yaml_pipeline = components.load_component_from_file(
+    file_path=f'{PIPELINE_FILES_DIR}/essential/pipeline_with_outputs.yaml'
+)
 
 
 @dsl.pipeline(name='pipeline-in-pipeline')
@@ -39,5 +39,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

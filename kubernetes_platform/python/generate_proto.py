@@ -23,11 +23,13 @@ except ImportError:
 
 PLATFORM_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 PIPELINE_API_PROTO_DIR = os.path.join(
-    os.path.dirname(PLATFORM_DIR), 'api', 'v2alpha1')
+    os.path.dirname(PLATFORM_DIR), 'api', 'v2alpha1'
+)
 PROTO_DIR = os.path.join(PLATFORM_DIR, 'proto')
 
 PKG_DIR = os.path.realpath(
-    os.path.join(PLATFORM_DIR, '../sdk/python/kfp/kubernetes'))
+    os.path.join(PLATFORM_DIR, '../sdk/python/kfp/kubernetes')
+)
 
 # Find the Protocol Compiler. (Taken from protobuf/python/setup.py)
 if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
@@ -46,15 +48,16 @@ def replace_import(file_path: str) -> None:
         r'^import\s+pipeline_spec_pb2\s+as\s+pipeline__spec__pb2\s*$',
         'from kfp.pipeline_spec import pipeline_spec_pb2 as pipeline__spec__pb2\n',
         content,
-        flags=re.MULTILINE)
+        flags=re.MULTILINE,
+    )
 
     # Only write back if something changed
     if content != new_content:
         with open(file_path, 'w') as f:
             f.write(new_content)
-        print(f"Updated imports in {file_path}")
+        print(f'Updated imports in {file_path}')
     else:
-        print(f"No changes needed in {file_path}")
+        print(f'No changes needed in {file_path}')
 
 
 def generate_proto(source: str) -> None:
@@ -70,17 +73,20 @@ def generate_proto(source: str) -> None:
         raise FileNotFoundError(f"Can't find required file: {source}")
     if PROTOC is None:
         raise RuntimeError(
-            'protoc is not found. Install the protobuf compiler.')
+            'protoc is not found. Install the protobuf compiler.'
+        )
     os.makedirs(PKG_DIR, exist_ok=True)
-    subprocess.run([
-        PROTOC,
-        f'-I={PIPELINE_API_PROTO_DIR}',
-        f'-I={PROTO_DIR}',
-        '--experimental_allow_proto3_optional',
-        f'--python_out={PKG_DIR}',
-        source,
-    ],
-                   check=True)
+    subprocess.run(
+        [
+            PROTOC,
+            f'-I={PIPELINE_API_PROTO_DIR}',
+            f'-I={PROTO_DIR}',
+            '--experimental_allow_proto3_optional',
+            f'--python_out={PKG_DIR}',
+            source,
+        ],
+        check=True,
+    )
     replace_import(f'{PKG_DIR}/kubernetes_executor_config_pb2.py')
 
 

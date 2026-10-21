@@ -15,18 +15,16 @@
 
 import copy
 import enum
-from typing import List, Optional, Union
 import warnings
+from typing import List, Optional, Union
 
-from kfp.dsl import for_loop
-from kfp.dsl import pipeline_channel
-from kfp.dsl import pipeline_context
-from kfp.dsl import pipeline_task
+from kfp.dsl import for_loop, pipeline_channel, pipeline_context, pipeline_task
 from kfp.dsl.pipeline_channel import PipelineParameterChannel
 
 
 class TasksGroupType(str, enum.Enum):
     """Types of TasksGroup."""
+
     PIPELINE = 'pipeline'
     CONDITION = 'condition'
     CONDITION_BRANCHES = 'condition-branches'
@@ -89,8 +87,9 @@ class TasksGroup:
         if not pipeline_context.Pipeline.get_default_pipeline():
             raise ValueError('Default pipeline not defined.')
 
-        group_id = pipeline_context.Pipeline.get_default_pipeline(
-        ).get_next_group_id()
+        group_id = (
+            pipeline_context.Pipeline.get_default_pipeline().get_next_group_id()
+        )
         self.name = f'{self.group_type.value}-{group_id}'
         self.name = self.name.replace('_', '-')
 
@@ -137,8 +136,9 @@ class ExitHandler(TasksGroup):
             raise ValueError('exit_task cannot depend on any other tasks.')
 
         # Removing exit_task form any group
-        pipeline_context.Pipeline.get_default_pipeline(
-        ).remove_task_from_groups(exit_task)
+        pipeline_context.Pipeline.get_default_pipeline().remove_task_from_groups(
+            exit_task
+        )
 
         # Set is_exit_handler since the compiler might be using this attribute.
         exit_task.is_exit_handler = True
@@ -151,9 +151,10 @@ class ExitHandler(TasksGroup):
             return False
 
         for task_input in self.exit_task.inputs.values():
-            if isinstance(
-                    task_input,
-                    PipelineParameterChannel) and task_input.task is not None:
+            if (
+                isinstance(task_input, PipelineParameterChannel)
+                and task_input.task is not None
+            ):
                 return True
         return False
 
@@ -246,7 +247,8 @@ class Condition(If):
         warnings.warn(
             'dsl.Condition is deprecated. Please use dsl.If instead.',
             category=DeprecationWarning,
-            stacklevel=2)
+            stacklevel=2,
+        )
         return self
 
 
@@ -275,8 +277,7 @@ class Elif(_ConditionBase):
         condition,
         name: Optional[str] = None,
     ) -> None:
-        prev_cond = pipeline_context.Pipeline.get_default_pipeline(
-        ).get_last_tasks_group()
+        prev_cond = pipeline_context.Pipeline.get_default_pipeline().get_last_tasks_group()
         if not isinstance(prev_cond, (Condition, If, Elif)):
             # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
             raise InvalidControlFlowException(
@@ -290,11 +291,16 @@ class Elif(_ConditionBase):
 
         copied_condition = copy.copy(condition)
         copied_condition.negate = True
-        self._negated_upstream_conditions = _shallow_copy_list_of_binary_operations(
-            prev_cond._negated_upstream_conditions) + [copied_condition]
+        self._negated_upstream_conditions = (
+            _shallow_copy_list_of_binary_operations(
+                prev_cond._negated_upstream_conditions
+            )
+            + [copied_condition]
+        )
 
         conditions = _shallow_copy_list_of_binary_operations(
-            prev_cond._negated_upstream_conditions)
+            prev_cond._negated_upstream_conditions
+        )
         conditions.append(condition)
 
         super().__init__(
@@ -341,8 +347,7 @@ class Else(_ConditionBase):
         self,
         name: Optional[str] = None,
     ) -> None:
-        prev_cond = pipeline_context.Pipeline.get_default_pipeline(
-        ).get_last_tasks_group()
+        prev_cond = pipeline_context.Pipeline.get_default_pipeline().get_last_tasks_group()
 
         # if it immediately follows as TasksGroup, this is because it immediately
         # follows Else in the user code and we wrap Else in a TasksGroup
@@ -385,7 +390,8 @@ class Else(_ConditionBase):
 
 
 def maybe_make_and_insert_conditional_branches_group(
-        pipeline: 'pipeline_context.Pipeline') -> None:
+    pipeline: 'pipeline_context.Pipeline',
+) -> None:
 
     already_has_pipeline_wrapper = isinstance(
         pipeline.get_last_tasks_group(),
@@ -420,7 +426,7 @@ class InvalidControlFlowException(Exception):
 
 
 def _shallow_copy_list_of_binary_operations(
-    operations: List[pipeline_channel.ConditionOperation]
+    operations: List[pipeline_channel.ConditionOperation],
 ) -> List[pipeline_channel.ConditionOperation]:
     # shallow copy is sufficient to allow us to invert the negate flag of a ConditionOperation without affecting copies. deep copy not needed and would result in many copies of the full pipeline since PipelineChannels hold references to the pipeline.
     return [copy.copy(operation) for operation in operations]
@@ -461,7 +467,8 @@ class ParallelFor(TasksGroup):
         parallelism = parallelism or 0
         if parallelism < 0:
             raise ValueError(
-                f'ParallelFor parallelism must be >= 0. Got: {parallelism}.')
+                f'ParallelFor parallelism must be >= 0. Got: {parallelism}.'
+            )
 
         super().__init__(
             group_type=TasksGroupType.FOR_LOOP,
@@ -470,18 +477,19 @@ class ParallelFor(TasksGroup):
         )
 
         if isinstance(items, pipeline_channel.PipelineParameterChannel):
-            self.loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
-                items)
+            self.loop_argument = (
+                for_loop.LoopParameterArgument.from_pipeline_channel(items)
+            )
             self.items_is_pipeline_channel = True
         elif isinstance(items, pipeline_channel.PipelineArtifactChannel):
-            self.loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
-                items)
+            self.loop_argument = (
+                for_loop.LoopArtifactArgument.from_pipeline_channel(items)
+            )
             self.items_is_pipeline_channel = True
         else:
             self.loop_argument = for_loop.LoopParameterArgument.from_raw_items(
                 raw_items=items,
-                name_code=pipeline_context.Pipeline.get_default_pipeline()
-                .get_next_group_id(),
+                name_code=pipeline_context.Pipeline.get_default_pipeline().get_next_group_id(),
             )
             self.items_is_pipeline_channel = False
         # TODO: support artifact constants here.
@@ -489,7 +497,7 @@ class ParallelFor(TasksGroup):
         self.parallelism_limit = parallelism
 
     def __enter__(
-        self
+        self,
     ) -> Union[for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument]:
         super().__enter__()
         return self.loop_argument

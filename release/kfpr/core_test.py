@@ -3,19 +3,17 @@
 
 import contextlib
 import io
-from pathlib import Path
 import subprocess
-from tempfile import TemporaryDirectory
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import mock
 
 from kfpr import core
-from kfpr.core import ReleaseMetadata
-from kfpr.core import ReleaseState
+from kfpr.core import ReleaseMetadata, ReleaseState
 
 
 class TestReleaseMetadata(unittest.TestCase):
-
     def test_from_version_major_release(self):
         metadata = ReleaseMetadata.from_version('major', '2.0.0')
         self.assertEqual(metadata.release_type, 'major')
@@ -74,7 +72,6 @@ class TestReleaseMetadata(unittest.TestCase):
 
 
 class TestReleaseState(unittest.TestCase):
-
     def test_load_nonexistent_path_returns_fresh_state(self):
         with TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / 'nonexistent' / 'state.json'
@@ -86,7 +83,6 @@ class TestReleaseState(unittest.TestCase):
 
 
 class OutputStyleTest(unittest.TestCase):
-
     def test_underline_links_underlines_urls(self):
         self.assertEqual(
             core.underline_links('Open https://github.com/kubeflow/pipelines'),
@@ -157,7 +153,6 @@ class OutputStyleTest(unittest.TestCase):
 
 
 class CommandRunnerTest(unittest.TestCase):
-
     def test_dry_run_records_command_without_running(self):
         runner = core.CommandRunner(dry_run=True)
         runner.run(['git', 'status'])
@@ -165,28 +160,29 @@ class CommandRunnerTest(unittest.TestCase):
 
 
 class GithubCommandTest(unittest.TestCase):
-
     def test_image_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('patch', '3.2.1')
         command = core.image_workflow_command(metadata)
-        self.assertEqual(command[:4],
-                         ['gh', 'workflow', 'run', 'image-builds-release.yml'])
+        self.assertEqual(
+            command[:4], ['gh', 'workflow', 'run', 'image-builds-release.yml']
+        )
         self.assertIn('src_branch=release-3.2', command)
         self.assertIn('target_tag=3.2.1', command)
 
     def test_image_workflow_dispatch_preserves_release_branch_contract(self):
-        for version, release_type, branch in (('2.18.0', 'minor',
-                                               'release-2.18'),
-                                              ('2.18.1', 'patch',
-                                               'release-2.18'),
-                                              ('3.0.0', 'major', 'release-3.0'),
-                                              ('3.0.1', 'patch',
-                                               'release-3.0')):
+        for version, release_type, branch in (
+            ('2.18.0', 'minor', 'release-2.18'),
+            ('2.18.1', 'patch', 'release-2.18'),
+            ('3.0.0', 'major', 'release-3.0'),
+            ('3.0.1', 'patch', 'release-3.0'),
+        ):
             with self.subTest(version=version):
                 metadata = core.ReleaseMetadata.from_version(
-                    release_type, version)
+                    release_type, version
+                )
                 self.assertEqual(
-                    core.image_workflow_command(metadata), [
+                    core.image_workflow_command(metadata),
+                    [
                         'gh',
                         'workflow',
                         'run',
@@ -205,39 +201,45 @@ class GithubCommandTest(unittest.TestCase):
                         'add_sha_tag=true',
                         '-f',
                         'dry_run=false',
-                    ])
+                    ],
+                )
 
     def test_sdk_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')
         command = core.sdk_workflow_command(metadata)
-        self.assertEqual(command[:4],
-                         ['gh', 'workflow', 'run', 'publish-packages.yml'])
+        self.assertEqual(
+            command[:4], ['gh', 'workflow', 'run', 'publish-packages.yml']
+        )
         self.assertIn('tag=sdk-3.2.0', command)
         self.assertIn('packages=all', command)
 
     def test_release_version_bump_command_uses_explicit_changelog_range(self):
         with TemporaryDirectory() as tmpdir:
             command = core.release_version_bump_command(
-                Path(tmpdir), 'release-3.2', '3.1.1')
+                Path(tmpdir), 'release-3.2', '3.1.1'
+            )
 
         script = command[-1]
         self.assertIn('PREVIOUS_RELEASE=3.1.1', script)
         self.assertIn(
             'git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"',
-            script)
+            script,
+        )
         self.assertNotIn('--unreleased', script)
         self.assertNotIn('manifests/gcp_marketplace/hack/release.sh', script)
 
     def test_release_version_bump_command_quotes_previous_release(self):
         command = core.release_version_bump_command(
-            Path('/repo'), 'release-3.2', '3.1.1; echo unsafe')
+            Path('/repo'), 'release-3.2', '3.1.1; echo unsafe'
+        )
 
         self.assertIn("PREVIOUS_RELEASE='3.1.1; echo unsafe'", command[-1])
 
     def test_wait_for_pr_merge_dry_run_returns_immediately(self):
         runner = core.CommandRunner(dry_run=True)
-        core.wait_for_pr_merge(runner,
-                               'https://github.com/kubeflow/pipelines/pull/1')
+        core.wait_for_pr_merge(
+            runner, 'https://github.com/kubeflow/pipelines/pull/1'
+        )
         self.assertEqual(len(runner.commands), 0)
 
     def test_wait_for_pr_merge_fails_when_pr_is_closed(self):
@@ -250,13 +252,12 @@ class GithubCommandTest(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, 'closed without merging'):
             core.wait_for_pr_merge(
-                ClosedPrRunner(),
-                'https://github.com/kubeflow/pipelines/pull/1')
+                ClosedPrRunner(), 'https://github.com/kubeflow/pipelines/pull/1'
+            )
 
     def test_watch_pr_ci_fails_fast_on_failed_gate(self):
 
         class FailingCiRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -269,15 +270,15 @@ class GithubCommandTest(unittest.TestCase):
         runner = FailingCiRunner()
 
         with self.assertRaises(RuntimeError) as cm:
-            core.watch_pr_ci(runner,
-                             'https://github.com/kubeflow/pipelines/pull/1')
+            core.watch_pr_ci(
+                runner, 'https://github.com/kubeflow/pipelines/pull/1'
+            )
 
         self.assertIn('unit-tests failed', str(cm.exception))
 
     def test_watch_pr_ci_uses_latest_duplicate_check_status(self):
 
         class DuplicateCiRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -289,15 +290,16 @@ class GithubCommandTest(unittest.TestCase):
                     '[{"name":"check_ci_status","status":"COMPLETED","conclusion":"CANCELLED",'
                     '"startedAt":"2026-07-09T17:16:58Z"},'
                     '{"name":"check_ci_status","status":"COMPLETED","conclusion":"SUCCESS",'
-                    '"startedAt":"2026-07-09T17:17:09Z"}]')
+                    '"startedAt":"2026-07-09T17:17:09Z"}]'
+                )
 
-        core.watch_pr_ci(DuplicateCiRunner(),
-                         'https://github.com/kubeflow/pipelines/pull/1')
+        core.watch_pr_ci(
+            DuplicateCiRunner(), 'https://github.com/kubeflow/pipelines/pull/1'
+        )
 
     def test_watch_pr_ci_returns_when_all_gates_succeed(self):
 
         class PassingCiRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -331,7 +333,6 @@ class GithubCommandTest(unittest.TestCase):
     def test_watch_pr_ci_prints_in_progress_check_url_once(self):
 
         class RunningCiRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -351,16 +352,22 @@ class GithubCommandTest(unittest.TestCase):
                     '{"name":"done-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/3"}]'
                 )
 
-        with contextlib.redirect_stdout(
-                io.StringIO()) as output, mock.patch('time.sleep'):
-            core.watch_pr_ci(RunningCiRunner(),
-                             'https://github.com/kubeflow/pipelines/pull/1')
+        with (
+            contextlib.redirect_stdout(io.StringIO()) as output,
+            mock.patch('time.sleep'),
+        ):
+            core.watch_pr_ci(
+                RunningCiRunner(),
+                'https://github.com/kubeflow/pipelines/pull/1',
+            )
 
         self.assertIn('slow-job:', output.getvalue())
         self.assertEqual(
             output.getvalue().count(
-                'https://github.com/kubeflow/pipelines/actions/runs/1/job/2'),
-            1)
+                'https://github.com/kubeflow/pipelines/actions/runs/1/job/2'
+            ),
+            1,
+        )
         self.assertNotIn('done-job:', output.getvalue())
 
     def test_watch_pr_ci_waits_for_pending_ci_passed_status(self):
@@ -374,49 +381,55 @@ class GithubCommandTest(unittest.TestCase):
             '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
         ]
 
-        with contextlib.redirect_stdout(
-                io.StringIO()) as output, mock.patch('time.sleep') as sleep:
-            core.watch_pr_ci(runner,
-                             'https://github.com/kubeflow/pipelines/pull/1')
+        with (
+            contextlib.redirect_stdout(io.StringIO()) as output,
+            mock.patch('time.sleep') as sleep,
+        ):
+            core.watch_pr_ci(
+                runner, 'https://github.com/kubeflow/pipelines/pull/1'
+            )
 
         self.assertEqual(runner.capture.call_count, 3)
         self.assertEqual(sleep.call_args_list, [mock.call(60), mock.call(60)])
-        self.assertIn('All PR CI gates completed successfully (2/2)',
-                      output.getvalue())
+        self.assertIn(
+            'All PR CI gates completed successfully (2/2)', output.getvalue()
+        )
 
     def test_watch_pr_ci_fails_fast_on_failed_status_context(self):
 
         class FailingStatusRunner:
-
             dry_run = False
 
             def capture(self, command, cwd=None):
                 return '[{"context":"license/cla","state":"FAILURE"}]'
 
         with mock.patch(
-                'time.sleep',
-                side_effect=AssertionError('slept instead of failing')):
+            'time.sleep', side_effect=AssertionError('slept instead of failing')
+        ):
             with self.assertRaises(RuntimeError) as cm:
                 core.watch_pr_ci(
                     FailingStatusRunner(),
-                    'https://github.com/kubeflow/pipelines/pull/1')
+                    'https://github.com/kubeflow/pipelines/pull/1',
+                )
 
         self.assertIn('license/cla failed', str(cm.exception))
 
     def test_watch_pr_ci_returns_when_status_contexts_succeed(self):
 
         class PassingStatusRunner:
-
             dry_run = False
 
             def capture(self, command, cwd=None):
                 return '[{"context":"license/cla","state":"SUCCESS"}]'
 
         with mock.patch(
-                'time.sleep',
-                side_effect=AssertionError('slept instead of returning')):
-            core.watch_pr_ci(PassingStatusRunner(),
-                             'https://github.com/kubeflow/pipelines/pull/1')
+            'time.sleep',
+            side_effect=AssertionError('slept instead of returning'),
+        ):
+            core.watch_pr_ci(
+                PassingStatusRunner(),
+                'https://github.com/kubeflow/pipelines/pull/1',
+            )
 
     def test_watch_latest_workflow_run_dry_run_returns_immediately(self):
         runner = core.CommandRunner(dry_run=True)
@@ -427,7 +440,6 @@ class GithubCommandTest(unittest.TestCase):
     def test_watch_latest_workflow_run_retries_until_run_appears(self):
 
         class DelayedRunRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -437,25 +449,33 @@ class GithubCommandTest(unittest.TestCase):
             def capture(self, command, cwd=None):
                 self.commands.append(command)
                 self.captures += 1
-                return '' if self.captures == 1 else '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345\t2026-07-08T19:05:01Z'
+                return (
+                    ''
+                    if self.captures == 1
+                    else '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345\t2026-07-08T19:05:01Z'
+                )
 
             def run(self, command, cwd=None, check=True):
                 self.commands.append(command)
 
         runner = DelayedRunRunner()
-        with mock.patch(
-                'time.time', return_value=1783537500), mock.patch('time.sleep'):
+        with (
+            mock.patch('time.time', return_value=1783537500),
+            mock.patch('time.sleep'),
+        ):
             core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
-        self.assertEqual(runner.commands[-1],
-                         ['gh', 'run', 'watch', '12345', '--exit-status'])
+        self.assertEqual(
+            runner.commands[-1],
+            ['gh', 'run', 'watch', '12345', '--exit-status'],
+        )
         self.assertNotIn(['gh', 'run', 'watch', ''], runner.commands)
 
     def test_watch_latest_workflow_run_ignores_runs_created_before_dispatch(
-            self):
+        self,
+    ):
 
         class DelayedNewRunRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -473,18 +493,20 @@ class GithubCommandTest(unittest.TestCase):
                 self.commands.append(command)
 
         runner = DelayedNewRunRunner()
-        with mock.patch(
-                'time.time', return_value=1783537500), mock.patch('time.sleep'):
+        with (
+            mock.patch('time.time', return_value=1783537500),
+            mock.patch('time.sleep'),
+        ):
             core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
-        self.assertEqual(runner.commands[-1],
-                         ['gh', 'run', 'watch', '222', '--exit-status'])
+        self.assertEqual(
+            runner.commands[-1], ['gh', 'run', 'watch', '222', '--exit-status']
+        )
         self.assertNotIn(['gh', 'run', 'watch', '111'], runner.commands)
 
     def test_watch_latest_workflow_run_can_resume_existing_run(self):
 
         class ExistingRunRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -500,15 +522,16 @@ class GithubCommandTest(unittest.TestCase):
         runner = ExistingRunRunner()
         with mock.patch('time.time', return_value=1783537500):
             core.watch_latest_workflow_run(
-                runner, 'test-workflow.yml', 'main', fresh_only=False)
+                runner, 'test-workflow.yml', 'main', fresh_only=False
+            )
 
-        self.assertEqual(runner.commands[-1],
-                         ['gh', 'run', 'watch', '111', '--exit-status'])
+        self.assertEqual(
+            runner.commands[-1], ['gh', 'run', 'watch', '111', '--exit-status']
+        )
 
     def test_watch_latest_workflow_run_prints_run_url(self):
 
         class RunUrlRunner:
-
             dry_run = False
 
             def __init__(self):
@@ -522,24 +545,29 @@ class GithubCommandTest(unittest.TestCase):
                 self.commands.append(command)
 
         runner = RunUrlRunner()
-        with mock.patch(
-                'time.time', return_value=1783537500), mock.patch(
-                    'builtins.print') as print_mock:
+        with (
+            mock.patch('time.time', return_value=1783537500),
+            mock.patch('builtins.print') as print_mock,
+        ):
             core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
         output = '\n'.join(
-            str(call.args[0]) for call in print_mock.call_args_list)
+            str(call.args[0]) for call in print_mock.call_args_list
+        )
         self.assertIn(
             'Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m',
-            output)
-        self.assertEqual(runner.commands[-1],
-                         ['gh', 'run', 'watch', '12345', '--exit-status'])
+            output,
+        )
+        self.assertEqual(
+            runner.commands[-1],
+            ['gh', 'run', 'watch', '12345', '--exit-status'],
+        )
 
     def test_watch_latest_workflow_run_supports_python_without_datetime_utc(
-            self):
+        self,
+    ):
 
         class RunRunner:
-
             dry_run = False
 
             def capture(self, command, cwd=None):
@@ -553,22 +581,23 @@ class GithubCommandTest(unittest.TestCase):
             del core.datetime.UTC
         try:
             with mock.patch('time.time', return_value=1783537500):
-                core.watch_latest_workflow_run(RunRunner(), 'test-workflow.yml',
-                                               'main')
+                core.watch_latest_workflow_run(
+                    RunRunner(), 'test-workflow.yml', 'main'
+                )
         finally:
             if utc is not None:
                 core.datetime.UTC = utc
 
 
 class InlineCommandTest(unittest.TestCase):
-
     def test_kfp_requirements_command(self):
         command = core.kfp_requirements_command()
         self.assertEqual(command[:2], ['bash', '-c'])
         self.assertIn('pip-compile', command[2])
         self.assertIn('$GIT_ROOT/api/v2alpha1/python/dist', command[2])
-        self.assertIn('$GIT_ROOT/backend/api/v2beta1/python_http_client/dist',
-                      command[2])
+        self.assertIn(
+            '$GIT_ROOT/backend/api/v2beta1/python_http_client/dist', command[2]
+        )
         self.assertIn('> requirements.txt', command[2])
 
     def test_kubernetes_requirements_command(self):
@@ -577,13 +606,15 @@ class InlineCommandTest(unittest.TestCase):
         self.assertIn('pip-compile', command[2])
         self.assertIn('$GIT_ROOT/sdk/python/dist', command[2])
         self.assertIn('$GIT_ROOT/api/v2alpha1/python/dist', command[2])
-        self.assertIn('$GIT_ROOT/backend/api/v2beta1/python_http_client/dist',
-                      command[2])
+        self.assertIn(
+            '$GIT_ROOT/backend/api/v2beta1/python_http_client/dist', command[2]
+        )
         self.assertIn('> requirements.txt', command[2])
 
     def test_release_version_bump_command_runs_container_directly(self):
         command = core.release_version_bump_command(
-            Path('/repo'), 'release-3.2', '3.1.1')
+            Path('/repo'), 'release-3.2', '3.1.1'
+        )
         self.assertEqual(command[:3], ['docker', 'run', '--rm'])
         self.assertIn('ghcr.io/kubeflow/kfp-release:release-3.2', command)
         self.assertIn('/bin/bash', command)
@@ -592,11 +623,13 @@ class InlineCommandTest(unittest.TestCase):
         script = command[-1]
         self.assertIn(
             'git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"',
-            script)
+            script,
+        )
         self.assertNotIn('manifests/gcp_marketplace/hack/release.sh', script)
         self.assertIn(
             '"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"',
-            script)
+            script,
+        )
         self.assertIn('REQUIRED_NODE_VERSION=', script)
         self.assertIn('which node >/dev/null', script)
         self.assertIn('yq -V | grep 3.', script)
@@ -610,73 +643,84 @@ class InlineCommandTest(unittest.TestCase):
             ('package kubeflow.pipelines.backend.api.v2;', 'v2'),
             ('  package  kubeflow.pipelines.backend.api.v2 ;', 'v2'),
             ('package kubeflow.pipelines.backend.api.v2beta1;', 'v2beta1'),
-            ('// package kubeflow.pipelines.backend.api.v2;\npackage old;',
-             'v2beta1'),
+            (
+                '// package kubeflow.pipelines.backend.api.v2;\npackage old;',
+                'v2beta1',
+            ),
             ('package kubeflow.pipelines.backend.api.v20;', 'v2beta1'),
             ('', 'v2beta1'),
             (None, 'v2beta1'),
         ):
-            with self.subTest(
-                    declaration=declaration), TemporaryDirectory() as tmpdir:
+            with (
+                self.subTest(declaration=declaration),
+                TemporaryDirectory() as tmpdir,
+            ):
                 root = Path(tmpdir)
                 api = root / 'backend/api'
                 (api / 'v2beta1').mkdir(parents=True)
                 if declaration is not None:
                     (api / 'v2').mkdir()
                     (api / 'v2/run.proto').write_text(declaration)
-                for relative in ('hack/generator.sh',
-                                 'build_kfp_server_api_python_package.sh'):
+                for relative in (
+                    'hack/generator.sh',
+                    'build_kfp_server_api_python_package.sh',
+                ):
                     generator = api / relative
                     generator.parent.mkdir(parents=True, exist_ok=True)
-                    generator.write_text('#!/bin/bash\n'
-                                         'printf "%s\\n" "$API_VERSION"\n')
+                    generator.write_text(
+                        '#!/bin/bash\nprintf "%s\\n" "$API_VERSION"\n'
+                    )
                     generator.chmod(0o755)
 
                 command = core.release_version_bump_command(
-                    root, 'release-3.2', '3.1.1')
+                    root, 'release-3.2', '3.1.1'
+                )
                 script = command[-1]
-                selection = script[script.index(
-                    'if [ -f "$REPO_ROOT/backend/api/v2/run.proto" ]'):]
+                selection = script[
+                    script.index(
+                        'if [ -f "$REPO_ROOT/backend/api/v2/run.proto" ]'
+                    ) :
+                ]
                 # Execute the real version selection and both generator calls
                 # without running unrelated release prerequisites or Docker.
                 result = subprocess.run(
                     ['bash', '-ec', selection],
                     timeout=10,
-                    env={
-                        'REPO_ROOT': str(root),
-                        'API_VERSION': 'stale'
-                    },
+                    env={'REPO_ROOT': str(root), 'API_VERSION': 'stale'},
                     capture_output=True,
                     text=True,
                     check=True,
                 )
-                self.assertEqual(result.stdout.splitlines(),
-                                 [expected, expected])
+                self.assertEqual(
+                    result.stdout.splitlines(), [expected, expected]
+                )
 
     def test_release_version_bump_command_can_use_master_image(self):
         command = core.release_version_bump_command(
-            Path('/repo'), 'release-3.2', '3.1.1', 'master')
+            Path('/repo'), 'release-3.2', '3.1.1', 'master'
+        )
 
         self.assertIn('ghcr.io/kubeflow/kfp-release:master', command)
         self.assertNotIn('ghcr.io/kubeflow/kfp-release:release-3.2', command)
 
     def test_kfp_kubernetes_docs_build_command_runs_container_directly(self):
         command = core.kfp_kubernetes_docs_build_command(
-            Path('/repo'), 'release-3.2')
+            Path('/repo'), 'release-3.2'
+        )
         self.assertEqual(command[:3], ['docker', 'run', '--rm'])
         self.assertIn('ghcr.io/kubeflow/kfp-api-generator:release-3.2', command)
         script = command[-1]
         self.assertIn('wget -qO api/v2alpha1/google/rpc/status.proto', script)
         self.assertIn('python3 generate_proto.py', script)
         self.assertIn('if [ -f pyproject.toml ]; then', script)
-        self.assertIn('uv build --package kfp-kubernetes --out-dir dist',
-                      script)
+        self.assertIn(
+            'uv build --package kfp-kubernetes --out-dir dist', script
+        )
         self.assertIn('python3 setup.py sdist', script)
         self.assertNotIn('make', command)
 
 
 class ParseGithubOwnerTest(unittest.TestCase):
-
     def test_normalize_fork_remote_expands_bare_username(self):
         self.assertEqual(
             core.normalize_fork_remote('droctothorpe'),
@@ -692,7 +736,8 @@ class ParseGithubOwnerTest(unittest.TestCase):
     def test_normalize_fork_remote_keeps_https_remote(self):
         self.assertEqual(
             core.normalize_fork_remote(
-                'https://github.com/user123/pipelines.git'),
+                'https://github.com/user123/pipelines.git'
+            ),
             'https://github.com/user123/pipelines.git',
         )
 
@@ -701,9 +746,12 @@ class ParseGithubOwnerTest(unittest.TestCase):
             core.normalize_fork_remote('@droctothorpe')
 
     def test_normalize_fork_remote_rejects_upstream_repository(self):
-        for fork_remote in ('kubeflow', 'Kubeflow',
-                            'git@github.com:kubeflow/pipelines.git',
-                            'https://github.com/Kubeflow/pipelines.git'):
+        for fork_remote in (
+            'kubeflow',
+            'Kubeflow',
+            'git@github.com:kubeflow/pipelines.git',
+            'https://github.com/Kubeflow/pipelines.git',
+        ):
             with self.subTest(fork_remote=fork_remote):
                 with self.assertRaises(ValueError):
                     core.normalize_fork_remote(fork_remote)
@@ -731,11 +779,11 @@ class ParseGithubOwnerTest(unittest.TestCase):
 
 
 class PromptValidationTest(unittest.TestCase):
-
     def test_prompt_choice_bolds_prompt(self):
         with mock.patch('builtins.input', return_value='y') as input_mock:
             answer = core.prompt_choice(
-                'Continue from this checkpoint?', ['y', 'n'], default='n')
+                'Continue from this checkpoint?', ['y', 'n'], default='n'
+            )
 
         self.assertEqual(answer, 'y')
         self.assertEqual(
@@ -744,12 +792,16 @@ class PromptValidationTest(unittest.TestCase):
         )
 
     def test_prompt_numbered_choice_accepts_number(self):
-        with contextlib.redirect_stdout(io.StringIO()) as output, mock.patch(
+        with (
+            contextlib.redirect_stdout(io.StringIO()) as output,
+            mock.patch(
                 'builtins.input',
                 return_value='2',
+            ),
         ):
-            answer = core.prompt_numbered_choice('Release type',
-                                                 ['major', 'minor', 'patch'])
+            answer = core.prompt_numbered_choice(
+                'Release type', ['major', 'minor', 'patch']
+            )
 
         self.assertEqual(answer, 'minor')
         self.assertIn('1) major', output.getvalue())
@@ -757,12 +809,16 @@ class PromptValidationTest(unittest.TestCase):
         self.assertIn('3) patch', output.getvalue())
 
     def test_prompt_numbered_choice_reasks_for_invalid_number(self):
-        with contextlib.redirect_stdout(io.StringIO()) as output, mock.patch(
+        with (
+            contextlib.redirect_stdout(io.StringIO()) as output,
+            mock.patch(
                 'builtins.input',
                 side_effect=['4', '3'],
+            ),
         ):
-            answer = core.prompt_numbered_choice('Release type',
-                                                 ['major', 'minor', 'patch'])
+            answer = core.prompt_numbered_choice(
+                'Release type', ['major', 'minor', 'patch']
+            )
 
         self.assertEqual(answer, 'patch')
         self.assertIn('Choose a number from 1 to 3.', output.getvalue())
@@ -772,7 +828,9 @@ class PromptValidationTest(unittest.TestCase):
             state = ReleaseState(Path(tmpdir) / 'state.json')
             args = type('Args', (), {'dry_run': True})()
 
-            with contextlib.redirect_stdout(io.StringIO()), mock.patch(
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                mock.patch(
                     'builtins.input',
                     side_effect=[
                         '2',
@@ -782,36 +840,48 @@ class PromptValidationTest(unittest.TestCase):
                         'droctothorpe',
                         '3.1.1',
                     ],
+                ),
             ):
                 context = core.collect_context(args, state)
 
             self.assertEqual(context.metadata.tag, '3.2.0')
-            self.assertEqual(context.fork_remote,
-                             'https://github.com/droctothorpe/pipelines.git')
+            self.assertEqual(
+                context.fork_remote,
+                'https://github.com/droctothorpe/pipelines.git',
+            )
 
     def test_collect_context_prompts_for_major_minor_source_branch(self):
         with TemporaryDirectory() as tmpdir:
             state = ReleaseState(Path(tmpdir) / 'state.json')
-            args = type('Args', (), {
-                'dry_run': True,
-                'prompt_release_source_branch': True
-            })()
+            args = type(
+                'Args',
+                (),
+                {'dry_run': True, 'prompt_release_source_branch': True},
+            )()
 
-            with contextlib.redirect_stdout(io.StringIO()), mock.patch(
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                mock.patch(
                     'builtins.input',
                     side_effect=[
-                        '2', '3.2.0', 'droctothorpe', 'release-candidate',
-                        '3.1.1'
+                        '2',
+                        '3.2.0',
+                        'droctothorpe',
+                        'release-candidate',
+                        '3.1.1',
                     ],
+                ),
             ):
                 core.collect_context(args, state)
 
-            self.assertEqual(state.answers['release_source_branch'],
-                             'release-candidate')
+            self.assertEqual(
+                state.answers['release_source_branch'], 'release-candidate'
+            )
             self.assertEqual(state.answers['previous_release'], '3.1.1')
 
     def test_collect_context_uses_release_source_branch_arg_without_prompt(
-            self):
+        self,
+    ):
         with TemporaryDirectory() as tmpdir:
             state = ReleaseState(Path(tmpdir) / 'state.json')
             args = type(
@@ -824,26 +894,34 @@ class PromptValidationTest(unittest.TestCase):
                 },
             )()
 
-            with contextlib.redirect_stdout(io.StringIO()), mock.patch(
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                mock.patch(
                     'builtins.input',
                     side_effect=['2', '3.2.0', 'droctothorpe', '3.1.1'],
+                ),
             ):
                 core.collect_context(args, state)
 
-            self.assertEqual(state.answers['release_source_branch'],
-                             'release-candidate')
+            self.assertEqual(
+                state.answers['release_source_branch'], 'release-candidate'
+            )
 
     def test_collect_context_defaults_major_minor_source_branch_to_master(self):
         with TemporaryDirectory() as tmpdir:
             state = ReleaseState(Path(tmpdir) / 'state.json')
-            args = type('Args', (), {
-                'dry_run': True,
-                'prompt_release_source_branch': True
-            })()
+            args = type(
+                'Args',
+                (),
+                {'dry_run': True, 'prompt_release_source_branch': True},
+            )()
 
-            with contextlib.redirect_stdout(io.StringIO()), mock.patch(
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                mock.patch(
                     'builtins.input',
                     side_effect=['2', '3.2.0', 'droctothorpe', '', '3.1.1'],
+                ),
             ):
                 core.collect_context(args, state)
 

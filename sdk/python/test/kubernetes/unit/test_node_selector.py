@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestNodeSelector:
-
     def test_add_one(self):
 
         @dsl.pipeline
@@ -38,8 +36,7 @@ class TestNodeSelector:
                             'exec-comp': {
                                 'nodeSelector': {
                                     'labels': {
-                                        'cloud.google.com/gke-accelerator':
-                                            'nvidia-tesla-p4'
+                                        'cloud.google.com/gke-accelerator': 'nvidia-tesla-p4'
                                     }
                                 }
                             }
@@ -73,10 +70,8 @@ class TestNodeSelector:
                             'exec-comp': {
                                 'nodeSelector': {
                                     'labels': {
-                                        'cloud.google.com/gke-accelerator':
-                                            'nvidia-tesla-p4',
-                                        'other_label_key':
-                                            'other_label_value'
+                                        'cloud.google.com/gke-accelerator': 'nvidia-tesla-p4',
+                                        'other_label_key': 'other_label_value',
                                     },
                                 }
                             }
@@ -92,7 +87,8 @@ class TestNodeSelector:
         def my_pipeline():
             task = comp()
             kubernetes.use_secret_as_volume(
-                task, secret_name='my-secret', mount_path='/mnt/my_vol')
+                task, secret_name='my-secret', mount_path='/mnt/my_vol'
+            )
             kubernetes.add_node_selector(
                 task,
                 label_key='cloud.google.com/gke-accelerator',
@@ -107,20 +103,21 @@ class TestNodeSelector:
                             'exec-comp': {
                                 'nodeSelector': {
                                     'labels': {
-                                        'cloud.google.com/gke-accelerator':
-                                            'nvidia-tesla-p4'
+                                        'cloud.google.com/gke-accelerator': 'nvidia-tesla-p4'
                                     }
                                 },
-                                'secretAsVolume': [{
-                                    'secretName': 'my-secret',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'my-secret'
-                                        }
-                                    },
-                                    'mountPath': '/mnt/my_vol',
-                                    'optional': False
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'my-secret',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'my-secret'
+                                            }
+                                        },
+                                        'mountPath': '/mnt/my_vol',
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }
@@ -130,7 +127,6 @@ class TestNodeSelector:
 
 
 class TestNodeSelectorJSON:
-
     def test_component_pipeline_input_one(self):
         # checks that a pipeline input for
         # tasks is supported
@@ -150,8 +146,7 @@ class TestNodeSelectorJSON:
                             'exec-comp': {
                                 'nodeSelector': {
                                     'nodeSelectorJson': {
-                                        'componentInputParameter':
-                                            'selector_input'
+                                        'componentInputParameter': 'selector_input'
                                     },
                                 }
                             }
@@ -193,19 +188,17 @@ class TestNodeSelectorJSON:
                             'exec-comp': {
                                 'nodeSelector': {
                                     'nodeSelectorJson': {
-                                        'componentInputParameter':
-                                            'selector_input_1'
+                                        'componentInputParameter': 'selector_input_1'
                                     },
                                 }
                             },
                             'exec-comp-2': {
                                 'nodeSelector': {
                                     'nodeSelectorJson': {
-                                        'componentInputParameter':
-                                            'selector_input_2'
+                                        'componentInputParameter': 'selector_input_2'
                                     },
                                 }
-                            }
+                            },
                         }
                     }
                 }
@@ -234,7 +227,7 @@ class TestNodeSelectorJSON:
                                     'nodeSelectorJson': {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                            'producerTask': 'comp-with-output',
                                         }
                                     },
                                 }
@@ -279,7 +272,7 @@ class TestNodeSelectorJSON:
                                     'nodeSelectorJson': {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                            'producerTask': 'comp-with-output',
                                         }
                                     },
                                 }
@@ -289,11 +282,11 @@ class TestNodeSelectorJSON:
                                     'nodeSelectorJson': {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-3'
+                                            'producerTask': 'comp-with-output-3',
                                         }
                                     },
                                 }
-                            }
+                            },
                         }
                     }
                 }

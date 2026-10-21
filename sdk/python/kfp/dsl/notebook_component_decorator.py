@@ -11,8 +11,7 @@ import functools
 from typing import Any, Callable, List, Optional
 
 from kfp.dsl import component_factory
-from kfp.dsl.component_task_config import TaskConfigField
-from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.component_task_config import TaskConfigField, TaskConfigPassthrough
 
 
 def notebook_component(
@@ -66,8 +65,10 @@ def notebook_component(
     formatted_passthroughs = None
     if task_config_passthroughs is not None:
         formatted_passthroughs = [
-            TaskConfigPassthrough(field=p, apply_to_task=False) if isinstance(
-                p, TaskConfigField) else p for p in task_config_passthroughs
+            TaskConfigPassthrough(field=p, apply_to_task=False)
+            if isinstance(p, TaskConfigField)
+            else p
+            for p in task_config_passthroughs
         ]
 
     if func is None:

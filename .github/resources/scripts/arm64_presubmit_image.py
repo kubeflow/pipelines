@@ -16,8 +16,8 @@
 
 import argparse
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 
 from arm64_smoke import CI_IMAGES
 
@@ -30,7 +30,8 @@ def image_record(ci_image, source_sha, registry):
         raise ValueError('source_sha must be a full commit SHA')
     if registry != 'kind-registry:5000':
         raise ValueError(
-            'ARM presubmit images must use the CI registry namespace')
+            'ARM presubmit images must use the CI registry namespace'
+        )
     return {
         'image': images[ci_image],
         'source_sha': source_sha,

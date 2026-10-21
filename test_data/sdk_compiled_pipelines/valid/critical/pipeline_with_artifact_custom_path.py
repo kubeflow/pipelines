@@ -1,7 +1,5 @@
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Input, Output
 from kfp.dsl.types.artifact_types import Dataset
 
 
@@ -25,13 +23,14 @@ def component_output_artifact(out_dataset: Output[Dataset]):
 @dsl.component
 def validate_input_artifact(in_dataset: Input[Dataset]) -> bool:
     if in_dataset is None:
-        raise ValueError("Input artifact is None.")
+        raise ValueError('Input artifact is None.')
 
     with open(in_dataset.path, 'r') as f:
         for line in f:
             if line != 'Hello, World!':
                 raise ValueError(
-                    f"File content is {line} but should be 'Hello, World!'.")
+                    f"File content is {line} but should be 'Hello, World!'."
+                )
     return True
 
 
@@ -39,14 +38,17 @@ def validate_input_artifact(in_dataset: Input[Dataset]) -> bool:
 def pipeline_with_custom_path_artifact():
     # Generate an artifact, set a custom path and validate the path.
     task_output_artifact = component_output_artifact().set_caching_options(
-        False)
+        False
+    )
 
     # Take the output artifact from above as input, and validate as non-nil.
     task_validate_input_artifact = validate_input_artifact(
-        in_dataset=task_output_artifact.outputs['out_dataset'])
+        in_dataset=task_output_artifact.outputs['out_dataset']
+    )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_custom_path_artifact,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

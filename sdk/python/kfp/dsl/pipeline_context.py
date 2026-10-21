@@ -17,21 +17,24 @@ import functools
 import os
 from typing import Callable, Optional
 
-from kfp.dsl import component_factory
-from kfp.dsl import pipeline_config
-from kfp.dsl import pipeline_task
-from kfp.dsl import tasks_group
-from kfp.dsl import utils
+from kfp.dsl import (
+    component_factory,
+    pipeline_config,
+    pipeline_task,
+    tasks_group,
+    utils,
+)
 
 
 def pipeline(
-        func: Optional[Callable] = None,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        pipeline_root: Optional[str] = None,
-        display_name: Optional[str] = None,
-        pipeline_config: pipeline_config.PipelineConfig = None) -> Callable:
+    func: Optional[Callable] = None,
+    *,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    pipeline_root: Optional[str] = None,
+    display_name: Optional[str] = None,
+    pipeline_config: pipeline_config.PipelineConfig = None,
+) -> Callable:
     """Decorator used to construct a pipeline.
 
     Example
@@ -113,8 +116,8 @@ class Pipeline:
     # align with click's treatment of env vars for boolean flags.
     # per click doc, "1", "true", "t", "yes", "y", and "on" are all converted to True
     _execution_caching_default = not str(
-        os.getenv('KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT')).strip().lower(
-        ) in {'1', 'true', 't', 'yes', 'y', 'on'}
+        os.getenv('KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT')
+    ).strip().lower() in {'1', 'true', 't', 'yes', 'y', 'on'}
 
     @staticmethod
     def get_execution_caching_default():
@@ -134,7 +137,8 @@ class Pipeline:
             tasks_group.TasksGroup(
                 group_type=tasks_group.TasksGroupType.PIPELINE,
                 name=name,
-                is_root=True)
+                is_root=True,
+            )
         ]
         self._group_id = 0
 
@@ -148,19 +152,23 @@ class Pipeline:
         def register_task_and_generate_id(task: pipeline_task.PipelineTask):
             return self.add_task(
                 task=task,
-                add_to_group=not getattr(task, 'is_exit_handler', False))
+                add_to_group=not getattr(task, 'is_exit_handler', False),
+            )
 
         self._old_register_task_handler = (
-            pipeline_task.PipelineTask._register_task_handler)
+            pipeline_task.PipelineTask._register_task_handler
+        )
         pipeline_task.PipelineTask._register_task_handler = (
-            register_task_and_generate_id)
+            register_task_and_generate_id
+        )
         return self
 
     def __exit__(self, *unused_args):
 
         Pipeline._default_pipeline = None
         pipeline_task.PipelineTask._register_task_handler = (
-            self._old_register_task_handler)
+            self._old_register_task_handler
+        )
 
     def add_task(
         self,
@@ -181,12 +189,14 @@ class Pipeline:
         # Technically this could be delayed to the compilation stage, but string
         # serialization of PipelineChannels make unsanitized names problematic.
         task_name = utils.maybe_rename_for_k8s(task.component_spec.name)
-        #If there is an existing task with this name then generate a new name.
+        # If there is an existing task with this name then generate a new name.
         task_name = utils.make_name_unique_by_adding_index(
-            task_name, list(self.tasks.keys()), '-')
+            task_name, list(self.tasks.keys()), '-'
+        )
         if task_name == '':
             task_name = utils.make_name_unique_by_adding_index(
-                'task', list(self.tasks.keys()), '-')
+                'task', list(self.tasks.keys()), '-'
+            )
 
         self.tasks[task_name] = task
         if add_to_group:

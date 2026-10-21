@@ -35,7 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Documentation
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-python
         with:
@@ -49,7 +51,7 @@ jobs:
         run: uv run python -m sphinx -W --keep-going -b html docs docs/_build/html
 
       - name: Upload documentation artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: documentation
           path: docs/_build/html
@@ -60,7 +62,9 @@ jobs:
     name: Check Links
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-python
         with:

@@ -23,9 +23,10 @@ import re
 EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 TOKEN = re.compile(
     r"\s+|(?P<literal>'(?:[^']|'')*')|"
-    r'(?P<reference>(?:inputs|steps|github|env)(?:\.[\w-]+)+)|'
+    r'(?P<reference>(?:inputs|steps|github|env|needs)(?:\.[\w-]+)+)|'
     r'(?P<word>true|false|null|always|cancelled|success|failure)\b|'
-    r'(?P<operator>==|!=|&&|\|\||!|\(|\))')
+    r'(?P<operator>==|!=|&&|\|\||!|\(|\))'
+)
 
 
 def evaluate(expression, context, statuses=None):
@@ -88,11 +89,14 @@ def evaluate(expression, context, statuses=None):
             other = atom()
             if type(value) is not type(other):
                 raise AssertionError(
-                    'Mixed-type Actions coercion is unsupported')
+                    'Mixed-type Actions coercion is unsupported'
+                )
             # GitHub string equality ignores case; Python equality does not.
             equal = (
                 value.casefold() == other.casefold()
-                if isinstance(value, str) else value == other)
+                if isinstance(value, str)
+                else value == other
+            )
             value = not equal if negate else equal
         return value
 

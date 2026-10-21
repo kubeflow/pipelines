@@ -13,8 +13,8 @@
 # limitations under the License.
 """Contracts for the dedicated DAG scale lane and its compiled fixture."""
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -22,26 +22,33 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ScalePipelineTest(unittest.TestCase):
-
     def test_exactly_120_uncached_container_tasks_with_layered_dependencies(
-            self):
-        fixture = ROOT / 'test_data/sdk_compiled_pipelines/valid/scale/dag_120.yaml'
+        self,
+    ):
+        fixture = (
+            ROOT / 'test_data/sdk_compiled_pipelines/valid/scale/dag_120.yaml'
+        )
         pipeline = yaml.safe_load(fixture.read_text())
         tasks = pipeline['root']['dag']['tasks']
         self.assertEqual(len(tasks), 120)
         by_id = {
-            int(task['inputs']['parameters']['node_id']['runtimeValue']
-                ['constant']):
-                name for name, task in tasks.items()
+            int(
+                task['inputs']['parameters']['node_id']['runtimeValue'][
+                    'constant'
+                ]
+            ): name
+            for name, task in tasks.items()
         }
         self.assertEqual(set(by_id), set(range(120)))
         for node_id, name in by_id.items():
             with self.subTest(node_id=node_id):
                 task = tasks[name]
-                self.assertEqual(task['taskInfo']['name'],
-                                 f'scale-node-{node_id:03d}')
+                self.assertEqual(
+                    task['taskInfo']['name'], f'scale-node-{node_id:03d}'
+                )
                 self.assertFalse(
-                    task.get('cachingOptions', {}).get('enableCache', False))
+                    task.get('cachingOptions', {}).get('enableCache', False)
+                )
                 expected_dependencies = []
                 if node_id >= 20:
                     layer, column = divmod(node_id, 20)
@@ -50,19 +57,23 @@ class ScalePipelineTest(unittest.TestCase):
                         by_id[(layer - 1) * 20 + (column + 1) % 20],
                     ]
                 self.assertCountEqual(
-                    task.get('dependentTasks', []), expected_dependencies)
+                    task.get('dependentTasks', []), expected_dependencies
+                )
                 component = pipeline['components'][task['componentRef']['name']]
                 self.assertNotIn('dag', component)
                 container = pipeline['deploymentSpec']['executors'][
-                    component['executorLabel']]['container']
+                    component['executorLabel']
+                ]['container']
                 self.assertEqual(container['image'], 'docker.io/alpine:3.23')
                 self.assertEqual(container['command'], ['echo'])
-                self.assertEqual(container['args'],
-                                 ["{{$.inputs.parameters['node_id']}}"])
+                self.assertEqual(
+                    container['args'], ["{{$.inputs.parameters['node_id']}}"]
+                )
 
     def test_scale_lane_is_dedicated_and_uses_shared_setup(self):
         workflow = yaml.safe_load(
-            (ROOT / '.github/workflows/e2e-test.yml').read_text())
+            (ROOT / '.github/workflows/e2e-test.yml').read_text()
+        )
         job = workflow['jobs']['dag-scale-test']
         self.assertNotIn('strategy', job)
         self.assertEqual(job['timeout-minutes'], 60)

@@ -12,29 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google_cloud_pipeline_components.types import artifact_types as google_artifact_types
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Input
+from google_cloud_pipeline_components.types import (
+    artifact_types as google_artifact_types,
+)
+from kfp import compiler, dsl
+from kfp.dsl import Artifact, Input
 
 
 @dsl.container_component
-def upstream(input_1: str, input_2: float, input_3: dsl.Input[dsl.Artifact],
-             input_4: str, output_1: dsl.OutputPath(int),
-             output_2: dsl.Output[dsl.Model],
-             output_3: dsl.Output[dsl.Artifact],
-             output_4: dsl.Output[dsl.Model],
-             output_5: dsl.Output[dsl.Artifact],
-             output_6: dsl.Output[dsl.Artifact],
-             output_7: dsl.Output[dsl.Artifact], output_8: dsl.Output[dsl.HTML],
-             output_9: dsl.Output[google_artifact_types.BQMLModel]):
+def upstream(
+    input_1: str,
+    input_2: float,
+    input_3: dsl.Input[dsl.Artifact],
+    input_4: str,
+    output_1: dsl.OutputPath(int),
+    output_2: dsl.Output[dsl.Model],
+    output_3: dsl.Output[dsl.Artifact],
+    output_4: dsl.Output[dsl.Model],
+    output_5: dsl.Output[dsl.Artifact],
+    output_6: dsl.Output[dsl.Artifact],
+    output_7: dsl.Output[dsl.Artifact],
+    output_8: dsl.Output[dsl.HTML],
+    output_9: dsl.Output[google_artifact_types.BQMLModel],
+):
     return dsl.ContainerSpec(
         image='gcr.io/image',
         args=[
-            input_1, input_2, input_3.path, input_4, output_1, output_2.uri,
-            output_3.path, output_4.uri, output_5.uri, output_6.path,
-            output_7.path, output_8.path
+            input_1,
+            input_2,
+            input_3.path,
+            input_4,
+            output_1,
+            output_2.uri,
+            output_3.path,
+            output_4.uri,
+            output_5.uri,
+            output_6.path,
+            output_7.path,
+            output_8.path,
         ],
     )
 
@@ -43,17 +58,28 @@ component_op_1 = upstream
 
 
 @dsl.container_component
-def downstream(input_a: int, input_b: dsl.Input[dsl.Model],
-               input_c: dsl.Input[dsl.Artifact], input_d: dsl.Input[dsl.Model],
-               input_e: dsl.Input[dsl.Artifact],
-               input_f: dsl.Input[dsl.Artifact],
-               input_g: dsl.Input[dsl.Artifact], input_h: dsl.Input[dsl.HTML],
-               input_i: dsl.Input[google_artifact_types.BQMLModel]):
+def downstream(
+    input_a: int,
+    input_b: dsl.Input[dsl.Model],
+    input_c: dsl.Input[dsl.Artifact],
+    input_d: dsl.Input[dsl.Model],
+    input_e: dsl.Input[dsl.Artifact],
+    input_f: dsl.Input[dsl.Artifact],
+    input_g: dsl.Input[dsl.Artifact],
+    input_h: dsl.Input[dsl.HTML],
+    input_i: dsl.Input[google_artifact_types.BQMLModel],
+):
     return dsl.ContainerSpec(
         image='gcr.io/image',
         args=[
-            input_a, input_b.uri, input_c.path, input_d.uri, input_e.uri,
-            input_f.path, input_g.path, input_h.path
+            input_a,
+            input_b.uri,
+            input_c.path,
+            input_d.uri,
+            input_e.uri,
+            input_f.path,
+            input_g.path,
+            input_h.path,
         ],
     )
 
@@ -84,5 +110,5 @@ def my_pipeline(input1: str, input3: Input[Artifact], input4: str = ''):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

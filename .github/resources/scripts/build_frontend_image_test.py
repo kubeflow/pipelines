@@ -2,24 +2,23 @@
 
 import importlib.util
 import os
-from pathlib import Path
 import signal
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest import mock
 
 SPEC = importlib.util.spec_from_file_location(
-    'build_frontend_image',
-    Path(__file__).with_name('build_frontend_image.py'))
+    'build_frontend_image', Path(__file__).with_name('build_frontend_image.py')
+)
 builder = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(builder)
 
 
 class BuildTest(unittest.TestCase):
-
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -46,20 +45,32 @@ class BuildTest(unittest.TestCase):
             return 0
 
         with mock.patch.object(builder, 'run', side_effect=run):
-            return builder.build('.', 'frontend/Dockerfile', 'test:latest',
-                                 '22', self.output, **kwargs)
+            return builder.build(
+                '.',
+                'frontend/Dockerfile',
+                'test:latest',
+                '22',
+                self.output,
+                **kwargs,
+            )
 
     def test_native_platform_and_both_tags_survive_retry(self):
         for architecture in ('amd64', 'arm64'):
             with self.subTest(architecture=architecture):
                 self.builds.clear()
                 self.assertEqual(
-                    self.execute([1, 0],
-                                 platform=f'linux/{architecture}',
-                                 additional_tags=['test:ci']), 0)
+                    self.execute(
+                        [1, 0],
+                        platform=f'linux/{architecture}',
+                        additional_tags=['test:ci'],
+                    ),
+                    0,
+                )
                 for command in self.builds:
-                    self.assertEqual(command[command.index('--platform') + 1],
-                                     f'linux/{architecture}')
+                    self.assertEqual(
+                        command[command.index('--platform') + 1],
+                        f'linux/{architecture}',
+                    )
                     tags = [
                         command[i + 1]
                         for i, part in enumerate(command)
@@ -124,7 +135,8 @@ class BuildTest(unittest.TestCase):
             with self.assertRaises(KeyboardInterrupt):
                 builder.build('.', 'Dockerfile', 'tag', '22', self.output)
         self.assertTrue(
-            any(c[:3] == ['docker', 'rm', '--force'] for c in commands))
+            any(c[:3] == ['docker', 'rm', '--force'] for c in commands)
+        )
         self.assertEqual(sum(c[0] == 'bash' for c in commands), 1)
         self.assertFalse(self.output.exists())
 
@@ -143,7 +155,8 @@ class BuildTest(unittest.TestCase):
 
         with mock.patch.object(builder, 'run', side_effect=run):
             self.assertEqual(
-                builder.build('.', 'Dockerfile', 'tag', '22', self.output), 0)
+                builder.build('.', 'Dockerfile', 'tag', '22', self.output), 0
+            )
         self.assertEqual(len(setups), 2)
 
     def test_setup_consumes_attempt_budget(self):
@@ -165,17 +178,24 @@ class BuildTest(unittest.TestCase):
                     'tag',
                     '22',
                     self.output,
-                    attempt_seconds=1), 0)
+                    attempt_seconds=1,
+                ),
+                0,
+            )
         self.assertLess(budgets[1], budgets[0] - 0.04)
 
     def test_timeout_kills_term_ignoring_descendant(self):
         marker = Path(self.directory.name) / 'survived'
-        child = ('import signal,time; from pathlib import Path; '
-                 'signal.signal(signal.SIGTERM,signal.SIG_IGN); '
-                 f'time.sleep(0.8); Path({str(marker)!r}).touch()')
-        parent = ('import subprocess,sys,time; '
-                  f'subprocess.Popen([sys.executable,"-c",{child!r}]); '
-                  'time.sleep(10)')
+        child = (
+            'import signal,time; from pathlib import Path; '
+            'signal.signal(signal.SIGTERM,signal.SIG_IGN); '
+            f'time.sleep(0.8); Path({str(marker)!r}).touch()'
+        )
+        parent = (
+            'import subprocess,sys,time; '
+            f'subprocess.Popen([sys.executable,"-c",{child!r}]); '
+            'time.sleep(10)'
+        )
         with self.assertRaises(builder.CommandTimeout):
             builder.run([sys.executable, '-c', parent], 0.3, grace=0.05)
         time.sleep(0.8)
@@ -189,14 +209,16 @@ class BuildTest(unittest.TestCase):
             'signal.signal(signal.SIGTERM,signal.SIG_IGN); '
             'print("descendant ready",flush=True); '
             f'Path({str(descendant_ready)!r}).write_text(str(os.getpid())); '
-            'time.sleep(30)')
+            'time.sleep(30)'
+        )
         client = (
             'import os,signal,subprocess,sys,time; from pathlib import Path; '
             'signal.signal(signal.SIGTERM,signal.SIG_IGN); '
             f'subprocess.Popen([sys.executable,"-c",{descendant!r}]); '
             'print("client ready",flush=True); '
             f'Path({str(client_ready)!r}).write_text(str(os.getpid())); '
-            'time.sleep(30)')
+            'time.sleep(30)'
+        )
         script = Path(self.directory.name) / 'cancel.py'
         script.write_text(
             f'import sys,signal,subprocess; sys.path.insert(0,{str(Path(__file__).parent)!r})\n'
@@ -205,30 +227,41 @@ class BuildTest(unittest.TestCase):
             'signal.signal(signal.SIGTERM,stop)\n'
             # Negative control: the wrapper exits on cancellation but abandons
             # its separately sessioned client and descendant.
-            +
-            ('def unclean(command, *args, **kwargs):\n'
-             '    return subprocess.Popen(command,start_new_session=True).wait()\n'
-             'b.run=unclean\n' if omit_cleanup else '') + 'try:\n'
+            + (
+                'def unclean(command, *args, **kwargs):\n'
+                '    return subprocess.Popen(command,start_new_session=True).wait()\n'
+                'b.run=unclean\n'
+                if omit_cleanup
+                else ''
+            )
+            + 'try:\n'
             f'    b.run([sys.executable,"-c",{client!r}],30,grace=0.05)\n'
             'except KeyboardInterrupt:\n'
-            '    sys.exit(130)\n')
-        process = subprocess.Popen([sys.executable, str(script)],
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   text=True)
+            '    sys.exit(130)\n'
+        )
+        process = subprocess.Popen(
+            [sys.executable, str(script)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
         client_pid = None
         try:
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
-                if (client_ready.exists() and client_ready.read_text() and
-                        descendant_ready.exists() and
-                        descendant_ready.read_text()):
+                if (
+                    client_ready.exists()
+                    and client_ready.read_text()
+                    and descendant_ready.exists()
+                    and descendant_ready.read_text()
+                ):
                     break
                 time.sleep(0.02)
             self.assertTrue(client_ready.exists(), 'client did not start')
             client_pid = int(client_ready.read_text())
-            self.assertTrue(descendant_ready.exists(),
-                            'descendant did not start')
+            self.assertTrue(
+                descendant_ready.exists(), 'descendant did not start'
+            )
             descendant_pid = int(descendant_ready.read_text())
             self.assertEqual(os.getpgid(client_pid), client_pid)
             self.assertEqual(os.getpgid(descendant_pid), client_pid)
@@ -262,8 +295,8 @@ class BuildTest(unittest.TestCase):
 
     def test_sigterm_regression_rejects_cleanup_free_interrupt(self):
         with self.assertRaisesRegex(
-                AssertionError,
-                'SIGTERM did not stop the wrapper and client group'):
+            AssertionError, 'SIGTERM did not stop the wrapper and client group'
+        ):
             self.assert_sigterm_stops_client_group(omit_cleanup=True)
 
 

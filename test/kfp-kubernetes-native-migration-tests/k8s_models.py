@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -37,7 +37,9 @@ class K8sPipeline:
         return self.metadata.name
 
     def get_original_id(self) -> Optional[str]:
-        return self.metadata.annotations.get('pipelines.kubeflow.org/original-id')
+        return self.metadata.annotations.get(
+            'pipelines.kubeflow.org/original-id'
+        )
 
 
 @dataclass
@@ -51,7 +53,9 @@ class K8sPipelineVersion:
         return self.metadata.name
 
     def get_original_id(self) -> Optional[str]:
-        return self.metadata.annotations.get('pipelines.kubeflow.org/original-id')
+        return self.metadata.annotations.get(
+            'pipelines.kubeflow.org/original-id'
+        )
 
     def get_pipeline_spec(self) -> Optional[Dict[str, Any]]:
         return self.spec.get('pipelineSpec')
@@ -63,7 +67,9 @@ class K8sPipelineVersion:
 @dataclass
 class MigrationResult:
     k8s_pipelines: List[K8sPipeline] = field(default_factory=list)
-    k8s_pipeline_versions: List[K8sPipelineVersion] = field(default_factory=list)
+    k8s_pipeline_versions: List[K8sPipelineVersion] = field(
+        default_factory=list
+    )
     yaml_files: List[str] = field(default_factory=list)
 
     def get_pipeline_by_name(self, name: str) -> Optional[K8sPipeline]:
@@ -72,11 +78,11 @@ class MigrationResult:
                 return p
         return None
 
-    def get_pipeline_versions_by_pipeline_name(self, pipeline_name: str) -> List[K8sPipelineVersion]:
+    def get_pipeline_versions_by_pipeline_name(
+        self, pipeline_name: str
+    ) -> List[K8sPipelineVersion]:
         versions: List[K8sPipelineVersion] = []
         for v in self.k8s_pipeline_versions:
             if v.get_pipeline_name() == pipeline_name:
                 versions.append(v)
         return versions
-
-

@@ -13,9 +13,15 @@
 # limitations under the License.
 import os
 
-from kfp import dsl, compiler
-from kfp.dsl import (component, Output, ClassificationMetrics, Metrics, HTML,
-                     Markdown)
+from kfp import compiler, dsl
+from kfp.dsl import (
+    HTML,
+    ClassificationMetrics,
+    Markdown,
+    Metrics,
+    Output,
+    component,
+)
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -28,10 +34,8 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def digit_classification(metrics: Output[Metrics]):
-    from sklearn import model_selection
+    from sklearn import datasets, model_selection
     from sklearn.linear_model import LogisticRegression
-    from sklearn import datasets
-    from sklearn.metrics import accuracy_score
 
     # Load digits dataset
     iris = datasets.load_iris()
@@ -42,26 +46,28 @@ def digit_classification(metrics: Output[Metrics]):
     # Create target vector
     y = iris.target
 
-    #test size
+    # test size
     test_size = 0.33
 
     seed = 7
-    #cross-validation settings
+    # cross-validation settings
     kfold = model_selection.KFold(n_splits=10, random_state=seed, shuffle=True)
 
-    #Model instance
+    # Model instance
     model = LogisticRegression()
     scoring = 'accuracy'
     results = model_selection.cross_val_score(
-        model, X, y, cv=kfold, scoring=scoring)
+        model, X, y, cv=kfold, scoring=scoring
+    )
 
-    #split data
+    # split data
     X_train, X_test, y_train, y_test = model_selection.train_test_split(
-        X, y, test_size=test_size, random_state=seed)
-    #fit model
+        X, y, test_size=test_size, random_state=seed
+    )
+    # fit model
     model.fit(X_train, y_train)
 
-    #accuracy on test set
+    # accuracy on test set
     result = model.score(X_test, y_test)
     metrics.log_metric('accuracy', (result * 100.0))
 
@@ -72,10 +78,10 @@ def digit_classification(metrics: Output[Metrics]):
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def wine_classification(metrics: Output[ClassificationMetrics]):
+    from sklearn.datasets import load_wine
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import roc_curve
-    from sklearn.datasets import load_wine
-    from sklearn.model_selection import train_test_split, cross_val_predict
+    from sklearn.model_selection import cross_val_predict, train_test_split
 
     X, y = load_wine(return_X_y=True)
     # Binary classification problem for label 1.
@@ -85,15 +91,17 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
     rfc = RandomForestClassifier(n_estimators=10, random_state=42)
     rfc.fit(X_train, y_train)
     y_scores = cross_val_predict(
-        rfc, X_train, y_train, cv=3, method='predict_proba')
+        rfc, X_train, y_train, cv=3, method='predict_proba'
+    )
     y_predict = cross_val_predict(rfc, X_train, y_train, cv=3, method='predict')
     fpr, tpr, thresholds = roc_curve(
-        y_true=y_train, y_score=y_scores[:, 1], pos_label=True)
-    
+        y_true=y_train, y_score=y_scores[:, 1], pos_label=True
+    )
+
     # avoid inf thresholds
     epsilon = 1e-6
     thresholds = [1 - epsilon if t == float('inf') else t for t in thresholds]
-    
+
     metrics.log_roc_curve(fpr, tpr, thresholds)
 
 
@@ -102,8 +110,9 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
     base_image='registry.access.redhat.com/ubi9/python-311:latest',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
-def iris_sgdclassifier(test_samples_fraction: float,
-                       metrics: Output[ClassificationMetrics]):
+def iris_sgdclassifier(
+    test_samples_fraction: float, metrics: Output[ClassificationMetrics]
+):
     from sklearn import datasets, model_selection
     from sklearn.linear_model import SGDClassifier
     from sklearn.metrics import confusion_matrix
@@ -112,30 +121,36 @@ def iris_sgdclassifier(test_samples_fraction: float,
     train_x, test_x, train_y, test_y = model_selection.train_test_split(
         iris_dataset['data'],
         iris_dataset['target'],
-        test_size=test_samples_fraction)
+        test_size=test_samples_fraction,
+    )
 
     classifier = SGDClassifier()
     classifier.fit(train_x, train_y)
     predictions = model_selection.cross_val_predict(
-        classifier, train_x, train_y, cv=3)
+        classifier, train_x, train_y, cv=3
+    )
     metrics.log_confusion_matrix(
         ['Setosa', 'Versicolour', 'Virginica'],
         confusion_matrix(
-            train_y,
-            predictions).tolist()  # .tolist() to convert np array to list.
+            train_y, predictions
+        ).tolist(),  # .tolist() to convert np array to list.
     )
 
 
 @component(
-    kfp_package_path=_KFP_PACKAGE_PATH,)
+    kfp_package_path=_KFP_PACKAGE_PATH,
+)
 def html_visualization(html_artifact: Output[HTML]):
-    html_content = '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'
+    html_content = (
+        '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'
+    )
     with open(html_artifact.path, 'w') as f:
         f.write(html_content)
 
 
 @component(
-    kfp_package_path=_KFP_PACKAGE_PATH,)
+    kfp_package_path=_KFP_PACKAGE_PATH,
+)
 def markdown_visualization(markdown_artifact: Output[Markdown]):
     markdown_content = '## Hello world \n\n Markdown content'
     with open(markdown_artifact.path, 'w') as f:
@@ -154,4 +169,5 @@ def metrics_visualization_pipeline():
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=metrics_visualization_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

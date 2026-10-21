@@ -20,7 +20,8 @@
 import os
 
 from kfp import client, dsl
-from kfp.dsl import Input, Output, Artifact
+from kfp.dsl import Artifact, Input, Output
+
 # Outputting directories from Python-based components:
 
 # In tests, we install a KFP package from the PR under test. Users should not
@@ -29,25 +30,27 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
 @dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def list_dir_files_python(input_dir: Input[Artifact],
-                                subdir: str = 'texts'):
+def list_dir_files_python(input_dir: Input[Artifact], subdir: str = 'texts'):
     import os
+
     dir_items = os.listdir(os.path.join(input_dir.path, subdir))
     for dir_item in dir_items:
         print(dir_item)
 
 
 @dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def produce_dir_with_files_python_op(output_dir: Output[Artifact],
-                                        num_files: int = 10,
-                                        subdir: str = 'texts'):
+def produce_dir_with_files_python_op(
+    output_dir: Output[Artifact], num_files: int = 10, subdir: str = 'texts'
+):
     import os
+
     subdir_path = os.path.join(output_dir.path, subdir)
     os.makedirs(subdir_path, exist_ok=True)
     for i in range(num_files):
         file_path = os.path.join(subdir_path, str(i) + '.txt')
         with open(file_path, 'w') as f:
             f.write(str(i))
+
 
 @dsl.pipeline(name='dir-pipeline')
 def dir_pipeline(subdir: str = 'texts'):
@@ -65,9 +68,6 @@ if __name__ == '__main__':
     kfp_endpoint = None
     kfp_client = client.Client(host=kfp_endpoint)
     run = kfp_client.create_run_from_pipeline_func(
-            dir_pipeline,
-            arguments={
-            },
-         )
-
-   
+        dir_pipeline,
+        arguments={},
+    )

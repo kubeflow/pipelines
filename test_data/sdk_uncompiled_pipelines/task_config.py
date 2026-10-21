@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp import dsl
-from kfp import compiler
-from kfp import kubernetes
+from kfp import compiler, dsl, kubernetes
 
 
 @dsl.component(
     task_config_passthroughs=[
-        dsl.TaskConfigPassthrough(field=dsl.TaskConfigField.ENV, apply_to_task=True),
+        dsl.TaskConfigPassthrough(
+            field=dsl.TaskConfigField.ENV, apply_to_task=True
+        ),
         dsl.TaskConfigField.RESOURCES,
         dsl.TaskConfigField.KUBERNETES_VOLUMES,
         dsl.TaskConfigField.KUBERNETES_NODE_SELECTOR,
@@ -47,61 +47,53 @@ def echo_task_config(workspace_path: str, task_config: dsl.TaskConfig):
         'affinity': {
             'nodeAffinity': {
                 'requiredDuringSchedulingIgnoredDuringExecution': {
-                    'nodeSelectorTerms': [{
-                        'matchExpressions': [{
-                            'key': 'disktype',
-                            'operator': 'In',
-                            'values': ['ssd']
-                        }]
-                    }]
+                    'nodeSelectorTerms': [
+                        {
+                            'matchExpressions': [
+                                {
+                                    'key': 'disktype',
+                                    'operator': 'In',
+                                    'values': ['ssd'],
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
-        'env': [{
-            'name': 'ENV1',
-            'value': 'val1'
-        }, {
-            'name': 'ENV2',
-            'value': 'val2'
-        }],
-        'node_selector': {
-            'disktype': 'ssd'
-        },
+        'env': [
+            {'name': 'ENV1', 'value': 'val1'},
+            {'name': 'ENV2', 'value': 'val2'},
+        ],
+        'node_selector': {'disktype': 'ssd'},
         'resources': {
-            'limits': {
-                'cpu': '100m',
-                'memory': '100Mi',
-                'nvidia.com/gpu': '1'
-            },
-            'requests': {
-                'cpu': '100m',
-                'memory': '100Mi'
-            }
+            'limits': {'cpu': '100m', 'memory': '100Mi', 'nvidia.com/gpu': '1'},
+            'requests': {'cpu': '100m', 'memory': '100Mi'},
         },
-        'tolerations': [{
-            'effect': 'NoExecute',
-            'key': 'example-key',
-            'operator': 'Exists',
-            'tolerationSeconds': 3600
-        }],
-        'volume_mounts': [{
-            'mountPath': '/kfp-workspace',
-            'name': 'kfp-workspace'
-        }, {
-            'mountPath': '/data',
-            'name': 'kubernetes-task-config-pvc'
-        }],
-        'volumes': [{
-            'name': 'kfp-workspace',
-            'persistentVolumeClaim': {
-                'claimName': workspace_pvc_name
+        'tolerations': [
+            {
+                'effect': 'NoExecute',
+                'key': 'example-key',
+                'operator': 'Exists',
+                'tolerationSeconds': 3600,
             }
-        }, {
-            'name': 'kubernetes-task-config-pvc',
-            'persistentVolumeClaim': {
-                'claimName': 'kubernetes-task-config-pvc'
-            }
-        }]
+        ],
+        'volume_mounts': [
+            {'mountPath': '/kfp-workspace', 'name': 'kfp-workspace'},
+            {'mountPath': '/data', 'name': 'kubernetes-task-config-pvc'},
+        ],
+        'volumes': [
+            {
+                'name': 'kfp-workspace',
+                'persistentVolumeClaim': {'claimName': workspace_pvc_name},
+            },
+            {
+                'name': 'kubernetes-task-config-pvc',
+                'persistentVolumeClaim': {
+                    'claimName': 'kubernetes-task-config-pvc'
+                },
+            },
+        ],
     }
 
     assert actual == expected
@@ -117,7 +109,11 @@ def echo_task_config(workspace_path: str, task_config: dsl.TaskConfig):
         workspace=dsl.WorkspaceConfig(
             size='5Mi',
             kubernetes=dsl.KubernetesWorkspaceConfig(
-                pvcSpecPatch={"storageClassName": "standard"}))))
+                pvcSpecPatch={'storageClassName': 'standard'}
+            ),
+        )
+    ),
+)
 def pipeline_task_config():
     """Pipeline that leverages dsl.TaskConfig."""
     pvc1 = kubernetes.CreatePVC(
@@ -126,12 +122,16 @@ def pipeline_task_config():
         size='5Mi',
         storage_class_name='standard',
     ).set_caching_options(False)
-    echo_task_config_task = echo_task_config(
-        workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER).set_caching_options(
-            False).set_cpu_request('100m').set_memory_request(
-                '100Mi').set_cpu_limit('100m').set_memory_limit(
-                    '100Mi').set_accelerator_type(
-                        'nvidia.com/gpu').set_accelerator_limit(1)
+    echo_task_config_task = (
+        echo_task_config(workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+        .set_caching_options(False)
+        .set_cpu_request('100m')
+        .set_memory_request('100Mi')
+        .set_cpu_limit('100m')
+        .set_memory_limit('100Mi')
+        .set_accelerator_type('nvidia.com/gpu')
+        .set_accelerator_limit(1)
+    )
 
     kubernetes.mount_pvc(
         echo_task_config_task,
@@ -155,21 +155,24 @@ def pipeline_task_config():
 
     kubernetes.add_node_affinity(
         echo_task_config_task,
-        match_expressions=[{
-            'key': 'disktype',
-            'operator': 'In',
-            'values': ['ssd']
-        }])
+        match_expressions=[
+            {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+        ],
+    )
 
     echo_task_config_task.set_env_variable(name='ENV1', value='val1')
     echo_task_config_task.set_env_variable(name='ENV2', value='val2')
 
-    delete_pvc1 = kubernetes.DeletePVC(pvc_name=pvc1.outputs['name']).after(
-        echo_task_config_task).set_caching_options(False)
+    delete_pvc1 = (
+        kubernetes.DeletePVC(pvc_name=pvc1.outputs['name'])
+        .after(echo_task_config_task)
+        .set_caching_options(False)
+    )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # execute only if run as a script
     compiler.Compiler().compile(
         pipeline_func=pipeline_task_config,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

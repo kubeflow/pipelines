@@ -19,7 +19,8 @@ import tempfile
 
 
 def create_temporary_google_artifact_package(
-        temp_dir: tempfile.TemporaryDirectory) -> None:
+    temp_dir: tempfile.TemporaryDirectory,
+) -> None:
     """Creates a fake temporary module that can be used as a Vertex SDK mock
     for testing purposes."""
     import inspect
@@ -54,9 +55,13 @@ def create_temporary_google_artifact_package(
         def path(self) -> str:
             return self.uri.replace('gs://', '/')
 
-    class_source = 'from kfp import dsl' + '\n\n' + textwrap.dedent(
-        inspect.getsource(VertexModel)) + '\n\n' + textwrap.dedent(
-            inspect.getsource(VertexDataset))
+    class_source = (
+        'from kfp import dsl'
+        + '\n\n'
+        + textwrap.dedent(inspect.getsource(VertexModel))
+        + '\n\n'
+        + textwrap.dedent(inspect.getsource(VertexDataset))
+    )
 
     with open(os.path.join(temp_dir.name, 'aiplatform.py'), 'w') as f:
         f.write(class_source)
@@ -69,12 +74,9 @@ try:
     create_temporary_google_artifact_package(temp_dir)
 
     import aiplatform
-    from aiplatform import VertexDataset
-    from aiplatform import VertexModel
-    from kfp import compiler
-    from kfp import dsl
-    from kfp.dsl import Input
-    from kfp.dsl import Output
+    from aiplatform import VertexDataset, VertexModel
+    from kfp import compiler, dsl
+    from kfp.dsl import Input, Output
 
     PACKAGES_TO_INSTALL = ['aiplatform']
     if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
@@ -88,8 +90,9 @@ try:
             f.write('my model')
 
     @dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
-    def model_consumer(model: Input[VertexModel],
-                       dataset: Input[VertexDataset]):
+    def model_consumer(
+        model: Input[VertexModel], dataset: Input[VertexDataset]
+    ):
         print('Model')
         print('artifact.type: ', type(model))
         print('artifact.name: ', model.name)
@@ -109,7 +112,8 @@ try:
             artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
             artifact_class=VertexDataset,
             reimport=False,
-            metadata={'key': 'value'})
+            metadata={'key': 'value'},
+        )
         model_consumer(
             model=producer_task.outputs['model'],
             dataset=importer.output,
@@ -118,7 +122,8 @@ try:
     if __name__ == '__main__':
         ir_file = __file__.replace('.py', '.yaml')
         compiler.Compiler().compile(
-            pipeline_func=my_pipeline, package_path=ir_file)
+            pipeline_func=my_pipeline, package_path=ir_file
+        )
 finally:
     sys.path.pop()
     temp_dir.cleanup()

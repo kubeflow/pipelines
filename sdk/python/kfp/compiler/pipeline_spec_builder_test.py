@@ -17,21 +17,17 @@ import os
 import tempfile
 import unittest
 
+import yaml
 from absl.testing import parameterized
-from google.protobuf import json_format
-from google.protobuf import struct_pb2
-from kfp import dsl
-from kfp import kubernetes
-from kfp.compiler import compiler
-from kfp.compiler import compiler_utils
-from kfp.compiler import pipeline_spec_builder
+from google.protobuf import json_format, struct_pb2
+
+from kfp import dsl, kubernetes
+from kfp.compiler import compiler, compiler_utils, pipeline_spec_builder
 from kfp.dsl import TaskConfigField
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 
 class PipelineSpecBuilderTest(parameterized.TestCase):
-
     def setUp(self):
         self.maxDiff = None
 
@@ -67,72 +63,76 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             'expected': struct_pb2.Value(bool_value=False),
         },
         {
-            'parameter_type':
-                pipeline_spec_pb2.ParameterType.STRUCT,
+            'parameter_type': pipeline_spec_pb2.ParameterType.STRUCT,
             'default_value': {
                 'a': 1,
                 'b': 2,
             },
-            'expected':
-                struct_pb2.Value(
-                    struct_value=struct_pb2.Struct(
-                        fields={
-                            'a': struct_pb2.Value(number_value=1),
-                            'b': struct_pb2.Value(number_value=2),
-                        })),
+            'expected': struct_pb2.Value(
+                struct_value=struct_pb2.Struct(
+                    fields={
+                        'a': struct_pb2.Value(number_value=1),
+                        'b': struct_pb2.Value(number_value=2),
+                    }
+                )
+            ),
         },
         {
-            'parameter_type':
-                pipeline_spec_pb2.ParameterType.LIST,
+            'parameter_type': pipeline_spec_pb2.ParameterType.LIST,
             'default_value': ['a', 'b'],
-            'expected':
-                struct_pb2.Value(
-                    list_value=struct_pb2.ListValue(values=[
+            'expected': struct_pb2.Value(
+                list_value=struct_pb2.ListValue(
+                    values=[
                         struct_pb2.Value(string_value='a'),
                         struct_pb2.Value(string_value='b'),
-                    ])),
+                    ]
+                )
+            ),
         },
         {
-            'parameter_type':
-                pipeline_spec_pb2.ParameterType.LIST,
-            'default_value': [{
-                'a': 1,
-                'b': 2
-            }, {
-                'a': 10,
-                'b': 20
-            }],
-            'expected':
-                struct_pb2.Value(
-                    list_value=struct_pb2.ListValue(values=[
+            'parameter_type': pipeline_spec_pb2.ParameterType.LIST,
+            'default_value': [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}],
+            'expected': struct_pb2.Value(
+                list_value=struct_pb2.ListValue(
+                    values=[
                         struct_pb2.Value(
                             struct_value=struct_pb2.Struct(
                                 fields={
                                     'a': struct_pb2.Value(number_value=1),
                                     'b': struct_pb2.Value(number_value=2),
-                                })),
+                                }
+                            )
+                        ),
                         struct_pb2.Value(
                             struct_value=struct_pb2.Struct(
                                 fields={
                                     'a': struct_pb2.Value(number_value=10),
                                     'b': struct_pb2.Value(number_value=20),
-                                })),
-                    ])),
+                                }
+                            )
+                        ),
+                    ]
+                )
+            ),
         },
     )
-    def test_fill_in_component_input_default_value(self, parameter_type,
-                                                   default_value, expected):
+    def test_fill_in_component_input_default_value(
+        self, parameter_type, default_value, expected
+    ):
         component_spec = pipeline_spec_pb2.ComponentSpec(
             input_definitions=pipeline_spec_pb2.ComponentInputsSpec(
                 parameters={
-                    'input1':
-                        pipeline_spec_pb2.ComponentInputsSpec.ParameterSpec(
-                            parameter_type=parameter_type)
-                }))
+                    'input1': pipeline_spec_pb2.ComponentInputsSpec.ParameterSpec(
+                        parameter_type=parameter_type
+                    )
+                }
+            )
+        )
         pipeline_spec_builder._fill_in_component_input_default_value(
             component_spec=component_spec,
             input_name='input1',
-            default_value=default_value)
+            default_value=default_value,
+        )
 
         self.assertEqual(
             expected,
@@ -147,132 +147,175 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
 
     def test_to_protobuf_value_with_none_in_dict(self):
         self.assertEqual(
-            pipeline_spec_builder.to_protobuf_value({
-                'key': None,
-                'threshold': 0.5
-            }),
+            pipeline_spec_builder.to_protobuf_value(
+                {'key': None, 'threshold': 0.5}
+            ),
             struct_pb2.Value(
                 struct_value=struct_pb2.Struct(
                     fields={
-                        'key':
-                            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
-                        'threshold':
-                            struct_pb2.Value(number_value=0.5),
-                    })),
+                        'key': struct_pb2.Value(
+                            null_value=struct_pb2.NULL_VALUE
+                        ),
+                        'threshold': struct_pb2.Value(number_value=0.5),
+                    }
+                )
+            ),
         )
 
     def test_to_protobuf_value_with_none_in_list(self):
         self.assertEqual(
             pipeline_spec_builder.to_protobuf_value([1, None, 2]),
             struct_pb2.Value(
-                list_value=struct_pb2.ListValue(values=[
-                    struct_pb2.Value(number_value=1),
-                    struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
-                    struct_pb2.Value(number_value=2),
-                ])),
+                list_value=struct_pb2.ListValue(
+                    values=[
+                        struct_pb2.Value(number_value=1),
+                        struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                        struct_pb2.Value(number_value=2),
+                    ]
+                )
+            ),
         )
 
     def test_merge_deployment_spec_and_component_spec(self):
         main_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         main_deployment_config.executors['exec-1'].CopyFrom(
             pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-                container=pipeline_spec_pb2.PipelineDeploymentConfig
-                .PipelineContainerSpec(image='img-1', command=['cmd'])))
+                container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                    image='img-1', command=['cmd']
+                )
+            )
+        )
         main_pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         main_pipeline_spec.components['comp-1'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1'))
+            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1')
+        )
 
         sub_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         sub_deployment_config.executors['exec-1'].CopyFrom(
             pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-                container=pipeline_spec_pb2.PipelineDeploymentConfig
-                .PipelineContainerSpec(image='img-a', command=['cmd'])))
+                container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                    image='img-a', command=['cmd']
+                )
+            )
+        )
         sub_deployment_config.executors['exec-2'].CopyFrom(
             pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-                container=pipeline_spec_pb2.PipelineDeploymentConfig
-                .PipelineContainerSpec(image='img-b', command=['cmd'])))
+                container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                    image='img-b', command=['cmd']
+                )
+            )
+        )
 
         sub_pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         sub_pipeline_spec.deployment_spec.update(
-            json_format.MessageToDict(sub_deployment_config))
+            json_format.MessageToDict(sub_deployment_config)
+        )
         sub_pipeline_spec.components['comp-1'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1'))
+            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1')
+        )
         sub_pipeline_spec.components['comp-2'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(executor_label='exec-2'))
+            pipeline_spec_pb2.ComponentSpec(executor_label='exec-2')
+        )
         sub_pipeline_spec.root.CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(dag=pipeline_spec_pb2.DagSpec()))
+            pipeline_spec_pb2.ComponentSpec(dag=pipeline_spec_pb2.DagSpec())
+        )
         sub_pipeline_spec.root.dag.tasks['task-1'].CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec(
-                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-1')))
+                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-1')
+            )
+        )
         sub_pipeline_spec.root.dag.tasks['task-2'].CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec(
-                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-2')))
+                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-2')
+            )
+        )
 
         expected_sub_pipeline_spec = pipeline_spec_pb2.PipelineSpec.FromString(
-            sub_pipeline_spec.SerializeToString())
+            sub_pipeline_spec.SerializeToString()
+        )
 
-        expected_main_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig(
+        expected_main_deployment_config = (
+            pipeline_spec_pb2.PipelineDeploymentConfig()
         )
         expected_main_deployment_config.executors['exec-1'].CopyFrom(
             pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-                container=pipeline_spec_pb2.PipelineDeploymentConfig
-                .PipelineContainerSpec(image='img-1', command=['cmd'])))
+                container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                    image='img-1', command=['cmd']
+                )
+            )
+        )
         expected_main_deployment_config.executors['exec-1-2'].CopyFrom(
             pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-                container=pipeline_spec_pb2.PipelineDeploymentConfig
-                .PipelineContainerSpec(image='img-a', command=['cmd'])))
+                container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                    image='img-a', command=['cmd']
+                )
+            )
+        )
         expected_main_deployment_config.executors['exec-2'].CopyFrom(
             pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-                container=pipeline_spec_pb2.PipelineDeploymentConfig
-                .PipelineContainerSpec(image='img-b', command=['cmd'])))
+                container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                    image='img-b', command=['cmd']
+                )
+            )
+        )
 
         expected_main_pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         expected_main_pipeline_spec.components['comp-1'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1'))
+            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1')
+        )
         expected_main_pipeline_spec.components['comp-1-2'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1-2'))
+            pipeline_spec_pb2.ComponentSpec(executor_label='exec-1-2')
+        )
         expected_main_pipeline_spec.components['comp-2'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(executor_label='exec-2'))
+            pipeline_spec_pb2.ComponentSpec(executor_label='exec-2')
+        )
 
         expected_sub_pipeline_spec_root = pipeline_spec_pb2.ComponentSpec(
-            dag=pipeline_spec_pb2.DagSpec())
+            dag=pipeline_spec_pb2.DagSpec()
+        )
         expected_sub_pipeline_spec_root.dag.tasks['task-1'].CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec(
-                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-1-2')))
+                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-1-2')
+            )
+        )
         expected_sub_pipeline_spec_root.dag.tasks['task-2'].CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec(
-                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-2')))
+                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-2')
+            )
+        )
 
-        sub_pipeline_spec_copy, sub_platform_spec = pipeline_spec_builder.merge_deployment_spec_and_component_spec(
-            main_pipeline_spec=main_pipeline_spec,
-            main_deployment_config=main_deployment_config,
-            sub_pipeline_spec=sub_pipeline_spec,
-            main_platform_spec=pipeline_spec_pb2.PlatformSpec(),
-            sub_platform_spec=pipeline_spec_pb2.PlatformSpec(),
+        sub_pipeline_spec_copy, sub_platform_spec = (
+            pipeline_spec_builder.merge_deployment_spec_and_component_spec(
+                main_pipeline_spec=main_pipeline_spec,
+                main_deployment_config=main_deployment_config,
+                sub_pipeline_spec=sub_pipeline_spec,
+                main_platform_spec=pipeline_spec_pb2.PlatformSpec(),
+                sub_platform_spec=pipeline_spec_pb2.PlatformSpec(),
+            )
         )
 
         self.assertEqual(sub_pipeline_spec, expected_sub_pipeline_spec)
         self.assertEqual(main_pipeline_spec, expected_main_pipeline_spec)
-        self.assertEqual(main_deployment_config,
-                         expected_main_deployment_config)
-        self.assertEqual(sub_pipeline_spec_copy.root,
-                         expected_sub_pipeline_spec_root)
+        self.assertEqual(
+            main_deployment_config, expected_main_deployment_config
+        )
+        self.assertEqual(
+            sub_pipeline_spec_copy.root, expected_sub_pipeline_spec_root
+        )
 
 
 class TestPlatformConfigToPlatformSpec(unittest.TestCase):
-
     def test(self):
         platform_config = {
             'platform_key': {
                 'feat1': [1, 2, 3],
                 'feat2': 'hello',
-                'feat3': {
-                    'k': 'v'
-                }
+                'feat3': {'k': 'v'},
             }
         }
         actual = pipeline_spec_builder.platform_config_to_platform_spec(
-            platform_config=platform_config, executor_label='exec-comp')
+            platform_config=platform_config, executor_label='exec-comp'
+        )
         expected = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
             {
@@ -283,20 +326,19 @@ class TestPlatformConfigToPlatformSpec(unittest.TestCase):
                                 'exec-comp': {
                                     'feat1': [1, 2, 3],
                                     'feat2': 'hello',
-                                    'feat3': {
-                                        'k': 'v'
-                                    }
+                                    'feat3': {'k': 'v'},
                                 }
                             }
                         }
                     }
                 }
-            }, expected)
+            },
+            expected,
+        )
         self.assertEqual(actual, expected)
 
 
 class TestMergePlatformSpecs(unittest.TestCase):
-
     def test_merge_different_executors(self):
         main_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
@@ -308,15 +350,15 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-comp': {
                                     'feat1': [1, 2, 3],
                                     'feat2': 'hello',
-                                    'feat3': {
-                                        'k': 'v'
-                                    }
+                                    'feat3': {'k': 'v'},
                                 }
                             }
                         }
                     }
                 }
-            }, main_spec)
+            },
+            main_spec,
+        )
 
         sub_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
@@ -328,15 +370,15 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-other': {
                                     'feat1': [4, 5, 6],
                                     'feat2': 'goodbye',
-                                    'feat3': {
-                                        'k2': 'v2'
-                                    }
+                                    'feat3': {'k2': 'v2'},
                                 }
                             }
                         }
                     }
                 }
-            }, sub_spec)
+            },
+            sub_spec,
+        )
 
         expected = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
@@ -348,22 +390,20 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-other': {
                                     'feat1': [4, 5, 6],
                                     'feat2': 'goodbye',
-                                    'feat3': {
-                                        'k2': 'v2'
-                                    }
+                                    'feat3': {'k2': 'v2'},
                                 },
                                 'exec-comp': {
                                     'feat1': [1, 2, 3],
                                     'feat2': 'hello',
-                                    'feat3': {
-                                        'k': 'v'
-                                    }
-                                }
+                                    'feat3': {'k': 'v'},
+                                },
                             }
                         }
                     }
                 }
-            }, expected)
+            },
+            expected,
+        )
 
         pipeline_spec_builder.merge_platform_specs(main_spec, sub_spec)
         self.assertEqual(main_spec, expected)
@@ -379,15 +419,15 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-comp': {
                                     'feat1': [1, 2, 3],
                                     'feat2': 'hello',
-                                    'feat3': {
-                                        'k': 'v'
-                                    }
+                                    'feat3': {'k': 'v'},
                                 }
                             }
                         }
                     }
                 }
-            }, base_spec)
+            },
+            base_spec,
+        )
 
         sub_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
@@ -399,15 +439,15 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-comp': {
                                     'feat1': [4, 5, 6],
                                     'feat2': 'goodbye',
-                                    'feat3': {
-                                        'k2': 'v2'
-                                    }
+                                    'feat3': {'k2': 'v2'},
                                 }
                             }
                         }
                     }
                 }
-            }, sub_spec)
+            },
+            sub_spec,
+        )
 
         expected = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
@@ -419,9 +459,7 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-comp': {
                                     'feat1': [1, 2, 3],
                                     'feat2': 'hello',
-                                    'feat3': {
-                                        'k': 'v'
-                                    }
+                                    'feat3': {'k': 'v'},
                                 }
                             }
                         }
@@ -432,22 +470,21 @@ class TestMergePlatformSpecs(unittest.TestCase):
                                 'exec-comp': {
                                     'feat1': [4, 5, 6],
                                     'feat2': 'goodbye',
-                                    'feat3': {
-                                        'k2': 'v2'
-                                    }
+                                    'feat3': {'k2': 'v2'},
                                 }
                             }
                         }
-                    }
+                    },
                 }
-            }, expected)
+            },
+            expected,
+        )
 
         pipeline_spec_builder.merge_platform_specs(base_spec, sub_spec)
         self.assertEqual(base_spec, expected)
 
 
 class TestTaskConfigPassthroughValidation(unittest.TestCase):
-
     def test_resources_set_without_passthrough_raises(self):
 
         @dsl.component(task_config_passthroughs=[TaskConfigField.ENV])
@@ -455,8 +492,8 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Task 'comp' cannot handle resource type 'RESOURCES'"):
+            ValueError, r"Task 'comp' cannot handle resource type 'RESOURCES'"
+        ):
 
             @dsl.pipeline
             def pipe():
@@ -470,7 +507,8 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError, r"Task 'comp' cannot handle resource type 'ENV'"):
+            ValueError, r"Task 'comp' cannot handle resource type 'ENV'"
+        ):
 
             @dsl.pipeline
             def pipe():
@@ -484,8 +522,8 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Task 'comp' cannot handle resource type 'KUBERNETES_TOLERATIONS'"
+            ValueError,
+            r"Task 'comp' cannot handle resource type 'KUBERNETES_TOLERATIONS'",
         ):
 
             @dsl.pipeline
@@ -500,8 +538,8 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Task 'comp' cannot handle resource type 'KUBERNETES_NODE_SELECTOR'"
+            ValueError,
+            r"Task 'comp' cannot handle resource type 'KUBERNETES_NODE_SELECTOR'",
         ):
 
             @dsl.pipeline
@@ -516,8 +554,8 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Task 'comp' cannot handle resource type 'KUBERNETES_AFFINITY'"
+            ValueError,
+            r"Task 'comp' cannot handle resource type 'KUBERNETES_AFFINITY'",
         ):
 
             @dsl.pipeline
@@ -525,11 +563,9 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
                 t = comp()
                 kubernetes.add_node_affinity(
                     t,
-                    match_expressions=[{
-                        'key': 'disktype',
-                        'operator': 'In',
-                        'values': ['ssd']
-                    }],
+                    match_expressions=[
+                        {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                    ],
                 )
 
     def test_volumes_without_passthrough_raises(self):
@@ -539,8 +575,8 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Task 'comp' cannot handle resource type 'KUBERNETES_VOLUMES'"
+            ValueError,
+            r"Task 'comp' cannot handle resource type 'KUBERNETES_VOLUMES'",
         ):
 
             @dsl.pipeline
@@ -555,30 +591,32 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Task 'comp' cannot handle resource type 'KUBERNETES_RESOURCE_CLAIMS'"
+            ValueError,
+            r"Task 'comp' cannot handle resource type 'KUBERNETES_RESOURCE_CLAIMS'",
         ):
 
             @dsl.pipeline
             def pipe():
                 t = comp()
                 kubernetes.add_resource_claim(
-                    t, resource_claim_template_name='gpu')
+                    t, resource_claim_template_name='gpu'
+                )
 
 
 class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
-
     def test_all_passthroughs_allow_all_settings_compiles(self):
 
-        @dsl.component(task_config_passthroughs=[
-            TaskConfigField.RESOURCES,
-            TaskConfigField.ENV,
-            TaskConfigField.KUBERNETES_TOLERATIONS,
-            TaskConfigField.KUBERNETES_NODE_SELECTOR,
-            TaskConfigField.KUBERNETES_AFFINITY,
-            TaskConfigField.KUBERNETES_VOLUMES,
-            TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,
-        ])
+        @dsl.component(
+            task_config_passthroughs=[
+                TaskConfigField.RESOURCES,
+                TaskConfigField.ENV,
+                TaskConfigField.KUBERNETES_TOLERATIONS,
+                TaskConfigField.KUBERNETES_NODE_SELECTOR,
+                TaskConfigField.KUBERNETES_AFFINITY,
+                TaskConfigField.KUBERNETES_VOLUMES,
+                TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,
+            ]
+        )
         def comp():
             pass
 
@@ -593,18 +631,18 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
             kubernetes.add_node_selector(t, label_key='k', label_value='v')
             kubernetes.add_node_affinity(
                 t,
-                match_expressions=[{
-                    'key': 'disktype',
-                    'operator': 'In',
-                    'values': ['ssd']
-                }])
+                match_expressions=[
+                    {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                ],
+            )
             kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
             kubernetes.add_resource_claim(t, resource_claim_template_name='gpu')
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipe, package_path=package_path)
+                pipeline_func=pipe, package_path=package_path
+            )
 
 
 class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
@@ -616,14 +654,18 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_func, package_path=package_path)
+                pipeline_func=pipeline_func, package_path=package_path
+            )
             with open(package_path, 'r') as f:
                 docs = list(yaml.safe_load_all(f))
             pipeline_spec = json_format.ParseDict(
-                docs[0], pipeline_spec_pb2.PipelineSpec())
-            platform_spec = json_format.ParseDict(
-                docs[1], pipeline_spec_pb2.PlatformSpec()) if len(
-                    docs) > 1 else pipeline_spec_pb2.PlatformSpec()
+                docs[0], pipeline_spec_pb2.PipelineSpec()
+            )
+            platform_spec = (
+                json_format.ParseDict(docs[1], pipeline_spec_pb2.PlatformSpec())
+                if len(docs) > 1
+                else pipeline_spec_pb2.PlatformSpec()
+            )
             return pipeline_spec, platform_spec
 
     def test_simple_secret_no_subdag(self):
@@ -647,10 +689,14 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
         # At root level the param name should NOT be prefixed
         secret_param = (
-            platform_spec.platforms['kubernetes'].deployment_spec
-            .executors['exec-my-comp'].fields['secretAsEnv'].list_value
-            .values[0].struct_value.fields['secretNameParameter'].struct_value
-            .fields['componentInputParameter'].string_value)
+            platform_spec.platforms['kubernetes']
+            .deployment_spec.executors['exec-my-comp']
+            .fields['secretAsEnv']
+            .list_value.values[0]
+            .struct_value.fields['secretNameParameter']
+            .struct_value.fields['componentInputParameter']
+            .string_value
+        )
         self.assertEqual(secret_param, 'secret_name')
 
     def test_parallelfor_pipeline_input_secret(self):
@@ -678,24 +724,32 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
         # Sub-DAG component must have the surfaced input
         loop_component = pipeline_spec.components['comp-for-loop-2']
-        self.assertIn('pipelinechannel--secret_name',
-                      loop_component.input_definitions.parameters)
+        self.assertIn(
+            'pipelinechannel--secret_name',
+            loop_component.input_definitions.parameters,
+        )
 
         # Root DAG task must wire the input
         root_task_params = pipeline_spec.root.dag.tasks[
-            'for-loop-2'].inputs.parameters
+            'for-loop-2'
+        ].inputs.parameters
         self.assertEqual(
-            root_task_params['pipelinechannel--secret_name']
-            .component_input_parameter,
+            root_task_params[
+                'pipelinechannel--secret_name'
+            ].component_input_parameter,
             'secret_name',
         )
 
         # Platform config must reference the prefixed name
         secret_param = (
-            platform_spec.platforms['kubernetes'].deployment_spec
-            .executors['exec-my-comp'].fields['secretAsEnv'].list_value
-            .values[0].struct_value.fields['secretNameParameter'].struct_value
-            .fields['componentInputParameter'].string_value)
+            platform_spec.platforms['kubernetes']
+            .deployment_spec.executors['exec-my-comp']
+            .fields['secretAsEnv']
+            .list_value.values[0]
+            .struct_value.fields['secretNameParameter']
+            .struct_value.fields['componentInputParameter']
+            .string_value
+        )
         self.assertEqual(secret_param, 'pipelinechannel--secret_name')
 
     def test_parallelfor_outer_task_output_secret(self):
@@ -726,23 +780,31 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
         # Sub-DAG component must have the surfaced task output
         loop_component = pipeline_spec.components['comp-for-loop-2']
-        self.assertIn('pipelinechannel--emit-secret-name-Output',
-                      loop_component.input_definitions.parameters)
+        self.assertIn(
+            'pipelinechannel--emit-secret-name-Output',
+            loop_component.input_definitions.parameters,
+        )
 
         # Root DAG task must wire the task output
         root_task_params = pipeline_spec.root.dag.tasks[
-            'for-loop-2'].inputs.parameters
+            'for-loop-2'
+        ].inputs.parameters
         self.assertEqual(
-            root_task_params['pipelinechannel--emit-secret-name-Output']
-            .task_output_parameter.producer_task,
+            root_task_params[
+                'pipelinechannel--emit-secret-name-Output'
+            ].task_output_parameter.producer_task,
             'emit-secret-name',
         )
 
         # Platform config must use componentInputParameter (NOT taskOutputParameter)
         secret_name_fields = (
-            platform_spec.platforms['kubernetes'].deployment_spec.
-            executors['exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
-            .struct_value.fields['secretNameParameter'].struct_value.fields)
+            platform_spec.platforms['kubernetes']
+            .deployment_spec.executors['exec-my-comp']
+            .fields['secretAsEnv']
+            .list_value.values[0]
+            .struct_value.fields['secretNameParameter']
+            .struct_value.fields
+        )
         self.assertEqual(
             secret_name_fields['componentInputParameter'].string_value,
             'pipelinechannel--emit-secret-name-Output',
@@ -770,9 +832,13 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
         # Platform config should have the constant value, not a parameter ref
         secret_name_fields = (
-            platform_spec.platforms['kubernetes'].deployment_spec.
-            executors['exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
-            .struct_value.fields['secretNameParameter'].struct_value.fields)
+            platform_spec.platforms['kubernetes']
+            .deployment_spec.executors['exec-my-comp']
+            .fields['secretAsEnv']
+            .list_value.values[0]
+            .struct_value.fields['secretNameParameter']
+            .struct_value.fields
+        )
         self.assertNotIn('componentInputParameter', secret_name_fields)
         self.assertNotIn('taskOutputParameter', secret_name_fields)
 
@@ -797,22 +863,30 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
         pipeline_spec, platform_spec = self._compile_and_parse(pipe)
 
         loop_component = pipeline_spec.components['comp-for-loop-2']
-        self.assertIn('pipelinechannel--pvc_name',
-                      loop_component.input_definitions.parameters)
+        self.assertIn(
+            'pipelinechannel--pvc_name',
+            loop_component.input_definitions.parameters,
+        )
 
         root_task_params = pipeline_spec.root.dag.tasks[
-            'for-loop-2'].inputs.parameters
+            'for-loop-2'
+        ].inputs.parameters
         self.assertEqual(
-            root_task_params['pipelinechannel--pvc_name']
-            .component_input_parameter,
+            root_task_params[
+                'pipelinechannel--pvc_name'
+            ].component_input_parameter,
             'pvc_name',
         )
 
         pvc_param = (
-            platform_spec.platforms['kubernetes'].deployment_spec
-            .executors['exec-my-comp'].fields['pvcMount'].list_value.values[0]
-            .struct_value.fields['pvcNameParameter'].struct_value
-            .fields['componentInputParameter'].string_value)
+            platform_spec.platforms['kubernetes']
+            .deployment_spec.executors['exec-my-comp']
+            .fields['pvcMount']
+            .list_value.values[0]
+            .struct_value.fields['pvcNameParameter']
+            .struct_value.fields['componentInputParameter']
+            .string_value
+        )
         self.assertEqual(pvc_param, 'pipelinechannel--pvc_name')
 
     def test_exit_handler_platform_config_rewrite_path(self):
@@ -841,15 +915,21 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
         _, platform_spec = self._compile_and_parse(pipe)
 
         cleanup_executors = [
-            executor for executor in platform_spec.platforms['kubernetes']
-            .deployment_spec.executors.values()
+            executor
+            for executor in platform_spec.platforms[
+                'kubernetes'
+            ].deployment_spec.executors.values()
             if 'secretAsEnv' in executor.fields
         ]
         self.assertEqual(len(cleanup_executors), 1)
         secret_param = (
-            cleanup_executors[0].fields['secretAsEnv'].list_value.values[0]
-            .struct_value.fields['secretNameParameter'].struct_value
-            .fields['componentInputParameter'].string_value)
+            cleanup_executors[0]
+            .fields['secretAsEnv']
+            .list_value.values[0]
+            .struct_value.fields['secretNameParameter']
+            .struct_value.fields['componentInputParameter']
+            .string_value
+        )
         self.assertEqual(secret_param, 'secret_name')
 
 
@@ -859,80 +939,96 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
     def test_rewrites_unprefixed_component_input_param(self):
         platform_config = {
             'kubernetes': {
-                'secretAsEnv': [{
-                    'secretNameParameter': {
-                        'componentInputParameter': 'secret_name'
-                    },
-                    'keyToEnv': [{
-                        'secretKey': 'pw',
-                        'envVar': 'PASSWORD'
-                    }],
-                }]
+                'secretAsEnv': [
+                    {
+                        'secretNameParameter': {
+                            'componentInputParameter': 'secret_name'
+                        },
+                        'keyToEnv': [{'secretKey': 'pw', 'envVar': 'PASSWORD'}],
+                    }
+                ]
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
         parent_inputs.parameters[
-            'pipelinechannel--secret_name'].parameter_type = (
-                pipeline_spec_pb2.ParameterType.STRING)
+            'pipelinechannel--secret_name'
+        ].parameter_type = pipeline_spec_pb2.ParameterType.STRING
 
-        result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, parent_inputs, [])
+        result = (
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config, parent_inputs, []
+            )
+        )
 
         self.assertEqual(
-            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
-            ['componentInputParameter'],
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter'][
+                'componentInputParameter'
+            ],
             'pipelinechannel--secret_name',
         )
 
     def test_no_rewrite_when_param_exists_in_parent(self):
         platform_config = {
             'kubernetes': {
-                'secretAsEnv': [{
-                    'secretNameParameter': {
-                        'componentInputParameter': 'secret_name'
-                    },
-                }]
+                'secretAsEnv': [
+                    {
+                        'secretNameParameter': {
+                            'componentInputParameter': 'secret_name'
+                        },
+                    }
+                ]
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
-        parent_inputs.parameters['secret_name'].parameter_type = (
-            pipeline_spec_pb2.ParameterType.STRING)
+        parent_inputs.parameters[
+            'secret_name'
+        ].parameter_type = pipeline_spec_pb2.ParameterType.STRING
 
-        result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, parent_inputs, [])
+        result = (
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config, parent_inputs, []
+            )
+        )
 
         self.assertEqual(
-            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
-            ['componentInputParameter'],
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter'][
+                'componentInputParameter'
+            ],
             'secret_name',
         )
 
     def test_rewrites_task_output_from_outer_task(self):
         platform_config = {
             'kubernetes': {
-                'secretAsEnv': [{
-                    'secretNameParameter': {
-                        'taskOutputParameter': {
-                            'producerTask': 'emit-secret',
-                            'outputParameterKey': 'Output',
-                        }
-                    },
-                }]
+                'secretAsEnv': [
+                    {
+                        'secretNameParameter': {
+                            'taskOutputParameter': {
+                                'producerTask': 'emit-secret',
+                                'outputParameterKey': 'Output',
+                            }
+                        },
+                    }
+                ]
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
         parent_inputs.parameters[
-            'pipelinechannel--emit-secret-Output'].parameter_type = (
-                pipeline_spec_pb2.ParameterType.STRING)
+            'pipelinechannel--emit-secret-Output'
+        ].parameter_type = pipeline_spec_pb2.ParameterType.STRING
 
-        result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config,
-            parent_inputs,
-            tasks_in_current_dag=['worker-task'])
+        result = (
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config,
+                parent_inputs,
+                tasks_in_current_dag=['worker-task'],
+            )
+        )
 
         # taskOutputParameter should be replaced with componentInputParameter
         secret_ref = result['kubernetes']['secretAsEnv'][0][
-            'secretNameParameter']
+            'secretNameParameter'
+        ]
         self.assertNotIn('taskOutputParameter', secret_ref)
         self.assertEqual(
             secret_ref['componentInputParameter'],
@@ -942,31 +1038,42 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
     def test_no_rewrite_task_output_from_local_task(self):
         platform_config = {
             'kubernetes': {
-                'secretAsEnv': [{
-                    'secretNameParameter': {
-                        'taskOutputParameter': {
-                            'producerTask': 'local-task',
-                            'outputParameterKey': 'Output',
-                        }
-                    },
-                }]
+                'secretAsEnv': [
+                    {
+                        'secretNameParameter': {
+                            'taskOutputParameter': {
+                                'producerTask': 'local-task',
+                                'outputParameterKey': 'Output',
+                            }
+                        },
+                    }
+                ]
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
 
-        result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, parent_inputs, tasks_in_current_dag=['local-task'])
+        result = (
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config,
+                parent_inputs,
+                tasks_in_current_dag=['local-task'],
+            )
+        )
 
         # taskOutputParameter should remain since the producer is in the current DAG
         secret_ref = result['kubernetes']['secretAsEnv'][0][
-            'secretNameParameter']
+            'secretNameParameter'
+        ]
         self.assertIn('taskOutputParameter', secret_ref)
         self.assertNotIn('componentInputParameter', secret_ref)
 
     def test_returns_copy_when_no_parent_inputs(self):
         platform_config = {'kubernetes': {'secretAsEnv': [{'key': 'val'}]}}
-        result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, None, None)
+        result = (
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config, None, None
+            )
+        )
         self.assertEqual(result, platform_config)
         # Must be a copy, not the same object
         self.assertIsNot(result, platform_config)
@@ -974,55 +1081,69 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
     def test_rewrites_multiple_params(self):
         platform_config = {
             'kubernetes': {
-                'secretAsEnv': [{
-                    'secretNameParameter': {
-                        'componentInputParameter': 'secret1'
-                    },
-                }],
-                'pvcMount': [{
-                    'pvcNameParameter': {
-                        'componentInputParameter': 'pvc_name'
-                    },
-                }],
+                'secretAsEnv': [
+                    {
+                        'secretNameParameter': {
+                            'componentInputParameter': 'secret1'
+                        },
+                    }
+                ],
+                'pvcMount': [
+                    {
+                        'pvcNameParameter': {
+                            'componentInputParameter': 'pvc_name'
+                        },
+                    }
+                ],
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
-        parent_inputs.parameters['pipelinechannel--secret1'].parameter_type = (
-            pipeline_spec_pb2.ParameterType.STRING)
-        parent_inputs.parameters['pipelinechannel--pvc_name'].parameter_type = (
-            pipeline_spec_pb2.ParameterType.STRING)
+        parent_inputs.parameters[
+            'pipelinechannel--secret1'
+        ].parameter_type = pipeline_spec_pb2.ParameterType.STRING
+        parent_inputs.parameters[
+            'pipelinechannel--pvc_name'
+        ].parameter_type = pipeline_spec_pb2.ParameterType.STRING
 
-        result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, parent_inputs, [])
+        result = (
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config, parent_inputs, []
+            )
+        )
 
         self.assertEqual(
-            result['kubernetes']['secretAsEnv'][0]['secretNameParameter']
-            ['componentInputParameter'],
+            result['kubernetes']['secretAsEnv'][0]['secretNameParameter'][
+                'componentInputParameter'
+            ],
             'pipelinechannel--secret1',
         )
         self.assertEqual(
-            result['kubernetes']['pvcMount'][0]['pvcNameParameter']
-            ['componentInputParameter'],
+            result['kubernetes']['pvcMount'][0]['pvcNameParameter'][
+                'componentInputParameter'
+            ],
             'pipelinechannel--pvc_name',
         )
 
     def test_raises_when_cross_dag_output_missing_surfaced_input(self):
         platform_config = {
             'kubernetes': {
-                'secretAsEnv': [{
-                    'secretNameParameter': {
-                        'taskOutputParameter': {
-                            'producerTask': 'emit-secret',
-                            'outputParameterKey': 'Output',
-                        }
-                    },
-                }]
+                'secretAsEnv': [
+                    {
+                        'secretNameParameter': {
+                            'taskOutputParameter': {
+                                'producerTask': 'emit-secret',
+                                'outputParameterKey': 'Output',
+                            }
+                        },
+                    }
+                ]
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
 
-        with self.assertRaisesRegex(compiler_utils.InvalidTopologyException,
-                                    'Expected surfaced input'):
+        with self.assertRaisesRegex(
+            compiler_utils.InvalidTopologyException, 'Expected surfaced input'
+        ):
             pipeline_spec_builder._rewrite_platform_config_input_references(
                 platform_config,
                 parent_inputs,

@@ -13,8 +13,7 @@
 # limitations under the License.
 """A static 120-task DAG with bounded width and negligible task work."""
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -33,16 +32,21 @@ def dag_120():
         current_layer = []
         for column in range(20):
             node_id = layer * 20 + column
-            task = scale_node(node_id=node_id).set_display_name(
-                f'scale-node-{node_id:03d}').set_caching_options(False)
+            task = (
+                scale_node(node_id=node_id)
+                .set_display_name(f'scale-node-{node_id:03d}')
+                .set_caching_options(False)
+            )
             if previous_layer:
                 # Overlapping dependencies exercise both fan-in and fan-out.
-                task.after(previous_layer[column],
-                           previous_layer[(column + 1) % 20])
+                task.after(
+                    previous_layer[column], previous_layer[(column + 1) % 20]
+                )
             current_layer.append(task)
         previous_layer = current_layer
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=dag_120, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=dag_120, package_path=__file__.replace('.py', '.yaml')
+    )

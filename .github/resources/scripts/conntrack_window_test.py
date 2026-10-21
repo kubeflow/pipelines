@@ -14,24 +14,26 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('conntrack-window.sh')
 
 
 class ConntrackWindowTest(unittest.TestCase):
-
     def test_aggregates_cpu_counters_and_reports_window_deltas(self):
         output, summary = self._capture_and_report('end-api-down')
 
         self.assertEqual(output, summary)
-        self.assertIn('| kind-control-plane | insert_failed | 3 | 8 | 5 | ok |', output)
+        self.assertIn(
+            '| kind-control-plane | insert_failed | 3 | 8 | 5 | ok |', output
+        )
         self.assertIn('| kind-control-plane | drop | 4 | 10 | 6 | ok |', output)
-        self.assertIn('| kind-control-plane | early_drop | 0 | 0 | 0 | ok |', output)
+        self.assertIn(
+            '| kind-control-plane | early_drop | 0 | 0 | 0 | ok |', output
+        )
 
     def test_replaced_node_suppresses_deltas(self):
         output, _ = self._capture_and_report('replaced')
@@ -42,7 +44,10 @@ class ConntrackWindowTest(unittest.TestCase):
     def test_counter_reset_never_reports_a_negative_delta(self):
         output, _ = self._capture_and_report('reset')
 
-        self.assertIn('| kind-control-plane | insert_failed | 3 | 1 | — | counter reset |', output)
+        self.assertIn(
+            '| kind-control-plane | insert_failed | 3 | 1 | — | counter reset |',
+            output,
+        )
         self.assertNotIn('| -2 |', output)
 
     def test_missing_baseline_is_distinct_from_zero(self):
@@ -50,7 +55,12 @@ class ConntrackWindowTest(unittest.TestCase):
             environment = os.environ.copy()
             environment.pop('GITHUB_STEP_SUMMARY', None)
             result = subprocess.run(
-                ['bash', str(SCRIPT), 'report', f'{temporary_directory}/missing'],
+                [
+                    'bash',
+                    str(SCRIPT),
+                    'report',
+                    f'{temporary_directory}/missing',
+                ],
                 check=True,
                 capture_output=True,
                 text=True,
@@ -96,15 +106,15 @@ class ConntrackWindowTest(unittest.TestCase):
         path.chmod(0o755)
 
 
-_FAKE_KUBECTL = r'''#!/usr/bin/env bash
+_FAKE_KUBECTL = r"""#!/usr/bin/env bash
 phase=$(<"$FAKE_PHASE_FILE")
 if [[ "$phase" == "end-api-down" ]]; then
   exit 1
 fi
 echo "kind-control-plane"
-'''
+"""
 
-_FAKE_DOCKER = r'''#!/usr/bin/env bash
+_FAKE_DOCKER = r"""#!/usr/bin/env bash
 phase=$(<"$FAKE_PHASE_FILE")
 case "$1" in
   inspect)
@@ -130,7 +140,7 @@ case "$1" in
     fi
     ;;
 esac
-'''
+"""
 
 
 if __name__ == '__main__':

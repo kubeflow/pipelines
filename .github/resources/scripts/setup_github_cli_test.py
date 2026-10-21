@@ -14,11 +14,11 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -26,7 +26,6 @@ SCRIPTS = Path(__file__).parent
 
 
 class SetupGitHubCliTest(unittest.TestCase):
-
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -46,21 +45,28 @@ class SetupGitHubCliTest(unittest.TestCase):
             'GITHUB_RUN_ID': '123',
         }
         self.command(
-            'uname', 'if [[ "$1" == -s ]]; then echo Linux; '
-            'else echo "$TEST_ARCH"; fi')
+            'uname',
+            'if [[ "$1" == -s ]]; then echo Linux; else echo "$TEST_ARCH"; fi',
+        )
         self.command(
-            'curl', 'echo "download:$*" >> "$CALLS"; '
+            'curl',
+            'echo "download:$*" >> "$CALLS"; '
             '[[ "${FAIL_DOWNLOAD:-0}" == 0 ]] || exit 22; '
-            'printf archive > "${@: -1}"')
+            'printf archive > "${@: -1}"',
+        )
         self.command(
-            'sha256sum', 'read -r digest archive; '
+            'sha256sum',
+            'read -r digest archive; '
             'echo "verify:$digest" >> "$CALLS"; '
-            '[[ "${FAIL_CHECKSUM:-0}" == 0 ]]')
+            '[[ "${FAIL_CHECKSUM:-0}" == 0 ]]',
+        )
         self.command(
-            'tar', 'echo extract >> "$CALLS"; '
+            'tar',
+            'echo extract >> "$CALLS"; '
             'mkdir -p "$4/bin"; '
             'printf "#!/bin/bash\\necho gh-test\\n" > "$4/bin/gh"; '
-            '/bin/chmod +x "$4/bin/gh"')
+            '/bin/chmod +x "$4/bin/gh"',
+        )
 
     def command(self, name, body):
         path = self.binaries / name
@@ -68,11 +74,13 @@ class SetupGitHubCliTest(unittest.TestCase):
         path.chmod(0o755)
 
     def run_script(self, name='setup-github-cli.sh'):
-        return subprocess.run(['/bin/bash', str(SCRIPTS / name)],
-                              env=self.environment,
-                              capture_output=True,
-                              text=True,
-                              check=False)
+        return subprocess.run(
+            ['/bin/bash', str(SCRIPTS / name)],
+            env=self.environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
     def test_existing_cli_is_used_without_download_or_path_change(self):
         self.command('gh', 'echo existing-gh')
@@ -86,11 +94,11 @@ class SetupGitHubCliTest(unittest.TestCase):
         pins = {
             'x86_64': (
                 'amd64',
-                'bb766f710eef8ede859c18578c72c327597cd4c8a85b06001b1f3843c6019386'
+                'bb766f710eef8ede859c18578c72c327597cd4c8a85b06001b1f3843c6019386',
             ),
             'aarch64': (
                 'arm64',
-                '7862c86c72f43df3a2d93ddde6f473285b4e2af61b494849846827e513ef6484'
+                '7862c86c72f43df3a2d93ddde6f473285b4e2af61b494849846827e513ef6484',
             ),
         }
         for architecture, (asset, checksum) in pins.items():
@@ -102,9 +110,11 @@ class SetupGitHubCliTest(unittest.TestCase):
                 self.assertIn(f'gh_2.102.0_linux_{asset}.tar.gz', calls)
                 self.assertIn(f'verify:{checksum}', calls)
                 self.assertLess(
-                    calls.rindex('verify:'), calls.rindex('extract'))
+                    calls.rindex('verify:'), calls.rindex('extract')
+                )
                 directory = Path(
-                    (self.root / 'path').read_text().splitlines()[-1])
+                    (self.root / 'path').read_text().splitlines()[-1]
+                )
                 self.assertTrue((directory / 'gh').is_file())
 
     def test_bad_checksum_never_extracts_or_publishes(self):
@@ -136,13 +146,22 @@ class SetupGitHubCliTest(unittest.TestCase):
         self.assertFalse((self.root / 'calls').exists())
 
     def test_deploy_provisions_cli_before_polling(self):
-        action = yaml.safe_load((SCRIPTS.parents[1] / 'actions' / 'deploy' /
-                                 'action.yml').read_text())
+        action = yaml.safe_load(
+            (
+                SCRIPTS.parents[1] / 'actions' / 'deploy' / 'action.yml'
+            ).read_text()
+        )
         commands = [step.get('run', '') for step in action['runs']['steps']]
-        setup = next(i for i, command in enumerate(commands)
-                     if 'setup-github-cli.sh' in command)
-        polling = next(i for i, command in enumerate(commands)
-                       if 'wait-for-image-artifacts.sh' in command)
+        setup = next(
+            i
+            for i, command in enumerate(commands)
+            if 'setup-github-cli.sh' in command
+        )
+        polling = next(
+            i
+            for i, command in enumerate(commands)
+            if 'wait-for-image-artifacts.sh' in command
+        )
         self.assertLess(setup, polling)
 
 

@@ -36,9 +36,9 @@ on:
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
       - 'KFP SDK Docformatter Test'
-      - 'KFP SDK Isort Test'
+      - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
-      - 'KFP SDK YAPF Tests'
+      - 'Python Ruff Format'
       - 'KFP upgrade tests'
       - 'Validate Generated Files'
     types: [requested, in_progress, completed]
@@ -58,7 +58,7 @@ jobs:
     outputs:
       candidates: ${{ steps.list.outputs.result }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -95,13 +95,12 @@ jobs:
       actions: read
       checks: read
       contents: read
-      issues: write
       pull-requests: write
       statuses: write
     steps:
       - name: Check out the trusted workflow revision
         if: github.event_name != 'pull_request_target' || github.event.action != 'closed'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.sha }}
@@ -109,7 +108,7 @@ jobs:
 
       - name: Check out the trusted default branch for a closed PR
         if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # After merge, github.sha equals the PR merge SHA and checkout's
           # fork guard rejects it. Use the base repo's named trusted branch.
@@ -118,7 +117,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up trusted workflow inventory parser
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.11'
 

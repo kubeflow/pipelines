@@ -18,8 +18,8 @@ import click
 
 
 def deprecated_alias_group_factory(
-        deprecated_map: Dict[str,
-                             str]) -> 'DeprecatedAliasGroup':  # type: ignore
+    deprecated_map: Dict[str, str],
+) -> 'DeprecatedAliasGroup':  # type: ignore
     """Closure that returns a class that implements the deprecated alias group.
 
     Args:
@@ -31,13 +31,13 @@ def deprecated_alias_group_factory(
     """
 
     class DeprecatedAliasGroup(click.Group):
-
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.deprecated_map = deprecated_map
 
-        def get_command(self, ctx: click.Context,
-                        cmd_name: str) -> click.Command:
+        def get_command(
+            self, ctx: click.Context, cmd_name: str
+        ) -> click.Command:
             # using the correct name
             command = click.Group.get_command(self, ctx, cmd_name)
             if command is not None:
@@ -49,7 +49,8 @@ def deprecated_alias_group_factory(
                 command = click.Group.get_command(self, ctx, correct_name)
                 click.echo(
                     f"Warning: '{cmd_name}' is deprecated, use '{correct_name}' instead.",
-                    err=True)
+                    err=True,
+                )
 
                 if command is not None:
                     return command
