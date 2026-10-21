@@ -439,7 +439,13 @@ class DependabotConfigTest(unittest.TestCase):
             self.assertEqual(matches, [expected_group] * 4)
 
     def test_frontend_vitest_coverage_matches_locked_runner(self):
-        frontend = REPOSITORY_ROOT / 'frontend'
+        self.assert_vitest_coverage_matches_locked_runner('frontend')
+
+    def test_server_vitest_coverage_matches_locked_runner(self):
+        self.assert_vitest_coverage_matches_locked_runner('frontend/server')
+
+    def assert_vitest_coverage_matches_locked_runner(self, directory):
+        frontend = REPOSITORY_ROOT / directory
         manifest = json.loads((frontend / 'package.json').read_text())
         self.assertEqual(
             manifest['devDependencies']['vitest'],

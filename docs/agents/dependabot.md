@@ -31,3 +31,5 @@ coverage providers require the exact runner release. Keep these groups before
 the generic npm group and update the frontend manifest and lock together.
 Security grouping does not guarantee a non-vulnerable peer is updated; verify
 the resolved peer versions and the coverage suite before merging.
+The locked-version guard covers both `frontend` and `frontend/server`; each
+package installs its own runner and coverage provider and must stay aligned.
