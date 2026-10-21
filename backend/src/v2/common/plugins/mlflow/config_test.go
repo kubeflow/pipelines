@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
@@ -22,27 +22,27 @@ func setRuntimeCfg(runtimeCfg commonmlflow.MLflowRuntimeConfig) {
 }
 
 func TestTaskStateToMLflowTerminalStatus(t *testing.T) {
-	status, err := TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_SUCCEEDED)
+	status, err := TaskStateToMLflowTerminalStatus(apiV2.PipelineTask_SUCCEEDED)
 	require.NoError(t, err)
 	assert.Equal(t, "FINISHED", status)
 
-	status, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_CACHED)
+	status, err = TaskStateToMLflowTerminalStatus(apiV2.PipelineTask_CACHED)
 	require.NoError(t, err)
 	assert.Equal(t, "FINISHED", status)
 
-	status, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_SKIPPED)
+	status, err = TaskStateToMLflowTerminalStatus(apiV2.PipelineTask_SKIPPED)
 	require.NoError(t, err)
 	assert.Equal(t, "FINISHED", status)
 
-	status, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_FAILED)
+	status, err = TaskStateToMLflowTerminalStatus(apiV2.PipelineTask_FAILED)
 	require.NoError(t, err)
 	assert.Equal(t, "FAILED", status)
 
-	_, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_RUNNING)
+	_, err = TaskStateToMLflowTerminalStatus(apiV2.PipelineTask_RUNNING)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported task state")
 
-	_, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED)
+	_, err = TaskStateToMLflowTerminalStatus(apiV2.PipelineTask_RUNTIME_STATE_UNSPECIFIED)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported task state")
 }

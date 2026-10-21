@@ -8,6 +8,8 @@ on:
     paths:
       - '.github/workflows/presubmit-backend.yml'
       - '.github/actions/setup-go/**'
+      - '.github/resources/scripts/download-go-modules.sh'
+      - '.github/resources/scripts/helper-functions.sh'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
@@ -55,6 +57,9 @@ jobs:
     - name: Set up Go
       uses: ./.github/actions/setup-go
 
+    - name: Download Go modules
+      run: bash .github/resources/scripts/download-go-modules.sh
+
     - name: Run Backend Tests
       env:
         KFP_HISTORY_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
@@ -65,4 +70,5 @@ jobs:
         GIT_BRANCH: ${{ github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name }}
       run: |
+        export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
         ./test/presubmit-backend-test.sh

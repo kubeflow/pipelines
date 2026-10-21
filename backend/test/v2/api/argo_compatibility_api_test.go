@@ -26,10 +26,10 @@ import (
 	"time"
 
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
-	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -75,20 +75,20 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 		createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 
-		recurringRun := &recurring_run_model.V2beta1RecurringRun{
+		recurringRun := &recurring_run_model.V2RecurringRun{
 			DisplayName:    "Argo compatibility recurring run - " + randomName,
 			Description:    "Validates recurring-run creation against the supported Argo version",
 			ExperimentID:   createdExperiment.ExperimentID,
 			ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
-			PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+			PipelineVersionReference: &recurring_run_model.V2PipelineVersionReference{
 				PipelineID:        createdPipeline.PipelineID,
 				PipelineVersionID: createdPipelineVersion.PipelineVersionID,
 			},
-			RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{
+			RuntimeConfig: &recurring_run_model.V2RuntimeConfig{
 				Parameters: testutil.GetPipelineRunTimeInputs(pipelineFile),
 			},
-			Trigger: &recurring_run_model.V2beta1Trigger{
-				CronSchedule: &recurring_run_model.V2beta1CronSchedule{Cron: "0 0 1 1 *"},
+			Trigger: &recurring_run_model.V2Trigger{
+				CronSchedule: &recurring_run_model.V2CronSchedule{Cron: "0 0 1 1 *"},
 			},
 			Mode:           recurring_run_model.RecurringRunModeDISABLE.Pointer(),
 			MaxConcurrency: 1,
@@ -156,7 +156,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
-			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
+			[]run_model.V2RuntimeState{run_model.V2RuntimeStateFAILED},
 			&retryTimeout,
 		)
 		failedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
@@ -168,12 +168,12 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
-			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
+			[]run_model.V2RuntimeState{run_model.V2RuntimeStateFAILED},
 			&retryTimeout,
 		)
 		retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		Expect(len(retriedRun.StateHistory)).To(BeNumerically(">", stateHistoryLengthBeforeRetry))
-		Expect(runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateRUNNING)).To(BeTrue())
+		Expect(runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2RuntimeStateRUNNING)).To(BeTrue())
 	})
 
 	It("writes task artifacts and serves archived logs after pod deletion", func() {
@@ -215,7 +215,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
-			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED},
+			[]run_model.V2RuntimeState{run_model.V2RuntimeStateSUCCEEDED},
 			&artifactTimeout,
 		)
 
@@ -228,7 +228,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		archivePipelineRun(&createdRun.RunID)
 		storedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
 		Expect(storedRun.StorageState).NotTo(BeNil())
-		Expect(*storedRun.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
+		Expect(*storedRun.StorageState).To(Equal(run_model.V2RunStorageStateARCHIVED))
 
 		zeroGracePeriod := int64(0)
 		err := k8Client.CoreV1().Pods(testutil.GetNamespace()).Delete(context.Background(), logPodName, metav1.DeleteOptions{
@@ -364,9 +364,9 @@ func collectArgoCompatibilityDiagnostics(runID string) string {
 }
 
 func runtimeStateAppearsAfter(
-	stateHistory []*run_model.V2beta1RuntimeStatus,
+	stateHistory []*run_model.V2RuntimeStatus,
 	startIndex int,
-	expectedState run_model.V2beta1RuntimeState,
+	expectedState run_model.V2RuntimeState,
 ) bool {
 	if startIndex < 0 || startIndex > len(stateHistory) {
 		return false
@@ -394,7 +394,7 @@ func findArgoCompatibilityPodName(pods []corev1.Pod) string {
 	return ""
 }
 
-func findArgoCompatibilityTaskArtifact(tasks []*run_model.V2beta1PipelineTask) bool {
+func findArgoCompatibilityTaskArtifact(tasks []*run_model.V2PipelineTask) bool {
 	for _, task := range tasks {
 		if task == nil {
 			continue
@@ -419,7 +419,7 @@ func findArgoCompatibilityTaskArtifact(tasks []*run_model.V2beta1PipelineTask) b
 
 func readArgoCompatibilityRunLog(runID string, nodeID string) (string, error) {
 	logURL := fmt.Sprintf(
-		"%s/apis/v2beta1/runs/%s/nodes/%s/log?follow=false",
+		"%s/apis/v2/runs/%s/nodes/%s/log?follow=false",
 		strings.TrimRight(*config.ApiUrl, "/"),
 		url.PathEscape(runID),
 		url.PathEscape(nodeID),

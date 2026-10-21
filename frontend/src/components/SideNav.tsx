@@ -523,6 +523,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}
+            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
             data-testid='chevron-toggle'
             size='large'
           >

@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestImagePullPolicy:
-
     def test_always(self):
 
         @dsl.pipeline
@@ -31,9 +29,7 @@ class TestImagePullPolicy:
                 'kubernetes': {
                     'deploymentSpec': {
                         'executors': {
-                            'exec-comp': {
-                                'imagePullPolicy': 'Always'
-                            }
+                            'exec-comp': {'imagePullPolicy': 'Always'}
                         }
                     }
                 }
@@ -52,9 +48,7 @@ class TestImagePullPolicy:
                 'kubernetes': {
                     'deploymentSpec': {
                         'executors': {
-                            'exec-comp': {
-                                'imagePullPolicy': 'IfNotPresent'
-                            }
+                            'exec-comp': {'imagePullPolicy': 'IfNotPresent'}
                         }
                     }
                 }
@@ -72,11 +66,7 @@ class TestImagePullPolicy:
             'platforms': {
                 'kubernetes': {
                     'deploymentSpec': {
-                        'executors': {
-                            'exec-comp': {
-                                'imagePullPolicy': 'Never'
-                            }
-                        }
+                        'executors': {'exec-comp': {'imagePullPolicy': 'Never'}}
                     }
                 }
             }

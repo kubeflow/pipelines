@@ -15,24 +15,23 @@
 from typing import NamedTuple
 
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
+from kfp.dsl import Artifact, Dataset
 
 
 @dsl.component
-def dataset_splitter(
-    in_dataset: Dataset
-) -> NamedTuple(
-        'outputs',
-        dataset1=Dataset,
-        dataset2=Dataset,
+def dataset_splitter(in_dataset: Dataset) -> NamedTuple(
+    'outputs',
+    dataset1=Dataset,
+    dataset2=Dataset,
 ):
 
     with open(in_dataset.path) as f:
         in_data = f.read()
 
-    out_data1, out_data2 = in_data[:len(in_data) // 2], in_data[len(in_data) //
-                                                                2:]
+    out_data1, out_data2 = (
+        in_data[: len(in_data) // 2],
+        in_data[len(in_data) // 2 :],
+    )
 
     dataset1 = Dataset(
         uri=dsl.get_uri(suffix='dataset1'),
@@ -88,6 +87,8 @@ def split_datasets_and_return_first() -> Dataset:
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=split_datasets_and_return_first,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

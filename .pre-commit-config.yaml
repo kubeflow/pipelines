@@ -1,4 +1,4 @@
-exclude: ^(backend/api/v2beta1/python_http_client/|sdk/python/kfp/server_api/|sdk/python/kfp/(pipeline_spec/pipeline_spec|kubernetes/kubernetes_executor_config)_pb2\.py$)
+exclude: (^backend/api/(v2|v2beta1)/python_http_client/|^sdk/python/kfp/server_api/|^components/google-cloud/|_pb2\.py$)
 
 repos:
   # other fast helpful checks
@@ -17,42 +17,9 @@ repos:
       - id: name-tests-test
       - id: no-commit-to-branch
         args: [--branch, master]
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.4.1
-    hooks:
-      - id: flake8
-        args:
-          - --select=W605
-  # required formatting jobs (run these last)
-
-  # add comment "noqa" to ignore an import that should not be removed
-  # (e.g., for an import with desired side-effects)
-  - repo: https://github.com/hadialqattan/pycln
-    rev: v2.6.0
-    hooks:
-      - id: pycln
-        name: pycln
-        language: python
-        entry: pycln --all
-        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
-  - repo: local
-    hooks:
-      - id: isort
-        name: isort
-        entry: isort --profile google
-        language: python
-        additional_dependencies: ['isort==5.10.1']
-        require_serial: true
-        types_or: [cython, pyi, python]
-        args: ['--filter-files']
-        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
-  - repo: https://github.com/google/yapf
-    rev: "v0.43.0"
-    hooks:
-      - id: yapf
-        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
+  # Format docstring prose before Ruff applies the final Python layout.
   - repo: https://github.com/pycqa/docformatter
-    # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
+    # v1.7.8 has continuation and blank-line tokenization regressions.
     rev: v1.7.7
     hooks:
       - id: docformatter
@@ -63,9 +30,25 @@ repos:
         # The kubernetes_platform/python docstrings are heavy on links, so ignore.
         exclude: (sdk/python/kfp/compiler/compiler_test.py|sdk/python/kfp/kubernetes/|kubernetes_platform/python/)
 
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen --extra lint ruff check
+        language: system
+        args: [--fix]
+        require_serial: true
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen --extra lint ruff format
+        language: system
+        require_serial: true
+        types_or: [python, pyi]
+
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.14.0
+    rev: v2.15.0
     hooks:
       - id: golangci-lint
         name: golangci-lint

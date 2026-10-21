@@ -14,18 +14,16 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
-
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('collect-seaweedfs-diagnostics.sh')
 
 
 class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
-
     def test_correlates_connection_failures_with_service_backends(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -33,7 +31,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             bin_directory.mkdir()
             failure_log = temporary_path / 'failures.log'
             failure_log.write_text(
-                textwrap.dedent('''\
+                textwrap.dedent("""\
                     dial tcp 10.96.1.1:9000: i/o timeout
                     dial tcp 10.96.2.2:8443: connect: connection refused
                     dial tcp 10.96.2.2:8443: connect: connection refused
@@ -43,7 +41,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                     read udp 10.244.0.7:51234->10.96.5.5:53: i/o timeout
                     dial tcp 10.244.0.99:9090: connect: connection refused
                     connection refused without a numeric destination
-                '''),
+                """),
                 encoding='utf-8',
             )
             self._write_executable(bin_directory / 'kubectl', _FAKE_KUBECTL)
@@ -92,10 +90,11 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             'lastState=terminated:Error',
             output,
         )
-        self.assertIn('Warning  Unhealthy  MLflow readiness probe failed', output)
         self.assertIn(
-            'Service: kubeflow/metadata-grpc '
-            '(failed VIP 10.96.4.4:8080)',
+            'Warning  Unhealthy  MLflow readiness probe failed', output
+        )
+        self.assertIn(
+            'Service: kubeflow/metadata-grpc (failed VIP 10.96.4.4:8080)',
             output,
         )
         self.assertIn(
@@ -178,8 +177,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
         )
 
         self.assertIn(
-            'ClusterIPs correlated: tcp://10.96.1.1:9000 '
-            'tcp://10.96.2.2:8443',
+            'ClusterIPs correlated: tcp://10.96.1.1:9000 tcp://10.96.2.2:8443',
             result.stdout,
         )
         self.assertIn(
@@ -201,8 +199,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             'Service: opendatahub/mlflow (failed VIP 10.96.2.2:8443)', output
         )
         self.assertIn(
-            'ClusterIPs correlated: tcp://10.96.1.1:9000 '
-            'tcp://10.96.2.2:8443',
+            'ClusterIPs correlated: tcp://10.96.1.1:9000 tcp://10.96.2.2:8443',
             output,
         )
         self.assertIn('No SeaweedFS pod; skipping socket state.', output)
@@ -242,7 +239,9 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
             {'FAIL_ENDPOINTSLICE_LOOKUP': 'true'},
         )
 
-        self.assertIn('(EndpointSlice backend lookup unavailable)', result.stdout)
+        self.assertIn(
+            '(EndpointSlice backend lookup unavailable)', result.stdout
+        )
         self.assertNotIn('(no EndpointSlice backends found)', result.stdout)
 
     def test_reports_counted_service_and_masquerade_rules(self):
@@ -281,16 +280,13 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                 self.assertIn(
                     '[0:0] -A KUBE-SEP-SEAWEED -s 10.244.0.20/32', output
                 )
-                self.assertIn(
-                    '[11:660] -A KUBE-SEP-SEAWEED -p tcp', output
-                )
+                self.assertIn('[11:660] -A KUBE-SEP-SEAWEED -p tcp', output)
                 self.assertIn(
                     '[0:0] -A KUBE-POSTROUTING -m mark --mark 0x4000/0x4000',
                     output,
                 )
                 self.assertIn(
-                    '[0:0] -A KUBE-MARK-MASQ -j MARK '
-                    '--set-xmark 0x4000/0x4000',
+                    '[0:0] -A KUBE-MARK-MASQ -j MARK --set-xmark 0x4000/0x4000',
                     output,
                 )
                 self.assertIn(
@@ -335,7 +331,9 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
                     bin_directory / 'iptables-save', iptables_save_script
                 )
             if ipvsadm_script is not None:
-                self._write_executable(bin_directory / 'ipvsadm', ipvsadm_script)
+                self._write_executable(
+                    bin_directory / 'ipvsadm', ipvsadm_script
+                )
             environment = os.environ.copy()
             environment['PATH'] = f'{bin_directory}:{environment["PATH"]}'
             environment.update(extra_environment or {})
@@ -360,7 +358,7 @@ class CollectSeaweedfsDiagnosticsTest(unittest.TestCase):
         path.chmod(0o755)
 
 
-_FAKE_KUBECTL = r'''#!/usr/bin/env bash
+_FAKE_KUBECTL = r"""#!/usr/bin/env bash
 args="$*"
 
 case "$args" in
@@ -458,9 +456,9 @@ case "$args" in
   *"describe pod seaweedfs-0 -n kubeflow"*) echo "Events:  <none>" ;;
   *) true ;;
 esac
-'''
+"""
 
-_FAKE_DOCKER = r'''#!/usr/bin/env bash
+_FAKE_DOCKER = r"""#!/usr/bin/env bash
 if [[ "$1" == "inspect" ]]; then
   exit 0
 fi
@@ -480,9 +478,9 @@ case "$script" in
     sh -c "$script" "$@"
     ;;
 esac
-'''
+"""
 
-_FAKE_IPTABLES_SAVE = r'''#!/usr/bin/env bash
+_FAKE_IPTABLES_SAVE = r"""#!/usr/bin/env bash
 [[ "${1:-}" == "-c" ]] || exit 1
 random_fully=""
 if [[ "${RANDOM_FULLY:-false}" == "true" ]]; then
@@ -503,9 +501,9 @@ cat <<EOF
 [7:420] -A KUBE-SEP-TCPDNS -p tcp -j DNAT --to-destination 10.244.0.51:53
 [9:540] -A KUBE-SEP-UDPDNS -p udp -j DNAT --to-destination 10.244.0.50:53
 EOF
-'''
+"""
 
-_FAKE_IPVSADM = r'''#!/usr/bin/env bash
+_FAKE_IPVSADM = r"""#!/usr/bin/env bash
 cat <<'EOF'
 TCP  10x96x1x1:9000 rr
   -> regex-decoy:8333           Masq    1      0          0
@@ -521,7 +519,7 @@ TCP  10.96.1.1:9000 rr
 UDP  10.96.1.1:9000 rr
   -> next-service-backend:9000  Masq    1      0          0
 EOF
-'''
+"""
 
 
 if __name__ == '__main__':

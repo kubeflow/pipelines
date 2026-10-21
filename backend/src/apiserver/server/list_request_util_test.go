@@ -15,14 +15,11 @@
 package server
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -32,46 +29,30 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-var fakeModelFieldsBySortableAPIFields = map[string]string{
-	"":            "Name",
-	"name":        "Name",
-	"author":      "Author",
-	"description": "Description",
-}
-
-func getFakeModelToken() string {
-	token := common.Token{
-		SortByFieldValue: "bar",
-		KeyFieldValue:    "foo",
-	}
-	expectedJson, _ := json.Marshal(token)
-	return base64.StdEncoding.EncodeToString(expectedJson)
-}
-
-func TestValidateFilterV2Beta1ArtifactTask_RejectsEmptyIDs(t *testing.T) {
-	_, err := validateFilterV2Beta1ArtifactTask(nil, []string{""}, nil)
+func TestValidateFilterV2ArtifactTask_RejectsEmptyIDs(t *testing.T) {
+	_, err := validateFilterV2ArtifactTask(nil, []string{""}, nil)
 	require.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "run_ids must not contain empty values")
 
-	_, err = validateFilterV2Beta1ArtifactTask([]string{""}, nil, nil)
+	_, err = validateFilterV2ArtifactTask([]string{""}, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "task_ids must not contain empty values")
 
-	_, err = validateFilterV2Beta1ArtifactTask(nil, nil, []string{""})
+	_, err = validateFilterV2ArtifactTask(nil, nil, []string{""})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "artifact_ids must not contain empty values")
 }
 
-func TestValidateFilterV2Beta1ArtifactTask_RejectsNoFilters(t *testing.T) {
-	_, err := validateFilterV2Beta1ArtifactTask(nil, nil, nil)
+func TestValidateFilterV2ArtifactTask_RejectsNoFilters(t *testing.T) {
+	_, err := validateFilterV2ArtifactTask(nil, nil, nil)
 	require.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "At least one filter")
 }
 
-func TestValidateFilterV2Beta1ArtifactTask_BuildsFilters(t *testing.T) {
-	filters, err := validateFilterV2Beta1ArtifactTask([]string{"task-1"}, []string{"run-1"}, []string{"artifact-1"})
+func TestValidateFilterV2ArtifactTask_BuildsFilters(t *testing.T) {
+	filters, err := validateFilterV2ArtifactTask([]string{"task-1"}, []string{"run-1"}, []string{"artifact-1"})
 	require.NoError(t, err)
 	require.Len(t, filters, 3)
 	assert.Equal(t, model.TaskResourceType, filters[0].Type)
@@ -82,72 +63,6 @@ func TestValidateFilterV2Beta1ArtifactTask_BuildsFilters(t *testing.T) {
 	assert.Equal(t, "artifact-1", filters[2].ID)
 }
 
-func TestValidatePagination(t *testing.T) {
-	token := getFakeModelToken()
-	context, err := validatePagination(token, 3, "Name",
-		"", fakeModelFieldsBySortableAPIFields)
-	assert.Nil(t, err)
-	expected := &common.PaginationContext{
-		PageSize:        3,
-		SortByFieldName: "Name",
-		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
-	}
-	assert.Equal(t, expected, context)
-}
-
-func TestValidatePagination_NegativePageSizeError(t *testing.T) {
-	token := getFakeModelToken()
-	_, err := validatePagination(token, -1, "Name",
-		"", fakeModelFieldsBySortableAPIFields)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-}
-
-func TestValidatePagination_DefaultPageSize(t *testing.T) {
-	token := getFakeModelToken()
-	context, err := validatePagination(token, 0, "Name",
-		"", fakeModelFieldsBySortableAPIFields)
-	expected := &common.PaginationContext{
-		PageSize:        defaultPageSize,
-		SortByFieldName: "Name",
-		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
-	}
-	assert.Nil(t, err)
-	assert.Equal(t, expected, context)
-}
-
-func TestValidatePagination_DefaultSorting(t *testing.T) {
-	token := getFakeModelToken()
-	context, err := validatePagination(token, 0, "Name",
-		"", fakeModelFieldsBySortableAPIFields)
-	expected := &common.PaginationContext{
-		PageSize:        defaultPageSize,
-		SortByFieldName: "Name",
-		KeyFieldName:    "Name",
-		Token:           &common.Token{SortByFieldValue: "bar", KeyFieldValue: "foo"},
-	}
-	assert.Nil(t, err)
-	assert.Equal(t, expected, context)
-}
-
-func TestValidatePagination_InvalidToken(t *testing.T) {
-	_, err := validatePagination("invalid token", 0, "",
-		"", fakeModelFieldsBySortableAPIFields)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-}
-
-func TestDeserializePageToken(t *testing.T) {
-	token := common.Token{
-		SortByFieldValue: "bar",
-		KeyFieldValue:    "foo",
-	}
-	expectedJson, _ := json.Marshal(token)
-	tokenString := base64.StdEncoding.EncodeToString(expectedJson)
-	actualToken, err := deserializePageToken(tokenString)
-	assert.Nil(t, err)
-	assert.Equal(t, token, *actualToken)
-}
 func TestTransformJSONForBackwardCompatibility(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -201,62 +116,6 @@ func TestTransformJSONForBackwardCompatibility(t *testing.T) {
 		})
 	}
 }
-func TestDeserializePageToken_InvalidEncodingStringError(t *testing.T) {
-	_, err := deserializePageToken("this is a invalid token")
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-}
-
-func TestDeserializePageToken_UnmarshalError(t *testing.T) {
-	_, err := deserializePageToken(base64.StdEncoding.EncodeToString([]byte("invalid token")))
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-}
-
-func TestParseSortByQueryString_EmptyString(t *testing.T) {
-	modelField, isDesc, err := parseSortByQueryString("", fakeModelFieldsBySortableAPIFields)
-	assert.Nil(t, err)
-	assert.Equal(t, "Name", modelField)
-	assert.False(t, isDesc)
-}
-
-func TestParseSortByQueryString_FieldNameOnly(t *testing.T) {
-	modelField, isDesc, err := parseSortByQueryString("Name", fakeModelFieldsBySortableAPIFields)
-	assert.Nil(t, err)
-	assert.Equal(t, "Name", modelField)
-	assert.False(t, isDesc)
-}
-
-func TestParseSortByQueryString_FieldNameWithDescFlag(t *testing.T) {
-	modelField, isDesc, err := parseSortByQueryString("Name desc", fakeModelFieldsBySortableAPIFields)
-	assert.Nil(t, err)
-	assert.Equal(t, "Name", modelField)
-	assert.True(t, isDesc)
-}
-
-func TestParseSortByQueryString_FieldNameWithAscFlag(t *testing.T) {
-	modelField, isDesc, err := parseSortByQueryString("Name asc", fakeModelFieldsBySortableAPIFields)
-	assert.Nil(t, err)
-	assert.Equal(t, "Name", modelField)
-	assert.False(t, isDesc)
-}
-
-func TestParseSortByQueryString_NotSortableFieldName(t *testing.T) {
-	_, _, err := parseSortByQueryString("foobar", fakeModelFieldsBySortableAPIFields)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Cannot sort on field foobar")
-}
-
-func TestParseSortByQueryString_IncorrectDescFlag(t *testing.T) {
-	_, _, err := parseSortByQueryString("id foobar", fakeModelFieldsBySortableAPIFields)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Received invalid sort by format 'id foobar'")
-}
-
-func TestParseSortByQueryString_StringTooLong(t *testing.T) {
-	_, _, err := parseSortByQueryString("Name desc foo", fakeModelFieldsBySortableAPIFields)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Received invalid sort by format 'Name desc foo'")
-}
-
 func TestParseAPIFilter_EmptyStringYieldsNilFilter(t *testing.T) {
 	f, err := parseAPIFilter("")
 	assert.Nil(t, err)
@@ -285,11 +144,11 @@ func TestParseAPIFilter_DecodesEncodedStringMigrated(t *testing.T) {
 	in := "%7B%22predicates%22%3A%5B%7B%22operation%22%3A%22EQUALS%22%2C%22key%22%3A%22testkey%22%2C%22stringValue%22%3A%22testvalue%22%7D%5D%7D"
 
 	// The above should correspond the following filter:
-	want := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
+	want := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
 			{
-				Key: "testkey", Operation: apiv2beta1.Predicate_EQUALS,
-				Value: &apiv2beta1.Predicate_StringValue{StringValue: "testvalue"},
+				Key: "testkey", Operation: apiv2.Predicate_EQUALS,
+				Value: &apiv2.Predicate_StringValue{StringValue: "testvalue"},
 			},
 		},
 	}
@@ -309,11 +168,11 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	in := "%7B%22predicates%22%3A%5B%7B%22operation%22%3A%22EQUALS%22%2C%22key%22%3A%22testkey%22%2C%22stringValue%22%3A%22testvalue%22%7D%5D%7D"
 
 	// The above should correspond the following filter:
-	want := &apiv2beta1.Filter{
-		Predicates: []*apiv2beta1.Predicate{
+	want := &apiv2.Filter{
+		Predicates: []*apiv2.Predicate{
 			{
-				Key: "testkey", Operation: apiv2beta1.Predicate_EQUALS,
-				Value: &apiv2beta1.Predicate_StringValue{StringValue: "testvalue"},
+				Key: "testkey", Operation: apiv2.Predicate_EQUALS,
+				Value: &apiv2.Predicate_StringValue{StringValue: "testvalue"},
 			},
 		},
 	}

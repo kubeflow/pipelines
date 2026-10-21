@@ -21,10 +21,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -63,7 +62,8 @@ func validateResourceClaimTemplateName(templateName *string) error {
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
-func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2beta1.PipelineTask, opts *common.Options) (err error) {
+func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2.PipelineTask, opts *common.Options) (err error) {
+	log := driverLogger(ctx)
 	dispatcher := opts.PluginDispatcher
 	if dispatcher == nil {
 		dispatcher = plugins.NoOpDispatcher{}
@@ -72,23 +72,23 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
-		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
+		log.Errorf("Failed to dispatch task start: %v", dispatchErr)
 	} else if pluginStartResult != nil {
 		statusMetadata := taskToCreate.GetStatusMetadata()
 		if statusMetadata == nil {
-			statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+			statusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 		}
 		statusMetadata.CustomProperties = stringMapToStructValues(pluginStartResult.CustomProperties)
 		taskToCreate.StatusMetadata = statusMetadata
 	}
 
-	var finalizedTask *apiV2beta1.PipelineTask
+	var finalizedTask *apiV2.PipelineTask
 	defer func() {
-		state := apiV2beta1.PipelineTask_SUCCEEDED
+		state := apiV2.PipelineTask_SUCCEEDED
 		if err != nil {
-			state = apiV2beta1.PipelineTask_FAILED
-		} else if finalizedTask != nil && finalizedTask.GetState() == apiV2beta1.PipelineTask_CACHED {
-			state = apiV2beta1.PipelineTask_CACHED
+			state = apiV2.PipelineTask_FAILED
+		} else if finalizedTask != nil && finalizedTask.GetState() == apiV2.PipelineTask_CACHED {
+			state = apiV2.PipelineTask_CACHED
 		}
 		taskPluginInfo.UpdateTaskInfoWithMetadata(
 			state,
@@ -96,7 +96,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 			parameterValuesToInterfaces(execution.ExecutorInput.GetInputs().GetParameterValues()),
 		)
 		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
-			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+			log.Errorf("failed to dispatch task end: %v", dispatchErr)
 		}
 	}()
 	switch opts.Container.Image {
@@ -106,7 +106,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 			return err
 		}
 		var getTaskErr error
-		finalizedTask, getTaskErr = clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		finalizedTask, getTaskErr = clientManager.KFPAPIClient().GetTask(ctx, &apiV2.GetTaskRequest{
 			TaskId: execution.TaskID,
 			RunId:  taskToCreate.GetRunId(),
 		})
@@ -134,7 +134,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 	}
 	if finalizedTask == nil && execution.TaskID != "" {
 		var getTaskErr error
-		finalizedTask, getTaskErr = clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		finalizedTask, getTaskErr = clientManager.KFPAPIClient().GetTask(ctx, &apiV2.GetTaskRequest{
 			TaskId: execution.TaskID,
 			RunId:  taskToCreate.GetRunId(),
 		})
@@ -163,9 +163,10 @@ func extendPodSpecPatch(
 	ctx context.Context,
 	podSpec *k8score.PodSpec,
 	opts common.Options,
-	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
+	inputParams []*apiV2.PipelineTask_InputOutputs_IOParameter,
 	taskConfig *TaskConfig,
 ) error {
+	log := driverLogger(ctx)
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
 
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(opts.Component)
@@ -252,7 +253,7 @@ func extendPodSpecPatch(
 	if tolerations := kubernetesExecutorConfig.GetTolerations(); tolerations != nil {
 		var k8sTolerations []k8score.Toleration
 
-		glog.Infof("Tolerations passed: %+v", tolerations)
+		log.Infof("Tolerations passed: %+v", tolerations)
 
 		for _, toleration := range tolerations {
 			if toleration != nil {
@@ -285,7 +286,7 @@ func extendPodSpecPatch(
 							}
 							k8sTolerations = append(k8sTolerations, singleToleration)
 						} else {
-							glog.V(4).Info("encountered empty tolerations struct, ignoring.")
+							log.Trace("encountered empty tolerations struct, ignoring.")
 						}
 					} else if isListToleration {
 						listVal := resolvedParam.GetValue().GetListValue()
@@ -300,7 +301,7 @@ func extendPodSpecPatch(
 							}
 							k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
 						} else {
-							glog.V(4).Info("encountered empty tolerations list, ignoring.")
+							log.Trace("encountered empty tolerations list, ignoring.")
 						}
 					} else {
 						return fmt.Errorf("encountered unexpected toleration proto value, must be either struct or list type")
@@ -768,7 +769,7 @@ func extendPodSpecPatch(
 			if nodeAffinityTerm.GetNodeAffinityJson() == nil &&
 				len(nodeAffinityTerm.GetMatchExpressions()) == 0 &&
 				len(nodeAffinityTerm.GetMatchFields()) == 0 {
-				glog.Warningf("NodeAffinityTerm %d is empty, skipping", i)
+				log.Warningf("NodeAffinityTerm %d is empty, skipping", i)
 				continue
 			}
 			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
@@ -821,10 +822,10 @@ func extendPodSpecPatch(
 						Weight:     *nodeAffinityTerm.Weight,
 						Preference: nodeSelectorTerm,
 					})
-					glog.V(4).Infof("Added preferred node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added preferred node affinity: %+v", nodeSelectorTerm)
 				} else {
 					requiredTerms = append(requiredTerms, nodeSelectorTerm)
-					glog.V(4).Infof("Added required node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added required node affinity: %+v", nodeSelectorTerm)
 				}
 
 			}
@@ -904,7 +905,7 @@ func extendPodSpecPatch(
 		runAsNonRootEnforced := securitycontext.IsRunAsNonRootEffective(existingSecurityContext.RunAsNonRoot, userSecurityContext.RunAsNonRoot)
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
-				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
+				log.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
 				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
@@ -915,7 +916,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsGroup != nil {
 			if existingSecurityContext.RunAsGroup != nil {
-				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
+				log.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
 					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
@@ -923,7 +924,7 @@ func extendPodSpecPatch(
 		}
 		if userSecurityContext.RunAsNonRoot != nil {
 			if existingSecurityContext.RunAsNonRoot != nil {
-				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+				log.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
 					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
@@ -1050,7 +1051,7 @@ func extendPodSpecPatch(
 	// Enforce administrator hostUsers default regardless of user override.
 	if opts.DefaultHostUsers != nil {
 		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
-			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
+			log.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
 				*podSpec.HostUsers, *opts.DefaultHostUsers)
 		}
 		v := *opts.DefaultHostUsers
@@ -1066,23 +1067,24 @@ func createPVCTask(
 	clientManager client_manager.ClientManagerInterface,
 	execution *Execution,
 	opts *common.Options,
-	taskToCreate *apiV2beta1.PipelineTask,
+	taskToCreate *apiV2.PipelineTask,
 ) (err error) {
+	log := driverLogger(ctx)
 	taskCreated := false
 
 	// Ensure that we update the final task state after creation, or if we fail the procedure
 	defer func() {
 		if err != nil {
-			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
-			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+			taskToCreate.State = apiV2.PipelineTask_FAILED
+			taskToCreate.StatusMetadata = &apiV2.PipelineTask_StatusMetadata{
 				Message: err.Error(),
 			}
-		} else if taskToCreate.State == apiV2beta1.PipelineTask_RUNNING {
+		} else if taskToCreate.State == apiV2.PipelineTask_RUNNING {
 			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
-			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
+			taskToCreate.State = apiV2.PipelineTask_SUCCEEDED
 		}
 		if taskCreated {
-			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 				TaskId: execution.TaskID,
 				Task:   taskToCreate,
 				RunId:  taskToCreate.GetRunId(),
@@ -1091,7 +1093,7 @@ func createPVCTask(
 				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
 			}
 		} else {
-			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
 			})
@@ -1103,7 +1105,7 @@ func createPVCTask(
 	}()
 
 	inputs := execution.ExecutorInput.Inputs
-	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+	log.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Required input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
@@ -1139,20 +1141,20 @@ func createPVCTask(
 	}
 
 	if taskToCreate.Outputs == nil {
-		taskToCreate.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
-			Parameters: make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0),
+		taskToCreate.Outputs = &apiV2.PipelineTask_InputOutputs{
+			Parameters: make([]*apiV2.PipelineTask_InputOutputs_IOParameter, 0),
 		}
 	}
 	if taskToCreate.Outputs.Parameters == nil {
-		taskToCreate.Outputs.Parameters = make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0)
+		taskToCreate.Outputs.Parameters = make([]*apiV2.PipelineTask_InputOutputs_IOParameter, 0)
 	}
 	taskToCreate.Outputs.Parameters = append(
 		taskToCreate.Outputs.Parameters,
-		&apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+		&apiV2.PipelineTask_InputOutputs_IOParameter{
 			Value:        structpb.NewStringValue(pvcName),
 			ParameterKey: "name", // create-pvc output parameter is always "name"
-			Type:         apiV2beta1.IOType_OUTPUT,
-			Producer: &apiV2beta1.IOProducer{
+			Type:         apiV2.IOType_OUTPUT,
+			Producer: &apiV2.IOProducer{
 				// Producer TaskName must be the canonical DAG task key, not DisplayName.
 				TaskName: opts.TaskName,
 			},
@@ -1205,8 +1207,8 @@ func createPVCTask(
 	attemptOutputs := taskToCreate.GetOutputs()
 	attemptInputs := taskToCreate.GetInputs()
 	attemptStatusMetadata := taskToCreate.GetStatusMetadata()
-	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
-	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+	taskToCreate.State = apiV2.PipelineTask_RUNNING
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 		Task:  taskToCreate,
 		RunId: taskToCreate.GetRunId(),
 	})
@@ -1214,11 +1216,11 @@ func createPVCTask(
 		err = fmt.Errorf("failed to create task: %w", err)
 		return err
 	}
-	glog.Infof("Created Task: %s", task.TaskId)
+	log.Infof("Created Task: %s", task.TaskId)
 	taskCreated = true
 	execution.TaskID = task.TaskId
 	if isSuccessfulTerminalTask(task) {
-		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
+		execution.Cached = util.BoolPointer(task.GetState() == apiV2.PipelineTask_CACHED)
 		overwritePipelineTask(taskToCreate, task)
 		return nil
 	}
@@ -1226,11 +1228,11 @@ func createPVCTask(
 		ctx,
 		clientManager.KFPAPIClient(),
 		task,
-		&apiV2beta1.PipelineTask{
+		&apiV2.PipelineTask{
 			Pods:           attemptPods,
 			Outputs:        attemptOutputs,
 			Inputs:         attemptInputs,
-			State:          apiV2beta1.PipelineTask_RUNNING,
+			State:          apiV2.PipelineTask_RUNNING,
 			StatusMetadata: attemptStatusMetadata,
 		},
 	)
@@ -1245,8 +1247,8 @@ func createPVCTask(
 		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
 	}
 	if !execution.WillTrigger() {
-		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
-		glog.Infof("Condition not met, skipping task %s", task.TaskId)
+		taskToCreate.State = apiV2.PipelineTask_SKIPPED
+		log.Infof("Condition not met, skipping task %s", task.TaskId)
 		return nil
 	}
 
@@ -1273,7 +1275,7 @@ func createPVCTask(
 		if cloneErr != nil {
 			return cloneErr
 		}
-		taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+		taskToCreate.State = apiV2.PipelineTask_CACHED
 		taskToCreate.Outputs = cachedOutputs
 		*execution.Cached = true
 		return nil
@@ -1311,8 +1313,8 @@ func createPVCTask(
 		}
 		createdPVC = pvc
 	}
-	glog.Infof("Created PVC %s\n", createdPVC.Name)
-	taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
+	log.Infof("Created PVC %s\n", createdPVC.Name)
+	taskToCreate.State = apiV2.PipelineTask_SUCCEEDED
 	return nil
 }
 
@@ -1343,23 +1345,24 @@ func deletePVCTask(
 	clientManager client_manager.ClientManagerInterface,
 	execution *Execution,
 	opts *common.Options,
-	taskToCreate *apiV2beta1.PipelineTask,
+	taskToCreate *apiV2.PipelineTask,
 ) (err error) {
+	log := driverLogger(ctx)
 	taskCreated := false
 
 	// Ensure that we update the final task state after creation, or if we fail the procedure
 	defer func() {
 		if err != nil {
-			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
-			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+			taskToCreate.State = apiV2.PipelineTask_FAILED
+			taskToCreate.StatusMetadata = &apiV2.PipelineTask_StatusMetadata{
 				Message: err.Error(),
 			}
-		} else if taskToCreate.State == apiV2beta1.PipelineTask_RUNNING {
+		} else if taskToCreate.State == apiV2.PipelineTask_RUNNING {
 			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
-			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
+			taskToCreate.State = apiV2.PipelineTask_SUCCEEDED
 		}
 		if taskCreated {
-			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 				TaskId: execution.TaskID,
 				Task:   taskToCreate,
 				RunId:  taskToCreate.GetRunId(),
@@ -1368,7 +1371,7 @@ func deletePVCTask(
 				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
 			}
 		} else {
-			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
 			})
@@ -1380,7 +1383,7 @@ func deletePVCTask(
 	}()
 
 	inputs := execution.ExecutorInput.Inputs
-	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
+	log.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
 	// Required input: pvc_name
 	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
@@ -1395,8 +1398,8 @@ func deletePVCTask(
 	attemptPods := taskToCreate.GetPods()
 	attemptInputs := taskToCreate.GetInputs()
 	attemptStatusMetadata := taskToCreate.GetStatusMetadata()
-	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
-	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+	taskToCreate.State = apiV2.PipelineTask_RUNNING
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 		Task:  taskToCreate,
 		RunId: taskToCreate.GetRunId(),
 	})
@@ -1404,11 +1407,11 @@ func deletePVCTask(
 		err = fmt.Errorf("failed to create task: %w", err)
 		return err
 	}
-	glog.Infof("Created Task: %s", task.TaskId)
+	log.Infof("Created Task: %s", task.TaskId)
 	taskCreated = true
 	execution.TaskID = task.TaskId
 	if isSuccessfulTerminalTask(task) {
-		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
+		execution.Cached = util.BoolPointer(task.GetState() == apiV2.PipelineTask_CACHED)
 		overwritePipelineTask(taskToCreate, task)
 		return nil
 	}
@@ -1416,10 +1419,10 @@ func deletePVCTask(
 		ctx,
 		clientManager.KFPAPIClient(),
 		task,
-		&apiV2beta1.PipelineTask{
+		&apiV2.PipelineTask{
 			Pods:           attemptPods,
 			Inputs:         attemptInputs,
-			State:          apiV2beta1.PipelineTask_RUNNING,
+			State:          apiV2.PipelineTask_RUNNING,
 			StatusMetadata: attemptStatusMetadata,
 		},
 	)
@@ -1429,8 +1432,8 @@ func deletePVCTask(
 	}
 	overwritePipelineTask(taskToCreate, updatedTask)
 	if !execution.WillTrigger() {
-		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
-		glog.Infof("Condition not met, skipping task %s", task.TaskId)
+		taskToCreate.State = apiV2.PipelineTask_SKIPPED
+		log.Infof("Condition not met, skipping task %s", task.TaskId)
 		return nil
 	}
 
@@ -1445,7 +1448,7 @@ func deletePVCTask(
 	taskToCreate.CacheFingerprint = fingerPrint
 	execution.Cached = util.BoolPointer(false)
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
-		taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+		taskToCreate.State = apiV2.PipelineTask_CACHED
 		taskToCreate.Outputs = cachedTask.Outputs
 		*execution.Cached = true
 		return nil
@@ -1474,11 +1477,11 @@ func deletePVCTask(
 	return nil
 }
 
-func isSuccessfulTerminalTask(task *apiV2beta1.PipelineTask) bool {
+func isSuccessfulTerminalTask(task *apiV2.PipelineTask) bool {
 	switch task.GetState() {
-	case apiV2beta1.PipelineTask_SUCCEEDED,
-		apiV2beta1.PipelineTask_CACHED,
-		apiV2beta1.PipelineTask_SKIPPED:
+	case apiV2.PipelineTask_SUCCEEDED,
+		apiV2.PipelineTask_CACHED,
+		apiV2.PipelineTask_SKIPPED:
 		return true
 	default:
 		return false
@@ -1487,7 +1490,7 @@ func isSuccessfulTerminalTask(task *apiV2beta1.PipelineTask) bool {
 
 // overwritePipelineTask replaces dst with src without copying protobuf internal
 // locks (govet copylocks).
-func overwritePipelineTask(dst, src *apiV2beta1.PipelineTask) {
+func overwritePipelineTask(dst, src *apiV2.PipelineTask) {
 	if dst == nil || src == nil {
 		return
 	}
@@ -1495,7 +1498,7 @@ func overwritePipelineTask(dst, src *apiV2beta1.PipelineTask) {
 	proto.Merge(dst, src)
 }
 
-func taskOutputParameterValue(task *apiV2beta1.PipelineTask, key string) (string, bool) {
+func taskOutputParameterValue(task *apiV2.PipelineTask, key string) (string, bool) {
 	for _, parameter := range task.GetOutputs().GetParameters() {
 		if parameter.GetParameterKey() == key {
 			return parameter.GetValue().GetStringValue(), true
@@ -1507,7 +1510,7 @@ func taskOutputParameterValue(task *apiV2beta1.PipelineTask, key string) (string
 func makeVolumeMountPatch(
 	opts common.Options,
 	pvcMounts []*kubernetesplatform.PvcMount,
-	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
+	inputParams []*apiV2.PipelineTask_InputOutputs_IOParameter,
 ) ([]k8score.VolumeMount, []k8score.Volume, error) {
 	if pvcMounts == nil {
 		return nil, nil, nil

@@ -15,18 +15,17 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[3] / 'test/presubmit-tests-sdk.sh'
 
 
 class SdkRuntimeTest(unittest.TestCase):
-
     def setUp(self) -> None:
         """Isolate the presubmit from actual builds and Docker-backed tests."""
         directory = tempfile.TemporaryDirectory(prefix="SDK wheel's ")
@@ -36,7 +35,9 @@ class SdkRuntimeTest(unittest.TestCase):
         self.fake_bin.mkdir()
         self.log = self.root / 'commands.jsonl'
         uv = self.fake_bin / 'uv'
-        uv.write_text(f'#!{sys.executable}\n' + textwrap.dedent('''\
+        uv.write_text(
+            f'#!{sys.executable}\n'
+            + textwrap.dedent("""\
             import json
             import os
             from pathlib import Path
@@ -57,7 +58,8 @@ class SdkRuntimeTest(unittest.TestCase):
                 output = Path(args[args.index('--out-dir') + 1])
                 for index in range(int(os.environ['WHEEL_COUNT'])):
                     (output / f'kfp-{index}-py3-none-any.whl').touch()
-        '''))
+        """)
+        )
         uv.chmod(0o755)
 
     def run_presubmit(
@@ -73,24 +75,15 @@ class SdkRuntimeTest(unittest.TestCase):
             cwd=self.root,
             env={
                 **os.environ,
-                'PATH':
-                    f'{self.fake_bin}{os.pathsep}{os.environ["PATH"]}',
-                'COMMAND_LOG':
-                    str(self.log),
-                'FAIL_PHASE':
-                    failure,
-                'WHEEL_COUNT':
-                    str(wheel_count),
-                'TMPDIR':
-                    str(self.root),
-                'SETUP_ENV':
-                    'false',
-                'REPO_NAME':
-                    'kubeflow/pipelines',
-                'PULL_NUMBER':
-                    pull_number,
-                'PYTEST_PARALLEL_WORKERS':
-                    '2',
+                'PATH': f'{self.fake_bin}{os.pathsep}{os.environ["PATH"]}',
+                'COMMAND_LOG': str(self.log),
+                'FAIL_PHASE': failure,
+                'WHEEL_COUNT': str(wheel_count),
+                'TMPDIR': str(self.root),
+                'SETUP_ENV': 'false',
+                'REPO_NAME': 'kubeflow/pipelines',
+                'PULL_NUMBER': pull_number,
+                'PYTEST_PARALLEL_WORKERS': '2',
             },
             capture_output=True,
             text=True,
@@ -112,21 +105,26 @@ class SdkRuntimeTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
                     [command['phase'] for command in self.commands],
-                    ['build', 'suite', 'runtime'])
+                    ['build', 'suite', 'runtime'],
+                )
                 source = 'git+https://github.com/kubeflow/pipelines'
                 if pull_number:
                     source += f'@refs/pull/{pull_number}/merge'
                 source += '#egg=kfp&subdirectory=sdk/python'
                 self.assertEqual(self.commands[1]['package'], source)
-                self.assertIn('--ignore=sdk/python/test/runtime',
-                              self.commands[1]['args'])
+                self.assertIn(
+                    '--ignore=sdk/python/test/runtime', self.commands[1]['args']
+                )
                 self.assertNotIn('--cov-append', self.commands[1]['args'])
-                self.assertEqual(self.commands[2]['package'],
-                                 str(self.output / 'kfp-0-py3-none-any.whl'))
+                self.assertEqual(
+                    self.commands[2]['package'],
+                    str(self.output / 'kfp-0-py3-none-any.whl'),
+                )
                 self.assertIn('--cov-append', self.commands[2]['args'])
                 for command in self.commands[1:]:
-                    self.assertEqual(command['args'][:3],
-                                     ['run', 'python', '-m'])
+                    self.assertEqual(
+                        command['args'][:3], ['run', 'python', '-m']
+                    )
                     self.assertIn('--cov=kfp', command['args'])
                     self.assertIn('regression', command['args'])
                     self.assertNotIn('-s', command['args'])
@@ -144,7 +142,8 @@ class SdkRuntimeTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 23, result.stderr)
                 self.assertEqual(
                     [command['phase'] for command in self.commands],
-                    expected_phases)
+                    expected_phases,
+                )
 
     def test_missing_or_ambiguous_wheels_fail_before_testing(self) -> None:
         """Do not fall back to a published package after a bad build."""
@@ -153,9 +152,11 @@ class SdkRuntimeTest(unittest.TestCase):
                 result = self.run_presubmit(wheel_count=wheel_count)
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertEqual(
-                    [command['phase'] for command in self.commands], ['build'])
-                self.assertIn('exactly one freshly built kfp wheel',
-                              result.stderr)
+                    [command['phase'] for command in self.commands], ['build']
+                )
+                self.assertIn(
+                    'exactly one freshly built kfp wheel', result.stderr
+                )
 
 
 if __name__ == '__main__':

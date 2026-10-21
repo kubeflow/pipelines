@@ -30,6 +30,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.10.3'
       - uses: ./.github/actions/setup-go
       - name: Check repository Go version policy
         run: make check-go-version
@@ -50,7 +53,7 @@ jobs:
           fi
 
           config_changed=true
-          if git diff --quiet "${base_sha}" HEAD -- .pre-commit-config.yaml .golangci.yaml; then
+          if git diff --quiet "${base_sha}" HEAD -- .pre-commit-config.yaml .golangci.yaml pyproject.toml uv.lock; then
             config_changed=false
           fi
 

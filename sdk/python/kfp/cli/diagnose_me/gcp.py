@@ -21,6 +21,7 @@ from kfp.cli.diagnose_me import utility
 
 class Commands(enum.Enum):
     """Enum for gcloud and gsutil commands."""
+
     GET_APIS = 1
     GET_CONTAINER_CLUSTERS = 2
     GET_CONTAINER_IMAGES = 3
@@ -52,9 +53,10 @@ _command_string = {
 
 
 def execute_gcloud_command(
-        gcloud_command_list: List[Text],
-        project_id: Optional[Text] = None,
-        human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    gcloud_command_list: List[Text],
+    project_id: Optional[Text] = None,
+    human_readable: Optional[bool] = False,
+) -> utility.ExecutorResponse:
     """Function for invoking gcloud command.
 
     Args:
@@ -81,8 +83,8 @@ def execute_gcloud_command(
 
 
 def execute_gsutil_command(
-        gsutil_command_list: List[Text],
-        project_id: Optional[Text] = None) -> utility.ExecutorResponse:
+    gsutil_command_list: List[Text], project_id: Optional[Text] = None
+) -> utility.ExecutorResponse:
     """Function for invoking gsutil command.
 
     This function takes in a gsutil parameter list and returns the results as a
@@ -105,9 +107,10 @@ def execute_gsutil_command(
 
 
 def get_gcp_configuration(
-        configuration: Commands,
-        project_id: Optional[Text] = None,
-        human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    configuration: Commands,
+    project_id: Optional[Text] = None,
+    human_readable: Optional[bool] = False,
+) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
     Captures the environment configuration for the specified setting such as
@@ -143,8 +146,10 @@ def get_gcp_configuration(
     # storage bucket call requires execute_gsutil_command
     if configuration is Commands.GET_STORAGE_BUCKETS:
         return execute_gsutil_command(
-            [_command_string[Commands.GET_STORAGE_BUCKETS]], project_id)
+            [_command_string[Commands.GET_STORAGE_BUCKETS]], project_id
+        )
 
     # For all other cases can execute the command directly
-    return execute_gcloud_command(_command_string[configuration].split(' '),
-                                  project_id, human_readable)
+    return execute_gcloud_command(
+        _command_string[configuration].split(' '), project_id, human_readable
+    )

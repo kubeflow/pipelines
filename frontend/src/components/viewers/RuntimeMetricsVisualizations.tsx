@@ -16,7 +16,7 @@ import HelpIcon from '@mui/icons-material/Help';
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
-import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, V2Artifact } from 'src/apisv2/run';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import Banner from 'src/components/Banner';
 import PlotCard from 'src/components/PlotCard';
@@ -43,7 +43,7 @@ import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
 
 interface RuntimeMetricsVisualizationsProps {
-  artifacts: V2beta1Artifact[];
+  artifacts: V2Artifact[];
   artifactKey?: string;
   namespace?: string;
   sourceFinished?: boolean;
@@ -53,7 +53,7 @@ export interface ClassificationVisualization {
   key: string;
   displayName: string;
   metadata?: { [key: string]: object };
-  sourceArtifact: V2beta1Artifact;
+  sourceArtifact: V2Artifact;
 }
 
 interface LegacyUiMetadataVisualizationResult {
@@ -205,7 +205,7 @@ function FileArtifactVisualization({
   namespace,
   sourceFinished,
 }: {
-  artifacts: V2beta1Artifact[];
+  artifacts: V2Artifact[];
   kind: 'HTML' | 'Markdown';
   namespace?: string;
   sourceFinished?: boolean;
@@ -290,7 +290,7 @@ export function RuntimeArtifactVisualization({
   sourceFinished,
   title,
 }: {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   namespace?: string;
   sourceFinished?: boolean;
   title?: string;
@@ -333,7 +333,7 @@ function LegacyUiMetadataVisualization({
   namespace,
   sourceFinished,
 }: {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   namespace?: string;
   sourceFinished?: boolean;
 }) {
@@ -447,7 +447,7 @@ function buildViewerConfigEntries(
 }
 
 async function loadLegacyUiMetadataVisualization(
-  artifact: V2beta1Artifact,
+  artifact: V2Artifact,
   namespace?: string,
 ): Promise<LegacyUiMetadataVisualizationResult> {
   if (!artifact.uri) {
@@ -486,7 +486,7 @@ export function buildRocCurves(visualizations: ClassificationVisualization[]): {
 }
 
 export function expandClassificationMetrics(
-  artifacts: V2beta1Artifact[],
+  artifacts: V2Artifact[],
 ): ClassificationVisualization[] {
   const identityOccurrences = new Map<string, number>();
   return artifacts.flatMap((artifact, artifactIndex) => {
@@ -574,7 +574,7 @@ export function buildConfusionMatrixResult(visualizations: ClassificationVisuali
 }
 
 async function downloadVisualization(
-  artifact: V2beta1Artifact,
+  artifact: V2Artifact,
   namespace?: string,
 ): Promise<ViewerConfig> {
   if (!artifact.uri) {

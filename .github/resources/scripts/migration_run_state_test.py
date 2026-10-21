@@ -14,14 +14,15 @@
 # limitations under the License.
 
 import importlib.util
+import unittest
 from pathlib import Path
 from types import SimpleNamespace
-import unittest
 from unittest import mock
 
 MODULE_PATH = (
-    Path(__file__).resolve().parents[3] /
-    'test/kfp-kubernetes-native-migration-tests/run_state.py')
+    Path(__file__).resolve().parents[3]
+    / 'test/kfp-kubernetes-native-migration-tests/run_state.py'
+)
 SPEC = importlib.util.spec_from_file_location('run_state', MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -29,7 +30,6 @@ SPEC.loader.exec_module(MODULE)
 
 
 class MigrationRunStateTest(unittest.TestCase):
-
     def setUp(self):
         self.now = 100.0
         self.sleeps = []
@@ -37,9 +37,12 @@ class MigrationRunStateTest(unittest.TestCase):
         self.run_id = 'migration-run-id'
         self.enterContext(
             mock.patch.object(
-                MODULE.time, 'monotonic', side_effect=lambda: self.now))
+                MODULE.time, 'monotonic', side_effect=lambda: self.now
+            )
+        )
         self.enterContext(
-            mock.patch.object(MODULE.time, 'sleep', side_effect=self.sleep))
+            mock.patch.object(MODULE.time, 'sleep', side_effect=self.sleep)
+        )
 
     def sleep(self, duration):
         self.sleeps.append(duration)
@@ -67,8 +70,10 @@ class MigrationRunStateTest(unittest.TestCase):
         self.assertEqual(result.display_name, 'k8s-mode-test-run')
         self.assertEqual(result.experiment_id, 'migration-experiment-id')
         self.assertEqual(self.sleeps, [1, 1, 1])
-        self.assertEqual(self.client.get_run.call_args_list,
-                         [mock.call(run_id=self.run_id)] * 4)
+        self.assertEqual(
+            self.client.get_run.call_args_list,
+            [mock.call(run_id=self.run_id)] * 4,
+        )
 
     def test_returns_initial_reported_state_without_sleeping(self):
         for state in ('PENDING', 'RUNNING', 'SUCCEEDED', 'SKIPPED', 'PAUSED'):
@@ -85,11 +90,13 @@ class MigrationRunStateTest(unittest.TestCase):
 
     def test_timeout_reports_run_last_state_budget_and_diagnostics(self):
         self.client.get_run.return_value = self.run_details(
-            'RUNTIME_STATE_UNSPECIFIED')
+            'RUNTIME_STATE_UNSPECIFIED'
+        )
 
         with self.assertRaises(TimeoutError) as caught:
             MODULE.wait_for_run_state(
-                self.client, self.run_id, timeout=2.5, poll_interval=1)
+                self.client, self.run_id, timeout=2.5, poll_interval=1
+            )
 
         message = str(caught.exception)
         self.assertIn(self.run_id, message)
@@ -105,7 +112,8 @@ class MigrationRunStateTest(unittest.TestCase):
 
         with self.assertRaises(TimeoutError) as caught:
             MODULE.wait_for_run_state(
-                self.client, self.run_id, timeout=1, poll_interval=2)
+                self.client, self.run_id, timeout=1, poll_interval=2
+            )
 
         self.assertIn(self.run_id, str(caught.exception))
         self.assertIn('None', str(caught.exception))
@@ -158,8 +166,9 @@ class MigrationRunStateTest(unittest.TestCase):
             for value in (0, -1):
                 with self.subTest(option=option, value=value):
                     with self.assertRaises(ValueError):
-                        MODULE.wait_for_run_state(self.client, self.run_id,
-                                                  **{option: value})
+                        MODULE.wait_for_run_state(
+                            self.client, self.run_id, **{option: value}
+                        )
 
         self.client.get_run.assert_not_called()
         self.assertEqual(self.sleeps, [])

@@ -38,7 +38,7 @@ class ContainerComponentArtifactChannel:
             },
             'metadata': {
                 'input': placeholders.InputMetadataPlaceholder,
-                'output': placeholders.OutputMetadataPlaceholder
+                'output': placeholders.OutputMetadataPlaceholder,
             },
         }
         if _name not in ['uri', 'path', 'metadata']:

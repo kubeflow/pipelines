@@ -23,9 +23,9 @@ import * as Utils from 'src/lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import { Apis, ExperimentSortKeys } from 'src/lib/Apis';
 import { range } from 'lodash';
-import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { V2ExperimentStorageState } from 'src/apisv2/experiment';
+import { V2RunStorageState } from 'src/apisv2/run';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 import TestUtils from 'src/TestUtils';
 
 describe('ExperimentList', () => {
@@ -77,7 +77,7 @@ describe('ExperimentList', () => {
 
   it('renders the empty experience in ARCHIVED state', async () => {
     const props = generateProps();
-    props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
+    props.storageState = V2ExperimentStorageState.ARCHIVED;
     renderExperimentList(props);
     await screen.findByText('No archived experiments found.');
   });
@@ -85,7 +85,7 @@ describe('ExperimentList', () => {
   it('loads experiments whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = V2beta1ExperimentStorageState.AVAILABLE;
+    props.storageState = V2ExperimentStorageState.AVAILABLE;
     renderExperimentList(props);
     await screen.findByText('experiment with id: testexperiment1');
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
@@ -97,11 +97,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOT_EQUALS,
-              string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.NOT_EQUALS,
+              string_value: V2ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
       undefined,
     );
@@ -110,7 +110,7 @@ describe('ExperimentList', () => {
   it('loads experiments whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
+    props.storageState = V2ExperimentStorageState.ARCHIVED;
     renderExperimentList(props);
     await screen.findByText('experiment with id: testexperiment1');
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
@@ -122,11 +122,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.EQUALS,
-              string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.EQUALS,
+              string_value: V2ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
       undefined,
     );
@@ -135,7 +135,7 @@ describe('ExperimentList', () => {
   it('augments request filter with storage state predicates', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
+    props.storageState = V2ExperimentStorageState.ARCHIVED;
     const ref = React.createRef<ExperimentList>();
     render(
       <MemoryRouter>
@@ -167,11 +167,11 @@ describe('ExperimentList', () => {
             },
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.EQUALS,
-              string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.EQUALS,
+              string_value: V2ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
       undefined,
     );
@@ -248,11 +248,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOT_EQUALS,
-              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.NOT_EQUALS,
+              string_value: V2RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
       true,
     );
@@ -261,7 +261,7 @@ describe('ExperimentList', () => {
   it('loads runs for a given experiment id with augmented storage state when it is expanded', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = V2beta1ExperimentStorageState.ARCHIVED;
+    props.storageState = V2ExperimentStorageState.ARCHIVED;
     renderExperimentList(props);
     await screen.findByText('experiment with id: testexperiment1');
     listRunsSpy.mockClear();
@@ -278,11 +278,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.EQUALS,
-              string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.EQUALS,
+              string_value: V2ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
       true,
     );

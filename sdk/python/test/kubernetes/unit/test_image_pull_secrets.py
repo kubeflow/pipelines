@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestImagePullSecret:
-
     def test_add_one(self):
 
         @dsl.pipeline
@@ -32,14 +30,16 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecret': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
+                                'imagePullSecret': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -52,8 +52,9 @@ class TestImagePullSecret:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.set_image_pull_secrets(task,
-                                              ['secret-name1', 'secret-name2'])
+            kubernetes.set_image_pull_secrets(
+                task, ['secret-name1', 'secret-name2']
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -76,7 +77,7 @@ class TestImagePullSecret:
                                             'runtimeValue': {
                                                 'constant': 'secret-name2'
                                             }
-                                        }
+                                        },
                                     },
                                 ]
                             }
@@ -94,7 +95,8 @@ class TestImagePullSecret:
 
             # Load the secret as a volume
             kubernetes.use_secret_as_volume(
-                task, secret_name='secret-name', mount_path='/mnt/my_vol')
+                task, secret_name='secret-name', mount_path='/mnt/my_vol'
+            )
 
             # Set image pull secrets for a task using secret names
             kubernetes.set_image_pull_secrets(task, ['secret-name'])
@@ -105,24 +107,28 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name',
-                                    'mountPath': '/mnt/my_vol',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'optional': False
-                                }],
-                                'imagePullSecret': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'mountPath': '/mnt/my_vol',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'optional': False,
                                     }
-                                }]
+                                ],
+                                'imagePullSecret': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                    }
+                                ],
                             }
                         }
                     }
@@ -144,11 +150,13 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecret': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter': 'input_1'
+                                'imagePullSecret': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'input_1'
+                                        }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -165,7 +173,7 @@ class TestImagePullSecret:
             kubernetes.set_image_pull_secrets(t1, [input_1])
             t2 = comp()
             kubernetes.set_image_pull_secrets(t2, [input_1, input_2])
-            kubernetes.set_image_pull_secrets(t2, ["another-secret"])
+            kubernetes.set_image_pull_secrets(t2, ['another-secret'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -173,30 +181,36 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecret': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter': 'input_1'
-                                    }
-                                }]
-                            },
-                            'exec-comp-2': {
-                                'imagePullSecret': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter': 'input_1'
-                                    }
-                                }, {
-                                    'secretNameParameter': {
-                                        'componentInputParameter': 'input_2'
-                                    }
-                                }, {
-                                    'secretName': 'another-secret',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'another-secret'
+                                'imagePullSecret': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'input_1'
                                         }
                                     }
-                                }]
-                            }
+                                ]
+                            },
+                            'exec-comp-2': {
+                                'imagePullSecret': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'input_1'
+                                        }
+                                    },
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'input_2'
+                                        }
+                                    },
+                                    {
+                                        'secretName': 'another-secret',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'another-secret'
+                                            }
+                                        },
+                                    },
+                                ]
+                            },
                         }
                     }
                 }
@@ -218,14 +232,16 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecret': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                'imagePullSecret': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
                                         }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -254,39 +270,45 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecret': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                'imagePullSecret': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
                                         }
                                     }
-                                }]
+                                ]
                             },
                             'exec-comp-2': {
-                                'imagePullSecret': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                'imagePullSecret': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
                                         }
-                                    }
-                                }, {
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-2'
+                                    },
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-2',
+                                            }
                                         }
-                                    }
-                                }, {
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-3'
+                                    },
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-3',
+                                            }
                                         }
-                                    }
-                                }]
-                            }
+                                    },
+                                ]
+                            },
                         }
                     }
                 }
@@ -315,7 +337,7 @@ class TestImagePullSecret:
                                             'runtimeValue': {
                                                 'constant': 'a_str'
                                             }
-                                        }
+                                        },
                                     },
                                     {
                                         'secretNameParameter': {

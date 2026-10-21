@@ -427,6 +427,16 @@ func (r *ResourceManager) transferScheduleWorkflow(ctx context.Context, plan *hi
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid schedule parameters")
 		}
 		swf.Spec.Workflow = &scheduledworkflow.WorkflowResource{Parameters: parameters, PipelineRoot: string(job.PipelineRoot)}
+		// Catalog rows may not exist yet, so take the names from the archive.
+		for _, p := range plan.Bundle.Pipelines {
+			if p.UUID == job.PipelineId {
+				swf.Spec.PipelineName = p.Name
+				break
+			}
+		}
+		if version != nil && version.UUID == job.PipelineVersionId {
+			swf.Spec.PipelineVersionName = version.Name
+		}
 	}
 
 	swf.Spec.Enabled = false
@@ -458,7 +468,7 @@ func (r *ResourceManager) stageTransferSchedules(ctx context.Context, plan *hist
 				}
 				continue
 			}
-			if existing.Spec.Enabled || !reflect.DeepEqual(existing.Spec, desired.Spec) {
+			if existing.Spec.Enabled || !sameStagedScheduleSpec(existing.Spec, desired.Spec) {
 				return transferPrecondition("A staged schedule was changed before its import completed")
 			}
 			plan.ReplaceID("schedule", job.UUID, string(existing.UID))
@@ -486,6 +496,14 @@ func (r *ResourceManager) stageTransferSchedules(ctx context.Context, plan *hist
 		plan.ReplaceID("schedule", job.UUID, string(created.UID))
 	}
 	return nil
+}
+
+// sameStagedScheduleSpec ignores the informational pipeline names, so a
+// schedule staged by an earlier version can still be resumed.
+func sameStagedScheduleSpec(staged, desired scheduledworkflow.ScheduledWorkflowSpec) bool {
+	staged.PipelineName, staged.PipelineVersionName = "", ""
+	desired.PipelineName, desired.PipelineVersionName = "", ""
+	return reflect.DeepEqual(staged, desired)
 }
 
 func transferOperationError(err error, message string) error {

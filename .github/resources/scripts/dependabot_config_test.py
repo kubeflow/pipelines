@@ -13,21 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fnmatch import fnmatchcase
-from pathlib import Path
-from pathlib import PurePosixPath
+import json
 import re
 import subprocess
 import unittest
+from fnmatch import fnmatchcase
+from pathlib import Path, PurePosixPath
 
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
 CI_SCRIPTS_WORKFLOW_PATH = (
-    REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml')
+    REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
+)
 GENERATED_PYTHON_CLIENTS = {
-    '/backend/api/v2beta1/python_http_client',
+    '/backend/api/v2/python_http_client',
 }
 
 
@@ -44,12 +45,12 @@ def matches_dependabot_directory(directory: str, pattern: str) -> bool:
 
 
 class DependabotConfigTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.config = DEPENDABOT_PATH.read_text(encoding='utf-8')
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
 
     def update_blocks(self) -> list[tuple[str, str]]:
         return re.findall(
@@ -59,9 +60,74 @@ class DependabotConfigTest(unittest.TestCase):
             flags=re.MULTILINE | re.DOTALL,
         )
 
+    def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
+        docker = next(
+            update
+            for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'docker'
+        )
+        rules = [
+            rule
+            for rule in docker['ignore']
+            if fnmatchcase('mysql', rule['dependency-name'])
+        ]
+        self.assertEqual(
+            rules,
+            [
+                {
+                    'dependency-name': 'mysql',
+                    'versions': ['<8.4', '>=8.5'],
+                }
+            ],
+        )
+
+    def test_go_generators_are_separate_from_runtime_batches(self):
+        gomod = next(
+            update
+            for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'gomod'
+        )
+        for dependency in (
+            'github.com/grpc-ecosystem/grpc-gateway/v2',
+            'google.golang.org/protobuf',
+            'google.golang.org/grpc/cmd/protoc-gen-go-grpc',
+            'github.com/go-swagger/go-swagger',
+        ):
+            matching = [
+                name
+                for name, group in gomod['groups'].items()
+                if any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in group.get('patterns', [])
+                )
+            ]
+            self.assertEqual(matching[0], 'go-api-generators', dependency)
+
+    def test_protobuf_updates_stay_compatible_with_gcpc(self):
+        uv = next(
+            update
+            for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'uv'
+        )
+        rules = [
+            rule
+            for rule in uv['ignore']
+            if fnmatchcase('protobuf', rule['dependency-name'])
+        ]
+        self.assertEqual(
+            rules,
+            [
+                {
+                    'dependency-name': 'protobuf',
+                    'versions': ['>=7'],
+                }
+            ],
+        )
+
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [
-            block for configured_ecosystem, block in self.update_blocks()
+            block
+            for configured_ecosystem, block in self.update_blocks()
             if configured_ecosystem == ecosystem
         ]
         self.assertEqual(
@@ -73,8 +139,9 @@ class DependabotConfigTest(unittest.TestCase):
 
     def configured_directories(self, ecosystem: str) -> set[str]:
         block = self.update_block(ecosystem)
-        singular_match = re.search(r'^    directory: "([^"]+)"$', block,
-                                   re.MULTILINE)
+        singular_match = re.search(
+            r'^    directory: "([^"]+)"$', block, re.MULTILINE
+        )
         if singular_match:
             return {singular_match.group(1)}
 
@@ -88,8 +155,10 @@ class DependabotConfigTest(unittest.TestCase):
             f'missing directories for Dependabot ecosystem {ecosystem}',
         )
         return set(
-            re.findall(r'^      - "([^"]+)"$', directories_match.group(1),
-                       re.MULTILINE))
+            re.findall(
+                r'^      - "([^"]+)"$', directories_match.group(1), re.MULTILINE
+            )
+        )
 
     def configured_labels(self, ecosystem: str) -> list[str]:
         block = self.update_block(ecosystem)
@@ -120,14 +189,25 @@ class DependabotConfigTest(unittest.TestCase):
             ecosystem for ecosystem, _ in self.update_blocks()
         ]
 
-        self.assertCountEqual(configured_ecosystems,
-                              ('gomod', 'docker', 'npm', 'pip', 'uv',
-                               'github-actions', 'pre-commit'))
+        self.assertCountEqual(
+            configured_ecosystems,
+            (
+                'gomod',
+                'docker',
+                'npm',
+                'pip',
+                'uv',
+                'github-actions',
+                'pre-commit',
+            ),
+        )
         self.assertEqual(
-            len(configured_ecosystems), len(set(configured_ecosystems)))
+            len(configured_ecosystems), len(set(configured_ecosystems))
+        )
 
     def test_version_and_security_updates_start_unheld_with_defaults_preserved(
-            self):
+        self,
+    ):
         ecosystem_labels = {
             'gomod': 'go',
             'docker': 'docker',
@@ -151,25 +231,33 @@ class DependabotConfigTest(unittest.TestCase):
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):
         config = yaml.safe_load(self.config)
-        gomod = next(update for update in config['updates']
-                     if update['package-ecosystem'] == 'gomod')
+        gomod = next(
+            update
+            for update in config['updates']
+            if update['package-ecosystem'] == 'gomod'
+        )
         bulk = gomod['groups']['go-minor-and-patch']
 
         def grouped(dependency):
-            return (any(
+            return any(
+                fnmatchcase(dependency, pattern) for pattern in bulk['patterns']
+            ) and not any(
                 fnmatchcase(dependency, pattern)
-                for pattern in bulk['patterns']) and not any(
-                    fnmatchcase(dependency, pattern)
-                    for pattern in bulk.get('exclude-patterns', [])))
+                for pattern in bulk.get('exclude-patterns', [])
+            )
 
-        for dependency in ('github.com/argoproj/argo-workflows/v3',
-                           'github.com/argoproj/argo-workflows/v4'):
+        for dependency in (
+            'github.com/argoproj/argo-workflows/v3',
+            'github.com/argoproj/argo-workflows/v4',
+        ):
             with self.subTest(dependency=dependency):
                 self.assertFalse(grouped(dependency))
                 self.assertFalse(
                     any(
                         fnmatchcase(dependency, rule['dependency-name'])
-                        for rule in gomod.get('ignore', [])))
+                        for rule in gomod.get('ignore', [])
+                    )
+                )
         self.assertNotIn('allow', gomod)
         self.assertTrue(grouped('github.com/stretchr/testify'))
 
@@ -186,8 +274,11 @@ class DependabotConfigTest(unittest.TestCase):
             all(
                 any(
                     matches_dependabot_directory(module_directory, pattern)
-                    for pattern in configured_directories)
-                for module_directory in module_directories))
+                    for pattern in configured_directories
+                )
+                for module_directory in module_directories
+            )
+        )
 
     def test_all_npm_projects_are_covered(self):
         npm_directories = {
@@ -203,16 +294,26 @@ class DependabotConfigTest(unittest.TestCase):
             all(
                 any(
                     matches_dependabot_directory(npm_directory, pattern)
-                    for pattern in configured_directories)
-                for npm_directory in npm_directories))
+                    for pattern in configured_directories
+                )
+                for npm_directory in npm_directories
+            )
+        )
 
     def test_all_maintained_python_projects_are_covered(self):
         # Installed dependencies in .venv are not repository manifests.
         tracked_manifests = subprocess.check_output(
             [
-                'git', 'ls-files', '-z', '--', 'setup.py', '**/setup.py',
-                'pyproject.toml', '**/pyproject.toml', 'requirements*.txt',
-                '**/requirements*.txt'
+                'git',
+                'ls-files',
+                '-z',
+                '--',
+                'setup.py',
+                '**/setup.py',
+                'pyproject.toml',
+                '**/pyproject.toml',
+                'requirements*.txt',
+                '**/requirements*.txt',
             ],
             cwd=REPOSITORY_ROOT,
             text=True,
@@ -228,7 +329,61 @@ class DependabotConfigTest(unittest.TestCase):
             if repository_directory(path) not in GENERATED_PYTHON_CLIENTS
         }
 
-        self.assertEqual(self.configured_directories('pip'), python_directories)
+        # Workspace manifests have one owner. Exported requirements are outputs,
+        # not an independent pip dependency graph.
+        workspace_directories = {'/', '/sdk/python'}
+        self.assertEqual(
+            self.configured_directories('pip'),
+            python_directories - workspace_directories,
+        )
+        self.assertEqual(self.configured_directories('uv'), {'/'})
+
+    def test_uv_has_no_obsolete_export_exclusions(self):
+        config = yaml.safe_load(self.config)
+        uv = next(
+            update
+            for update in config['updates']
+            if update['package-ecosystem'] == 'uv'
+        )
+        self.assertNotIn('exclude-paths', uv)
+        self.assertNotIn('allow', uv)
+
+    def test_react_runtime_and_types_share_version_and_security_groups(self):
+        config = yaml.safe_load(self.config)
+        npm = next(
+            update
+            for update in config['updates']
+            if update['package-ecosystem'] == 'npm'
+        )
+        dependencies = (
+            'react',
+            'react-dom',
+            '@types/react',
+            '@types/react-dom',
+        )
+        for applies_to in ('version-updates', 'security-updates'):
+            groups = {
+                name: group
+                for name, group in npm['groups'].items()
+                if group.get('applies-to', 'version-updates') == applies_to
+            }
+            matches = []
+            for dependency in dependencies:
+                matches.append(
+                    next(
+                        (
+                            name
+                            for name, group in groups.items()
+                            if any(
+                                fnmatchcase(dependency, pattern)
+                                for pattern in group.get('patterns', [])
+                            )
+                        ),
+                        None,
+                    )
+                )
+            self.assertIsNotNone(matches[0])
+            self.assertEqual(len(set(matches)), 1)
 
     def test_all_uv_lockfiles_are_covered(self):
         tracked_locks = subprocess.check_output(
@@ -244,24 +399,83 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertTrue(lock_directories)
         self.assertEqual(self.configured_directories('uv'), lock_directories)
 
+    def test_vitest_runner_and_providers_share_update_groups(self):
+        npm = next(
+            update
+            for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'npm'
+        )
+        group_names = list(npm['groups'])
+        for applies_to, expected_group in (
+            ('version-updates', 'vitest-version'),
+            ('security-updates', 'vitest-security'),
+        ):
+            self.assertLess(
+                group_names.index(expected_group),
+                group_names.index('npm-dependencies'),
+            )
+            matches = []
+            for dependency in (
+                'vitest',
+                '@vitest/coverage-v8',
+                '@vitest/coverage-istanbul',
+                '@vitest/ui',
+            ):
+                matches.append(
+                    next(
+                        (
+                            name
+                            for name, group in npm['groups'].items()
+                            if group.get('applies-to', 'version-updates')
+                            == applies_to
+                            and any(
+                                fnmatchcase(dependency, pattern)
+                                for pattern in group.get('patterns', [])
+                            )
+                        ),
+                        None,
+                    )
+                )
+            self.assertEqual(matches, [expected_group] * 4)
+
+    def test_frontend_vitest_coverage_matches_locked_runner(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        manifest = json.loads((frontend / 'package.json').read_text())
+        self.assertEqual(
+            manifest['devDependencies']['vitest'],
+            manifest['devDependencies']['@vitest/coverage-v8'],
+        )
+        packages = json.loads((frontend / 'package-lock.json').read_text())[
+            'packages'
+        ]
+        runner = packages['node_modules/vitest']['version']
+        coverage = packages['node_modules/@vitest/coverage-v8']
+        self.assertEqual(coverage['version'], runner)
+        self.assertEqual(coverage['peerDependencies']['vitest'], runner)
+
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')
         self.assertIn('/', configured_directories)
         action_directories = {
             repository_directory(path)
-            for path in (REPOSITORY_ROOT /
-                         '.github/actions').rglob('action.y*ml')
+            for path in (REPOSITORY_ROOT / '.github/actions').rglob(
+                'action.y*ml'
+            )
         }
 
         self.assertTrue(action_directories)
         self.assertTrue(
             all(
                 any(
-                    matches_dependabot_directory(action_directory,
-                                                 configured_directory)
+                    matches_dependabot_directory(
+                        action_directory, configured_directory
+                    )
                     for configured_directory in configured_directories
-                    if configured_directory != '/')
-                for action_directory in action_directories))
+                    if configured_directory != '/'
+                )
+                for action_directory in action_directories
+            )
+        )
 
     def test_pre_commit_configuration_is_covered(self):
         self.assertTrue((REPOSITORY_ROOT / '.pre-commit-config.yaml').is_file())
@@ -276,22 +490,24 @@ class DependabotConfigTest(unittest.TestCase):
                 self.assertIn('      prefix: "chore(deps)"', block)
 
     def test_config_changes_run_ci_script_tests(self):
-        self.assertIn("      - '.github/dependabot.yml'",
-                      self.ci_scripts_workflow)
+        self.assertIn(
+            "      - '.github/dependabot.yml'", self.ci_scripts_workflow
+        )
         for manifest_pattern in (
-                '**/go.mod',
-                '**/package.json',
-                '**/requirements*.txt',
-                '**/setup.py',
-                '**/pyproject.toml',
-                '**/uv.lock',
-                '**/action.yml',
-                '**/action.yaml',
-                '.pre-commit-config.yaml',
+            '**/go.mod',
+            '**/package.json',
+            '**/requirements*.txt',
+            '**/setup.py',
+            '**/pyproject.toml',
+            '**/uv.lock',
+            '**/action.yml',
+            '**/action.yaml',
+            '.pre-commit-config.yaml',
         ):
             with self.subTest(manifest_pattern=manifest_pattern):
-                self.assertIn(f"      - '{manifest_pattern}'",
-                              self.ci_scripts_workflow)
+                self.assertIn(
+                    f"      - '{manifest_pattern}'", self.ci_scripts_workflow
+                )
 
 
 if __name__ == '__main__':

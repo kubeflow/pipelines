@@ -1,0 +1,354 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package executorplugin
+
+import (
+	"encoding/json"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestDriverBinaryRegistersMLflowPlugin(t *testing.T) {
+	registered := plugins.RegisteredFactories()
+
+	var found bool
+	for _, factory := range registered {
+		if factory.Name() == "mlflow" {
+			found = true
+			break
+		}
+	}
+
+	assert.True(t, found, "driver binary must register MLflow so driver plugin can run task start hooks")
+}
+
+func TestParseDriverRequestArgsRuntimeArgs(t *testing.T) {
+	args := validContainerDriverArgs()
+	args["runtime_args"] = "{\"KFP_MLFLOW_CONFIG\":\"{\\\"endpoint\\\":\\\"http://mlflow\\\",\\\"parent_run_id\\\":\\\"parent-run\\\",\\\"experiment_id\\\":\\\"exp\\\",\\\"auth_type\\\":\\\"kubernetes\\\"}\"}"
+	body := driverRequestBody(t, args)
+	req := httptest.NewRequest("POST", "/driver", strings.NewReader(body))
+
+	parsedArgs, err := parseDriverRequestArgs(req)
+
+	require.NoError(t, err)
+	require.NotNil(t, parsedArgs)
+	assert.Equal(t,
+		`{"endpoint":"http://mlflow","parent_run_id":"parent-run","experiment_id":"exp","auth_type":"kubernetes"}`,
+		parsedArgs.RuntimeArgs[commonmlflow.EnvMLflowConfig],
+	)
+}
+
+func TestParseDriverRequestArgsAllowsEmptyRequiredValues(t *testing.T) {
+	req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, validContainerDriverArgs())))
+
+	args, err := parseDriverRequestArgs(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, driverapi.ContainerDriver, args.DriverType)
+	assert.Empty(t, args.HTTPProxy)
+	assert.False(t, args.CacheDisabled)
+}
+
+func TestParseDriverRequestArgsNativeTaskIdentity(t *testing.T) {
+	requestArgs := validContainerDriverArgs()
+	requestArgs["parent_task_id"] = "963f53d7-85e0-4af1-99b8-45b28c9d1e32"
+	req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, requestArgs)))
+
+	args, err := parseDriverRequestArgs(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, "test-namespace", args.Namespace)
+	assert.Equal(t, requestArgs["parent_task_id"], args.ParentTaskID)
+}
+
+func TestParseDriverRequestArgsRequiredFields(t *testing.T) {
+	commonFields := []string{
+		"type", "pipeline_name", "run_id", "run_name", "run_display_name",
+		"namespace", "parent_task_id", "task_name", "iteration_index",
+		"ml_pipeline_server_address", "ml_pipeline_server_port",
+		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
+		"http_proxy", "https_proxy", "no_proxy",
+	}
+	for _, driverType := range []driverapi.DriverType{driverapi.RootDAGDriver, driverapi.DAGDriver, driverapi.ContainerDriver} {
+		t.Run(string(driverType), func(t *testing.T) {
+			args := validDriverArgs(driverType)
+			req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, args)))
+			_, err := parseDriverRequestArgs(req)
+			require.NoError(t, err)
+
+			required := append([]string{}, commonFields...)
+			switch driverType {
+			case driverapi.ContainerDriver:
+				required = append(required, "kubernetes_config")
+			case driverapi.RootDAGDriver:
+				required = append(required, "runtime_config")
+			}
+			for _, field := range required {
+				t.Run("missing_"+field, func(t *testing.T) {
+					args := validDriverArgs(driverType)
+					delete(args, field)
+					req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, args)))
+
+					_, err := parseDriverRequestArgs(req)
+
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), field)
+				})
+			}
+		})
+	}
+}
+
+func TestParseDriverRequestArgsRejectsUnknownDriverType(t *testing.T) {
+	args := validContainerDriverArgs()
+	args["type"] = "UNKNOWN"
+	req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, args)))
+
+	_, err := parseDriverRequestArgs(req)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown driver type")
+}
+
+func TestParseDriverRequestArgsPreservesOptionalSecurityDefaults(t *testing.T) {
+	t.Run("absent defaults remain unset", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, validContainerDriverArgs())))
+		args, err := parseDriverRequestArgs(req)
+		require.NoError(t, err)
+		assert.Nil(t, args.DefaultRunAsUser)
+		assert.Nil(t, args.DefaultRunAsGroup)
+		assert.Empty(t, args.DefaultRunAsNonRoot)
+		assert.Empty(t, args.DefaultHostUsers)
+	})
+
+	t.Run("explicit zero and false survive decoding", func(t *testing.T) {
+		requestArgs := validContainerDriverArgs()
+		requestArgs["default_run_as_user"] = 0
+		requestArgs["default_run_as_group"] = 0
+		requestArgs["default_run_as_non_root"] = "false"
+		requestArgs["default_host_users"] = "false"
+		req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, requestArgs)))
+		args, err := parseDriverRequestArgs(req)
+		require.NoError(t, err)
+		require.NotNil(t, args.DefaultRunAsUser)
+		require.NotNil(t, args.DefaultRunAsGroup)
+		assert.Zero(t, *args.DefaultRunAsUser)
+		assert.Zero(t, *args.DefaultRunAsGroup)
+		assert.Equal(t, "false", args.DefaultRunAsNonRoot)
+		assert.Equal(t, "false", args.DefaultHostUsers)
+	})
+}
+
+func TestParseDriverRequestArgsGRPCBackoff(t *testing.T) {
+	for _, configured := range []bool{false, true} {
+		name := "optional settings omitted"
+		if configured {
+			name = "explicit settings preserved"
+		}
+		t.Run(name, func(t *testing.T) {
+			requestArgs := validContainerDriverArgs()
+			want := []string{"", "", "", "", ""}
+			if configured {
+				requestArgs["ml_pipeline_grpc_backoff_base_delay"] = "2s"
+				requestArgs["ml_pipeline_grpc_backoff_multiplier"] = "1.5"
+				requestArgs["ml_pipeline_grpc_backoff_jitter"] = "0"
+				requestArgs["ml_pipeline_grpc_backoff_max_delay"] = "30s"
+				requestArgs["ml_pipeline_grpc_min_connect_timeout"] = "10s"
+				want = []string{"2s", "1.5", "0", "30s", "10s"}
+			}
+			req := httptest.NewRequest("POST", "/driver", strings.NewReader(driverRequestBody(t, requestArgs)))
+
+			args, err := parseDriverRequestArgs(req)
+
+			require.NoError(t, err)
+			assert.Equal(t, want, []string{
+				args.MlPipelineGRPCBackoffBaseDelay,
+				args.MlPipelineGRPCBackoffMultiplier,
+				args.MlPipelineGRPCBackoffJitter,
+				args.MlPipelineGRPCBackoffMaxDelay,
+				args.MlPipelineGRPCMinConnectTimeout,
+			})
+		})
+	}
+}
+
+func validContainerDriverArgs() map[string]interface{} {
+	return validDriverArgs(driverapi.ContainerDriver)
+}
+
+func validDriverArgs(driverType driverapi.DriverType) map[string]interface{} {
+	args := map[string]interface{}{
+		"type":                       driverType,
+		"pipeline_name":              "pipeline",
+		"run_id":                     "run-id",
+		"run_name":                   "run-name",
+		"run_display_name":           "run-display-name",
+		"namespace":                  "test-namespace",
+		"parent_task_id":             "parent-task-id",
+		"task_name":                  "task-name",
+		"iteration_index":            "-1",
+		"http_proxy":                 "",
+		"https_proxy":                "",
+		"no_proxy":                   "",
+		"ml_pipeline_server_address": "ml-pipeline",
+		"ml_pipeline_server_port":    "8887",
+		"log_level":                  "1",
+		"publish_logs":               "true",
+		"cache_disabled":             false,
+		"ml_pipeline_tls_enabled":    false,
+	}
+	if driverType == driverapi.RootDAGDriver {
+		args["parent_task_id"] = ""
+		args["task_name"] = ""
+	}
+	switch driverType {
+	case driverapi.ContainerDriver:
+		args["kubernetes_config"] = ""
+	case driverapi.RootDAGDriver:
+		args["runtime_config"] = ""
+	}
+	return args
+}
+
+func driverRequestBody(t *testing.T, args map[string]interface{}) string {
+	t.Helper()
+	body := map[string]interface{}{
+		"template": map[string]interface{}{
+			"plugin": map[string]interface{}{
+				"driver-plugin": map[string]interface{}{
+					"args": args,
+				},
+			},
+		},
+	}
+	bodyBytes, err := json.Marshal(body)
+	require.NoError(t, err)
+	return string(bodyBytes)
+}
+
+func TestAPIClientConfigRequestOverridesDoNotLeak(t *testing.T) {
+	environment := map[string]string{
+		apiclient.KFPAPIAddressEnvVar:               "environment-api",
+		apiclient.KFPAPIPortEnvVar:                  "9000",
+		apiclient.KFPAPIGRPCBackoffBaseDelayEnvVar:  "1s",
+		apiclient.KFPAPIGRPCBackoffMultiplierEnvVar: "1.6",
+		apiclient.KFPAPIGRPCBackoffJitterEnvVar:     "0.2",
+		apiclient.KFPAPIGRPCBackoffMaxDelayEnvVar:   "120s",
+		apiclient.KFPAPIGRPCMinConnectTimeoutEnvVar: "20s",
+	}
+	for key, value := range environment {
+		t.Setenv(key, value)
+	}
+
+	requestConfig := apiClientConfig(driverapi.DriverPluginArgs{
+		MlPipelineServerAddress:         "request-api",
+		MlPipelineServerPort:            "8887",
+		MlPipelineGRPCBackoffBaseDelay:  "2s",
+		MlPipelineGRPCBackoffMultiplier: "1.5",
+		MlPipelineGRPCBackoffJitter:     "0",
+		MlPipelineGRPCBackoffMaxDelay:   "30s",
+		MlPipelineGRPCMinConnectTimeout: "10s",
+	})
+	assert.Equal(t, &apiclient.Config{
+		Endpoint:          "request-api:8887",
+		BackoffBaseDelay:  "2s",
+		BackoffMultiplier: "1.5",
+		BackoffJitter:     "0",
+		BackoffMaxDelay:   "30s",
+		MinConnectTimeout: "10s",
+	}, requestConfig)
+
+	fallbackConfig := apiClientConfig(driverapi.DriverPluginArgs{})
+	assert.Equal(t, &apiclient.Config{
+		Endpoint:          "environment-api:9000",
+		BackoffBaseDelay:  "1s",
+		BackoffMultiplier: "1.6",
+		BackoffJitter:     "0.2",
+		BackoffMaxDelay:   "120s",
+		MinConnectTimeout: "20s",
+	}, fallbackConfig)
+	for key, value := range environment {
+		assert.Equal(t, value, os.Getenv(key), "request changed process setting %s", key)
+	}
+	assert.Equal(t, "0", requestConfig.BackoffJitter)
+}
+
+func TestExtractOutputParametersDefaults(t *testing.T) {
+	for _, driverType := range []driverapi.DriverType{driverapi.RootDAGDriver, driverapi.DAGDriver, driverapi.ContainerDriver} {
+		t.Run(string(driverType), func(t *testing.T) {
+			execution := &driver.Execution{TaskID: "5aa1b7bb-a143-43df-860c-52660b0260e0"}
+
+			outputs := extractOutputParameters(execution, driverType)
+
+			verifyOutputParameter(t, outputs, "task-id", execution.TaskID)
+			verifyOutputParameter(t, outputs, "condition", "nil")
+			verifyOutputParameter(t, outputs, "pod-spec-patch", "")
+			if driverType == driverapi.RootDAGDriver || driverType == driverapi.DAGDriver {
+				verifyOutputParameter(t, outputs, "iteration-count", "0")
+			}
+			for _, output := range outputs {
+				assert.NotEqual(t, "execution-id", output.Name)
+				if driverType == driverapi.ContainerDriver {
+					assert.NotEqual(t, "iteration-count", output.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestExtractOutputParametersPreservesExecutionValues(t *testing.T) {
+	iterationCount, cached, condition := 3, false, false
+	execution := &driver.Execution{
+		TaskID:         "task-id",
+		IterationCount: &iterationCount,
+		Cached:         &cached,
+		Condition:      &condition,
+		PodSpecPatch:   `{"containers":[{"name":"main","image":"python:3.11"}]}`,
+	}
+
+	outputs := extractOutputParameters(execution, driverapi.ContainerDriver)
+
+	verifyOutputParameter(t, outputs, "task-id", execution.TaskID)
+	verifyOutputParameter(t, outputs, "iteration-count", "3")
+	verifyOutputParameter(t, outputs, "cached-decision", "false")
+	verifyOutputParameter(t, outputs, "condition", "false")
+	verifyOutputParameter(t, outputs, "pod-spec-patch", execution.PodSpecPatch)
+}
+
+func TestExtractOutputParametersNilExecution(t *testing.T) {
+	assert.Empty(t, extractOutputParameters(nil, driverapi.RootDAGDriver))
+}
+
+func verifyOutputParameter(t *testing.T, parameters []driverapi.Parameter, key, expectedValue string) {
+	t.Helper()
+	filtered := make([]driverapi.Parameter, 0, 1)
+	for _, p := range parameters {
+		if p.Name == key {
+			filtered = append(filtered, p)
+		}
+	}
+	require.Len(t, filtered, 1)
+	require.Equal(t, expectedValue, filtered[0].Value)
+}

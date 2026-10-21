@@ -14,15 +14,14 @@
 
 from pathlib import Path
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
-SHELL_COMMAND = r'''uri="$0"
+SHELL_COMMAND = r"""uri="$0"
 output_path="$1"
 gsutil cp "$uri" artifact.tar.gz
 mkdir -p "$output_path"
 tar xvf artifact.tar.gz -C "$output_path"
-'''
+"""
 
 
 @dsl.container_component
@@ -43,4 +42,5 @@ def download_gcs_tgz(gcs_path: str, folder: dsl.Output[dsl.Artifact]):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        download_gcs_tgz, package_path=str(Path(__file__).with_suffix('.yaml')))
+        download_gcs_tgz, package_path=str(Path(__file__).with_suffix('.yaml'))
+    )

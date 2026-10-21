@@ -19,6 +19,11 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}"
 : "${GITHUB_RUN_ID:?GITHUB_RUN_ID must be set}"
 
+if ! command -v gh >/dev/null 2>&1; then
+  echo "GitHub CLI is required; run setup-github-cli.sh before waiting for image artifacts." >&2
+  exit 2
+fi
+
 # Many matrix jobs can reach this barrier together. Poll slowly enough to keep
 # their shared GITHUB_TOKEN comfortably below the repository API rate limit.
 # Forty attempts at the default interval form a roughly 20-minute wait window.

@@ -16,9 +16,7 @@
 import abc
 from typing import List
 
-from kfp.dsl import pipeline_context
-from kfp.dsl import pipeline_task
-from kfp.dsl import structures
+from kfp.dsl import pipeline_context, pipeline_task, structures
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -47,8 +45,10 @@ class BaseComponent(abc.ABC):
         # do not count as user inputs. Instead, they are reserved to for the
         # (backend) system to pass a value.
         self._component_inputs = {
-            input_name for input_name, input_spec in (
-                self.component_spec.inputs or {}).items()
+            input_name
+            for input_name, input_spec in (
+                self.component_spec.inputs or {}
+            ).items()
             if not type_utils.is_task_final_status_type(input_spec.type)
         }
 
@@ -57,8 +57,9 @@ class BaseComponent(abc.ABC):
         PythonComponent and ContainerComponent subclasses to temporarily block
         outputting lists of artifacts from a component."""
         # TODO: remove when output lists of artifacts from primitive components is supported
-        for output_name, output_spec in (self.component_spec.outputs or
-                                         {}).items():
+        for output_name, output_spec in (
+            self.component_spec.outputs or {}
+        ).items():
             if output_spec.is_artifact_list:
                 raise ValueError(
                     f'Output lists of artifacts are only supported for pipelines. Got output list of artifacts for output parameter {output_name!r} of component {self.name!r}.'
@@ -76,12 +77,14 @@ class BaseComponent(abc.ABC):
             raise TypeError(
                 'Components must be instantiated using keyword arguments. Positional '
                 f'parameters are not allowed (found {len(args)} such parameters for '
-                f'component "{self.name}").')
+                f'component "{self.name}").'
+            )
 
         for k, v in kwargs.items():
             if k not in self._component_inputs:
                 raise TypeError(
-                    f'{self.name}() got an unexpected keyword argument "{k}".')
+                    f'{self.name}() got an unexpected keyword argument "{k}".'
+                )
             task_inputs[k] = v
 
         # Skip optional inputs and arguments typed as PipelineTaskFinalStatus.
@@ -89,22 +92,24 @@ class BaseComponent(abc.ABC):
             arg for arg in self.required_inputs if arg not in kwargs
         ]
         if missing_arguments:
-            argument_or_arguments = 'argument' if len(
-                missing_arguments) == 1 else 'arguments'
+            argument_or_arguments = (
+                'argument' if len(missing_arguments) == 1 else 'arguments'
+            )
             arguments = ', '.join(
-                arg_name.replace('-', '_') for arg_name in missing_arguments)
+                arg_name.replace('-', '_') for arg_name in missing_arguments
+            )
 
             raise TypeError(
                 f'{self.name}() missing {len(missing_arguments)} required '
-                f'{argument_or_arguments}: {arguments}.')
+                f'{argument_or_arguments}: {arguments}.'
+            )
 
         return pipeline_task.PipelineTask(
             component_spec=self.component_spec,
             args=task_inputs,
             execute_locally=pipeline_context.Pipeline.get_default_pipeline()
             is None,
-            execution_caching_default=pipeline_context.Pipeline
-            .get_execution_caching_default(),
+            execution_caching_default=pipeline_context.Pipeline.get_execution_caching_default(),
         )
 
     @property
@@ -130,8 +135,10 @@ class BaseComponent(abc.ABC):
     @property
     def required_inputs(self) -> List[str]:
         return [
-            input_name for input_name, input_spec in (
-                self.component_spec.inputs or {}).items()
+            input_name
+            for input_name, input_spec in (
+                self.component_spec.inputs or {}
+            ).items()
             if not input_spec.optional
         ]
 
@@ -148,7 +155,10 @@ class BlockPipelineTaskRegistration:
     # TODO: this handles the special case of a compiled component (when compiled inside a pipeline), which should not have any concept of a default pipeline. Perhaps there is a way to unify component/pipeline compilation concepts to remove this workaround?
 
     def __enter__(self):
-        self.task_handler, pipeline_task.PipelineTask._register_task_handler = pipeline_task.PipelineTask._register_task_handler, pipeline_task._register_task_handler
+        self.task_handler, pipeline_task.PipelineTask._register_task_handler = (
+            pipeline_task.PipelineTask._register_task_handler,
+            pipeline_task._register_task_handler,
+        )
 
     def __exit__(self, *args):
         pipeline_task.PipelineTask._register_task_handler = self.task_handler

@@ -19,12 +19,11 @@ whose body is the integer. A downstream task consumes the collected list
 of artifacts, reads each, and returns the concatenation so the test has
 a deterministic output to assert on.
 """
+
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Artifact, Output
 
 
 @dsl.component

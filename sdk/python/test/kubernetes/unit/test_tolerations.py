@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestTolerations:
-
     def test_add_one(self):
 
         @dsl.pipeline
@@ -38,12 +36,14 @@ class TestTolerations:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'key': 'key1',
-                                    'operator': 'Equal',
-                                    'value': 'value1',
-                                    'effect': 'NoSchedule',
-                                }]
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoSchedule',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -71,13 +71,15 @@ class TestTolerations:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'key': 'key1',
-                                    'operator': 'Equal',
-                                    'value': 'value1',
-                                    'effect': 'NoExecute',
-                                    'tolerationSeconds': '10',
-                                }]
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '10',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -151,21 +153,25 @@ class TestTolerations:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'key': 'key1',
-                                    'operator': 'Equal',
-                                    'value': 'value1',
-                                },],
-                                'secretAsVolume': [{
-                                    'secretName': 'my-secret',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'my-secret'
-                                        }
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
                                     },
-                                    'mountPath': '/mnt/my_vol',
-                                    'optional': False
-                                },],
+                                ],
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'my-secret',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'my-secret'
+                                            }
+                                        },
+                                        'mountPath': '/mnt/my_vol',
+                                        'optional': False,
+                                    },
+                                ],
                             },
                         }
                     }
@@ -175,7 +181,6 @@ class TestTolerations:
 
 
 class TestTolerationsJSON:
-
     def test_component_pipeline_input_one(self):
         # checks that a pipeline input for
         # tasks is supported
@@ -193,12 +198,13 @@ class TestTolerationsJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'tolerationJson': {
-                                        'componentInputParameter':
-                                            'toleration_input'
-                                    }
-                                },]
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'componentInputParameter': 'toleration_input'
+                                        }
+                                    },
+                                ]
                             }
                         }
                     }
@@ -232,26 +238,28 @@ class TestTolerationsJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'tolerationJson': {
-                                        'componentInputParameter':
-                                            'toleration_input_1'
-                                    }
-                                },]
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'componentInputParameter': 'toleration_input_1'
+                                        }
+                                    },
+                                ]
                             },
                             'exec-comp-2': {
-                                'tolerations': [{
-                                    'tolerationJson': {
-                                        'componentInputParameter':
-                                            'toleration_input_1'
-                                    }
-                                }, {
-                                    'tolerationJson': {
-                                        'componentInputParameter':
-                                            'toleration_input_2'
-                                    }
-                                }]
-                            }
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'componentInputParameter': 'toleration_input_1'
+                                        }
+                                    },
+                                    {
+                                        'tolerationJson': {
+                                            'componentInputParameter': 'toleration_input_2'
+                                        }
+                                    },
+                                ]
+                            },
                         }
                     }
                 }
@@ -271,24 +279,27 @@ class TestTolerationsJSON:
             kubernetes.add_toleration_json(
                 t1,
                 toleration_json={
-                    "key": "key3",
-                    "operator": "Equal",
-                    "value": "value3",
-                    "effect": "NoSchedule"
+                    'key': 'key3',
+                    'operator': 'Equal',
+                    'value': 'value3',
+                    'effect': 'NoSchedule',
                 },
             )
             kubernetes.add_toleration_json(
                 t1,
-                toleration_json=[{
-                    "key": "key1",
-                    "operator": "Equal",
-                    "value": "value1",
-                    "effect": "NoSchedule"
-                }, {
-                    "key": "key2",
-                    "operator": "Exists",
-                    "effect": "NoExecute"
-                }],
+                toleration_json=[
+                    {
+                        'key': 'key1',
+                        'operator': 'Equal',
+                        'value': 'value1',
+                        'effect': 'NoSchedule',
+                    },
+                    {
+                        'key': 'key2',
+                        'operator': 'Exists',
+                        'effect': 'NoExecute',
+                    },
+                ],
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -300,8 +311,7 @@ class TestTolerationsJSON:
                                 'tolerations': [
                                     {
                                         'tolerationJson': {
-                                            'componentInputParameter':
-                                                'toleration_input'
+                                            'componentInputParameter': 'toleration_input'
                                         }
                                     },
                                     {
@@ -347,14 +357,16 @@ class TestTolerationsJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'tolerationJson': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
                                         }
-                                    }
-                                },]
+                                    },
+                                ]
                             }
                         }
                     }
@@ -392,32 +404,37 @@ class TestTolerationsJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'tolerationJson': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
                                         }
-                                    }
-                                },]
+                                    },
+                                ]
                             },
                             'exec-comp-2': {
-                                'tolerations': [{
-                                    'tolerationJson': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-2'
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-2',
+                                            }
                                         }
-                                    }
-                                }, {
-                                    'tolerationJson': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-3'
+                                    },
+                                    {
+                                        'tolerationJson': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-3',
+                                            }
                                         }
-                                    }
-                                }]
-                            }
+                                    },
+                                ]
+                            },
                         }
                     }
                 }

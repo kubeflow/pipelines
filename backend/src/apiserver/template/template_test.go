@@ -830,7 +830,7 @@ func TestNewGenericScheduledWorkflow(t *testing.T) {
 	assert.Equal(t, int64(3), *swf.Spec.MaxConcurrency)
 	assert.Equal(t, "exp-1", swf.Spec.ExperimentId)
 	assert.Equal(t, "pipe-1", swf.Spec.PipelineId)
-	assert.Equal(t, "My Pipeline", swf.Spec.PipelineName)
+	assert.Empty(t, swf.Spec.PipelineName, "the job's PipelineName holds a version name or resource path")
 	assert.NotNil(t, swf.Spec.PeriodicSchedule)
 	assert.Equal(t, int64(120), swf.Spec.PeriodicSchedule.IntervalSecond)
 }

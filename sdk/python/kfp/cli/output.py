@@ -19,14 +19,15 @@ import json
 from typing import Any, Dict
 
 import click
-import kfp.server_api
 import tabulate
+
+import kfp.server_api
 
 KFP_TABLE_FORMAT = 'custom-simple'
 
-tabulate._table_formats.update({  # type: ignore
-    KFP_TABLE_FORMAT:
-        tabulate.TableFormat(
+tabulate._table_formats.update(
+    {  # type: ignore
+        KFP_TABLE_FORMAT: tabulate.TableFormat(
             lineabove=None,
             linebelowheader=None,
             linebetweenrows=None,
@@ -34,13 +35,16 @@ tabulate._table_formats.update({  # type: ignore
             headerrow=tabulate.DataRow('', '  ', ''),
             datarow=tabulate.DataRow('', '  ', ''),
             padding=0,
-            with_header_hide=['lineabove', 'linebelow'])
-})
+            with_header_hide=['lineabove', 'linebelow'],
+        )
+    }
+)
 
 
 @enum.unique
 class OutputFormat(enum.Enum):
     """Enumerated class with the allowed output format constants."""
+
     table = 'table'
     json = 'json'
 
@@ -66,14 +70,15 @@ class ExperimentData:
     storage_state: str
 
 
-def transform_experiment(
-        exp: kfp.server_api.V2beta1Experiment) -> Dict[str, Any]:
+def transform_experiment(exp: kfp.server_api.V2Experiment) -> Dict[str, Any]:
     return dataclasses.asdict(
         ExperimentData(
             id=exp.experiment_id,
             name=exp.display_name,
             created_at=exp.created_at.isoformat(),
-            storage_state=exp.storage_state))
+            storage_state=exp.storage_state,
+        )
+    )
 
 
 @dataclasses.dataclass
@@ -83,14 +88,14 @@ class PipelineData:
     created_at: str
 
 
-def transform_pipeline(
-        pipeline: kfp.server_api.V2beta1Pipeline) -> Dict[str, Any]:
+def transform_pipeline(pipeline: kfp.server_api.V2Pipeline) -> Dict[str, Any]:
     return dataclasses.asdict(
         PipelineData(
             id=pipeline.pipeline_id,
             name=pipeline.display_name,
             created_at=pipeline.created_at.isoformat(),
-        ))
+        )
+    )
 
 
 @dataclasses.dataclass
@@ -102,7 +107,7 @@ class PipelineVersionData:
 
 
 def transform_pipeline_version(
-        pipeline_version: kfp.server_api.V2beta1PipelineVersion
+    pipeline_version: kfp.server_api.V2PipelineVersion,
 ) -> Dict[str, Any]:
     return dataclasses.asdict(
         PipelineVersionData(
@@ -110,7 +115,8 @@ def transform_pipeline_version(
             name=pipeline_version.display_name,
             created_at=pipeline_version.created_at.isoformat(),
             parent_id=pipeline_version.pipeline_id,
-        ))
+        )
+    )
 
 
 @dataclasses.dataclass
@@ -122,14 +128,18 @@ class RunData:
     storage_state: str
 
 
-def transform_run(run: kfp.server_api.V2beta1Run) -> Dict[str, Any]:
-    return dataclasses.asdict((RunData(
-        id=run.run_id,
-        name=run.display_name,
-        created_at=run.created_at.isoformat(),
-        state=run.state,
-        storage_state=run.storage_state,
-    )))
+def transform_run(run: kfp.server_api.V2Run) -> Dict[str, Any]:
+    return dataclasses.asdict(
+        (
+            RunData(
+                id=run.run_id,
+                name=run.display_name,
+                created_at=run.created_at.isoformat(),
+                state=run.state,
+                storage_state=run.storage_state,
+            )
+        )
+    )
 
 
 @dataclasses.dataclass
@@ -142,19 +152,23 @@ class RecurringRunData:
 
 
 def transform_recurring_run(
-        recurring_run: kfp.server_api.V2beta1RecurringRun) -> Dict[str, Any]:
+    recurring_run: kfp.server_api.V2RecurringRun,
+) -> Dict[str, Any]:
     return dataclasses.asdict(
         RecurringRunData(
             id=recurring_run.recurring_run_id,
             name=recurring_run.display_name,
             created_at=recurring_run.created_at.isoformat(),
             experiment_id=recurring_run.experiment_id,
-            status=recurring_run.status))
+            status=recurring_run.status,
+        )
+    )
 
 
 @enum.unique
 class ModelType(enum.Enum):
     """Enumerated class with the allowed output format constants."""
+
     EXPERIMENT = 'EXPERIMENT'
     PIPELINE = 'PIPELINE'
     PIPELINE_VERSION = 'PIPELINE_VERSION'
@@ -188,8 +202,9 @@ class DatetimeEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def print_output(resources: list, model_type: ModelType,
-                 output_format: str) -> None:
+def print_output(
+    resources: list, model_type: ModelType, output_format: str
+) -> None:
     """Prints output in tabular or JSON format, using click.echo.
 
     Args:
@@ -208,25 +223,30 @@ def print_output(resources: list, model_type: ModelType,
     if output_format == OutputFormat.table.name:
         transformer = transformer_map[model_type]
         output_headers = dataclass_map[  # type: ignore
-            model_type].__dataclass_fields__.keys()
+            model_type
+        ].__dataclass_fields__.keys()
         resources = [transformer(r) for r in resources]
 
         data = [list(resource.values()) for resource in resources]
         headers = [snake_to_header(header) for header in output_headers]
         click.echo(
-            tabulate.tabulate(data, headers=headers, tablefmt='custom-simple'))
+            tabulate.tabulate(data, headers=headers, tablefmt='custom-simple')
+        )
 
     elif output_format == OutputFormat.json.name:
-        data = resources[0].to_dict() if single_resource else [
-            resources.to_dict() for resources in resources
-        ]
+        data = (
+            resources[0].to_dict()
+            if single_resource
+            else [resources.to_dict() for resources in resources]
+        )
         click.echo(json.dumps(data, indent=2, cls=DatetimeEncoder), nl=False)
     else:
         raise NotImplementedError(f'Unknown output format: {output_format}.')
 
 
-def print_deleted_text(resource_type: str, resource_id: str,
-                       output_format: str) -> None:
+def print_deleted_text(
+    resource_type: str, resource_id: str, output_format: str
+) -> None:
     """Prints a standardized output for deletion actions, using click.echo.
 
     Args:

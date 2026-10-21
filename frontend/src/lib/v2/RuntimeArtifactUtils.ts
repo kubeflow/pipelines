@@ -17,9 +17,9 @@ import {
   InputOutputsIOArtifact,
   InputOutputsIOParameter,
   PipelineTaskTaskState,
-  V2beta1Artifact,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2Artifact,
+  V2PipelineTask,
+} from 'src/apisv2/run';
 
 const ARTIFACT_SCHEMA_TITLES: Partial<Record<ArtifactArtifactType, string>> = {
   [ArtifactArtifactType.Artifact]: 'system.Artifact',
@@ -33,7 +33,7 @@ const ARTIFACT_SCHEMA_TITLES: Partial<Record<ArtifactArtifactType, string>> = {
 };
 
 export interface RuntimeArtifactEntry {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   artifactKey: string;
   group: InputOutputsIOArtifact;
   index: number;
@@ -61,10 +61,10 @@ export function flattenArtifactGroups(
 }
 
 export function getArtifactDisplayName(
-  artifact: V2beta1Artifact,
+  artifact: V2Artifact,
   artifactKey?: string,
   index?: number,
-  siblingArtifacts?: V2beta1Artifact[],
+  siblingArtifacts?: V2Artifact[],
 ): string {
   const baseName = artifact.name || artifactKey || artifact.artifact_id || 'Artifact';
   const needsSuffix =
@@ -80,18 +80,18 @@ export function getArtifactDisplayName(
   return needsSuffix ? `${baseName} (${index + 1})` : baseName;
 }
 
-export function getArtifactIdentity(artifact: V2beta1Artifact): string | undefined {
+export function getArtifactIdentity(artifact: V2Artifact): string | undefined {
   return artifact.artifact_id || artifact.uri || artifact.name;
 }
 
-export function getArtifactTypeName(artifact: V2beta1Artifact): string {
+export function getArtifactTypeName(artifact: V2Artifact): string {
   return artifact.type ? ARTIFACT_SCHEMA_TITLES[artifact.type] || artifact.type : '-';
 }
 
 export function getOutputArtifactByName(
-  task: V2beta1PipelineTask,
+  task: V2PipelineTask,
   name: string,
-): V2beta1Artifact | undefined {
+): V2Artifact | undefined {
   const matches = flattenArtifactGroups(task.outputs?.artifacts).filter(
     ({ artifact, artifactKey }) => artifactKey === name || artifact.name === name,
   );
@@ -101,7 +101,7 @@ export function getOutputArtifactByName(
 
   // The launcher qualifies each attempt as executor-logs-0, executor-logs-1, and so on. Artifact
   // hydration sorts by UUID, so use that explicit attempt identity instead of response position.
-  return matches.reduce<V2beta1Artifact | undefined>((latest, { artifact }) => {
+  return matches.reduce<V2Artifact | undefined>((latest, { artifact }) => {
     if (!latest) {
       return artifact;
     }
@@ -122,7 +122,7 @@ export function getOutputArtifactByName(
   }, undefined);
 }
 
-function getExecutorLogsRetryIndex(artifact: V2beta1Artifact): number | undefined {
+function getExecutorLogsRetryIndex(artifact: V2Artifact): number | undefined {
   const match = artifact.uri?.match(RETRY_INDEX_SUFFIX);
   return match ? Number(match[1]) : undefined;
 }
@@ -151,7 +151,7 @@ export interface ScalarMetricEntry {
   value: string;
 }
 
-export function getScalarMetricEntries(artifact: V2beta1Artifact): ScalarMetricEntry[] {
+export function getScalarMetricEntries(artifact: V2Artifact): ScalarMetricEntry[] {
   const values = new Map<string, number>();
   Object.entries(artifact.metadata || {}).forEach(([name, value]) => {
     if (typeof value === 'number') {
@@ -186,35 +186,32 @@ export function getScalarMetricEntries(artifact: V2beta1Artifact): ScalarMetricE
   ];
 }
 
-export function isScalarMetricArtifact(artifact: V2beta1Artifact): boolean {
+export function isScalarMetricArtifact(artifact: V2Artifact): boolean {
   return artifact.type === ArtifactArtifactType.Metric;
 }
 
-export function isClassificationMetricArtifact(artifact: V2beta1Artifact): boolean {
+export function isClassificationMetricArtifact(artifact: V2Artifact): boolean {
   return (
     artifact.type === ArtifactArtifactType.ClassificationMetric ||
     artifact.type === ArtifactArtifactType.SlicedClassificationMetric
   );
 }
 
-export function isHtmlArtifact(artifact: V2beta1Artifact): boolean {
+export function isHtmlArtifact(artifact: V2Artifact): boolean {
   return artifact.type === ArtifactArtifactType.HTML;
 }
 
-export function isMarkdownArtifact(artifact: V2beta1Artifact): boolean {
+export function isMarkdownArtifact(artifact: V2Artifact): boolean {
   return artifact.type === ArtifactArtifactType.Markdown;
 }
 
-export function isLegacyUiMetadataArtifact(
-  artifact: V2beta1Artifact,
-  artifactKey?: string,
-): boolean {
+export function isLegacyUiMetadataArtifact(artifact: V2Artifact, artifactKey?: string): boolean {
   return [artifact.name, artifactKey].some(
     (value) => value?.replace(/[\W_]/g, '-').toLowerCase() === LEGACY_UI_METADATA_ARTIFACT_KEY,
   );
 }
 
-export function isVisualizableArtifact(artifact: V2beta1Artifact): boolean {
+export function isVisualizableArtifact(artifact: V2Artifact): boolean {
   return (
     isScalarMetricArtifact(artifact) ||
     isClassificationMetricArtifact(artifact) ||

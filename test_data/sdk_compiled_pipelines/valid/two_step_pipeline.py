@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -25,8 +24,11 @@ def write_to_gcs(text: str, output_gcs_path: dsl.Output[dsl.Artifact]):
     return dsl.ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh', '-c', 'set -e -x\necho "$0" | gsutil cp - "$1"\n', text,
-            output_gcs_path.uri
+            'sh',
+            '-c',
+            'set -e -x\necho "$0" | gsutil cp - "$1"\n',
+            text,
+            output_gcs_path.uri,
         ],
     )
 
@@ -42,7 +44,10 @@ def read_from_gcs(input_gcs_path: dsl.Input[dsl.Artifact]):
     return dsl.ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh', '-c', 'set -e -x\ngsutil cat "$0"\n', input_gcs_path.uri
+            'sh',
+            '-c',
+            'set -e -x\ngsutil cat "$0"\n',
+            input_gcs_path.uri,
         ],
     )
 
@@ -54,7 +59,8 @@ component_op_2 = read_from_gcs
 def my_pipeline(text: str = 'Hello world!'):
     component_1 = component_op_1(text=text).set_display_name('Producer')
     component_2 = component_op_2(
-        input_gcs_path=component_1.outputs['output_gcs_path'])
+        input_gcs_path=component_1.outputs['output_gcs_path']
+    )
     component_2.set_display_name('Consumer')
 
 
@@ -62,4 +68,5 @@ if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=my_pipeline,
         pipeline_parameters={'text': 'Hello KFP!'},
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

@@ -14,29 +14,36 @@
 
 import unittest
 
-from kfp.dsl import container_component_artifact_channel
-from kfp.dsl import placeholders
+from kfp.dsl import container_component_artifact_channel, placeholders
 
 
 class TestContainerComponentArtifactChannel(unittest.TestCase):
-
     def test_correct_placeholder_and_attribute_error(self):
         in_channel = container_component_artifact_channel.ContainerComponentArtifactChannel(
-            'input', 'my_dataset')
+            'input', 'my_dataset'
+        )
         out_channel = container_component_artifact_channel.ContainerComponentArtifactChannel(
-            'output', 'my_result')
+            'output', 'my_result'
+        )
         self.assertEqual(
             in_channel.uri._to_string(),
-            placeholders.InputUriPlaceholder('my_dataset')._to_string())
+            placeholders.InputUriPlaceholder('my_dataset')._to_string(),
+        )
         self.assertEqual(
             out_channel.path._to_string(),
-            placeholders.OutputPathPlaceholder('my_result')._to_string())
+            placeholders.OutputPathPlaceholder('my_result')._to_string(),
+        )
         self.assertEqual(
             out_channel.metadata._to_string(),
-            placeholders.OutputMetadataPlaceholder('my_result')._to_string())
-        self.assertRaisesRegex(AttributeError,
-                               r'Cannot access artifact attribute "name"',
-                               lambda: in_channel.name)
-        self.assertRaisesRegex(AttributeError,
-                               r'Cannot access artifact attribute "channel"',
-                               lambda: out_channel.channel)
+            placeholders.OutputMetadataPlaceholder('my_result')._to_string(),
+        )
+        self.assertRaisesRegex(
+            AttributeError,
+            r'Cannot access artifact attribute "name"',
+            lambda: in_channel.name,
+        )
+        self.assertRaisesRegex(
+            AttributeError,
+            r'Cannot access artifact attribute "channel"',
+            lambda: out_channel.channel,
+        )

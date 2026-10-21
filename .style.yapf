@@ -1,5 +1,0 @@
-[style]
-based_on_style = yapf
-indent_width = 4
-split_before_named_assigns = true
-column_limit = 80

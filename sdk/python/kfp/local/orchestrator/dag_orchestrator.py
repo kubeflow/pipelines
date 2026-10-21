@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for locally executing a DAG within a pipeline."""
+
 from typing import Any, Dict, List, Tuple
 
-from kfp.local import config
-from kfp.local import graph_utils
-from kfp.local import io
-from kfp.local import status
+from kfp.local import config, graph_utils, io, status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 Outputs = Dict[str, Any]
@@ -26,8 +24,9 @@ Outputs = Dict[str, Any]
 def run_dag(
     pipeline_resource_name: str,
     dag_component_spec: pipeline_spec_pb2.ComponentSpec,
-    executors: Dict[str,
-                    pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+    executors: Dict[
+        str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec
+    ],
     components: Dict[str, pipeline_spec_pb2.ComponentSpec],
     dag_arguments: Dict[str, Any],
     pipeline_root: str,
@@ -58,9 +57,11 @@ def run_dag(
     from . import task_executor
     from .orchestrator_utils import OrchestratorUtils
 
-    dag_arguments_with_defaults = OrchestratorUtils.join_user_inputs_and_defaults(
-        dag_arguments=dag_arguments,
-        dag_inputs_spec=dag_component_spec.input_definitions,
+    dag_arguments_with_defaults = (
+        OrchestratorUtils.join_user_inputs_and_defaults(
+            dag_arguments=dag_arguments,
+            dag_inputs_spec=dag_component_spec.input_definitions,
+        )
     )
 
     # prepare IOStore for DAG, chained to the enclosing scope (if any) so

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1Artifact } from 'src/apisv2beta1/run';
+import { V2Artifact } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { parseStoragePath, StorageService } from 'src/lib/StoragePath';
 
@@ -114,10 +114,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   return { path, artifactUriQuery: query };
 }
 
-export async function readArtifactFile(
-  artifact: V2beta1Artifact,
-  namespace?: string,
-): Promise<string> {
+export async function readArtifactFile(artifact: V2Artifact, namespace?: string): Promise<string> {
   if (!artifact.uri) {
     throw new Error('Artifact has no URI. Verify the artifact output location.');
   }

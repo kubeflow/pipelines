@@ -31,7 +31,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -109,10 +109,10 @@ var (
 	})
 
 	// Map API enum values to Kubernetes DeletionPropagation values
-	propagationPolicyMap = map[apiv2beta1.DeletePropagationPolicy]v1.DeletionPropagation{
-		apiv2beta1.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
-		apiv2beta1.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
-		apiv2beta1.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
+	propagationPolicyMap = map[apiv2.DeletePropagationPolicy]v1.DeletionPropagation{
+		apiv2.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
+		apiv2.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
+		apiv2.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
 	}
 )
 
@@ -406,6 +406,11 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 				types.MergePatchType,
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
 			if err != nil {
+				if util.IsNotFound(err) {
+					// A missing ScheduledWorkflow cannot trigger runs, so it is already disabled.
+					glog.Infof("Archiving experiment '%v', but skipped disabling ScheduledWorkflow '%v' of recurring run '%v' in namespace '%v' because it was not found", experimentId, job.K8SName, job.UUID, k8sNamespace)
+					continue
+				}
 				return util.NewInternalServerError(err,
 					"Failed to disable job %v while archiving experiment %v", job.UUID, experimentId)
 			}
@@ -1009,6 +1014,12 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
+		// The names are informational, so a failed lookup keeps the current
+		// names instead of blocking reconciliation.
+		namesErr := r.setScheduledWorkflowPipelineNames(newScheduledWorkflow)
+		if namesErr != nil {
+			glog.Warningf("Keeping the pipeline names of ScheduledWorkflow %v/%v: %v", jobs[i].Namespace, jobs[i].K8SName, namesErr)
+		}
 
 		for {
 			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
@@ -1017,6 +1028,10 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 					break
 				}
 				return failedToReconcileSwfCrsError(err)
+			}
+			if namesErr != nil {
+				newScheduledWorkflow.Spec.PipelineName = currentScheduledWorkflow.Spec.PipelineName
+				newScheduledWorkflow.Spec.PipelineVersionName = currentScheduledWorkflow.Spec.PipelineVersionName
 			}
 
 			if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
@@ -1651,9 +1666,9 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 
 func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
 	switch task.State {
-	case model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
-		model.TaskStatus(apiv2beta1.PipelineTask_CACHED),
-		model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED):
+	case model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		model.TaskStatus(apiv2.PipelineTask_CACHED),
+		model.TaskStatus(apiv2.PipelineTask_SKIPPED):
 		return true
 	default:
 		return false
@@ -1968,8 +1983,38 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
+	// The names are informational, so a failed lookup must not block creation.
+	if err := r.setScheduledWorkflowPipelineNames(scheduledWorkflow); err != nil {
+		glog.Warningf("Creating recurring run %q in namespace %q without pipeline names: %v", job.DisplayName, k8sNamespace, err)
+	}
 
 	return scheduledWorkflow, nil
+}
+
+// setScheduledWorkflowPipelineNames records the names of the pipeline and
+// pipeline version the ScheduledWorkflow references by ID. Names of deleted
+// pipelines or versions are left empty.
+func (r *ResourceManager) setScheduledWorkflowPipelineNames(scheduledWorkflow *scheduledworkflow.ScheduledWorkflow) error {
+	spec := &scheduledWorkflow.Spec
+	if spec.PipelineId != "" {
+		pipeline, err := r.GetPipeline(spec.PipelineId)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return util.Wrap(err, "Failed to read the pipeline name")
+		}
+		if pipeline != nil {
+			spec.PipelineName = pipeline.Name
+		}
+	}
+	if spec.PipelineVersionId != "" {
+		pipelineVersion, err := r.GetPipelineVersion(spec.PipelineVersionId)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return util.Wrap(err, "Failed to read the pipeline version name")
+		}
+		if pipelineVersion != nil {
+			spec.PipelineVersionName = pipelineVersion.Name
+		}
+	}
+	return nil
 }
 
 // Enables or disables a recurring run with given id.
@@ -2014,7 +2059,11 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enable))),
 	)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
+		if enable || !util.IsNotFound(err) {
+			return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
+		}
+		// A missing ScheduledWorkflow cannot trigger runs, so it is already disabled.
+		glog.Infof("Disabling recurring run '%v', but skipped patching ScheduledWorkflow '%v' in namespace '%v' because it was not found", jobId, job.K8SName, k8sNamespace)
 	}
 
 	err = r.jobStore.ChangeJobMode(jobId, enable)
@@ -2025,7 +2074,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 }
 
 // DeleteJob deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2beta1.DeletePropagationPolicy) error {
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2.DeletePropagationPolicy) error {
 	job, err := r.GetJob(jobID)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)
@@ -2486,6 +2535,15 @@ func (r *ResourceManager) reportWorkflowResource(
 	}
 
 	if updateError == nil && !createdFromRecurringReport {
+		// Argo can report a newly created Workflow before assigning its phase.
+		// Preserve known active state while recording its runtime manifest. Do
+		// not relax the storage fences for canceling or terminal runs.
+		if state == model.RuntimeStateUnspecified {
+			switch expectedState.ToV2() {
+			case model.RuntimeStatePending, model.RuntimeStateRunning, model.RuntimeStatePaused:
+				state = expectedState.ToV2()
+			}
+		}
 		run.K8SName = execSpec.ExecutionName()
 		run.State = state
 		run.Conditions = string(state.ToExecutionPhase())
@@ -3427,38 +3485,71 @@ func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, f
 }
 
 // Creates the default experiment entry.
-func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, error) {
-	// First check that we don't already have a default experiment ID in the DB.
-	defaultExperimentId, err := r.GetDefaultExperimentId()
-	if err != nil {
-		return "", util.Wrap(err, "Failed to check if default experiment exists")
-	}
-	// If default experiment ID is already present, don't fail, simply return.
-	if defaultExperimentId != "" {
-		glog.Infof("Default experiment already exists! ID: %v", defaultExperimentId)
-		return defaultExperimentId, nil
+func (r *ResourceManager) CreateDefaultExperiment(ctx context.Context, namespace string) (string, error) {
+	// default_experiments holds a single global row, so it cannot record a
+	// default per namespace. In multi-user mode the namespace's default is
+	// resolved by name below instead; consulting the global id here would
+	// return another namespace's experiment.
+	if !common.IsMultiUserMode() {
+		// First check that we don't already have a default experiment ID in the DB.
+		defaultExperimentID, err := r.GetDefaultExperimentId()
+		if err != nil {
+			return "", util.Wrap(err, "Failed to check if default experiment exists")
+		}
+		// If default experiment ID is already present, don't fail, simply return.
+		if defaultExperimentID != "" {
+			glog.Infof("Default experiment already exists! ID: %v", defaultExperimentID)
+			return defaultExperimentID, nil
+		}
 	}
 
-	// Check if an experiment named Default already exists
+	// Check if an experiment named Default already exists. Only a NotFound means it is absent;
+	// any other error must not be mistaken for absence and trigger a create.
 	defaultExperiment, err := r.experimentStore.GetExperimentByNameNamespace("Default", namespace)
-	if err != nil || defaultExperiment == nil {
-		// Create the default experiment
-		defaultExperiment = &model.Experiment{
+	if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+		return "", util.Wrapf(err, "Failed to check for an existing default experiment in namespace %v", namespace)
+	}
+	if defaultExperiment == nil {
+		// Creating the default is an experiment write, so it needs experiment
+		// create permission. Reusing one that already exists does not, which
+		// keeps callers that may only create runs working once it is present.
+		if err := r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Group:     common.RbacPipelinesGroup,
+			Version:   common.RbacPipelinesVersion,
+			Resource:  common.RbacResourceTypeExperiments,
+			// The explicit endpoint names the experiment it creates, so RBAC
+			// grants narrowed to resourceNames ["Default"] must match here too.
+			Name: "Default",
+		}); err != nil {
+			return "", util.Wrapf(err, "Failed to create the default experiment in namespace %v", namespace)
+		}
+		defaultExperiment, err = r.CreateExperiment(&model.Experiment{
 			Name:         "Default",
 			Description:  "All runs created without specifying an experiment will be grouped here.",
 			Namespace:    namespace,
 			StorageState: model.StorageStateAvailable,
-		}
-		defaultExperiment, err = r.CreateExperiment(defaultExperiment)
+		})
 		if err != nil {
-			return "", util.Wrap(err, "Failed to create the default experiment")
+			// Lookup and create are not atomic, so concurrent first runs in a namespace can both
+			// miss. The unique index on (Name, Namespace) rejects the loser; adopt the winner
+			// rather than failing a valid request.
+			if !util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
+				return "", util.Wrap(err, "Failed to create the default experiment")
+			}
+			defaultExperiment, err = r.experimentStore.GetExperimentByNameNamespace("Default", namespace)
+			if err != nil {
+				return "", util.Wrapf(err, "Failed to fetch the default experiment created concurrently in namespace %v", namespace)
+			}
 		}
 	}
 
-	// Set default experiment ID in the DB
-	err = r.SetDefaultExperimentId(defaultExperiment.UUID)
-	if err != nil {
-		return "", util.Wrap(err, "Failed to set default experiment ID")
+	// Only single-user mode records the global default id; see above.
+	if !common.IsMultiUserMode() {
+		if err := r.SetDefaultExperimentId(defaultExperiment.UUID); err != nil {
+			return "", util.Wrap(err, "Failed to set default experiment ID")
+		}
 	}
 
 	glog.Infof("Default experiment is set. ID is: %v", defaultExperiment.UUID)
@@ -3933,34 +4024,30 @@ func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string,
 //  2. If experimentId is empty, replaces it with the default experimentId from the given namespace.
 //     Creates the default experiment in the given namespace (could be empty in single-user mode) if it is missing.
 //  3. Replaces empty namespace with the parent namespace of the given experimentId.
-func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, namespace string) (string, string, error) {
-	if common.IsMultiUserMode() && experimentId == "" {
-		return "", "", util.NewInvalidInputError("Experiment id can not be empty in multi-user mode")
-	}
-	if experimentId != "" {
-		ns, err := r.GetNamespaceFromExperimentId(experimentId)
+func (r *ResourceManager) GetValidExperimentNamespacePair(ctx context.Context, experimentID string, namespace string) (string, string, error) {
+	if experimentID != "" {
+		ns, err := r.GetNamespaceFromExperimentId(experimentID)
 		if err != nil {
-			return "", "", util.Wrapf(err, "Failed to fetch namespace for experiment %v", experimentId)
+			return "", "", util.Wrapf(err, "Failed to fetch namespace for experiment %v", experimentID)
 		}
 		if namespace != "" && namespace != ns {
-			return "", "", util.NewInvalidInputError("Experiment %v belongs to namespace '%v' instead of '%v'", experimentId, ns, namespace)
+			return "", "", util.NewInvalidInputError("Experiment %v belongs to namespace '%v' instead of '%v'", experimentID, ns, namespace)
 		}
 		namespace = ns
 	} else {
-		defExpId, err := r.GetDefaultExperimentId()
+		// The default experiment is per-namespace in multi-user mode, so a
+		// namespace is needed to resolve one.
+		if common.IsMultiUserMode() && namespace == "" {
+			return "", "", util.NewInvalidInputError("A namespace is required when experiment id is empty in multi-user mode")
+		}
+		// Returns the namespace's default experiment, creating it if missing.
+		defExpID, err := r.CreateDefaultExperiment(ctx, namespace)
 		if err != nil {
-			return "", "", util.Wrapf(err, "Specify experiment id or check if the default experiment exists in namespace %v", namespace)
+			return "", "", util.Wrapf(err, "Experiment id is empty. Failed to resolve the default experiment in namespace %v", namespace)
 		}
-		// Create the default experiment if it is missing
-		if defExpId == "" {
-			defExpId, err = r.CreateDefaultExperiment(namespace)
-			if err != nil {
-				return "", "", util.Wrapf(err, "Experiment id is empty. Failed to create a new default experiment in namespace %v", namespace)
-			}
-		}
-		experimentId = defExpId
+		experimentID = defExpID
 	}
-	return experimentId, namespace, nil
+	return experimentID, namespace, nil
 }
 
 // GetTask Fetches a task entry.

@@ -16,32 +16,35 @@
 
 import functools
 import http.server
-from pathlib import Path
 import re
 import tempfile
 import threading
 import unittest
 import urllib.request
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / '.github/resources/manifests/pipeline-test-fixtures'
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
-
     def log_message(self, format, *args):
         pass
 
 
 class PipelineTestFixturesTest(unittest.TestCase):
-
     def test_serves_every_integration_pipeline_url(self):
         sources = dict(
-            re.findall(r'^\s*- ([^=\s]+)=(.+)$',
-                       (FIXTURES / 'kustomization.yaml').read_text(),
-                       re.MULTILINE))
-        projections = re.findall(r'- key: ([^\n]+)\n\s+path: ([^\n]+)',
-                                 (FIXTURES / 'deployment.yaml').read_text())
+            re.findall(
+                r'^\s*- ([^=\s]+)=(.+)$',
+                (FIXTURES / 'kustomization.yaml').read_text(),
+                re.MULTILINE,
+            )
+        )
+        projections = re.findall(
+            r'- key: ([^\n]+)\n\s+path: ([^\n]+)',
+            (FIXTURES / 'deployment.yaml').read_text(),
+        )
         self.assertTrue(sources)
         self.assertTrue(projections)
 
@@ -49,10 +52,13 @@ class PipelineTestFixturesTest(unittest.TestCase):
         for source in (ROOT / 'backend/test/v2/integration').glob('*.go'):
             text = source.read_text()
             urls = re.findall(
-                r'GetRepoBranchURLRAW\([^,\n]+,\s*[^,\n]+,\s*"([^"]+)"\)', text)
+                r'GetRepoBranchURLRAW\([^,\n]+,\s*[^,\n]+,\s*"([^"]+)"\)', text
+            )
             self.assertEqual(
-                text.count('GetRepoBranchURLRAW('), len(urls),
-                f'Unrecognized fixture URL in {source}')
+                text.count('GetRepoBranchURLRAW('),
+                len(urls),
+                f'Unrecognized fixture URL in {source}',
+            )
             paths.extend(urls)
         self.assertTrue(paths)
 
@@ -71,8 +77,9 @@ class PipelineTestFixturesTest(unittest.TestCase):
                         url = f'http://127.0.0.1:{server.server_port}/{path}'
                         with urllib.request.urlopen(url, timeout=5) as response:
                             self.assertEqual(response.status, 200)
-                            self.assertEqual(response.read(),
-                                             (ROOT / path).read_bytes())
+                            self.assertEqual(
+                                response.read(), (ROOT / path).read_bytes()
+                            )
             finally:
                 server.shutdown()
                 server.server_close()

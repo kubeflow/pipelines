@@ -14,8 +14,8 @@
 from typing import Union
 
 from google.protobuf import json_format
-from kfp.dsl import pipeline_channel
-from kfp.dsl import PipelineTask
+
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 
 
@@ -66,8 +66,9 @@ def add_node_selector_json(
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
-    input_param_spec = common.parse_k8s_parameter_input(node_selector_json,
-                                                        task)
+    input_param_spec = common.parse_k8s_parameter_input(
+        node_selector_json, task
+    )
     msg.node_selector.node_selector_json.CopyFrom(input_param_spec)
 
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
