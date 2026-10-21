@@ -122,7 +122,7 @@
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "fs": "0.0.1-security",
-    "globals": "^16.5.0",
+    "globals": "^17.13.0",
     "jsdom": "^24.1.0",
     "pixelmatch": "^8.0.0",
     "playwright": "^1.58.0",
