@@ -24,7 +24,7 @@ class ContainerComponentArtifactChannel:
         self._var_name = var_name
 
     def __getattr__(self, _name: str) -> Union['placeholders.Placeholder']:
-        # aviod circular imports
+        # avoid circular imports
         from kfp.dsl import placeholders
 
         attr_to_placeholder_dict = {

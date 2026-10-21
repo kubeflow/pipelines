@@ -46,6 +46,10 @@ inputs:
   test_label:
     required: true
     description: "Ginkgo label-filter expression, for example Regression, Smoke, or ApiServerTests && PipelineRun"
+  use_legacy_api_prefix:
+    required: false
+    default: 'false'
+    description: "Run API clients through /apis/v2beta1 instead of /apis/v2"
   upload_pipelines_with_kubernetes_client:
     required: false
     default: 'false'
@@ -154,6 +158,10 @@ runs:
         restore-keys: |
           go-test-lanes-${{ runner.os }}-${{ hashFiles('go.mod', 'go.sum') }}-
           go-test-lanes-${{ runner.os }}-
+
+    - name: Download Go modules
+      shell: bash
+      run: bash .github/resources/scripts/download-go-modules.sh
 
     - name: Configure API Access
       id: configure-api
@@ -265,6 +273,7 @@ runs:
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
         INPUT_TEST_LABEL: ${{ inputs.test_label }}
+        INPUT_USE_LEGACY_API_PREFIX: ${{ inputs.use_legacy_api_prefix }}
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z "$USE_PROXY" ]; then
@@ -302,6 +311,10 @@ runs:
         WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel)}"
         export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
         PORT_FORWARD_PIDS=()
+        API_PREFIX_FLAGS=()
+        if [ "$INPUT_USE_LEGACY_API_PREFIX" = "true" ]; then
+          API_PREFIX_FLAGS=(-useLegacyAPIPrefix=true)
+        fi
         BASE_IMAGE_FLAG=""
         if [ -n "${{ inputs.base_image }}" ]; then
           BASE_IMAGE_FLAG="-baseImage=${{ inputs.base_image }}"
@@ -313,11 +326,6 @@ runs:
         else
           DISABLE_TLS_CHECK='false'
         fi
-
-        (
-          cd "$WORKSPACE_ROOT"
-          go mod download
-        )
 
         cleanup_port_forwards() {
           for pid in "${PORT_FORWARD_PIDS[@]}"; do
@@ -375,8 +383,8 @@ runs:
             start_port_forward_supervisor "api-server" "${INPUT_DEFAULT_NAMESPACE}" "service/${API_SERVICE}" "8888" "8888"
 
             for i in $(seq 1 12); do
-              if curl -sf http://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1 || \
-                 curl -skf https://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1; then
+              if curl -sf http://localhost:8888/apis/v2/healthz > /dev/null 2>&1 || \
+                 curl -skf https://localhost:8888/apis/v2/healthz > /dev/null 2>&1; then
                 echo "API server is reachable on localhost:8888"
                 break
               fi
@@ -411,7 +419,7 @@ runs:
         "$WORKSPACE_ROOT/.github/resources/scripts/conntrack-window.sh" capture /tmp/kfp-conntrack-window.tsv || true
         "$WORKSPACE_ROOT/.github/resources/scripts/runner-telemetry.sh" contention-baseline /tmp/kfp-runner-contention.tsv || true
 
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} $BASE_IMAGE_FLAG
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} "${API_PREFIX_FLAGS[@]}" $BASE_IMAGE_FLAG
       continue-on-error: true
 
     - name: Report test-window network observability

@@ -17,7 +17,6 @@ import tempfile
 import unittest
 
 from kfp.client import set_volume_credentials
-from kfp.client import token_credentials_base
 from kubernetes.client import configuration
 
 

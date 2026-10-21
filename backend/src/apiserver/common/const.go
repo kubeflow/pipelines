@@ -64,6 +64,8 @@ const TokenAudienceRunPrefix string = "/runs/"
 
 const DefaultMetadataTLSEnabled = false
 
+const DefaultDBCredentialProviderEnabled = false
+
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"

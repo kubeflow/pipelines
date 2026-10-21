@@ -21,7 +21,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -267,47 +267,48 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		args    *apiv2beta1.CreateRunRequest
-		want    *apiv2beta1.Run
+		args    *apiv2.CreateRunRequest
+		want    *apiv2.Run
 		wantErr bool
 		errMsg  string
 	}{
 		{
 			"Valid V2 - basic",
-			&apiv2beta1.CreateRunRequest{
-				Run: &apiv2beta1.Run{
+			&apiv2.CreateRunRequest{
+				Run: &apiv2.Run{
 					DisplayName:  "run1",
 					ExperimentId: DefaultFakeUUID,
-					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSource: &apiv2.Run_PipelineSpec{
 						PipelineSpec: pipelineSpecStruct,
 					},
-					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					RuntimeConfig: &apiv2.RuntimeConfig{
 						Parameters:   runtimeParams,
 						PipelineRoot: "model-pipeline-root",
 					},
 				},
 			},
-			&apiv2beta1.Run{
+			&apiv2.Run{
 				RunId:          "123e4567-e89b-12d3-a456-426655440000",
 				ExperimentId:   DefaultFakeUUID,
+				Namespace:      "ns1",
 				DisplayName:    "run1",
 				ServiceAccount: "pipeline-runner",
-				StorageState:   apiv2beta1.Run_AVAILABLE,
+				StorageState:   apiv2.Run_AVAILABLE,
 				CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 				ScheduledAt:    timestamppb.New(time.Unix(2, 0)),
 				FinishedAt:     timestamppb.New(time.Unix(0, 0)),
-				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+				PipelineSource: &apiv2.Run_PipelineSpec{
 					PipelineSpec: nil,
 				},
-				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+				RuntimeConfig: &apiv2.RuntimeConfig{
 					Parameters:   runtimeParams,
 					PipelineRoot: "model-pipeline-root",
 				},
-				State: apiv2beta1.RuntimeState_PENDING,
-				StateHistory: []*apiv2beta1.RuntimeStatus{
+				State: apiv2.RuntimeState_PENDING,
+				StateHistory: []*apiv2.RuntimeStatus{
 					{
 						UpdateTime: timestamppb.New(time.Unix(3, 0)),
-						State:      apiv2beta1.RuntimeState_PENDING,
+						State:      apiv2.RuntimeState_PENDING,
 					},
 				},
 			},
@@ -316,39 +317,40 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 		},
 		{
 			"Valid V2 - no experiment",
-			&apiv2beta1.CreateRunRequest{
-				Run: &apiv2beta1.Run{
+			&apiv2.CreateRunRequest{
+				Run: &apiv2.Run{
 					DisplayName: "run1",
-					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSource: &apiv2.Run_PipelineSpec{
 						PipelineSpec: pipelineSpecStruct,
 					},
-					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					RuntimeConfig: &apiv2.RuntimeConfig{
 						Parameters:   runtimeParams,
 						PipelineRoot: "model-pipeline-root",
 					},
 				},
 			},
-			&apiv2beta1.Run{
+			&apiv2.Run{
 				RunId:          "123e4567-e89b-12d3-a456-426655440000",
 				ExperimentId:   DefaultFakeUUID,
+				Namespace:      "ns1",
 				DisplayName:    "run1",
 				ServiceAccount: "pipeline-runner",
-				StorageState:   apiv2beta1.Run_AVAILABLE,
+				StorageState:   apiv2.Run_AVAILABLE,
 				CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 				ScheduledAt:    timestamppb.New(time.Unix(2, 0)),
 				FinishedAt:     timestamppb.New(time.Unix(0, 0)),
-				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+				PipelineSource: &apiv2.Run_PipelineSpec{
 					PipelineSpec: nil,
 				},
-				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+				RuntimeConfig: &apiv2.RuntimeConfig{
 					Parameters:   runtimeParams,
 					PipelineRoot: "model-pipeline-root",
 				},
-				State: apiv2beta1.RuntimeState_PENDING,
-				StateHistory: []*apiv2beta1.RuntimeStatus{
+				State: apiv2.RuntimeState_PENDING,
+				StateHistory: []*apiv2.RuntimeStatus{
 					{
 						UpdateTime: timestamppb.New(time.Unix(3, 0)),
-						State:      apiv2beta1.RuntimeState_PENDING,
+						State:      apiv2.RuntimeState_PENDING,
 					},
 				},
 			},
@@ -357,14 +359,14 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 		},
 		{
 			"Invalid V2 - missing parameters",
-			&apiv2beta1.CreateRunRequest{
-				Run: &apiv2beta1.Run{
+			&apiv2.CreateRunRequest{
+				Run: &apiv2.Run{
 					DisplayName:  "run1",
 					ExperimentId: DefaultFakeUUID,
-					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSource: &apiv2.Run_PipelineSpec{
 						PipelineSpec: pipelineSpecStruct,
 					},
-					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					RuntimeConfig: &apiv2.RuntimeConfig{
 						Parameters:   map[string]*structpb.Value{},
 						PipelineRoot: "model-pipeline-root",
 					},
@@ -376,14 +378,14 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 		},
 		{
 			"Invalid V2 - extra parameter",
-			&apiv2beta1.CreateRunRequest{
-				Run: &apiv2beta1.Run{
+			&apiv2.CreateRunRequest{
+				Run: &apiv2.Run{
 					DisplayName:  "run1",
 					ExperimentId: DefaultFakeUUID,
-					PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSource: &apiv2.Run_PipelineSpec{
 						PipelineSpec: pipelineSpecStruct,
 					},
-					RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					RuntimeConfig: &apiv2.RuntimeConfig{
 						Parameters:   runtimeParamsWithExtra,
 						PipelineRoot: "model-pipeline-root",
 					},
@@ -406,7 +408,7 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.Nil(t, err)
-				tt.want.PipelineSource = &apiv2beta1.Run_PipelineSpec{
+				tt.want.PipelineSource = &apiv2.Run_PipelineSpec{
 					PipelineSpec: got.GetPipelineSpec(),
 				}
 				assert.EqualValues(t, tt.want, got)
@@ -438,46 +440,47 @@ func TestGetRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
 
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		DisplayName:  "run1",
 		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: pipelineSpecStruct,
 		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			Parameters:   v2RuntimeParams,
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	returnedRun, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	returnedRun, err := server.CreateRun(context.Background(), &apiv2.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRun := &apiv2beta1.Run{
+	expectedRun := &apiv2.Run{
 		RunId:          "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   experiment.UUID,
+		Namespace:      "ns1",
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
-		StorageState:   apiv2beta1.Run_AVAILABLE,
+		StorageState:   apiv2.Run_AVAILABLE,
 		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(2, 0)),
 		FinishedAt:     timestamppb.New(time.Unix(0, 0)),
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: returnedRun.GetPipelineSpec(),
 		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			Parameters:   v2RuntimeParams,
 			PipelineRoot: "model-pipeline-root",
 		},
-		State: apiv2beta1.RuntimeState_PENDING,
-		StateHistory: []*apiv2beta1.RuntimeStatus{
+		State: apiv2.RuntimeState_PENDING,
+		StateHistory: []*apiv2.RuntimeStatus{
 			{
 				UpdateTime: timestamppb.New(time.Unix(3, 0)),
-				State:      apiv2beta1.RuntimeState_PENDING,
+				State:      apiv2.RuntimeState_PENDING,
 			},
 		},
 	}
 
-	newRun, err := server.GetRun(nil, &apiv2beta1.GetRunRequest{RunId: returnedRun.RunId})
+	newRun, err := server.GetRun(context.Background(), &apiv2.GetRunRequest{RunId: returnedRun.RunId})
 	assert.Nil(t, err)
 	assert.EqualValues(t, expectedRun, newRun)
 }
@@ -489,50 +492,51 @@ func TestListRuns(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
 
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		DisplayName:  "run1",
 		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: pipelineSpecStruct,
 		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
 			},
 		},
 	}
-	createdRun, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	createdRun, err := server.CreateRun(context.Background(), &apiv2.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRun := &apiv2beta1.Run{
+	expectedRun := &apiv2.Run{
 		RunId:          "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   experiment.UUID,
+		Namespace:      "ns1",
 		DisplayName:    "run1",
 		ServiceAccount: "pipeline-runner",
-		StorageState:   apiv2beta1.Run_AVAILABLE,
+		StorageState:   apiv2.Run_AVAILABLE,
 		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(2, 0)),
 		FinishedAt:     timestamppb.New(time.Unix(0, 0)),
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: createdRun.GetPipelineSpec(),
 		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
 			Parameters: map[string]*structpb.Value{
 				"param1": structpb.NewStringValue("world"),
 			},
 		},
-		State: apiv2beta1.RuntimeState_PENDING,
-		StateHistory: []*apiv2beta1.RuntimeStatus{
+		State: apiv2.RuntimeState_PENDING,
+		StateHistory: []*apiv2.RuntimeStatus{
 			{
 				UpdateTime: timestamppb.New(time.Unix(3, 0)),
-				State:      apiv2beta1.RuntimeState_PENDING,
+				State:      apiv2.RuntimeState_PENDING,
 			},
 		},
 	}
 
-	listRunsResponse, err := server.ListRuns(nil, &apiv2beta1.ListRunsRequest{
+	listRunsResponse, err := server.ListRuns(context.Background(), &apiv2.ListRunsRequest{
 		ExperimentId: experiment.UUID,
 	})
 	assert.Nil(t, err)
@@ -580,22 +584,22 @@ func TestRetryRun(t *testing.T) {
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorldParams), pipelineSpecStruct)
 
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		DisplayName:  "run1",
 		ExperimentId: experiment.UUID,
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: pipelineSpecStruct,
 		},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+		RuntimeConfig: &apiv2.RuntimeConfig{
 			Parameters:   v2RuntimeParams,
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	run, err := server.CreateRun(context.Background(), &apiv2beta1.CreateRunRequest{Run: run})
+	run, err := server.CreateRun(context.Background(), &apiv2.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	// RetryRun requires the workflow to be in Failed/Error state, so expect an error.
-	_, err = server.RetryRun(context.Background(), &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	_, err = server.RetryRun(context.Background(), &apiv2.RetryRunRequest{RunId: run.RunId})
 	assert.NotNil(t, err)
 }
 
@@ -603,7 +607,7 @@ func TestArchiveRun(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
 	server := createRunServer(manager)
-	_, err := server.ArchiveRun(context.Background(), &apiv2beta1.ArchiveRunRequest{RunId: run.UUID})
+	_, err := server.ArchiveRun(context.Background(), &apiv2.ArchiveRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 }
 
@@ -612,9 +616,9 @@ func TestUnarchiveRun(t *testing.T) {
 	defer clients.Close()
 	server := createRunServer(manager)
 	// Archive first, then unarchive.
-	_, err := server.ArchiveRun(context.Background(), &apiv2beta1.ArchiveRunRequest{RunId: run.UUID})
+	_, err := server.ArchiveRun(context.Background(), &apiv2.ArchiveRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
-	_, err = server.UnarchiveRun(context.Background(), &apiv2beta1.UnarchiveRunRequest{RunId: run.UUID})
+	_, err = server.UnarchiveRun(context.Background(), &apiv2.UnarchiveRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 }
 
@@ -622,7 +626,7 @@ func TestDeleteRun(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
 	server := createRunServer(manager)
-	_, err := server.DeleteRun(context.Background(), &apiv2beta1.DeleteRunRequest{RunId: run.UUID})
+	_, err := server.DeleteRun(context.Background(), &apiv2.DeleteRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 	// Verify the run is gone.
 	_, err = manager.GetRun(run.UUID)
@@ -634,6 +638,92 @@ func TestTerminateRun(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
 	server := createRunServer(manager)
-	_, err := server.TerminateRun(context.Background(), &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
+	_, err := server.TerminateRun(context.Background(), &apiv2.TerminateRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
+}
+
+// The namespace may arrive on the run itself or as a request-level field bound
+// from ?namespace=. Without one of them the default experiment cannot be
+// resolved in multi-user mode, so these paths are what make the fallback usable.
+func TestRunServer_CreateRun_NamespaceResolution(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct))
+
+	newRun := func(namespace string) *apiv2.Run {
+		return &apiv2.Run{
+			DisplayName:    "run1",
+			Namespace:      namespace,
+			PipelineSource: &apiv2.Run_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+			RuntimeConfig: &apiv2.RuntimeConfig{
+				Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("world")},
+			},
+		}
+	}
+
+	tests := []struct {
+		name          string
+		request       *apiv2.CreateRunRequest
+		wantNamespace string
+		wantErrMsg    string
+	}{
+		{
+			name:          "namespace on the run body",
+			request:       &apiv2.CreateRunRequest{Run: newRun("ns1")},
+			wantNamespace: "ns1",
+		},
+		{
+			name:          "namespace from the request (?namespace=)",
+			request:       &apiv2.CreateRunRequest{Run: newRun(""), Namespace: "ns1"},
+			wantNamespace: "ns1",
+		},
+		{
+			name:          "run body wins over the request",
+			request:       &apiv2.CreateRunRequest{Run: newRun("ns1"), Namespace: "ns2"},
+			wantNamespace: "ns1",
+		},
+		{
+			name:       "neither is set",
+			request:    &apiv2.CreateRunRequest{Run: newRun("")},
+			wantErrMsg: "A run cannot have an empty namespace in multi-user mode",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// A real UUID generator: the constant-UUID fake collides on the
+			// primary key when a second experiment is created, which surfaces
+			// misleadingly as a duplicate-name error.
+			initEnvVars()
+			clients, err := resource.NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+			require.NoError(t, err)
+			defer clients.Close()
+			manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+			server := createRunServer(manager)
+			md := metadata.New(map[string]string{
+				common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com",
+			})
+			ctx := metadata.NewIncomingContext(context.Background(), md)
+
+			got, err := server.CreateRun(ctx, tt.request)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrMsg)
+				return
+			}
+			require.NoError(t, err)
+
+			// The resolved namespace is echoed back, not only applied internally.
+			assert.Equal(t, tt.wantNamespace, got.GetNamespace())
+
+			// The run has no experiment of its own, so it must land in the
+			// default experiment of the resolved namespace.
+			experiment, err := manager.GetExperiment(got.GetExperimentId())
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantNamespace, experiment.Namespace)
+			assert.Equal(t, "Default", experiment.Name)
+		})
+	}
 }

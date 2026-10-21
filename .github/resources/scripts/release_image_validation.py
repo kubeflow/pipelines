@@ -21,8 +21,10 @@ from pathlib import Path
 import platform
 import re
 import subprocess
+import sys
 
 from arm64_smoke import image_refs
+from arm64_smoke import IMAGES
 from publish_image_index import digest
 from publish_image_index import inspect
 from publish_image_index import validate_index
@@ -47,6 +49,29 @@ def validate_source(target_tag, source_version):
         raise ValueError(
             'Target tag and source VERSION must have the same major.minor.patch'
         )
+
+
+def validate_source_inventory(source_root):
+    """Reject different workflow and product inventories before publication."""
+    # Load the selected product's actual inventory in a separate interpreter;
+    # importing it here would reuse the workflow revision's cached module.
+    scripts = source_root / '.github/resources/scripts'
+    output = subprocess.check_output([
+        sys.executable, '-I', '-c',
+        'import json, sys; sys.path.insert(0, sys.argv[1]); '
+        'from arm64_smoke import IMAGES; print(json.dumps(sorted(IMAGES)))',
+        str(scripts.resolve())
+    ],
+                                     text=True,
+                                     timeout=30)
+    source_images = set(json.loads(output))
+    if source_images != IMAGES:
+        raise ValueError(
+            'Release source and workflow image inventories differ: '
+            f'source-only={sorted(source_images - IMAGES)}, '
+            f'workflow-only={sorted(IMAGES - source_images)}. '
+            'Use a matching publication workflow or align the inventories '
+            'before publishing.')
 
 
 def validate_native_images(records, source_sha, target_tag, architecture):
@@ -124,6 +149,7 @@ def main():
     args = parser.parse_args()
     if args.command == 'source':
         validate_source(args.target_tag, args.version_file.read_text())
+        validate_source_inventory(args.version_file.parent)
     else:
         result = validate_native_images(args.records, args.source_sha,
                                         args.target_tag, args.architecture)

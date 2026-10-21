@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -77,7 +78,11 @@ type PipelineStoreInterface interface {
 	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error)
-	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
+	GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error)
+	// Returns the id of one of the pipeline's versions, or "" if it has none. The version is an
+	// arbitrary one; callers must not depend on which. Stops at the first match, so the cost does
+	// not grow with the version history.
+	GetAnyPipelineVersionID(pipelineID string) (string, error)
 	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
 	UpdatePipelineVersionFields(pipelineVersionID string, displayName string, tags map[string]string) error
@@ -827,8 +832,10 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 	return &newPipelineVersion, nil
 }
 
-// Returns the latest pipeline version with status PipelineVersionReady for a given pipeline id.
-func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
+// GetDefaultPipelineVersion returns the version used when a run does not name one: the newest with
+// status PipelineVersionReady.
+// The SQL store has no pin; only the Kubernetes store honors spec.defaultVersionName.
+func (s *PipelineStore) GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	// Prepare a SQL query
@@ -836,28 +843,28 @@ func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.Pipe
 	sql, args, err := qb.
 		Select(s.selectPipelineVersionColumns()...).
 		From(q("pipeline_versions")).
-		Where(sq.And{sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("PipelineId")): pipelineId}, sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("Status")): model.PipelineVersionReady}}).
+		Where(sq.And{sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("PipelineId")): pipelineID}, sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("Status")): model.PipelineVersionReady}}).
 		OrderBy(fmt.Sprintf("%s.%s DESC", q("pipeline_versions"), q("CreatedAtInSec")), fmt.Sprintf("%s.%s DESC", q("pipeline_versions"), q("UUID"))).
 		Limit(1).
 		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to fetch the latest pipeline version for pipeline %v", pipelineId)
+		return nil, util.NewInternalServerError(err, "Failed to create query to fetch the latest pipeline version for pipeline %v", pipelineID)
 	}
 
 	// Execute the query
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed fetching the latest pipeline version for pipeline %v", pipelineId)
+		return nil, util.NewInternalServerError(err, "Failed fetching the latest pipeline version for pipeline %v", pipelineID)
 	}
 	defer r.Close()
 
 	// Parse results
 	versions, err := s.scanPipelineVersionsRows(r)
 	if err != nil || len(versions) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to parse the latest pipeline version from SQL response for pipeline %v", pipelineId)
+		return nil, util.NewInternalServerError(err, "Failed to parse the latest pipeline version from SQL response for pipeline %v", pipelineID)
 	}
 	if len(versions) == 0 {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", pipelineId)
+		return nil, util.NewResourceNotFoundError("PipelineVersion", pipelineID)
 	}
 	version := versions[0]
 	tags, err := s.GetPipelineVersionTags(version.UUID)
@@ -1006,6 +1013,31 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 		}
 	}
 	return pipelineVersions, nil
+}
+
+func (s *PipelineStore) GetAnyPipelineVersionID(pipelineID string) (string, error) {
+	q := s.dbDialect.QuoteIdentifier
+	query, args, err := s.dbDialect.QueryBuilder().
+		Select(q("UUID")).
+		From(q("pipeline_versions")).
+		Where(sq.And{
+			sq.Eq{q("PipelineId"): pipelineID},
+			sq.Eq{q("Status"): model.PipelineVersionReady},
+		}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to create query to check pipeline versions of pipeline %v", pipelineID)
+	}
+
+	var pipelineVersionID string
+	if err := s.db.QueryRow(query, args...).Scan(&pipelineVersionID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", util.NewInternalServerError(err, "Failed to check pipeline versions of pipeline %v", pipelineID)
+	}
+	return pipelineVersionID, nil
 }
 
 // Fetches pipeline versions for a specified pipeline id.

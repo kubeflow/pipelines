@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	recurringRunParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
-	runParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	recurringRunParams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
+	runParams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	apiServer "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -132,21 +132,23 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 
 	pipelineVersion := s.preparePipeline()
 
-	createRecurringRunRequest := &recurringRunParams.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurringRunParams.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2RecurringRun{
 		DisplayName: "hello world",
 		Description: "this is hello world",
-		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &recurring_run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
-		MaxConcurrency: 10,
+		// The second run must start after the first has published its cache entry.
+		// Overlapping cold runs are both allowed to execute instead of hitting cache.
+		MaxConcurrency: 1,
 		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
-		Trigger: &recurring_run_model.V2beta1Trigger{
-			PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
+		Trigger: &recurring_run_model.V2Trigger{
+			PeriodicSchedule: &recurring_run_model.V2PeriodicSchedule{
 				IntervalSecond: 60,
 			},
 		},
-		RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{
+		RuntimeConfig: &recurring_run_model.V2RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"message": "Hello world",
 			},
@@ -157,30 +159,19 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 	require.NotNil(t, helloWorldRecurringRun)
 	s.diagnosticRecurringRunID = helloWorldRecurringRun.RecurringRunID
 
-	var allRuns []*run_model.V2beta1Run
+	var allRuns []*run_model.V2Run
+	listParams := cacheRecurringRunListParams(helloWorldRecurringRun.RecurringRunID)
 	require.Eventually(s.T(), func() bool {
-		allRuns, err = s.runClient.ListAll(runParams.NewRunServiceListRunsParams(), 10)
+		allRuns, err = s.runClient.ListAll(listParams, 10)
 		if err != nil {
 			return false
 		}
 
-		if len(allRuns) >= 2 {
-			// Only check the first 2 runs, not all runs (recurring run keeps creating new ones)
-			firstTwoSucceeded := true
-			for i := 0; i < 2 && i < len(allRuns); i++ {
-				run := allRuns[i]
-				if *run.State != *run_model.V2beta1RuntimeStateSUCCEEDED.Pointer() {
-					firstTwoSucceeded = false
-				}
-			}
-			if firstTwoSucceeded {
-				return true
-			}
-		}
-
-		return false
+		return cacheRecurringRunsSucceeded(t, allRuns)
 	}, 4*time.Minute, 5*time.Second)
 
+	// Verify that the cache assertion targets a later execution of this schedule.
+	require.True(t, time.Time(allRuns[0].CreatedAt).Before(time.Time(allRuns[1].CreatedAt)))
 	task := s.getTask(t, allRuns[1].RunID, "comp")
 	if *cacheEnabled {
 		require.Equal(t, run_model.PipelineTaskTaskStateCACHED, *task.State)
@@ -318,15 +309,15 @@ func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
 	require.Equal(t, run_model.PipelineTaskTaskStateSUCCEEDED, *consumerTask.State)
 }
 
-func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion) (*run_model.V2beta1Run, error) {
-	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2PipelineVersion) (*run_model.V2Run, error) {
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2Run{
 		DisplayName: "hello-world",
 		Description: "this is hello-world",
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
-		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+		RuntimeConfig: &run_model.V2RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"message": "Hello world",
 			},
@@ -336,51 +327,39 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 	require.NoError(s.T(), err)
 	s.diagnosticRunIDs = append(s.diagnosticRunIDs, pipelineRunDetail.RunID)
 
-	expectedState := run_model.V2beta1RuntimeStateSUCCEEDED
+	runID := pipelineRunDetail.RunID
 	require.Eventually(s.T(), func() bool {
-		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: pipelineRunDetail.RunID})
-
-		if err == nil {
-			s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, *pipelineRunDetail.State)
-		} else {
-			s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
-		}
-
-		return err == nil && *pipelineRunDetail.State == expectedState
+		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: runID})
+		return cacheRunSucceeded(s.T(), runID, pipelineRunDetail, err)
 	}, 4*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err
 }
 
-func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, params map[string]interface{}) (*run_model.V2beta1Run, error) {
-	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_model.V2PipelineVersion, params map[string]interface{}) (*run_model.V2Run, error) {
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2Run{
 		DisplayName: "pvc-cache",
 		Description: "pvc cache test",
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
-		RuntimeConfig: &run_model.V2beta1RuntimeConfig{Parameters: params},
+		RuntimeConfig: &run_model.V2RuntimeConfig{Parameters: params},
 	}}
 	pipelineRunDetail, err := s.runClient.Create(createRunRequest)
 	require.NoError(s.T(), err)
 	s.diagnosticRunIDs = append(s.diagnosticRunIDs, pipelineRunDetail.RunID)
 
-	expectedState := run_model.V2beta1RuntimeStateSUCCEEDED
+	runID := pipelineRunDetail.RunID
 	require.Eventually(s.T(), func() bool {
-		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: pipelineRunDetail.RunID})
-		if err == nil {
-			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, *pipelineRunDetail.State)
-		} else {
-			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
-		}
-		return err == nil && *pipelineRunDetail.State == expectedState
+		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: runID})
+		return cacheRunSucceeded(s.T(), runID, pipelineRunDetail, err)
 	}, 4*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err
 }
 
-func (s *CacheTestSuite) preparePipeline() *pipeline_upload_model.V2beta1PipelineVersion {
+func (s *CacheTestSuite) preparePipeline() *pipeline_upload_model.V2PipelineVersion {
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world-with-returning-component.yaml", uploadParams.NewUploadPipelineParams())
 	require.NoError(s.T(), err)
 
@@ -410,9 +389,9 @@ func (s *CacheTestSuite) cleanUp() {
 }
 
 // getTask fetches the task details for a given run ID and task name.
-func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *run_model.V2beta1PipelineTask {
+func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *run_model.V2PipelineTask {
 	// Get run with FULL view to populate tasks
-	fullView := string(run_model.V2beta1GetRunRequestViewModeFULL)
+	fullView := string(run_model.V2GetRunRequestViewModeFULL)
 	run, err := s.runClient.Get(&runParams.RunServiceGetRunParams{
 		RunID: runID,
 		View:  &fullView,
@@ -435,7 +414,7 @@ func (s *CacheTestSuite) getTask(t *testing.T, runID string, taskName string) *r
 
 // verifyNoExecutorPod verifies that there is no executor pod for a cached task.
 // When a task is cached, the driver pod should not create an executor pod.
-func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2beta1PipelineTask) {
+func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2PipelineTask) {
 	require.NotNil(t, task)
 
 	// Check the task's pods field for executor pods
@@ -444,5 +423,87 @@ func (s *CacheTestSuite) verifyNoExecutorPod(t *testing.T, task *run_model.V2bet
 			t.Fatalf("Found executor pod %s (type=%s) for cached task %s, but cached tasks should not have executor pods",
 				pod.Name, *pod.Type, task.DisplayName)
 		}
+	}
+}
+
+func cacheRecurringRunListParams(recurringRunID string) *runParams.RunServiceListRunsParams {
+	filter := cacheDiagnosticRecurringFilter(recurringRunID)
+	order := "created_at asc"
+	return runParams.NewRunServiceListRunsParams().WithFilter(&filter).WithSortBy(&order)
+}
+
+// Only the first two chronological runs must finish; the schedule keeps creating new runs.
+func cacheRecurringRunsSucceeded(t *testing.T, runs []*run_model.V2Run) bool {
+	t.Helper()
+	if len(runs) < 2 {
+		return false
+	}
+	for _, run := range runs[:2] {
+		if run == nil || !cacheRunSucceeded(t, run.RunID, run, nil) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestCacheRecurringRunsSucceeded(t *testing.T) {
+	succeeded := &run_model.V2Run{RunID: "succeeded", State: run_model.V2RuntimeStateSUCCEEDED.Pointer()}
+	for _, tc := range []struct {
+		name string
+		runs []*run_model.V2Run
+		want bool
+	}{
+		{name: "no runs"},
+		{name: "only one run", runs: []*run_model.V2Run{succeeded}},
+		{name: "nil first run", runs: []*run_model.V2Run{nil, succeeded}},
+		{name: "first state not reported", runs: []*run_model.V2Run{{RunID: "starting"}, succeeded}},
+		{name: "second state not reported", runs: []*run_model.V2Run{succeeded, {RunID: "starting"}}},
+		{name: "second pending", runs: []*run_model.V2Run{succeeded, {State: run_model.V2RuntimeStatePENDING.Pointer()}}},
+		{name: "second failed", runs: []*run_model.V2Run{succeeded, {State: run_model.V2RuntimeStateFAILED.Pointer()}}},
+		{name: "two succeeded", runs: []*run_model.V2Run{succeeded, succeeded}, want: true},
+		{name: "later run not reported", runs: []*run_model.V2Run{succeeded, succeeded, {RunID: "later"}}, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, cacheRecurringRunsSucceeded(t, tc.runs))
+		})
+	}
+}
+
+// cacheRunSucceeded reports each observation without losing the ID on a failed Get.
+func cacheRunSucceeded(t *testing.T, runID string, run *run_model.V2Run, err error) bool {
+	t.Helper()
+	if err != nil {
+		t.Logf("Pipeline %s lookup failed: %v", runID, err)
+		return false
+	}
+	// A newly persisted Workflow may not have an Argo phase yet; the API's
+	// unspecified state can be omitted from the JSON response.
+	if run == nil || run.State == nil {
+		t.Logf("Pipeline %s state not reported yet", runID)
+		return false
+	}
+	t.Logf("Pipeline %s state: %s", runID, *run.State)
+	return *run.State == run_model.V2RuntimeStateSUCCEEDED
+}
+
+func TestCacheRunSucceeded(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		run  *run_model.V2Run
+		err  error
+		want bool
+	}{
+		{name: "state not reported yet", run: &run_model.V2Run{RunID: "run-id"}},
+		{name: "empty response"},
+		{name: "lookup error", err: fmt.Errorf("unavailable")},
+		{name: "error with succeeded payload", run: &run_model.V2Run{State: run_model.V2RuntimeStateSUCCEEDED.Pointer()}, err: fmt.Errorf("unavailable")},
+		{name: "pending", run: &run_model.V2Run{State: run_model.V2RuntimeStatePENDING.Pointer()}},
+		{name: "running", run: &run_model.V2Run{State: run_model.V2RuntimeStateRUNNING.Pointer()}},
+		{name: "failed", run: &run_model.V2Run{State: run_model.V2RuntimeStateFAILED.Pointer()}},
+		{name: "succeeded", run: &run_model.V2Run{State: run_model.V2RuntimeStateSUCCEEDED.Pointer()}, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, cacheRunSucceeded(t, "run-id", tc.run, tc.err))
+		})
 	}
 }

@@ -34,7 +34,7 @@ class StructuresTest(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument "InputValuePlaceholder" references nonexistant input: "input000".'
+                r'^Argument "InputValuePlaceholder" references nonexistent input: "input000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -57,7 +57,7 @@ class StructuresTest(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument "OutputPathPlaceholder" references nonexistant output: "output000".'
+                r'^Argument "OutputPathPlaceholder" references nonexistent output: "output000".'
         ):
             structures.ComponentSpec(
                 name='component_1',

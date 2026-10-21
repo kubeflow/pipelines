@@ -13,23 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source_root=$(pwd)
+set -e
+
 SETUP_ENV="${SETUP_ENV:-true}"
 PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-2}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Generate proto files (requires Docker)
-  cd api/
-  make clean python
-  cd ..
+  make -C sdk generate-python
 
   # Sync all dependencies using uv (includes google_cloud_pipeline_components, docker)
   uv sync --extra ci
 
   # Install workspace packages in editable mode
-  uv pip install -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
+  uv pip install -e sdk/python
 fi
 
+runtime_dist_dir=$(mktemp -d)
+trap 'rm -rf "$runtime_dist_dir"' EXIT
+uv build --package kfp --wheel --out-dir "$runtime_dist_dir"
+runtime_wheels=("$runtime_dist_dir"/kfp-*.whl)
+if [[ ${#runtime_wheels[@]} -ne 1 || ! -f "${runtime_wheels[0]}" ]]; then
+  echo "Expected exactly one freshly built kfp wheel in $runtime_dist_dir" >&2
+  exit 1
+fi
+
+# Docker-backed cases need a source URL accessible inside their containers.
 if [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 else
@@ -37,4 +46,9 @@ else
 fi
 
 # Keep pytest capture enabled: xdist cannot forward worker stdout/stderr with -s.
-uv run python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
+uv run python -m pytest sdk/python/test --ignore=sdk/python/test/runtime \
+  -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
+
+KFP_PACKAGE_PATH="${runtime_wheels[0]}" \
+  uv run python -m pytest sdk/python/test/runtime -v -m regression \
+    --cov=kfp --cov-append -n "${PYTEST_PARALLEL_WORKERS}"

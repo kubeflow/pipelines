@@ -38,7 +38,7 @@ export default defineConfig({
         'src/**/__snapshots__/**',
         'src/**/__mocks__/**',
         'src/third_party/**',
-        'src/apisv2beta1/**',
+        'src/apisv2/**',
         'src/build/**',
       ],
     },

@@ -15,7 +15,229 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
+def comment_node(owner="kubeflow", repo="pipelines", kind="pull"):
+    return {
+        "issue": {
+            "url": f"https://github.com/{owner}/{repo}/{kind}/123",
+            "repository": {
+                "owner": {
+                    "login": owner
+                },
+                "name": repo
+            },
+        }
+    }
+
+
+def stats_response(nodes, cursor=None, errors=()):
+    response = {
+        "data": {
+            "user": {
+                "createdAt": "2020-01-01T00:00:00Z",
+                "issueComments": {
+                    "nodes": nodes,
+                    "pageInfo": {
+                        "hasNextPage": cursor is not None,
+                        "endCursor": cursor
+                    },
+                },
+            },
+            "issuesOpened": {
+                "issueCount": 1
+            },
+            "mergedPrs": {
+                "issueCount": 2
+            },
+        }
+    }
+    if errors:
+        response["errors"] = list(errors)
+    return response
+
+
+def denied_comment_error():
+    return {
+        "type": "FORBIDDEN",
+        "path": ["user", "issueComments", "nodes", 0],
+        "message": "Resource not accessible by integration",
+    }
+
+
 class ContributorReportTest(unittest.TestCase):
+
+    def test_stats_paginate_and_count_only_target_repository_pr_comments(self):
+        pages = [
+            stats_response([
+                comment_node(),
+                comment_node(kind="issues"),
+                comment_node(repo="other"),
+                comment_node(owner="other"),
+                {
+                    "issue": None
+                },
+            ],
+                           cursor="next"),
+            stats_response([comment_node(), comment_node()]),
+        ]
+        with mock.patch.object(
+                MODULE, "github_request", side_effect=pages) as request:
+            stats = MODULE.fetch_contributor_stats("alice")
+        self.assertEqual(
+            stats, MODULE.ContributorStats("2020-01-01T00:00:00Z", 1, 2, 3))
+        self.assertEqual([
+            call.kwargs["body"]["variables"]["issueCommentCursor"]
+            for call in request.call_args_list
+        ], [None, "next"])
+
+    def test_denied_comment_page_discards_partial_count_and_stops_pagination(
+            self):
+        for denied_page in (0, 1):
+            with self.subTest(denied_page=denied_page):
+                pages = [stats_response([comment_node()], cursor="next")
+                        ] * denied_page
+                pages.append(
+                    stats_response(
+                        [None, comment_node(), None],
+                        cursor="more",
+                        errors=[
+                            denied_comment_error(), {
+                                **denied_comment_error(),
+                                "path": ["user", "issueComments", "nodes", 2],
+                            }
+                        ]))
+                with mock.patch.object(MODULE, "github_request", side_effect=pages) as request, \
+                        mock.patch("builtins.print"):
+                    stats = MODULE.fetch_contributor_stats("alice")
+                self.assertEqual(
+                    stats,
+                    MODULE.ContributorStats("2020-01-01T00:00:00Z", 1, 2, None))
+                self.assertEqual(request.call_count, denied_page + 1)
+                rows = MODULE.build_user_rows(True, stats)
+                values = {row.metric: row.value for row in rows}
+                self.assertEqual(values["Kubeflow org member"], "Yes")
+                self.assertEqual(values["Issues opened in kubeflow/pipelines"],
+                                 "1")
+                self.assertEqual(values["Merged PRs in kubeflow/pipelines"],
+                                 "2")
+                self.assertEqual(values["PR comments in kubeflow/pipelines"],
+                                 "Unavailable (GitHub access restrictions)")
+
+    def test_other_or_mixed_graphql_errors_are_not_partial_success(self):
+        denied = denied_comment_error()
+        other_errors = [
+            {
+                **denied, "type": "RATE_LIMITED"
+            },
+            {
+                **denied, "path": ["issuesOpened"]
+            },
+            {
+                **denied, "path": ["user", "issueComments"]
+            },
+            {
+                **denied, "path": ["user", "issueComments", "nodes"]
+            },
+            {
+                **denied,
+                "path": ["user", "issueComments", "nodes", 0, "issue"]
+            },
+            {
+                **denied, "path": ["user", "issueComments", "nodes", "0"]
+            },
+            {
+                **denied, "path": ["user", "issueComments", "nodes", True]
+            },
+            {
+                **denied, "path": ["user", "issueComments", "nodes", -1]
+            },
+        ]
+        for error in other_errors:
+            for errors in ([error], [denied, error]):
+                with self.subTest(errors=errors), mock.patch.object(
+                        MODULE,
+                        "github_request",
+                        return_value=stats_response([None], errors=errors)):
+                    with self.assertRaisesRegex(RuntimeError,
+                                                "GitHub GraphQL failed"):
+                        MODULE.fetch_contributor_stats("alice")
+
+    def test_null_comment_nodes_without_access_error_are_rejected(self):
+        for nodes in (None, [None]):
+            with self.subTest(nodes=nodes), mock.patch.object(
+                    MODULE, "github_request",
+                    return_value=stats_response(nodes)):
+                with self.assertRaises(
+                    (RuntimeError, TypeError, AttributeError)):
+                    MODULE.fetch_contributor_stats("alice")
+
+    def test_partial_response_requires_valid_independent_metrics(self):
+        invalid_fields = [
+            ("user", None),
+            ("user", {
+                "createdAt": None
+            }),
+            ("user", {
+                "createdAt": ""
+            }),
+            ("user", {
+                "createdAt": 1
+            }),
+            ("user", {
+                "createdAt": "not-a-date"
+            }),
+            ("user", {}),
+            ("issuesOpened", None),
+            ("issuesOpened", {}),
+            ("issuesOpened", {
+                "issueCount": None
+            }),
+            ("issuesOpened", {
+                "issueCount": "1"
+            }),
+            ("mergedPrs", {
+                "issueCount": -1
+            }),
+            ("mergedPrs", {
+                "issueCount": True
+            }),
+            ("mergedPrs", {}),
+        ]
+        for field, value in invalid_fields:
+            response = stats_response([None], errors=[denied_comment_error()])
+            response["data"][field] = value
+            with self.subTest(field=field, value=value), mock.patch.object(
+                    MODULE, "github_request", return_value=response), \
+                    mock.patch("builtins.print"):
+                with self.assertRaises((RuntimeError, KeyError, TypeError,
+                                        AssertionError, ValueError)):
+                    stats = MODULE.fetch_contributor_stats("alice")
+                    MODULE.build_user_rows(True, stats)
+
+    def test_membership_lookup_failure_does_not_publish_a_report(self):
+        event = '{"pull_request": {"number": 123, "user": {"login": "alice", "type": "User"}}}'
+        with ExitStack() as stack:
+            stack.enter_context(
+                mock.patch.dict(
+                    MODULE.os.environ, {
+                        "GITHUB_EVENT_PATH": "event.json",
+                        "GITHUB_REPOSITORY": "kubeflow/pipelines",
+                        "CONTRIBUTOR_REPORT_DRY_RUN": "false",
+                    }))
+            stack.enter_context(
+                mock.patch("builtins.open", mock.mock_open(read_data=event)))
+            stack.enter_context(
+                mock.patch.object(
+                    MODULE,
+                    "is_kubeflow_member",
+                    side_effect=RuntimeError("ACL lookup failed")))
+            fetch = stack.enter_context(
+                mock.patch.object(MODULE, "fetch_contributor_stats"))
+            publish = stack.enter_context(
+                mock.patch.object(MODULE, "upsert_comment"))
+            with self.assertRaisesRegex(RuntimeError, "ACL lookup failed"):
+                MODULE.main()
+            fetch.assert_not_called()
+            publish.assert_not_called()
 
     def test_workflow_skips_dependency_and_sync_bot_authors_at_job_level(self):
         workflow_path = MODULE_PATH.parent.parent / "workflows" / "contributor-report.yml"

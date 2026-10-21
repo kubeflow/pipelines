@@ -16,6 +16,7 @@ package util
 
 import (
 	"time"
+	_ "time/tzdata" // Keep non-UTC schedules portable in minimal API and controller images.
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 )

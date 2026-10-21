@@ -26,19 +26,6 @@ steps:
     args:
       ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
     waitFor: ["-"]
-  - id: "inverse-proxy-agent"
-    name: "gcr.io/cloud-builders/docker"
-    args:
-      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "./proxy"]
-    waitFor: ["-"]
-  - id: 'buildMetadataWriter'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/metadata-writer', '-f', 'backend/metadata_writer/Dockerfile', '.']
-    waitFor: ["-"]
-  - id: 'buildMetadataEnvoy'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/metadata-envoy', '-f', 'third_party/metadata_envoy/Dockerfile', '.']
-    waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
 images:
@@ -46,7 +33,4 @@ images:
   - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/frontend"
   - "$_GCR_BASE/viewer-crd-controller"
-  - "$_GCR_BASE/inverse-proxy-agent"
-  - "$_GCR_BASE/metadata-writer"
-  - "$_GCR_BASE/metadata-envoy"
 timeout: 1800s # 30min

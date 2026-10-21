@@ -31,6 +31,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// PipelineVersionRejectedCause identifies admission denials caused by invalid PipelineVersion input.
+// Webhook dependency failures must not carry this cause.
+const PipelineVersionRejectedCause metav1.CauseType = "pipelines.kubeflow.org/PipelineVersionRejected"
+
 // PipelineVersionSpec defines the desired state of PipelineVersion.
 type PipelineVersionSpec struct {
 	Description   string `json:"description,omitempty"`

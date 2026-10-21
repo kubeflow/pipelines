@@ -86,10 +86,13 @@ type ScheduledWorkflowSpec struct {
 	// PipelineVersionId
 	PipelineVersionId string `json:"pipelineVersionId,omitempty"`
 
-	// TODO(gkcalat): consider adding PipelineVersionName to avoid confusion.
-	// Pipeline versions's Name will be required if ID is not empty.
-	// This carries the name of the pipeline version in v2beta1.
+	// PipelineName is the name of the pipeline identified by PipelineId. It is
+	// informational; the controller schedules runs by ID.
 	PipelineName string `json:"pipelineName,omitempty"`
+
+	// PipelineVersionName is the name of the pipeline version identified by
+	// PipelineVersionId. It is informational; the controller schedules runs by ID.
+	PipelineVersionName string `json:"pipelineVersionName,omitempty"`
 
 	// ServiceAccount
 	ServiceAccount string `json:"serviceAccount,omitempty"`

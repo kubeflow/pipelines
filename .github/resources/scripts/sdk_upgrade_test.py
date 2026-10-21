@@ -100,8 +100,16 @@ class SdkUpgradeTest(unittest.TestCase):
                 self.assertTrue(
                     all(executable == str(venv / 'bin/python')
                         for executable, _ in pip_commands))
-                self.assertEqual(pip_commands[1][1],
-                                 ['-m', 'pip', 'install', 'kfp'])
+                self.assertEqual(pip_commands[1][1], [
+                    '-m', 'pip', 'install', 'kfp==2.17.0',
+                    'kfp-pipeline-spec==2.17.0', 'kfp-server-api==2.17.0',
+                    'kfp-kubernetes==2.17.0'
+                ])
+                cleanup = [
+                    '-m', 'pip', 'uninstall', '-y', 'kfp-pipeline-spec',
+                    'kfp-server-api', 'kfp-kubernetes'
+                ]
+                self.assertEqual(pip_commands[3][1], cleanup)
                 upgrades = [
                     args for _, args in pip_commands
                     if '--force-reinstall' in args
@@ -114,12 +122,12 @@ class SdkUpgradeTest(unittest.TestCase):
                         if arg.endswith('.whl')
                     ],
                     [
-                        'kfp-HEAD.whl', 'kfp_pipeline_spec-HEAD.whl',
-                        'kfp_server_api-HEAD.whl'
+                        'kfp-HEAD.whl',
                     ],
                 )
                 self.assertEqual(
-                    any(args == ['-c', 'import kfp'] for _, args in commands),
+                    any(args[:1] == ['-c'] and 'from kfp import' in args[1]
+                        for _, args in commands),
                     not fail_upgrade,
                 )
                 self.assertFalse(venv.parent.exists())

@@ -13,16 +13,36 @@
 # limitations under the License.
 
 import base64
+import copy
 import hashlib
 from http.server import BaseHTTPRequestHandler
-from http.server import HTTPServer
+from http.server import ThreadingHTTPServer
 import json
 import os
+from pathlib import Path
 
-# From awscli installed in alpine/k8s image
-import botocore.session
+try:
+    import botocore.session
+except ModuleNotFoundError as error:
+    if error.name != 'botocore':
+        raise
+    # AWS CLI 1.46+ bundles botocore and registers its import alias on startup.
+    import awscli  # noqa: F401
+    import botocore.session
 
 S3_BUCKET_NAME = 'mlpipeline'
+HEALTHZ_PATH = '/healthz'
+# Argo mounts this Secret from the workflow's namespace into every agent Pod,
+# so TLS installations need a copy of the kubeflow-namespace CA per profile.
+DRIVER_AGENT_CA_SECRET_NAME = 'argo-workflows-agent-ca-certificates'
+# Metacontroller records each returned attachment in this annotation and
+# three-way merges against it on the next sync.
+LAST_APPLIED_ANNOTATION = 'metacontroller.k8s.io/last-applied-configuration'
+# Metadata worth echoing back for a Secret this controller does not rewrite.
+# Server- and Metacontroller-owned fields such as resourceVersion, uid, and
+# ownerReferences change on every write, so returning them would alter the
+# last-applied annotation each cycle and reconcile InPlace Secrets forever.
+PRESERVED_SECRET_METADATA = ('name', 'namespace', 'labels', 'annotations')
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
@@ -30,6 +50,24 @@ s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL",
                                  "http://seaweedfs.kubeflow:8333")
 s3 = session.create_client(
     's3', region_name='foobar', endpoint_url=s3_endpoint_url)
+
+
+def preserved_secret(observed):
+    """Desired state for an observed Secret that only external controllers
+    populate: its data and intentional metadata, without volatile fields."""
+    secret = copy.deepcopy(observed)
+    metadata = secret.get('metadata', {})
+    secret['metadata'] = {
+        key: metadata[key]
+        for key in PRESERVED_SECRET_METADATA
+        if key in metadata
+    }
+    annotations = secret['metadata'].get('annotations')
+    if annotations is not None:
+        annotations.pop(LAST_APPLIED_ANNOTATION, None)
+        if not annotations:
+            del secret['metadata']['annotations']
+    return secret
 
 
 def _normalize_domain(domain):
@@ -119,7 +157,8 @@ def get_settings_from_env(controller_port=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None,
-                          http_base_url=None):
+                          http_base_url=None,
+                          driver_agent_ca_cert_path=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -168,6 +207,10 @@ def get_settings_from_env(controller_port=None,
         object_store_host or \
         os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
 
+    settings["driver_agent_ca_cert_path"] = \
+        driver_agent_ca_cert_path if driver_agent_ca_cert_path is not None \
+            else os.environ.get("DRIVER_AGENT_CA_CERT_PATH", "")
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -194,8 +237,9 @@ def server_factory(frontend_image,
                    allowed_gcs_universe_domains="googleapis.com",
                    url="",
                    controller_port=8080,
-                   http_base_url=""):
-    """Returns an HTTPServer populated with Handler with customized
+                   http_base_url="",
+                   driver_agent_ca_cert_path=""):
+    """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
     class Controller(BaseHTTPRequestHandler):
@@ -263,6 +307,91 @@ def server_factory(frontend_image,
                     print(
                         f"ERROR: Failed to configure lifecycle policy: {exception}"
                     )
+
+        def executor_plugin_resources(self, namespace):
+            print('Creating executor-plugin resources for namespace:',
+                  namespace)
+            # Argo Workflow Executor Plugin Necessary Resources
+            agent_service_account_name = 'ml-pipeline-driver-agent-executor-plugin'
+            agent_secret_name = f'{agent_service_account_name}.service-account-token'
+            return [
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'ServiceAccount',
+                    'metadata': {
+                        'name': agent_service_account_name,
+                        'namespace': namespace,
+                        'labels': {
+                            'application-crd-id': 'kubeflow-pipelines'
+                        }
+                    },
+                    'secrets': [{
+                        'name': agent_secret_name
+                    }]
+                },
+                {
+                    'apiVersion': 'rbac.authorization.k8s.io/v1',
+                    'kind': 'RoleBinding',
+                    'metadata': {
+                        'name':
+                            'ml-pipeline-driver-agent-executor-plugin-binding',
+                        'namespace':
+                            namespace,
+                    },
+                    'subjects': [{
+                        'kind': 'ServiceAccount',
+                        'name': agent_service_account_name,
+                        'namespace': namespace,
+                    }],
+                    'roleRef': {
+                        'kind':
+                            'ClusterRole',
+                        'name':
+                            'ml-pipeline-driver-agent-executor-plugin-cluster-role',
+                        'apiGroup':
+                            'rbac.authorization.k8s.io',
+                    }
+                },
+                {
+                    'apiVersion': 'v1',
+                    'kind': 'Secret',
+                    'metadata': {
+                        'name': agent_secret_name,
+                        'namespace': namespace,
+                        'annotations': {
+                            'kubernetes.io/service-account.name':
+                                agent_service_account_name,
+                        },
+                    },
+                    'type': 'kubernetes.io/service-account-token',
+                },
+            ]
+
+        def driver_agent_ca_secret(self, namespace):
+            """Copy of the driver-agent CA for this namespace, or None when the
+            controller is not configured with one (non-TLS installations)."""
+            if not driver_agent_ca_cert_path:
+                return None
+            # Read on every sync rather than once at startup: the file comes
+            # from an optional Secret volume, so it may appear after this
+            # controller starts (cert-manager issuance) and changes on rotation.
+            try:
+                ca_cert = Path(driver_agent_ca_cert_path).read_bytes()
+            except FileNotFoundError:
+                return None
+            if not ca_cert:
+                return None
+            return {
+                "apiVersion": "v1",
+                "kind": "Secret",
+                "metadata": {
+                    "name": DRIVER_AGENT_CA_SECRET_NAME,
+                    "namespace": namespace,
+                },
+                "data": {
+                    "ca.crt": base64.b64encode(ca_cert).decode("utf-8"),
+                },
+            }
 
         def ensure_bucket_list_policy(self, bucket_name):
             """Bucket-wide ListBucket isolation, keyed on ${aws:username}.
@@ -380,16 +509,23 @@ def server_factory(frontend_image,
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
 
+            driver_agent_ca_secret = self.driver_agent_ca_secret(namespace)
+
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 1 and
+                    len(attachments["Secret.v1"])
+                    == (4 if driver_agent_ca_secret else 3) and
                     len(attachments["ConfigMap.v1"]) == 2 and
                     len(attachments["Deployment.apps/v1"]) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     len(attachments["Service.v1"]) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    "True" or "False"
+                    len(attachments["ServiceAccount.v1"]) == 1 and
+                    len(attachments["Role.rbac.authorization.k8s.io/v1"]) == 0
+                    and
+                    len(attachments["RoleBinding.rbac.authorization.k8s.io/v1"])
+                    == 1 and "True" or "False"
             }
 
             # Generate the desired attachment object(s).
@@ -446,7 +582,12 @@ def server_factory(frontend_image,
                 },
             ]
 
-            # Add artifact fetcher related resources if enabled
+            executor_plugin_resources = self.executor_plugin_resources(
+                namespace)
+            desired_resources.extend(executor_plugin_resources)
+            if driver_agent_ca_secret:
+                desired_resources.append(driver_agent_ca_secret)
+
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
                     {
@@ -539,6 +680,21 @@ def server_factory(frontend_image,
                         }
                     },
                 ])
+            desired_resources.extend([
+                {
+                    "apiVersion": "v1",
+                    "kind": "Secret",
+                    "metadata": {
+                        "name": "default-editor.service-account-token",
+                        "namespace": namespace,
+                        "annotations": {
+                            "kubernetes.io/service-account.name":
+                                "default-editor"
+                        }
+                    },
+                    "type": "kubernetes.io/service-account-token"
+                },
+            ])
 
             print('Received request:\n', json.dumps(parent, sort_keys=True))
             print('Desired resources except secrets:\n',
@@ -607,7 +763,38 @@ def server_factory(frontend_image,
                         },
                     })
 
+            # Only the CA rotates in place; retain observed credentials and
+            # service-account tokens, including controller-populated fields,
+            # but not the volatile metadata that would never converge.
+            for index, resource in enumerate(desired_resources):
+                name = resource["metadata"]["name"]
+                if (resource["kind"] == "Secret" and
+                        name != DRIVER_AGENT_CA_SECRET_NAME):
+                    existing = attachments["Secret.v1"].get(
+                        f"{namespace}/{name}")
+                    if existing:
+                        desired_resources[index] = preserved_secret(existing)
+
             return {"status": desired_status, "attachments": desired_resources}
+
+        def do_GET(self):
+            # Liveness/readiness endpoint; must not call external services.
+            if self.path.split("?", 1)[0] == HEALTHZ_PATH:
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"ok")
+            else:
+                self.send_error(404)
+
+        def log_request(self, code="-", size="-"):
+            # Skip probe requests so they don't flood the controller logs.
+            # Malformed requests are logged before `command`/`path` are set.
+            is_probe = (
+                getattr(self, "command", None) == "GET" and
+                getattr(self, "path", "").split("?", 1)[0] == HEALTHZ_PATH)
+            if not is_probe:
+                super().log_request(code, size)
 
         def do_POST(self):
             # Serve the sync() function as a JSON webhook.
@@ -620,7 +807,7 @@ def server_factory(frontend_image,
             self.end_headers()
             self.wfile.write(bytes(json.dumps(desired), 'utf-8'))
 
-    return HTTPServer((url, int(controller_port)), Controller)
+    return ThreadingHTTPServer((url, int(controller_port)), Controller)
 
 
 if __name__ == "__main__":

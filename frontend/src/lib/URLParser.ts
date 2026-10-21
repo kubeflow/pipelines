@@ -55,13 +55,10 @@ export class URLParser {
 
   // TODO: create interface for this param.
   public build(searchTerms?: { [param: string]: string }): string {
-    const obj = searchTerms || {};
-    return (
-      '?' +
-      Object.keys(obj)
-        .map((k) => k + '=' + obj[k])
-        .join('&')
-    );
+    if (!searchTerms || Object.keys(searchTerms).length === 0) {
+      return '';
+    }
+    return '?' + new URLSearchParams(searchTerms).toString();
   }
 
   private _update(replace = true): void {

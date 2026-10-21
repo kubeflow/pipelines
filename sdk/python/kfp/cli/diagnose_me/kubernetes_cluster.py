@@ -82,14 +82,14 @@ def get_kubectl_configuration(
           current env including current_context.
         - PODS: returns all pods and their status details.
         - PVCS: returns all PersistentVolumeClaim and their status details.
-        - SECRETS: returns all accessible k8 secrests.
+        - SECRETS: returns all accessible k8 secrets.
         - PVS: returns all PersistentVolume and their status details.
         - SERVICES: returns all services and their status details.
       kubernetes_context: Context to use to retrieve cluster specific commands, if
         set to None calls will rely on current_context configured.
-      namespace: default name space to be used for the commaand, if not specifeid
+      namespace: default name space to be used for the command, if not specified
         --all-namespaces will be used.
-      human_readable: If true all output will be in human readable form insted of
+      human_readable: If true all output will be in human readable form instead of
         Json.
 
     Returns:
@@ -114,7 +114,7 @@ def get_kubectl_configuration(
 
 
 def _get_kfp_runtime() -> Text:
-    """Captures the current version of kpf in k8 cluster.
+    """Captures the current version of kfp in k8 cluster.
 
     Returns:
       Returns the run-time version of kfp in as a string.

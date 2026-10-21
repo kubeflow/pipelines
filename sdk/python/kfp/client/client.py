@@ -36,7 +36,7 @@ from kfp.client import set_volume_credentials
 from kfp.client.token_credentials_base import TokenCredentialsBase
 from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
-import kfp_server_api
+import kfp.server_api
 import yaml
 
 # Operators on scalar values. Only applies to one of |int_value|,
@@ -79,14 +79,14 @@ class _PipelineDoc:
 @dataclasses.dataclass
 class _JobConfig:
     pipeline_spec: dict
-    pipeline_version_reference: kfp_server_api.V2beta1PipelineVersionReference
-    runtime_config: kfp_server_api.V2beta1RuntimeConfig
+    pipeline_version_reference: kfp.server_api.V2PipelineVersionReference
+    runtime_config: kfp.server_api.V2RuntimeConfig
 
 
 class RunPipelineResult:
 
     def __init__(self, client: 'Client',
-                 run_info: kfp_server_api.V2beta1Run) -> None:
+                 run_info: kfp.server_api.V2Run) -> None:
         self._client = client
         self.run_info = run_info
         self.run_id = run_info.run_id
@@ -158,8 +158,8 @@ class Client:
     ) -> None:
         """Create a new instance of kfp client."""
         warnings.warn(
-            'This client only works with Kubeflow Pipeline v2.0.0-beta.2 '
-            'and later versions.',
+            'This client requires a Kubeflow Pipelines backend that exposes '
+            'the v2 pipeline runtime. The SDK uses /apis/v2beta1 for server compatibility.',
             category=FutureWarning)
 
         host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
@@ -187,21 +187,21 @@ class Client:
         self._existing_config = config
         if cookies is None:
             cookies = self._context_setting.get('client_authentication_cookie')
-        api_client = kfp_server_api.ApiClient(
+        api_client = kfp.server_api.ApiClient(
             config,
             cookie=cookies,
             header_name=self._context_setting.get(
                 'client_authentication_header_name'),
             header_value=self._context_setting.get(
                 'client_authentication_header_value'))
-        _add_generated_apis(self, kfp_server_api, api_client)
-        self._recurring_run_api = kfp_server_api.RecurringRunServiceApi(
+        _add_generated_apis(self, kfp.server_api, api_client)
+        self._recurring_run_api = kfp.server_api.RecurringRunServiceApi(
             api_client)
-        self._run_api = kfp_server_api.RunServiceApi(api_client)
-        self._experiment_api = kfp_server_api.ExperimentServiceApi(api_client)
-        self._pipelines_api = kfp_server_api.PipelineServiceApi(api_client)
-        self._upload_api = kfp_server_api.PipelineUploadServiceApi(api_client)
-        self._healthz_api = kfp_server_api.HealthzServiceApi(api_client)
+        self._run_api = kfp.server_api.RunServiceApi(api_client)
+        self._experiment_api = kfp.server_api.ExperimentServiceApi(api_client)
+        self._pipelines_api = kfp.server_api.PipelineServiceApi(api_client)
+        self._upload_api = kfp.server_api.PipelineUploadServiceApi(api_client)
+        self._healthz_api = kfp.server_api.HealthzServiceApi(api_client)
         if not self._context_setting['namespace'] and self.get_kfp_healthz(
         ).multi_user is True:
             try:
@@ -225,8 +225,8 @@ class Client:
         kube_context: Optional[str],
         credentials: Optional[TokenCredentialsBase],
         verify_ssl: Optional[bool],
-    ) -> kfp_server_api.Configuration:
-        config = kfp_server_api.Configuration()
+    ) -> kfp.server_api.Configuration:
+        config = kfp.server_api.Configuration()
         self._uses_gcp_credentials = False
 
         if proxy:
@@ -329,6 +329,22 @@ class Client:
                 e)
             return config
 
+        if 'BearerToken' in config.api_key:
+            # Kubernetes 36.0.1 renamed the key used by its kubeconfig loader.
+            # Keep the generated KFP client's authorization key synchronized,
+            # including after the loader replaces its own refresh hook.
+            refresh_api_key_hook = config.refresh_api_key_hook
+
+            def refresh_kube_config(configuration):
+                if refresh_api_key_hook is not None:
+                    refresh_api_key_hook(configuration)
+                configuration.api_key['authorization'] = (
+                    configuration.api_key['BearerToken'])
+                configuration.refresh_api_key_hook = refresh_kube_config
+
+            config.api_key['authorization'] = config.api_key['BearerToken']
+            config.refresh_api_key_hook = refresh_kube_config
+
         if config.host:
             config.host = config.host + '/' + Client._KUBE_PROXY_PATH.format(
                 namespace)
@@ -386,8 +402,8 @@ class Client:
         return False
 
     def _get_config_with_default_credentials(
-            self, config: kfp_server_api.Configuration
-    ) -> kfp_server_api.Configuration:
+            self, config: kfp.server_api.Configuration
+    ) -> kfp.server_api.Configuration:
         """Apply default credentials to the configuration object.
 
         This method accepts a Configuration object and extends it with
@@ -415,7 +431,7 @@ class Client:
         return config
 
     def set_user_namespace(self, namespace: str) -> None:
-        """Sets the namespace in the Kuberenetes cluster to use.
+        """Sets the namespace in the Kubernetes cluster to use.
 
         This function should only be used when Kubeflow Pipelines is in the
         multi-user mode.
@@ -432,7 +448,7 @@ class Client:
     def get_kfp_healthz(
         self,
         sleep_duration: int = 5,
-    ) -> kfp_server_api.V2beta1GetHealthzResponse:
+    ) -> kfp.server_api.V2GetHealthzResponse:
         """Gets healthz info for KFP deployment.
 
         Args:
@@ -455,7 +471,12 @@ class Client:
                 return self._healthz_api.healthz_service_get_healthz()
             # ApiException, including network errors, is the only type that may
             # recover after retry.
-            except kfp_server_api.ApiException:
+            except kfp.server_api.ApiException as error:
+                if error.status == 404:
+                    raise RuntimeError(
+                        'Backend does not expose /apis/v2beta1/healthz (HTTP 404). '
+                        'Verify the client host/base path and that the backend '
+                        'supports the v2beta1 API.') from error
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
                     f'Failed to get healthz info attempt {count} of {max_attempts}.'
@@ -476,7 +497,7 @@ class Client:
         name: str,
         description: str = None,
         namespace: str = None,
-    ) -> kfp_server_api.V2beta1Experiment:
+    ) -> kfp.server_api.V2Experiment:
         """Creates a new experiment.
 
         Args:
@@ -485,7 +506,7 @@ class Client:
             namespace: Kubernetes namespace to use. Used for multi-user deployments. For single-user deployments, this should be left as ``None``.
 
         Returns:
-            ``V2beta1Experiment`` object.
+            ``V2Experiment`` object.
         """
         namespace = namespace or self.get_user_namespace()
         experiment = None
@@ -500,7 +521,7 @@ class Client:
         if not experiment:
             logging.info(f'Creating experiment {name}.')
 
-            experiment = kfp_server_api.V2beta1Experiment(
+            experiment = kfp.server_api.V2Experiment(
                 display_name=name,
                 description=description,
                 namespace=namespace,
@@ -559,7 +580,7 @@ class Client:
         sort_by: str = '',
         namespace: Optional[str] = None,
         filter: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1ListExperimentsResponse:
+    ) -> kfp.server_api.V2ListExperimentsResponse:
         """Lists experiments.
 
         Args:
@@ -581,7 +602,7 @@ class Client:
                     })
 
         Returns:
-            ``V2beta1ListExperimentsResponse`` object.
+            ``V2ListExperimentsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
         return self._experiment_api.experiment_service_list_experiments(
@@ -597,7 +618,7 @@ class Client:
         experiment_id: Optional[str] = None,
         experiment_name: Optional[str] = None,
         namespace: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1Experiment:
+    ) -> kfp.server_api.V2Experiment:
         """Gets details of an experiment.
 
         Either ``experiment_id`` or ``experiment_name`` is required.
@@ -609,7 +630,7 @@ class Client:
                 For single-user deployments, this should be left as ``None``.
 
         Returns:
-            ``V2beta1Experiment`` object.
+            ``V2Experiment`` object.
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is None and experiment_name is None:
@@ -682,7 +703,7 @@ class Client:
         sort_by: str = '',
         filter: Optional[str] = None,
         namespace: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1ListPipelinesResponse:
+    ) -> kfp.server_api.V2ListPipelinesResponse:
         """Lists pipelines.
 
         Args:
@@ -703,7 +724,7 @@ class Client:
                     })
 
         Returns:
-            ``V2beta1ListPipelinesResponse`` object.
+            ``V2ListPipelinesResponse`` object.
         """
         return self._pipelines_api.pipeline_service_list_pipelines(
             namespace=namespace,
@@ -715,8 +736,8 @@ class Client:
     # TODO: provide default namespace, similar to kubectl default namespaces.
     def run_pipeline(
         self,
-        experiment_id: str,
-        job_name: str,
+        experiment_id: Optional[str] = None,
+        job_name: Optional[str] = None,
         pipeline_package_path: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
         pipeline_id: Optional[str] = None,
@@ -725,12 +746,14 @@ class Client:
         enable_caching: Optional[bool] = None,
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1Run:
+        namespace: Optional[str] = None,
+    ) -> kfp.server_api.V2Run:
         """Runs a specified pipeline.
 
         Args:
-            experiment_id: ID of an experiment.
-            job_name: Name of the job.
+            experiment_id: ID of an experiment. If not set, the run is
+                placed in the default experiment of ``namespace``.
+            job_name: Name of the job. Required.
             pipeline_package_path: Local path of the pipeline package (the
                 filename should end with one of the following .tar.gz, .tgz,
                 .zip, .json).
@@ -738,7 +761,7 @@ class Client:
             pipeline_id: ID of the pipeline.
             version_id: ID of the pipeline version to run.
                 If both pipeline_id and version_id are specified, version_id
-                will take precendence.
+                will take precedence.
                 If only pipeline_id is specified, the default version of this
                 pipeline is used to create the run.
             pipeline_root: Root path of the pipeline outputs.
@@ -753,10 +776,15 @@ class Client:
                 task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
+            namespace: Kubernetes namespace to place the run in when
+                ``experiment_id`` is not set. Required in multi-user mode.
 
         Returns:
-            ``V2beta1Run`` object.
+            ``V2Run`` object.
         """
+        if not job_name:
+            raise ValueError('job_name is required.')
+
         job_config = self._create_job_config(
             params=params,
             pipeline_package_path=pipeline_package_path,
@@ -767,8 +795,9 @@ class Client:
             pipeline_root=pipeline_root,
         )
 
-        run_body = kfp_server_api.V2beta1Run(
+        run_body = kfp.server_api.V2Run(
             experiment_id=experiment_id,
+            namespace=namespace,
             display_name=job_name,
             pipeline_spec=job_config.pipeline_spec,
             pipeline_version_reference=job_config.pipeline_version_reference,
@@ -833,8 +862,8 @@ class Client:
 
     def create_recurring_run(
         self,
-        experiment_id: str,
-        job_name: str,
+        experiment_id: Optional[str] = None,
+        job_name: Optional[str] = None,
         description: Optional[str] = None,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
@@ -851,12 +880,14 @@ class Client:
         enable_caching: Optional[bool] = None,
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1RecurringRun:
+        namespace: Optional[str] = None,
+    ) -> kfp.server_api.V2RecurringRun:
         """Creates a recurring run.
 
         Args:
-            experiment_id: ID of the experiment.
-            job_name: Name of the job.
+            experiment_id: ID of the experiment. If not set, the recurring
+                run is placed in the default experiment of ``namespace``.
+            job_name: Name of the job. Required.
             description: Description of the job.
             start_time: RFC3339 time string of the time when to start the
                 job.
@@ -900,9 +931,13 @@ class Client:
                 task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account this recurring run uses.
+            namespace: Kubernetes namespace to place the recurring run in when
+                ``experiment_id`` is not set. Required in multi-user mode.
         Returns:
-            ``V2beta1RecurringRun`` object.
+            ``V2RecurringRun`` object.
         """
+        if not job_name:
+            raise ValueError('job_name is required.')
 
         job_config = self._create_job_config(
             params=params,
@@ -919,24 +954,25 @@ class Client:
             raise ValueError(
                 'Either interval_second or cron_expression is required.')
         if interval_second is not None:
-            trigger = kfp_server_api.V2beta1Trigger(
-                periodic_schedule=kfp_server_api.V2beta1PeriodicSchedule(
+            trigger = kfp.server_api.V2Trigger(
+                periodic_schedule=kfp.server_api.V2PeriodicSchedule(
                     start_time=start_time,
                     end_time=end_time,
                     interval_second=interval_second))
         if cron_expression is not None:
-            trigger = kfp_server_api.V2beta1Trigger(
-                cron_schedule=kfp_server_api.V2beta1CronSchedule(
+            trigger = kfp.server_api.V2Trigger(
+                cron_schedule=kfp.server_api.V2CronSchedule(
                     start_time=start_time,
                     end_time=end_time,
                     cron=cron_expression))
 
-        mode = kfp_server_api.RecurringRunMode.DISABLE
+        mode = kfp.server_api.RecurringRunMode.DISABLE
         if enabled:
-            mode = kfp_server_api.RecurringRunMode.ENABLE
+            mode = kfp.server_api.RecurringRunMode.ENABLE
 
-        job_body = kfp_server_api.V2beta1RecurringRun(
+        job_body = kfp.server_api.V2RecurringRun(
             experiment_id=experiment_id,
+            namespace=namespace,
             mode=mode,
             pipeline_spec=job_config.pipeline_spec,
             pipeline_version_reference=job_config.pipeline_version_reference,
@@ -992,11 +1028,10 @@ class Client:
         from_template = pipeline_id is not None or version_id is not None
         if from_spec == from_template:
             raise ValueError(
-                'Must specify either `pipeline_pacakge_path` or both `pipeline_id` and `version_id`.'
-            )
-        if (pipeline_id is None) != (version_id is None):
+                'Must specify either `pipeline_package_path` or `pipeline_id`.')
+        if version_id is not None and pipeline_id is None:
             raise ValueError(
-                'To run a pipeline from an existing template, both `pipeline_id` and `version_id` are required.'
+                'To run a specific pipeline version, `pipeline_id` is also required.'
             )
 
         if params is None:
@@ -1014,11 +1049,13 @@ class Client:
             pipeline_spec = pipeline_doc.to_dict()
 
         pipeline_version_reference = None
-        if pipeline_id is not None and version_id is not None:
-            pipeline_version_reference = kfp_server_api.V2beta1PipelineVersionReference(
+        if pipeline_id is not None:
+            # version_id is optional: the server resolves the pipeline's default
+            # version when it is omitted.
+            pipeline_version_reference = kfp.server_api.V2PipelineVersionReference(
                 pipeline_id=pipeline_id, pipeline_version_id=version_id)
 
-        runtime_config = kfp_server_api.V2beta1RuntimeConfig(
+        runtime_config = kfp.server_api.V2RuntimeConfig(
             pipeline_root=pipeline_root,
             parameters=params,
         )
@@ -1070,7 +1107,7 @@ class Client:
         Returns:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
-        #TODO: Check arguments against the pipeline function
+        # TODO: Check arguments against the pipeline function
         pipeline_name = pipeline_func.name
         run_name = run_name or pipeline_name + ' ' + datetime.datetime.now(
         ).strftime('%Y-%m-%d %H-%M-%S')
@@ -1138,7 +1175,7 @@ class Client:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
 
-        #TODO: Check arguments against the pipeline function
+        # TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)
 
         if (experiment_name is not None) and (experiment_id is not None):
@@ -1267,7 +1304,7 @@ class Client:
         experiment_id: Optional[str] = None,
         namespace: Optional[str] = None,
         filter: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1ListRunsResponse:
+    ) -> kfp.server_api.V2ListRunsResponse:
         """List runs.
 
         Args:
@@ -1290,7 +1327,7 @@ class Client:
                     })
 
           Returns:
-            ``V2beta1ListRunsResponse`` object.
+            ``V2ListRunsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
@@ -1324,7 +1361,7 @@ class Client:
         experiment_id: Optional[str] = None,
         namespace: Optional[str] = None,
         filter: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1ListRecurringRunsResponse:
+    ) -> kfp.server_api.V2ListRecurringRunsResponse:
         """Lists recurring runs.
 
         Args:
@@ -1347,7 +1384,7 @@ class Client:
                     })
 
         Returns:
-            ``V2beta1ListRecurringRunsResponse`` object.
+            ``V2ListRecurringRunsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
@@ -1377,7 +1414,7 @@ class Client:
         self,
         recurring_run_id: str,
         job_id: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1RecurringRun:
+    ) -> kfp.server_api.V2RecurringRun:
         """Gets recurring run details.
 
         Args:
@@ -1385,7 +1422,7 @@ class Client:
             job_id: Deprecated. Use `recurring_run_id` instead.
 
         Returns:
-            ``V2beta1RecurringRun`` object.
+            ``V2RecurringRun`` object.
         """
         if job_id is not None:
             warnings.warn(
@@ -1397,14 +1434,14 @@ class Client:
         return self._recurring_run_api.recurring_run_service_get_recurring_run(
             recurring_run_id=recurring_run_id)
 
-    def get_run(self, run_id: str) -> kfp_server_api.V2beta1Run:
+    def get_run(self, run_id: str) -> kfp.server_api.V2Run:
         """Gets run details.
 
         Args:
             run_id: ID of the run.
 
         Returns:
-            ``V2beta1Run`` object.
+            ``V2Run`` object.
         """
         return self._run_api.run_service_get_run(run_id=run_id)
 
@@ -1413,7 +1450,7 @@ class Client:
         run_id: str,
         timeout: int,
         sleep_duration: int = 5,
-    ) -> kfp_server_api.V2beta1Run:
+    ) -> kfp.server_api.V2Run:
         """Waits for a run to complete.
 
         Args:
@@ -1422,7 +1459,7 @@ class Client:
             sleep_duration: Time in seconds between retries.
 
         Returns:
-            ``V2beta1Run`` object.
+            ``V2Run`` object.
         """
         state = 'Running:'
         start_time = datetime.datetime.now()
@@ -1435,7 +1472,7 @@ class Client:
                 get_run_response = self._run_api.run_service_get_run(
                     run_id=run_id)
                 is_valid_token = True
-            except kfp_server_api.ApiException as api_ex:
+            except kfp.server_api.ApiException as api_ex:
                 # if the token is valid but receiving 401 Unauthorized error
                 # then refresh the token
                 if is_valid_token and api_ex.status == 401:
@@ -1461,7 +1498,7 @@ class Client:
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
         namespace: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1Pipeline:
+    ) -> kfp.server_api.V2Pipeline:
         """Uploads a pipeline.
 
         Args:
@@ -1476,7 +1513,7 @@ class Client:
                 mode, leave it as None.
 
         Returns:
-            ``V2beta1Pipeline`` object.
+            ``V2Pipeline`` object.
         """
         if pipeline_name is None:
             pipeline_doc = _extract_pipeline_yaml(pipeline_package_path)
@@ -1503,7 +1540,7 @@ class Client:
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
         namespace: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1Pipeline:
+    ) -> kfp.server_api.V2Pipeline:
         """Uploads a pipeline from a pipeline_func.
 
         Args:
@@ -1518,7 +1555,7 @@ class Client:
                 mode, leave it as None.
 
         Returns:
-            ``V2beta1Pipeline`` object.
+            ``V2Pipeline`` object.
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
@@ -1541,7 +1578,7 @@ class Client:
         pipeline_id: Optional[str] = None,
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1PipelineVersion:
+    ) -> kfp.server_api.V2PipelineVersion:
         """Uploads a new version of the pipeline.
 
         The version inherits its parent pipeline namespace, including shared
@@ -1557,7 +1594,7 @@ class Client:
             description: Description of the pipeline version to show in the UI.
 
         Returns:
-            ``V2beta1PipelineVersion`` object.
+            ``V2PipelineVersion`` object.
         """
 
         if all([pipeline_id, pipeline_name
@@ -1594,7 +1631,7 @@ class Client:
         pipeline_id: Optional[str] = None,
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1PipelineVersion:
+    ) -> kfp.server_api.V2PipelineVersion:
         """Uploads a new version of the pipeline.
 
         Args:
@@ -1606,7 +1643,7 @@ class Client:
             description: Description of the pipeline version to show in the UI.
 
         Returns:
-            ``V2beta1PipelineVersion`` object.
+            ``V2PipelineVersion`` object.
         """
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1624,14 +1661,14 @@ class Client:
                 description=description,
             )
 
-    def get_pipeline(self, pipeline_id: str) -> kfp_server_api.V2beta1Pipeline:
+    def get_pipeline(self, pipeline_id: str) -> kfp.server_api.V2Pipeline:
         """Gets pipeline details.
 
         Args:
             pipeline_id: ID of the pipeline.
 
         Returns:
-            ``V2beta1Pipeline`` object.
+            ``V2Pipeline`` object.
         """
         return self._pipelines_api.pipeline_service_get_pipeline(
             pipeline_id=pipeline_id)
@@ -1655,7 +1692,7 @@ class Client:
         page_size: int = 10,
         sort_by: str = '',
         filter: Optional[str] = None,
-    ) -> kfp_server_api.V2beta1ListPipelineVersionsResponse:
+    ) -> kfp.server_api.V2ListPipelineVersionsResponse:
         """Lists pipeline versions.
 
         Args:
@@ -1677,7 +1714,7 @@ class Client:
                     })
 
         Returns:
-            ``V2beta1ListPipelineVersionsResponse`` object.
+            ``V2ListPipelineVersionsResponse`` object.
         """
 
         return self._pipelines_api.pipeline_service_list_pipeline_versions(
@@ -1691,7 +1728,7 @@ class Client:
         self,
         pipeline_id: str,
         pipeline_version_id: str,
-    ) -> kfp_server_api.V2beta1PipelineVersion:
+    ) -> kfp.server_api.V2PipelineVersion:
         """Gets a pipeline version.
 
         Args:
@@ -1699,7 +1736,7 @@ class Client:
             pipeline_version_id: ID of the pipeline version.
 
         Returns:
-            ``V2beta1PipelineVersion`` object.
+            ``V2PipelineVersion`` object.
         """
         return self._pipelines_api.pipeline_service_get_pipeline_version(
             pipeline_id=pipeline_id,
@@ -1729,7 +1766,7 @@ class Client:
 def _add_generated_apis(
     target_struct: Any,
     api_module: ModuleType,
-    api_client: kfp_server_api.ApiClient,
+    api_client: kfp.server_api.ApiClient,
 ) -> None:
     """Initializes a hierarchical API object based on the generated API module.
 

@@ -37,7 +37,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/webhook"
+	_ "github.com/kubeflow/pipelines/backend/src/common/dbcreds/all"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -95,6 +96,8 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
+	ExportTransfer        http.HandlerFunc
+	ImportTransfer        http.HandlerFunc
 	UploadPipeline        http.HandlerFunc
 	UploadPipelineVersion http.HandlerFunc
 	ReadRunLog            http.HandlerFunc
@@ -309,7 +312,7 @@ func main() {
 	}
 
 	if !common.IsMultiUserMode() {
-		_, err = resourceManager.CreateDefaultExperiment("")
+		_, err = resourceManager.CreateDefaultExperiment(context.Background(), "")
 		if err != nil {
 			glog.Fatalf("Failed to create default experiment. Err: %v", err)
 		}
@@ -428,9 +431,9 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 // isPipelineUpdatePath returns true if the URL path matches a pipeline or
 // pipeline version update endpoint.
 func isPipelineUpdatePath(path string) bool {
-	// v2beta1 UpdatePipeline:        PATCH /apis/v2beta1/pipelines/{pipeline_id}
-	// v2beta1 UpdatePipelineVersion: PATCH /apis/v2beta1/pipelines/{pipeline_id}/versions/{version_id}
-	return strings.HasPrefix(path, "/apis/v2beta1/pipelines/")
+	// v2 UpdatePipeline:        PATCH /apis/v2/pipelines/{pipeline_id}
+	// v2 UpdatePipelineVersion: PATCH /apis/v2/pipelines/{pipeline_id}/versions/{version_id}
+	return strings.HasPrefix(path, canonicalAPIPath+"/pipelines/")
 }
 
 func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Config) {
@@ -505,7 +508,10 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
 
+	transferServer := server.NewTransferServer(resourceManager)
 	handlerDeps := HTTPRouterDeps{
+		ExportTransfer:        transferServer.Export,
+		ImportTransfer:        transferServer.Import,
 		UploadPipeline:        sharedPipelineUploadServer.UploadPipeline,
 		UploadPipelineVersion: sharedPipelineUploadServer.UploadPipelineVersion,
 		ReadRunLog:            runLogServer.ReadRunLog,
@@ -566,22 +572,32 @@ func newHealthzResponse(pipelineStore string) healthzResponse {
 // registered. It does not start a listener, making it testable in isolation.
 func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string) *mux.Router {
 	topMux := mux.NewRouter()
+	// Keep legacy routing ahead of the gateway fallback and re-enter the
+	// canonical router so all dedicated handlers and middleware are shared.
+	topMux.PathPrefix(legacyAPIPath + "/").Handler(legacyAPIHandler(topMux))
+	topMux.Path(legacyAPIPath).Handler(legacyAPIHandler(topMux))
+	if handlerDeps.ExportTransfer != nil {
+		topMux.HandleFunc(canonicalAPIPath+"/transfer/export", handlerDeps.ExportTransfer)
+	}
+	if handlerDeps.ImportTransfer != nil {
+		topMux.HandleFunc(canonicalAPIPath+"/transfer/import", handlerDeps.ImportTransfer)
+	}
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
-	// API v2beta1
-	topMux.HandleFunc("/apis/v2beta1/pipelines/upload", handlerDeps.UploadPipeline)
-	topMux.HandleFunc("/apis/v2beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
-	topMux.HandleFunc("/apis/v2beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
+	// API v2
+	topMux.HandleFunc(canonicalAPIPath+"/pipelines/upload", handlerDeps.UploadPipeline)
+	topMux.HandleFunc(canonicalAPIPath+"/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
+	topMux.HandleFunc(canonicalAPIPath+"/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSONResponse(w, newHealthzResponse(pipelineStore))
 	})
 
 	// log streaming is provided via HTTP.
-	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLog).Methods(http.MethodGet)
+	topMux.HandleFunc(canonicalAPIPath+"/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLog).Methods(http.MethodGet)
 
 	// Artifact reading endpoints (implemented with streaming for memory efficiency)
-	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
+	topMux.HandleFunc(canonicalAPIPath+"/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
 
 	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
 
@@ -710,6 +726,9 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
+	if err := validateServiceAccountAuthorizationMode(); err != nil {
+		return err
+	}
 	if err := common.InitializeWorkflowIdentityMode(); err != nil {
 		return err
 	}
@@ -726,15 +745,17 @@ func initConfig() error {
 		if _, err := common.GetPluginLimitsConfig(); err != nil {
 			glog.Fatalf("Invalid plugin limits configuration: %v", err)
 		}
+		if err := validateServiceAccountAuthorizationMode(); err != nil {
+			glog.Fatalf("Invalid service-account authorization configuration: %v", err)
+		}
+		if err := common.ValidateDriverPodMetadataConfig(); err != nil {
+			glog.Fatalf("Invalid driver Pod metadata configuration: %v", err)
+		}
 	})
 
 	proxy.InitializeConfigWithEnv()
 
-	// Initialize driver pod configuration after Viper config is loaded.
-	// This loads and caches the configuration to catch errors at startup.
-	// Note: driver pod config is intentionally NOT reloaded on config file change;
-	// an API server restart is required for changes to take effect.
-	if err := common.InitDriverPodConfig(); err != nil {
+	if err := common.ValidateDriverPodMetadataConfig(); err != nil {
 		return fmt.Errorf("driver pod config: %w", err)
 	}
 	return nil
@@ -809,21 +830,33 @@ func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManag
 
 	ArtifactServer := server.NewArtifactServer(resourceManager)
 
-	apiv2beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
-	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
-	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
-	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
-	apiv2beta1.RegisterRunServiceServer(s, RunServer)
-	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
-	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
+	registrar := compatibleServiceRegistrar{ServiceRegistrar: s}
+	apiv2.RegisterAuthServiceServer(registrar, server.NewAuthServer(resourceManager))
+	apiv2.RegisterExperimentServiceServer(registrar, ExperimentServer)
+	apiv2.RegisterPipelineServiceServer(registrar, PipelineServer)
+	apiv2.RegisterRecurringRunServiceServer(registrar, JobServer)
+	apiv2.RegisterRunServiceServer(registrar, RunServer)
+	apiv2.RegisterReportServiceServer(registrar, ReportServer)
+	apiv2.RegisterArtifactServiceServer(registrar, ArtifactServer)
 }
 
 func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, string)) {
-	register(apiv2beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
-	register(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
-	register(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
-	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
-	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
-	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
-	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
+	register(apiv2.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
+	register(apiv2.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
+	register(apiv2.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
+	register(apiv2.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
+	register(apiv2.RegisterRunServiceHandlerFromEndpoint, "RunService")
+	register(apiv2.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv2.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
+}
+
+func validateServiceAccountAuthorizationMode() error {
+	mode, err := common.GetServiceAccountAuthorizationMode()
+	if err != nil {
+		return err
+	}
+	if mode == "audit" {
+		glog.Warning("KFP_SECURITY_SERVICE_ACCOUNT_MODE=audit: service-account policy denials are allowed; this restores the security exposure addressed by service-account authorization. Migrate to enforce before 3.0.0, when audit mode is planned for removal (https://github.com/kubeflow/pipelines/issues/14367).")
+	}
+	return nil
 }

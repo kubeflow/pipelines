@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Tests for the kfpr CLI."""
 
+import contextlib
 from pathlib import Path
 import re
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest import mock
 
 from kfpr import core
 from kfpr import steps
@@ -69,15 +71,14 @@ class PackageImportTest(unittest.TestCase):
         text = workflow.read_text()
         self.assertLess(
             text.index('name: Install Test dependencies'),
-            text.index('name: Build & install kfp-server-api dist'),
+            text.index('name: Build and install the unified SDK'),
         )
 
     def test_readthedocs_ci_uses_nested_run_step_command(self):
         workflow = Path(
             __file__).parents[2] / '.github/workflows/readthedocs-builds.yml'
         workflow_text = workflow.read_text()
-        self.assertIn('kfpr run create-kfp-kubernetes-docs-branch',
-                      workflow_text)
+        self.assertIn('kfpr run create-sdk-tag', workflow_text)
         self.assertIn('uv run --with-editable ./release kfpr run',
                       workflow_text)
         self.assertIn('uv run --with-editable ./release python -m unittest',
@@ -87,12 +88,96 @@ class PackageImportTest(unittest.TestCase):
         guide = Path(
             __file__).parents[2] / 'kubernetes_platform/python/RELEASE.md'
         guide_text = guide.read_text()
-        self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', guide_text)
-        self.assertIn('--done', guide_text)
-        self.assertNotIn('--mark-done', guide_text)
+        self.assertIn('single `kfp` distribution', guide_text)
+        self.assertIn('release/README.md', guide_text)
+        self.assertNotIn('source release.sh', guide_text)
 
 
 class CliTest(unittest.TestCase):
+
+    def test_docs_step_preserves_dirty_checkout_and_checkpoint(self) -> None:
+        """Exercise the CLI guard with real staged and unstaged Git changes."""
+        for consolidated, dry_run in ((False, False), (True, False), (False,
+                                                                      True)):
+            with self.subTest(consolidated=consolidated, dry_run=dry_run), \
+                    TemporaryDirectory() as directory:
+                root = Path(directory) / 'repo'
+                root.mkdir()
+                state_file = Path(directory) / 'state.json'
+
+                def git(*arguments: str) -> str:
+                    return subprocess.check_output(['git', *arguments],
+                                                   cwd=root,
+                                                   text=True)
+
+                git('init', '--quiet')
+                (root / '.readthedocs.yml').write_text('original docs\n')
+                (root / 'unrelated.txt').write_text('original work\n')
+                (root / 'kubernetes_platform').mkdir()
+                gitignore = root / 'kubernetes_platform/.gitignore'
+                gitignore.write_text('build\n')
+                git('add', '.')
+                git('-c', 'user.name=Release test', '-c',
+                    'user.email=release@example.invalid', '-c',
+                    'commit.gpgsign=false', 'commit', '--quiet', '-m',
+                    'fixture')
+                (root / '.readthedocs.yml').write_text('uncommitted docs\n')
+                (root / 'unrelated.txt').write_text('staged work\n')
+                git('add', 'unrelated.txt')
+                before = (
+                    git('rev-parse', 'HEAD'),
+                    git('symbolic-ref', 'HEAD'),
+                    git('status', '--short'),
+                    git('diff', '--cached'),
+                )
+                arguments = [
+                    'run',
+                    'create-kfp-kubernetes-docs-branch',
+                    '--release-type',
+                    'patch',
+                    '--version',
+                    '2.18.1',
+                    '--fork-remote',
+                    'testuser',
+                    '--state-file',
+                    str(state_file),
+                    '--done',
+                ]
+                if dry_run:
+                    arguments.append('--dry-run')
+                with mock.patch.object(
+                        steps, '_sdk_release_is_consolidated',
+                        return_value=consolidated) as layout, \
+                        mock.patch.object(
+                            core.CommandRunner, 'run',
+                            side_effect=AssertionError('Unexpected branch operation')
+                        ) as operation, contextlib.chdir(root):
+                    result = CliRunner().invoke(app, arguments)
+
+                operation.assert_not_called()
+                if not consolidated and not dry_run:
+                    self.assertNotEqual(result.exit_code, 0)
+                    self.assertIsInstance(result.exception, RuntimeError)
+                    self.assertIn('working tree is dirty',
+                                  str(result.exception))
+                else:
+                    self.assertEqual(result.exit_code, 0, result.exception)
+                self.assertEqual(layout.call_count, 0 if dry_run else 1)
+                self.assertEqual(
+                    ReleaseState.load(state_file).is_done(
+                        'create-kfp-kubernetes-docs-branch'), consolidated or
+                    dry_run)
+                self.assertEqual(before, (
+                    git('rev-parse', 'HEAD'),
+                    git('symbolic-ref', 'HEAD'),
+                    git('status', '--short'),
+                    git('diff', '--cached'),
+                ))
+                self.assertEqual((root / '.readthedocs.yml').read_text(),
+                                 'uncommitted docs\n')
+                self.assertEqual((root / 'unrelated.txt').read_text(),
+                                 'staged work\n')
+                self.assertEqual(gitignore.read_text(), 'build\n')
 
     def test_help_lists_full_flow_and_step_commands(self):
         result = CliRunner().invoke(app, ['--help'])
@@ -129,7 +214,7 @@ class CliTest(unittest.TestCase):
             app,
             [
                 'run',
-                'create-kfp-kubernetes-docs-branch',
+                'create-sdk-tag',
                 '--release-type',
                 'patch',
                 '--version',
@@ -152,7 +237,7 @@ class CliTest(unittest.TestCase):
                 app,
                 [
                     'run',
-                    'create-kfp-kubernetes-docs-branch',
+                    'create-sdk-tag',
                     '--state-file',
                     str(state_file),
                     '--release-type',
@@ -223,6 +308,10 @@ class CliTest(unittest.TestCase):
         )
         self.assertIn('preflight: Verify tools and GitHub auth', result.stdout)
         self.assertNotIn('preflight [manual]', result.stdout)
+        self.assertIn(
+            'create-kfp-kubernetes-docs-branch: '
+            'Create Kubernetes docs branch for split SDK releases',
+            result.stdout)
 
     def test_steps_diagram_prints_release_flow_branches(self):
         result = CliRunner().invoke(app, ['steps', '--diagram'])
@@ -234,9 +323,9 @@ class CliTest(unittest.TestCase):
         self.assertIn('+-- include-backend --> publish-images', result.stdout)
         self.assertIn('+-- include-sdk --> create-sdk-tag -> publish-sdks',
                       result.stdout)
-        self.assertIn(
-            'create-kfp-kubernetes-docs-branch -> confirm-rtd -> create-sdk-release',
-            result.stdout)
+        self.assertIn('confirm-rtd -> create-sdk-release', result.stdout)
+        self.assertIn('[split SDK: create-kfp-kubernetes-docs-branch]',
+                      result.stdout)
         self.assertNotIn('preflight: Verify tools', result.stdout)
 
     def test_next_runs_and_marks_next_incomplete_step(self):
@@ -638,7 +727,7 @@ class CliTest(unittest.TestCase):
                 app,
                 [
                     'run',
-                    'create-kfp-kubernetes-docs-branch',
+                    'create-sdk-tag',
                     '--release-type',
                     'minor',
                     '--version',

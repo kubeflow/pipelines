@@ -26,29 +26,34 @@ trap 'rm -rf "$UPGRADE_TEST_DIR"' EXIT
 python3 -m venv "$UPGRADE_TEST_DIR/venv"
 UPGRADE_PYTHON="$UPGRADE_TEST_DIR/venv/bin/python"
 
-# Install the latest released version of KFP from PyPI
+# Exercise the last split SDK layout, including all three legacy owners.
 "$UPGRADE_PYTHON" -m pip install --upgrade pip
-"$UPGRADE_PYTHON" -m pip install kfp
+"$UPGRADE_PYTHON" -m pip install \
+  kfp==2.17.0 kfp-pipeline-spec==2.17.0 kfp-server-api==2.17.0 kfp-kubernetes==2.17.0
 LATEST_KFP_SDK_RELEASE=$("$UPGRADE_PYTHON" -m pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
 echo "Installed latest KFP SDK version: $LATEST_KFP_SDK_RELEASE"
 
-# Build and install workspace packages from source using uv
-# Generate proto files (requires Docker)
-pushd api
-make python
-popd
-
-# Build all workspace packages
-uv build --package kfp-pipeline-spec --out-dir "$UPGRADE_TEST_DIR/dist"
-uv build --package kfp-server-api --out-dir "$UPGRADE_TEST_DIR/dist"
+# Generate bindings with the same explicit CI toolchain before building.
+make -C sdk generate-python
 uv build --package kfp --out-dir "$UPGRADE_TEST_DIR/dist"
 
-# Resolve all local wheels together so unpublished versions never require PyPI.
+# Retire the old file owners before the unified wheel writes shared paths.
+"$UPGRADE_PYTHON" -m pip uninstall -y kfp-pipeline-spec kfp-server-api kfp-kubernetes
 "$UPGRADE_PYTHON" -m pip install "$UPGRADE_TEST_DIR"/dist/*.whl --force-reinstall
 
 # HEAD will only be different than latest for a release PR
 HEAD_KFP_SDK_VERSION=$("$UPGRADE_PYTHON" -m pip show kfp | grep "Version:" | awk '{print $2}')
 echo "Successfully upgraded to KFP SDK version @ HEAD: $HEAD_KFP_SDK_VERSION"
 
-"$UPGRADE_PYTHON" -c 'import kfp'
+"$UPGRADE_PYTHON" -c 'import kfp; from kfp import kubernetes, server_api; from kfp.pipeline_spec import pipeline_spec_pb2'
+"$UPGRADE_PYTHON" -m pip check
+"$UPGRADE_PYTHON" - <<'PY'
+from importlib import metadata
+for name in ('kfp-pipeline-spec', 'kfp-server-api', 'kfp-kubernetes'):
+    try:
+        metadata.distribution(name)
+    except metadata.PackageNotFoundError:
+        continue
+    raise AssertionError(f'Retired distribution is still installed: {name}')
+PY
 echo "Successfully ran 'import kfp' @ HEAD: $HEAD_KFP_SDK_VERSION"

@@ -2,8 +2,15 @@
 
 ## Features
 
+* The backend's canonical API is now `/apis/v2`, with `V2…` models. The Python
+  SDK keeps calling `/apis/v2beta1` so a routine SDK update does not require a
+  server prefix upgrade. Python `V2beta1…` model imports remain aliases of the
+  new models. New features may still require a matching backend version.
+  Operators must finish the API-server rollout before updating the UI,
+  persistence agent, scheduled-workflow controller, or driver/launcher images,
+  which use v2. See [rollout order](../docs/reference/version-compatibility.md#rollout-order).
 * The accompanying backend enables live pod-log following for direct API callers
-  through `GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+  through `GET /apis/v2/runs/{run_id}/nodes/{node_id}/log?follow=true`.
   Omitting `follow` still returns a snapshot. Clients should set a deadline or
   cancel the stream; there is no dedicated server-side timeout. The UI's API-log
   proxy does not forward `follow`.
@@ -39,6 +46,14 @@
   Ownership and pipeline references are stored in native columns. Historical
   reference reads and deletion cleanup remain supported. See the
   [migration guide](../docs/user-guides/migration.md#existing-runs-and-recurring-runs).
+
+* Consolidate `kfp-pipeline-spec`, `kfp-server-api`, and `kfp-kubernetes` into
+  the `kfp` distribution. Before upgrading an existing environment, uninstall
+  those three distributions, then force-reinstall the new `kfp` release.
+  See the [migration instructions](python/README.md#migrating-from-the-split-packages).
+* The generated v2 REST client is now imported as `kfp.server_api` instead of
+  `kfp_server_api`. The `kfp.pipeline_spec` and `kfp.kubernetes` imports remain
+  unchanged, and `kfp[kubernetes]` remains a supported compatibility extra.
 
 ## Deprecations
 

@@ -30,6 +30,7 @@ const (
 	PodNamespace                            string = "POD_NAMESPACE"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
+	ServiceAccountAuthorizationMode         string = "KFP_SECURITY_SERVICE_ACCOUNT_MODE"
 	WorkflowIdentityMode                    string = "KFP_SECURITY_WORKFLOW_IDENTITY_MODE"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
@@ -63,6 +64,16 @@ const (
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
+
+	// Database credential provider keys. DBCredentialProviderEnabled is the
+	// switch: when false, which is the default, the connection is built exactly
+	// as it was before providers existed. DBCredentialProvider names which
+	// provider to use, and DBTLSCAPath and DBCredentialProviderSettings
+	// configure it. None of the three has any effect while the switch is off.
+	DBCredentialProviderEnabled  string = "DB_CREDENTIAL_PROVIDER_ENABLED"
+	DBCredentialProvider         string = "DB_CREDENTIAL_PROVIDER"
+	DBCredentialProviderSettings string = "DB_CREDENTIAL_PROVIDER_SETTINGS"
+	DBTLSCAPath                  string = "DB_TLS_CA_PATH"
 
 	// Run garbage collection configuration keys.
 	// Disabled by default (zero values).
@@ -287,6 +298,35 @@ func GetMetadataTLSEnabled() bool {
 	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }
 
+// GetDBCredentialProviderRaw returns the switch as configured, without
+// interpreting it. dbcreds.ParseEnabled does that, so an empty or malformed
+// value -- which is what an absent ConfigMap key produces -- leaves the switch
+// off rather than terminating the process, as GetBoolConfigWithDefault would.
+func GetDBCredentialProviderRaw() string {
+	return GetStringConfigWithDefault(DBCredentialProviderEnabled, strconv.FormatBool(DefaultDBCredentialProviderEnabled))
+}
+
+// GetDBCredentialProvider returns which provider supplies the credential.
+//
+// There is no default, because the name identifies a cloud: defaulting it would
+// let an installation authenticate against the wrong one by omission.
+func GetDBCredentialProvider() string {
+	return GetStringConfigWithDefault(DBCredentialProvider, "")
+}
+
+// GetDBCredentialProviderSettings returns provider-specific settings as the raw
+// JSON object the operator supplied. It is parsed by the credential provider
+// that consumes it, not here.
+func GetDBCredentialProviderSettings() string {
+	return GetStringConfigWithDefault(DBCredentialProviderSettings, "")
+}
+
+// GetDBTLSCAPath returns the CA bundle used to verify the database server
+// certificate. Empty leaves the connection unencrypted.
+func GetDBTLSCAPath() string {
+	return GetStringConfigWithDefault(DBTLSCAPath, "")
+}
+
 func GetCaBundleSecretName() string {
 	return GetStringConfigWithDefault(CaBundleSecretName, "")
 }
@@ -405,4 +445,18 @@ func ValidateServiceAccountAllowList(serviceAccount string) error {
 		}
 	}
 	return fmt.Errorf("service account %q is not allowed; contact your administrator to configure the allowed service accounts", serviceAccount)
+}
+
+// GetServiceAccountAuthorizationMode validates the temporary migration mode.
+// Empty configuration preserves enforcement, including on upgrades.
+func GetServiceAccountAuthorizationMode() (string, error) {
+	mode := GetStringConfigWithDefault(ServiceAccountAuthorizationMode, "enforce")
+	switch mode {
+	case "", "enforce":
+		return "enforce", nil
+	case "audit":
+		return mode, nil
+	default:
+		return "", fmt.Errorf("%s must be enforce or audit", ServiceAccountAuthorizationMode)
+	}
 }

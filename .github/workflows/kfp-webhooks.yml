@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
       - '.github/workflows/image-builds.yml'

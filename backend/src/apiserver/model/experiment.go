@@ -52,14 +52,14 @@ func (e *Experiment) DefaultSortField() string {
 }
 
 var experimentAPIToModelFieldMap = map[string]string{
-	"id":                  "UUID", // Legacy filter alias retained in the v2beta1 filter contract
-	"experiment_id":       "UUID", // v2beta1 API
-	"name":                "Name", // Legacy filter alias retained in the v2beta1 filter contract
-	"display_name":        "Name", // v2beta1 API
+	"id":                  "UUID", // Legacy filter alias retained in the v2 filter contract
+	"experiment_id":       "UUID", // v2 API
+	"name":                "Name", // Legacy filter alias retained in the v2 filter contract
+	"display_name":        "Name", // v2 API
 	"created_at":          "CreatedAtInSec",
-	"last_run_created_at": "LastRunCreatedAtInSec", // v2beta1 API
+	"last_run_created_at": "LastRunCreatedAtInSec", // v2 API
 	"description":         "Description",
-	"namespace":           "Namespace", // v2beta1 API
+	"namespace":           "Namespace", // v2 API
 	"storage_state":       "StorageState",
 }
 

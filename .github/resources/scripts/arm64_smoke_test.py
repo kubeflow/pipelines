@@ -31,6 +31,22 @@ DIGEST = "b" * 64
 
 class WorkflowTests(unittest.TestCase):
 
+    def test_observed_agent_pod_survives_argo_cleanup(self):
+        agent = {"metadata": {"name": "workflow-agent"}}
+        kubectl = mock.Mock(side_effect=[
+            json.dumps({"items": [agent]}),
+            json.dumps({"items": []}),
+        ])
+        observed = {}
+        smoke.observe_agent_pods(kubectl, "workflow", observed)
+        smoke.observe_agent_pods(kubectl, "workflow", observed)
+        self.assertEqual(observed, {"workflow-agent": agent})
+        self.assertEqual(
+            kubectl.call_args.args,
+            ("-n", "kubeflow", "get", "pods", "-l",
+             "workflows.argoproj.io/workflow=workflow,"
+             "workflows.argoproj.io/component=agent", "-o", "json"))
+
     def test_rollout_wait_names_installed_deployments(self):
         kubectl = mock.Mock(side_effect=[
             "deployment.apps/ml-pipeline\ndeployment.apps/mysql\n", "success"
@@ -61,8 +77,9 @@ class WorkflowTests(unittest.TestCase):
         action = next(step for step in job["steps"]
                       if step.get("uses") == "./.github/actions/arm64-smoke")
         self.assertEqual(action["with"]["source_sha"], "${{ github.sha }}")
-        self.assertEqual(action["with"]["image_records"],
-                         download["with"]["path"])
+        self.assertEqual(
+            action["with"]["image_records"],
+            "${{ steps." + download["id"] + ".outputs.download-path }}")
 
 
 class InventoryTests(unittest.TestCase):
@@ -90,9 +107,13 @@ class InventoryTests(unittest.TestCase):
     def test_complete_shared_indexes(self):
         self.assertEqual(set(self.read()), smoke.IMAGES)
 
-    def test_inverse_proxy_explicitly_outside_profile(self):
-        self.write("inverse-proxy-agent", platforms=["linux/amd64"])
-        self.assertEqual(set(self.read()), smoke.IMAGES)
+    def test_removed_inverse_proxy_records_fail(self):
+        for name in ("inverse-proxy-agent", "kfp-inverse-proxy-agent"):
+            with self.subTest(name=name):
+                self.write(name, platforms=["linux/amd64"])
+                with self.assertRaisesRegex(ValueError, "Unexpected"):
+                    self.read()
+                (self.directory / f"{name}.json").unlink()
 
     def test_missing_image_fails(self):
         (self.directory / "kfp-driver.json").unlink()
@@ -144,15 +165,56 @@ class InventoryTests(unittest.TestCase):
         self.assertTrue(
             all(image["digest"] == f"sha256:{DIGEST}"
                 for image in spec["images"]))
-        patch = json.loads(spec["patches"][0]["patch"])
-        env = patch["spec"]["template"]["spec"]["containers"][0]["env"]
-        self.assertEqual({item["value"] for item in env},
-                         {refs["kfp-driver"], refs["kfp-launcher"]})
+        patches = [json.loads(item["patch"]) for item in spec["patches"]]
+        api = next(item for item in patches if item["kind"] == "Deployment" and
+                   item["metadata"]["name"] == "ml-pipeline")
+        env = api["spec"]["template"]["spec"]["containers"][0]["env"]
+        self.assertEqual(env, [{
+            "name": "V2_LAUNCHER_IMAGE",
+            "value": refs["kfp-launcher"]
+        }])
+        plugin = next(item for item in patches if item["kind"] == "ConfigMap")
+        self.assertIn(f'image: {refs["kfp-driver"]}',
+                      plugin["data"]["sidecar.container"])
         local = smoke.overlay_spec(refs, "/base", "local")
-        viewer = json.loads(local["patches"][1]["patch"])
+        viewer = next(
+            json.loads(item["patch"])
+            for item in local["patches"]
+            if json.loads(item["patch"])["kind"] == "Deployment" and json.loads(
+                item["patch"])["metadata"]["name"] == "ml-pipeline-viewer-crd")
         self.assertEqual(
             viewer["spec"]["template"]["spec"]["containers"][0]
             ["imagePullPolicy"], "IfNotPresent")
+
+    def test_driver_plugin_patch_replaces_only_the_image(self):
+        base = yaml.safe_load(
+            yaml.safe_load(smoke.DRIVER_PLUGIN_MANIFEST.read_text())["data"]
+            ["sidecar.container"])
+        patch = smoke.driver_plugin_patch("kind-registry:5000/driver:ci")
+        self.assertEqual(patch["metadata"],
+                         {"name": "ml-pipeline-driver-agent"})
+        self.assertEqual(list(patch["data"]), ["sidecar.container"])
+        sidecar = yaml.safe_load(patch["data"]["sidecar.container"])
+        self.assertEqual(sidecar["image"], "kind-registry:5000/driver:ci")
+        self.assertEqual({**base, "image": sidecar["image"]}, sidecar)
+        self.assertNotEqual(base["image"], sidecar["image"])
+        self.assertEqual(list(sidecar), list(base))
+
+    def test_driver_plugin_patch_rejects_unexpected_manifests(self):
+        sidecar = "name: driver-plugin\nimage: ghcr.io/kubeflow/kfp-driver:1\n"
+        for message, manifest in (
+            ("no data.sidecar.container", "kind: ConfigMap\n"),
+            ("no data.sidecar.container", "data:\n  other: value\n"),
+            ("no data.sidecar.container", "data:\n  sidecar.container: [1]\n"),
+            ("no image field", "data:\n  sidecar.container: |\n    name: x\n"),
+            ("no image field", "data:\n  sidecar.container: |\n    - " +
+             sidecar.replace("\n", "\n      ") + "\n"),
+        ):
+            with self.subTest(manifest=manifest):
+                path = mock.Mock(read_text=mock.Mock(return_value=manifest))
+                with mock.patch.object(smoke, "DRIVER_PLUGIN_MANIFEST", path):
+                    with self.assertRaisesRegex(ValueError, message):
+                        smoke.driver_plugin_patch("image:ci")
 
     @unittest.skipUnless(
         shutil.which("kubectl"),
@@ -179,9 +241,9 @@ class InventoryTests(unittest.TestCase):
                     str(overlay)
                 ],
                                                    text=True)
+                resources = list(yaml.safe_load_all(rendered))
                 deployments = [
-                    item for item in yaml.safe_load_all(rendered)
-                    if item["kind"] == "Deployment"
+                    item for item in resources if item["kind"] == "Deployment"
                 ]
                 containers = [
                     container for item in deployments for container in
@@ -192,8 +254,14 @@ class InventoryTests(unittest.TestCase):
                 api = next(c for c in containers
                            if c["name"] == "ml-pipeline-api-server")
                 env = {item["name"]: item.get("value") for item in api["env"]}
-                self.assertEqual(env["V2_DRIVER_IMAGE"], refs["kfp-driver"])
+                self.assertNotIn("V2_DRIVER_IMAGE", env)
                 self.assertEqual(env["V2_LAUNCHER_IMAGE"], refs["kfp-launcher"])
+                plugin = next(
+                    item for item in resources
+                    if item["kind"] == "ConfigMap" and
+                    item["metadata"]["name"] == "ml-pipeline-driver-agent")
+                self.assertIn(f'image: {refs["kfp-driver"]}',
+                              plugin["data"]["sidecar.container"])
                 if mode == "local":
                     for container in containers:
                         if container["image"] in refs.values():
@@ -249,22 +317,53 @@ class ExecutionTests(unittest.TestCase):
                 }
             }
 
+        self.workflow = {
+            "spec": {
+                "templates": [{
+                    "name": "root-dag-driver",
+                    "plugin": {
+                        "driver-plugin": {}
+                    },
+                }]
+            },
+            "status": {
+                "nodes": {
+                    "driver-node": {
+                        "name": "pipeline.root-dag-driver",
+                        "type": "Plugin",
+                        "phase": "Succeeded",
+                        "templateName": "root-dag-driver",
+                    }
+                }
+            },
+        }
         self.pods = {
             "items": [
                 {
                     "metadata": {
-                        "name": "driver-pod"
+                        "name": "agent-pod",
+                        "labels": {
+                            "workflows.argoproj.io/component": "agent"
+                        },
                     },
                     "spec": {
                         "nodeName":
                             "arm-node",
                         "containers": [{
-                            "name": "main",
+                            "name": "driver-plugin",
                             "image": self.refs["kfp-driver"]
                         }]
                     },
                     "status": {
-                        "containerStatuses": [status("main")]
+                        "containerStatuses": [{
+                            "name": "driver-plugin",
+                            "imageID": "containerd://sha256:abc",
+                            "state": {
+                                "running": {
+                                    "startedAt": "2026-01-01T00:00:00Z"
+                                }
+                            },
+                        }]
                     },
                 },
                 {
@@ -292,15 +391,29 @@ class ExecutionTests(unittest.TestCase):
             ]
         }
 
-    def verify(self, pods=None):
-        return smoke.assert_execution(pods or self.pods, self.refs,
+    def verify(self, pods=None, workflow=None):
+        return smoke.assert_execution(workflow or self.workflow, pods or
+                                      self.pods, self.refs,
                                       smoke.assert_arm_nodes(self.nodes))
 
     def test_success_requires_driver_and_launcher(self):
-        self.assertEqual(self.verify(), {
-            "driver_pods": ["driver-pod"],
-            "launcher_pods": ["component-pod"]
-        })
+        self.assertEqual(
+            self.verify(), {
+                "driver_nodes": ["pipeline.root-dag-driver"],
+                "driver_agent_pods": ["agent-pod"],
+                "launcher_pods": ["component-pod"]
+            })
+
+    def test_driver_node_must_succeed(self):
+        self.workflow["status"]["nodes"]["driver-node"]["phase"] = "Failed"
+        with self.assertRaisesRegex(ValueError, "Missing successful"):
+            self.verify()
+
+    def test_driver_node_must_use_driver_plugin_template(self):
+        self.workflow["status"]["nodes"]["driver-node"][
+            "templateName"] = "other-template"
+        with self.assertRaisesRegex(ValueError, "Missing successful"):
+            self.verify()
 
     def test_argo_emissary_wrapped_launcher_succeeds(self):
         self.pods["items"][1]["spec"]["containers"][0]["command"] = [
@@ -337,6 +450,11 @@ class ExecutionTests(unittest.TestCase):
 
     def test_wrong_driver_image_fails(self):
         self.pods["items"][0]["spec"]["containers"][0]["image"] = "other:ci"
+        with self.assertRaisesRegex(ValueError, "Missing successful"):
+            self.verify()
+
+    def test_driver_sidecar_must_have_started(self):
+        self.pods["items"][0]["status"]["containerStatuses"][0]["imageID"] = ""
         with self.assertRaisesRegex(ValueError, "Missing successful"):
             self.verify()
 

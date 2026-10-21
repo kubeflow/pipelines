@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { V2beta1Artifact } from 'src/apisv2beta1/run';
+import { V2Artifact } from 'src/apisv2/run';
 import Banner from 'src/components/Banner';
 import PlotCard from 'src/components/PlotCard';
 import { padding } from 'src/Css';
@@ -92,7 +92,7 @@ const css = stylesheet({
 export type RuntimeArtifactComparisonKind = 'classification' | 'html' | 'markdown';
 
 export interface RuntimeComparisonArtifact {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   key: string;
   label: string;
   namespace?: string;
@@ -100,7 +100,7 @@ export interface RuntimeComparisonArtifact {
 }
 
 interface ComparisonPanelEntry {
-  artifact?: V2beta1Artifact;
+  artifact?: V2Artifact;
   configs?: ConfusionMatrixConfig[];
   key: string;
   label: string;

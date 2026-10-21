@@ -28,7 +28,6 @@ fi
 echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
 kustomization_yamls_with_images=(
   "base/pipeline/kustomization.yaml"
-  "env/gcp/inverse-proxy/kustomization.yaml"
 )
 for path in "${kustomization_yamls_with_images[@]}"
 do
@@ -37,13 +36,35 @@ done
 
 yq w -i "${MANIFEST_DIR}/base/installs/generic/pipeline-install-config.yaml" data.appVersion "$TAG_NAME"
 
-## Driver & Launcher images are added as environment variables
+## The launcher image is added as an environment variable.
 API_SERVER_MANIFEST="${MANIFEST_DIR}/base/pipeline/ml-pipeline-apiserver-deployment.yaml"
 
 yq w -i ${API_SERVER_MANIFEST} \
   "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_LAUNCHER_IMAGE).value" \
   "ghcr.io/kubeflow/kfp-launcher:${TAG_NAME}"
 
-yq w -i ${API_SERVER_MANIFEST} \
-  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_DRIVER_IMAGE).value" \
-  "ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
+# Argo parses data["sidecar.container"] as YAML, but Kustomize treats it as a
+# string: images.newTag cannot update the driver image embedded inside it.
+# Update base, TLS and OpenShift plugin images together with other KFP images.
+DRIVER_PLUGIN_MANIFESTS=(
+  "base/pipeline/ml-pipeline-driver-plugin-cm.yaml"
+  "env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml"
+  "env/openshift/base/patches/driver-agent-plugin.yaml"
+)
+for path in "${DRIVER_PLUGIN_MANIFESTS[@]}"
+do
+  manifest="${MANIFEST_DIR}/$path"
+  # Accept an existing release tag so release preparation can be run again.
+  if ! contents="$(awk -v image="ghcr.io/kubeflow/kfp-driver:${TAG_NAME}" '
+    /^[[:blank:]]*image:[[:blank:]]+ghcr[.]io\/kubeflow\/kfp-driver:[^[:space:]]+[[:blank:]]*$/ {
+      sub(/ghcr[.]io\/kubeflow\/kfp-driver:[^[:space:]]+/, image)
+      matches++
+    }
+    { print }
+    END { if (matches != 1) exit 1 }
+  ' "${manifest}")"; then
+    echo "Expected exactly one tagged driver plugin image in ${manifest}; check sidecar.container" >&2
+    exit 1
+  fi
+  printf '%s\n' "${contents}" > "${manifest}"
+done

@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
+
+export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
 
 // Being used as the base interace for Node and Edge in Reactflow.
 export type FlowElementDataBase = {
@@ -21,11 +23,15 @@ export type FlowElementDataBase = {
   [key: string]: any;
 };
 
-export type SubDagFlowElementData = FlowElementDataBase & {
-  // Callback action if a SubDag expand button is clicked.
-  expand: (nodeKey: string) => void;
+export type SubDagTaskData = FlowElementDataBase & {
+  groupKind?: SubDagKind;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
+};
+
+export type SubDagFlowElementData = SubDagTaskData & {
+  // Callback action if a SubDag expand button is clicked.
+  expand: (nodeKey: string) => void;
 };
 
 export type ExecutionFlowElementData = FlowElementDataBase & {

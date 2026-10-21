@@ -331,6 +331,7 @@ func TestWorkflowServiceAccountAuditRetryAndEnable(t *testing.T) {
 			PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
 		})
 		require.NoError(t, err)
+		seedHistoricalEmbeddedSchedule(t, manager, job)
 		logs := captureServiceAccountAuditLogs(t, func() {
 			require.NoError(t, manager.ChangeJobMode(multiUserContext(), job.UUID, true))
 		})

@@ -20,7 +20,7 @@ import (
 	"sort"
 
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -42,6 +42,11 @@ type RunPluginDispatcher interface {
 	// run creation.
 	OnBeforeRunCreation(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec) error
 
+	// OnRunCreationDiscarded cleans up resources created only by a losing request.
+	// It must preserve resources referenced by the existing execution and must
+	// not persist the losing request's plugin output.
+	OnRunCreationDiscarded(ctx context.Context, run *PendingRun, existing util.ExecutionSpec) error
+
 	// OnRunEnd is called when a run reaches a terminal state. Returns
 	// true if all plugin syncs succeeded.
 	OnRunEnd(ctx context.Context, run *PersistedRun) bool
@@ -60,6 +65,9 @@ var _ RunPluginDispatcher = NoOpDispatcher{}
 
 func (NoOpDispatcher) PluginsRegistered() bool { return false }
 func (NoOpDispatcher) OnBeforeRunCreation(context.Context, *PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+func (NoOpDispatcher) OnRunCreationDiscarded(context.Context, *PendingRun, util.ExecutionSpec) error {
 	return nil
 }
 func (NoOpDispatcher) OnRunEnd(context.Context, *PersistedRun) bool { return true }
@@ -276,7 +284,7 @@ func (d *RunPluginDispatcherImpl) executePostAction(
 	if runCfg == nil {
 		glog.Warningf("%s %s skipped: resolved plugin config is nil for run %q", pluginName, hookName, run.RunID)
 		if po := run.PluginsOutput[pluginName]; po != nil {
-			po.State = apiv2beta1.PluginState_PLUGIN_FAILED
+			po.State = apiv2.PluginState_PLUGIN_FAILED
 			po.StateMessage = fmt.Sprintf("%s %s sync failed: config unavailable", pluginName, hookName)
 		}
 		persistenceErr := PersistPluginsOutput(run, d.runOutputStore)
@@ -290,7 +298,7 @@ func (d *RunPluginDispatcherImpl) executePostAction(
 
 	syncOK = false
 	if po := run.PluginsOutput[pluginName]; po != nil {
-		syncOK = po.State == apiv2beta1.PluginState_PLUGIN_SUCCEEDED
+		syncOK = po.State == apiv2.PluginState_PLUGIN_SUCCEEDED
 	}
 
 	if err := PersistPluginsOutput(run, d.runOutputStore); err != nil {

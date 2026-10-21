@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from fnmatch import fnmatchcase
+import json
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
@@ -27,7 +28,7 @@ DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
 CI_SCRIPTS_WORKFLOW_PATH = (
     REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml')
 GENERATED_PYTHON_CLIENTS = {
-    '/backend/api/v2beta1/python_http_client',
+    '/backend/api/v2/python_http_client',
 }
 
 
@@ -58,6 +59,47 @@ class DependabotConfigTest(unittest.TestCase):
             self.config,
             flags=re.MULTILINE | re.DOTALL,
         )
+
+    def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
+        docker = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'docker')
+        rules = [
+            rule for rule in docker['ignore']
+            if fnmatchcase('mysql', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'mysql',
+            'versions': ['<8.4', '>=8.5'],
+        }])
+
+    def test_go_generators_are_separate_from_runtime_batches(self):
+        gomod = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'gomod')
+        for dependency in ('github.com/grpc-ecosystem/grpc-gateway/v2',
+                           'google.golang.org/protobuf',
+                           'google.golang.org/grpc/cmd/protoc-gen-go-grpc',
+                           'github.com/go-swagger/go-swagger'):
+            matching = [
+                name for name, group in gomod['groups'].items() if any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in group.get('patterns', []))
+            ]
+            self.assertEqual(matching[0], 'go-api-generators', dependency)
+
+    def test_protobuf_updates_stay_compatible_with_gcpc(self):
+        uv = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'uv')
+        rules = [
+            rule for rule in uv['ignore']
+            if fnmatchcase('protobuf', rule['dependency-name'])
+        ]
+        self.assertEqual(rules, [{
+            'dependency-name': 'protobuf',
+            'versions': ['>=7'],
+        }])
 
     def update_block(self, ecosystem: str) -> str:
         matching_blocks = [
@@ -126,7 +168,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(
             len(configured_ecosystems), len(set(configured_ecosystems)))
 
-    def test_version_and_security_updates_start_held_with_defaults_preserved(
+    def test_version_and_security_updates_start_unheld_with_defaults_preserved(
             self):
         ecosystem_labels = {
             'gomod': 'go',
@@ -146,7 +188,7 @@ class DependabotConfigTest(unittest.TestCase):
                 )
                 self.assertEqual(
                     self.configured_labels(ecosystem),
-                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                    ['dependencies', ecosystem_label],
                 )
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):
@@ -228,7 +270,41 @@ class DependabotConfigTest(unittest.TestCase):
             if repository_directory(path) not in GENERATED_PYTHON_CLIENTS
         }
 
-        self.assertEqual(self.configured_directories('pip'), python_directories)
+        # Workspace manifests have one owner. Exported requirements are outputs,
+        # not an independent pip dependency graph.
+        workspace_directories = {'/', '/sdk/python'}
+        self.assertEqual(
+            self.configured_directories('pip'),
+            python_directories - workspace_directories)
+        self.assertEqual(self.configured_directories('uv'), {'/'})
+
+    def test_uv_has_no_obsolete_export_exclusions(self):
+        config = yaml.safe_load(self.config)
+        uv = next(update for update in config['updates']
+                  if update['package-ecosystem'] == 'uv')
+        self.assertNotIn('exclude-paths', uv)
+        self.assertNotIn('allow', uv)
+
+    def test_react_runtime_and_types_share_version_and_security_groups(self):
+        config = yaml.safe_load(self.config)
+        npm = next(update for update in config['updates']
+                   if update['package-ecosystem'] == 'npm')
+        dependencies = ('react', 'react-dom', '@types/react',
+                        '@types/react-dom')
+        for applies_to in ('version-updates', 'security-updates'):
+            groups = {
+                name: group
+                for name, group in npm['groups'].items()
+                if group.get('applies-to', 'version-updates') == applies_to
+            }
+            matches = []
+            for dependency in dependencies:
+                matches.append(
+                    next((name for name, group in groups.items() if any(
+                        fnmatchcase(dependency, pattern)
+                        for pattern in group.get('patterns', []))), None))
+            self.assertIsNotNone(matches[0])
+            self.assertEqual(len(set(matches)), 1)
 
     def test_all_uv_lockfiles_are_covered(self):
         tracked_locks = subprocess.check_output(
@@ -243,6 +319,41 @@ class DependabotConfigTest(unittest.TestCase):
         }
         self.assertTrue(lock_directories)
         self.assertEqual(self.configured_directories('uv'), lock_directories)
+
+    def test_vitest_runner_and_providers_share_update_groups(self):
+        npm = next(
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'npm')
+        group_names = list(npm['groups'])
+        for applies_to, expected_group in (('version-updates',
+                                            'vitest-version'),
+                                           ('security-updates',
+                                            'vitest-security')):
+            self.assertLess(
+                group_names.index(expected_group),
+                group_names.index('npm-dependencies'))
+            matches = []
+            for dependency in ('vitest', '@vitest/coverage-v8',
+                               '@vitest/coverage-istanbul', '@vitest/ui'):
+                matches.append(
+                    next((name for name, group in npm['groups'].items()
+                          if group.get('applies-to', 'version-updates') ==
+                          applies_to and any(
+                              fnmatchcase(dependency, pattern)
+                              for pattern in group.get('patterns', []))), None))
+            self.assertEqual(matches, [expected_group] * 4)
+
+    def test_frontend_vitest_coverage_matches_locked_runner(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        manifest = json.loads((frontend / 'package.json').read_text())
+        self.assertEqual(manifest['devDependencies']['vitest'],
+                         manifest['devDependencies']['@vitest/coverage-v8'])
+        packages = json.loads(
+            (frontend / 'package-lock.json').read_text())['packages']
+        runner = packages['node_modules/vitest']['version']
+        coverage = packages['node_modules/@vitest/coverage-v8']
+        self.assertEqual(coverage['version'], runner)
+        self.assertEqual(coverage['peerDependencies']['vitest'], runner)
 
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')

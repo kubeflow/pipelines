@@ -15,6 +15,29 @@ To install `kfp`, run:
 pip install kfp
 ```
 
+The unified SDK includes `kfp.pipeline_spec`, `kfp.kubernetes`, and the generated
+REST client at `kfp.server_api`. `kfp[kubernetes]` remains a compatibility extra;
+Kubernetes support is included by default.
+
+### Migrating from the split packages
+
+For the first release containing consolidation, set `KFP_VERSION` to that
+release's version and run this one-time cleanup **before** installing the SDK:
+
+```sh
+python -m pip uninstall -y kfp-pipeline-spec kfp-server-api kfp-kubernetes &&
+python -m pip install --upgrade --force-reinstall "kfp==$KFP_VERSION"
+```
+
+Do not uninstall those packages after installing unified `kfp`: their old
+installation records contain shared files and uninstalling them can remove
+parts of the new SDK. If that has already happened, repeat the installation
+command with `--force-reinstall`. Restart running notebooks/interpreters after
+upgrading. Update direct imports of `kfp_server_api` to `kfp.server_api`;
+`kfp.pipeline_spec` and `kfp.kubernetes` imports are unchanged. Dependencies that
+explicitly require the retired distributions must also be migrated; use a fresh
+environment if other applications still need the split SDK.
+
 ## Getting started
 
 The following is an example of a simple pipeline that uses the `kfp` v2 syntax:

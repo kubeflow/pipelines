@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -377,7 +377,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 				assert.Equal(t, tt.want, got)
-				pv, err := resourceManager.GetLatestPipelineVersion(got.GetPipelineId())
+				pv, err := resourceManager.GetDefaultPipelineVersion(got.GetPipelineId())
 				assert.Nil(t, err)
 				assert.NotEmpty(t, pv.PipelineSpec)
 				assert.NotEmpty(t, pv.PipelineSpecURI)
