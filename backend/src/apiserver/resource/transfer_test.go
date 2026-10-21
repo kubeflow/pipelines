@@ -88,6 +88,40 @@ func TestTransferSchedulePreviewDisabledStageAndEnable(t *testing.T) {
 	require.ErrorContains(t, err, "provenance")
 }
 
+func TestTransferScheduleRecordsPipelineNamesAndResumesWithoutThem(t *testing.T) {
+	ctx := context.Background()
+	store, manager, pipeline, version := initWithPipeline(t)
+	defer store.Close()
+	manager.swfClient = newTransferSwfClient()
+	adapter := transferSchedules{r: manager}
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "Transfer", Namespace: "ns1"})
+	require.NoError(t, err)
+	job := model.Job{UUID: "source-job", K8SName: "source-name", Namespace: "ns1", DisplayName: "Schedule", ExperimentId: experiment.UUID, Enabled: true, PipelineSpec: model.PipelineSpec{
+		PipelineId: pipeline.UUID, PipelineVersionId: version.UUID, RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
+	}}
+	staged, err := adapter.Prepare(ctx, "source", &job, "digest", []byte(v2SpecHelloWorld), false)
+	require.NoError(t, err)
+	swfClient := manager.getScheduledWorkflowClient(staged.Namespace)
+	scheduled, err := swfClient.Get(ctx, staged.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, pipeline.Name, scheduled.Spec.PipelineName)
+	require.Equal(t, version.Name, scheduled.Spec.PipelineVersionName)
+
+	// An earlier version staged the schedule without the names.
+	scheduled.Spec.PipelineName, scheduled.Spec.PipelineVersionName = version.Name, ""
+	scheduled, err = swfClient.Update(ctx, scheduled)
+	require.NoError(t, err)
+	resumed, err := adapter.Prepare(ctx, "source", &job, "digest", []byte(v2SpecHelloWorld), false)
+	require.NoError(t, err)
+	require.Equal(t, staged.UUID, resumed.UUID)
+
+	scheduled.Spec.MaxConcurrency = util.Int64Pointer(5)
+	_, err = swfClient.Update(ctx, scheduled)
+	require.NoError(t, err)
+	_, err = adapter.Prepare(ctx, "source", &job, "digest", []byte(v2SpecHelloWorld), false)
+	require.ErrorContains(t, err, "changed")
+}
+
 type transferPluginDispatcher struct {
 	apiserverPlugins.RunPluginDispatcher
 }

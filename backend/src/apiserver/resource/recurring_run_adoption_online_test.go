@@ -82,6 +82,49 @@ func TestOnlineResourceAdoptionResumesAndPreservesCurrentDisabledMode(t *testing
 	require.ErrorContains(t, manager.AdoptLegacyRecurringRun(ctx, job.UUID), "refusing to reseed")
 	require.Zero(t, clients.ExecClientFake.GetWorkflowCount())
 }
+func TestAdoptionRecordsScheduledWorkflowPipelineNames(t *testing.T) {
+	adopters := map[string]func(context.Context, *ResourceManager, string) error{
+		"online": func(ctx context.Context, manager *ResourceManager, id string) error {
+			return manager.AdoptLegacyRecurringRun(ctx, id)
+		},
+		"inventory": func(ctx context.Context, manager *ResourceManager, _ string) error {
+			_, err := manager.AdoptLegacyRecurringRuns(ctx)
+			return err
+		},
+	}
+	for name, adopt := range adopters {
+		for _, lookupFails := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/lookupFails=%v", name, lookupFails), func(t *testing.T) {
+				manager, clients := onlineAdoptionManager(t)
+				ctx := context.Background()
+				pipeline, err := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+				require.NoError(t, err)
+				version, err := manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "p1/v1", "", "", v2SpecHelloWorld, "", "ns1"))
+				require.NoError(t, err)
+				job := onlineLegacyJob(t, clients, true)
+				db, err := clients.TransferDB()
+				require.NoError(t, err)
+				require.NoError(t, db.Model(&model.Job{}).Where(&model.Job{UUID: job.UUID}).Updates(map[string]any{"PipelineId": pipeline.UUID, "PipelineVersionId": version.UUID}).Error)
+				swfClient := clients.SwfClient().ScheduledWorkflow("ns1")
+				if lookupFails {
+					// Names recorded at creation survive a failed lookup.
+					current, err := swfClient.Get(ctx, job.K8SName, metav1.GetOptions{})
+					require.NoError(t, err)
+					current.Spec.PipelineName, current.Spec.PipelineVersionName = pipeline.Name, version.Name
+					_, err = swfClient.Update(ctx, current)
+					require.NoError(t, err)
+					manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+				}
+				require.NoError(t, adopt(ctx, manager, job.UUID))
+				current, err := swfClient.Get(ctx, job.K8SName, metav1.GetOptions{})
+				require.NoError(t, err)
+				require.Equal(t, "stored", current.Spec.ServiceAccount, "the spec must be synchronized from SQL")
+				require.Equal(t, pipeline.Name, current.Spec.PipelineName)
+				require.Equal(t, version.Name, current.Spec.PipelineVersionName)
+			})
+		}
+	}
+}
 func TestOnlineResourceAdoptionIsolatesInvalidRecordsAndLateInventory(t *testing.T) {
 	manager, clients := onlineAdoptionManager(t)
 	bad := onlineLegacyJob(t, clients, true)

@@ -10,11 +10,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -93,6 +95,12 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 	if err != nil {
 		return err
 	}
+	// The names are informational, so a failed lookup keeps the current names.
+	names := &scheduledworkflow.ScheduledWorkflow{Spec: scheduledworkflow.ScheduledWorkflowSpec{PipelineId: resolved.PipelineId, PipelineVersionId: resolved.PipelineVersionId}}
+	namesErr := r.setScheduledWorkflowPipelineNames(names)
+	if namesErr != nil {
+		glog.Warningf("Keeping the pipeline names of ScheduledWorkflow %v/%v: %v", resolved.Namespace, resolved.K8SName, namesErr)
+	}
 	syncCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	return storage.SynchronizeLegacyRecurringRunAdoption(db.WithContext(syncCtx), id, func(raw *model.Job, state *model.RecurringRunState) error {
@@ -113,6 +121,7 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 		if err != nil {
 			return err
 		}
+		canonical.Spec.PipelineName, canonical.Spec.PipelineVersionName = names.Spec.PipelineName, names.Spec.PipelineVersionName
 		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			live, err := r.getScheduledWorkflowClient(job.Namespace).Get(syncCtx, job.K8SName, metav1.GetOptions{})
 			// Revocation succeeds even if its CR has already disappeared.
@@ -129,6 +138,9 @@ func (r *ResourceManager) AdoptLegacyRecurringRun(ctx context.Context, id string
 			original := live
 			live = live.DeepCopy()
 			live.Spec = canonical.Spec
+			if namesErr != nil {
+				live.Spec.PipelineName, live.Spec.PipelineVersionName = original.Spec.PipelineName, original.Spec.PipelineVersionName
+			}
 			// A mode reconciliation must not acknowledge an in-flight claim.
 			if !state.Pending {
 				live.Status.Trigger.LastIndex = util.Int64Pointer(state.LastRunIndex)
