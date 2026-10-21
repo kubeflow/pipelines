@@ -17,6 +17,8 @@ PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:release-2.17
 # Set USE_FIND_LINKS=true to use local sdk and pipeline_spec for buildling python builds rather than pulling from pypi
 # applies to `make python` and make pythone-dev` commands.
 # e.g. make python USE_FIND_LINKS=true FIND_LINKS_PATH="path1 path2 ..."
+# Explicitly install the SDK wheel: find-links does not prioritize it over the
+# same published version. Other local distributions may have different versions.
 FIND_LINKS_PATH := /go/src/github.com/kubeflow/pipelines/sdk/python/dist /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/dist /go/src/github.com/kubeflow/pipelines/backend/api/v2beta1/python_http_client/dist
 
 .PHONY: all
@@ -53,7 +55,7 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
+		    python3 -m pip install --user --break-system-packages -r requirements.txt $(if $(USE_FIND_LINKS),../../sdk/python/dist/kfp-*.whl) && \
 		    python3 generate_proto.py && \
 		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
 

@@ -12,6 +12,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Test local SDK wheel selection
+      shell: bash
+      run: python .github/resources/scripts/kfp_kubernetes_install_test.py
+
     - name: Install build tool
       shell: bash
       run: |
@@ -51,8 +55,8 @@ runs:
       run: make golang
 
     # kfp is installed transitively
-    # --find-links ensures pip first looks in the sdk/python/dist folder
-    # outputted from generate-kfp-kubernetes-proto-files step before looking at pypi
+    # --find-links adds locally built SDK candidates alongside PyPI. The source
+    # SDK is already installed; find-links alone does not prioritize local wheels.
     - name: Install kfp & kfp-kubernetes from source
       id: install-kfp-kubernetes
       shell: bash
