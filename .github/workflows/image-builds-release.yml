@@ -34,6 +34,11 @@ on:
         required: false
 jobs:
   build-images-for-release:
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     strategy:
       fail-fast: true
       matrix:
@@ -94,7 +99,6 @@ jobs:
             arch: { arch_name: arm64 }
 
     uses: ./.github/workflows/build-and-push.yml
-    secrets: inherit
     with:
       src_branch: ${{ inputs.src_branch }}
       target_tag: ${{ inputs.target_tag }}
@@ -112,6 +116,9 @@ jobs:
   create-manifests:
     needs: build-images-for-release
     if: ${{ !inputs.dry_run }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: true
       matrix:
@@ -130,7 +137,6 @@ jobs:
           - image: kfp-metadata-envoy
           - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
-    secrets: inherit
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
