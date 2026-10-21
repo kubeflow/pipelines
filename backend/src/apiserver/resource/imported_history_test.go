@@ -169,3 +169,54 @@ func TestImportedHistoryLogsUseOnlyArchive(t *testing.T) {
 		})
 	}
 }
+
+
+// Test for terminal-run immutability check. This is a separate test from the imported-history tests above, but it is placed in this file to avoid creating a new test file.
+type terminalRunStore struct {
+	storage.RunStoreInterface
+	run *model.Run
+}
+
+// GetRun satisfies storage.RunStoreInterface, returning our mock terminal run.
+func (s *terminalRunStore) GetRun(id string, _ bool) (*model.Run, error) {
+	if id != s.run.UUID {
+		return nil, util.NewResourceNotFoundError("run", id)
+	}
+	return s.run, nil
+}
+
+// Helper function to spin up a ResourceManager configured with a native terminal run.
+func newTerminalRunManager(state model.RuntimeState) (*ResourceManager, *terminalRunStore) {
+	store := &terminalRunStore{run: &model.Run{
+		UUID:            "terminal-run",
+		ImportedFrom:    "", // Empty string ensures it is treated as a NATIVE run (not imported)
+		RunDetails: model.RunDetails{
+			State:           state,
+			FinishedAtInSec: 123456789, // Positive timestamp marks it as completed
+		},
+	}}
+	return &ResourceManager{runStore: store}, store
+}
+
+// TestTerminalRunRejectsRuntimeMutations explicitly verifies that native runs in terminal states block mutations.
+func TestTerminalRunRejectsRuntimeMutations(t *testing.T) {
+	// Define all core terminal runtime states that should trigger immutability protection
+	terminalStates := []model.RuntimeState{
+		model.RuntimeStateSucceeded,
+		model.RuntimeStateFailed,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateCanceled,
+	}
+
+	for _, state := range terminalStates {
+		t.Run(string(state), func(t *testing.T) {
+			manager, store := newTerminalRunManager(state)
+			manager.taskStore = &importedHistoryTaskStore{task: &model.Task{UUID: "task-1", RunUUID: store.run.UUID}}
+			task := &model.Task{UUID: "task-1", RunUUID: store.run.UUID}
+			_, err := manager.UpdateTask(task)
+			
+			assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+			assert.Contains(t, err.Error(), "terminal state")
+		})
+	}
+}

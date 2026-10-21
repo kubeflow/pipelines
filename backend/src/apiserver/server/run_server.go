@@ -538,6 +538,11 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2.UpdateTaskReq
 		return nil, err
 	}
 
+	// Enforce parent-run lifecycle guard to block task updates on terminal/imported runs
+	if err := s.resourceManager.CheckRunAllowsRuntimeWrites(runID); err != nil {
+		return nil, err
+	}
+
 	// First get the existing task to find the run UUID for authorization
 	existingTask, err := s.resourceManager.GetTask(taskID)
 	if err != nil {
@@ -583,6 +588,11 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2.UpdateTa
 	runID := request.GetRunId()
 	if runID == "" {
 		return nil, util.NewInvalidInputError("Run ID is required")
+	}
+
+	// Enforce parent-run lifecycle guard to block task updates on terminal/imported runs
+	if err := s.resourceManager.CheckRunAllowsRuntimeWrites(runID); err != nil {
+		return nil, err
 	}
 
 	taskIDs := make([]string, 0, len(request.GetTasks()))

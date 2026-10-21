@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	authzv1 "k8s.io/api/authorization/v1"
@@ -801,6 +802,84 @@ func TestUpdateTask_RejectsParentFromDifferentRun(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "parent_task_id must belong to the same run")
+}
+
+func TestUpdateTask_RejectsTerminalRun(t *testing.T) {
+	clients, manager, runID := seedOneRun(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+
+	// Create a task while the run is active
+	task, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId: runID,
+			Name:  "test-task",
+			State: apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	assert.NoError(t, err)
+
+	// Force the run into a terminal state using TerminateRun
+	err = manager.TerminateRun(context.Background(), runID)
+	assert.NoError(t, err)
+
+	// Attempt to update the task on a terminal run — should be blocked
+	_, err = runSrv.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		RunId:  runID,
+		TaskId: task.GetTaskId(),
+		Task: &apiv2beta1.PipelineTask{
+			TaskId: task.GetTaskId(),
+			RunId:  runID,
+			Name:   "test-task",
+			State:  apiv2beta1.PipelineTask_SUCCEEDED,
+		},
+	})
+
+	assert.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+	assert.Contains(t, err.Error(), "terminal state")
+}
+
+func TestUpdateTasksBulk_RejectsTerminalRun(t *testing.T) {
+	clients, manager, runID := seedOneRun(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+
+	// Create a task while the run is active
+	task, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId: runID,
+			Name:  "bulk-task",
+			State: apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	assert.NoError(t, err)
+
+	// Force the run into a terminal state using TerminateRun
+	err = manager.TerminateRun(context.Background(), runID)
+	assert.NoError(t, err)
+
+	// Attempt bulk update on a terminal run — should be blocked
+	bulkReq := &apiv2beta1.UpdateTasksBulkRequest{
+		RunId: runID,
+		Tasks: map[string]*apiv2beta1.PipelineTask{
+			task.GetTaskId(): {
+				TaskId: task.GetTaskId(),
+				Name:   "bulk-task",
+				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+			},
+		},
+	}
+
+	_, err = runSrv.UpdateTasksBulk(context.Background(), bulkReq)
+
+	assert.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+	assert.Contains(t, err.Error(), "terminal state")
 }
 
 func TestParentScopedReadsIgnoreChildrenFromOtherRuns(t *testing.T) {
