@@ -20,6 +20,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).parents[3]
 ARTIFACTS_SCRIPT = Path(__file__).with_name('ci-image-artifacts.sh')
 IMAGE_BUILDS_WORKFLOW = ROOT / '.github' / 'workflows' / 'image-builds.yml'
@@ -102,9 +104,9 @@ class CiImageArtifactsTest(unittest.TestCase):
         )[1].split('\n\nconcurrency:', maxsplit=1)[0]
 
         self.assertNotIn('metadata_envoy', pull_request_block)
-        self.assertIn(
-            '  build:\n    uses: ./.github/workflows/image-builds.yml',
-            frontend_e2e_workflow,
+        self.assertEqual(
+            yaml.safe_load(frontend_e2e_workflow)['jobs']['build']['uses'],
+            './.github/workflows/image-builds.yml',
         )
         self.assertNotIn('metadata-envoy', image_builds_workflow)
         self.assertNotIn('metadata_envoy', image_builds_workflow)

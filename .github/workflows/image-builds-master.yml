@@ -3,8 +3,15 @@ on:
   push:
     branches:
       - master
+permissions: {}
+
 jobs:
   build-images-for-master:
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     strategy:
       fail-fast: true
       matrix:
@@ -40,7 +47,6 @@ jobs:
             platform: linux/arm64
 
     uses: ./.github/workflows/build-and-push.yml
-    secrets: inherit
     with:
       src_branch: ${{ github.sha }}
       target_tag: master
@@ -57,6 +63,9 @@ jobs:
 
   create-manifests:
     needs: build-images-for-master
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: true
       matrix:
@@ -69,7 +78,6 @@ jobs:
           - image: kfp-launcher
           - image: kfp-driver
     uses: ./.github/workflows/create-manifest.yml
-    secrets: inherit
     with:
       target_tag: master
       app_to_build: ${{ matrix.component.image }}
@@ -85,7 +93,9 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: List required published image records
         id: image-records
         shell: bash

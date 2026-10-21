@@ -612,7 +612,11 @@ class WorkflowTests(unittest.TestCase):
         )
         self.assertEqual(
             checkouts[1]['with'],
-            {'ref': '${{ inputs.src_branch }}', 'path': 'release-source'},
+            {
+                'ref': '${{ inputs.src_branch }}',
+                'path': 'release-source',
+                'persist-credentials': False,
+            },
         )
         validation = next(
             step

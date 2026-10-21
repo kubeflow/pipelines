@@ -111,7 +111,7 @@ class DockerRegistryMirrorTest(unittest.TestCase):
     def test_hosted_docker_workflows_configure_mirror(self):
         paths_and_following_steps = {
             '.github/actions/create-cluster/action.yml': 'Restore Kind node image cache',
-            '.github/workflows/build-tools-images.yml': 'Build api-generator',
+            '.github/actions/build-tools-images/action.yml': 'Build api-generator',
             '.github/workflows/image-builds.yml': 'Set up Docker Buildx',
             '.github/workflows/runtime-base-images.yml': 'Configure runtime base images',
         }
