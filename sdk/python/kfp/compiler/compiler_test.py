@@ -5118,7 +5118,17 @@ class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
                     return print_and_return(text=string).output
 
 
-class TestConditionLogic(unittest.TestCase):
+@dsl.component
+def return_float() -> float:
+    return 1.0
+
+
+@dsl.component
+def return_bool() -> bool:
+    return True
+
+
+class TestConditionLogic(parameterized.TestCase):
 
     def test_if(self):
 
@@ -5456,6 +5466,122 @@ class TestConditionLogic(unittest.TestCase):
                     print_and_return(text=item)
                 with dsl.Else():
                     print_and_return(text='Got tails!')
+
+    def _compile_condition(self, condition_fn, condition_cls=dsl.If):
+
+        @dsl.pipeline
+        def my_pipeline():
+            tasks = {
+                'int': return_1(),
+                'int2': return_1(),
+                'float': return_float(),
+                'float2': return_float(),
+                'bool': return_bool(),
+                'str': flip_coin(),
+            }
+            if condition_cls is dsl.Elif:
+                with dsl.If(tasks['int'].output == 0):
+                    print_and_return(text='body-1')
+                with dsl.Elif(condition_fn(tasks)):
+                    print_and_return(text='body-2')
+            else:
+                with condition_cls(condition_fn(tasks)):
+                    print_and_return(text='body')
+
+        if condition_cls is dsl.Elif:
+            return (my_pipeline.pipeline_spec
+                    .components['comp-condition-branches-1'].dag
+                    .tasks['condition-3'].trigger_policy.condition)
+        return (my_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+                .trigger_policy.condition)
+
+    @parameterized.named_parameters(
+        ('int_chan_equals_true', lambda t: t['int'].output == True, dsl.If,
+         "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true"
+        ),
+        ('true_equals_int_chan_reflected', lambda t: True == t['int'].output,
+         dsl.If,
+         "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true"
+        ),
+        ('int_chan_not_equals_true', lambda t: t['int'].output != True, dsl.If,
+         "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) != true"
+        ),
+        ('int_chan_equals_false', lambda t: t['int'].output == False, dsl.If,
+         "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == false"
+        ),
+        ('float_chan_equals_true', lambda t: t['float'].output == True, dsl.If,
+         "(inputs.parameter_values['pipelinechannel--return-float-Output'] != 0.0) == true"
+        ),
+        ('float_chan_equals_false', lambda t: t['float'].output == False,
+         dsl.If,
+         "(inputs.parameter_values['pipelinechannel--return-float-Output'] != 0.0) == false"
+        ),
+        ('float_chan_not_equals_true', lambda t: t['float'].output != True,
+         dsl.If,
+         "(inputs.parameter_values['pipelinechannel--return-float-Output'] != 0.0) != true"
+        ),
+        ('condition_alias_int_chan_equals_true',
+         lambda t: t['int'].output == True, dsl.Condition,
+         "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true"
+        ),
+        ('elif_int_chan_equals_true', lambda t: t['int'].output == True,
+         dsl.Elif,
+         "!(int(inputs.parameter_values['pipelinechannel--return-1-Output']) == 0) && (int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true"
+        ),
+        ('int_chan_equals_bool_chan',
+         lambda t: t['int'].output == t['bool'].output, dsl.If,
+         "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == inputs.parameter_values['pipelinechannel--return-bool-Output']"
+        ),
+        ('bool_chan_equals_one', lambda t: t['bool'].output == 1, dsl.If,
+         "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true"
+        ),
+        ('bool_chan_equals_zero', lambda t: t['bool'].output == 0, dsl.If,
+         "inputs.parameter_values['pipelinechannel--return-bool-Output'] == false"
+        ),
+        ('bool_chan_equals_float_literal', lambda t: t['bool'].output == 1.5,
+         dsl.If,
+         "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true"
+        ),
+        ('one_equals_bool_chan_reflected', lambda t: 1 == t['bool'].output,
+         dsl.If,
+         "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true"
+        ),
+    )
+    def test_numeric_bool_condition_bug_cases(self, condition_fn, condition_cls,
+                                              expected):
+        self.assertEqual(
+            self._compile_condition(condition_fn, condition_cls), expected)
+
+    @parameterized.named_parameters(
+        ('bool_chan_equals_true', lambda t: t['bool'].output == True,
+         "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true"
+        ),
+        ('bool_chan_equals_false', lambda t: t['bool'].output == False,
+         "inputs.parameter_values['pipelinechannel--return-bool-Output'] == false"
+        ),
+        ('int_chan_equals_one', lambda t: t['int'].output == 1,
+         "int(inputs.parameter_values['pipelinechannel--return-1-Output']) == 1"
+        ),
+        ('int_chan_equals_int_chan',
+         lambda t: t['int'].output == t['int2'].output,
+         "int(inputs.parameter_values['pipelinechannel--return-1-Output']) == int(inputs.parameter_values['pipelinechannel--return-1-2-Output'])"
+        ),
+        ('float_chan_equals_float_chan',
+         lambda t: t['float'].output == t['float2'].output,
+         "inputs.parameter_values['pipelinechannel--return-float-Output'] == inputs.parameter_values['pipelinechannel--return-float-2-Output']"
+        ),
+        ('float_chan_equals_literal', lambda t: t['float'].output == 1.5,
+         "inputs.parameter_values['pipelinechannel--return-float-Output'] == 1.5"
+        ),
+        ('int_chan_equals_float_literal', lambda t: t['int'].output == 1.5,
+         "double(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == 1.5"
+        ),
+        ('str_chan_equals_true', lambda t: t['str'].output == True,
+         "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'true'"
+        ),
+    )
+    def test_condition_guard_cases(self, condition_fn, expected):
+        self.assertEqual(self._compile_condition(condition_fn), expected)
 
 
 class TestDslOneOf(unittest.TestCase):
