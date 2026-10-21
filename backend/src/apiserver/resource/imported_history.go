@@ -52,14 +52,14 @@ var terminalRunStateValues = func() map[string]bool {
 
 func terminalRunMutationError(run *model.Run) error {
 	originalState := string(run.State)
-    isTerminal := terminalRunStateValues[originalState]
+	isTerminal := terminalRunStateValues[originalState]
 	if isTerminal {
-       return util.NewFailedPreconditionError(
-            errors.New("the execution is in a terminal state"),
-            "Run %s is in terminal state %s and cannot accept runtime changes", run.UUID, originalState,
-        )       
+		return util.NewFailedPreconditionError(
+			errors.New("the execution is in a terminal state"),
+			"Run %s is in terminal state %s and cannot accept runtime changes", run.UUID, originalState,
+		)
 	}
-   return nil
+	return nil
 }
 
 func (r *ResourceManager) checkRunAllowsRuntimeWrites(runID string) error {
@@ -70,16 +70,11 @@ func (r *ResourceManager) checkRunAllowsRuntimeWrites(runID string) error {
 	if err := importedRunMutationError(run); err != nil {
 		return err
 	}
-	
+
 	if err := terminalRunMutationError(run); err != nil {
 		return err
 	}
 	return nil
-}
-
-// Wrapper to export the checkRunAllowsRuntimeWrites function for use in other packages.
-func (r *ResourceManager) CheckRunAllowsRuntimeWrites(runID string) error {
-    return r.checkRunAllowsRuntimeWrites(runID)
 }
 
 func (r *ResourceManager) checkArtifactTasksAllowRuntimeWrites(links []*model.ArtifactTask) error {
