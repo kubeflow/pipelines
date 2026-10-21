@@ -525,6 +525,9 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   caller, so do not use it to validate token least privilege. Preserve this
   branch's image and architecture matrices when changing those grants. The
   docs-freshness workflow checks these caller/callee contracts and dry-run gates.
+- The reusable manifest workflow passes validated digest references as separate
+  Bash-array arguments to `docker buildx imagetools create` for both release and
+  `latest` tags; keep the source inventory and tag conditions aligned.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
