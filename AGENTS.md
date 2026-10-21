@@ -709,3 +709,9 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Retry tests intermittently miss an expected artifact from an in-memory bucket: do not make a first-call failure fake depend on Go map iteration order; target the named artifact or operation and assert its own call count.
 - Critical E2E samples fail across Argo versions with S3 `PutObject` timeouts to `seaweedfs.kubeflow:9000`: treat this as cluster artifact-store instability and retry the job; do not extend pipeline timeouts or weaken assertions to mask an unavailable store.
 - Kind setup exits immediately after cache restore with `sha256sum: WARNING: 1 computed checksum did NOT match`: no tests or cluster deployment ran; retry the job rather than changing application or test code.
+
+### 2.17.3 maintenance security qualification
+
+- Go builds use toolchain 1.27.3 with matching digest-pinned builder images. Argo manifests, compiler CLI, and API/E2E qualification lanes use the fixed 4.0.6 patch alongside the existing 3.7 lane.
+- Keep Python 3.9 support for the 2.17 SDK. Resolve security fixes with interpreter-specific dependency markers where patched packages require Python 3.10. Record remaining Python 3.9 exposure in release notes.
+- Run the current `kfpr` from a separate Python >=3.11 environment when operating this maintenance branch. Prepare the fixes PR before the version PR; publish only after qualification of rebuilt release images.

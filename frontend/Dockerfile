@@ -31,6 +31,9 @@ RUN mkdir -p ./server/dist && \
 
 FROM node:${NODE_VERSION}-${BASE_IMAGE}
 
+RUN if command -v apk >/dev/null; then apk upgrade --no-cache; \
+    else apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*; fi
+
 COPY --from=build ./src/frontend/package.json /tmp/frontend-package.json
 RUN npm install --global "$(node -p 'require("/tmp/frontend-package.json").packageManager')" && \
     rm /tmp/frontend-package.json
@@ -47,6 +50,7 @@ EXPOSE 3000
 # Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
 # race condition where parallel download workers collide on the same cache entry.
 RUN npm ci || (npm cache clean --force && npm ci)
-RUN npm run build
+# npm is only needed to build the server; runtime starts Node directly.
+RUN npm run build && npm uninstall --global npm
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

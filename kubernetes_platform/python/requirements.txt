@@ -1,9 +1,11 @@
-certifi==2026.6.17
+certifi==2026.10.19
     # via
+    #   -r kubernetes_platform/python/requirements.in
+    #   kfp
     #   kfp-server-api
     #   kubernetes
     #   requests
-cffi==2.1.0
+cffi==2.1.0 ; platform_python_implementation != 'PyPy'
     # via cryptography
 charset-normalizer==3.4.9
     # via requests
@@ -13,8 +15,11 @@ click==8.4.2
     #   kfp
 click-option-group==0.5.7
     # via kfp
-cryptography==49.0.0
-    # via google-auth
+cryptography==50.0.0
+    # via
+    #   -r kubernetes_platform/python/requirements.in
+    #   google-auth
+    #   kfp
 docstring-parser==0.18.0
     # via kfp
 google-api-core==2.31.0
@@ -44,32 +49,37 @@ googleapis-common-protos==1.75.0
 idna==3.18
     # via requests
 kfp==2.17.0
-    # via -r requirements.in
+    # via -r kubernetes_platform/python/requirements.in
 kfp-pipeline-spec==2.17.0
     # via kfp
 kfp-server-api==2.17.0
     # via kfp
 kubernetes==30.1.0
     # via kfp
-oauthlib==3.3.1
+oauthlib==4.0.0
     # via
+    #   -r kubernetes_platform/python/requirements.in
+    #   kfp
     #   kubernetes
     #   requests-oauthlib
 proto-plus==1.28.1
     # via google-api-core
 protobuf==6.33.6
     # via
-    #   -r requirements.in
+    #   -r kubernetes_platform/python/requirements.in
     #   google-api-core
     #   googleapis-common-protos
     #   kfp
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.3
-    # via pyasn1-modules
+pyasn1==0.6.4
+    # via
+    #   -r kubernetes_platform/python/requirements.in
+    #   kfp
+    #   pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==3.0
+pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
 python-dateutil==2.9.0.post0
     # via
@@ -79,9 +89,9 @@ pyyaml==6.0.3
     # via
     #   kfp
     #   kubernetes
-requests==2.33.0 ; python_version >= "3.10"
+requests==2.33.0
     # via
-    #   -r requirements.in
+    #   -r kubernetes_platform/python/requirements.in
     #   google-api-core
     #   google-cloud-storage
     #   kfp
@@ -99,9 +109,9 @@ six==1.17.0
     #   python-dateutil
 tabulate==0.10.0
     # via kfp
-urllib3==2.7.0 ; python_version >= "3.10"
+urllib3==2.8.0
     # via
-    #   -r requirements.in
+    #   -r kubernetes_platform/python/requirements.in
     #   kfp
     #   kfp-server-api
     #   kubernetes

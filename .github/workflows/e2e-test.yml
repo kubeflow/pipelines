@@ -68,7 +68,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.14", "v4.0.5" ]
+        argo_version: [ "v3.7.14", "v4.0.6" ]
         proxy: [ "false" ]
         test_label: [ "E2ECritical", "E2EEssential", "E2EParallelNested" ]
         pod_to_pod_tls_enabled: [ "false" ]
