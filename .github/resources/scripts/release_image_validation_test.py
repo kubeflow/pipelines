@@ -510,10 +510,12 @@ class WorkflowTests(unittest.TestCase):
         ]
         self.assertEqual(checkouts[0]['with']['ref'],
                          '${{ github.workflow_sha }}')
-        self.assertEqual(checkouts[1]['with'], {
-            'ref': '${{ inputs.src_branch }}',
-            'path': 'release-source'
-        })
+        self.assertEqual(
+            checkouts[1]['with'], {
+                'ref': '${{ inputs.src_branch }}',
+                'path': 'release-source',
+                'persist-credentials': False,
+            })
         validation = next(
             step for step in resolve['steps']
             if 'release_image_validation.py source' in step.get('run', ''))

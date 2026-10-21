@@ -56,6 +56,11 @@ class ArtifactExpressionTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             evaluate('always()', {})
 
+    def test_job_results_include_skipped_dependencies(self):
+        context = {'needs': {'build': {'result': 'skipped'}}}
+        self.assertTrue(evaluate("needs.build.result == 'skipped'", context))
+        self.assertFalse(evaluate("needs.build.result == 'success'", context))
+
     def test_unsupported_syntax_and_coercion_fail_instead_of_guessing(self):
         for expression in ("true == '1'", 'true + false', 'inputs.x[0]',
                            'fromJSON(inputs.x)', 'true and false', '42',

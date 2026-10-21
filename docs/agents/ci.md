@@ -76,6 +76,76 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 3.4.1 (using its v3 command syntax); `manifests/kustomize/hack/presubmit.sh` already installs the pinned `kustomize` and `yq` versions. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
 - `ci-scripts-tests.yml` runs script and profile-controller unit tests on pushes to master and path-filtered PRs. Its filters include the deployment contract's manifest, API, generation, and developer-workflow inputs, including deleted visualization paths so reintroductions trigger the guard. The profile-controller job runs `run_tests.sh` over HTTP against an ephemeral local server; no Kubernetes cluster is required. The script installs its test dependencies, including PyYAML for checking the DecoratorController attachment update policy.
 
+## Workflow credentials and settings rollout
+
+Every job must have explicit, enumerated token permissions, directly or through
+its workflow default. Ordinary builds and tests use `contents: read`; jobs that
+look up artifacts from other runs or poll jobs/artifacts through the REST API
+also need `actions: read`. Same-run artifact upload/download and cache operations
+do not require `actions: write`.
+Reusable-workflow callers must explicitly allow the permissions their callees
+need: a callee cannot elevate a read-only caller. Do not use `secrets: inherit`
+when the callee only needs the automatically available `GITHUB_TOKEN`.
+
+Keep write scopes on the jobs that use them:
+
+- Image publication retains `packages: write`, `attestations: write`, and
+  `id-token: write`. The separate image dry-run job shares the same build steps
+  but has only `contents: read` and `packages: read` for registry inspection.
+  Manifest promotion needs `packages: write`, not OIDC. Native tools PR builds
+  are read-only; trusted staging and verified-index promotion retain package
+  writes and the architecture comparison gate.
+- Python distribution selection, builds, and validation are read-only. Only
+  the separate non-dry-run PyPI upload job receives `id-token: write`; it consumes
+  validated distributions from the same workflow run, not source code. A
+  checksum manifest verifies the complete wheel/sdist inventory before upload,
+  without checking out code in the OIDC job. Stable per-package artifact names
+  let failed publisher jobs retry without rebuilding or republishing successful
+  packages; a rerun of the build replaces only that package's same-run artifact.
+  Keep checkout-independent setup and source-tag package selection so legacy
+  four-distribution releases continue to work.
+- Metadata workflows retain only their actual label/comment/status and
+  workflow-approval permissions. The analyzer's `actions: write` is intentional:
+  invalid or ignored title edits and rate-limited runs self-cancel to preserve
+  quota behavior. Do not remove this scope without replacing that contract.
+  Runtime-cache pruning and security-report uploads also retain their required
+  write permissions.
+
+Use `persist-credentials: false` on checkouts; explicitly scope any subsequent
+authenticated operation instead of leaving the token in Git configuration.
+Frontend base-ref fetches use the public repository without stored credentials.
+External actions are pinned to full commit SHAs with version comments, including
+actions inside composites. Dependabot continues to propose reviewed updates.
+The workflow permission regression suite guards explicit scopes, intentional
+writes, reusable caller/callee contracts, and credential persistence.
+
+Repository settings are a **separate, post-merge rollout**, not part of deploying
+these YAML changes:
+
+1. Merge and validate the workflow changes on `master`. Before reducing the
+   repository token default, audit and minimally backport explicit image-build
+   and publication caller contracts to every supported release branch,
+   including `release-2.18`. Preserve each branch's legacy image inventory and
+   release architecture policy; do not replace it with the master workflow.
+2. After those changes merge and representative CI and release dry runs pass,
+   change the default token permission to read-only and disable Actions-created
+   or Actions-approved pull requests. The latter does not disable approval of
+   pending workflow runs. Verify metadata jobs and subsequent release runs.
+3. Enable required SHA pinning only after supported release refs and every
+   allowed external action/reusable-workflow dependency are compatible. Review
+   an action allowlist separately; do not block existing third-party reusable
+   workflows or old release tags as a side effect of lowering token defaults.
+
+Do not add `environment: pypi` until the PyPI Trusted Publisher configuration
+accepts that environment's OIDC identity and its GitHub deployment policies
+permit all supported publishing refs. The upload-job split preserves the
+existing workflow identity; environment protection is a coordinated follow-up,
+not an unverified credential change. Never publish images or packages merely to
+test the permissions rollout.
+
+See GitHub's [secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use)
+and [reusable-workflow permission rules](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations).
+
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
 ## Python dependency artifacts
