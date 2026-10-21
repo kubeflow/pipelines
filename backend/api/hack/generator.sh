@@ -167,6 +167,17 @@ if ! grep -Eq '^[[:space:]]*Tasks \[\]\*V2PipelineTask `json:"tasks,omitempty"`$
     exit 1
 fi
 
+# grpc-gateway 2.32 renders Any.additionalProperties as true rather than {}.
+# Preserve the exported Go map field name used by existing HTTP client callers.
+for model in artifact experiment healthz pipeline recurring_run run; do
+    any_model="backend/api/${API_VERSION}/go_http_client/${model}_model/protobuf_any.go"
+    sed -i -- 's/ProtobufAnyAdditionalProperties/ProtobufAny/g' "$any_model"
+    if ! grep -Eq '^[[:space:]]*ProtobufAny map\[string\](interface\{\}|any) `json:"-"`$' "$any_model"; then
+        echo "Generated $any_model must preserve the ProtobufAny map field; update the compatibility substitution." >&2
+        exit 1
+    fi
+done
+
 # Generate legacy import shims from the canonical implementation.
 go run ./backend/api/hack/generate_compat
 
