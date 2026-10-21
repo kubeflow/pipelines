@@ -118,7 +118,7 @@
     "@vitest/coverage-v8": "^5.0.5",
     "autoprefixer": "^10.6.1",
     "browserslist": "4.29.3",
-    "eslint": "^10.8.0",
+    "eslint": "^10.13.0",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "fs": "0.0.1-security",
