@@ -45,11 +45,12 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
-      - 'backend/api/v2/**'
-      - 'backend/api/v2beta1/**'
-      - 'backend/src/**'
-      - 'backend/test/v2/api/**'
+      - 'api/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'backend/**'
       - 'backend/test/constants/**'
+      - 'test/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
@@ -183,6 +184,8 @@ jobs:
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           db_type: ${{ matrix.db_type }}
+          # The fixture rollout precedes the test action's supervised forward.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -213,6 +216,11 @@ jobs:
             NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
+          # Cache-hit assertions require caching enabled at the deployment level.
+          if [ "${{ matrix.cache_enabled }}" == "false" ]; then
+            TEST_LABEL="($TEST_LABEL) && !LegacyCache"
+          fi
+
           PROXY=${{ matrix.proxy }}
           if [ -z "${PROXY:-}" ]; then
             PROXY=false
@@ -236,6 +244,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           proxy: ${{ matrix.proxy }}
           test_directory: ${{ env.API_TESTS_DIR }}
+          required_migration_specs: ${{ github.event_name != 'workflow_dispatch' && matrix.cache_enabled == 'true' }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
@@ -281,6 +290,8 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
+          # The fixture rollout precedes the test action's supervised forward.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -294,6 +305,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
+          required_migration_specs: 'true'
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
           default_namespace: ${{ env.NAMESPACE }}
@@ -348,6 +360,8 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
           db_type: ${{ matrix.db_type }}
+          # The fixture rollout precedes the test action's supervised forward.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -375,6 +389,10 @@ jobs:
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE
+          fi
+          # Deployment constraints still apply after a manual label override.
+          if [ "${{ matrix.cache_enabled }}" == "false" ]; then
+            TEST_LABEL="($TEST_LABEL) && !LegacyCache"
           fi
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"

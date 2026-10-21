@@ -43,6 +43,10 @@ inputs:
     required: false
     description: "Number of ginkgo nodes to run in parallel"
     default: "10"
+  required_migration_specs:
+    description: "Require the legacy migration manifest specs to pass in the API JSON report"
+    required: false
+    default: 'false'
   test_label:
     required: true
     description: "Ginkgo label-filter expression, for example Regression, Smoke, or ApiServerTests && PipelineRun"
@@ -163,6 +167,19 @@ runs:
       shell: bash
       run: bash .github/resources/scripts/download-go-modules.sh
 
+    - name: Deploy API URL import fixtures
+      if: ${{ inputs.test_directory == './backend/test/v2/api' }}
+      shell: bash
+      env:
+        API_NAMESPACE: ${{ inputs.default_namespace }}
+      run: |
+        kubectl kustomize --load-restrictor LoadRestrictionsNone \
+          .github/resources/manifests/pipeline-test-fixtures | kubectl apply -f -
+        kubectl set env deployment/ml-pipeline --namespace "$API_NAMESPACE" \
+          PIPELINE_URL_VALIDATION_ENABLED=false
+        kubectl rollout status deployment/ml-pipeline --namespace "$API_NAMESPACE" --timeout 90s
+        kubectl rollout status deployment/pipeline-test-fixtures --namespace kubeflow --timeout 90s
+
     - name: Configure API Access
       id: configure-api
       if: ${{ inputs.skip_api_config != 'true' }}
@@ -269,6 +286,7 @@ runs:
       working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
+        KFP_TEST_FIXTURE_BASE_URL: http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080
         INPUT_API_URL: ${{ inputs.api_url }}
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
@@ -422,6 +440,17 @@ runs:
         go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter="$INPUT_TEST_LABEL" --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" -mlflowEnabled=${{ inputs.mlflow_enabled }} "${API_PREFIX_FLAGS[@]}" $BASE_IMAGE_FLAG
       continue-on-error: true
 
+    - name: Verify migrated API coverage
+      id: verify-migration
+      # Preserve diagnostics/report uploads, then enforce the outcome below.
+      continue-on-error: true
+      if: ${{ !cancelled() && inputs.required_migration_specs == 'true' }}
+      shell: bash
+      run: >-
+        python3 .github/resources/scripts/verify_migrated_specs.py
+        "${{ inputs.test_directory }}/reports/api.json"
+        .github/resources/legacy-v2-migration-specs.json
+
     - name: Report test-window network observability
       shell: bash
       if: ${{ always() && inputs.skip_api_config != 'true' }}
@@ -449,7 +478,7 @@ runs:
     - name: Collect Pod logs in case of Test Failures
       id: collect-logs
       shell: bash
-      if: ${{ steps.run-tests.outcome != 'success' }}
+      if: ${{ (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') }}
       run: |
         echo "=== Current disk usage ==="
         df -h
@@ -483,7 +512,7 @@ runs:
       # the job summary, so triage starts from a classified signal instead of
       # raw log archaeology.
       shell: bash
-      if: ${{ steps.run-tests.outcome != 'success' }}
+      if: ${{ (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') }}
       run: ./.github/resources/scripts/failure-signature-summary.sh --log-file /tmp/tmp_pod_log.txt --reports-dir "${{ inputs.test_directory }}/reports"
       continue-on-error: true
 
@@ -492,7 +521,7 @@ runs:
       # `kind export logs` captures what the custom collectors cannot: kubelet
       # and containerd logs, kernel/dmesg, and per-node info from every node.
       shell: bash
-      if: ${{ steps.run-tests.outcome != 'success' }}
+      if: ${{ (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') }}
       run: |
         rm -rf /tmp/kind-logs && mkdir -p /tmp/kind-logs
         exported=false
@@ -522,7 +551,7 @@ runs:
 
     - name: Upload Kind cluster logs
       uses: ./.github/actions/upload-artifact-with-retry
-      if: ${{ steps.run-tests.outcome != 'success' && steps.kind-logs.outputs.exported == 'true' }}
+      if: ${{ (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') && steps.kind-logs.outputs.exported == 'true' }}
       with:
         name: kind-logs - ${{ steps.kind-logs.outputs.suffix }}
         path: /tmp/kind-logs
@@ -534,7 +563,7 @@ runs:
       # Raw per-test results from failed runs feed the scheduled CI health
       # report (per-test flake rates); the HTML report alone is not parseable.
       uses: ./.github/actions/upload-artifact-with-retry
-      if: ${{ steps.run-tests.outcome != 'success' }}
+      if: ${{ (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') }}
       with:
         name: junit-xml - ${{ steps.kind-logs.outputs.suffix || github.run_id }}
         path: ${{ inputs.test_directory }}/reports/*.xml
@@ -578,7 +607,7 @@ runs:
     - name: Upload HTML Report
       id: upload
       uses: ./.github/actions/upload-artifact-with-retry
-      if: steps.run-tests.outcome != 'success' && (!cancelled()) && steps.generate-html-report.outcome == 'success'
+      if: (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') && (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
@@ -616,7 +645,7 @@ runs:
       shell: bash
       run: exit 1
 
-    - name: Mark Workflow failure if test step failed
-      if: steps.run-tests.outcome != 'success' && !cancelled()
+    - name: Mark Workflow failure if tests or migration coverage failed
+      if: (steps.run-tests.outcome != 'success' || steps.verify-migration.outcome == 'failure') && !cancelled()
       shell: bash
       run: exit 1
