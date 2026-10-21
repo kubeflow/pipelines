@@ -29,7 +29,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -59,22 +58,22 @@ jobs:
         working-directory: /tmp/digests
         run: |
           IMAGE="${IMAGE_REGISTRY}/${IMAGE_ORG}/${APP_NAME}"
-          
+
           echo "Building sources from digests..."
-          SOURCES=""
+          SOURCES=()
           for digest in *; do
             # Only accept filenames that look like a 64-character hexadecimal SHA-256 digest
             if [[ "$digest" =~ ^[a-fA-F0-9]{64}$ ]]; then
-              SOURCES+="${IMAGE}@sha256:${digest} "
+              SOURCES+=("${IMAGE}@sha256:${digest}")
             else
               echo "Skipping invalid digest file: ${digest}" >&2
             fi
           done
-          
-          echo "Creating manifest for ${IMAGE}:${TARGET_IMAGE_TAG} with sources: ${SOURCES}"
-          docker buildx imagetools create -t "${IMAGE}:${TARGET_IMAGE_TAG}" ${SOURCES}
-          
+
+          echo "Creating manifest for ${IMAGE}:${TARGET_IMAGE_TAG} with sources: ${SOURCES[*]}"
+          docker buildx imagetools create -t "${IMAGE}:${TARGET_IMAGE_TAG}" "${SOURCES[@]}"
+
           if [ "${SET_LATEST}" == "true" ]; then
-            echo "Creating manifest for ${IMAGE}:latest with sources: ${SOURCES}"
-            docker buildx imagetools create -t "${IMAGE}:latest" ${SOURCES}
+            echo "Creating manifest for ${IMAGE}:latest with sources: ${SOURCES[*]}"
+            docker buildx imagetools create -t "${IMAGE}:latest" "${SOURCES[@]}"
           fi
