@@ -5,7 +5,7 @@ certifi==2026.10.19
     #   kfp-server-api
     #   kubernetes
     #   requests
-cffi==2.1.0 ; platform_python_implementation != 'PyPy'
+cffi==2.1.0
     # via cryptography
 charset-normalizer==3.4.9
     # via requests
@@ -15,7 +15,7 @@ click==8.4.2
     #   kfp
 click-option-group==0.5.7
     # via kfp
-cryptography==50.0.0
+cryptography==50.0.0 ; python_full_version >= "3.9.2"
     # via
     #   -r kubernetes_platform/python/requirements.in
     #   google-auth
@@ -48,11 +48,11 @@ googleapis-common-protos==1.75.0
     # via google-api-core
 idna==3.18
     # via requests
-kfp==2.17.0
+kfp==2.17.3
     # via -r kubernetes_platform/python/requirements.in
-kfp-pipeline-spec==2.17.0
+kfp-pipeline-spec==2.17.3
     # via kfp
-kfp-server-api==2.17.0
+kfp-server-api==2.17.3
     # via kfp
 kubernetes==30.1.0
     # via kfp
@@ -79,7 +79,7 @@ pyasn1==0.6.4
     #   pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+pycparser==3.0
     # via cffi
 python-dateutil==2.9.0.post0
     # via
@@ -89,7 +89,7 @@ pyyaml==6.0.3
     # via
     #   kfp
     #   kubernetes
-requests==2.33.0
+requests==2.33.0 ; python_version >= "3.10"
     # via
     #   -r kubernetes_platform/python/requirements.in
     #   google-api-core
@@ -109,7 +109,7 @@ six==1.17.0
     #   python-dateutil
 tabulate==0.10.0
     # via kfp
-urllib3==2.8.0
+urllib3==2.8.0 ; python_version >= "3.10"
     # via
     #   -r kubernetes_platform/python/requirements.in
     #   kfp

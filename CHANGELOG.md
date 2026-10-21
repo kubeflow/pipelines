@@ -1,5 +1,12 @@
 Changelog
 
+## 2.17.3 (2026-10-21)
+
+### Security and maintenance
+
+- Update Go, Python and frontend dependencies and runtime images, including the Go trust-store fix from #15025, through #15026.
+- Retain SDK Python 3.9 support with interpreter-specific dependency requirements. See [remaining exposure and qualification notes](release/2.17.3-preparation.md).
+
 ## 2.17.2 (2026-09-04)
 
 ### Other

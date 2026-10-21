@@ -8,6 +8,16 @@
 
 ## Bug fixes and other changes
 
+# 2.17.3
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
 * Update security dependencies while retaining Python 3.9 support. Fixed Requests and urllib3 versions require Python 3.10+; Python 3.9 retains known exposure. Python 3.9.0–3.9.1 also retain older cryptography. See [2.17.3 preparation](../release/2.17.3-preparation.md) for details and qualification gates.
 
 # 2.17.0
