@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -120,15 +120,15 @@ type TaskArtifactHydrated struct {
 	Value    *Artifact
 	Producer *IOProducer
 	Key      string
-	Type     apiv2beta1.IOType
+	Type     apiv2.IOType
 }
 type IOProducer struct {
 	TaskName  string
 	Iteration *int64
 }
 
-type TaskType apiv2beta1.PipelineTask_TaskType
-type TaskStatus apiv2beta1.PipelineTask_TaskState
+type TaskType apiv2.PipelineTask_TaskType
+type TaskStatus apiv2.PipelineTask_TaskState
 
 type Task struct {
 	// idx_tasks_uuid_run is a composite candidate key so artifact_tasks can enforce

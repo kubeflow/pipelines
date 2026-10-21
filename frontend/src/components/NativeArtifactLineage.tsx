@@ -15,8 +15,8 @@ import Refresh from '@mui/icons-material/Refresh';
 import RestartAlt from '@mui/icons-material/RestartAlt';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { V2beta1ArtifactTask } from 'src/apisv2beta1/artifact';
-import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
+import { V2ArtifactTask } from 'src/apisv2/artifact';
+import { PipelineTaskTaskType } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { isInputArtifactTaskType, isOutputArtifactTaskType } from 'src/lib/v2/ArtifactTaskUtils';
 import { getArtifactTypeName } from 'src/lib/v2/RuntimeArtifactUtils';
@@ -48,7 +48,7 @@ function useArtifact(id: string, namespace: string) {
   });
 }
 
-function relationshipId(row: V2beta1ArtifactTask) {
+function relationshipId(row: V2ArtifactTask) {
   return row.id || JSON.stringify([row.artifact_id, row.task_id, row.type, row.key]);
 }
 
@@ -62,7 +62,7 @@ function RelationshipPages({
   kind: 'artifact' | 'task';
   id: string;
   namespace: string;
-  children: (rows: V2beta1ArtifactTask[]) => React.ReactNode;
+  children: (rows: V2ArtifactTask[]) => React.ReactNode;
 }) {
   const query = useInfiniteQuery({
     queryKey: ['native-lineage', namespace, kind, id],
@@ -219,7 +219,7 @@ function TaskBranch({
   onSelect,
   targetNode,
 }: {
-  relationship: V2beta1ArtifactTask;
+  relationship: V2ArtifactTask;
   namespace: string;
   onSelect: (id: string) => void;
   targetNode: string;

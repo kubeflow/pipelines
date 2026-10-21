@@ -560,9 +560,9 @@ class KubernetesBackend:
         if not os.path.isfile(file_path):
             raise ValueError(f'Pipeline file not found: {file_path}')
         pipeline_spec_dict = self._load_pipeline_spec(file_path)
-        runtime_config = kfp.server_api.V2beta1RuntimeConfig(
+        runtime_config = kfp.server_api.V2RuntimeConfig(
             parameters=params or {},)
-        run_body = kfp.server_api.V2beta1Run(
+        run_body = kfp.server_api.V2Run(
             display_name=run_name,
             experiment_id=experiment_id,
             pipeline_spec=pipeline_spec_dict,
@@ -593,7 +593,7 @@ class KubernetesBackend:
             return self._experiment_api.experiment_service_get_experiment(
                 experiment_id=existing_id)
 
-        experiment_body = kfp.server_api.V2beta1Experiment(
+        experiment_body = kfp.server_api.V2Experiment(
             display_name=name,
             description=description,
             namespace=self.namespace,
@@ -746,7 +746,7 @@ class KubernetesBackend:
 
         if version_name and first_version.display_name != version_name:
             try:
-                update_body = kfp.server_api.V2beta1PipelineVersion(
+                update_body = kfp.server_api.V2PipelineVersion(
                     pipeline_id=first_version.pipeline_id,
                     pipeline_version_id=first_version.pipeline_version_id,
                     display_name=version_name,
@@ -831,14 +831,14 @@ class KubernetesBackend:
         experiment_id: str | None,
     ) -> Run:
         """Create a run from a pipeline version reference (ID-based)."""
-        runtime_config = kfp.server_api.V2beta1RuntimeConfig(
+        runtime_config = kfp.server_api.V2RuntimeConfig(
             parameters=params or {},)
         pipeline_version_reference = (
-            kfp.server_api.V2beta1PipelineVersionReference(
+            kfp.server_api.V2PipelineVersionReference(
                 pipeline_id=pipeline_id,
                 pipeline_version_id=version_id,
             ))
-        run_body = kfp.server_api.V2beta1Run(
+        run_body = kfp.server_api.V2Run(
             display_name=run_name,
             experiment_id=experiment_id,
             pipeline_version_reference=pipeline_version_reference,

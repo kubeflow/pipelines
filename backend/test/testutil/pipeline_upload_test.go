@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/onsi/gomega"
@@ -32,9 +32,9 @@ type recordingPipelineUploadClient struct {
 	params *upload_params.UploadPipelineParams
 }
 
-func (c *recordingPipelineUploadClient) UploadFile(_ string, params *upload_params.UploadPipelineParams) (*model.V2beta1Pipeline, error) {
+func (c *recordingPipelineUploadClient) UploadFile(_ string, params *upload_params.UploadPipelineParams) (*model.V2Pipeline, error) {
 	c.params = params
-	return &model.V2beta1Pipeline{PipelineID: "test-pipeline"}, nil
+	return &model.V2Pipeline{PipelineID: "test-pipeline"}, nil
 }
 
 func TestUploadPipelineUsesTenantNamespace(t *testing.T) {

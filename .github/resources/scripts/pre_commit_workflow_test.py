@@ -18,9 +18,9 @@ from pathlib import Path
 import shlex
 import subprocess
 import tempfile
+import tomllib
 import unittest
 
-import tomllib
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -81,6 +81,15 @@ class PreCommitWorkflowTest(unittest.TestCase):
             if dependency.startswith('isort==')
         ]
         self.assertEqual(len(isort_dependencies), 1)
+        lock = tomllib.loads(
+            (REPOSITORY_ROOT / 'uv.lock').read_text(encoding='utf-8'))
+        locked_isort = [
+            package['version']
+            for package in lock['package']
+            if package['name'] == 'isort'
+        ]
+        self.assertEqual(locked_isort,
+                         [isort_dependencies[0].removeprefix('isort==')])
         hooks = [(repository, hook)
                  for repository in yaml.safe_load(self.config)['repos']
                  for hook in repository['hooks']
@@ -88,10 +97,19 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertEqual(len(hooks), 1)
         repository, hook = hooks[0]
         self.assertEqual(repository['repo'], 'local')
-        self.assertEqual(hook['language'], 'python')
-        self.assertEqual(hook['additional_dependencies'], isort_dependencies)
+        self.assertEqual(hook['language'], 'system')
+        self.assertNotIn('additional_dependencies', hook)
         self.assertEqual(
-            shlex.split(hook['entry']), ['isort', '--profile', 'google'])
+            shlex.split(hook['entry']), [
+                'uv', 'run', '--frozen', '--extra', 'lint', 'isort',
+                '--profile', 'google'
+            ])
+        sdk_check = (REPOSITORY_ROOT / 'test' /
+                     'presubmit-isort-sdk.sh').read_text(encoding='utf-8')
+        self.assertIn(
+            hook['entry'].replace('isort --profile', 'isort --check --profile'),
+            sdk_check)
+        self.assertIn('uses: astral-sh/setup-uv@', self.workflow)
 
     def test_config_changes_execute_each_applicable_hook_family(self):
         steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
@@ -106,7 +124,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
         files = command[command.index('--files') + 1:]
         self.assertIn(
             'git diff --quiet "${base_sha}" HEAD -- '
-            '.pre-commit-config.yaml .golangci.yaml',
+            '.pre-commit-config.yaml .golangci.yaml pyproject.toml uv.lock',
             self.workflow,
         )
         for representative_file in (

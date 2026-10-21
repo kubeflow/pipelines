@@ -25,7 +25,7 @@ import kfp.server_api
 from .exit_handler import pipeline_exit_handler as pipeline_exit_handler
 
 
-def verify(mlmd_connection_config, run: kfp.server_api.V2beta1Run, **kwargs):
+def verify(mlmd_connection_config, run: kfp.server_api.V2Run, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
 

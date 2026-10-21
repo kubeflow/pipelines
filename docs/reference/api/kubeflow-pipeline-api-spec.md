@@ -1,6 +1,6 @@
-# Pipelines API Reference (v2beta1)
+# Pipelines API Reference (v2)
 
-This document describes the API specification for the `v2beta1` Kubeflow Pipelines REST API.
+This document describes the API specification for the `v2` Kubeflow Pipelines REST API.
 
 ## About the REST API
 
@@ -26,12 +26,14 @@ To use the API, you will need to send HTTP requests to the appropriate endpoints
 For example, to list pipeline runs in the `team-1` namespace, send a `GET` request to the following URL:
 
 ```
-https://kubeflow.example.com/pipeline/apis/v2beta1/runs?namespace=team-1
+https://kubeflow.example.com/pipeline/apis/v2/runs?namespace=team-1
 ```
 
 ## Swagger UI
 
-The API reference is automatically generated from the [`2.17.0`](https://github.com/kubeflow/pipelines/releases/tag/2.17.0) version of Kubeflow Pipelines for the [`v2beta1` REST API](https://github.com/kubeflow/pipelines/blob/2.17.0/backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json).
+The API reference is generated from this source tree's [`v2` REST API contract](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/swagger/kfp_api_single_file.swagger.json).
+The `/apis/v2beta1` prefix remains a compatibility alias; new integrations should
+use `/apis/v2`. See [version compatibility](../version-compatibility.md) for upgrade order.
 
 :::{note}
 The _try it out_ feature of Swagger UI does not work due to authentication and CORS, but it can help you construct the correct API calls.

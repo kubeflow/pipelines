@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -35,7 +35,7 @@ func Test_validateRootDAG(t *testing.T) {
 	validOpts := func() common.Options {
 		return common.Options{
 			PipelineName:   "pipeline-1",
-			Run:            &apiv2beta1.Run{RunId: "run-1"},
+			Run:            &apiv2.Run{RunId: "run-1"},
 			Component:      &pipelinespec.ComponentSpec{},
 			RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
 			Namespace:      "default",
@@ -67,7 +67,7 @@ func Test_validateRootDAG(t *testing.T) {
 			name: "nil component spec returns error",
 			opts: common.Options{
 				PipelineName:   "pipeline-1",
-				Run:            &apiv2beta1.Run{RunId: "run-1"},
+				Run:            &apiv2.Run{RunId: "run-1"},
 				IterationIndex: -1,
 			},
 			wantErr: true,
@@ -77,7 +77,7 @@ func Test_validateRootDAG(t *testing.T) {
 			name: "nil runtime config returns error",
 			opts: common.Options{
 				PipelineName:   "pipeline-1",
-				Run:            &apiv2beta1.Run{RunId: "run-1"},
+				Run:            &apiv2.Run{RunId: "run-1"},
 				Component:      &pipelinespec.ComponentSpec{},
 				IterationIndex: -1,
 			},
@@ -88,7 +88,7 @@ func Test_validateRootDAG(t *testing.T) {
 			name: "missing namespace returns error",
 			opts: common.Options{
 				PipelineName:   "pipeline-1",
-				Run:            &apiv2beta1.Run{RunId: "run-1"},
+				Run:            &apiv2.Run{RunId: "run-1"},
 				Component:      &pipelinespec.ComponentSpec{},
 				RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
 				IterationIndex: -1,
@@ -110,7 +110,7 @@ func Test_validateRootDAG(t *testing.T) {
 			name: "parent task without id returns error",
 			opts: func() common.Options {
 				opts := validOpts()
-				opts.ParentTask = &apiv2beta1.PipelineTask{}
+				opts.ParentTask = &apiv2.PipelineTask{}
 				return opts
 			}(),
 			wantErr: true,
@@ -159,7 +159,7 @@ func Test_validateRootDAG(t *testing.T) {
 func TestRootDAG_RetryReusesExistingTask(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
 	clientManager := clientmanager.NewFakeClientManager(fake.NewSimpleClientset(), mockAPI)
-	run := &apiv2beta1.Run{RunId: "run-1"}
+	run := &apiv2.Run{RunId: "run-1"}
 	mockAPI.AddRun(run)
 
 	pipelineSpec := &pipelinespec.PipelineSpec{Root: &pipelinespec.ComponentSpec{}}
@@ -189,7 +189,7 @@ func TestRootDAG_RetryReusesExistingTask(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, firstExecution.TaskID, secondExecution.TaskID)
 
-	refreshedRun, err := mockAPI.GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: run.GetRunId()})
+	refreshedRun, err := mockAPI.GetRun(context.Background(), &apiv2.GetRunRequest{RunId: run.GetRunId()})
 	require.NoError(t, err)
 	require.Len(t, refreshedRun.GetTasks(), 1)
 }

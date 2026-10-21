@@ -19,7 +19,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -82,7 +82,7 @@ type BaseJobServer struct {
 
 type JobServer struct {
 	*BaseJobServer
-	apiv2beta1.UnimplementedRecurringRunServiceServer
+	apiv2.UnimplementedRecurringRunServiceServer
 }
 
 func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
@@ -177,7 +177,7 @@ func (s *BaseJobServer) disableJob(ctx context.Context, jobId string) error {
 	return s.resourceManager.ChangeJobMode(ctx, jobId, false)
 }
 
-func (s *BaseJobServer) deleteJob(ctx context.Context, jobID string, propagationPolicy apiv2beta1.DeletePropagationPolicy) error {
+func (s *BaseJobServer) deleteJob(ctx context.Context, jobID string, propagationPolicy apiv2.DeletePropagationPolicy) error {
 	err := s.canAccessJob(ctx, jobID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
@@ -194,7 +194,7 @@ func (s *BaseJobServer) enableJob(ctx context.Context, jobId string) error {
 	return s.resourceManager.ChangeJobMode(ctx, jobId, true)
 }
 
-func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.CreateRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
+func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2.CreateRecurringRunRequest) (*apiv2.RecurringRun, error) {
 	if s.options.CollectMetrics {
 		createJobRequests.Inc()
 	}
@@ -215,7 +215,7 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.
 	if s.options.CollectMetrics {
 		jobCount.Inc()
 	}
-	apiRecurringRun := toApiRecurringRun(newRecurringRun)
+	apiRecurringRun := toAPIRecurringRun(newRecurringRun)
 	if apiRecurringRun == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representation to its API counterpart"), "Failed to create a recurring run")
 	}
@@ -223,7 +223,7 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.
 	return apiRecurringRun, nil
 }
 
-func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.GetRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
+func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2.GetRecurringRunRequest) (*apiv2.RecurringRun, error) {
 	if s.options.CollectMetrics {
 		getJobRequests.Inc()
 	}
@@ -232,7 +232,7 @@ func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.Get
 		return nil, util.Wrap(err, "Failed to fetch a recurring run")
 	}
 
-	apiRecurringRun := toApiRecurringRun(recurringRun)
+	apiRecurringRun := toAPIRecurringRun(recurringRun)
 	if apiRecurringRun == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representation to its API counterpart"), "Failed to fetch a recurring run")
 	}
@@ -240,7 +240,7 @@ func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.Get
 	return apiRecurringRun, nil
 }
 
-func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRecurringRunsRequest) (*apiv2beta1.ListRecurringRunsResponse, error) {
+func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2.ListRecurringRunsRequest) (*apiv2.ListRecurringRunsResponse, error) {
 	if s.options.CollectMetrics {
 		listJobRequests.Inc()
 	}
@@ -254,18 +254,18 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRec
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
-	apiRecurringRuns := toApiRecurringRuns(jobs)
+	apiRecurringRuns := toAPIRecurringRuns(jobs)
 	if apiRecurringRuns == nil {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representations to their API counterparts"), "Failed to list recurring runs")
 	}
-	return &apiv2beta1.ListRecurringRunsResponse{
+	return &apiv2.ListRecurringRunsResponse{
 		RecurringRuns: apiRecurringRuns,
 		TotalSize:     int32(total_size),
 		NextPageToken: nextPageToken,
 	}, nil
 }
 
-func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2beta1.EnableRecurringRunRequest) (*emptypb.Empty, error) {
+func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2.EnableRecurringRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		enableJobRequests.Inc()
 	}
@@ -276,7 +276,7 @@ func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2beta1.
 	return &emptypb.Empty{}, nil
 }
 
-func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2beta1.DisableRecurringRunRequest) (*emptypb.Empty, error) {
+func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2.DisableRecurringRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		disableJobRequests.Inc()
 	}
@@ -288,7 +288,7 @@ func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2beta1
 	return &emptypb.Empty{}, nil
 }
 
-func (s *JobServer) DeleteRecurringRun(ctx context.Context, request *apiv2beta1.DeleteRecurringRunRequest) (*emptypb.Empty, error) {
+func (s *JobServer) DeleteRecurringRun(ctx context.Context, request *apiv2.DeleteRecurringRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteJobRequests.Inc()
 	}

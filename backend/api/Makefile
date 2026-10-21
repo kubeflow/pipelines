@@ -18,9 +18,9 @@ IMAGE_TAG=kfp-api-generator
 # Remote image for publishing (used by CI)
 REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator
 # Assume the latest API version by default.
-API_VERSION ?= v2beta1
-ifneq ($(API_VERSION),v2beta1)
-$(error Only the v2beta1 API is supported)
+API_VERSION ?= v2
+ifneq ($(API_VERSION),v2)
+$(error Generate the canonical v2 API; v2beta1 is a frozen compatibility contract)
 endif
 
 # Pre-built images for faster development (default: enabled for speed)
@@ -63,6 +63,11 @@ generate-from-source: fetch-dependencies .image-built hack/generator.sh $(API_VE
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
 		$(IMAGE_TAG) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
 
+# Regenerate Go compatibility shims without invoking protoc or Docker.
+.PHONY: generate-compat
+generate-compat:
+	cd ../.. && go run ./backend/api/hack/generate_compat
+
 # Generate KFP server API package using either pre-built image (fast) or source build (current tools).
 # Use USE_PREBUILT_IMAGE=false when pre-built image may have outdated dependencies.
 .PHONY: generate-kfp-server-api-package
@@ -90,16 +95,16 @@ generate-kfp-server-api-package-from-source: .image-built
 
 # Fetch dependency proto
 .PHONY: fetch-dependencies
-fetch-dependencies: v2beta1/google/rpc/status.proto
+fetch-dependencies: $(API_VERSION)/google/rpc/status.proto
 
-v2beta1/google/rpc/status.proto:
-	@mkdir -p v2beta1/google/rpc
+$(API_VERSION)/google/rpc/status.proto:
+	@mkdir -p $(API_VERSION)/google/rpc
 	@# Authenticate with GITHUB_TOKEN when set to avoid anonymous per-IP 429
 	@# rate limits on raw.githubusercontent.com. The bearer header is passed
 	@# through a temporary WGETRC file, never on the command line. If the
 	@# authenticated fetch fails it falls back to an anonymous fetch, so
 	@# behavior is never worse than without a token.
-	@wget_cmd="wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto"; \
+	@wget_cmd="wget --tries=3 --waitretry=10 --retry-on-http-error=429,500,502,503 -O $(API_VERSION)/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto"; \
 	if [ -n "$$GITHUB_TOKEN" ]; then \
 		wgetrc=$$(mktemp "$${TMPDIR:-/tmp}/kfp-proto-wgetrc.XXXXXX"); \
 		printf 'header = Authorization: Bearer %s\n' "$$GITHUB_TOKEN" > "$$wgetrc"; \

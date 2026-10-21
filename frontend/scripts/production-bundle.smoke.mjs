@@ -150,19 +150,19 @@ for (const kind of ['pipeline', 'run']) {
           pipeline_spec: pipelineSpec,
         };
         await routeProductionBundle(page, {
-          '/apis/v2beta1/pipelines/graph-spacing': {
+          '/apis/v2/pipelines/graph-spacing': {
             pipeline_id: 'graph-spacing',
             display_name: 'Graph spacing',
           },
-          '/apis/v2beta1/pipelines/graph-spacing/versions/version': version,
-          '/apis/v2beta1/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
-          '/apis/v2beta1/runs/graph-spacing': {
+          '/apis/v2/pipelines/graph-spacing/versions/version': version,
+          '/apis/v2/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
+          '/apis/v2/runs/graph-spacing': {
             run_id: 'graph-spacing',
             display_name: 'Graph spacing',
             state: 'SUCCEEDED',
             pipeline_spec: pipelineSpec,
           },
-          '/apis/v2beta1/runs/graph-spacing/tasks': { tasks: [] },
+          '/apis/v2/runs/graph-spacing/tasks': { tasks: [] },
         });
         const route =
           kind === 'pipeline'
@@ -270,14 +270,14 @@ test(
         },
       };
       await routeProductionBundle(page, {
-        '/apis/v2beta1/runs/timeline-layout-test': {
+        '/apis/v2/runs/timeline-layout-test': {
           run_id: 'timeline-layout-test',
           state: 'SUCCEEDED',
           created_at: at(0),
           finished_at: at(400),
           pipeline_spec: pipelineSpec,
         },
-        '/apis/v2beta1/runs/timeline-layout-test/tasks': { tasks },
+        '/apis/v2/runs/timeline-layout-test/tasks': { tasks },
       });
       await page.goto('http://kfp.test/#/runs/details/timeline-layout-test?tab=timeline');
       const timeline = page.getByRole('region', { name: 'Run timeline' });

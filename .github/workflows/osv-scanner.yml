@@ -44,7 +44,7 @@ jobs:
           ./osv-scanner scan source \
             --recursive \
             --no-resolve \
-            --experimental-exclude backend/api/v2beta1/python_http_client \
+            --experimental-exclude backend/api/v2/python_http_client \
             --format sarif \
             --output-file osv-results.sarif \
             . || scan_exit_code=$?

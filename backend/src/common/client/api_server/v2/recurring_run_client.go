@@ -22,9 +22,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
@@ -33,13 +33,13 @@ import (
 )
 
 type RecurringRunInterface interface {
-	Create(params *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2beta1RecurringRun, error)
-	Get(params *params.RecurringRunServiceGetRecurringRunParams) (*model.V2beta1RecurringRun, error)
+	Create(params *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2RecurringRun, error)
+	Get(params *params.RecurringRunServiceGetRecurringRunParams) (*model.V2RecurringRun, error)
 	Delete(params *params.RecurringRunServiceDeleteRecurringRunParams) error
 	Enable(params *params.RecurringRunServiceEnableRecurringRunParams) error
 	Disable(params *params.RecurringRunServiceDisableRecurringRunParams) error
-	List(params *params.RecurringRunServiceListRecurringRunsParams) ([]*model.V2beta1RecurringRun, int, string, error)
-	ListAll(params *params.RecurringRunServiceListRecurringRunsParams, maxResultSize int) ([]*model.V2beta1RecurringRun, error)
+	List(params *params.RecurringRunServiceListRecurringRunsParams) ([]*model.V2RecurringRun, int, string, error)
+	ListAll(params *params.RecurringRunServiceListRecurringRunsParams, maxResultSize int) ([]*model.V2RecurringRun, error)
 }
 
 type RecurringRunClient struct {
@@ -95,7 +95,7 @@ func NewMultiUserRecurringRunClient(clientConfig clientcmd.ClientConfig, userTok
 	}, nil
 }
 
-func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2beta1RecurringRun,
+func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2RecurringRun,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -112,7 +112,7 @@ func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreate
 	return response.Payload, nil
 }
 
-func (c *RecurringRunClient) Get(parameters *params.RecurringRunServiceGetRecurringRunParams) (*model.V2beta1RecurringRun,
+func (c *RecurringRunClient) Get(parameters *params.RecurringRunServiceGetRecurringRunParams) (*model.V2RecurringRun,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -178,7 +178,7 @@ func (c *RecurringRunClient) Disable(parameters *params.RecurringRunServiceDisab
 }
 
 func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecurringRunsParams) (
-	[]*model.V2beta1RecurringRun, int, string, error) {
+	[]*model.V2RecurringRun, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -195,17 +195,17 @@ func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecu
 }
 
 func (c *RecurringRunClient) ListAll(parameters *params.RecurringRunServiceListRecurringRunsParams, maxResultSize int) (
-	[]*model.V2beta1RecurringRun, error) {
+	[]*model.V2RecurringRun, error) {
 	return listAllForJob(c, parameters, maxResultSize)
 }
 
 func listAllForJob(client RecurringRunInterface, parameters *params.RecurringRunServiceListRecurringRunsParams,
-	maxResultSize int) ([]*model.V2beta1RecurringRun, error) {
+	maxResultSize int) ([]*model.V2RecurringRun, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.V2beta1RecurringRun, 0)
+	allResults := make([]*model.V2RecurringRun, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

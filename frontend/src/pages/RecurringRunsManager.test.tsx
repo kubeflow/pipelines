@@ -21,26 +21,26 @@ import { vi } from 'vitest';
 import { Apis } from 'src/lib/Apis';
 import TestUtils, { expectErrors } from 'src/TestUtils';
 import RecurringRunsManager, { RecurringRunListProps } from './RecurringRunsManager';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 
-const RECURRINGRUNS: V2beta1RecurringRun[] = [
+const RECURRINGRUNS: V2RecurringRun[] = [
   {
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     display_name: 'test recurring run name',
     recurring_run_id: 'recurringrun1',
-    status: V2beta1RecurringRunStatus.ENABLED,
+    status: V2RecurringRunStatus.ENABLED,
   },
   {
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     display_name: 'test recurring run name2',
     recurring_run_id: 'recurringrun2',
-    status: V2beta1RecurringRunStatus.DISABLED,
+    status: V2RecurringRunStatus.DISABLED,
   },
   {
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     display_name: 'test recurring run name3',
     recurring_run_id: 'recurringrun3',
-    status: V2beta1RecurringRunStatus.STATUS_UNSPECIFIED,
+    status: V2RecurringRunStatus.STATUS_UNSPECIFIED,
   },
 ];
 

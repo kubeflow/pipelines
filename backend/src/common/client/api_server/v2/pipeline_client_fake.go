@@ -16,12 +16,12 @@ package api_server_v2
 
 import (
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
 )
 
-func getDefaultPipeline(id string) *model.V2beta1Pipeline {
-	return &model.V2beta1Pipeline{
+func getDefaultPipeline(id string) *model.V2Pipeline {
+	return &model.V2Pipeline{
 		CreatedAt:   strfmt.NewDateTime(),
 		Description: "PIPELINE_DESCRIPTION",
 		PipelineID:  id,
@@ -36,16 +36,16 @@ func NewPipelineClientFake() *PipelineClientFake {
 }
 
 func (c *PipelineClientFake) Create(params *params.PipelineServiceCreatePipelineParams) (
-	*model.V2beta1Pipeline, error) {
+	*model.V2Pipeline, error) {
 	return getDefaultPipeline(params.Pipeline.PipelineID), nil
 }
 
-func (c *PipelineClientFake) CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error) {
+func (c *PipelineClientFake) CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2Pipeline, error) {
 	return getDefaultPipeline(params.Body.Pipeline.PipelineID), nil
 }
 
 func (c *PipelineClientFake) Get(params *params.PipelineServiceGetPipelineParams) (
-	*model.V2beta1Pipeline, error) {
+	*model.V2Pipeline, error) {
 	return getDefaultPipeline(params.PipelineID), nil
 
 }
@@ -55,14 +55,14 @@ func (c *PipelineClientFake) Delete(params *params.PipelineServiceDeletePipeline
 }
 
 func (c *PipelineClientFake) List(params *params.PipelineServiceListPipelinesParams) (
-	[]*model.V2beta1Pipeline, int, string, error) {
-	return []*model.V2beta1Pipeline{
+	[]*model.V2Pipeline, int, string, error) {
+	return []*model.V2Pipeline{
 		getDefaultPipeline("PIPELINE_ID_100"),
 		getDefaultPipeline("PIPELINE_ID_101"),
 	}, 2, "", nil
 }
 
 func (c *PipelineClientFake) ListAll(params *params.PipelineServiceListPipelinesParams,
-	maxResultSize int) ([]*model.V2beta1Pipeline, error) {
+	maxResultSize int) ([]*model.V2Pipeline, error) {
 	return listAllForPipeline(c, params, maxResultSize)
 }

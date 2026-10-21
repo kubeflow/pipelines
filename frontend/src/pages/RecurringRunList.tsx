@@ -23,16 +23,12 @@ import { Link } from 'react-router';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
-import {
-  V2beta1RecurringRun,
-  V2beta1RecurringRunStatus,
-  V2beta1Trigger,
-} from 'src/apisv2beta1/recurringrun';
-import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
+import { V2RecurringRun, V2RecurringRunStatus, V2Trigger } from 'src/apisv2/recurringrun';
+import { V2ListExperimentsResponse } from 'src/apisv2/experiment';
 import { Tooltip } from '@mui/material';
 
 /** Extracts start_time and end_time from the trigger's cron or periodic schedule. */
-export function getScheduleTimes(trigger?: V2beta1Trigger): { startTime?: Date; endTime?: Date } {
+export function getScheduleTimes(trigger?: V2Trigger): { startTime?: Date; endTime?: Date } {
   const schedule = trigger?.cron_schedule || trigger?.periodic_schedule;
   return {
     startTime: schedule?.start_time,
@@ -41,11 +37,11 @@ export function getScheduleTimes(trigger?: V2beta1Trigger): { startTime?: Date; 
 }
 
 /** Derives schedule status (Active, Scheduled, Expired, Disabled) from run state and trigger times. */
-export function getScheduleStatus(recurringRun: V2beta1RecurringRun): string {
-  if (recurringRun.status === V2beta1RecurringRunStatus.DISABLED) {
+export function getScheduleStatus(recurringRun: V2RecurringRun): string {
+  if (recurringRun.status === V2RecurringRunStatus.DISABLED) {
     return 'Disabled';
   }
-  if (recurringRun.status !== V2beta1RecurringRunStatus.ENABLED) {
+  if (recurringRun.status !== V2RecurringRunStatus.ENABLED) {
     return '-';
   }
 
@@ -62,7 +58,7 @@ export function getScheduleStatus(recurringRun: V2beta1RecurringRun): string {
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
-  recurringRun: V2beta1RecurringRun;
+  recurringRun: V2RecurringRun;
   error?: string;
 }
 
@@ -224,8 +220,8 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     );
   };
 
-  public _triggerCustomRenderer: React.FC<CustomRendererProps<V2beta1Trigger>> = (
-    props: CustomRendererProps<V2beta1Trigger>,
+  public _triggerCustomRenderer: React.FC<CustomRendererProps<V2Trigger>> = (
+    props: CustomRendererProps<V2Trigger>,
   ) => {
     if (props.value?.cron_schedule) {
       return <div>Cron: {props.value.cron_schedule.cron}</div>;
@@ -249,16 +245,16 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return <div>-</div>;
   };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
-    props: CustomRendererProps<V2beta1RecurringRunStatus>,
+  public _statusCustomRenderer: React.FC<CustomRendererProps<V2RecurringRunStatus>> = (
+    props: CustomRendererProps<V2RecurringRunStatus>,
   ) => {
     if (!props.value) {
       return <div>-</div>;
     }
     const textColor =
-      props.value === V2beta1RecurringRunStatus.ENABLED
+      props.value === V2RecurringRunStatus.ENABLED
         ? color.success
-        : props.value === V2beta1RecurringRunStatus.DISABLED
+        : props.value === V2RecurringRunStatus.DISABLED
           ? color.inactive
           : color.errorText;
     return <div style={{ color: textColor }}>{props.value}</div>;
@@ -333,7 +329,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   private async _setColumns(
     displayRecurringRuns: DisplayRecurringRun[],
   ): Promise<DisplayRecurringRun[]> {
-    let experimentsResponse: V2beta1ListExperimentsResponse;
+    let experimentsResponse: V2ListExperimentsResponse;
     let experimentsGetError: string;
     try {
       if (!this.props.namespaceMask) {
@@ -389,7 +385,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   ): Promise<DisplayRecurringRun[]> {
     return Promise.all(
       displayRecurringRuns.map(async (displayRecurringRun) => {
-        let getRecurringRunResponse: V2beta1RecurringRun;
+        let getRecurringRunResponse: V2RecurringRun;
         try {
           getRecurringRunResponse = await Apis.recurringRunServiceApi.getRecurringRun(
             displayRecurringRun.recurringRun!.recurring_run_id!,

@@ -3,7 +3,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2PipelineTask, V2Run } from 'src/apisv2/run';
 import {
   formatTaskElapsed,
   getRunTaskTiming,
@@ -13,8 +13,8 @@ import {
 
 const base = Date.parse('2026-01-01T00:00:00Z');
 const at = (seconds: number) => new Date(base + seconds * 1000);
-const run: V2beta1Run = { state: 'SUCCEEDED', created_at: at(0), finished_at: at(300) };
-const task = (overrides: Partial<V2beta1PipelineTask> = {}): V2beta1PipelineTask => ({
+const run: V2Run = { state: 'SUCCEEDED', created_at: at(0), finished_at: at(300) };
+const task = (overrides: Partial<V2PipelineTask> = {}): V2PipelineTask => ({
   task_id: 'task',
   name: 'train',
   type: 'RUNTIME',
@@ -122,7 +122,7 @@ it.each([
   expect(getRunTaskTiming(run, [singleAttempt], base).rows[0].retried).toBe(false);
 });
 
-it.each<{ name: string; pods: NonNullable<V2beta1PipelineTask['pods']>; retried: boolean }>([
+it.each<{ name: string; pods: NonNullable<V2PipelineTask['pods']>; retried: boolean }>([
   {
     name: 'driver and executor',
     pods: [

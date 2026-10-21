@@ -11,10 +11,12 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/ci-image-artifacts.sh"
 
 API_SOURCE_DIRECTORIES=(
+  backend/api/v2/go_client
+  backend/api/v2/go_http_client
+  backend/api/v2/swagger
+  backend/api/v2/python_http_client
   backend/api/v2beta1/go_client
   backend/api/v2beta1/go_http_client
-  backend/api/v2beta1/swagger
-  backend/api/v2beta1/python_http_client
   sdk/python/kfp/server_api
 )
 
@@ -80,7 +82,7 @@ main() {
 
   for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
     docker run --rm --interactive --user "$(id -u):$(id -g)" \
-      --env HOME=/tmp/kfp-smoke-home --env API_VERSION=v2beta1 \
+      --env HOME=/tmp/kfp-smoke-home --env API_VERSION=v2 \
       --env LC_ALL=C.UTF-8 --env TZ=UTC \
       --mount "type=bind,source=$source_dir,target=/go/src/github.com/kubeflow/pipelines" \
       --workdir /go/src/github.com/kubeflow/pipelines "$image:ci" bash -se <<'CONTAINER'
@@ -94,8 +96,8 @@ java -version
 python3 -c 'import setuptools'
 backend/api/hack/generator.sh
 backend/api/build_kfp_server_api_python_package.sh
-test -s backend/api/v2beta1/go_client/run.pb.go
-test -s backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json
+test -s backend/api/v2/go_client/run.pb.go
+test -s backend/api/v2/swagger/kfp_api_single_file.swagger.json
 test -s sdk/python/kfp/server_api/api_client.py
 python3 -m pip wheel --no-deps ./sdk/python --wheel-dir /tmp/kfp-smoke-dist
 compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl' >/dev/null
