@@ -716,3 +716,5 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Keep Python 3.9 support for the 2.17 SDK. Resolve security fixes with interpreter-specific dependency markers where patched packages require Python 3.10. Record remaining Python 3.9 exposure in release notes.
 - Run the current `kfpr` from a separate Python >=3.11 environment when operating this maintenance branch. Prepare the fixes PR before the version PR; publish only after qualification of rebuilt release images.
 - `make -C kubernetes_platform python USE_FIND_LINKS=true` installs the source SDK wheel explicitly alongside the extension requirements. `PIP_FIND_LINKS` alone does not prioritize local wheels over same-version PyPI candidates. Do not explicitly install every local wheel: server API versions may differ from the extension lock. Verify with `python3 .github/resources/scripts/kfp_kubernetes_install_test.py`.
+
+- The legacy cache fixture source and compiled YAML must use the same Python image listed in `.github/resources/runtime-base-images.txt`. Verify with `python3 .github/resources/scripts/runtime_fixture_images_test.py`; avoid registry aliases that bypass Kind preloads.

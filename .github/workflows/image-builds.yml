@@ -31,6 +31,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Verify cache fixture runtime images are preloaded
+        run: python3 .github/resources/scripts/runtime_fixture_images_test.py
+
       - name: Create Artifacts Path Directory
         run: mkdir -p ${{ env.ARTIFACTS_PATH }}
 
