@@ -23,14 +23,14 @@ jobs:
     env:
       SKIP: no-commit-to-branch
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.13'
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           version: '0.10.3'
       - uses: ./.github/actions/setup-go
@@ -62,7 +62,7 @@ jobs:
           echo "PRE_COMMIT_FROM_REF=${base_sha}" >> "${GITHUB_ENV}"
 
       - name: Run pre-commit on changed files
-        uses: pre-commit/action@v3.0.1
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
         with:
           extra_args: --from-ref ${{ steps.pre-commit-range.outputs.base-sha }} --to-ref HEAD
 

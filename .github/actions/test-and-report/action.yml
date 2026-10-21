@@ -149,7 +149,7 @@ runs:
     # the first spec runs). The weekly key suffix plus restore-keys keeps
     # compile artifacts fresh as sources drift between dependency changes.
     - name: Restore Go build and module caches
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       with:
         path: |
           ${{ steps.go-cache-meta.outputs.gomodcache }}
@@ -543,7 +543,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Python for reporting
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
       if: (!cancelled())
       with:
         python-version: ${{ inputs.report_python_version }}

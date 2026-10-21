@@ -358,7 +358,7 @@ class BaseWorkflowsTest(unittest.TestCase):
         before_prepare = steps[:prepare_index]
         self.assertTrue(
             any(
-                step.get('uses') == 'actions/setup-python@v7'
+                step.get('uses', '').startswith('actions/setup-python@')
                 for step in before_prepare
             )
         )

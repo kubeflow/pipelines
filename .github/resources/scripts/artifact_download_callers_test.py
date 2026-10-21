@@ -139,9 +139,22 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                         action = step.get('uses', '')
                         location = (path.relative_to(ROOT).as_posix(), job)
                         if action.startswith('actions/download-artifact@'):
-                            self.assertEqual(
-                                location[0],
-                                '.github/actions/download-artifact-with-retry/action.yml',
+                            # The OIDC-only PyPI job cannot check out this local
+                            # wrapper. Its single named same-run artifact has an
+                            # exact checksum inventory, covered by
+                            # publish_packages_workflow_test.py.
+                            self.assertIn(
+                                location,
+                                {
+                                    (
+                                        '.github/actions/download-artifact-with-retry/action.yml',
+                                        'composite',
+                                    ),
+                                    (
+                                        '.github/workflows/publish-packages.yml',
+                                        'publish',
+                                    ),
+                                },
                                 f'Raw download bypasses completeness: {location}',
                             )
                         if action != WRAPPER:
