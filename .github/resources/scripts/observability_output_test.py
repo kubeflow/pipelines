@@ -44,9 +44,18 @@ def run_signature(log_text, summary_path=None):
         if summary_path is not None:
             environment['GITHUB_STEP_SUMMARY'] = str(summary_path)
         return subprocess.run(
-            ['bash', str(SIGNATURE_SCRIPT), '--log-file', str(log_file),
-             '--reports-dir', str(Path(temporary_directory) / 'none')],
-            check=True, capture_output=True, text=True, env=environment,
+            [
+                'bash',
+                str(SIGNATURE_SCRIPT),
+                '--log-file',
+                str(log_file),
+                '--reports-dir',
+                str(Path(temporary_directory) / 'none'),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=environment,
         ).stdout
 
 
@@ -58,27 +67,30 @@ def conntrack_count(output):
 
 
 class ConntrackClassificationTest(unittest.TestCase):
-
     def test_diagnostics_header_counts_zero(self):
         # collect-seaweedfs-diagnostics tees this header into the pod log; it
         # must never be classified as a kernel table-full event.
-        output = run_signature(textwrap.dedent('''\
+        output = run_signature(
+            textwrap.dedent("""\
             kernel 'nf_conntrack: table full' events:
             (no table-full event logged)
-        '''))
+        """)
+        )
         self.assertEqual(conntrack_count(output), 0)
 
     def test_real_kernel_messages_count_correctly(self):
-        output = run_signature(textwrap.dedent('''\
+        output = run_signature(
+            textwrap.dedent("""\
             kernel 'nf_conntrack: table full' events:
             [111.1] nf_conntrack: table full, dropping packet
             [222.2] nf_conntrack: table full, dropping packet
-        '''))
+        """)
+        )
         self.assertEqual(conntrack_count(output), 2)
 
 
 class OutputMirroringTest(unittest.TestCase):
-    """stdout must be byte-identical to what gets appended to the summary."""
+    """Stdout must be byte-identical to what gets appended to the summary."""
 
     def test_signature_stdout_matches_summary(self):
         with tempfile.NamedTemporaryFile('r', suffix='.md') as summary:
@@ -94,8 +106,10 @@ class OutputMirroringTest(unittest.TestCase):
             csv = Path(temporary_directory) / 't.csv'
             csv.write_text(
                 'epoch,cpu_pct,mem_used_mb,load1\n'
-                + ''.join(f'{1700000000 + i * 5},{i * 10},1000,1.0\n'
-                          for i in range(5)),
+                + ''.join(
+                    f'{1700000000 + i * 5},{i * 10},1000,1.0\n'
+                    for i in range(5)
+                ),
                 encoding='utf-8',
             )
             summary = Path(temporary_directory) / 'summary.md'
@@ -105,7 +119,10 @@ class OutputMirroringTest(unittest.TestCase):
             # file lookup at a path that does not exist.
             result = subprocess.run(
                 ['bash', str(TELEMETRY_SCRIPT), 'render', str(csv)],
-                check=True, capture_output=True, text=True, env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+                env=environment,
             )
             self.assertEqual(result.stdout, summary.read_text())
             self.assertIn('Runner telemetry', result.stdout)
@@ -124,13 +141,15 @@ class OutputMirroringTest(unittest.TestCase):
             environment.pop('GITHUB_STEP_SUMMARY', None)
             result = subprocess.run(
                 ['bash', str(TELEMETRY_SCRIPT), 'render', str(csv)],
-                check=True, capture_output=True, text=True, env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+                env=environment,
             )
             self.assertIn('Runner telemetry', result.stdout)
 
 
 class ContentionDeltaTest(unittest.TestCase):
-
     def test_reads_current_v2_cgroup_instead_of_mount_root(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -139,18 +158,26 @@ class ContentionDeltaTest(unittest.TestCase):
             (proc_root / 'self').mkdir(parents=True)
             (cgroup_root / 'actions-job').mkdir(parents=True)
             (proc_root / 'self' / 'cgroup').write_text(
-                '0::/actions-job\n', encoding='utf-8')
+                '0::/actions-job\n', encoding='utf-8'
+            )
             (cgroup_root / 'cpu.stat').write_text(
-                'nr_throttled 999\n', encoding='utf-8')
+                'nr_throttled 999\n', encoding='utf-8'
+            )
             (cgroup_root / 'actions-job' / 'cpu.stat').write_text(
-                'nr_throttled 7\n', encoding='utf-8')
+                'nr_throttled 7\n', encoding='utf-8'
+            )
             snapshot = temporary_path / 'contention.tsv'
             environment = os.environ.copy()
             environment['RUNNER_TELEMETRY_PROC_ROOT'] = str(proc_root)
             environment['RUNNER_TELEMETRY_CGROUP_ROOT'] = str(cgroup_root)
 
             subprocess.run(
-                ['bash', str(TELEMETRY_SCRIPT), 'contention-baseline', str(snapshot)],
+                [
+                    'bash',
+                    str(TELEMETRY_SCRIPT),
+                    'contention-baseline',
+                    str(snapshot),
+                ],
                 check=True,
                 env=environment,
             )
@@ -172,9 +199,16 @@ class ContentionDeltaTest(unittest.TestCase):
             cpu_stat='nr_periods 120\nnr_throttled 15\nthrottled_usec 6000\n',
         )
 
-        self.assertIn('| CPU PSI some stall | 100000 | 300000 | 200.0 ms', output)
-        self.assertIn('| Runner cgroup throttled periods | 10 | 15 | 5 | ok |', output)
-        self.assertIn('| Runner cgroup throttled time | 1000 | 6000 | 5.0 ms | ok |', output)
+        self.assertIn(
+            '| CPU PSI some stall | 100000 | 300000 | 200.0 ms', output
+        )
+        self.assertIn(
+            '| Runner cgroup throttled periods | 10 | 15 | 5 | ok |', output
+        )
+        self.assertIn(
+            '| Runner cgroup throttled time | 1000 | 6000 | 5.0 ms | ok |',
+            output,
+        )
         self.assertIn('25.0% of test-window periods', output)
 
     def test_normalizes_cgroup_v1_throttled_time(self):
@@ -184,7 +218,10 @@ class ContentionDeltaTest(unittest.TestCase):
             cpu_stat='nr_periods 2\nnr_throttled 1\nthrottled_time 5000000\n',
         )
 
-        self.assertIn('| Runner cgroup throttled time | 1000 | 5000 | 4.0 ms | ok |', output)
+        self.assertIn(
+            '| Runner cgroup throttled time | 1000 | 5000 | 4.0 ms | ok |',
+            output,
+        )
 
     def test_reports_unavailable_and_reset_without_negative_delta(self):
         output = self._render_contention(
@@ -197,9 +234,16 @@ class ContentionDeltaTest(unittest.TestCase):
             cpu_stat='nr_throttled 2\n',
         )
 
-        self.assertIn('| CPU PSI some stall | 500 | 400 | — | counter reset |', output)
-        self.assertIn('| CPU PSI full stall | 100 | — | — | unavailable |', output)
-        self.assertIn('| Runner cgroup throttled periods | 9 | 2 | — | counter reset |', output)
+        self.assertIn(
+            '| CPU PSI some stall | 500 | 400 | — | counter reset |', output
+        )
+        self.assertIn(
+            '| CPU PSI full stall | 100 | — | — | unavailable |', output
+        )
+        self.assertIn(
+            '| Runner cgroup throttled periods | 9 | 2 | — | counter reset |',
+            output,
+        )
 
     def _render_contention(self, baseline, pressure, cpu_stat):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -208,13 +252,18 @@ class ContentionDeltaTest(unittest.TestCase):
             cgroup_root = temporary_path / 'cgroup'
             (proc_root / 'pressure').mkdir(parents=True)
             cgroup_root.mkdir()
-            (proc_root / 'pressure' / 'cpu').write_text(pressure, encoding='utf-8')
+            (proc_root / 'pressure' / 'cpu').write_text(
+                pressure, encoding='utf-8'
+            )
             (cgroup_root / 'cpu.stat').write_text(cpu_stat, encoding='utf-8')
             baseline_path = temporary_path / 'baseline.tsv'
             baseline_values = {'epoch_us': time.time_ns() // 1000 - 10_000_000}
             baseline_values.update(baseline)
             baseline_path.write_text(
-                ''.join(f'{key}\t{value}\n' for key, value in baseline_values.items()),
+                ''.join(
+                    f'{key}\t{value}\n'
+                    for key, value in baseline_values.items()
+                ),
                 encoding='utf-8',
             )
             csv = temporary_path / 'telemetry.csv'
@@ -230,7 +279,13 @@ class ContentionDeltaTest(unittest.TestCase):
             environment['RUNNER_TELEMETRY_PROC_ROOT'] = str(proc_root)
             environment['RUNNER_TELEMETRY_CGROUP_ROOT'] = str(cgroup_root)
             result = subprocess.run(
-                ['bash', str(TELEMETRY_SCRIPT), 'render', str(csv), str(baseline_path)],
+                [
+                    'bash',
+                    str(TELEMETRY_SCRIPT),
+                    'render',
+                    str(csv),
+                    str(baseline_path),
+                ],
                 check=True,
                 capture_output=True,
                 text=True,

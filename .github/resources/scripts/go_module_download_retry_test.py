@@ -15,12 +15,12 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -32,7 +32,6 @@ BACKEND_WORKFLOW = ROOT / '.github/workflows/presubmit-backend.yml'
 
 
 class GoModuleDownloadRetryTest(unittest.TestCase):
-
     def setUp(self):
         directory = self.enterContext(tempfile.TemporaryDirectory())
         self.directory = Path(directory)
@@ -40,7 +39,7 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         self.bin_directory.mkdir()
         self.events_path = self.directory / 'events.jsonl'
         self.count_path = self.directory / 'go-count'
-        program = f'#!{sys.executable}\n' + textwrap.dedent('''\
+        program = f'#!{sys.executable}\n' + textwrap.dedent("""\
             import json
             import os
             from pathlib import Path
@@ -98,29 +97,35 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 sys.exit(0)
             else:
                 sys.exit('Unexpected fake command: ' + command)
-            ''')
+            """)
         for name in ('go', 'git', 'sleep', 'timeout'):
             executable = self.bin_directory / name
             executable.write_text(program, encoding='utf-8')
             executable.chmod(0o755)
 
-    def run_download(self,
-                     failures=0,
-                     environment=None,
-                     command=None,
-                     cwd=None):
+    def run_download(
+        self, failures=0, environment=None, command=None, cwd=None
+    ):
         self.events_path.unlink(missing_ok=True)
         self.count_path.unlink(missing_ok=True)
         effective_environment = dict(os.environ)
-        for key in ('GOPROXY', 'GOSUMDB', 'GONOSUMDB', 'GOPRIVATE',
-                    'FAKE_DEADLINE_DEPTH', 'FAKE_TIMEOUT_EXIT'):
+        for key in (
+            'GOPROXY',
+            'GOSUMDB',
+            'GONOSUMDB',
+            'GOPRIVATE',
+            'FAKE_DEADLINE_DEPTH',
+            'FAKE_TIMEOUT_EXIT',
+        ):
             effective_environment.pop(key, None)
-        effective_environment.update({
-            'PATH': f'{self.bin_directory}{os.pathsep}{os.environ["PATH"]}',
-            'FAKE_EVENTS': str(self.events_path),
-            'FAKE_GO_COUNT': str(self.count_path),
-            'FAKE_GO_FAILURES': str(failures),
-        })
+        effective_environment.update(
+            {
+                'PATH': f'{self.bin_directory}{os.pathsep}{os.environ["PATH"]}',
+                'FAKE_EVENTS': str(self.events_path),
+                'FAKE_GO_COUNT': str(self.count_path),
+                'FAKE_GO_FAILURES': str(failures),
+            }
+        )
         effective_environment.update(environment or {})
         return subprocess.run(
             command or ['bash', str(SCRIPT)],
@@ -133,20 +138,28 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         )
 
     def events(self, command=None):
-        events = [
-            json.loads(line) for line in self.events_path.read_text(
-                encoding='utf-8').splitlines()
-        ] if self.events_path.exists() else []
+        events = (
+            [
+                json.loads(line)
+                for line in self.events_path.read_text(
+                    encoding='utf-8'
+                ).splitlines()
+            ]
+            if self.events_path.exists()
+            else []
+        )
         return [
-            event for event in events
+            event
+            for event in events
             if command is None or event['command'] == command
         ]
 
     def assert_one_outer_deadline(self):
         deadlines = self.events('timeout')
         self.assertEqual(len(deadlines), 1)
-        self.assertEqual(deadlines[0]['args'][:3],
-                         ['--kill-after=10s', '300s', 'bash'])
+        self.assertEqual(
+            deadlines[0]['args'][:3], ['--kill-after=10s', '300s', 'bash']
+        )
         for event in self.events():
             if event['command'] != 'timeout':
                 self.assertEqual(event['deadline_depth'], '1', event)
@@ -159,8 +172,10 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         self.assertEqual(len(downloads), 1)
         self.assertEqual(downloads[0]['args'], ['mod', 'download'])
         self.assertEqual(downloads[0]['cwd'], str(ROOT))
-        self.assertEqual(downloads[0]['environment']['GOPROXY'],
-                         'https://proxy.golang.org|direct')
+        self.assertEqual(
+            downloads[0]['environment']['GOPROXY'],
+            'https://proxy.golang.org|direct',
+        )
         self.assertIsNone(downloads[0]['environment']['GOSUMDB'])
         self.assertEqual(self.events('sleep'), [])
         self.assert_one_outer_deadline()
@@ -169,10 +184,13 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         result = self.run_download(failures=2)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([event['command'] for event in self.events()],
-                         ['timeout', 'go', 'sleep', 'go', 'sleep', 'go'])
-        self.assertEqual([event['args'] for event in self.events('sleep')],
-                         [['10'], ['10']])
+        self.assertEqual(
+            [event['command'] for event in self.events()],
+            ['timeout', 'go', 'sleep', 'go', 'sleep', 'go'],
+        )
+        self.assertEqual(
+            [event['args'] for event in self.events('sleep')], [['10'], ['10']]
+        )
         self.assert_one_outer_deadline()
 
     def test_retry_exhaustion_fails_after_three_downloads(self):
@@ -180,8 +198,9 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(len(self.events('go')), 3)
-        self.assertEqual([event['args'] for event in self.events('sleep')],
-                         [['10'], ['10']])
+        self.assertEqual(
+            [event['args'] for event in self.events('sleep')], [['10'], ['10']]
+        )
         self.assert_one_outer_deadline()
 
     def test_custom_proxy_and_checksum_configuration_are_preserved(self):
@@ -202,7 +221,8 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         for status in (124, 137):
             with self.subTest(status=status):
                 result = self.run_download(
-                    environment={'FAKE_TIMEOUT_EXIT': str(status)})
+                    environment={'FAKE_TIMEOUT_EXIT': str(status)}
+                )
 
                 self.assertEqual(result.returncode, status, result.stderr)
                 self.assertEqual(len(self.events('timeout')), 1)
@@ -214,13 +234,27 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         action = yaml.safe_load(ACTION.read_text(encoding='utf-8'))
         backend = yaml.safe_load(BACKEND_WORKFLOW.read_text(encoding='utf-8'))
         callers = (
-            (WORKFLOW, workflow['jobs']['api-integration-tests-v2']['steps'],
-             'Set up Go', 'Create KFP cluster', 'API integration tests v2'),
-            (BACKEND_WORKFLOW, backend['jobs']['backend-tests']['steps'],
-             'Set up Go', 'Run Backend Tests', 'Run Backend Tests'),
-            (ACTION, action['runs']['steps'],
-             'Restore Go build and module caches', 'Configure API Access',
-             'Run Tests'),
+            (
+                WORKFLOW,
+                workflow['jobs']['api-integration-tests-v2']['steps'],
+                'Set up Go',
+                'Create KFP cluster',
+                'API integration tests v2',
+            ),
+            (
+                BACKEND_WORKFLOW,
+                backend['jobs']['backend-tests']['steps'],
+                'Set up Go',
+                'Run Backend Tests',
+                'Run Backend Tests',
+            ),
+            (
+                ACTION,
+                action['runs']['steps'],
+                'Restore Go build and module caches',
+                'Configure API Access',
+                'Run Tests',
+            ),
         )
         for path, steps, before, after, test_step_name in callers:
             with self.subTest(path=path):
@@ -234,7 +268,8 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 self.assertNotIn('if', download)
                 self.assertEqual(
                     download['run'].strip(),
-                    'bash .github/resources/scripts/download-go-modules.sh')
+                    'bash .github/resources/scripts/download-go-modules.sh',
+                )
                 test_step = steps[names.index(test_step_name)]
                 self.assertLess(download_index, names.index(test_step_name))
                 self.assertNotIn('go mod download', test_step['run'])
@@ -246,7 +281,12 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 result = self.run_download(
                     failures=3,
                     command=[
-                        'bash', '-e', '-o', 'pipefail', '-c', download['run']
+                        'bash',
+                        '-e',
+                        '-o',
+                        'pipefail',
+                        '-c',
+                        download['run'],
                     ],
                     cwd=ROOT,
                 )
@@ -259,9 +299,13 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
         workflow = yaml.safe_load(BACKEND_WORKFLOW.read_text(encoding='utf-8'))
         steps = workflow['jobs']['backend-tests']['steps']
         test_step = next(
-            step for step in steps if step.get('name') == 'Run Backend Tests')
-        for tidy_status, test_status, expected in ((0, 0, 0), (23, 0, 23),
-                                                   (0, 29, 29)):
+            step for step in steps if step.get('name') == 'Run Backend Tests'
+        )
+        for tidy_status, test_status, expected in (
+            (0, 0, 0),
+            (23, 0, 23),
+            (0, 29, 29),
+        ):
             with self.subTest(tidy=tidy_status, tests=test_status):
                 result = self.run_download(
                     environment={
@@ -278,38 +322,52 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 go_commands = [event['args'] for event in self.events('go')]
                 expected_commands = [['env', 'GOPATH'], ['mod', 'tidy']]
                 if not tidy_status:
-                    expected_commands.extend([
-                        ['list', './backend/...'],
+                    expected_commands.extend(
                         [
-                            'test', '-v', '-cover',
-                            'github.com/kubeflow/pipelines/backend/example'
-                        ],
-                    ])
+                            ['list', './backend/...'],
+                            [
+                                'test',
+                                '-v',
+                                '-cover',
+                                'github.com/kubeflow/pipelines/backend/example',
+                            ],
+                        ]
+                    )
                 self.assertEqual(go_commands, expected_commands)
                 self.assertEqual(self.events('timeout'), [])
                 self.assertEqual(self.events('sleep'), [])
                 for event in self.events('go'):
-                    self.assertEqual(event['environment']['GOPROXY'],
-                                     'https://proxy.golang.org|direct')
+                    self.assertEqual(
+                        event['environment']['GOPROXY'],
+                        'https://proxy.golang.org|direct',
+                    )
 
     def test_workflows_watch_shared_downloader_dependencies(self):
         for name in ('compiler-tests.yml', 'presubmit-backend.yml'):
             with self.subTest(workflow=name):
                 workflow = yaml.load(
-                    (ROOT / '.github/workflows' /
-                     name).read_text(encoding='utf-8'),
-                    Loader=yaml.BaseLoader)
+                    (ROOT / '.github/workflows' / name).read_text(
+                        encoding='utf-8'
+                    ),
+                    Loader=yaml.BaseLoader,
+                )
                 paths = workflow['on']['pull_request']['paths']
                 self.assertIn(
-                    '.github/resources/scripts/download-go-modules.sh', paths)
-                self.assertIn('.github/resources/scripts/helper-functions.sh',
-                              paths)
+                    '.github/resources/scripts/download-go-modules.sh', paths
+                )
+                self.assertIn(
+                    '.github/resources/scripts/helper-functions.sh', paths
+                )
         workflow = yaml.load(
             (ROOT / '.github/workflows/ci-scripts-tests.yml').read_text(
-                encoding='utf-8'),
-            Loader=yaml.BaseLoader)
-        self.assertIn('test/presubmit-backend-test.sh',
-                      workflow['on']['pull_request']['paths'])
+                encoding='utf-8'
+            ),
+            Loader=yaml.BaseLoader,
+        )
+        self.assertIn(
+            'test/presubmit-backend-test.sh',
+            workflow['on']['pull_request']['paths'],
+        )
 
 
 if __name__ == '__main__':

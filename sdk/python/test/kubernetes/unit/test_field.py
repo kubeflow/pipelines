@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestUseFieldPathAsEnv:
-
     def test_use_one(self):
 
         @dsl.pipeline
@@ -26,8 +24,8 @@ class TestUseFieldPathAsEnv:
             task = comp()
             kubernetes.use_field_path_as_env(
                 task,
-                env_name="KFP_RUN_NAME",
-                field_path="metadata.annotations['pipelines.kubeflow.org/run_name']"
+                env_name='KFP_RUN_NAME',
+                field_path="metadata.annotations['pipelines.kubeflow.org/run_name']",
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -36,12 +34,12 @@ class TestUseFieldPathAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'fieldPathAsEnv': [{
-                                    'name':
-                                        'KFP_RUN_NAME',
-                                    'fieldPath':
-                                        'metadata.annotations[\'pipelines.kubeflow.org/run_name\']'
-                                }]
+                                'fieldPathAsEnv': [
+                                    {
+                                        'name': 'KFP_RUN_NAME',
+                                        'fieldPath': "metadata.annotations['pipelines.kubeflow.org/run_name']",
+                                    }
+                                ]
                             }
                         }
                     }
@@ -56,11 +54,12 @@ class TestUseFieldPathAsEnv:
             task = comp()
             kubernetes.use_field_path_as_env(
                 task,
-                env_name="KFP_RUN_NAME",
-                field_path="metadata.annotations['pipelines.kubeflow.org/run_name']"
+                env_name='KFP_RUN_NAME',
+                field_path="metadata.annotations['pipelines.kubeflow.org/run_name']",
             )
             kubernetes.use_field_path_as_env(
-                task, env_name="POD_NAME", field_path="metadata.name")
+                task, env_name='POD_NAME', field_path='metadata.name'
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -68,15 +67,16 @@ class TestUseFieldPathAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'fieldPathAsEnv': [{
-                                    'name':
-                                        'KFP_RUN_NAME',
-                                    'fieldPath':
-                                        'metadata.annotations[\'pipelines.kubeflow.org/run_name\']'
-                                }, {
-                                    'name': 'POD_NAME',
-                                    'fieldPath': 'metadata.name'
-                                }]
+                                'fieldPathAsEnv': [
+                                    {
+                                        'name': 'KFP_RUN_NAME',
+                                        'fieldPath': "metadata.annotations['pipelines.kubeflow.org/run_name']",
+                                    },
+                                    {
+                                        'name': 'POD_NAME',
+                                        'fieldPath': 'metadata.name',
+                                    },
+                                ]
                             }
                         }
                     }

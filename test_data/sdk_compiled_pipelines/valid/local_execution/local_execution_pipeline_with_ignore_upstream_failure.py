@@ -20,8 +20,8 @@ the test checks to confirm execution. Callers must use
 `raise_on_error=False` since the overall pipeline DAG still reports
 failure.
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 
 
 @dsl.component

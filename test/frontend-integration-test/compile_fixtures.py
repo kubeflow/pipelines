@@ -6,8 +6,7 @@
 
 from pathlib import Path
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -34,11 +33,15 @@ def tensorboard_metadata(mlpipeline_ui_metadata: dsl.Output[dsl.Artifact]):
     with open(mlpipeline_ui_metadata.path, 'w') as metadata_file:
         json.dump(
             {
-                'outputs': [{
-                    'type': 'tensorboard',
-                    'source': 'gs://ml-pipeline-dataset/tensorboard-train',
-                }],
-            }, metadata_file)
+                'outputs': [
+                    {
+                        'type': 'tensorboard',
+                        'source': 'gs://ml-pipeline-dataset/tensorboard-train',
+                    }
+                ],
+            },
+            metadata_file,
+        )
 
 
 @dsl.pipeline(name='tensorboard-example')
@@ -49,5 +52,6 @@ def tensorboard_example():
 if __name__ == '__main__':
     directory = Path(__file__).resolve().parent
     compiler.Compiler().compile(helloworld, str(directory / 'helloworld.yaml'))
-    compiler.Compiler().compile(tensorboard_example,
-                                str(directory / 'tensorboard-example.yaml'))
+    compiler.Compiler().compile(
+        tensorboard_example, str(directory / 'tensorboard-example.yaml')
+    )

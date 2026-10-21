@@ -16,9 +16,9 @@
 
 import copy
 import json
-from pathlib import Path
 import subprocess
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -31,18 +31,11 @@ def workflow(paths=None, jobs=None):
     return yaml.safe_dump(
         {
             'name': 'Example CI',
-            'on': {
-                'pull_request': {
-                    'paths': paths or ['manifests/**']
-                }
-            },
-            'jobs': jobs or {
-                'test': {
-                    'runs-on': 'ubuntu-latest'
-                }
-            },
+            'on': {'pull_request': {'paths': paths or ['manifests/**']}},
+            'jobs': jobs or {'test': {'runs-on': 'ubuntu-latest'}},
         },
-        sort_keys=False)
+        sort_keys=False,
+    )
 
 
 def tree(workflows):
@@ -50,49 +43,44 @@ def tree(workflows):
         'repository': {
             'nameWithOwner': 'kubeflow/pipelines',
             'object': {
-                '__typename':
-                    'Tree',
-                'entries': [{
-                    'name': name,
-                    'type': 'blob',
-                    'mode': 33188,
-                    'object': {
-                        '__typename': 'Blob',
-                        'text': content,
-                        'byteSize': len(content.encode('utf-8')),
-                        'isBinary': False,
-                        'isTruncated': False
-                    },
-                } for name, content in workflows.items()]
+                '__typename': 'Tree',
+                'entries': [
+                    {
+                        'name': name,
+                        'type': 'blob',
+                        'mode': 33188,
+                        'object': {
+                            '__typename': 'Blob',
+                            'text': content,
+                            'byteSize': len(content.encode('utf-8')),
+                            'isBinary': False,
+                            'isTruncated': False,
+                        },
+                    }
+                    for name, content in workflows.items()
+                ],
             },
         }
     }
 
 
-def exercise(workflows=None,
-             response=None,
-             missing=None,
-             skipped=None,
-             base=None):
+def exercise(
+    workflows=None, response=None, missing=None, skipped=None, base=None
+):
     if response is None:
         response = tree(workflows or {'frontend.yml': workflow()})
     fixture = {
-        'response':
-            response,
-        'missing':
-            missing or [],
-        'skipped':
-            skipped or [],
-        'base':
-            base or {
-                'sha': 'b' * 40,
-                'ref': 'release-2.18',
-                'repo': {
-                    'full_name': 'kubeflow/pipelines'
-                }
-            },
+        'response': response,
+        'missing': missing or [],
+        'skipped': skipped or [],
+        'base': base
+        or {
+            'sha': 'b' * 40,
+            'ref': 'release-2.18',
+            'repo': {'full_name': 'kubeflow/pipelines'},
+        },
     }
-    script = r'''
+    script = r"""
 const gate = require(process.argv[1]);
 const fixture = JSON.parse(process.argv[2]);
 const root = process.argv[3];
@@ -119,38 +107,42 @@ const github = {
     console.log(JSON.stringify({...result, inventory: inventory.inventory, requests}));
   } catch (error) {console.log(JSON.stringify({error: error.message, requests}));}
 })();
-'''
+"""
     result = subprocess.run(
-        ['node', '-e', script,
-         str(MODULE),
-         json.dumps(fixture),
-         str(ROOT)],
+        ['node', '-e', script, str(MODULE), json.dumps(fixture), str(ROOT)],
         check=True,
         capture_output=True,
-        text=True)
+        text=True,
+    )
     return json.loads(result.stdout)
 
 
 class BaseWorkflowsTest(unittest.TestCase):
-
     def test_release_triggers_and_release_only_lanes_replace_master_inventory(
-            self):
+        self,
+    ):
         result = exercise(
             {
                 'frontend.yml': workflow(),
                 'ci-scripts-tests.yml': workflow(['.github/scripts/**']),
                 'integration-tests-v1.yml': workflow(),
             },
-            missing=['ci-scripts-tests.yml'])
+            missing=['ci-scripts-tests.yml'],
+        )
         self.assertTrue(result['passed'], result)
-        self.assertCountEqual(result['expected'], [
-            '.github/workflows/frontend.yml',
-            '.github/workflows/integration-tests-v1.yml',
-        ])
-        result = exercise({
-            'ci-scripts-tests.yml': workflow(['manifests/**']),
-        },
-                          missing=['ci-scripts-tests.yml'])
+        self.assertCountEqual(
+            result['expected'],
+            [
+                '.github/workflows/frontend.yml',
+                '.github/workflows/integration-tests-v1.yml',
+            ],
+        )
+        result = exercise(
+            {
+                'ci-scripts-tests.yml': workflow(['manifests/**']),
+            },
+            missing=['ci-scripts-tests.yml'],
+        )
         self.assertFalse(result['passed'])
 
     def test_missing_release_only_lane_blocks(self):
@@ -159,7 +151,8 @@ class BaseWorkflowsTest(unittest.TestCase):
                 'frontend.yml': workflow(),
                 'integration-tests-v1.yml': workflow(),
             },
-            missing=['integration-tests-v1.yml'])
+            missing=['integration-tests-v1.yml'],
+        )
         self.assertFalse(result['passed'])
         self.assertIn('integration-tests-v1.yml', result['reasons'][0])
 
@@ -168,25 +161,17 @@ class BaseWorkflowsTest(unittest.TestCase):
         self.assertTrue(result['passed'], result)
         self.assertEqual(len(result['requests']), 1)
         self.assertEqual(
-            result['requests'][0]['variables'], {
+            result['requests'][0]['variables'],
+            {
                 'owner': 'kubeflow',
                 'repo': 'pipelines',
                 'expression': 'b' * 40 + ':.github/workflows',
-            })
+            },
+        )
         self.assertNotIn('malicious-head', result['requests'][0]['query'])
         for base in [
-            {
-                'sha': 'master',
-                'repo': {
-                    'full_name': 'kubeflow/pipelines'
-                }
-            },
-            {
-                'sha': 'b' * 40,
-                'repo': {
-                    'full_name': 'attacker/pipelines'
-                }
-            },
+            {'sha': 'master', 'repo': {'full_name': 'kubeflow/pipelines'}},
+            {'sha': 'b' * 40, 'repo': {'full_name': 'attacker/pipelines'}},
         ]:
             with self.subTest(base=base):
                 result = exercise(base=base)
@@ -197,12 +182,10 @@ class BaseWorkflowsTest(unittest.TestCase):
         good = tree({'frontend.yml': workflow()})
         variants = [{}, {'repository': None}]
         for change in [
-                None, {}, {
-                    '__typename': 'Blob'
-                }, {
-                    '__typename': 'Tree',
-                    'entries': []
-                }
+            None,
+            {},
+            {'__typename': 'Blob'},
+            {'__typename': 'Tree', 'entries': []},
         ]:
             candidate = copy.deepcopy(good)
             candidate['repository']['object'] = change
@@ -216,46 +199,28 @@ class BaseWorkflowsTest(unittest.TestCase):
 
     def test_invalid_duplicate_truncated_or_oversize_blob_fails_closed(self):
         mutations = [
-            {
-                'isBinary': True
-            },
-            {
-                'isTruncated': True
-            },
-            {
-                'text': None
-            },
-            {
-                'byteSize': 0
-            },
-            {
-                'byteSize': 1048577
-            },
-            {
-                'byteSize': 1
-            },
-            {
-                'isBinary': None
-            },
-            {
-                'isTruncated': None
-            },
+            {'isBinary': True},
+            {'isTruncated': True},
+            {'text': None},
+            {'byteSize': 0},
+            {'byteSize': 1048577},
+            {'byteSize': 1},
+            {'isBinary': None},
+            {'isTruncated': None},
         ]
         for change in mutations:
             response = tree({'frontend.yml': workflow()})
             response['repository']['object']['entries'][0]['object'].update(
-                change)
+                change
+            )
             with self.subTest(change=change):
                 self.assertIn('error', exercise(response=response))
-        for change in [{
-                'name': '../frontend.yml'
-        }, {
-                'mode': 40960
-        }, {
-                'type': 'tree'
-        }, {
-                'object': None
-        }]:
+        for change in [
+            {'name': '../frontend.yml'},
+            {'mode': 40960},
+            {'type': 'tree'},
+            {'object': None},
+        ]:
             response = tree({'frontend.yml': workflow()})
             response['repository']['object']['entries'][0].update(change)
             with self.subTest(change=change):
@@ -267,9 +232,9 @@ class BaseWorkflowsTest(unittest.TestCase):
 
     def test_yaml_is_data_and_ambiguous_or_invalid_yaml_fails(self):
         for content in [
-                "!!python/object/apply:builtins.print ['must not execute']",
-                'name: First\nname: Second\non: pull_request\njobs: {}\n',
-                'name: CI\non: [pull_request\n',
+            "!!python/object/apply:builtins.print ['must not execute']",
+            'name: First\nname: Second\non: pull_request\njobs: {}\n',
+            'name: CI\non: [pull_request\n',
         ]:
             with self.subTest(content=content):
                 self.assertIn('error', exercise({'frontend.yml': content}))
@@ -277,86 +242,44 @@ class BaseWorkflowsTest(unittest.TestCase):
     def test_paused_exact_whole_upgrade_workflow_is_disclosed(self):
         result = exercise(
             {
-                'frontend.yml':
-                    workflow(),
-                'upgrade-test.yml':
-                    workflow(jobs={
-                        'build': {
-                            'if': False
-                        },
-                        'test': {
-                            'if': '  ${{ false }}  '
-                        },
-                    }),
+                'frontend.yml': workflow(),
+                'upgrade-test.yml': workflow(
+                    jobs={
+                        'build': {'if': False},
+                        'test': {'if': '  ${{ false }}  '},
+                    }
+                ),
             },
-            skipped=['upgrade-test.yml'])
+            skipped=['upgrade-test.yml'],
+        )
         self.assertTrue(result['passed'], result)
         self.assertEqual(result['expected'], ['.github/workflows/frontend.yml'])
-        self.assertEqual(result['disabled'], [{
-            'path':
-                '.github/workflows/upgrade-test.yml',
-            'reason':
-                'Upgrade workflow is paused in the trusted base pending #14029',
-        }])
+        self.assertEqual(
+            result['disabled'],
+            [
+                {
+                    'path': '.github/workflows/upgrade-test.yml',
+                    'reason': 'Upgrade workflow is paused in the trusted base pending #14029',
+                }
+            ],
+        )
 
     def test_variable_mixed_unrecognized_or_enabled_jobs_remain_required(self):
         for jobs in [
-            {
-                'test': {
-                    'runs-on': 'ubuntu-latest'
-                }
-            },
-            {
-                'test': {
-                    'if': '${{ ' + GUARD + ' }}'
-                }
-            },
-            {
-                'test': {
-                    'if': GUARD
-                }
-            },
-            {
-                'build': {
-                    'if': False
-                },
-                'test': {
-                    'if': GUARD
-                }
-            },
-            {
-                'build': {
-                    'if': False
-                },
-                'test': {
-                    'runs-on': 'ubuntu-latest'
-                }
-            },
-            {
-                'test': {
-                    'if': '${{ false || true }}'
-                }
-            },
-            {
-                'test': {
-                    'if': True
-                }
-            },
-            {
-                'test': {
-                    'if': '${{ true }}'
-                }
-            },
-            {
-                'test': {
-                    'if': 'false'
-                }
-            },
+            {'test': {'runs-on': 'ubuntu-latest'}},
+            {'test': {'if': '${{ ' + GUARD + ' }}'}},
+            {'test': {'if': GUARD}},
+            {'build': {'if': False}, 'test': {'if': GUARD}},
+            {'build': {'if': False}, 'test': {'runs-on': 'ubuntu-latest'}},
+            {'test': {'if': '${{ false || true }}'}},
+            {'test': {'if': True}},
+            {'test': {'if': '${{ true }}'}},
+            {'test': {'if': 'false'}},
         ]:
             with self.subTest(jobs=jobs):
                 workflows = {
                     'frontend.yml': workflow(),
-                    'upgrade-test.yml': workflow(jobs=jobs)
+                    'upgrade-test.yml': workflow(jobs=jobs),
                 }
                 result = exercise(workflows, skipped=['upgrade-test.yml'])
                 self.assertFalse(result['passed'])
@@ -366,13 +289,15 @@ class BaseWorkflowsTest(unittest.TestCase):
     def test_yaml_11_false_words_do_not_disable_workflow(self):
         for value in ['off', 'no', 'FALSE', 'False', '0']:
             with self.subTest(value=value):
-                content = 'name: Upgrade\non: pull_request\njobs:\n  test:\n    if: ' + value + '\n'
+                content = (
+                    'name: Upgrade\non: pull_request\njobs:\n  test:\n    if: '
+                    + value
+                    + '\n'
+                )
                 result = exercise(
-                    {
-                        'frontend.yml': workflow(),
-                        'upgrade-test.yml': content
-                    },
-                    skipped=['upgrade-test.yml'])
+                    {'frontend.yml': workflow(), 'upgrade-test.yml': content},
+                    skipped=['upgrade-test.yml'],
+                )
                 self.assertFalse(result['passed'])
                 self.assertEqual(result['disabled'], [])
 
@@ -381,12 +306,12 @@ class BaseWorkflowsTest(unittest.TestCase):
             with self.subTest(condition=condition):
                 result = exercise(
                     {
-                        'frontend.yml':
-                            workflow(jobs={'test': {
-                                'if': condition
-                            }})
+                        'frontend.yml': workflow(
+                            jobs={'test': {'if': condition}}
+                        )
                     },
-                    skipped=['frontend.yml'])
+                    skipped=['frontend.yml'],
+                )
                 self.assertFalse(result['passed'])
                 self.assertEqual(result['disabled'], [])
 
@@ -399,44 +324,50 @@ class BaseWorkflowsTest(unittest.TestCase):
             with self.subTest(sha=sha):
                 result = exercise(
                     {
-                        'frontend.yml':
-                            workflow(),
-                        'upgrade-test.yml':
-                            workflow(jobs={'test': {
-                                'if': condition
-                            }})
+                        'frontend.yml': workflow(),
+                        'upgrade-test.yml': workflow(
+                            jobs={'test': {'if': condition}}
+                        ),
                     },
                     skipped=['upgrade-test.yml'],
                     base={
                         'sha': sha,
                         'ref': 'master',
-                        'repo': {
-                            'full_name': 'kubeflow/pipelines'
-                        }
-                    })
+                        'repo': {'full_name': 'kubeflow/pipelines'},
+                    },
+                )
                 self.assertEqual(result['passed'], passed)
                 self.assertEqual(
                     result['requests'][0]['variables']['expression'],
-                    sha + ':.github/workflows')
+                    sha + ':.github/workflows',
+                )
                 self.assertEqual(bool(result['disabled']), passed)
 
     def test_workflow_installs_trusted_parser_and_invalidates_after_setup_failure(
-            self):
+        self,
+    ):
         definition = yaml.safe_load(
-            (ROOT / '.github/workflows/ci-checks.yml').read_text())
+            (ROOT / '.github/workflows/ci-checks.yml').read_text()
+        )
         job = definition['jobs']['check_ci_status']
         self.assertNotIn('CI_ENABLE_MLMD_UPGRADE_TESTS', job.get('env', {}))
         steps = job['steps']
         prepare_index = next(
-            i for i, step in enumerate(steps) if step.get('id') == 'prepare')
+            i for i, step in enumerate(steps) if step.get('id') == 'prepare'
+        )
         before_prepare = steps[:prepare_index]
         self.assertTrue(
             any(
                 step.get('uses', '').startswith('actions/setup-python@')
-                for step in before_prepare))
+                for step in before_prepare
+            )
+        )
         self.assertTrue(
-            any('.github/scripts/requirements.txt' in step.get('run', '')
-                for step in before_prepare))
+            any(
+                '.github/scripts/requirements.txt' in step.get('run', '')
+                for step in before_prepare
+            )
+        )
         self.assertEqual(steps[prepare_index]['if'], 'always() && !cancelled()')
         poll = next(step for step in steps if step.get('id') == 'poll')
         self.assertNotIn('always()', poll.get('if', ''))

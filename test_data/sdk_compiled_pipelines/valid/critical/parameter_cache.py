@@ -1,7 +1,6 @@
 import os
 
-from kfp import Client
-from kfp import dsl
+from kfp import Client, dsl
 
 
 @dsl.component

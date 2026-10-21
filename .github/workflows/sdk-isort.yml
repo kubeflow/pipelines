@@ -1,4 +1,5 @@
-name: KFP SDK Isort Test
+# Keep the legacy file path: CI Check matches paths from the PR base.
+name: Python Ruff Lint
 
 on:
   push:
@@ -8,14 +9,15 @@ on:
     paths:
       - '**/pyproject.toml'
       - 'uv.lock'
-      - 'api/**'
-      - 'sdk/python/**'
-      - 'test/presubmit-isort-sdk.sh'
+      - '**/*.py'
+      - '**/*.pyi'
+      - '.gitignore'
+      - '.pre-commit-config.yaml'
+      - 'test/presubmit-ruff.sh'
       - '.github/workflows/sdk-isort.yml'
       - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -25,7 +27,8 @@ permissions:
   contents: read
 
 jobs:
-  test-isort-kfp-sdk:
+  ruff:
+    name: Ruff lint
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -38,5 +41,5 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run isort tests
-        run: ./test/presubmit-isort-sdk.sh
+      - name: Check Python imports and escapes with Ruff
+        run: uv run --frozen --extra lint ruff check .

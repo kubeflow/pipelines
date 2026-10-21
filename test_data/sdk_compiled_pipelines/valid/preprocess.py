@@ -14,10 +14,7 @@
 
 from typing import Dict, List
 
-from kfp.dsl import component
-from kfp.dsl import Dataset
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
+from kfp.dsl import Dataset, Output, OutputPath, component
 
 
 @component
@@ -60,9 +57,11 @@ def preprocess(
 
     with open(output_bool_parameter_path, 'w') as f:
         f.write(
-            str(True))  # use either `str()` or `json.dumps()` for bool values.
+            str(True)
+        )  # use either `str()` or `json.dumps()` for bool values.
 
     import json
+
     with open(output_dict_parameter_path, 'w') as f:
         f.write(json.dumps(input_dict_parameter))
 
@@ -72,5 +71,7 @@ def preprocess(
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pipeline_func=preprocess, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=preprocess, package_path=__file__.replace('.py', '.yaml')
+    )

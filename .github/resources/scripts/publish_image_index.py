@@ -17,10 +17,10 @@ inventory."""
 
 import argparse
 import json
-from pathlib import Path
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 
 INDEX_TYPES = {
     'application/vnd.oci.image.index.v1+json',
@@ -37,13 +37,15 @@ def parse_platforms(value):
     platforms = set(value.split(','))
     if not platforms or not platforms <= {'linux/amd64', 'linux/arm64'}:
         raise ValueError(
-            'Expected platforms must be linux/amd64 and/or linux/arm64')
+            'Expected platforms must be linux/amd64 and/or linux/arm64'
+        )
     return platforms
 
 
 def digest(value):
-    if not isinstance(value, str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',
-                                                      value):
+    if not isinstance(value, str) or not re.fullmatch(
+        r'sha256:[a-f0-9]{64}', value
+    ):
         raise ValueError(f'Invalid image digest: {value!r}')
     return value
 
@@ -58,7 +60,8 @@ def load_sources(directory, source_sha, platforms):
         platform = record.get('platform')
         if platform not in platforms or platform in records:
             raise ValueError(
-                f'Unexpected or duplicate build platform: {platform}')
+                f'Unexpected or duplicate build platform: {platform}'
+            )
         if record.get('source_sha') != source_sha:
             raise ValueError(f'Build source commit does not match: {path}')
         records[platform] = digest(record.get('digest'))
@@ -69,29 +72,38 @@ def load_sources(directory, source_sha, platforms):
 
 def validate_index(index, platforms):
     """Validate and retain runnable-platform and attestation-link mappings."""
-    if index.get('schemaVersion') != 2 or index.get(
-            'mediaType') not in INDEX_TYPES:
+    if (
+        index.get('schemaVersion') != 2
+        or index.get('mediaType') not in INDEX_TYPES
+    ):
         raise ValueError('Expected an OCI index or Docker manifest list')
     found = {}
     descriptors = set()
     attestations = {}
     for manifest in index.get('manifests', []):
         child_digest = digest(manifest.get('digest'))
-        if child_digest in descriptors or manifest.get(
-                'mediaType') not in MANIFEST_TYPES:
+        if (
+            child_digest in descriptors
+            or manifest.get('mediaType') not in MANIFEST_TYPES
+        ):
             raise ValueError(
-                'Duplicate digest or unexpected child manifest type')
+                'Duplicate digest or unexpected child manifest type'
+            )
         descriptors.add(child_digest)
         platform = manifest.get('platform', {})
-        name = f"{platform.get('os')}/{platform.get('architecture')}"
+        name = f'{platform.get("os")}/{platform.get("architecture")}'
         annotations = manifest.get('annotations', {})
         if name == 'unknown/unknown':
-            if annotations.get(
-                    'vnd.docker.reference.type') != 'attestation-manifest':
+            if (
+                annotations.get('vnd.docker.reference.type')
+                != 'attestation-manifest'
+            ):
                 raise ValueError(
-                    'Unknown platform without a BuildKit attestation')
+                    'Unknown platform without a BuildKit attestation'
+                )
             attestations[child_digest] = annotations.get(
-                'vnd.docker.reference.digest')
+                'vnd.docker.reference.digest'
+            )
             continue
         if name not in platforms or name in found:
             raise ValueError(f'Unexpected or duplicate index platform: {name}')
@@ -104,20 +116,24 @@ def validate_index(index, platforms):
     if any(value not in found.values() for value in attestations.values()):
         raise ValueError('Attestation does not reference a runnable image')
     # Digest membership alone cannot detect relabeled platforms or attestations.
-    return ({('platform', name, child_digest)
-             for name, child_digest in found.items()}
-            | {('attestation', child_digest, reference)
-               for child_digest, reference in attestations.items()})
+    return {
+        ('platform', name, child_digest) for name, child_digest in found.items()
+    } | {
+        ('attestation', child_digest, reference)
+        for child_digest, reference in attestations.items()
+    }
 
 
 def imagetools(*args):
-    return subprocess.check_output(['docker', 'buildx', 'imagetools', *args],
-                                   text=True)
+    return subprocess.check_output(
+        ['docker', 'buildx', 'imagetools', *args], text=True
+    )
 
 
 def inspect(reference):
     return json.loads(
-        imagetools('inspect', '--format', '{{json .Manifest}}', reference))
+        imagetools('inspect', '--format', '{{json .Manifest}}', reference)
+    )
 
 
 def publish(args):
@@ -136,18 +152,26 @@ def publish(args):
     with tempfile.TemporaryDirectory() as temporary:
         metadata = Path(temporary) / 'metadata.json'
         run_reference = f'{args.image}:{args.run_tag}'
-        imagetools('create', '--metadata-file', str(metadata), '-t',
-                   run_reference, *sources)
+        imagetools(
+            'create',
+            '--metadata-file',
+            str(metadata),
+            '-t',
+            run_reference,
+            *sources,
+        )
         created_digest = digest(
-            json.loads(
-                metadata.read_text())['containerimage.descriptor']['digest'])
+            json.loads(metadata.read_text())['containerimage.descriptor'][
+                'digest'
+            ]
+        )
         reference = f'{args.image}@{created_digest}'
         index = inspect(reference)
         if index.get('digest') != created_digest:
             raise ValueError('Registry returned a different index digest')
         if validate_index(index, platforms) != source_inventory:
             raise ValueError(
-                'Published index does not preserve this run\'s platform and attestation mappings'
+                "Published index does not preserve this run's platform and attestation mappings"
             )
         if inspect(run_reference).get('digest') != created_digest:
             raise ValueError('Run tag does not resolve to the verified index')
@@ -157,13 +181,16 @@ def publish(args):
         if args.set_latest == 'true':
             tags.extend(['-t', f'{args.image}:latest'])
         promotion = Path(temporary) / 'promotion.json'
-        imagetools('create', '--metadata-file', str(promotion), *tags,
-                   reference)
-        promoted_digest = json.loads(
-            promotion.read_text())['containerimage.descriptor']['digest']
+        imagetools(
+            'create', '--metadata-file', str(promotion), *tags, reference
+        )
+        promoted_digest = json.loads(promotion.read_text())[
+            'containerimage.descriptor'
+        ]['digest']
         if promoted_digest != created_digest:
             raise ValueError(
-                'Shared tag publication changed the verified index')
+                'Shared tag publication changed the verified index'
+            )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
@@ -174,7 +201,10 @@ def publish(args):
                 'reference': reference,
                 'platforms': sorted(platforms),
             },
-            indent=2) + '\n')
+            indent=2,
+        )
+        + '\n'
+    )
 
 
 def main():
@@ -184,7 +214,8 @@ def main():
     parser.add_argument('--digests', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument(
-        '--set-latest', choices=('true', 'false'), required=True)
+        '--set-latest', choices=('true', 'false'), required=True
+    )
     publish(parser.parse_args())
 
 

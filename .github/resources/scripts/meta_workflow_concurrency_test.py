@@ -16,13 +16,13 @@
 import ast
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -31,8 +31,9 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def _mapping_marker(key: str, indentation: int) -> re.Pattern:
-    return re.compile(r'^' + (' ' * indentation) + re.escape(key) +
-                      r':\s*(?:#.*)?$')
+    return re.compile(
+        r'^' + (' ' * indentation) + re.escape(key) + r':\s*(?:#.*)?$'
+    )
 
 
 def _has_mapping(document: str, key: str, indentation: int) -> bool:
@@ -44,7 +45,8 @@ def _mapping_block(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = _mapping_marker(key, indentation)
     start = next(
-        index for index, line in enumerate(lines) if marker.match(line))
+        index for index, line in enumerate(lines) if marker.match(line)
+    )
 
     end = len(lines)
     for index in range(start + 1, len(lines)):
@@ -68,13 +70,15 @@ def _before_mapping(document: str, key: str, indentation: int) -> str:
 
 def _folded_scalar(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
-    marker = re.compile(r'^' + (' ' * indentation) + re.escape(key) +
-                        r':\s*[>|][-+]?\s*$')
+    marker = re.compile(
+        r'^' + (' ' * indentation) + re.escape(key) + r':\s*[>|][-+]?\s*$'
+    )
     start = next(
-        index for index, line in enumerate(lines) if marker.match(line))
+        index for index, line in enumerate(lines) if marker.match(line)
+    )
 
     values = []
-    for line in lines[start + 1:]:
+    for line in lines[start + 1 :]:
         if not line.strip():
             continue
         current_indentation = len(line) - len(line.lstrip())
@@ -86,8 +90,9 @@ def _folded_scalar(document: str, key: str, indentation: int) -> str:
 
 
 def _plain_scalar(document: str, key: str, indentation: int) -> str:
-    marker = re.compile(r'^' + (' ' * indentation) + re.escape(key) +
-                        r':\s*(.*?)\s*$')
+    marker = re.compile(
+        r'^' + (' ' * indentation) + re.escape(key) + r':\s*(.*?)\s*$'
+    )
     for line in document.splitlines():
         match = marker.match(line)
         if match:
@@ -100,7 +105,8 @@ def _evaluate_condition_node(node, values):
         return _evaluate_condition_node(node.body, values)
     if isinstance(node, ast.BoolOp):
         operands = (
-            _evaluate_condition_node(value, values) for value in node.values)
+            _evaluate_condition_node(value, values) for value in node.values
+        )
         if isinstance(node.op, ast.And):
             return all(operands)
         if isinstance(node.op, ast.Or):
@@ -115,7 +121,8 @@ def _evaluate_condition_node(node, values):
                 matches = left != right
             else:
                 raise AssertionError(
-                    f'Unsupported comparison: {ast.dump(operator)}')
+                    f'Unsupported comparison: {ast.dump(operator)}'
+                )
             if not matches:
                 return False
             left = right
@@ -127,28 +134,35 @@ def _evaluate_condition_node(node, values):
     raise AssertionError(f'Unsupported condition syntax: {ast.dump(node)}')
 
 
-def _evaluate_label_condition(expression: str,
-                              action: str,
-                              label_name: str,
-                              event_name: str = 'pull_request_target') -> bool:
+def _evaluate_label_condition(
+    expression: str,
+    action: str,
+    label_name: str,
+    event_name: str = 'pull_request_target',
+) -> bool:
     python_expression = expression.replace('github.event.action', 'action')
-    python_expression = python_expression.replace('github.event.label.name',
-                                                  'label_name')
-    python_expression = python_expression.replace('github.event_name',
-                                                  'event_name')
+    python_expression = python_expression.replace(
+        'github.event.label.name', 'label_name'
+    )
+    python_expression = python_expression.replace(
+        'github.event_name', 'event_name'
+    )
     python_expression = python_expression.replace('&&', ' and ')
     python_expression = python_expression.replace('||', ' or ')
     parsed = ast.parse(python_expression, mode='eval')
     return bool(
-        _evaluate_condition_node(parsed, {
-            'action': action,
-            'label_name': label_name,
-            'event_name': event_name,
-        }))
+        _evaluate_condition_node(
+            parsed,
+            {
+                'action': action,
+                'label_name': label_name,
+                'event_name': event_name,
+            },
+        )
+    )
 
 
 class MetaWorkflowConcurrencyTest(unittest.TestCase):
-
     def _read_workflow(self, name: str) -> str:
         return (ROOT / '.github/workflows' / name).read_text(encoding='utf-8')
 
@@ -161,17 +175,20 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         concurrency = _mapping_block(job, 'concurrency', 4)
         concurrency_group = _plain_scalar(concurrency, 'group', 6)
 
-        self.assertIn("github.event.workflow_run.event == 'pull_request'",
-                      condition)
+        self.assertIn(
+            "github.event.workflow_run.event == 'pull_request'", condition
+        )
         self.assertIn("github.event.label.name == 'ok-to-test'", condition)
-        self.assertIn("github.event.label.name == 'needs-ok-to-test'",
-                      condition)
+        self.assertIn(
+            "github.event.label.name == 'needs-ok-to-test'", condition
+        )
 
         self.assertFalse(_has_mapping(workflow, 'concurrency', 0))
         self.assertIn('github.event.workflow_run.head_sha', concurrency_group)
         self.assertIn('github.event.pull_request.head.sha', concurrency_group)
         self.assertEqual(
-            _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false')
+            _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false'
+        )
 
     def test_scheduled_recovery_uses_same_short_writer(self):
         workflow = self._read_workflow('ci-checks.yml')
@@ -183,12 +200,14 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertNotIn('concurrency:', discovery)
         self.assertIn(
             'matrix.candidate.head || github.event.workflow_run.head_sha',
-            writer)
+            writer,
+        )
         self.assertIn('name: check_ci_status', writer)
         self.assertIn('max-parallel: 4', writer)
         self.assertIn('fail-fast: false', writer)
-        self.assertIn('CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}',
-                      writer)
+        self.assertIn(
+            'CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}', writer
+        )
         self.assertIn('CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}', writer)
         self.assertIn("poll: 'false'", writer)
         # poll: 'false' alone is not enough: the pinned action still waits a
@@ -199,20 +218,25 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
     def test_publisher_has_pr_label_write_permission(self):
         workflow = self._read_workflow('ci-checks.yml')
         jobs = _mapping_block(workflow, 'jobs', 0)
-        for name, expected in [('check_ci_status', 'write'),
-                               ('recovery_candidates', 'read')]:
+        for name, expected in [
+            ('check_ci_status', 'write'),
+            ('recovery_candidates', 'read'),
+        ]:
             with self.subTest(job=name):
                 job = _mapping_block(jobs, name, 2)
                 permissions = _mapping_block(job, 'permissions', 4)
                 self.assertEqual(
-                    _plain_scalar(permissions, 'pull-requests', 6), expected)
+                    _plain_scalar(permissions, 'pull-requests', 6), expected
+                )
 
     def test_publisher_checkout_uses_only_trusted_refs(self):
         workflow = self._read_workflow('ci-checks.yml')
         writer = _mapping_block(
-            _mapping_block(workflow, 'jobs', 0), 'check_ci_status', 2)
+            _mapping_block(workflow, 'jobs', 0), 'check_ci_status', 2
+        )
         checkouts = [
-            step for step in writer.split('      - ')
+            step
+            for step in writer.split('      - ')
             if re.search(r'(?m)^        uses: actions/checkout@', step)
         ]
         cases = [
@@ -227,40 +251,51 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         for event_name, action, sha in cases:
             for default_branch in ['master', 'release/main']:
                 with self.subTest(
-                        event=event_name,
-                        action=action,
-                        sha=sha,
-                        default_branch=default_branch):
+                    event=event_name,
+                    action=action,
+                    sha=sha,
+                    default_branch=default_branch,
+                ):
                     active = []
                     for step in checkouts:
                         condition = _plain_scalar(step, 'if', 8)
-                        condition = condition.replace('github.event_name',
-                                                      'event_name')
-                        condition = condition.replace('github.event.action',
-                                                      'action')
+                        condition = condition.replace(
+                            'github.event_name', 'event_name'
+                        )
+                        condition = condition.replace(
+                            'github.event.action', 'action'
+                        )
                         condition = condition.replace('&&', ' and ')
                         condition = condition.replace('||', ' or ')
                         if _evaluate_condition_node(
-                                ast.parse(condition, mode='eval'), {
-                                    'event_name': event_name,
-                                    'action': action,
-                                }):
+                            ast.parse(condition, mode='eval'),
+                            {
+                                'event_name': event_name,
+                                'action': action,
+                            },
+                        ):
                             active.append(step)
                     self.assertEqual(len(active), 1)
                     step = active[0]
                     ref = _plain_scalar(step, 'ref', 10)
                     ref = ref.replace('${{ github.sha }}', sha).replace(
                         '${{ github.event.repository.default_branch }}',
-                        default_branch)
-                    expected = (f'refs/heads/{default_branch}'
-                                if event_name == 'pull_request_target' and
-                                action == 'closed' else sha)
+                        default_branch,
+                    )
+                    expected = (
+                        f'refs/heads/{default_branch}'
+                        if event_name == 'pull_request_target'
+                        and action == 'closed'
+                        else sha
+                    )
                     self.assertEqual(ref, expected)
                     self.assertEqual(
                         _plain_scalar(step, 'repository', 10),
-                        '${{ github.repository }}')
+                        '${{ github.repository }}',
+                    )
                     self.assertEqual(
-                        _plain_scalar(step, 'persist-credentials', 10), 'false')
+                        _plain_scalar(step, 'persist-credentials', 10), 'false'
+                    )
                     self.assertNotIn('allow-unsafe-pr-checkout', step)
 
     def test_publisher_exclusion_matches_hosted_matrix_job_name(self):
@@ -268,8 +303,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         exclusions = re.search(r"checks_exclude: '([^']+)'", workflow).group(1)
         pattern = exclusions.split(',')[0]
         for name in [
-                'check_ci_status', 'check_ci_status (0)',
-                'check_ci_status (14111, abc123)'
+            'check_ci_status',
+            'check_ci_status (0)',
+            'check_ci_status (14111, abc123)',
         ]:
             self.assertIsNotNone(re.fullmatch(pattern, name))
         self.assertIsNone(re.fullmatch(pattern, 'check_ci_status_unrelated'))
@@ -302,9 +338,11 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         for event, expected in expected_results.items():
             with self.subTest(action=event[0], label=event[1]):
                 self.assertEqual(
-                    _evaluate_label_condition(condition, *event), expected)
+                    _evaluate_label_condition(condition, *event), expected
+                )
         self.assertFalse(
-            _evaluate_label_condition(condition, '', '', 'schedule'))
+            _evaluate_label_condition(condition, '', '', 'schedule')
+        )
 
         self.assertIn('      - opened\n', workflow_header)
         self.assertFalse(_has_mapping(workflow, 'concurrency', 0))
@@ -325,9 +363,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             "github.event.pull_request.user.login != 'copybara-service[bot]'",
         )
 
-        expression = condition.replace('github.event.pull_request.user.login',
-                                       'author').replace(
-                                           'github.actor', 'actor')
+        expression = condition.replace(
+            'github.event.pull_request.user.login', 'author'
+        ).replace('github.actor', 'actor')
         parsed = ast.parse(expression.replace('&&', ' and '), mode='eval')
         cases = [
             ('dependabot[bot]', 'dependabot[bot]', False),
@@ -344,66 +382,84 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         for author, actor, should_run in cases:
             with self.subTest(author=author, actor=actor):
                 self.assertEqual(
-                    _evaluate_condition_node(parsed, {
-                        'author': author,
-                        'actor': actor,
-                    }), should_run)
+                    _evaluate_condition_node(
+                        parsed,
+                        {
+                            'author': author,
+                            'actor': actor,
+                        },
+                    ),
+                    should_run,
+                )
 
     def test_gatekeeper_uses_trusted_shared_membership_module(self):
         workflow = self._read_workflow('pr-gate.yml')
-        self.assertIn("if: steps.membership-check.outputs.is_member == 'false'",
-                      workflow)
+        self.assertIn(
+            "if: steps.membership-check.outputs.is_member == 'false'", workflow
+        )
         self.assertNotIn('continue-on-error', workflow)
         self.assertNotIn('author_association', workflow)
         self.assertNotIn('contributor-report.py', workflow)
         self.assertIn('ref: ${{ github.workflow_sha }}', workflow)
         self.assertIn('persist-credentials: false', workflow)
-        self.assertIn('            .github/scripts/kubeflow_membership.py\n',
-                      workflow)
-        self.assertIn('            .github/scripts/pr_gate_issue.py\n',
-                      workflow)
-        self.assertIn('            .github/scripts/requirements.txt\n',
-                      workflow)
-        self.assertIn('run: python3 .github/scripts/kubeflow_membership.py',
-                      workflow)
-        self.assertIn('PR_AUTHOR: ${{ github.event.pull_request.user.login }}',
-                      workflow)
-        self.assertIn("'.github/workflows/pr-gate.yml'",
-                      self._read_workflow('ci-scripts-tests.yml'))
+        self.assertIn(
+            '            .github/scripts/kubeflow_membership.py\n', workflow
+        )
+        self.assertIn(
+            '            .github/scripts/pr_gate_issue.py\n', workflow
+        )
+        self.assertIn(
+            '            .github/scripts/requirements.txt\n', workflow
+        )
+        self.assertIn(
+            'run: python3 .github/scripts/kubeflow_membership.py', workflow
+        )
+        self.assertIn(
+            'PR_AUTHOR: ${{ github.event.pull_request.user.login }}', workflow
+        )
+        self.assertIn(
+            "'.github/workflows/pr-gate.yml'",
+            self._read_workflow('ci-scripts-tests.yml'),
+        )
 
     def test_membership_consumers_install_shared_requirements(self):
-        install = 'run: python3 -m pip install -r .github/scripts/requirements.txt'
+        install = (
+            'run: python3 -m pip install -r .github/scripts/requirements.txt'
+        )
         consumers = {
-            'pr-gate.yml':
-                'run: python3 .github/scripts/kubeflow_membership.py',
-            'contributor-report.yml':
-                'run: python3 .github/scripts/contributor-report.py',
-            'ci-scripts-tests.yml':
-                'run: python3 -m unittest discover',
+            'pr-gate.yml': 'run: python3 .github/scripts/kubeflow_membership.py',
+            'contributor-report.yml': 'run: python3 .github/scripts/contributor-report.py',
+            'ci-scripts-tests.yml': 'run: python3 -m unittest discover',
         }
         for name, consumer in consumers.items():
             with self.subTest(workflow=name):
                 workflow = self._read_workflow(name)
                 self.assertLess(
                     workflow.index('uses: actions/setup-python@'),
-                    workflow.index(install))
+                    workflow.index(install),
+                )
                 self.assertLess(
-                    workflow.index(install), workflow.index(consumer))
+                    workflow.index(install), workflow.index(consumer)
+                )
                 if name != 'ci-scripts-tests.yml':
                     self.assertIn(
                         '            .github/scripts/requirements.txt\n',
-                        workflow)
+                        workflow,
+                    )
                     self.assertIn('ref: ${{ github.workflow_sha }}', workflow)
         requirements = (ROOT / '.github/scripts/requirements.txt').read_text()
         self.assertRegex(requirements, r'(?m)^PyYAML==\d+\.\d+\.\d+$')
 
     @unittest.skipUnless(
-        shutil.which('jq'), 'jq is required by the gate script')
+        shutil.which('jq'), 'jq is required by the gate script'
+    )
     def test_gatekeeper_closure_message_and_guidelines_link(self):
         workflow = self._read_workflow('pr-gate.yml')
         message = textwrap.dedent(
-            workflow.split('          CLOSURE_MESSAGE: |\n',
-                           1)[1].split('        run: |', 1)[0]).strip()
+            workflow.split('          CLOSURE_MESSAGE: |\n', 1)[1].split(
+                '        run: |', 1
+            )[0]
+        ).strip()
         heading = 'Pull Request Admission for External Contributors'
         anchor = heading.lower().replace(' ', '-')
         self.assertIn('### ' + heading, (ROOT / 'CONTRIBUTING.md').read_text())
@@ -416,11 +472,12 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         )
         admission = workflow.split(
             '      - name: Check linked issue admission for external contributors\n',
-            1)[1].split(
-                '      - name: Approve pending workflow runs after admission\n',
-                1)[0]
+            1,
+        )[1].split(
+            '      - name: Approve pending workflow runs after admission\n', 1
+        )[0]
         script = textwrap.dedent(admission.split('        run: |\n', 1)[1])
-        fake_gh = '''
+        fake_gh = """
         gh() {
           case "$1 $2" in
             'pr view')
@@ -444,46 +501,69 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             *) return 99 ;;
           esac
         }
-        '''
+        """
         same_repo = {'owner': {'login': 'kubeflow'}, 'name': 'pipelines'}
         other_repo = {'owner': {'login': 'other'}, 'name': 'project'}
         cases = [
             ('master', '', [], [], 'closed'),
-            ('master', 'Fixes #123', [], [{
-                'name': 'ready'
-            }], 'closed'),
-            ('master', '', [{
-                'number': 123,
-                'repository': same_repo
-            }], [], 'closed'),
-            ('master', '', [{
-                'number': 123,
-                'repository': same_repo
-            }], [{
-                'name': 'ready'
-            }], 'admitted'),
-            ('release-2.18', 'Fixes #123 for release-2.18', [], [{
-                'name': 'ready'
-            }], 'admitted'),
-            ('release-2.18', 'Fixes #123', [], [{
-                'name': 'not-ready'
-            }], 'closed'),
-            ('release-2.18', 'Fixes other/project#123', [], [{
-                'name': 'ready'
-            }], 'closed'),
-            ('release-2.18', '', [{
-                'number': 123,
-                'repository': other_repo
-            }], [{
-                'name': 'ready'
-            }], 'closed'),
+            ('master', 'Fixes #123', [], [{'name': 'ready'}], 'closed'),
+            (
+                'master',
+                '',
+                [{'number': 123, 'repository': same_repo}],
+                [],
+                'closed',
+            ),
+            (
+                'master',
+                '',
+                [{'number': 123, 'repository': same_repo}],
+                [{'name': 'ready'}],
+                'admitted',
+            ),
+            (
+                'release-2.18',
+                'Fixes #123 for release-2.18',
+                [],
+                [{'name': 'ready'}],
+                'admitted',
+            ),
+            (
+                'release-2.18',
+                'Fixes #123',
+                [],
+                [{'name': 'not-ready'}],
+                'closed',
+            ),
+            (
+                'release-2.18',
+                'Fixes other/project#123',
+                [],
+                [{'name': 'ready'}],
+                'closed',
+            ),
+            (
+                'release-2.18',
+                '',
+                [{'number': 123, 'repository': other_repo}],
+                [{'name': 'ready'}],
+                'closed',
+            ),
             ('release-2.18', 'Fixes #123', [], None, 'error'),
-            ('release-2.18', 'Fixes #123', [], [{
-                'name': 'ready'
-            }], 'malformed_json'),
-            ('release-2.18', 'Fixes #123', [], [{
-                'name': 'ready'
-            }], 'pr_view_error'),
+            (
+                'release-2.18',
+                'Fixes #123',
+                [],
+                [{'name': 'ready'}],
+                'malformed_json',
+            ),
+            (
+                'release-2.18',
+                'Fixes #123',
+                [],
+                [{'name': 'ready'}],
+                'pr_view_error',
+            ),
         ]
         exit_codes = {
             'admitted': 0,
@@ -493,60 +573,57 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             'pr_view_error': 22,
         }
         for base, body, issues, labels, expected_state in cases:
-            with self.subTest(
+            with (
+                self.subTest(
                     base=base,
                     body=body,
                     issues=issues,
                     labels=labels,
-                    expected_state=expected_state), tempfile.TemporaryDirectory(
-                    ) as directory:
+                    expected_state=expected_state,
+                ),
+                tempfile.TemporaryDirectory() as directory,
+            ):
                 comment_file = Path(directory) / 'comment'
                 state_file = Path(directory) / 'state'
                 removed_file = Path(directory) / 'removed'
                 needs_label = (
-                    base == 'release-2.18' and
-                    body == 'Fixes #123 for release-2.18')
-                issue_json = json.dumps({
-                    'closingIssuesReferences': issues,
-                    'baseRefName': base,
-                    'body': body,
-                })
+                    base == 'release-2.18'
+                    and body == 'Fixes #123 for release-2.18'
+                )
+                issue_json = json.dumps(
+                    {
+                        'closingIssuesReferences': issues,
+                        'baseRefName': base,
+                        'body': body,
+                    }
+                )
                 if expected_state == 'malformed_json':
                     issue_json = '{malformed'
                 result = subprocess.run(
                     ['bash', '-eo', 'pipefail', '-c', fake_gh + script],
                     env={
                         **os.environ,
-                        'PR_NUMBER':
-                            '456',
-                        'GITHUB_REPOSITORY':
-                            'kubeflow/pipelines',
-                        'GH_REPO':
-                            'kubeflow/pipelines',
-                        'DEFAULT_BRANCH':
-                            'master',
-                        'CLOSURE_MESSAGE':
-                            message,
-                        'ISSUE_JSON':
-                            issue_json,
-                        'PR_VIEW_ERROR':
-                            '1' if expected_state == 'pr_view_error' else '0',
-                        'LABELS_JSON':
-                            json.dumps({'labels': labels}),
-                        'PR_LABELS_JSON':
-                            json.dumps({
-                                'labels': [{
-                                    'name': 'needs-ok-to-test'
-                                }] if needs_label else []
-                            }),
-                        'ISSUE_VIEW_ERROR':
-                            '1' if labels is None else '0',
-                        'COMMENT_FILE':
-                            str(comment_file),
-                        'STATE_FILE':
-                            str(state_file),
-                        'REMOVED_FILE':
-                            str(removed_file),
+                        'PR_NUMBER': '456',
+                        'GITHUB_REPOSITORY': 'kubeflow/pipelines',
+                        'GH_REPO': 'kubeflow/pipelines',
+                        'DEFAULT_BRANCH': 'master',
+                        'CLOSURE_MESSAGE': message,
+                        'ISSUE_JSON': issue_json,
+                        'PR_VIEW_ERROR': '1'
+                        if expected_state == 'pr_view_error'
+                        else '0',
+                        'LABELS_JSON': json.dumps({'labels': labels}),
+                        'PR_LABELS_JSON': json.dumps(
+                            {
+                                'labels': [{'name': 'needs-ok-to-test'}]
+                                if needs_label
+                                else []
+                            }
+                        ),
+                        'ISSUE_VIEW_ERROR': '1' if labels is None else '0',
+                        'COMMENT_FILE': str(comment_file),
+                        'STATE_FILE': str(state_file),
+                        'REMOVED_FILE': str(removed_file),
                     },
                     capture_output=True,
                     text=True,
@@ -554,10 +631,14 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                     cwd=ROOT,
                 )
                 closed = expected_state == 'closed'
-                self.assertEqual(result.returncode, exit_codes[expected_state],
-                                 result.stderr)
-                if expected_state in ('error', 'malformed_json',
-                                      'pr_view_error'):
+                self.assertEqual(
+                    result.returncode, exit_codes[expected_state], result.stderr
+                )
+                if expected_state in (
+                    'error',
+                    'malformed_json',
+                    'pr_view_error',
+                ):
                     self.assertFalse(state_file.exists())
                 else:
                     self.assertEqual(state_file.read_text(), expected_state)
@@ -571,17 +652,20 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         workflow = self._read_workflow('pr-gate.yml')
         admission = workflow.index('      - name: Check linked issue admission')
         approval = workflow.index(
-            '      - name: Approve pending workflow runs after admission')
+            '      - name: Approve pending workflow runs after admission'
+        )
         self.assertLess(admission, approval)
         self.assertLess(workflow.index('gh pr edit "$PR_NUMBER"'), approval)
         self.assertIn('        id: admission\n', workflow)
-        self.assertIn("        if: steps.admission.outcome == 'success'\n",
-                      workflow)
+        self.assertIn(
+            "        if: steps.admission.outcome == 'success'\n", workflow
+        )
         self.assertIn('  actions: write\n', workflow)
         approval_step = workflow[approval:]
         script = textwrap.dedent(
-            approval_step.split('          script: |\n', 1)[1])
-        harness = r'''
+            approval_step.split('          script: |\n', 1)[1]
+        )
+        harness = r"""
         const fs = require('fs');
         const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
         const script = fs.readFileSync(0, 'utf8');
@@ -641,38 +725,31 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
           process.stdout.write(JSON.stringify({approved, failures, notices,
             warnings, polls}));
         })().catch(error => {console.error(error); process.exitCode = 1;});
-        '''
+        """
         cases = [
             ({}, [1, 2], False, False, False),
-            ({
-                'changedHead': True
-            }, [], False, True, True),
-            ({
-                'closed': True
-            }, [], False, True, True),
-            ({
-                'labelRemoved': True
-            }, [], False, True, True),
-            ({
-                'ambiguous': True
-            }, [], True, False, True),
-            ({
-                'noRuns': True
-            }, [], False, False, False),
-            ({
-                'failId': 2
-            }, [1], True, False, False),
-            ({
-                'concurrentId': 2
-            }, [1], False, False, False),
+            ({'changedHead': True}, [], False, True, True),
+            ({'closed': True}, [], False, True, True),
+            ({'labelRemoved': True}, [], False, True, True),
+            ({'ambiguous': True}, [], True, False, True),
+            ({'noRuns': True}, [], False, False, False),
+            ({'failId': 2}, [1], True, False, False),
+            ({'concurrentId': 2}, [1], False, False, False),
         ]
-        for scenario, expected_approved, should_fail, should_skip, no_polls in cases:
+        for (
+            scenario,
+            expected_approved,
+            should_fail,
+            should_skip,
+            no_polls,
+        ) in cases:
             with self.subTest(scenario=scenario):
                 result = subprocess.run(
                     [
-                        'node', '-e',
+                        'node',
+                        '-e',
                         textwrap.dedent(harness),
-                        json.dumps(scenario)
+                        json.dumps(scenario),
                     ],
                     input=script,
                     capture_output=True,
@@ -696,8 +773,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn("delay: '0'", workflow)
         self.assertIn('types: [requested, in_progress, completed]', workflow)
         self.assertIn('reopened, edited, labeled', workflow)
-        selector = workflow.split('    workflows:',
-                                  1)[1].split('    types:', 1)[0]
+        selector = workflow.split('    workflows:', 1)[1].split(
+            '    types:', 1
+        )[0]
         self.assertNotIn("'CI Check'", selector)
         self.assertIn("'Frontend Tests'", selector)
 

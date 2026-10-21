@@ -15,16 +15,15 @@
 
 import os
 import tempfile
-from typing import Optional
 import unittest
+from typing import Optional
 from unittest import mock
 
-from absl.testing import parameterized
-from kfp import compiler
-from kfp import components
-from kfp import dsl
-from kfp.dsl import placeholders
 import yaml
+from absl.testing import parameterized
+
+from kfp import compiler, components, dsl
+from kfp.dsl import placeholders
 
 
 @dsl.container_component
@@ -61,12 +60,13 @@ def round_trip_component(
                 then=[
                     dsl.ConcatPlaceholder(['--dataset=', optional_dataset.uri])
                 ],
-                else_=['--no-dataset']),
-        ])
+                else_=['--no-dataset'],
+            ),
+        ],
+    )
 
 
 class LoadYamlTests(parameterized.TestCase):
-
     def load(self, entrypoint, text, directory):
         if entrypoint == 'text':
             return components.load_component_from_text(text)
@@ -79,8 +79,9 @@ class LoadYamlTests(parameterized.TestCase):
         url = 'https://example.com/component.yaml'
         auth = ('user', 'password')
         with mock.patch(
-                'kfp.components.load_yaml_utilities.requests.get',
-                return_value=response) as get:
+            'kfp.components.load_yaml_utilities.requests.get',
+            return_value=response,
+        ) as get:
             try:
                 return components.load_component_from_url(url, auth=auth)
             finally:
@@ -90,7 +91,7 @@ class LoadYamlTests(parameterized.TestCase):
     @parameterized.product(
         entrypoint=['text', 'file', 'url'],
         definition=[
-            '''name: legacy-container
+            """name: legacy-container
 inputs:
 - {name: message, type: String, default: hello}
 implementation:
@@ -99,14 +100,14 @@ implementation:
     command: [echo]
     args:
     - {inputValue: message}
-''',
-            '''name: legacy-graph
+""",
+            """name: legacy-graph
 implementation:
   graph:
     tasks: {}
     outputValues: {}
-''',
-            '''apiVersion: argoproj.io/v1alpha1
+""",
+            """apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: legacy-workflow-
@@ -117,12 +118,14 @@ spec:
     container:
       image: alpine
       command: [echo, hello]
-''',
-        ])
+""",
+        ],
+    )
     def test_legacy_formats_rejected(self, entrypoint, definition):
         with tempfile.TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(ValueError,
-                                        'PipelineSpec IR.*before upgrading'):
+            with self.assertRaisesRegex(
+                ValueError, 'PipelineSpec IR.*before upgrading'
+            ):
                 self.load(entrypoint, definition, directory)
 
     @parameterized.product(entrypoint=['text', 'file', 'url'])
@@ -133,35 +136,39 @@ spec:
             with open(path) as f:
                 loaded = self.load(entrypoint, f.read(), directory)
 
-            self.assertEqual(loaded.pipeline_spec,
-                             round_trip_component.pipeline_spec)
+            self.assertEqual(
+                loaded.pipeline_spec, round_trip_component.pipeline_spec
+            )
             spec = loaded.component_spec
-            self.assertEqual(spec.inputs,
-                             round_trip_component.component_spec.inputs)
-            self.assertEqual(spec.outputs,
-                             round_trip_component.component_spec.outputs)
-            self.assertEqual(spec.inputs['dataset'].type,
-                             'system.Dataset@0.0.1')
+            self.assertEqual(
+                spec.inputs, round_trip_component.component_spec.inputs
+            )
+            self.assertEqual(
+                spec.outputs, round_trip_component.component_spec.outputs
+            )
+            self.assertEqual(
+                spec.inputs['dataset'].type, 'system.Dataset@0.0.1'
+            )
             self.assertTrue(spec.inputs['optional_dataset'].optional)
             self.assertEqual(spec.outputs['model'].type, 'system.Model@0.0.1')
             self.assertEqual(spec.outputs['count'].type, 'Integer')
             for name, expected in {
-                    'message': 'hello',
-                    'enabled': False,
-                    'number': 7,
-                    'fraction': 1.5,
-                    'items': ['a', 2],
-                    'config': {
-                        'key': True
-                    },
+                'message': 'hello',
+                'enabled': False,
+                'number': 7,
+                'fraction': 1.5,
+                'items': ['a', 2],
+                'config': {'key': True},
             }.items():
                 self.assertEqual(spec.inputs[name].default, expected)
                 self.assertTrue(spec.inputs[name].optional)
-            self.assertEqual(spec.implementation.container.args, [
-                placeholders.convert_command_line_element_to_string(arg)
-                for arg in round_trip_component.component_spec.implementation
-                .container.args
-            ])
+            self.assertEqual(
+                spec.implementation.container.args,
+                [
+                    placeholders.convert_command_line_element_to_string(arg)
+                    for arg in round_trip_component.component_spec.implementation.container.args
+                ],
+            )
             compiler.Compiler().compile(loaded, path)
             reloaded = components.load_component_from_file(path)
             self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
@@ -171,16 +178,13 @@ spec:
     def test_pipeline_with_platform_spec_round_trip(self, entrypoint):
 
         @dsl.pipeline
-        def pipeline(dataset: dsl.Input[dsl.Dataset],
-                     message: str = 'hello') -> dsl.Model:
+        def pipeline(
+            dataset: dsl.Input[dsl.Dataset], message: str = 'hello'
+        ) -> dsl.Model:
             task = round_trip_component(dataset=dataset, message=message)
             task.set_env_variable('MESSAGE', 'test')
             task.platform_config['kubernetes'] = {
-                'podMetadata': {
-                    'labels': {
-                        'test': 'round-trip'
-                    }
-                }
+                'podMetadata': {'labels': {'test': 'round-trip'}}
             }
             return task.outputs['model']
 
@@ -193,10 +197,12 @@ spec:
             loaded = self.load(entrypoint, text, directory)
             self.assertEqual(loaded.pipeline_spec, pipeline.pipeline_spec)
             self.assertEqual(loaded.platform_spec, pipeline.platform_spec)
-            self.assertEqual(loaded.component_spec.inputs,
-                             pipeline.component_spec.inputs)
-            self.assertEqual(loaded.component_spec.outputs,
-                             pipeline.component_spec.outputs)
+            self.assertEqual(
+                loaded.component_spec.inputs, pipeline.component_spec.inputs
+            )
+            self.assertEqual(
+                loaded.component_spec.outputs, pipeline.component_spec.outputs
+            )
             compiler.Compiler().compile(loaded, path)
             reloaded = components.load_component_from_file(path)
             self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
@@ -204,26 +210,32 @@ spec:
 
     def test_gcs_url(self):
         response = mock.Mock(content=b'not a pipeline')
-        with mock.patch(
+        with (
+            mock.patch(
                 'kfp.components.load_yaml_utilities.requests.get',
-                return_value=response
-        ) as get, mock.patch(
+                return_value=response,
+            ) as get,
+            mock.patch(
                 'kfp.components.load_yaml_utilities.load_component_from_text'
-        ) as load:
+            ) as load,
+        ):
             components.load_component_from_url('gs://bucket/component.yaml')
         get.assert_called_once_with(
-            'https://storage.googleapis.com/bucket/component.yaml', auth=None)
+            'https://storage.googleapis.com/bucket/component.yaml', auth=None
+        )
         load.assert_called_once_with('not a pipeline')
 
     def test_http_error_is_not_loaded(self):
         response = mock.Mock()
         response.raise_for_status.side_effect = RuntimeError('HTTP error')
         with mock.patch(
-                'kfp.components.load_yaml_utilities.requests.get',
-                return_value=response):
+            'kfp.components.load_yaml_utilities.requests.get',
+            return_value=response,
+        ):
             with self.assertRaisesRegex(RuntimeError, 'HTTP error'):
                 components.load_component_from_url(
-                    'https://example.com/component.yaml')
+                    'https://example.com/component.yaml'
+                )
 
 
 if __name__ == '__main__':

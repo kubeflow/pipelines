@@ -70,7 +70,8 @@ def get_param_descr(fn: Callable, param_name: str) -> str:
 
     if docstring is None:
         raise ValueError(
-            f'Could not find parameter {param_name} in docstring of {fn}')
+            f'Could not find parameter {param_name} in docstring of {fn}'
+        )
     lines = docstring.splitlines()
 
     # Find Args section
@@ -80,7 +81,7 @@ def get_param_descr(fn: Callable, param_name: str) -> str:
     else:  # No Args section found
         raise ValueError(f'No Args section found in docstring of {fn}')
 
-    lines = lines[i + 1:]
+    lines = lines[i + 1 :]
     first_line_args_regex = rf'^{param_name}( \(.*\))?: '
     for i, line in enumerate(lines):
         stripped = line.lstrip()
@@ -89,11 +90,12 @@ def get_param_descr(fn: Callable, param_name: str) -> str:
             description = [re.sub(first_line_args_regex, '', stripped)]
             # Collect any additional lines that are more indented
             current_indent = len(line) - len(stripped)
-            for next_line in lines[i + 1:]:
+            for next_line in lines[i + 1 :]:
                 next_indent = len(next_line) - len(next_line.lstrip())
                 if next_indent <= current_indent:
                     break
                 description.append(next_line.strip())
             return ' '.join(description)
     raise ValueError(
-        f'Could not find parameter {param_name} in docstring of {fn}')
+        f'Could not find parameter {param_name} in docstring of {fn}'
+    )

@@ -1,4 +1,5 @@
-name: KFP SDK YAPF Tests
+# Keep the legacy file path: CI Check matches paths from the PR base.
+name: Python Ruff Format
 
 on:
   push:
@@ -8,9 +9,11 @@ on:
     paths:
       - '**/pyproject.toml'
       - 'uv.lock'
-      - 'api/**'
-      - 'sdk/python/**'
-      - 'test/presubmit-yapf-sdk.sh'
+      - '**/*.py'
+      - '**/*.pyi'
+      - '.gitignore'
+      - '.pre-commit-config.yaml'
+      - 'test/presubmit-ruff.sh'
       - '.github/workflows/sdk-yapf.yml'
       - '.github/actions/setup-python/**'
       - '!**/*.md'
@@ -25,7 +28,8 @@ permissions:
   contents: read
 
 jobs:
-  yapf-sdk:
+  ruff:
+    name: Ruff formatting
     runs-on: ubuntu-latest
 
     steps:
@@ -39,5 +43,5 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+    - name: Check Python formatting with Ruff
+      run: uv run --frozen --extra lint ruff format --check .

@@ -13,9 +13,9 @@
 # limitations under the License.
 """Keep CI tokens independent of repository defaults and bound writer jobs."""
 
-from pathlib import Path
 import re
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -96,15 +96,16 @@ def effective_permissions(workflow, job):
     if not isinstance(permissions, dict):
         raise AssertionError(
             'Declare an explicit permissions map; do not '
-            'inherit repository defaults or use read/write-all')
-    if not all(value in {'none', 'read', 'write'}
-               for value in permissions.values()):
+            'inherit repository defaults or use read/write-all'
+        )
+    if not all(
+        value in {'none', 'read', 'write'} for value in permissions.values()
+    ):
         raise AssertionError(f'Invalid token permissions: {permissions}')
     return permissions
 
 
 class WorkflowPermissionsTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.workflows = {
@@ -124,12 +125,14 @@ class WorkflowPermissionsTest(unittest.TestCase):
                 with self.subTest(workflow=workflow_name, job=job_name):
                     permissions = effective_permissions(workflow, job)
                     writes = {
-                        scope for scope, level in permissions.items()
+                        scope
+                        for scope, level in permissions.items()
                         if level == 'write'
                     }
                     if writes:
-                        actual_writers.setdefault(workflow_name,
-                                                  {})[job_name] = writes
+                        actual_writers.setdefault(workflow_name, {})[
+                            job_name
+                        ] = writes
         self.assertEqual(actual_writers, WRITE_PERMISSIONS)
 
     def test_reusable_callers_allow_each_callee_required_permission(self):
@@ -144,20 +147,27 @@ class WorkflowPermissionsTest(unittest.TestCase):
                 callee = self.workflows[reference.removeprefix(prefix)]
                 for callee_job_name, callee_job in callee['jobs'].items():
                     with self.subTest(
-                            workflow=workflow_name,
-                            job=job_name,
-                            callee=callee_job_name):
+                        workflow=workflow_name,
+                        job=job_name,
+                        callee=callee_job_name,
+                    ):
                         required = effective_permissions(callee, callee_job)
                         for scope, level in required.items():
                             self.assertGreaterEqual(
-                                rank[caller.get(scope, 'none')], rank[level],
-                                f'{reference} needs {scope}: {level}')
+                                rank[caller.get(scope, 'none')],
+                                rank[level],
+                                f'{reference} needs {scope}: {level}',
+                            )
 
     def test_checkouts_do_not_leave_credentials_for_later_commands(self):
         documents = list(self.workflows.items())
         for path in (ROOT / '.github/actions').rglob('action.y*ml'):
-            documents.append((str(path.relative_to(ROOT)),
-                              yaml.safe_load(path.read_text(encoding='utf-8'))))
+            documents.append(
+                (
+                    str(path.relative_to(ROOT)),
+                    yaml.safe_load(path.read_text(encoding='utf-8')),
+                )
+            )
         for name, document in documents:
             jobs = document.get('jobs', {'composite': document.get('runs', {})})
             for job_name, job in jobs.items():
@@ -167,13 +177,18 @@ class WorkflowPermissionsTest(unittest.TestCase):
                     with self.subTest(document=name, job=job_name):
                         self.assertIs(
                             step.get('with', {}).get('persist-credentials'),
-                            False)
+                            False,
+                        )
 
     def test_external_actions_and_reusable_workflows_use_immutable_refs(self):
         documents = list(self.workflows.items())
         for path in (ROOT / '.github/actions').rglob('action.y*ml'):
-            documents.append((str(path.relative_to(ROOT)),
-                              yaml.safe_load(path.read_text(encoding='utf-8'))))
+            documents.append(
+                (
+                    str(path.relative_to(ROOT)),
+                    yaml.safe_load(path.read_text(encoding='utf-8')),
+                )
+            )
         for name, document in documents:
             jobs = document.get('jobs', {'composite': document.get('runs', {})})
             for job_name, job in jobs.items():
@@ -182,80 +197,104 @@ class WorkflowPermissionsTest(unittest.TestCase):
                     if not reference or reference.startswith('./'):
                         continue
                     with self.subTest(
-                            document=name, job=job_name, reference=reference):
+                        document=name, job=job_name, reference=reference
+                    ):
                         self.assertIsNotNone(
-                            re.fullmatch(r'[^@\s]+@[0-9a-f]{40}', reference))
+                            re.fullmatch(r'[^@\s]+@[0-9a-f]{40}', reference)
+                        )
 
     def test_test_image_builds_and_callers_are_read_only(self):
         self.assertEqual(
             self.permissions('image-builds.yml', 'image-build'),
-            {'contents': 'read'})
+            {'contents': 'read'},
+        )
         self.assertEqual(
-            self.permissions('image-builds.yml', 'runtime-base-images'), {
+            self.permissions('image-builds.yml', 'runtime-base-images'),
+            {
                 'contents': 'read',
                 'actions': 'read',
-            })
+            },
+        )
         for workflow_name, workflow in self.workflows.items():
             for job_name, job in workflow['jobs'].items():
                 if job.get('uses') == './.github/workflows/image-builds.yml':
                     with self.subTest(workflow=workflow_name, job=job_name):
                         self.assertEqual(
-                            effective_permissions(workflow, job), {
+                            effective_permissions(workflow, job),
+                            {
                                 'contents': 'read',
                                 'actions': 'read',
-                            })
+                            },
+                        )
         image_workflow = self.workflows['image-builds.yml']
-        self.assertFalse({'GITHUB_TOKEN', 'GH_TOKEN'}
-                         & image_workflow.get('env', {}).keys())
+        self.assertFalse(
+            {'GITHUB_TOKEN', 'GH_TOKEN'} & image_workflow.get('env', {}).keys()
+        )
         for job in image_workflow['jobs'].values():
-            self.assertFalse({'GITHUB_TOKEN', 'GH_TOKEN'}
-                             & job.get('env', {}).keys())
+            self.assertFalse(
+                {'GITHUB_TOKEN', 'GH_TOKEN'} & job.get('env', {}).keys()
+            )
 
     def test_deployment_jobs_keep_artifact_polling_access(self):
         for workflow_name, workflow in self.workflows.items():
             for job_name, job in workflow['jobs'].items():
                 if not any(
-                        step.get('uses') == './.github/actions/deploy'
-                        for step in job.get('steps', [])):
+                    step.get('uses') == './.github/actions/deploy'
+                    for step in job.get('steps', [])
+                ):
                     continue
                 with self.subTest(workflow=workflow_name, job=job_name):
                     self.assertEqual(
-                        effective_permissions(workflow, job), {
+                        effective_permissions(workflow, job),
+                        {
                             'contents': 'read',
                             'actions': 'read',
-                        })
+                        },
+                    )
 
     def test_metadata_jobs_do_not_request_unrelated_scopes(self):
-        self.assertNotIn('issues',
-                         self.permissions('ci-checks.yml', 'check_ci_status'))
+        self.assertNotIn(
+            'issues', self.permissions('ci-checks.yml', 'check_ci_status')
+        )
         self.assertEqual(
-            self.permissions('pr-gate.yml', 'check-pr-author')['issues'],
-            'read')
+            self.permissions('pr-gate.yml', 'check-pr-author')['issues'], 'read'
+        )
         for job_name in self.workflows['gh-workflow-approve.yml']['jobs']:
             self.assertEqual(
-                self.permissions('gh-workflow-approve.yml', job_name), {
+                self.permissions('gh-workflow-approve.yml', job_name),
+                {
                     'actions': 'write',
                     'pull-requests': 'read',
-                })
+                },
+            )
 
     def test_summary_and_same_run_artifact_jobs_need_no_extra_token_scopes(
-            self):
+        self,
+    ):
         self.assertEqual(
-            self.permissions('validate-generated-files.yml',
-                             'validate-generated-files'), {})
+            self.permissions(
+                'validate-generated-files.yml', 'validate-generated-files'
+            ),
+            {},
+        )
         self.assertEqual(
             self.permissions('arm64-presubmit.yml', 'smoke'),
-            {'contents': 'read'})
+            {'contents': 'read'},
+        )
         self.assertEqual(
-            self.permissions('runtime-base-images.yml',
-                             'produce-runtime-base-images'),
-            {'contents': 'read'})
+            self.permissions(
+                'runtime-base-images.yml', 'produce-runtime-base-images'
+            ),
+            {'contents': 'read'},
+        )
 
     def test_fixture_backed_integration_tests_do_not_receive_a_github_token(
-            self):
+        self,
+    ):
         workflow = self.workflows['legacy-v2-api-integration-tests.yml']
         fixture_steps = [
-            step for job in workflow['jobs'].values()
+            step
+            for job in workflow['jobs'].values()
             for step in job.get('steps', [])
             if 'KFP_TEST_FIXTURE_BASE_URL' in step.get('env', {})
         ]

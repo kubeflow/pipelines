@@ -33,6 +33,7 @@ class ExecutorResponse:
         command could not be started at all and the underlying OSError did not
         carry an errno.
     """
+
     stdout: str = ''
     stderr: str = ''
     return_code: Optional[int] = None
@@ -72,6 +73,7 @@ def execute_command(command_list: List[str]) -> ExecutorResponse:
         return ExecutorResponse(
             stdout=process.stdout.decode('utf-8'),
             stderr=process.stderr.decode('utf-8'),
-            return_code=process.returncode)
+            return_code=process.returncode,
+        )
     except OSError as e:
         return ExecutorResponse(stdout='', stderr=str(e), return_code=e.errno)

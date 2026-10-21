@@ -1,4 +1,5 @@
 import click
+
 from kfp import client
 from kfp.cli import output
 from kfp.cli.utils import parsing
@@ -13,8 +14,10 @@ def experiment():
 @click.option(
     '-d',
     '--description',
-    help=parsing.get_param_descr(client.Client.create_experiment,
-                                 'description'))
+    help=parsing.get_param_descr(
+        client.Client.create_experiment, 'description'
+    ),
+)
 @click.argument('name')
 @click.pass_context
 def create(ctx: click.Context, description: str, name: str):
@@ -34,22 +37,31 @@ def create(ctx: click.Context, description: str, name: str):
 @click.option(
     '--page-token',
     default='',
-    help=parsing.get_param_descr(client.Client.list_experiments, 'page_token'))
+    help=parsing.get_param_descr(client.Client.list_experiments, 'page_token'),
+)
 @click.option(
     '-m',
     '--max-size',
     default=100,
-    help=parsing.get_param_descr(client.Client.list_experiments, 'page_size'))
+    help=parsing.get_param_descr(client.Client.list_experiments, 'page_size'),
+)
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help=parsing.get_param_descr(client.Client.list_experiments, 'sort_by'))
+    help=parsing.get_param_descr(client.Client.list_experiments, 'sort_by'),
+)
 @click.option(
     '--filter',
-    help=parsing.get_param_descr(client.Client.list_experiments, 'filter'))
+    help=parsing.get_param_descr(client.Client.list_experiments, 'filter'),
+)
 @click.pass_context
-def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
-         filter: str):
+def list(
+    ctx: click.Context,
+    page_token: str,
+    max_size: int,
+    sort_by: str,
+    filter: str,
+):
     """List experiments."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -58,7 +70,8 @@ def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
-        filter=filter)
+        filter=filter,
+    )
     output.print_output(
         response.experiments or [],
         output.ModelType.EXPERIMENT,
@@ -88,9 +101,11 @@ def get(ctx: click.Context, experiment_id: str):
 def delete(ctx: click.Context, experiment_id: str):
     """Delete an experiment."""
 
-    confirmation = 'Caution. The RunDetails page could have an issue' \
-                   ' when it renders a run that has no experiment.' \
-                   ' Do you want to continue?'
+    confirmation = (
+        'Caution. The RunDetails page could have an issue'
+        ' when it renders a run that has no experiment.'
+        ' Do you want to continue?'
+    )
     if not click.confirm(confirmation):
         return
 
@@ -101,20 +116,26 @@ def delete(ctx: click.Context, experiment_id: str):
     output.print_deleted_text('experiment', experiment_id, output_format)
 
 
-either_option_required = 'Either --experiment-id or --experiment-name is required.'
+either_option_required = (
+    'Either --experiment-id or --experiment-name is required.'
+)
 
 
 @experiment.command()
 @click.option(
     '--experiment-id',
     default=None,
-    help=parsing.get_param_descr(client.Client.archive_experiment,
-                                 'experiment_id') + ' ' +
-    either_option_required)
+    help=parsing.get_param_descr(
+        client.Client.archive_experiment, 'experiment_id'
+    )
+    + ' '
+    + either_option_required,
+)
 @click.option(
     '--experiment-name',
     default=None,
-    help='Name of the experiment.' + ' ' + either_option_required)
+    help='Name of the experiment.' + ' ' + either_option_required,
+)
 @click.pass_context
 def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Archive an experiment."""
@@ -144,13 +165,17 @@ def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
 @click.option(
     '--experiment-id',
     default=None,
-    help=parsing.get_param_descr(client.Client.unarchive_experiment,
-                                 'experiment_id') + ' ' +
-    either_option_required)
+    help=parsing.get_param_descr(
+        client.Client.unarchive_experiment, 'experiment_id'
+    )
+    + ' '
+    + either_option_required,
+)
 @click.option(
     '--experiment-name',
     default=None,
-    help='Name of the experiment.' + ' ' + either_option_required)
+    help='Name of the experiment.' + ' ' + either_option_required,
+)
 @click.pass_context
 def unarchive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Unarchive an experiment."""

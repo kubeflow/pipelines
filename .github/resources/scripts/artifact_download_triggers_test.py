@@ -15,12 +15,12 @@
 """Require download changes to schedule integration consumers."""
 
 import json
-from pathlib import Path
 import subprocess
 import unittest
+from pathlib import Path
 
-from generate_ci_workflow_inventory import UniqueKeyLoader
 import yaml
+from generate_ci_workflow_inventory import UniqueKeyLoader
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/ci_expected_workflows.js'
@@ -31,7 +31,6 @@ ACTIONS = {
 
 
 class ArtifactDownloadTriggersTest(unittest.TestCase):
-
     def test_changes_trigger_all_pr_consumers(self):
         consumers = set()
         for path in (ROOT / '.github/workflows').iterdir():
@@ -41,9 +40,10 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
             if 'pull_request' not in workflow.get('on', {}):
                 continue
             if any(
-                    step.get('uses') in ACTIONS
-                    for job in workflow['jobs'].values()
-                    for step in job.get('steps', [])):
+                step.get('uses') in ACTIONS
+                for job in workflow['jobs'].values()
+                for step in job.get('steps', [])
+            ):
                 consumers.add(path.relative_to(ROOT).as_posix())
         self.assertIn('.github/workflows/e2e-test-frontend.yml', consumers)
         self.assertIn('.github/workflows/arm64-presubmit.yml', consumers)
@@ -51,27 +51,31 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
 
         for branch in ('master', 'release-2.17'):
             for changed_path in (
-                    '.github/actions/download-artifact-with-retry/action.yml',
-                    '.github/resources/scripts/artifact-files.sh',
-                    '.github/resources/scripts/ci-image-artifacts.sh'):
+                '.github/actions/download-artifact-with-retry/action.yml',
+                '.github/resources/scripts/artifact-files.sh',
+                '.github/resources/scripts/ci-image-artifacts.sh',
+            ):
                 with self.subTest(branch=branch, changed_path=changed_path):
-                    script = f'''
+                    script = f"""
 const gate = require({json.dumps(str(MODULE))});
 const {{inventory}} = gate.loadLocalInventory(process.cwd());
 console.log(JSON.stringify(inventory.workflows.filter(workflow =>
   workflow.pull_request !== null && gate.applicable(workflow.pull_request,
     {json.dumps(branch)}, [{json.dumps(changed_path)}]))
   .map(workflow => workflow.path)));
-'''
-                    result = subprocess.run(['node'],
-                                            input=script,
-                                            check=True,
-                                            capture_output=True,
-                                            text=True,
-                                            cwd=ROOT)
+"""
+                    result = subprocess.run(
+                        ['node'],
+                        input=script,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        cwd=ROOT,
+                    )
                     triggered = set(json.loads(result.stdout))
                     self.assertTrue(
-                        consumers.issubset(triggered), consumers - triggered)
+                        consumers.issubset(triggered), consumers - triggered
+                    )
 
 
 if __name__ == '__main__':

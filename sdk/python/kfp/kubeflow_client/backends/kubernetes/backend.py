@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import datetime
 import json
 import logging
@@ -23,29 +22,34 @@ import os
 import shutil
 import tempfile
 import time
-from typing import Any
 import warnings
+from collections.abc import Callable
+from typing import Any
 
+import yaml
 from google.protobuf import json_format
+
+import kfp.server_api
 from kfp import compiler
 from kfp.kubeflow_client import constants
-from kfp.kubeflow_client.backends.kubernetes import auth
-from kfp.kubeflow_client.backends.kubernetes import \
-    constants as backend_constants
-from kfp.kubeflow_client.backends.kubernetes import utils
-from kfp.kubeflow_client.backends.kubernetes.types import \
-    KubernetesBackendConfig
-from kfp.kubeflow_client.types import Experiment
-from kfp.kubeflow_client.types import ListExperimentsResponse
-from kfp.kubeflow_client.types import ListPipelinesResponse
-from kfp.kubeflow_client.types import ListPipelineVersionsResponse
-from kfp.kubeflow_client.types import ListRunsResponse
-from kfp.kubeflow_client.types import Pipeline
-from kfp.kubeflow_client.types import PipelineVersion
-from kfp.kubeflow_client.types import Run
+from kfp.kubeflow_client.backends.kubernetes import auth, utils
+from kfp.kubeflow_client.backends.kubernetes import (
+    constants as backend_constants,
+)
+from kfp.kubeflow_client.backends.kubernetes.types import (
+    KubernetesBackendConfig,
+)
+from kfp.kubeflow_client.types import (
+    Experiment,
+    ListExperimentsResponse,
+    ListPipelinesResponse,
+    ListPipelineVersionsResponse,
+    ListRunsResponse,
+    Pipeline,
+    PipelineVersion,
+    Run,
+)
 from kfp.pipeline_spec import pipeline_spec_pb2
-import kfp.server_api
-import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +134,9 @@ class KubernetesBackend:
             logger.warning(
                 'KFP API server is not reachable at %s: %s. '
                 'Requests will fail until the server becomes available.',
-                self._api_config.host, e)
+                self._api_config.host,
+                e,
+            )
 
     # ------------------------------------------------------------------
     # Pipeline operations
@@ -140,10 +146,13 @@ class KubernetesBackend:
         """Get a pipeline by name."""
         pipeline_id = self._get_pipeline_id_by_name(name)
         if pipeline_id is None:
-            raise ValueError(f'Pipeline not found: {name!r}. '
-                             'Use list_pipelines() to see available pipelines.')
+            raise ValueError(
+                f'Pipeline not found: {name!r}. '
+                'Use list_pipelines() to see available pipelines.'
+            )
         return self._pipelines_api.pipeline_service_get_pipeline(
-            pipeline_id=pipeline_id)
+            pipeline_id=pipeline_id
+        )
 
     def get_pipeline_version(
         self,
@@ -155,8 +164,10 @@ class KubernetesBackend:
         pipeline = self.get_pipeline(name)
         version_id = self._get_version_id_by_name(pipeline.pipeline_id, version)
         if version_id is None:
-            raise ValueError(f'Pipeline version not found: {version!r} '
-                             f'for pipeline {name!r}.')
+            raise ValueError(
+                f'Pipeline version not found: {version!r} '
+                f'for pipeline {name!r}.'
+            )
         return self._pipelines_api.pipeline_service_get_pipeline_version(
             pipeline_id=pipeline.pipeline_id,
             pipeline_version_id=version_id,
@@ -185,8 +196,10 @@ class KubernetesBackend:
         """List versions of a pipeline by name."""
         pipeline_id = self._get_pipeline_id_by_name(name)
         if pipeline_id is None:
-            raise ValueError(f'Pipeline not found: {name!r}. '
-                             'Use list_pipelines() to see available pipelines.')
+            raise ValueError(
+                f'Pipeline not found: {name!r}. '
+                'Use list_pipelines() to see available pipelines.'
+            )
         return self._pipelines_api.pipeline_service_list_pipeline_versions(
             pipeline_id=pipeline_id,
             page_token=page_token,
@@ -203,14 +216,18 @@ class KubernetesBackend:
         """Delete a pipeline or a specific pipeline version."""
         pipeline_id = self._get_pipeline_id_by_name(name)
         if pipeline_id is None:
-            raise ValueError(f'Pipeline not found: {name!r}. '
-                             'Use list_pipelines() to see available pipelines.')
+            raise ValueError(
+                f'Pipeline not found: {name!r}. '
+                'Use list_pipelines() to see available pipelines.'
+            )
 
         if version is not None:
             version_id = self._get_version_id_by_name(pipeline_id, version)
             if version_id is None:
-                raise ValueError(f'Pipeline version not found: {version!r} '
-                                 f'for pipeline {name!r}.')
+                raise ValueError(
+                    f'Pipeline version not found: {version!r} '
+                    f'for pipeline {name!r}.'
+                )
             self._pipelines_api.pipeline_service_delete_pipeline_version(
                 pipeline_id=pipeline_id,
                 pipeline_version_id=version_id,
@@ -222,16 +239,19 @@ class KubernetesBackend:
                 self._pipelines_api.pipeline_service_list_pipeline_versions(
                     pipeline_id=pipeline_id,
                     page_size=2,
-                ))
+                )
+            )
             versions = versions_response.pipeline_versions or []
             if len(versions) > 1:
                 raise ValueError(
                     f'Pipeline {name!r} has multiple versions. '
                     'Use force=True to delete the pipeline and all versions, '
-                    'or specify version= to delete a single version.')
+                    'or specify version= to delete a single version.'
+                )
 
         self._pipelines_api.pipeline_service_delete_pipeline(
-            pipeline_id=pipeline_id, cascade=True)
+            pipeline_id=pipeline_id, cascade=True
+        )
 
     def upload_pipeline(
         self,
@@ -285,16 +305,19 @@ class KubernetesBackend:
         """Run a pipeline with full dispatch logic."""
         run_name = name or self._generate_run_name(pipeline)
 
-        version_is_usable = (
-            isinstance(pipeline, Pipeline) or
-            (isinstance(pipeline, str) and not self._is_yaml_path(pipeline) and
-             not self._is_archive_path(pipeline)))
+        version_is_usable = isinstance(pipeline, Pipeline) or (
+            isinstance(pipeline, str)
+            and not self._is_yaml_path(pipeline)
+            and not self._is_archive_path(pipeline)
+        )
         if version is not None and not version_is_usable:
             logger.warning(
                 'The version parameter is ignored when pipeline is not a '
                 'name string (got %s).',
                 type(pipeline).__name__
-                if not isinstance(pipeline, str) else repr(pipeline))
+                if not isinstance(pipeline, str)
+                else repr(pipeline),
+            )
 
         if isinstance(pipeline, PipelineVersion):
             return self.run_from_version(
@@ -333,7 +356,8 @@ class KubernetesBackend:
         if isinstance(pipeline, str) and self._is_archive_path(pipeline):
             raise ValueError(
                 f'Archive files ({pipeline!r}) cannot be used for inline '
-                'runs. Use upload_pipeline() first, then run by name.')
+                'runs. Use upload_pipeline() first, then run by name.'
+            )
 
         if isinstance(pipeline, str):
             return self.run_by_name(
@@ -344,9 +368,11 @@ class KubernetesBackend:
                 experiment=experiment,
             )
 
-        raise ValueError(f'Unsupported pipeline type: {type(pipeline)!r}. '
-                         'Expected a pipeline name, file path, callable, '
-                         'Pipeline, or PipelineVersion.')
+        raise ValueError(
+            f'Unsupported pipeline type: {type(pipeline)!r}. '
+            'Expected a pipeline name, file path, callable, '
+            'Pipeline, or PipelineVersion.'
+        )
 
     def get_run(self, run_id: str) -> Run:
         """Get a run by ID."""
@@ -373,22 +399,28 @@ class KubernetesBackend:
         if experiment is not None:
             experiment_id = self._get_experiment_id_by_name(experiment)
             if experiment_id is None:
-                raise ValueError(f'Experiment not found: {experiment!r}. '
-                                 'Use create_experiment() first.')
+                raise ValueError(
+                    f'Experiment not found: {experiment!r}. '
+                    'Use create_experiment() first.'
+                )
 
         filter_predicates = []
         if status is not None:
-            filter_predicates.append({
-                'operation': 'EQUALS',
-                'key': 'state',
-                'stringValue': status.upper(),
-            })
+            filter_predicates.append(
+                {
+                    'operation': 'EQUALS',
+                    'key': 'state',
+                    'stringValue': status.upper(),
+                }
+            )
         if pipeline_id is not None:
-            filter_predicates.append({
-                'operation': 'EQUALS',
-                'key': 'pipeline_id',
-                'stringValue': pipeline_id,
-            })
+            filter_predicates.append(
+                {
+                    'operation': 'EQUALS',
+                    'key': 'pipeline_id',
+                    'stringValue': pipeline_id,
+                }
+            )
 
         filter_str = None
         if filter_predicates:
@@ -439,12 +471,17 @@ class KubernetesBackend:
                 first_poll_succeeded = True
                 auth_retries = 0
             except kfp.server_api.ApiException as api_error:
-                if (first_poll_succeeded and api_error.status == 401 and
-                        auth_retries < max_auth_retries):
+                if (
+                    first_poll_succeeded
+                    and api_error.status == 401
+                    and auth_retries < max_auth_retries
+                ):
                     auth_retries += 1
                     logger.info(
-                        'Access token expired, refreshing '
-                        '(attempt %d/%d)...', auth_retries, max_auth_retries)
+                        'Access token expired, refreshing (attempt %d/%d)...',
+                        auth_retries,
+                        max_auth_retries,
+                    )
                     self.refresh_credentials()
                     continue
                 raise
@@ -458,7 +495,10 @@ class KubernetesBackend:
             if current_state in constants.TERMINAL_STATES:
                 logger.info(
                     'Run %s reached terminal state %r before target %s.',
-                    run_id, current_state, target_states)
+                    run_id,
+                    current_state,
+                    target_states,
+                )
                 self._invoke_callbacks(callbacks, run_response)
                 return run_response
 
@@ -466,9 +506,11 @@ class KubernetesBackend:
                 elapsed = time.monotonic() - start_time
                 if elapsed >= timeout:
                     self._invoke_callbacks(callbacks, run_response)
-                    raise TimeoutError(f'Run {run_id} did not reach state '
-                                       f'{target_states} within {timeout}s. '
-                                       f'Current state: {current_state!r}.')
+                    raise TimeoutError(
+                        f'Run {run_id} did not reach state '
+                        f'{target_states} within {timeout}s. '
+                        f'Current state: {current_state!r}.'
+                    )
 
             time.sleep(polling_interval)
 
@@ -484,15 +526,18 @@ class KubernetesBackend:
         experiment_id = self._resolve_experiment_id(experiment)
         pipeline_id = self._get_pipeline_id_by_name(pipeline_name)
         if pipeline_id is None:
-            raise ValueError(f'Pipeline not found: {pipeline_name!r}. '
-                             'Upload it first with upload_pipeline().')
+            raise ValueError(
+                f'Pipeline not found: {pipeline_name!r}. '
+                'Upload it first with upload_pipeline().'
+            )
 
         if version_name:
             version_id = self._get_version_id_by_name(pipeline_id, version_name)
             if version_id is None:
                 raise ValueError(
                     f'Pipeline version not found: {version_name!r} '
-                    f'for pipeline {pipeline_name!r}.')
+                    f'for pipeline {pipeline_name!r}.'
+                )
         else:
             version_id = self._get_latest_version_id(pipeline_id)
 
@@ -515,11 +560,14 @@ class KubernetesBackend:
         """Run a pipeline from a Pipeline object."""
         experiment_id = self._resolve_experiment_id(experiment)
         if version:
-            version_id = self._get_version_id_by_name(pipeline.pipeline_id,
-                                                      version)
+            version_id = self._get_version_id_by_name(
+                pipeline.pipeline_id, version
+            )
             if version_id is None:
-                raise ValueError(f'Pipeline version not found: {version!r} '
-                                 f'for pipeline {pipeline.display_name!r}.')
+                raise ValueError(
+                    f'Pipeline version not found: {version!r} '
+                    f'for pipeline {pipeline.display_name!r}.'
+                )
         else:
             version_id = self._get_latest_version_id(pipeline.pipeline_id)
         return self._run_from_version_reference(
@@ -561,7 +609,8 @@ class KubernetesBackend:
             raise ValueError(f'Pipeline file not found: {file_path}')
         pipeline_spec_dict = self._load_pipeline_spec(file_path)
         runtime_config = kfp.server_api.V2RuntimeConfig(
-            parameters=params or {},)
+            parameters=params or {},
+        )
         run_body = kfp.server_api.V2Run(
             display_name=run_name,
             experiment_id=experiment_id,
@@ -589,9 +638,12 @@ class KubernetesBackend:
             if description:
                 logger.warning(
                     'Experiment %r already exists; provided description will '
-                    'not be applied.', name)
+                    'not be applied.',
+                    name,
+                )
             return self._experiment_api.experiment_service_get_experiment(
-                experiment_id=existing_id)
+                experiment_id=existing_id
+            )
 
         experiment_body = kfp.server_api.V2Experiment(
             display_name=name,
@@ -599,16 +651,20 @@ class KubernetesBackend:
             namespace=self.namespace,
         )
         return self._experiment_api.experiment_service_create_experiment(
-            experiment=experiment_body)
+            experiment=experiment_body
+        )
 
     def get_experiment(self, name: str) -> Experiment:
         """Get an experiment by name."""
         experiment_id = self._get_experiment_id_by_name(name)
         if experiment_id is None:
-            raise ValueError(f'Experiment not found: {name!r}. '
-                             'Use create_experiment() to create one.')
+            raise ValueError(
+                f'Experiment not found: {name!r}. '
+                'Use create_experiment() to create one.'
+            )
         return self._experiment_api.experiment_service_get_experiment(
-            experiment_id=experiment_id)
+            experiment_id=experiment_id
+        )
 
     def list_experiments(
         self,
@@ -629,7 +685,8 @@ class KubernetesBackend:
         if experiment_id is None:
             raise ValueError(f'Experiment not found: {name!r}.')
         self._experiment_api.experiment_service_delete_experiment(
-            experiment_id=experiment_id)
+            experiment_id=experiment_id
+        )
 
     # ------------------------------------------------------------------
     # Private helpers — name resolution
@@ -638,19 +695,24 @@ class KubernetesBackend:
     @staticmethod
     def _equals_filter(key: str, value: str) -> str:
         """Build a JSON filter string for an equality predicate."""
-        return json.dumps({
-            'predicates': [{
-                'operation': 'EQUALS',
-                'key': key,
-                'stringValue': value,
-            }]
-        })
+        return json.dumps(
+            {
+                'predicates': [
+                    {
+                        'operation': 'EQUALS',
+                        'key': key,
+                        'stringValue': value,
+                    }
+                ]
+            }
+        )
 
     def _get_pipeline_id_by_name(self, name: str) -> str | None:
         """Resolve a pipeline display name to its ID."""
         result = self._pipelines_api.pipeline_service_list_pipelines(
             namespace=self.namespace,
-            filter=self._equals_filter('display_name', name))
+            filter=self._equals_filter('display_name', name),
+        )
         pipelines = result.pipelines or []
         if len(pipelines) == 0:
             return None
@@ -659,7 +721,8 @@ class KubernetesBackend:
         pipeline_ids = [p.pipeline_id for p in pipelines]
         raise ValueError(
             f'Multiple pipelines found with name {name!r}: {pipeline_ids}. '
-            'Use kfp.Client directly to operate by pipeline ID.')
+            'Use kfp.Client directly to operate by pipeline ID.'
+        )
 
     def _get_version_id_by_name(
         self,
@@ -677,8 +740,10 @@ class KubernetesBackend:
         if len(versions) == 1:
             return versions[0].pipeline_version_id
         version_ids = [v.pipeline_version_id for v in versions]
-        raise ValueError(f'Multiple versions found with name {version_name!r}: '
-                         f'{version_ids}.')
+        raise ValueError(
+            f'Multiple versions found with name {version_name!r}: '
+            f'{version_ids}.'
+        )
 
     def _get_latest_version_id(self, pipeline_id: str) -> str:
         """Get the latest (most recently created) version ID for a pipeline."""
@@ -704,8 +769,9 @@ class KubernetesBackend:
         if len(experiments) == 1:
             return experiments[0].experiment_id
         experiment_ids = [e.experiment_id for e in experiments]
-        raise ValueError(f'Multiple experiments found with name {name!r}: '
-                         f'{experiment_ids}.')
+        raise ValueError(
+            f'Multiple experiments found with name {name!r}: {experiment_ids}.'
+        )
 
     # ------------------------------------------------------------------
     # Private helpers — pipeline upload
@@ -728,19 +794,22 @@ class KubernetesBackend:
             upload_kwargs['description'] = description
 
         pipeline_response = self._upload_api.upload_pipeline(
-            package_path, **upload_kwargs)
+            package_path, **upload_kwargs
+        )
 
         versions_response = (
             self._pipelines_api.pipeline_service_list_pipeline_versions(
                 pipeline_id=pipeline_response.pipeline_id,
                 page_size=1,
                 sort_by='created_at desc',
-            ))
+            )
+        )
         versions = versions_response.pipeline_versions or []
         if not versions:
             raise RuntimeError(
                 f'Pipeline {name!r} was uploaded but no version was '
-                'created by the server. This is unexpected.')
+                'created by the server. This is unexpected.'
+            )
 
         first_version = versions[0]
 
@@ -754,7 +823,8 @@ class KubernetesBackend:
                 self._pipelines_api.pipeline_service_update_pipeline_version(
                     pipeline_version_pipeline_id=first_version.pipeline_id,
                     pipeline_version_pipeline_version_id=(
-                        first_version.pipeline_version_id),
+                        first_version.pipeline_version_id
+                    ),
                     pipeline_version=update_body,
                 )
                 first_version.display_name = version_name
@@ -789,8 +859,10 @@ class KubernetesBackend:
         """Upload a new version to an existing pipeline."""
         if not version_name:
             version_name = (
-                datetime.datetime.now().astimezone().strftime(
-                    '%Y-%m-%d %H-%M-%S'))
+                datetime.datetime.now()
+                .astimezone()
+                .strftime('%Y-%m-%d %H-%M-%S')
+            )
         upload_kwargs: dict[str, Any] = {
             'pipelineid': pipeline_id,
             'name': version_name,
@@ -798,8 +870,9 @@ class KubernetesBackend:
         if description:
             upload_kwargs['description'] = description
 
-        return self._upload_api.upload_pipeline_version(package_path,
-                                                        **upload_kwargs)
+        return self._upload_api.upload_pipeline_version(
+            package_path, **upload_kwargs
+        )
 
     # ------------------------------------------------------------------
     # Private helpers — run creation
@@ -818,8 +891,10 @@ class KubernetesBackend:
             return None
         experiment_id = self._get_experiment_id_by_name(experiment)
         if experiment_id is None:
-            raise ValueError(f'Experiment not found: {experiment!r}. '
-                             'Use create_experiment() first.')
+            raise ValueError(
+                f'Experiment not found: {experiment!r}. '
+                'Use create_experiment() first.'
+            )
         return experiment_id
 
     def _run_from_version_reference(
@@ -832,12 +907,12 @@ class KubernetesBackend:
     ) -> Run:
         """Create a run from a pipeline version reference (ID-based)."""
         runtime_config = kfp.server_api.V2RuntimeConfig(
-            parameters=params or {},)
-        pipeline_version_reference = (
-            kfp.server_api.V2PipelineVersionReference(
-                pipeline_id=pipeline_id,
-                pipeline_version_id=version_id,
-            ))
+            parameters=params or {},
+        )
+        pipeline_version_reference = kfp.server_api.V2PipelineVersionReference(
+            pipeline_id=pipeline_id,
+            pipeline_version_id=version_id,
+        )
         run_body = kfp.server_api.V2Run(
             display_name=run_name,
             experiment_id=experiment_id,
@@ -859,22 +934,26 @@ class KubernetesBackend:
         if not docs or not docs[0]:
             raise ValueError(
                 f'Pipeline file is empty or contains no valid YAML '
-                f'documents: {file_path}')
+                f'documents: {file_path}'
+            )
         pipeline_spec_dict = docs[0]
         if len(docs) > 2:
             raise ValueError(
                 f'Expected at most 2 YAML documents (pipeline spec + '
-                f'platform spec), got {len(docs)} in {file_path!r}.')
+                f'platform spec), got {len(docs)} in {file_path!r}.'
+            )
         platform_spec_dict = docs[1] if len(docs) > 1 and docs[1] else {}
 
         pipeline_spec = json_format.ParseDict(
             pipeline_spec_dict,
             pipeline_spec_pb2.PipelineSpec(),
-            ignore_unknown_fields=True)
+            ignore_unknown_fields=True,
+        )
         platform_spec = json_format.ParseDict(
             platform_spec_dict,
             pipeline_spec_pb2.PlatformSpec(),
-            ignore_unknown_fields=True)
+            ignore_unknown_fields=True,
+        )
 
         if platform_spec == pipeline_spec_pb2.PlatformSpec():
             return json_format.MessageToDict(pipeline_spec)
@@ -896,8 +975,8 @@ class KubernetesBackend:
                 callback(run)
             except Exception as error:
                 raise RuntimeError(
-                    f'Callback {callback!r} raised an exception: '
-                    f'{error}') from error
+                    f'Callback {callback!r} raised an exception: {error}'
+                ) from error
 
     def _run_inline(
         self,
@@ -908,7 +987,8 @@ class KubernetesBackend:
     ) -> Run:
         """Compile a callable and submit inline (no upload)."""
         package_path, temp_dir = self._resolve_pipeline_to_file(
-            pipeline_callable)
+            pipeline_callable
+        )
         try:
             return self.run_from_file(
                 file_path=package_path,
@@ -945,19 +1025,24 @@ class KubernetesBackend:
             except Exception as error:
                 shutil.rmtree(temp_dir, ignore_errors=True)
                 raise ValueError(
-                    f'Failed to compile pipeline: {error}') from error
+                    f'Failed to compile pipeline: {error}'
+                ) from error
             return package_path, temp_dir
         if isinstance(pipeline, str):
             if not os.path.isfile(pipeline):
                 raise ValueError(f'Pipeline file not found: {pipeline!r}.')
             if not any(
-                    pipeline.endswith(ext) for ext in _VALID_UPLOAD_EXTENSIONS):
-                raise ValueError(f'Unsupported file type: {pipeline!r}. '
-                                 f'Expected one of: '
-                                 f'{", ".join(_VALID_UPLOAD_EXTENSIONS)}')
+                pipeline.endswith(ext) for ext in _VALID_UPLOAD_EXTENSIONS
+            ):
+                raise ValueError(
+                    f'Unsupported file type: {pipeline!r}. '
+                    f'Expected one of: '
+                    f'{", ".join(_VALID_UPLOAD_EXTENSIONS)}'
+                )
             return pipeline, None
         raise ValueError(
-            f'Expected a callable or file path, got {type(pipeline)!r}.')
+            f'Expected a callable or file path, got {type(pipeline)!r}.'
+        )
 
     def _infer_pipeline_name(
         self,
@@ -967,8 +1052,11 @@ class KubernetesBackend:
         """Infer a pipeline name from the source."""
         if callable(pipeline) and hasattr(pipeline, 'name') and pipeline.name:
             return pipeline.name
-        if callable(pipeline) and hasattr(pipeline,
-                                          '__name__') and pipeline.__name__:
+        if (
+            callable(pipeline)
+            and hasattr(pipeline, '__name__')
+            and pipeline.__name__
+        ):
             return pipeline.__name__.replace('_', '-')
 
         name_from_spec = self._read_pipeline_name_from_yaml(package_path)
@@ -986,10 +1074,13 @@ class KubernetesBackend:
         if not name or name.isspace():
             raise ValueError(
                 'Invalid pipeline name. Pipeline name cannot be empty '
-                'or contain only whitespace.')
+                'or contain only whitespace.'
+            )
 
     @staticmethod
-    def _read_pipeline_name_from_yaml(package_path: str,) -> str | None:
+    def _read_pipeline_name_from_yaml(
+        package_path: str,
+    ) -> str | None:
         """Try to extract the pipeline name from a compiled YAML file."""
         try:
             if not package_path.endswith(('.yaml', '.yml')):
@@ -1005,7 +1096,8 @@ class KubernetesBackend:
             logger.debug(
                 'Could not read pipeline name from %s.',
                 package_path,
-                exc_info=True)
+                exc_info=True,
+            )
         return None
 
     # ------------------------------------------------------------------
@@ -1020,31 +1112,37 @@ class KubernetesBackend:
     @staticmethod
     def _is_archive_path(value: str) -> bool:
         """Check if a string looks like an archive pipeline file path."""
-        return (value.endswith('.tar.gz') or value.endswith('.tgz') or
-                value.endswith('.zip'))
+        return (
+            value.endswith('.tar.gz')
+            or value.endswith('.tgz')
+            or value.endswith('.zip')
+        )
 
     @staticmethod
     def _strip_pipeline_extension(filename: str) -> str:
         """Strip known pipeline file extensions including compound ones."""
         for suffix in ('.tar.gz', '.tgz', '.zip', '.yaml', '.yml'):
             if filename.endswith(suffix):
-                return filename[:-len(suffix)]
+                return filename[: -len(suffix)]
         return filename
 
     @staticmethod
     def _generate_run_name(
-        pipeline: str | Callable | Pipeline | PipelineVersion,) -> str:
+        pipeline: str | Callable | Pipeline | PipelineVersion,
+    ) -> str:
         """Generate a default run display name."""
         timestamp = (
-            datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H-%M-%S'))
+            datetime.datetime.now().astimezone().strftime('%Y-%m-%d %H-%M-%S')
+        )
         if callable(pipeline):
             base_name = getattr(pipeline, 'name', None)
             if base_name is None:
                 base_name = getattr(pipeline, '__name__', 'pipeline')
             return f'{base_name} {timestamp}'
         if isinstance(pipeline, str):
-            if (KubernetesBackend._is_yaml_path(pipeline) or
-                    KubernetesBackend._is_archive_path(pipeline)):
+            if KubernetesBackend._is_yaml_path(
+                pipeline
+            ) or KubernetesBackend._is_archive_path(pipeline):
                 basename = os.path.basename(pipeline)
                 name = KubernetesBackend._strip_pipeline_extension(basename)
                 return f'{name} {timestamp}'
@@ -1076,13 +1174,16 @@ class KubernetesBackend:
         if config.base_url:
             host = config.base_url
             if not (host.startswith('http://') or host.startswith('https://')):
-                logger.warning('No scheme in base_url %r, defaulting to https.',
-                               config.base_url)
+                logger.warning(
+                    'No scheme in base_url %r, defaulting to https.',
+                    config.base_url,
+                )
                 host = 'https://' + host
             api_config.host = host.rstrip('/')
         else:
             api_config.host = utils.discover_host(
-                backend_constants.DEFAULT_NAMESPACE)
+                backend_constants.DEFAULT_NAMESPACE
+            )
 
         if config.is_secure is not None:
             api_config.verify_ssl = config.is_secure

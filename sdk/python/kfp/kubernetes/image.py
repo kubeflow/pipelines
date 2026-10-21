@@ -15,16 +15,17 @@
 from typing import List, Union
 
 from google.protobuf import json_format
-from kfp.dsl import pipeline_channel
-from kfp.dsl import PipelineTask
+
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
 
 def set_image_pull_secrets(
     task: PipelineTask,
-    secret_names: Union[List[str],
-                        List[pipeline_channel.PipelineParameterChannel]],
+    secret_names: Union[
+        List[str], List[pipeline_channel.PipelineParameterChannel]
+    ],
 ) -> PipelineTask:
     """Set image pull secrets for a Kubernetes task.
 
@@ -41,9 +42,11 @@ def set_image_pull_secrets(
     image_pull_secret = []
     for secret_name in secret_names:
         secret_name_parameter = common.parse_k8s_parameter_input(
-            secret_name, task)
+            secret_name, task
+        )
         image_pull_secret_pb = pb.ImagePullSecret(
-            secret_name_parameter=secret_name_parameter)
+            secret_name_parameter=secret_name_parameter
+        )
         if isinstance(secret_name, str):
             image_pull_secret_pb.secret_name = secret_name
         image_pull_secret.append(image_pull_secret_pb)

@@ -13,8 +13,7 @@
 # limitations under the License.
 """Pipeline using ExitHandler with PipelineTaskFinalStatus (YAML)."""
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -43,5 +42,5 @@ def my_pipeline(message: str = 'Hello World!'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

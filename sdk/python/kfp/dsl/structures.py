@@ -16,22 +16,21 @@
 import ast
 import collections
 import dataclasses
-from decimal import Decimal
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple
 import uuid
+from decimal import Decimal
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
+import yaml
 from google.protobuf import json_format
+
 import kfp
 from kfp.dsl import container_component_artifact_channel as artifact_channel
-from kfp.dsl import placeholders
-from kfp.dsl import utils
+from kfp.dsl import placeholders, utils
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import type_annotations, type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 
 @dataclasses.dataclass
@@ -45,6 +44,7 @@ class InputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Input description.
     """
+
     type: str
     default: Optional[Any] = None
     optional: bool = False
@@ -58,7 +58,8 @@ class InputSpec:
 
     @classmethod
     def from_ir_component_inputs_dict(
-            cls, ir_component_inputs_dict: Dict[str, Any]) -> 'InputSpec':
+        cls, ir_component_inputs_dict: Dict[str, Any]
+    ) -> 'InputSpec':
         """Creates an InputSpec from a ComponentInputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.inputDefinitions.parameters.<input-key>).
@@ -80,24 +81,30 @@ class InputSpec:
             # since some IR compiled with kfp<=2.0.0b8 will have defaults
             # without isOptional=True
             optional = ir_component_inputs_dict.get(
-                'isOptional', 'defaultValue' in ir_component_inputs_dict)
+                'isOptional', 'defaultValue' in ir_component_inputs_dict
+            )
             return InputSpec(
-                type=type_, default=default_value, optional=optional)
+                type=type_, default=default_value, optional=optional
+            )
 
         else:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_inputs_dict['artifactType'][
-                'schemaVersion']
+                'schemaVersion'
+            ]
             # TODO: would be better to extract these fields from the proto
             # message, as False default would be preserved
             optional = ir_component_inputs_dict.get('isOptional', False)
             is_artifact_list = ir_component_inputs_dict.get(
-                'isArtifactList', False)
+                'isArtifactList', False
+            )
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version),
+                    type_, schema_version
+                ),
                 optional=optional,
-                is_artifact_list=is_artifact_list)
+                is_artifact_list=is_artifact_list,
+            )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -113,9 +120,11 @@ class InputSpec:
             bool: True if the objects are equal, False otherwise.
         """
         if isinstance(other, InputSpec):
-            return type_utils.get_canonical_name_for_outer_generic(
-                self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type) and self.default == other.default
+            return (
+                type_utils.get_canonical_name_for_outer_generic(self.type)
+                == type_utils.get_canonical_name_for_outer_generic(other.type)
+                and self.default == other.default
+            )
         else:
             return False
 
@@ -147,6 +156,7 @@ class OutputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Output description.
     """
+
     type: str
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
@@ -157,7 +167,8 @@ class OutputSpec:
 
     @classmethod
     def from_ir_component_outputs_dict(
-            cls, ir_component_outputs_dict: Dict[str, Any]) -> 'OutputSpec':
+        cls, ir_component_outputs_dict: Dict[str, Any]
+    ) -> 'OutputSpec':
         """Creates an OutputSpec from a ComponentOutputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.outputDefinitions.parameters|artifacts.<output-key>).
@@ -174,17 +185,23 @@ class OutputSpec:
             type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
-            return OutputSpec(type=type_,)
+            return OutputSpec(
+                type=type_,
+            )
         else:
             type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_outputs_dict['artifactType'][
-                'schemaVersion']
+                'schemaVersion'
+            ]
             is_artifact_list = ir_component_outputs_dict.get(
-                'isArtifactList', False)
+                'isArtifactList', False
+            )
             return OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version),
-                is_artifact_list=is_artifact_list)
+                    type_, schema_version
+                ),
+                is_artifact_list=is_artifact_list,
+            )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -201,8 +218,8 @@ class OutputSpec:
         """
         if isinstance(other, OutputSpec):
             return type_utils.get_canonical_name_for_outer_generic(
-                self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type)
+                self.type
+            ) == type_utils.get_canonical_name_for_outer_generic(other.type)
         else:
             return False
 
@@ -217,12 +234,17 @@ class OutputSpec:
 
 
 def spec_type_is_parameter(type_: str) -> bool:
-    in_memory_type = type_annotations.maybe_strip_optional_from_annotation_string(
-        type_utils.get_canonical_name_for_outer_generic(type_))
+    in_memory_type = (
+        type_annotations.maybe_strip_optional_from_annotation_string(
+            type_utils.get_canonical_name_for_outer_generic(type_)
+        )
+    )
 
-    return (in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or
-            in_memory_type == 'PipelineTaskFinalStatus' or
-            in_memory_type == 'TaskConfig')
+    return (
+        in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE
+        or in_memory_type == 'PipelineTaskFinalStatus'
+        or in_memory_type == 'TaskConfig'
+    )
 
 
 @dataclasses.dataclass
@@ -238,6 +260,7 @@ class ResourceSpec:
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
+
     cpu_request: Optional[str] = None
     cpu_limit: Optional[str] = None
     memory_request: Optional[str] = None
@@ -274,6 +297,7 @@ class ContainerSpec:
                     model_config_path,
                 ])
     """
+
     image: str
     """Container image."""
 
@@ -287,6 +311,7 @@ class ContainerSpec:
 @dataclasses.dataclass
 class ContainerSpecImplementation:
     """Container implementation definition."""
+
     image: str
     """Container image."""
 
@@ -321,19 +346,20 @@ class ContainerSpecImplementation:
 
     @classmethod
     def from_container_spec(
-            cls,
-            container_spec: ContainerSpec) -> 'ContainerSpecImplementation':
+        cls, container_spec: ContainerSpec
+    ) -> 'ContainerSpecImplementation':
         return ContainerSpecImplementation(
             image=container_spec.image,
             command=container_spec.command,
             args=container_spec.args,
             env=None,
-            resources=None)
+            resources=None,
+        )
 
     @classmethod
     def from_container_dict(
-            cls, container_dict: Dict[str,
-                                      Any]) -> 'ContainerSpecImplementation':
+        cls, container_dict: Dict[str, Any]
+    ) -> 'ContainerSpecImplementation':
         """Creates a ContainerSpecImplementation from a PipelineContainerSpec
         message in dict format
         (pipeline_spec.deploymentSpec.executors.<executor- key>.container).
@@ -350,7 +376,8 @@ class ContainerSpecImplementation:
             command=container_dict.get('command'),
             args=container_dict.get('args'),
             env=container_dict.get('env'),
-            resources=None)  # can only be set on tasks
+            resources=None,
+        )  # can only be set on tasks
 
 
 _RETRY_POLICY_MAP = {
@@ -382,6 +409,7 @@ class RetryPolicy:
             deployment's Argo configuration applies; KFP's bundled manifests
             set ``'OnError'``.
     """
+
     max_retry_count: Optional[int] = None
     backoff_duration: Optional[str] = None
     backoff_factor: Optional[float] = None
@@ -395,8 +423,12 @@ class RetryPolicy:
         backoff_factor = self.backoff_factor or 2.0
         backoff_max_duration = self.backoff_max_duration or '3600s'
 
-        backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
-        backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
+        backoff_duration_seconds = (
+            f'{convert_duration_to_seconds(backoff_duration)}s'
+        )
+        backoff_max_duration_seconds = (
+            f'{convert_duration_to_seconds(backoff_max_duration)}s'
+        )
 
         retry_policy_dict = {
             'max_retry_count': max_retry_count,
@@ -406,11 +438,14 @@ class RetryPolicy:
         }
         if self.policy:
             if self.policy not in _RETRY_POLICY_MAP:
-                raise ValueError(f'Invalid retry policy {self.policy!r}. '
-                                 f'Must be one of: {sorted(_RETRY_POLICY_MAP)}')
+                raise ValueError(
+                    f'Invalid retry policy {self.policy!r}. '
+                    f'Must be one of: {sorted(_RETRY_POLICY_MAP)}'
+                )
             retry_policy_dict['policy'] = _RETRY_POLICY_MAP[self.policy]
         return json_format.ParseDict(
-            retry_policy_dict, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+            retry_policy_dict, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy()
+        )
 
 
 @dataclasses.dataclass
@@ -440,6 +475,7 @@ class TaskSpec:
         display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
+
     name: str
     inputs: Mapping[str, Any]
     dependent_tasks: List[str]
@@ -466,6 +502,7 @@ class ImporterSpec:
          imported before.
         metadata (optional): the properties of the artifact.
     """
+
     artifact_uri: str
     schema_title: str
     schema_version: str
@@ -483,14 +520,16 @@ class Implementation:
         graph: graph implementation details.
         importer: importer implementation details.
     """
+
     container: Optional[ContainerSpecImplementation] = None
     importer: Optional[ImporterSpec] = None
     # Use type forward reference to skip the type validation in BaseModel.
     graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
 
     @classmethod
-    def from_pipeline_spec_dict(cls, pipeline_spec_dict: Dict[str, Any],
-                                component_name: str) -> 'Implementation':
+    def from_pipeline_spec_dict(
+        cls, pipeline_spec_dict: Dict[str, Any], component_name: str
+    ) -> 'Implementation':
         """Creates an Implementation object from a PipelineSpec message in dict
         format.
 
@@ -503,14 +542,21 @@ class Implementation:
         """
         executor_key = utils.sanitize_executor_label(component_name)
         executor = pipeline_spec_dict['deploymentSpec']['executors'].get(
-            executor_key)
+            executor_key
+        )
         if executor is not None:
-            container_spec = ContainerSpecImplementation.from_container_dict(
-                executor['container']) if executor else None
+            container_spec = (
+                ContainerSpecImplementation.from_container_dict(
+                    executor['container']
+                )
+                if executor
+                else None
+            )
             return Implementation(container=container_spec)
         else:
             pipeline_spec = json_format.ParseDict(
-                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec())
+                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec()
+            )
             return Implementation(graph=pipeline_spec)
 
 
@@ -568,12 +614,14 @@ def check_placeholder_references_valid_io_name(
             all_normalized_args.append(arg.else_)
 
         for arg in all_normalized_args:
-            check_placeholder_references_valid_io_name(inputs_dict,
-                                                       outputs_dict, arg)
+            check_placeholder_references_valid_io_name(
+                inputs_dict, outputs_dict, arg
+            )
     elif isinstance(arg, placeholders.ConcatPlaceholder):
         for arg in arg.items:
-            check_placeholder_references_valid_io_name(inputs_dict,
-                                                       outputs_dict, arg)
+            check_placeholder_references_valid_io_name(
+                inputs_dict, outputs_dict, arg
+            )
     elif not isinstance(arg, str):
         raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
@@ -590,13 +638,15 @@ class ComponentSpec:
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
+
     name: str
     implementation: Implementation
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
     platform_spec: pipeline_spec_pb2.PlatformSpec = dataclasses.field(
-        default_factory=pipeline_spec_pb2.PlatformSpec)
+        default_factory=pipeline_spec_pb2.PlatformSpec
+    )
     # Optional passthroughs for TaskConfig fields
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
 
@@ -628,9 +678,11 @@ class ComponentSpec:
         valid_outputs = {} if self.outputs is None else self.outputs
         for arg in itertools.chain(
             (self.implementation.container.command or []),
-            (self.implementation.container.args or [])):
-            check_placeholder_references_valid_io_name(valid_inputs,
-                                                       valid_outputs, arg)
+            (self.implementation.container.args or []),
+        ):
+            check_placeholder_references_valid_io_name(
+                valid_inputs, valid_outputs, arg
+            )
 
     @classmethod
     def from_ir_dicts(
@@ -643,11 +695,14 @@ class ComponentSpec:
         raw_name = pipeline_spec_dict['pipelineInfo']['name']
 
         def inputs_dict_from_component_spec_dict(
-                component_spec_dict: Dict[str, Any]) -> Dict[str, InputSpec]:
-            parameters = component_spec_dict.get('inputDefinitions',
-                                                 {}).get('parameters', {})
-            artifacts = component_spec_dict.get('inputDefinitions',
-                                                {}).get('artifacts', {})
+            component_spec_dict: Dict[str, Any],
+        ) -> Dict[str, InputSpec]:
+            parameters = component_spec_dict.get('inputDefinitions', {}).get(
+                'parameters', {}
+            )
+            artifacts = component_spec_dict.get('inputDefinitions', {}).get(
+                'artifacts', {}
+            )
             all_inputs = {**parameters, **artifacts}
             return {
                 name: InputSpec.from_ir_component_inputs_dict(input_dict)
@@ -655,11 +710,14 @@ class ComponentSpec:
             }
 
         def outputs_dict_from_component_spec_dict(
-                components_spec_dict: Dict[str, Any]) -> Dict[str, OutputSpec]:
-            parameters = component_spec_dict.get('outputDefinitions',
-                                                 {}).get('parameters', {})
-            artifacts = components_spec_dict.get('outputDefinitions',
-                                                 {}).get('artifacts', {})
+            components_spec_dict: Dict[str, Any],
+        ) -> Dict[str, OutputSpec]:
+            parameters = component_spec_dict.get('outputDefinitions', {}).get(
+                'parameters', {}
+            )
+            artifacts = components_spec_dict.get('outputDefinitions', {}).get(
+                'artifacts', {}
+            )
             all_outputs = {**parameters, **artifacts}
             return {
                 name: OutputSpec.from_ir_component_outputs_dict(output_dict)
@@ -667,13 +725,14 @@ class ComponentSpec:
             }
 
         def extract_description_from_command(
-                commands: List[str]) -> Optional[str]:
+            commands: List[str],
+        ) -> Optional[str]:
             for command in commands:
                 if isinstance(command, str) and 'import kfp' in command:
                     for node in ast.walk(ast.parse(command)):
                         if isinstance(
-                                node,
-                            (ast.FunctionDef, ast.ClassDef, ast.Module)):
+                            node, (ast.FunctionDef, ast.ClassDef, ast.Module)
+                        ):
                             docstring = ast.get_docstring(node)
                             if docstring:
                                 return docstring
@@ -681,17 +740,23 @@ class ComponentSpec:
 
         component_key = utils.sanitize_component_name(raw_name)
         component_spec_dict = pipeline_spec_dict['components'].get(
-            component_key, pipeline_spec_dict['root'])
+            component_key, pipeline_spec_dict['root']
+        )
 
         inputs = inputs_dict_from_component_spec_dict(component_spec_dict)
         outputs = outputs_dict_from_component_spec_dict(component_spec_dict)
 
         implementation = Implementation.from_pipeline_spec_dict(
-            pipeline_spec_dict, raw_name)
+            pipeline_spec_dict, raw_name
+        )
 
-        description = extract_description_from_command(
-            implementation.container.command or
-            []) if implementation.container else None
+        description = (
+            extract_description_from_command(
+                implementation.container.command or []
+            )
+            if implementation.container
+            else None
+        )
 
         platform_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(platform_spec_dict, platform_spec)
@@ -734,30 +799,36 @@ class ComponentSpec:
             while index < len(lines):
                 line = lines[index]
                 if line.startswith(multi_line_description_prefix):
-                    description += '\n' + line[len(multi_line_description_prefix
-                                                  ):]
+                    description += (
+                        '\n' + line[len(multi_line_description_prefix) :]
+                    )
                     index += 1
                 else:
                     break
 
-            return description[len(heading):]
+            return description[len(heading) :]
 
         pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
-            component_yaml)
+            component_yaml
+        )
 
-        if ('implementation' in pipeline_spec_dict or
-                pipeline_spec_dict.get('kind') == 'Workflow'):
+        if (
+            'implementation' in pipeline_spec_dict
+            or pipeline_spec_dict.get('kind') == 'Workflow'
+        ):
             raise ValueError(
                 'Component YAML must use the PipelineSpec IR format. '
                 'Legacy component definitions and Argo Workflows are not supported. '
                 'Rewrite the component with the v2 SDK, or convert legacy '
                 'container YAML to IR with an older KFP v2 SDK before upgrading.'
             )
-        component_spec = cls.from_ir_dicts(pipeline_spec_dict,
-                                           platform_spec_dict)
+        component_spec = cls.from_ir_dicts(
+            pipeline_spec_dict, platform_spec_dict
+        )
         if not component_spec.description:
             component_spec.description = extract_description(
-                component_yaml=component_yaml)
+                component_yaml=component_yaml
+            )
         return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
@@ -789,9 +860,7 @@ class ComponentSpec:
         # import here to avoid circular module dependency
         from kfp.compiler import compiler_utils
         from kfp.compiler import pipeline_spec_builder as builder
-        from kfp.dsl import pipeline_channel
-        from kfp.dsl import pipeline_task
-        from kfp.dsl import tasks_group
+        from kfp.dsl import pipeline_channel, pipeline_task, tasks_group
 
         args_dict = {}
         pipeline_inputs = self.inputs or {}
@@ -800,14 +869,16 @@ class ComponentSpec:
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
                 name=arg_name,
                 channel_type=input_spec.type,
-                is_artifact_list=input_spec.is_artifact_list)
+                is_artifact_list=input_spec.is_artifact_list,
+            )
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
         # instead of constructing a pipeline with pipeline_context.Pipeline,
         # just build the single task group
         group = tasks_group.TasksGroup(
-            group_type=tasks_group.TasksGroupType.PIPELINE)
+            group_type=tasks_group.TasksGroupType.PIPELINE
+        )
         group.tasks.append(task)
 
         group.name = uuid.uuid4().hex
@@ -819,11 +890,13 @@ class ComponentSpec:
         pipeline_output_spec = self.outputs or {}
 
         for arg_name, output_spec in pipeline_output_spec.items():
-            pipeline_outputs[
-                arg_name] = pipeline_channel.create_pipeline_channel(
+            pipeline_outputs[arg_name] = (
+                pipeline_channel.create_pipeline_channel(
                     name=arg_name,
                     channel_type=output_spec.type,
-                    task_name=task.name)
+                    task_name=task.name,
+                )
+            )
 
         utils.validate_pipeline_name(pipeline_name)
 
@@ -835,21 +908,25 @@ class ComponentSpec:
 
         # if we decide to surface component outputs to pipeline level,
         # can just assign the component_spec_proto directly to .root
-        component_spec_proto = builder._build_component_spec_from_component_spec_structure(
-            self)
+        component_spec_proto = (
+            builder._build_component_spec_from_component_spec_structure(self)
+        )
         pipeline_spec.root.CopyFrom(component_spec_proto)
 
         builder._build_dag_outputs(
-            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
+            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs
+        )
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
 
-        task_name_to_parent_groups, group_name_to_parent_groups = compiler_utils.get_parent_groups(
-            root_group)
+        task_name_to_parent_groups, group_name_to_parent_groups = (
+            compiler_utils.get_parent_groups(root_group)
+        )
 
-        def get_inputs(task_group: tasks_group.TasksGroup,
-                       task_name_to_parent_groups):
+        def get_inputs(
+            task_group: tasks_group.TasksGroup, task_name_to_parent_groups
+        ):
             inputs = collections.defaultdict(set)
             if len(task_group.tasks) != 1:
                 raise ValueError(
@@ -869,14 +946,14 @@ class ComponentSpec:
             group=root_group,
             inputs=inputs,
             outputs=collections.defaultdict(
-                dict),  # empty -- no sub-DAG outputs to surface
+                dict
+            ),  # empty -- no sub-DAG outputs to surface
             dependencies={},  # no dependencies for single-component pipeline
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,
             group_name_to_parent_groups=group_name_to_parent_groups,
             name_to_for_loop_group={},  # no for loop in single-component pipeline
-            platform_spec=pipeline_spec_pb2.PlatformSpec(
-            ),  # no PlatformSpec single-component pipeline
+            platform_spec=pipeline_spec_pb2.PlatformSpec(),  # no PlatformSpec single-component pipeline
             is_compiled_component=True,
         )
 
@@ -929,12 +1006,14 @@ def convert_duration_to_seconds(duration: str) -> int:
     seconds_per_unit = {'s': 1, 'm': 60, 'h': 3_600, 'd': 86_400, 'w': 604_800}
     if duration[-1] not in seconds_per_unit.keys():
         raise ValueError(
-            f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
+            f"Unsupported duration unit: '{duration[-1]}' for '{duration}'."
+        )
     seconds = Decimal(duration[:-1]) * seconds_per_unit[duration[-1]]
     if seconds != seconds.to_integral_value():
         raise ValueError(
             f"Invalid duration string: '{duration}'. Duration must resolve to a "
-            f'whole number of seconds, but got {seconds}.')
+            f'whole number of seconds, but got {seconds}.'
+        )
     return int(seconds)
 
 

@@ -16,12 +16,15 @@ import unittest
 
 import click
 from click import testing
+
 from kfp.cli.utils import deprecated_alias_group
 
 
 @click.group(
     cls=deprecated_alias_group.deprecated_alias_group_factory(
-        {'deprecated': 'new'}))
+        {'deprecated': 'new'}
+    )
+)
 def cli():
     pass
 
@@ -32,7 +35,6 @@ def new():
 
 
 class TestAliasedPluralsGroup(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.runner = testing.CliRunner()
@@ -47,8 +49,9 @@ class TestAliasedPluralsGroup(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertTrue('Called new command.\n' in result.output)
         self.assertTrue(
-            "Warning: 'deprecated' is deprecated, use 'new' instead." in
-            result.output)
+            "Warning: 'deprecated' is deprecated, use 'new' instead."
+            in result.output
+        )
 
 
 if __name__ == '__main__':

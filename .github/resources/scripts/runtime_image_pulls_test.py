@@ -14,20 +14,20 @@
 """Exercise bounded pull retries and the archive's tag identity contract."""
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 HELPER = ROOT / '.github/resources/scripts/helper-functions.sh'
 
 
 class RuntimeImagePullsTest(unittest.TestCase):
-
     def run_helper(self, body, scenario='success'):
         with tempfile.TemporaryDirectory() as directory:
-            script = r'''
+            script = (
+                r"""
 set -euo pipefail
 source "$HELPER"
 docker() {
@@ -56,7 +56,9 @@ kind() {
     echo "kind $*" >> "$COMMANDS"
   fi
 }
-''' + body
+"""
+                + body
+            )
             commands = Path(directory) / 'commands'
             commands.touch()
             images = Path(directory) / 'images'
@@ -83,8 +85,9 @@ kind() {
         self.assertNotIn('sleep', result.stdout)
 
     def test_throttle_recovers_with_exponential_jitter(self):
-        result, commands = self.run_helper('pull_image_with_backoff image:v1',
-                                           'transient')
+        result, commands = self.run_helper(
+            'pull_image_with_backoff image:v1', 'transient'
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(commands), 3)
         delays = [
@@ -97,8 +100,9 @@ kind() {
         self.assertTrue(40 <= delays[1] <= 50)
 
     def test_exhaustion_stops_at_five_attempts_without_final_sleep(self):
-        result, commands = self.run_helper('pull_image_with_backoff image:v1',
-                                           'exhausted')
+        result, commands = self.run_helper(
+            'pull_image_with_backoff image:v1', 'exhausted'
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(len(commands), 5)
         delays = [
@@ -113,70 +117,90 @@ kind() {
         self.assertIn('after 5 attempts', result.stderr)
 
     def test_data_quota_fails_without_pointless_retries(self):
-        result, commands = self.run_helper('pull_image_with_backoff image:v1',
-                                           'quota')
+        result, commands = self.run_helper(
+            'pull_image_with_backoff image:v1', 'quota'
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(len(commands), 1)
         self.assertNotIn('sleep', result.stdout)
         self.assertIn('Data limit exceeded', result.stderr)
-        self.assertIn('shared cache or an authenticated registry',
-                      result.stderr)
+        self.assertIn(
+            'shared cache or an authenticated registry', result.stderr
+        )
 
     def test_archive_preserves_fixture_tag_after_digest_pinned_pull(self):
         result, commands = self.run_helper(
-            'pull_and_save_runtime_base_images "$IMAGES" images.tar')
+            'pull_and_save_runtime_base_images "$IMAGES" images.tar'
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(commands, [
-            'docker pull example/image:ci@sha256:abc',
-            'docker tag example/image:ci@sha256:abc example/image:ci',
-            'docker pull plain/image:v1',
-            'docker save example/image:ci plain/image:v1 -o images.tar',
-        ])
+        self.assertEqual(
+            commands,
+            [
+                'docker pull example/image:ci@sha256:abc',
+                'docker tag example/image:ci@sha256:abc example/image:ci',
+                'docker pull plain/image:v1',
+                'docker save example/image:ci plain/image:v1 -o images.tar',
+            ],
+        )
 
     def test_failed_pull_never_tags_or_saves_archive(self):
         result, commands = self.run_helper(
-            'pull_and_save_runtime_base_images "$IMAGES" images.tar', 'quota')
+            'pull_and_save_runtime_base_images "$IMAGES" images.tar', 'quota'
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(commands, ['docker pull example/image:ci@sha256:abc'])
 
     def test_kind_verification_checks_every_node_without_registry_pulls(self):
         result, commands = self.run_helper(
-            'verify_runtime_base_images_in_kind "$IMAGES" test')
+            'verify_runtime_base_images_in_kind "$IMAGES" test'
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(commands, [
-            'docker exec node1 crictl inspecti example/image:ci',
-            'docker exec node2 crictl inspecti example/image:ci',
-            'docker exec node1 crictl inspecti plain/image:v1',
-            'docker exec node2 crictl inspecti plain/image:v1',
-        ])
+        self.assertEqual(
+            commands,
+            [
+                'docker exec node1 crictl inspecti example/image:ci',
+                'docker exec node2 crictl inspecti example/image:ci',
+                'docker exec node1 crictl inspecti plain/image:v1',
+                'docker exec node2 crictl inspecti plain/image:v1',
+            ],
+        )
 
     def test_missing_loaded_image_fails_setup(self):
         result, commands = self.run_helper(
-            'verify_runtime_base_images_in_kind "$IMAGES" test', 'missing')
+            'verify_runtime_base_images_in_kind "$IMAGES" test', 'missing'
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('example/image:ci is missing from node1', result.stderr)
         self.assertEqual(
             commands[:10],
-            ['docker exec node1 crictl inspecti example/image:ci'] * 10)
-        self.assertEqual(commands[10:], [
-            'docker exec node1 crictl images',
-            'docker exec node1 ctr --namespace=k8s.io images ls',
-        ])
+            ['docker exec node1 crictl inspecti example/image:ci'] * 10,
+        )
+        self.assertEqual(
+            commands[10:],
+            [
+                'docker exec node1 crictl images',
+                'docker exec node1 ctr --namespace=k8s.io images ls',
+            ],
+        )
 
     def test_kind_verification_waits_for_delayed_cri_index_visibility(self):
         result, commands = self.run_helper(
-            'verify_runtime_base_images_in_kind "$IMAGES" test', 'delayed')
+            'verify_runtime_base_images_in_kind "$IMAGES" test', 'delayed'
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             commands[:3],
-            ['docker exec node1 crictl inspecti example/image:ci'] * 3)
+            ['docker exec node1 crictl inspecti example/image:ci'] * 3,
+        )
         self.assertEqual(len(commands), 6)
         self.assertTrue(
-            all('crictl inspecti' in command for command in commands))
+            all('crictl inspecti' in command for command in commands)
+        )
 
     def test_missing_kind_nodes_fail_setup(self):
         result, commands = self.run_helper(
-            'verify_runtime_base_images_in_kind "$IMAGES" test', 'empty')
+            'verify_runtime_base_images_in_kind "$IMAGES" test', 'empty'
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(commands, [])
         self.assertIn('No Kind nodes', result.stderr)

@@ -15,6 +15,7 @@
 from typing import Optional
 
 from google.protobuf import json_format
+
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb

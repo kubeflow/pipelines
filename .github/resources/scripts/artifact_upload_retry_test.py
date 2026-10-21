@@ -17,7 +17,6 @@
 import unittest
 from pathlib import Path
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 RETRY_ACTION = (
     REPOSITORY_ROOT / '.github/actions/upload-artifact-with-retry/action.yml'
@@ -29,7 +28,6 @@ CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 
 
 class ArtifactUploadRetryTest(unittest.TestCase):
-
     def test_retry_action_preserves_outputs_and_avoids_name_collisions(self):
         action = RETRY_ACTION.read_text(encoding='utf-8')
 
@@ -71,7 +69,9 @@ class ArtifactUploadRetryTest(unittest.TestCase):
     def test_ci_runs_when_either_action_changes(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
-        self.assertIn("'.github/actions/upload-artifact-with-retry/**'", workflow)
+        self.assertIn(
+            "'.github/actions/upload-artifact-with-retry/**'", workflow
+        )
         self.assertIn("'.github/actions/test-and-report/**'", workflow)
 
 

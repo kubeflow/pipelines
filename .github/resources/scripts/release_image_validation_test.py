@@ -18,12 +18,12 @@ import copy
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import arm64_smoke
@@ -37,11 +37,14 @@ TAG = '3.0.0-rc.1'
 
 
 class SourceTests(unittest.TestCase):
-
     def test_final_and_prerelease_use_same_source_version_core(self):
-        for tag, version in (('3.0.0', '3.0.0\n'), ('3.0.0-rc.1', '3.0.0'),
-                             ('3.0.0-beta-1', '3.0.0-rc.2'), ('3.0.1', '3.0.1'),
-                             ('4.1.0', '4.1.0')):
+        for tag, version in (
+            ('3.0.0', '3.0.0\n'),
+            ('3.0.0-rc.1', '3.0.0'),
+            ('3.0.0-beta-1', '3.0.0-rc.2'),
+            ('3.0.1', '3.0.1'),
+            ('4.1.0', '4.1.0'),
+        ):
             with self.subTest(tag=tag, version=version):
                 release.validate_source(tag, version)
 
@@ -52,11 +55,16 @@ class SourceTests(unittest.TestCase):
                     release.validate_source(tag, '2.18.0')
 
     def test_cross_version_and_cross_line_sources_are_rejected(self):
-        for tag, version in (('3.0.0', '2.18.0'), ('3.0.0', '3.1.0'),
-                             ('3.0.1', '3.0.0'), ('4.0.0', '3.0.0')):
+        for tag, version in (
+            ('3.0.0', '2.18.0'),
+            ('3.0.0', '3.1.0'),
+            ('3.0.1', '3.0.0'),
+            ('4.0.0', '3.0.0'),
+        ):
             with self.subTest(tag=tag, version=version):
-                with self.assertRaisesRegex(ValueError,
-                                            'same major.minor.patch'):
+                with self.assertRaisesRegex(
+                    ValueError, 'same major.minor.patch'
+                ):
                     release.validate_source(tag, version)
 
     def test_malformed_versions_are_rejected(self):
@@ -68,132 +76,148 @@ class SourceTests(unittest.TestCase):
 
 
 class SourceInventoryTests(unittest.TestCase):
-
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.source = Path(temporary.name)
         (self.source / 'VERSION').write_text('3.0.0\n')
-        self.inventory = self.source / '.github/resources/scripts/arm64_smoke.py'
+        self.inventory = (
+            self.source / '.github/resources/scripts/arm64_smoke.py'
+        )
         self.inventory.parent.mkdir(parents=True)
 
     def validate(self, images):
         # The product inventory is loaded from this distinct source tree,
         # while the command and its expected inventory use the workflow tree.
         self.inventory.write_text(f'IMAGES = set({images!r})\n')
-        return subprocess.run([
-            sys.executable, release.__file__, 'source', '--target-tag', '3.0.0',
-            '--version-file',
-            str(self.source / 'VERSION')
-        ],
-                              check=False,
-                              capture_output=True,
-                              text=True)
+        return subprocess.run(
+            [
+                sys.executable,
+                release.__file__,
+                'source',
+                '--target-tag',
+                '3.0.0',
+                '--version-file',
+                str(self.source / 'VERSION'),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
 
     def test_distinct_source_with_matching_inventory_passes(self):
         result = self.validate(list(reversed(sorted(arm64_smoke.IMAGES))))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_added_removed_or_renamed_product_images_fail_before_publication(
-            self):
+        self,
+    ):
         removed = sorted(arm64_smoke.IMAGES)[0]
-        for images in (arm64_smoke.IMAGES | {'source-only-image'},
-                       arm64_smoke.IMAGES - {removed},
-                       arm64_smoke.IMAGES - {removed} | {'renamed-image'}):
+        for images in (
+            arm64_smoke.IMAGES | {'source-only-image'},
+            arm64_smoke.IMAGES - {removed},
+            arm64_smoke.IMAGES - {removed} | {'renamed-image'},
+        ):
             with self.subTest(images=images):
                 result = self.validate(images)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(
                     'Release source and workflow image inventories differ',
-                    result.stderr)
+                    result.stderr,
+                )
                 for image in images ^ arm64_smoke.IMAGES:
                     self.assertIn(image, result.stderr)
 
     def test_missing_product_inventory_does_not_reuse_workflow_module(self):
-        result = subprocess.run([
-            sys.executable, release.__file__, 'source', '--target-tag', '3.0.0',
-            '--version-file',
-            str(self.source / 'VERSION')
-        ],
-                                check=False,
-                                capture_output=True,
-                                text=True)
+        result = subprocess.run(
+            [
+                sys.executable,
+                release.__file__,
+                'source',
+                '--target-tag',
+                '3.0.0',
+                '--version-file',
+                str(self.source / 'VERSION'),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('ModuleNotFoundError', result.stderr)
 
 
 class NativeImagesTests(unittest.TestCase):
-
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.directory = Path(temporary.name)
         self.configs = {
             'amd64': 'sha256:' + '1' * 64,
-            'arm64': 'sha256:' + '2' * 64
+            'arm64': 'sha256:' + '2' * 64,
         }
         self.raw_children = {
-            arch:
-                json.dumps({
-                    'schemaVersion': 2,
-                    'config': {
-                        'digest': value
-                    }
-                }).encode() for arch, value in self.configs.items()
+            arch: json.dumps(
+                {'schemaVersion': 2, 'config': {'digest': value}}
+            ).encode()
+            for arch, value in self.configs.items()
         }
         self.child_digests = {
             arch: 'sha256:' + hashlib.sha256(raw).hexdigest()
             for arch, raw in self.raw_children.items()
         }
         self.index = {
-            'digest':
-                INDEX_DIGEST,
-            'schemaVersion':
-                2,
-            'mediaType':
-                'application/vnd.oci.image.index.v1+json',
-            'manifests': [{
-                'mediaType': 'application/vnd.oci.image.manifest.v1+json',
-                'digest': value,
-                'platform': {
-                    'os': 'linux',
-                    'architecture': arch
+            'digest': INDEX_DIGEST,
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.index.v1+json',
+            'manifests': [
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': value,
+                    'platform': {'os': 'linux', 'architecture': arch},
                 }
-            } for arch, value in self.child_digests.items()],
+                for arch, value in self.child_digests.items()
+            ],
         }
         for name in arm64_smoke.IMAGES:
             repository = f'ghcr.io/kubeflow/{name}'
             (self.directory / f'{name}.json').write_text(
-                json.dumps({
-                    'image': repository,
-                    'source_sha': SHA,
-                    'reference': f'{repository}@{INDEX_DIGEST}',
-                    'platforms': ['linux/amd64', 'linux/arm64'],
-                }))
+                json.dumps(
+                    {
+                        'image': repository,
+                        'source_sha': SHA,
+                        'reference': f'{repository}@{INDEX_DIGEST}',
+                        'platforms': ['linux/amd64', 'linux/arm64'],
+                    }
+                )
+            )
         self.local_overrides = {}
         self.corrupt_child = False
 
-    def validate(self,
-                 architecture='amd64',
-                 machine=None,
-                 system='Linux',
-                 tag=TAG,
-                 source_sha=SHA,
-                 inspected_indexes=None,
-                 pull_error=None):
-        machine = machine or {
-            'amd64': 'x86_64',
-            'arm64': 'aarch64'
-        }[architecture]
+    def validate(
+        self,
+        architecture='amd64',
+        machine=None,
+        system='Linux',
+        tag=TAG,
+        source_sha=SHA,
+        inspected_indexes=None,
+        pull_error=None,
+    ):
+        machine = (
+            machine or {'amd64': 'x86_64', 'arm64': 'aarch64'}[architecture]
+        )
 
         def output(command, **kwargs):
             if command[:4] == ['docker', 'buildx', 'imagetools', 'inspect']:
                 self.assertEqual(command[-1], '--raw')
-                self.assertTrue(command[-2].endswith(
-                    self.child_digests[architecture]))
+                self.assertTrue(
+                    command[-2].endswith(self.child_digests[architecture])
+                )
                 self.assertNotIn('text', kwargs)
                 return self.raw_children[architecture] + (
-                    b' ' if self.corrupt_child else b'')
+                    b' ' if self.corrupt_child else b''
+                )
             self.assertEqual(command[:3], ['docker', 'image', 'inspect'])
             self.assertTrue(kwargs['text'])
             repository = command[-1].rsplit(':', 1)[0]
@@ -201,38 +225,57 @@ class NativeImagesTests(unittest.TestCase):
                 'Os': 'linux',
                 'Architecture': architecture,
                 'Id': self.configs[architecture],
-                'RepoDigests': [f'{repository}@{INDEX_DIGEST}']
+                'RepoDigests': [f'{repository}@{INDEX_DIGEST}'],
             }
             local.update(self.local_overrides)
             return json.dumps([local])
 
-        with mock.patch.object(release.platform, 'machine', return_value=machine), \
-                mock.patch.object(release.platform, 'system', return_value=system), \
-                mock.patch.object(release, 'inspect', return_value=self.index,
-                                  side_effect=inspected_indexes), \
-                mock.patch.object(release.subprocess, 'run', side_effect=pull_error) as pull, \
-                mock.patch.object(release.subprocess, 'check_output', side_effect=output):
-            result = release.validate_native_images(self.directory, source_sha,
-                                                    tag, architecture)
+        with (
+            mock.patch.object(
+                release.platform, 'machine', return_value=machine
+            ),
+            mock.patch.object(release.platform, 'system', return_value=system),
+            mock.patch.object(
+                release,
+                'inspect',
+                return_value=self.index,
+                side_effect=inspected_indexes,
+            ),
+            mock.patch.object(
+                release.subprocess, 'run', side_effect=pull_error
+            ) as pull,
+            mock.patch.object(
+                release.subprocess, 'check_output', side_effect=output
+            ),
+        ):
+            result = release.validate_native_images(
+                self.directory, source_sha, tag, architecture
+            )
         return result, pull
 
     def test_both_native_architectures_pull_shared_tags_without_platform_override(
-            self):
+        self,
+    ):
         for architecture in ('amd64', 'arm64'):
             with self.subTest(architecture=architecture):
                 result, pull = self.validate(architecture)
                 self.assertEqual(result['source_sha'], SHA)
-                self.assertEqual({image['image'] for image in result['images']},
-                                 arm64_smoke.IMAGES)
+                self.assertEqual(
+                    {image['image'] for image in result['images']},
+                    arm64_smoke.IMAGES,
+                )
                 self.assertEqual(pull.call_count, len(arm64_smoke.IMAGES))
                 for image in result['images']:
                     self.assertEqual(image['platform'], f'linux/{architecture}')
-                    self.assertEqual(image['child_digest'],
-                                     self.child_digests[architecture])
-                    self.assertEqual(image['config_digest'],
-                                     self.configs[architecture])
-                    pull.assert_any_call(['docker', 'pull', image['tag']],
-                                         check=True)
+                    self.assertEqual(
+                        image['child_digest'], self.child_digests[architecture]
+                    )
+                    self.assertEqual(
+                        image['config_digest'], self.configs[architecture]
+                    )
+                    pull.assert_any_call(
+                        ['docker', 'pull', image['tag']], check=True
+                    )
                     self.assertTrue(image['tag'].endswith(f':{TAG}'))
                 self.assertNotIn('--platform', str(pull.call_args_list))
 
@@ -244,13 +287,11 @@ class NativeImagesTests(unittest.TestCase):
                     self.validate(architecture)
 
     def test_wrong_host_or_operating_system_fails_before_pull(self):
-        for kwargs in ({
-                'machine': 'aarch64'
-        }, {
-                'system': 'Darwin'
-        }, {
-                'machine': 'riscv64'
-        }):
+        for kwargs in (
+            {'machine': 'aarch64'},
+            {'system': 'Darwin'},
+            {'machine': 'riscv64'},
+        ):
             with self.subTest(kwargs=kwargs):
                 with self.assertRaisesRegex(ValueError, 'native Linux amd64'):
                     self.validate(**kwargs)
@@ -286,19 +327,17 @@ class NativeImagesTests(unittest.TestCase):
             self.validate()
 
     def test_wrong_native_platform_or_unrelated_image_id_is_rejected(self):
-        for values in ({
-                'Os': 'windows'
-        }, {
-                'Architecture': 'arm64'
-        }, {
-                'Id': OTHER_DIGEST
-        }, {
-                'RepoDigests': []
-        }, {
+        for values in (
+            {'Os': 'windows'},
+            {'Architecture': 'arm64'},
+            {'Id': OTHER_DIGEST},
+            {'RepoDigests': []},
+            {
                 'RepoDigests': [
                     f'ghcr.io/kubeflow/kfp-api-server@{OTHER_DIGEST}'
                 ]
-        }):
+            },
+        ):
             with self.subTest(values=values):
                 self.local_overrides = values
                 with self.assertRaisesRegex(ValueError, 'did not select'):
@@ -313,101 +352,133 @@ class NativeImagesTests(unittest.TestCase):
     def test_pull_failure_is_not_reported_as_validation_success(self):
         with self.assertRaises(subprocess.CalledProcessError):
             self.validate(
-                pull_error=subprocess.CalledProcessError(1, ['docker']))
+                pull_error=subprocess.CalledProcessError(1, ['docker'])
+            )
 
 
 class WorkflowTests(unittest.TestCase):
-
     def setUp(self):
         root = Path(__file__).resolve().parents[3]
         self.jobs = yaml.safe_load(
-            (root /
-             '.github/workflows/image-builds-release.yml').read_text())['jobs']
+            (root / '.github/workflows/image-builds-release.yml').read_text()
+        )['jobs']
 
     def test_validation_runs_natively_after_publication_and_skips_dry_runs(
-            self):
+        self,
+    ):
         job = self.jobs['validate-release-images']
         self.assertEqual(
-            set(job['needs']), {'resolve-source', 'create-manifests'})
+            set(job['needs']), {'resolve-source', 'create-manifests'}
+        )
         self.assertEqual(job['if'], '${{ !inputs.dry_run }}')
         self.assertEqual(job['runs-on'], '${{ matrix.runner }}')
         self.assertFalse(job['strategy']['fail-fast'])
-        self.assertEqual(job['strategy']['matrix']['include'], [
-            {
-                'architecture': 'amd64',
-                'runner': 'ubuntu-latest'
-            },
-            {
-                'architecture': 'arm64',
-                'runner': 'ubuntu-24.04-arm'
-            },
-        ])
-        self.assertEqual(self.jobs['create-manifests']['if'],
-                         '${{ !inputs.dry_run }}')
-        self.assertEqual(self.jobs['build-images-for-release']['with']['push'],
-                         '${{ !inputs.dry_run }}')
+        self.assertEqual(
+            job['strategy']['matrix']['include'],
+            [
+                {'architecture': 'amd64', 'runner': 'ubuntu-latest'},
+                {'architecture': 'arm64', 'runner': 'ubuntu-24.04-arm'},
+            ],
+        )
+        self.assertEqual(
+            self.jobs['create-manifests']['if'], '${{ !inputs.dry_run }}'
+        )
+        self.assertEqual(
+            self.jobs['build-images-for-release']['with']['push'],
+            '${{ !inputs.dry_run }}',
+        )
 
     def test_validation_consumes_same_attempt_records_and_resolved_source(self):
         steps = self.jobs['validate-release-images']['steps']
         checkouts = [
-            step for step in steps
+            step
+            for step in steps
             if step.get('uses', '').startswith('actions/checkout@')
         ]
-        self.assertEqual([step['with']['ref'] for step in checkouts], [
-            '${{ github.workflow_sha }}',
-            '${{ needs.resolve-source.outputs.sha }}',
-        ])
+        self.assertEqual(
+            [step['with']['ref'] for step in checkouts],
+            [
+                '${{ github.workflow_sha }}',
+                '${{ needs.resolve-source.outputs.sha }}',
+            ],
+        )
         download = next(
-            step for step in steps if step.get('uses') ==
-            './.github/actions/download-artifact-with-retry')
-        self.assertEqual(download['with']['pattern'],
-                         'published-index-*-${{ github.run_attempt }}')
+            step
+            for step in steps
+            if step.get('uses')
+            == './.github/actions/download-artifact-with-retry'
+        )
+        self.assertEqual(
+            download['with']['pattern'],
+            'published-index-*-${{ github.run_attempt }}',
+        )
         self.assertNotIn('run-id', download['with'])
-        self.assertEqual(download['with']['path'],
-                         '${{ runner.temp }}/published-indexes')
+        self.assertEqual(
+            download['with']['path'], '${{ runner.temp }}/published-indexes'
+        )
         manifest = next(
-            step for step in steps if step.get('id') == 'image-records')
+            step for step in steps if step.get('id') == 'image-records'
+        )
         self.assertLess(steps.index(checkouts[0]), steps.index(manifest))
         self.assertLess(steps.index(manifest), steps.index(download))
         self.assertLess(steps.index(download), steps.index(checkouts[1]))
         native = next(
-            step for step in steps
-            if 'release_image_validation.py native' in step.get('run', ''))
-        self.assertEqual(native['env']['SOURCE_SHA'],
-                         '${{ needs.resolve-source.outputs.sha }}')
-        self.assertEqual(native['env']['TARGET_TAG'],
-                         '${{ inputs.target_tag }}')
-        self.assertEqual(native['env']['IMAGE_RECORDS'],
-                         '${{ steps.published-images.outputs.download-path }}')
+            step
+            for step in steps
+            if 'release_image_validation.py native' in step.get('run', '')
+        )
+        self.assertEqual(
+            native['env']['SOURCE_SHA'],
+            '${{ needs.resolve-source.outputs.sha }}',
+        )
+        self.assertEqual(
+            native['env']['TARGET_TAG'], '${{ inputs.target_tag }}'
+        )
+        self.assertEqual(
+            native['env']['IMAGE_RECORDS'],
+            '${{ steps.published-images.outputs.download-path }}',
+        )
         self.assertEqual(download['id'], 'published-images')
         self.assertIn('--records "$IMAGE_RECORDS"', native['run'])
         self.assertLess(steps.index(checkouts[1]), steps.index(native))
         smoke = next(
-            step for step in steps
-            if step.get('uses') == './.github/actions/arm64-smoke')
+            step
+            for step in steps
+            if step.get('uses') == './.github/actions/arm64-smoke'
+        )
         self.assertEqual(smoke['if'], "matrix.architecture == 'arm64'")
-        self.assertEqual(smoke['with']['image_records'],
-                         native['env']['IMAGE_RECORDS'])
-        self.assertEqual(smoke['with']['source_sha'],
-                         '${{ needs.resolve-source.outputs.sha }}')
+        self.assertEqual(
+            smoke['with']['image_records'], native['env']['IMAGE_RECORDS']
+        )
+        self.assertEqual(
+            smoke['with']['source_sha'],
+            '${{ needs.resolve-source.outputs.sha }}',
+        )
         self.assertLess(steps.index(native), steps.index(smoke))
         upload = next(
-            step for step in steps
-            if step.get('uses', '').startswith('actions/upload-artifact@'))
+            step
+            for step in steps
+            if step.get('uses', '').startswith('actions/upload-artifact@')
+        )
         self.assertEqual(upload['if'], 'always()')
-        self.assertIn('${{ matrix.architecture }}-${{ github.run_attempt }}',
-                      upload['with']['name'])
+        self.assertIn(
+            '${{ matrix.architecture }}-${{ github.run_attempt }}',
+            upload['with']['name'],
+        )
 
     def test_distinct_release_source_preserves_workflow_policy_and_downloads(
-            self):
+        self,
+    ):
         # A synthetic supported source demonstrates the ref invariant; it is
         # not evidence of an existing published release with this mismatch.
         release.validate_source('3.0.0', '3.0.0')
         root = Path(__file__).resolve().parents[3]
         steps = self.jobs['validate-release-images']['steps']
         images = {
-            item['image'] for item in self.jobs['create-manifests']['strategy']
-            ['matrix']['component']
+            item['image']
+            for item in self.jobs['create-manifests']['strategy']['matrix'][
+                'component'
+            ]
         }
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory).resolve()
@@ -425,10 +496,11 @@ class WorkflowTests(unittest.TestCase):
                 shutil.copyfile(root / path, policy / path)
             shutil.copytree(root / action_path, policy / action_path)
             (source / script_path).parent.mkdir(parents=True)
-            (source / script_path).write_text(f"IMAGES = {images!r}\n")
+            (source / script_path).write_text(f'IMAGES = {images!r}\n')
             (source / action_path).mkdir(parents=True)
-            (source / action_path / 'action.yml'
-            ).write_text('name: Earlier product source download policy\n')
+            (source / action_path / 'action.yml').write_text(
+                'name: Earlier product source download policy\n'
+            )
             (source / 'VERSION').write_text('3.0.0\n')
             fixtures = {
                 '${{ github.workflow_sha }}': policy,
@@ -451,92 +523,133 @@ class WorkflowTests(unittest.TestCase):
                         env=environment,
                         check=True,
                         capture_output=True,
-                        text=True)
+                        text=True,
+                    )
                 elif step.get('uses') == './' + action_path.as_posix():
                     selected_action = workspace / action_path
                     self.assertEqual(
                         (selected_action / 'action.yml').read_text(),
-                        (policy / action_path / 'action.yml').read_text())
+                        (policy / action_path / 'action.yml').read_text(),
+                    )
                     lines = output.read_text().splitlines()
-                    required = lines[lines.index('required-files<<EOF') +
-                                     1:lines.index('EOF')]
+                    required = lines[
+                        lines.index('required-files<<EOF') + 1 : lines.index(
+                            'EOF'
+                        )
+                    ]
                     self.assertEqual(
-                        set(required), {f'{image}.json' for image in images})
-                    records = Path(step['with']['path'].replace(
-                        '${{ runner.temp }}', str(runner_temp)))
+                        set(required), {f'{image}.json' for image in images}
+                    )
+                    records = Path(
+                        step['with']['path'].replace(
+                            '${{ runner.temp }}', str(runner_temp)
+                        )
+                    )
                     self.assertTrue(records.is_relative_to(runner_temp))
-                    environment.update({
-                        'DOWNLOAD_PATH': str(records),
-                        'REQUIRED_FILES': '\n'.join(required),
-                    })
-                    helper = workspace / '.github/resources/scripts/artifact-files.sh'
-                    subprocess.run(['bash', str(helper), 'prepare'],
-                                   cwd=workspace,
-                                   env=environment,
-                                   check=True,
-                                   capture_output=True,
-                                   text=True)
+                    environment.update(
+                        {
+                            'DOWNLOAD_PATH': str(records),
+                            'REQUIRED_FILES': '\n'.join(required),
+                        }
+                    )
+                    helper = (
+                        workspace
+                        / '.github/resources/scripts/artifact-files.sh'
+                    )
+                    subprocess.run(
+                        ['bash', str(helper), 'prepare'],
+                        cwd=workspace,
+                        env=environment,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
                     # Model the publication's extracted records, leaving the
                     # real manifest generation and completeness checks intact.
                     for image in images:
                         (records / f'{image}.json').write_text(
-                            json.dumps({
-                                'image': image,
-                                'source_sha': SHA,
-                            }))
-                    subprocess.run(['bash', str(helper), 'verify'],
-                                   cwd=workspace,
-                                   env=environment,
-                                   check=True,
-                                   capture_output=True,
-                                   text=True)
+                            json.dumps(
+                                {
+                                    'image': image,
+                                    'source_sha': SHA,
+                                }
+                            )
+                        )
+                    subprocess.run(
+                        ['bash', str(helper), 'verify'],
+                        cwd=workspace,
+                        env=environment,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
                 elif 'release_image_validation.py native' in step.get(
-                        'run', ''):
+                    'run', ''
+                ):
                     break
             self.assertIsNotNone(records)
             self.assertEqual((workspace / 'VERSION').read_text(), '3.0.0\n')
-            self.assertEqual({path.name for path in records.iterdir()},
-                             {f'{image}.json' for image in images})
+            self.assertEqual(
+                {path.name for path in records.iterdir()},
+                {f'{image}.json' for image in images},
+            )
             for path in records.iterdir():
                 self.assertEqual(
-                    json.loads(path.read_text())['source_sha'], SHA)
+                    json.loads(path.read_text())['source_sha'], SHA
+                )
 
     def test_source_validation_precedes_builds_and_propagates_immutable_commit(
-            self):
+        self,
+    ):
         resolve = self.jobs['resolve-source']
         checkouts = [
-            step for step in resolve['steps']
+            step
+            for step in resolve['steps']
             if step.get('uses', '').startswith('actions/checkout@')
         ]
-        self.assertEqual(checkouts[0]['with']['ref'],
-                         '${{ github.workflow_sha }}')
         self.assertEqual(
-            checkouts[1]['with'], {
+            checkouts[0]['with']['ref'], '${{ github.workflow_sha }}'
+        )
+        self.assertEqual(
+            checkouts[1]['with'],
+            {
                 'ref': '${{ inputs.src_branch }}',
                 'path': 'release-source',
                 'persist-credentials': False,
-            })
+            },
+        )
         validation = next(
-            step for step in resolve['steps']
-            if 'release_image_validation.py source' in step.get('run', ''))
-        self.assertEqual(validation['env']['TARGET_TAG'],
-                         '${{ inputs.target_tag }}')
-        self.assertIn('--version-file release-source/VERSION',
-                      validation['run'])
+            step
+            for step in resolve['steps']
+            if 'release_image_validation.py source' in step.get('run', '')
+        )
+        self.assertEqual(
+            validation['env']['TARGET_TAG'], '${{ inputs.target_tag }}'
+        )
+        self.assertIn(
+            '--version-file release-source/VERSION', validation['run']
+        )
         commit = next(
-            step for step in resolve['steps'] if step.get('id') == 'commit')
-        self.assertLess(resolve['steps'].index(validation),
-                        resolve['steps'].index(commit))
+            step for step in resolve['steps'] if step.get('id') == 'commit'
+        )
+        self.assertLess(
+            resolve['steps'].index(validation), resolve['steps'].index(commit)
+        )
         self.assertIn('git -C release-source rev-parse HEAD', commit['run'])
         build = self.jobs['build-images-for-release']
         self.assertEqual(build['needs'], 'resolve-source')
-        self.assertEqual(build['with']['src_branch'],
-                         '${{ needs.resolve-source.outputs.sha }}')
-        self.assertEqual(self.jobs['create-manifests']['with']['source_sha'],
-                         '${{ needs.resolve-source.outputs.sha }}')
+        self.assertEqual(
+            build['with']['src_branch'],
+            '${{ needs.resolve-source.outputs.sha }}',
+        )
+        self.assertEqual(
+            self.jobs['create-manifests']['with']['source_sha'],
+            '${{ needs.resolve-source.outputs.sha }}',
+        )
         self.assertEqual(
             set(self.jobs['create-manifests']['needs']),
-            {'resolve-source', 'build-images-for-release'})
+            {'resolve-source', 'build-images-for-release'},
+        )
         self.assertNotIn('continue-on-error', validation)
         self.assertNotIn('if', validation)
 

@@ -12,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
 import unittest
+from typing import Dict, List
 
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import container_component_class
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp.dsl import Artifact, Input, Output, container_component_class
 
 
 class TestContainerComponentDecorator(unittest.TestCase):
-
     def test_func_with_no_arg(self):
 
         @dsl.container_component
@@ -35,33 +31,36 @@ class TestContainerComponentDecorator(unittest.TestCase):
                 args=[],
             )
 
-        self.assertIsInstance(hello_world,
-                              container_component_class.ContainerComponent)
+        self.assertIsInstance(
+            hello_world, container_component_class.ContainerComponent
+        )
         self.assertIsNone(hello_world.component_spec.inputs)
 
     def test_func_with_simple_io(self):
 
         @dsl.container_component
         def hello_world_io(
-            text: str,
-            text_output_path: dsl.OutputPath(str)) -> dsl.ContainerSpec:
+            text: str, text_output_path: dsl.OutputPath(str)
+        ) -> dsl.ContainerSpec:
             """Hello world component with input and output."""
             return dsl.ContainerSpec(
                 image='python:3.11',
                 command=['echo'],
-                args=['--text', text, '--output_path', text_output_path])
+                args=['--text', text, '--output_path', text_output_path],
+            )
 
-        self.assertIsInstance(hello_world_io,
-                              container_component_class.ContainerComponent)
+        self.assertIsInstance(
+            hello_world_io, container_component_class.ContainerComponent
+        )
 
     def test_func_with_artifact_io(self):
 
         @dsl.container_component
         def container_comp_with_artifacts(
-                dataset: dsl.Input[dsl.Dataset],
-                num_epochs: int,  # also as an input
-                model: dsl.Output[dsl.Model],
-                model_config_path: dsl.OutputPath(str),
+            dataset: dsl.Input[dsl.Dataset],
+            num_epochs: int,  # also as an input
+            model: dsl.Output[dsl.Model],
+            model_config_path: dsl.OutputPath(str),
         ):
             return dsl.ContainerSpec(
                 image='gcr.io/my-image',
@@ -75,14 +74,16 @@ class TestContainerComponentDecorator(unittest.TestCase):
                     model.uri,
                     '--model_config_path',
                     model_config_path,
-                ])
+                ],
+            )
 
-        self.assertIsInstance(container_comp_with_artifacts,
-                              container_component_class.ContainerComponent)
+        self.assertIsInstance(
+            container_comp_with_artifacts,
+            container_component_class.ContainerComponent,
+        )
 
 
 class TestInputValuePlaceholderIrTypeHack(unittest.TestCase):
-
     def test(self):
 
         @dsl.container_component
@@ -97,9 +98,7 @@ class TestInputValuePlaceholderIrTypeHack(unittest.TestCase):
             dictionary: Dict = {'key': 'value'},
             array: List = [1, 2, 3],
             hlist: List = [
-                {
-                    'k': 'v'
-                },
+                {'k': 'v'},
                 1,
                 ['a'],
                 'a',

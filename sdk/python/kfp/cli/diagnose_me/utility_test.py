@@ -14,14 +14,12 @@
 """Tests for diagnose_me.utility."""
 
 import unittest
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from kfp.cli.diagnose_me import utility
 
 
 class UtilityTest(unittest.TestCase):
-
     def test_execute_command_oserror(self):
         """Testing stdout and stderr is correctly captured upon OSError."""
         err_msg = 'Testing handling of OSError'

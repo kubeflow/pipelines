@@ -23,6 +23,8 @@ def nested_return() -> List[Dict[str, str]]:
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=nested_return,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

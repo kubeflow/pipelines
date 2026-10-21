@@ -16,16 +16,16 @@
 producers."""
 
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
+import yaml
 from arm64_smoke import IMAGES
 from artifact_workflow_test_support import render
-import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
@@ -46,37 +46,48 @@ def workflow(name):
 
 
 class ArtifactDownloadCallersTest(unittest.TestCase):
-
     def required_files(self, filename, job, context=None, cwd=ROOT):
         document = yaml.safe_load((ROOT / filename).read_text())
         steps = (
             document['runs']['steps']
-            if job == 'composite' else document['jobs'][job]['steps'])
+            if job == 'composite'
+            else document['jobs'][job]['steps']
+        )
         caller = next(step for step in steps if step.get('uses') == WRAPPER)
         manifest = caller['with']['required-files']
         context = context or {}
         output = re.fullmatch(
             r'\$\{\{\s*steps\.([\w-]+)\.outputs\.required-files\s*\}\}',
-            manifest)
+            manifest,
+        )
         if output:
             producer = next(
-                step for step in steps if step.get('id') == output.group(1))
+                step for step in steps if step.get('id') == output.group(1)
+            )
             self.assertLess(steps.index(producer), steps.index(caller))
             environment = os.environ.copy()
             environment['PATH'] = (
-                str(Path(sys.executable).parent) + os.pathsep +
-                environment['PATH'])
-            environment.update({
-                key: render(value, context)
-                for key, value in producer.get('env', {}).items()
-            })
+                str(Path(sys.executable).parent)
+                + os.pathsep
+                + environment['PATH']
+            )
+            environment.update(
+                {
+                    key: render(value, context)
+                    for key, value in producer.get('env', {}).items()
+                }
+            )
             with tempfile.TemporaryDirectory() as directory:
                 output_path = Path(directory) / 'github-output'
                 environment['GITHUB_OUTPUT'] = str(output_path)
                 result = subprocess.run(
                     [
-                        'bash', '-e', '-o', 'pipefail', '-c',
-                        render(producer['run'], context)
+                        'bash',
+                        '-e',
+                        '-o',
+                        'pipefail',
+                        '-c',
+                        render(producer['run'], context),
                     ],
                     cwd=cwd,
                     env=environment,
@@ -84,17 +95,19 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                     capture_output=True,
                     check=False,
                 )
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
+                self.assertEqual(
+                    result.returncode, 0, result.stdout + result.stderr
+                )
                 lines = output_path.read_text().splitlines()
             start = lines.index('required-files<<EOF') + 1
-            manifest = '\n'.join(lines[start:lines.index('EOF', start)])
+            manifest = '\n'.join(lines[start : lines.index('EOF', start)])
         else:
             manifest = render(manifest, context)
         files = manifest.splitlines()
         self.assertTrue(files, f'{filename}:{job} has an empty manifest')
         self.assertEqual(
-            len(files), len(set(files)), 'Duplicate required files')
+            len(files), len(set(files)), 'Duplicate required files'
+        )
         for filename in files:
             self.assertTrue(filename.strip())
             self.assertFalse(Path(filename).is_absolute(), filename)
@@ -108,7 +121,9 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 if path.suffix not in ('.yml', '.yaml'):
                     continue
                 if directory.name == 'actions' and path.name not in (
-                        'action.yml', 'action.yaml'):
+                    'action.yml',
+                    'action.yaml',
+                ):
                     continue
                 # Agent workflow lockfiles are generated and use their own
                 # artifact protocol; this contract covers maintained CI YAML.
@@ -129,27 +144,36 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                             # exact checksum inventory, covered by
                             # publish_packages_workflow_test.py.
                             self.assertIn(
-                                location, {
-                                    ('.github/actions/download-artifact-with-retry/action.yml',
-                                     'composite'),
-                                    ('.github/workflows/publish-packages.yml',
-                                     'publish'),
+                                location,
+                                {
+                                    (
+                                        '.github/actions/download-artifact-with-retry/action.yml',
+                                        'composite',
+                                    ),
+                                    (
+                                        '.github/workflows/publish-packages.yml',
+                                        'publish',
+                                    ),
                                 },
-                                f'Raw download bypasses completeness: {location}'
+                                f'Raw download bypasses completeness: {location}',
                             )
                         if action != WRAPPER:
                             continue
                         self.assertTrue(
-                            step.get('with', {}).get('required-files',
-                                                     '').strip(),
-                            f'Download requires a manifest: {location}')
+                            step.get('with', {})
+                            .get('required-files', '')
+                            .strip(),
+                            f'Download requires a manifest: {location}',
+                        )
                         callers.append(location)
         self.assertCountEqual(callers, CALLERS)
 
     def test_deploy_manifest_matches_ci_producers_and_modelcar_selection(self):
         built_images = {
-            item['image'] for item in workflow('image-builds.yml')['jobs']
-            ['image-build']['strategy']['matrix']['include']
+            item['image']
+            for item in workflow('image-builds.yml')['jobs']['image-build'][
+                'strategy'
+            ]['matrix']['include']
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -164,18 +188,16 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 with self.subTest(modelcar=modelcar):
                     actual = self.required_files(
                         '.github/actions/deploy/action.yml',
-                        'composite', {
-                            'inputs': {
-                                'load_modelcar_fixture': modelcar
-                            },
-                            'github': {
-                                'token': 'unused'
-                            }
+                        'composite',
+                        {
+                            'inputs': {'load_modelcar_fixture': modelcar},
+                            'github': {'token': 'unused'},
                         },
-                        cwd=root)
+                        cwd=root,
+                    )
                     expected = {
-                        f'{name}/{name}.tar' for name in built_images
-                        | {'runtime-base-images'}
+                        f'{name}/{name}.tar'
+                        for name in built_images | {'runtime-base-images'}
                     }
                     if modelcar == 'true':
                         expected.add('runtime-base-images/modelcar.tar')
@@ -187,71 +209,92 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             item['image'] for item in producer['strategy']['matrix']['include']
         }
         upload = next(
-            step for step in producer['steps']
-            if step.get('uses', '').startswith('actions/upload-artifact@'))
-        self.assertEqual(upload['with']['path'].splitlines(), [
-            '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar',
-            '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json',
-        ])
-        actual = self.required_files('.github/workflows/arm64-presubmit.yml',
-                                     'smoke')
+            step
+            for step in producer['steps']
+            if step.get('uses', '').startswith('actions/upload-artifact@')
+        )
         self.assertEqual(
-            actual, {
-                f'{name}-arm64.{extension}' for name in images
+            upload['with']['path'].splitlines(),
+            [
+                '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar',
+                '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json',
+            ],
+        )
+        actual = self.required_files(
+            '.github/workflows/arm64-presubmit.yml', 'smoke'
+        )
+        self.assertEqual(
+            actual,
+            {
+                f'{name}-arm64.{extension}'
+                for name in images
                 for extension in ('tar', 'json')
-            })
+            },
+        )
 
     def test_published_record_manifests_follow_each_publication_matrix(self):
-        for name, job in (('image-builds-master.yml', 'arm64-smoke'),
-                          ('image-builds-release.yml',
-                           'validate-release-images')):
+        for name, job in (
+            ('image-builds-master.yml', 'arm64-smoke'),
+            ('image-builds-release.yml', 'validate-release-images'),
+        ):
             with self.subTest(workflow=name):
                 images = {
-                    item['image'] for item in workflow(name)['jobs']
-                    ['create-manifests']['strategy']['matrix']['component']
+                    item['image']
+                    for item in workflow(name)['jobs']['create-manifests'][
+                        'strategy'
+                    ]['matrix']['component']
                 }
                 self.assertEqual(images, IMAGES)
                 actual = self.required_files(f'.github/workflows/{name}', job)
                 self.assertEqual(actual, {f'{name}.json' for name in images})
 
     def test_digest_manifest_respects_supported_platform_subsets(self):
-        for platforms, expected in (('linux/amd64,linux/arm64', {
-                'amd64.json', 'arm64.json'
-        }), ('linux/amd64', {'amd64.json'}), ('linux/arm64', {'arm64.json'})):
+        for platforms, expected in (
+            ('linux/amd64,linux/arm64', {'amd64.json', 'arm64.json'}),
+            ('linux/amd64', {'amd64.json'}),
+            ('linux/arm64', {'arm64.json'}),
+        ):
             with self.subTest(platforms=platforms):
                 actual = self.required_files(
-                    '.github/workflows/create-manifest.yml', 'create-manifest',
-                    {'inputs': {
-                        'expected_platforms': platforms
-                    }})
+                    '.github/workflows/create-manifest.yml',
+                    'create-manifest',
+                    {'inputs': {'expected_platforms': platforms}},
+                )
                 self.assertEqual(actual, expected)
         producer = (ROOT / '.github/workflows/build-and-push.yml').read_text()
         self.assertIn('> "/tmp/digests/${ARCH}.json"', producer)
 
     def test_shared_runtime_download_requires_both_produced_archives(self):
         job = workflow('image-builds.yml')['jobs']['runtime-base-images']
-        actual = self.required_files('.github/workflows/image-builds.yml',
-                                     'runtime-base-images', {'env': job['env']})
+        actual = self.required_files(
+            '.github/workflows/image-builds.yml',
+            'runtime-base-images',
+            {'env': job['env']},
+        )
         self.assertEqual(actual, {'runtime-base-images.tar', 'modelcar.tar'})
-        producer = (ROOT /
-                    '.github/resources/scripts/build-runtime-base-images.sh'
-                   ).read_text()
+        producer = (
+            ROOT / '.github/resources/scripts/build-runtime-base-images.sh'
+        ).read_text()
         for filename in actual:
             self.assertIn(filename, producer)
 
     def inventory(self, *arguments):
-        return subprocess.check_output([
-            'bash',
-            str(ROOT / '.github/resources/scripts/ci-image-artifacts.sh'),
-            *arguments
-        ],
-                                       text=True).splitlines()
+        return subprocess.check_output(
+            [
+                'bash',
+                str(ROOT / '.github/resources/scripts/ci-image-artifacts.sh'),
+                *arguments,
+            ],
+            text=True,
+        ).splitlines()
 
     def test_tool_output_manifest_matches_executed_producer(self):
         document = workflow('build-tools-images.yml')
         architectures = {
-            item['arch'] for item in document['jobs']['build-tools']['strategy']
-            ['matrix']['include']
+            item['arch']
+            for item in document['jobs']['build-tools']['strategy']['matrix'][
+                'include'
+            ]
         }
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'tool-output'
@@ -282,42 +325,60 @@ docker() {
 }
 main amd64 "$2"
 """
-            subprocess.run([
-                'bash', '-e', '-o', 'pipefail', '-c', script, 'producer',
-                str(ROOT /
-                    '.github/resources/scripts/maintainer_tools_smoke.sh'),
-                str(output)
-            ],
-                           cwd=ROOT,
-                           check=True,
-                           capture_output=True,
-                           text=True)
+            subprocess.run(
+                [
+                    'bash',
+                    '-e',
+                    '-o',
+                    'pipefail',
+                    '-c',
+                    script,
+                    'producer',
+                    str(
+                        ROOT
+                        / '.github/resources/scripts/maintainer_tools_smoke.sh'
+                    ),
+                    str(output),
+                ],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
             filenames = {path.name for path in output.iterdir()}
-            self.assertEqual(filenames,
-                             set(self.inventory('tool-output-files')))
+            self.assertEqual(
+                filenames, set(self.inventory('tool-output-files'))
+            )
             self.assertTrue(
-                all(path.stat().st_size for path in output.iterdir()))
+                all(path.stat().st_size for path in output.iterdir())
+            )
         for attempt in ('1', '17'):
             with self.subTest(attempt=attempt):
                 actual = self.required_files(
                     '.github/workflows/build-tools-images.yml',
-                    'compare-generated', {'github': {
-                        'run_attempt': attempt
-                    }})
+                    'compare-generated',
+                    {'github': {'run_attempt': attempt}},
+                )
                 self.assertEqual(
-                    actual, {
+                    actual,
+                    {
                         f'tool-output-{arch}-{attempt}/{name}'
                         for arch in architectures
                         for name in filenames
-                    })
+                    },
+                )
 
     def test_tool_digest_manifest_matches_executed_staging(self):
         producer = workflow('build-tools-images.yml')['jobs']['build-tools']
         architectures = {
             item['arch'] for item in producer['strategy']['matrix']['include']
         }
-        stage = next(step['run'] for step in producer['steps'] if step.get(
-            'name') == 'Stage tested images without changing shared tags')
+        stage = next(
+            step['run']
+            for step in producer['steps']
+            if step.get('name')
+            == 'Stage tested images without changing shared tags'
+        )
         mocks = r"""
 docker() {
   local previous='' argument
@@ -342,39 +403,49 @@ jq() {
                     ['bash', '-e', '-o', 'pipefail', '-c', mocks + stage],
                     cwd=ROOT,
                     env={
-                        **os.environ, 'RUNNER_TEMP': directory,
+                        **os.environ,
+                        'RUNNER_TEMP': directory,
                         'ARCH': arch,
                         'PLATFORM': f'linux/{arch}',
                         'SOURCE_SHA': '1' * 40,
                         'IMAGE_REGISTRY': 'ghcr.io',
                         'IMAGE_ORG': 'kubeflow',
-                        'RUN_TAG': 'run-123-17'
+                        'RUN_TAG': 'run-123-17',
                     },
                     check=True,
                     capture_output=True,
-                    text=True)
+                    text=True,
+                )
             records = Path(directory) / 'tool-digests'
             produced = {
                 path.relative_to(records).as_posix()
                 for path in records.rglob('*.json')
             }
-        actual = self.required_files('.github/workflows/build-tools-images.yml',
-                                     'publish-tools')
+        actual = self.required_files(
+            '.github/workflows/build-tools-images.yml', 'publish-tools'
+        )
         self.assertEqual(actual, produced)
 
     def test_inventory_rejects_invalid_command_and_attempt(self):
-        for arguments in (('unknown',), ('tool-output-artifacts', '0'),
-                          ('tool-output-artifacts', '../1')):
+        for arguments in (
+            ('unknown',),
+            ('tool-output-artifacts', '0'),
+            ('tool-output-artifacts', '../1'),
+        ):
             with self.subTest(arguments=arguments):
                 with self.assertRaises(subprocess.CalledProcessError):
-                    subprocess.check_output([
-                        'bash',
-                        str(ROOT /
-                            '.github/resources/scripts/ci-image-artifacts.sh'),
-                        *arguments
-                    ],
-                                            stderr=subprocess.PIPE,
-                                            text=True)
+                    subprocess.check_output(
+                        [
+                            'bash',
+                            str(
+                                ROOT
+                                / '.github/resources/scripts/ci-image-artifacts.sh'
+                            ),
+                            *arguments,
+                        ],
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
 
 
 if __name__ == '__main__':

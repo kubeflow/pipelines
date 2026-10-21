@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for task_handler_interface_test.py."""
+
 import unittest
 
 from kfp.local import task_handler_interface
 
 
 class TestTaskHandler(unittest.TestCase):
-
     def test_incomplete_concrete_class(self):
 
         class IncompleteTaskHandler(
-                task_handler_interface.ITaskHandler,):
-
+            task_handler_interface.ITaskHandler,
+        ):
             pass
 
         with self.assertRaisesRegex(
-                TypeError,
-                r"Can't instantiate abstract class IncompleteTaskHandler"):
+            TypeError, r"Can't instantiate abstract class IncompleteTaskHandler"
+        ):
             IncompleteTaskHandler()
 
 

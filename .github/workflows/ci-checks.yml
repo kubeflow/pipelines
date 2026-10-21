@@ -36,9 +36,9 @@ on:
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
       - 'KFP SDK Docformatter Test'
-      - 'KFP SDK Isort Test'
+      - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
-      - 'KFP SDK YAPF Tests'
+      - 'Python Ruff Format'
       - 'KFP upgrade tests'
       - 'Validate Generated Files'
     types: [requested, in_progress, completed]
