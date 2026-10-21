@@ -100,7 +100,7 @@ type Options struct {
 
 	// RunRefresher is an optional callback to refresh the Run with authoritative state,
 	// used for bounded synchronization of exit-handler dependencies.
-	RunRefresher func(ctx context.Context) (*apiv2beta1.Run, error) `json:"-"`
+	RunRefresher func(ctx context.Context) (*apiv2.Run, error) `json:"-"`
 
 	// FinalStatusTimeout is an optional timeout for waiting for producer tasks to reach terminal state.
 	// Defaults to 30s if not set.

@@ -594,20 +594,20 @@ func iteratorParameter(
 }
 
 func TestResolveTaskFinalStatus_ExitHandlerResolutionPath(t *testing.T) {
-	rootTask := &apiv2beta1.PipelineTask{TaskId: "root", Name: "root"}
+	rootTask := &apiv2.PipelineTask{TaskId: "root", Name: "root"}
 
 	// 1. Order 1: dag-1 with child-1 (FAILED) and child-2 (SUCCEEDED) -> dag-1 is FAILED
-	dag1 := &apiv2beta1.PipelineTask{
+	dag1 := &apiv2.PipelineTask{
 		TaskId:         "dag-1-id",
 		Name:           "dag-1",
 		ParentTaskId:   util.StringPointer("root"),
-		Type:           apiv2beta1.PipelineTask_DAG,
-		State:          apiv2beta1.PipelineTask_FAILED,
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child 1 failed"},
+		Type:           apiv2.PipelineTask_DAG,
+		State:          apiv2.PipelineTask_FAILED,
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child 1 failed"},
 	}
 	opts1 := common.Options{
 		ParentTask:     rootTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{dag1}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{dag1}},
 		RunName:        "pipeline-run",
 		IterationIndex: -1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -627,17 +627,17 @@ func TestResolveTaskFinalStatus_ExitHandlerResolutionPath(t *testing.T) {
 	assert.Equal(t, float64(codes.Unknown), res1.GetStructValue().GetFields()["error"].GetStructValue().GetFields()["code"].GetNumberValue())
 
 	// 2. Order 2: dag-2 with child-a (SUCCEEDED) and child-b (FAILED) -> dag-2 is FAILED
-	dag2 := &apiv2beta1.PipelineTask{
+	dag2 := &apiv2.PipelineTask{
 		TaskId:         "dag-2-id",
 		Name:           "dag-2",
 		ParentTaskId:   util.StringPointer("root"),
-		Type:           apiv2beta1.PipelineTask_DAG,
-		State:          apiv2beta1.PipelineTask_FAILED,
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child b failed"},
+		Type:           apiv2.PipelineTask_DAG,
+		State:          apiv2.PipelineTask_FAILED,
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child b failed"},
 	}
 	opts2 := common.Options{
 		ParentTask:     rootTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{dag2}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{dag2}},
 		RunName:        "pipeline-run",
 		IterationIndex: -1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -656,16 +656,16 @@ func TestResolveTaskFinalStatus_ExitHandlerResolutionPath(t *testing.T) {
 	assert.Equal(t, float64(codes.Unknown), res2.GetStructValue().GetFields()["error"].GetStructValue().GetFields()["code"].GetNumberValue())
 
 	// 3. Sibling still running (deferred parent): dag-running is still RUNNING
-	dagRunning := &apiv2beta1.PipelineTask{
+	dagRunning := &apiv2.PipelineTask{
 		TaskId:       "dag-running-id",
 		Name:         "dag-running",
 		ParentTaskId: util.StringPointer("root"),
-		Type:         apiv2beta1.PipelineTask_DAG,
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		Type:         apiv2.PipelineTask_DAG,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
 	optsRunning := common.Options{
 		ParentTask:     rootTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{dagRunning}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{dagRunning}},
 		RunName:        "pipeline-run",
 		IterationIndex: -1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -683,26 +683,26 @@ func TestResolveTaskFinalStatus_ExitHandlerResolutionPath(t *testing.T) {
 	assert.Contains(t, err.Error(), "producer task state RUNNING is not terminal")
 
 	// 4. Nested exit handlers: outer DAG -> inner DAG
-	outerDag := &apiv2beta1.PipelineTask{
+	outerDag := &apiv2.PipelineTask{
 		TaskId:       "outer-dag-id",
 		Name:         "outer-dag",
 		ParentTaskId: util.StringPointer("root"),
-		Type:         apiv2beta1.PipelineTask_DAG,
-		State:        apiv2beta1.PipelineTask_FAILED,
+		Type:         apiv2.PipelineTask_DAG,
+		State:        apiv2.PipelineTask_FAILED,
 	}
-	innerDag := &apiv2beta1.PipelineTask{
+	innerDag := &apiv2.PipelineTask{
 		TaskId:       "inner-dag-id",
 		Name:         "inner-dag",
 		ParentTaskId: util.StringPointer("outer-dag-id"),
-		Type:         apiv2beta1.PipelineTask_DAG,
-		State:        apiv2beta1.PipelineTask_FAILED,
+		Type:         apiv2.PipelineTask_DAG,
+		State:        apiv2.PipelineTask_FAILED,
 	}
-	allNestedTasks := []*apiv2beta1.PipelineTask{outerDag, innerDag}
+	allNestedTasks := []*apiv2.PipelineTask{outerDag, innerDag}
 
 	// Inner exit handler resolves inner-dag (parent is outer-dag)
 	optsInner := common.Options{
 		ParentTask:     outerDag,
-		Run:            &apiv2beta1.Run{Tasks: allNestedTasks},
+		Run:            &apiv2.Run{Tasks: allNestedTasks},
 		RunName:        "pipeline-run",
 		IterationIndex: -1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -724,7 +724,7 @@ func TestResolveTaskFinalStatus_ExitHandlerResolutionPath(t *testing.T) {
 	// Outer exit handler resolves outer-dag (parent is root)
 	optsOuter := common.Options{
 		ParentTask:     rootTask,
-		Run:            &apiv2beta1.Run{Tasks: allNestedTasks},
+		Run:            &apiv2.Run{Tasks: allNestedTasks},
 		RunName:        "pipeline-run",
 		IterationIndex: -1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -745,37 +745,37 @@ func TestResolveTaskFinalStatus_ExitHandlerResolutionPath(t *testing.T) {
 }
 
 func TestResolveTaskFinalStatus_BoundedWait_SucceedsWhenProducerBecomesTerminal(t *testing.T) {
-	parent := &apiv2beta1.PipelineTask{TaskId: "parent-1", Name: "root"}
-	producer := &apiv2beta1.PipelineTask{
+	parent := &apiv2.PipelineTask{TaskId: "parent-1", Name: "root"}
+	producer := &apiv2.PipelineTask{
 		TaskId:       "task-1",
 		Name:         "producer",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: util.StringPointer("parent-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
 
 	callCount := 0
 	opts := common.Options{
 		ParentTask:              parent,
-		Run:                     &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{producer}},
+		Run:                     &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{producer}},
 		RunName:                 "run-1",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      1 * time.Second,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
 			callCount++
-			terminalState := apiv2beta1.PipelineTask_RUNNING
+			terminalState := apiv2.PipelineTask_RUNNING
 			if callCount >= 2 {
-				terminalState = apiv2beta1.PipelineTask_SUCCEEDED
+				terminalState = apiv2.PipelineTask_SUCCEEDED
 			}
-			refreshedProducer := &apiv2beta1.PipelineTask{
+			refreshedProducer := &apiv2.PipelineTask{
 				TaskId:       "task-1",
 				Name:         "producer",
-				Type:         apiv2beta1.PipelineTask_RUNTIME,
+				Type:         apiv2.PipelineTask_RUNTIME,
 				ParentTaskId: util.StringPointer("parent-1"),
 				State:        terminalState,
 			}
-			return &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{refreshedProducer}}, nil
+			return &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{refreshedProducer}}, nil
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "exit-handler"},
@@ -797,24 +797,24 @@ func TestResolveTaskFinalStatus_BoundedWait_SucceedsWhenProducerBecomesTerminal(
 }
 
 func TestResolveTaskFinalStatus_BoundedWait_DeadlineExceeded(t *testing.T) {
-	parent := &apiv2beta1.PipelineTask{TaskId: "parent-1", Name: "root"}
-	producer := &apiv2beta1.PipelineTask{
+	parent := &apiv2.PipelineTask{TaskId: "parent-1", Name: "root"}
+	producer := &apiv2.PipelineTask{
 		TaskId:       "task-1",
 		Name:         "producer",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: util.StringPointer("parent-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
 
 	opts := common.Options{
 		ParentTask:              parent,
-		Run:                     &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{producer}},
+		Run:                     &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{producer}},
 		RunName:                 "run-1",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      40 * time.Millisecond,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
-			return &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{producer}}, nil
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
+			return &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{producer}}, nil
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "exit-handler"},
@@ -834,41 +834,41 @@ func TestResolveTaskFinalStatus_BoundedWait_DeadlineExceeded(t *testing.T) {
 }
 
 func TestResolveTaskFinalStatus_BoundedWait_DeadlineExceededWithFailedChild_FailsClosedToFailed(t *testing.T) {
-	parent := &apiv2beta1.PipelineTask{TaskId: "parent-1", Name: "root"}
-	producerDAG := &apiv2beta1.PipelineTask{
+	parent := &apiv2.PipelineTask{TaskId: "parent-1", Name: "root"}
+	producerDAG := &apiv2.PipelineTask{
 		TaskId:       "dag-1",
 		Name:         "producer-dag",
-		Type:         apiv2beta1.PipelineTask_DAG,
+		Type:         apiv2.PipelineTask_DAG,
 		ParentTaskId: util.StringPointer("parent-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
-	failedChild := &apiv2beta1.PipelineTask{
+	failedChild := &apiv2.PipelineTask{
 		TaskId:         "child-failed",
 		Name:           "child-failed",
-		Type:           apiv2beta1.PipelineTask_RUNTIME,
+		Type:           apiv2.PipelineTask_RUNTIME,
 		ParentTaskId:   util.StringPointer("dag-1"),
-		State:          apiv2beta1.PipelineTask_FAILED,
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child OOMKilled"},
+		State:          apiv2.PipelineTask_FAILED,
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child OOMKilled"},
 	}
-	runningChild := &apiv2beta1.PipelineTask{
+	runningChild := &apiv2.PipelineTask{
 		TaskId:       "child-running",
 		Name:         "child-running",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: util.StringPointer("dag-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
 
-	tasks := []*apiv2beta1.PipelineTask{producerDAG, failedChild, runningChild}
+	tasks := []*apiv2.PipelineTask{producerDAG, failedChild, runningChild}
 
 	opts := common.Options{
 		ParentTask:              parent,
-		Run:                     &apiv2beta1.Run{RunId: "run-1", Tasks: tasks},
+		Run:                     &apiv2.Run{RunId: "run-1", Tasks: tasks},
 		RunName:                 "run-1",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      40 * time.Millisecond,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
-			return &apiv2beta1.Run{RunId: "run-1", Tasks: tasks}, nil
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
+			return &apiv2.Run{RunId: "run-1", Tasks: tasks}, nil
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "exit-handler"},
@@ -890,13 +890,13 @@ func TestResolveTaskFinalStatus_BoundedWait_DeadlineExceededWithFailedChild_Fail
 }
 
 func TestResolveTaskFinalStatus_BoundedWait_ContextCanceled(t *testing.T) {
-	parent := &apiv2beta1.PipelineTask{TaskId: "parent-1", Name: "root"}
-	producer := &apiv2beta1.PipelineTask{
+	parent := &apiv2.PipelineTask{TaskId: "parent-1", Name: "root"}
+	producer := &apiv2.PipelineTask{
 		TaskId:       "task-1",
 		Name:         "producer",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: util.StringPointer("parent-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -904,13 +904,13 @@ func TestResolveTaskFinalStatus_BoundedWait_ContextCanceled(t *testing.T) {
 
 	opts := common.Options{
 		ParentTask:              parent,
-		Run:                     &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{producer}},
+		Run:                     &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{producer}},
 		RunName:                 "run-1",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      5 * time.Second,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
-			return &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{producer}}, nil
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
+			return &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{producer}}, nil
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "exit-handler"},
@@ -930,23 +930,23 @@ func TestResolveTaskFinalStatus_BoundedWait_ContextCanceled(t *testing.T) {
 }
 
 func TestResolveTaskFinalStatus_BoundedWait_RefresherErrorFailsClosed(t *testing.T) {
-	parent := &apiv2beta1.PipelineTask{TaskId: "parent-1", Name: "root"}
-	producer := &apiv2beta1.PipelineTask{
+	parent := &apiv2.PipelineTask{TaskId: "parent-1", Name: "root"}
+	producer := &apiv2.PipelineTask{
 		TaskId:       "task-1",
 		Name:         "producer",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: util.StringPointer("parent-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING,
+		State:        apiv2.PipelineTask_RUNNING,
 	}
 
 	opts := common.Options{
 		ParentTask:              parent,
-		Run:                     &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{producer}},
+		Run:                     &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{producer}},
 		RunName:                 "run-1",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      1 * time.Second,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
 			return nil, fmt.Errorf("network disconnect")
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -967,28 +967,28 @@ func TestResolveTaskFinalStatus_BoundedWait_RefresherErrorFailsClosed(t *testing
 }
 
 func TestResolveTaskFinalStatus_InconsistentParentSucceededWithFailedChild_FailsClosedToFailed(t *testing.T) {
-	root := &apiv2beta1.PipelineTask{TaskId: "root", Name: "root"}
-	parentDAG := &apiv2beta1.PipelineTask{
+	root := &apiv2.PipelineTask{TaskId: "root", Name: "root"}
+	parentDAG := &apiv2.PipelineTask{
 		TaskId:       "dag-1",
 		Name:         "main-dag",
-		Type:         apiv2beta1.PipelineTask_DAG,
+		Type:         apiv2.PipelineTask_DAG,
 		ParentTaskId: util.StringPointer("root"),
-		State:        apiv2beta1.PipelineTask_SUCCEEDED, // stale fast-path in DB!
+		State:        apiv2.PipelineTask_SUCCEEDED, // stale fast-path in DB!
 	}
-	childTask := &apiv2beta1.PipelineTask{
+	childTask := &apiv2.PipelineTask{
 		TaskId:         "child-1",
 		Name:           "child-task",
-		Type:           apiv2beta1.PipelineTask_RUNTIME,
+		Type:           apiv2.PipelineTask_RUNTIME,
 		ParentTaskId:   util.StringPointer("dag-1"),
-		State:          apiv2beta1.PipelineTask_FAILED,
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child task failed with OOMKilled"},
+		State:          apiv2.PipelineTask_FAILED,
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child task failed with OOMKilled"},
 	}
 
 	opts := common.Options{
 		ParentTask: root,
-		Run: &apiv2beta1.Run{
+		Run: &apiv2.Run{
 			RunId: "run-1",
-			Tasks: []*apiv2beta1.PipelineTask{parentDAG, childTask},
+			Tasks: []*apiv2.PipelineTask{parentDAG, childTask},
 		},
 		RunName:        "pipeline-run",
 		IterationIndex: -1,
@@ -1013,47 +1013,47 @@ func TestResolveTaskFinalStatus_InconsistentParentSucceededWithFailedChild_Fails
 }
 
 func TestResolveTaskFinalStatus_InconsistentParentSucceededWithFailedChild_RefreshesAuthoritatively(t *testing.T) {
-	root := &apiv2beta1.PipelineTask{TaskId: "root", Name: "root"}
-	parentDAG := &apiv2beta1.PipelineTask{
+	root := &apiv2.PipelineTask{TaskId: "root", Name: "root"}
+	parentDAG := &apiv2.PipelineTask{
 		TaskId:       "dag-1",
 		Name:         "main-dag",
-		Type:         apiv2beta1.PipelineTask_DAG,
+		Type:         apiv2.PipelineTask_DAG,
 		ParentTaskId: util.StringPointer("root"),
-		State:        apiv2beta1.PipelineTask_SUCCEEDED, // stale fast-path
+		State:        apiv2.PipelineTask_SUCCEEDED, // stale fast-path
 	}
-	childTask := &apiv2beta1.PipelineTask{
+	childTask := &apiv2.PipelineTask{
 		TaskId:         "child-1",
 		Name:           "child-task",
-		Type:           apiv2beta1.PipelineTask_RUNTIME,
+		Type:           apiv2.PipelineTask_RUNTIME,
 		ParentTaskId:   util.StringPointer("dag-1"),
-		State:          apiv2beta1.PipelineTask_FAILED,
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child failed in argo"},
+		State:          apiv2.PipelineTask_FAILED,
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child failed in argo"},
 	}
 
 	refreshCallCount := 0
 	opts := common.Options{
 		ParentTask: root,
-		Run: &apiv2beta1.Run{
+		Run: &apiv2.Run{
 			RunId: "run-1",
-			Tasks: []*apiv2beta1.PipelineTask{parentDAG, childTask},
+			Tasks: []*apiv2.PipelineTask{parentDAG, childTask},
 		},
 		RunName:                 "pipeline-run",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      2 * time.Second,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
 			refreshCallCount++
-			reconciledDAG := &apiv2beta1.PipelineTask{
+			reconciledDAG := &apiv2.PipelineTask{
 				TaskId:         "dag-1",
 				Name:           "main-dag",
-				Type:           apiv2beta1.PipelineTask_DAG,
+				Type:           apiv2.PipelineTask_DAG,
 				ParentTaskId:   util.StringPointer("root"),
-				State:          apiv2beta1.PipelineTask_FAILED,
-				StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "reconciled child failure from argo"},
+				State:          apiv2.PipelineTask_FAILED,
+				StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "reconciled child failure from argo"},
 			}
-			return &apiv2beta1.Run{
+			return &apiv2.Run{
 				RunId: "run-1",
-				Tasks: []*apiv2beta1.PipelineTask{reconciledDAG, childTask},
+				Tasks: []*apiv2.PipelineTask{reconciledDAG, childTask},
 			}, nil
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -1076,55 +1076,55 @@ func TestResolveTaskFinalStatus_InconsistentParentSucceededWithFailedChild_Refre
 }
 
 func TestResolveTaskFinalStatus_ParentSucceededWithRunningChild_WaitsUntilChildTerminal(t *testing.T) {
-	root := &apiv2beta1.PipelineTask{TaskId: "root", Name: "root"}
-	parentDAG := &apiv2beta1.PipelineTask{
+	root := &apiv2.PipelineTask{TaskId: "root", Name: "root"}
+	parentDAG := &apiv2.PipelineTask{
 		TaskId:       "dag-1",
 		Name:         "main-dag",
-		Type:         apiv2beta1.PipelineTask_DAG,
+		Type:         apiv2.PipelineTask_DAG,
 		ParentTaskId: util.StringPointer("root"),
-		State:        apiv2beta1.PipelineTask_SUCCEEDED, // prematurely marked SUCCEEDED
+		State:        apiv2.PipelineTask_SUCCEEDED, // prematurely marked SUCCEEDED
 	}
-	childRunning := &apiv2beta1.PipelineTask{
+	childRunning := &apiv2.PipelineTask{
 		TaskId:       "child-1",
 		Name:         "child-task",
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		Type:         apiv2.PipelineTask_RUNTIME,
 		ParentTaskId: util.StringPointer("dag-1"),
-		State:        apiv2beta1.PipelineTask_RUNNING, // still running!
+		State:        apiv2.PipelineTask_RUNNING, // still running!
 	}
 
 	calls := 0
 	opts := common.Options{
 		ParentTask: root,
-		Run: &apiv2beta1.Run{
+		Run: &apiv2.Run{
 			RunId: "run-1",
-			Tasks: []*apiv2beta1.PipelineTask{parentDAG, childRunning},
+			Tasks: []*apiv2.PipelineTask{parentDAG, childRunning},
 		},
 		RunName:                 "pipeline-run",
 		IterationIndex:          -1,
 		FinalStatusPollInterval: 10 * time.Millisecond,
 		FinalStatusTimeout:      2 * time.Second,
-		RunRefresher: func(ctx context.Context) (*apiv2beta1.Run, error) {
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
 			calls++
 			if calls < 2 {
-				return &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{parentDAG, childRunning}}, nil
+				return &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{parentDAG, childRunning}}, nil
 			}
-			terminalChild := &apiv2beta1.PipelineTask{
+			terminalChild := &apiv2.PipelineTask{
 				TaskId:         "child-1",
 				Name:           "child-task",
-				Type:           apiv2beta1.PipelineTask_RUNTIME,
+				Type:           apiv2.PipelineTask_RUNTIME,
 				ParentTaskId:   util.StringPointer("dag-1"),
-				State:          apiv2beta1.PipelineTask_FAILED,
-				StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child completed with error"},
+				State:          apiv2.PipelineTask_FAILED,
+				StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child completed with error"},
 			}
-			reconciledParent := &apiv2beta1.PipelineTask{
+			reconciledParent := &apiv2.PipelineTask{
 				TaskId:         "dag-1",
 				Name:           "main-dag",
-				Type:           apiv2beta1.PipelineTask_DAG,
+				Type:           apiv2.PipelineTask_DAG,
 				ParentTaskId:   util.StringPointer("root"),
-				State:          apiv2beta1.PipelineTask_FAILED,
-				StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{Message: "child completed with error"},
+				State:          apiv2.PipelineTask_FAILED,
+				StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "child completed with error"},
 			}
-			return &apiv2beta1.Run{RunId: "run-1", Tasks: []*apiv2beta1.PipelineTask{reconciledParent, terminalChild}}, nil
+			return &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{reconciledParent, terminalChild}}, nil
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "exit-handler"},

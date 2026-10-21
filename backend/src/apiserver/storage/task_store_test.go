@@ -1878,13 +1878,13 @@ func TestUpdateTaskWithRetryFence_StaleGenerationRejected(t *testing.T) {
 		RunUUID:     "run-1",
 		Name:        "fence-task-1",
 		Fingerprint: "fp-fence-1",
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	require.NoError(t, err)
 
 	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:  task.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	}, 1)
 	require.Error(t, err)
 	userErr, ok := err.(*util.UserError)
@@ -1893,7 +1893,7 @@ func TestUpdateTaskWithRetryFence_StaleGenerationRejected(t *testing.T) {
 
 	updated, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:  task.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	}, 2)
 	require.NoError(t, err)
 	assert.NotNil(t, updated)
@@ -1903,10 +1903,10 @@ func TestUpdateTaskWithRetryFence_RetiredPodUIDRejected(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
 		Name: "pod-gen0",
 		Uid:  "uid-retired-123",
-		Type: apiv2beta1.PipelineTask_EXECUTOR,
+		Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 
@@ -1915,7 +1915,7 @@ func TestUpdateTaskWithRetryFence_RetiredPodUIDRejected(t *testing.T) {
 		RunUUID:     "run-1",
 		Name:        "retire-task-1",
 		Fingerprint: "fp-retire-1",
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Pods:        pods,
 	})
 	require.NoError(t, err)
@@ -1923,17 +1923,17 @@ func TestUpdateTaskWithRetryFence_RetiredPodUIDRejected(t *testing.T) {
 	err = taskStore.ResetTasksForRetry([]string{task.UUID})
 	require.NoError(t, err)
 
-	incomingPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+	incomingPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
 		Name: "pod-gen0",
 		Uid:  "uid-retired-123",
-		Type: apiv2beta1.PipelineTask_EXECUTOR,
+		Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 
 	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:  task.UUID,
 		Pods:  incomingPods,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 	}, -1)
 	require.Error(t, err)
 	userErr, ok := err.(*util.UserError)
@@ -1951,13 +1951,13 @@ func TestUpdateTaskWithRetryFence_IntraAttemptTerminalProtection(t *testing.T) {
 		RunUUID:     "run-1",
 		Name:        "terminal-task-1",
 		Fingerprint: "fp-term-1",
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
 	})
 	require.NoError(t, err)
 
 	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:  task.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	}, -1)
 	require.Error(t, err)
 	userErr, ok := err.(*util.UserError)
@@ -1966,7 +1966,7 @@ func TestUpdateTaskWithRetryFence_IntraAttemptTerminalProtection(t *testing.T) {
 
 	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:  task.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 	}, -1)
 	require.Error(t, err)
 	userErr, ok = err.(*util.UserError)
@@ -1978,10 +1978,10 @@ func TestUpdateTaskWithRetryFence_RetryGapProtection(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
 		Name: "pod-1",
 		Uid:  "uid-1",
-		Type: apiv2beta1.PipelineTask_EXECUTOR,
+		Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 
@@ -1990,8 +1990,8 @@ func TestUpdateTaskWithRetryFence_RetryGapProtection(t *testing.T) {
 		RunUUID:     "run-1",
 		Name:        "gap-task-1",
 		Fingerprint: "fp-gap-1",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Pods:        pods,
 	})
 	require.NoError(t, err)
@@ -2001,7 +2001,7 @@ func TestUpdateTaskWithRetryFence_RetryGapProtection(t *testing.T) {
 
 	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:          task.UUID,
-		State:         model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 		FinishedInSec: 100,
 	}, -1)
 	require.Error(t, err)
@@ -2023,7 +2023,7 @@ func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {
 		RunUUID:     "run-1",
 		Name:        "race-task-1",
 		Fingerprint: "fp-race-1",
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	require.NoError(t, err)
 
@@ -2033,7 +2033,7 @@ func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {
 
 	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
 		UUID:  task.UUID,
-		State: model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	}, 0)
 	require.Error(t, err)
 	userErr, ok := err.(*util.UserError)
@@ -2043,7 +2043,7 @@ func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {
 	// Inspect final persisted task and run state
 	persistedTask, err := taskStore.GetTask(task.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), persistedTask.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), persistedTask.State)
 	assert.Equal(t, int64(0), persistedTask.FinishedInSec)
 	assert.Empty(t, persistedTask.Pods)
 	assert.NotEmpty(t, persistedTask.StateHistory)

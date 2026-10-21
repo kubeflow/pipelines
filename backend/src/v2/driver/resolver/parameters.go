@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-  apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apicommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -229,8 +229,12 @@ func canonicalTaskFinalStatusCode(task *apiv2beta1.PipelineTask) int32 {
 	return int32(codes.OK)
 }
 
-func canonicalTaskFinalStatusCodeForState(state apiv2beta1.PipelineTask_TaskState) int32 {
-	if state == apiv2beta1.PipelineTask_FAILED {
+func canonicalTaskFinalStatusCodeForState(state apiv2.PipelineTask_TaskState) int32 {
+	if state == apiv2.PipelineTask_FAILED {
+		return int32(codes.Unknown)
+	}
+	return int32(codes.OK)
+}
 
 func normalizeResolvedParameterValue(
 	name string,
@@ -291,6 +295,15 @@ func normalizeResolvedParameterValue(
 
 func ResolveInputParameter(
 	opts common.Options,
+	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
+	inputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2.PipelineTask_InputOutputs_IOParameter, apiv2.IOType, error) {
+	return ResolveInputParameterWithContext(context.Background(), &opts, paramSpec, inputParams)
+}
+
+func ResolveInputParameterWithContext(
+	ctx context.Context,
+	opts *common.Options,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 	inputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
 ) (*apiv2.PipelineTask_InputOutputs_IOParameter, apiv2.IOType, error) {

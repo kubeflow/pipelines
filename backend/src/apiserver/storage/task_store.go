@@ -1070,7 +1070,7 @@ func extractPodUIDs(pods model.JSONSlice) []string {
 			} else if uid, ok := p["Uid"].(string); ok && uid != "" {
 				uids = append(uids, uid)
 			}
-		case *apiv2beta1.PipelineTask_TaskPod:
+		case *apiv2.PipelineTask_TaskPod:
 			if p != nil && p.GetUid() != "" {
 				uids = append(uids, p.GetUid())
 			}
@@ -1089,7 +1089,7 @@ func extractPodNames(pods model.JSONSlice) []string {
 			} else if name, ok := p["Name"].(string); ok && name != "" {
 				names = append(names, name)
 			}
-		case *apiv2beta1.PipelineTask_TaskPod:
+		case *apiv2.PipelineTask_TaskPod:
 			if p != nil && p.GetName() != "" {
 				names = append(names, p.GetName())
 			}
@@ -1127,11 +1127,11 @@ func extractRetiredPodUIDs(attrs model.JSONData) []string {
 }
 
 func isTerminalTaskState(state model.TaskStatus) bool {
-	switch apiv2beta1.PipelineTask_TaskState(state) {
-	case apiv2beta1.PipelineTask_SUCCEEDED,
-		apiv2beta1.PipelineTask_FAILED,
-		apiv2beta1.PipelineTask_SKIPPED,
-		apiv2beta1.PipelineTask_CACHED:
+	switch apiv2.PipelineTask_TaskState(state) {
+	case apiv2.PipelineTask_SUCCEEDED,
+		apiv2.PipelineTask_FAILED,
+		apiv2.PipelineTask_SKIPPED,
+		apiv2.PipelineTask_CACHED:
 		return true
 	default:
 		return false
@@ -1139,12 +1139,12 @@ func isTerminalTaskState(state model.TaskStatus) bool {
 }
 
 func isStructuralTaskType(t model.TaskType) bool {
-	switch apiv2beta1.PipelineTask_TaskType(t) {
-	case apiv2beta1.PipelineTask_ROOT,
-		apiv2beta1.PipelineTask_DAG,
-		apiv2beta1.PipelineTask_LOOP,
-		apiv2beta1.PipelineTask_CONDITION,
-		apiv2beta1.PipelineTask_CONDITION_BRANCH:
+	switch apiv2.PipelineTask_TaskType(t) {
+	case apiv2.PipelineTask_ROOT,
+		apiv2.PipelineTask_DAG,
+		apiv2.PipelineTask_LOOP,
+		apiv2.PipelineTask_CONDITION,
+		apiv2.PipelineTask_CONDITION_BRANCH:
 		return true
 	default:
 		return false
@@ -1298,14 +1298,14 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 	// A delayed callback (e.g. from an earlier DRIVER pod) must not regress a terminal state back to
 	// RUNNING, nor overwrite an EXECUTOR failure with SUCCEEDED.
 	if expectedRetryGeneration < 0 && isTerminalTaskState(lockedOld.State) {
-		if new.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
-			oldStateStr := apiv2beta1.PipelineTask_TaskState(lockedOld.State).String()
+		if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
+			oldStateStr := apiv2.PipelineTask_TaskState(lockedOld.State).String()
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: cannot regress terminal task %s (state %s) to RUNNING", new.UUID, oldStateStr),
 				"Task update rejected because task %s is already in terminal state %s", new.UUID, oldStateStr,
 			)
 		}
-		if lockedOld.State == model.TaskStatus(apiv2beta1.PipelineTask_FAILED) && new.State == model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED) {
+		if lockedOld.State == model.TaskStatus(apiv2.PipelineTask_FAILED) && new.State == model.TaskStatus(apiv2.PipelineTask_SUCCEEDED) {
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: cannot overwrite FAILED state with SUCCEEDED for task %s", new.UUID),
 				"Task update rejected because task %s has already failed", new.UUID,
@@ -1327,7 +1327,7 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 		len(oldUIDs) == 0 &&
 		len(oldNames) == 0 &&
 		!isStructuralTaskType(lockedOld.Type) &&
-		lockedOld.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
+		lockedOld.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
 		isTerminal := isTerminalTaskState(new.State) || new.FinishedInSec > 0
 		if isTerminal {
 			return nil, util.NewConflictServerError(

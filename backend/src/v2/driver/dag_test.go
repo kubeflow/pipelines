@@ -806,8 +806,8 @@ func TestFinalStatus(t *testing.T) {
 	parentTask = exitHandler1Task
 
 	_, someTask := tc.RunContainerDriver("some-task", parentTask, nil, true)
-	someTask.State = apiv2beta1.PipelineTask_SUCCEEDED
-	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	someTask.State = apiv2.PipelineTask_SUCCEEDED
+	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: someTask.GetTaskId(),
 		Task:   someTask,
 	})
@@ -815,8 +815,8 @@ func TestFinalStatus(t *testing.T) {
 
 	tc.ExitDag()
 	// Update DAG task status to SUCCEEDED upon exit, as expected in production.
-	exitHandler1Task.State = apiv2beta1.PipelineTask_SUCCEEDED
-	_, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	exitHandler1Task.State = apiv2.PipelineTask_SUCCEEDED
+	_, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: exitHandler1Task.GetTaskId(),
 		Task:   exitHandler1Task,
 	})

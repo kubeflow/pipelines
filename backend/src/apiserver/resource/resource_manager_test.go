@@ -9174,8 +9174,8 @@ func TestReconcileStrandedTasks_DriverOnly_ExecutorCrashes_FailsClosed(t *testin
 	defer store.Close()
 	ctx := context.Background()
 
-	driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "train-driver", Type: apiv2beta1.PipelineTask_DRIVER,
+	driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "train-driver", Type: apiv2.PipelineTask_DRIVER,
 	}})
 	require.NoError(t, err)
 
@@ -9184,8 +9184,8 @@ func TestReconcileStrandedTasks_DriverOnly_ExecutorCrashes_FailsClosed(t *testin
 		RunUUID:     run.UUID,
 		Name:        "train",
 		ScopePath:   "root.train",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-train",
 		Pods:        driverPods,
 	})
@@ -9221,7 +9221,7 @@ func TestReconcileStrandedTasks_DriverOnly_ExecutorCrashes_FailsClosed(t *testin
 
 	reconciled, err := manager.GetTask(task.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), reconciled.State, "stranded task with crashed executor must fail closed")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), reconciled.State, "stranded task with crashed executor must fail closed")
 	assert.NotNil(t, reconciled.LifecycleMessage)
 	assert.Contains(t, reconciled.LifecycleMessage.String(), "Executor failed to start or crashed")
 }
@@ -9231,8 +9231,8 @@ func TestReconcileStrandedTasks_DriverSucceeded_ExecutorFailed(t *testing.T) {
 	defer store.Close()
 	ctx := context.Background()
 
-	driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "step-driver", Type: apiv2beta1.PipelineTask_DRIVER,
+	driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "step-driver", Type: apiv2.PipelineTask_DRIVER,
 	}})
 	require.NoError(t, err)
 
@@ -9241,8 +9241,8 @@ func TestReconcileStrandedTasks_DriverSucceeded_ExecutorFailed(t *testing.T) {
 		RunUUID:     run.UUID,
 		Name:        "step",
 		ScopePath:   "root.step",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-step",
 		Pods:        driverPods,
 	})
@@ -9285,7 +9285,7 @@ func TestReconcileStrandedTasks_DriverSucceeded_ExecutorFailed(t *testing.T) {
 
 	reconciled, err := manager.GetTask(task.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), reconciled.State, "task must be marked FAILED from executor, avoiding false success")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), reconciled.State, "task must be marked FAILED from executor, avoiding false success")
 	assert.NotNil(t, reconciled.LifecycleMessage)
 	assert.Contains(t, reconciled.LifecycleMessage.String(), "OOMKilled")
 	podNames := getTestPodNames(reconciled.Pods)
@@ -9302,8 +9302,8 @@ func TestReconcileStrandedTasks_StructuralTaskTypes_NotTakingDriverStatus(t *tes
 		RunUUID:     run.UUID,
 		Name:        "my-dag",
 		ScopePath:   "root.my-dag",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_DAG),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_DAG),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-dag",
 	})
 	require.NoError(t, err)
@@ -9314,8 +9314,8 @@ func TestReconcileStrandedTasks_StructuralTaskTypes_NotTakingDriverStatus(t *tes
 		ParentTaskUUID: &dagTask.UUID,
 		Name:           "child-running",
 		ScopePath:      "root.my-dag.child-running",
-		Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint:    "fp-child",
 	})
 	require.NoError(t, err)
@@ -9348,19 +9348,19 @@ func TestReconcileStrandedTasks_StructuralTaskTypes_NotTakingDriverStatus(t *tes
 
 	reconciledDag, err := manager.GetTask(dagTask.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), reconciledDag.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), reconciledDag.State)
 }
 
 func TestReconcileStrandedTasks_AllStructuralTaskTypes_SuccessfulDriverCannotOverrideFailedChild(t *testing.T) {
 	structuralTypes := []struct {
 		name     string
-		taskType apiv2beta1.PipelineTask_TaskType
+		taskType apiv2.PipelineTask_TaskType
 	}{
-		{"root", apiv2beta1.PipelineTask_ROOT},
-		{"dag", apiv2beta1.PipelineTask_DAG},
-		{"loop", apiv2beta1.PipelineTask_LOOP},
-		{"condition", apiv2beta1.PipelineTask_CONDITION},
-		{"condition-branch", apiv2beta1.PipelineTask_CONDITION_BRANCH},
+		{"root", apiv2.PipelineTask_ROOT},
+		{"dag", apiv2.PipelineTask_DAG},
+		{"loop", apiv2.PipelineTask_LOOP},
+		{"condition", apiv2.PipelineTask_CONDITION},
+		{"condition-branch", apiv2.PipelineTask_CONDITION_BRANCH},
 	}
 
 	for _, tc := range structuralTypes {
@@ -9370,8 +9370,8 @@ func TestReconcileStrandedTasks_AllStructuralTaskTypes_SuccessfulDriverCannotOve
 			ctx := context.Background()
 
 			driverPodName := fmt.Sprintf("driver-%s-pod", tc.name)
-			driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-				Name: driverPodName, Type: apiv2beta1.PipelineTask_DRIVER,
+			driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+				Name: driverPodName, Type: apiv2.PipelineTask_DRIVER,
 			}})
 			require.NoError(t, err)
 
@@ -9381,7 +9381,7 @@ func TestReconcileStrandedTasks_AllStructuralTaskTypes_SuccessfulDriverCannotOve
 				Name:        fmt.Sprintf("structural-%s", tc.name),
 				ScopePath:   fmt.Sprintf("root.%s", tc.name),
 				Type:        model.TaskType(tc.taskType),
-				State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 				Fingerprint: fmt.Sprintf("fp-%s", tc.name),
 				Pods:        driverPods,
 			})
@@ -9393,8 +9393,8 @@ func TestReconcileStrandedTasks_AllStructuralTaskTypes_SuccessfulDriverCannotOve
 				ParentTaskUUID: &structuralTask.UUID,
 				Name:           fmt.Sprintf("child-%s", tc.name),
 				ScopePath:      fmt.Sprintf("root.%s.child", tc.name),
-				Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-				State:          model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+				Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+				State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
 				Fingerprint:    fmt.Sprintf("fp-child-%s", tc.name),
 				FinishedInSec:  10,
 			})
@@ -9436,7 +9436,7 @@ func TestReconcileStrandedTasks_AllStructuralTaskTypes_SuccessfulDriverCannotOve
 
 			reconciled, err := manager.GetTask(structuralTask.UUID)
 			require.NoError(t, err)
-			assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), reconciled.State,
+			assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), reconciled.State,
 				"Structural task %s must be FAILED because child failed, despite driver pod succeeding", tc.name)
 		})
 	}
@@ -9447,8 +9447,8 @@ func TestReconcileStrandedTasks_PodNameFormat_V1AndV2(t *testing.T) {
 	defer store.Close()
 	ctx := context.Background()
 
-	podsV1, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "node-v1-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	podsV1, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "node-v1-pod", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	taskV1, err := store.TaskStore().CreateTask(&model.Task{
@@ -9456,8 +9456,8 @@ func TestReconcileStrandedTasks_PodNameFormat_V1AndV2(t *testing.T) {
 		RunUUID:     run.UUID,
 		Name:        "task-v1",
 		ScopePath:   "root.task-v1",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-v1",
 		Pods:        podsV1,
 	})
@@ -9469,8 +9469,8 @@ func TestReconcileStrandedTasks_PodNameFormat_V1AndV2(t *testing.T) {
 		Name:        "task-v2",
 		DisplayName: "task-v2-display",
 		ScopePath:   "root.task-v2",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-v2",
 	})
 	require.NoError(t, err)
@@ -9511,11 +9511,11 @@ func TestReconcileStrandedTasks_PodNameFormat_V1AndV2(t *testing.T) {
 
 	r1, err := manager.GetTask(taskV1.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), r1.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), r1.State)
 
 	r2, err := manager.GetTask(taskV2.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), r2.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), r2.State)
 }
 
 func TestReconcileStrandedTasks_PaginationOver200Tasks(t *testing.T) {
@@ -9528,20 +9528,20 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks(t *testing.T) {
 		RunUUID:     run.UUID,
 		Name:        "root-dag",
 		ScopePath:   "root",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_ROOT),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_ROOT),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-root",
 	})
 	require.NoError(t, err)
 
 	totalChildren := 205
 	for i := 0; i < totalChildren; i++ {
-		state := apiv2beta1.PipelineTask_SUCCEEDED
+		state := apiv2.PipelineTask_SUCCEEDED
 		if i == 204 {
-			state = apiv2beta1.PipelineTask_RUNNING
+			state = apiv2.PipelineTask_RUNNING
 		}
-		pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-			Name: fmt.Sprintf("pod-child-%d", i), Type: apiv2beta1.PipelineTask_EXECUTOR,
+		pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+			Name: fmt.Sprintf("pod-child-%d", i), Type: apiv2.PipelineTask_EXECUTOR,
 		}})
 		require.NoError(t, err)
 
@@ -9551,7 +9551,7 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks(t *testing.T) {
 			ParentTaskUUID: &dagTask.UUID,
 			Name:           fmt.Sprintf("child-%d", i),
 			ScopePath:      fmt.Sprintf("root.child-%d", i),
-			Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+			Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
 			State:          model.TaskStatus(state),
 			Fingerprint:    fmt.Sprintf("fp-%d", i),
 			Pods:           pods,
@@ -9602,8 +9602,8 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks(t *testing.T) {
 	}
 	require.NotNil(t, rootTask)
 	require.NotNil(t, child204)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), child204.State, "child-204 on page 2 must be reconciled to FAILED")
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), rootTask.State, "root DAG must be aggregated to FAILED")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), child204.State, "child-204 on page 2 must be reconciled to FAILED")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), rootTask.State, "root DAG must be aggregated to FAILED")
 }
 
 func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testing.T) {
@@ -9616,15 +9616,15 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 		RunUUID:     run.UUID,
 		Name:        "root-dag",
 		ScopePath:   "root",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_ROOT),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_ROOT),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-root-defer",
 	})
 	require.NoError(t, err)
 
 	// Child 0 is FAILED
-	pods0, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "pod-child-0", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods0, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-child-0", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	_, err = store.TaskStore().CreateTask(&model.Task{
@@ -9633,8 +9633,8 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 		ParentTaskUUID: &dagTask.UUID,
 		Name:           "child-0",
 		ScopePath:      "root.child-0",
-		Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Fingerprint:    "fp-0",
 		Pods:           pods0,
 		FinishedInSec:  10,
@@ -9643,8 +9643,8 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 
 	// Children 1..203 are SUCCEEDED
 	for i := 1; i < 204; i++ {
-		pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-			Name: fmt.Sprintf("pod-child-%d", i), Type: apiv2beta1.PipelineTask_EXECUTOR,
+		pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+			Name: fmt.Sprintf("pod-child-%d", i), Type: apiv2.PipelineTask_EXECUTOR,
 		}})
 		require.NoError(t, err)
 		_, err = store.TaskStore().CreateTask(&model.Task{
@@ -9653,8 +9653,8 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 			ParentTaskUUID: &dagTask.UUID,
 			Name:           fmt.Sprintf("child-%d", i),
 			ScopePath:      fmt.Sprintf("root.child-%d", i),
-			Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-			State:          model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+			Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+			State:          model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 			Fingerprint:    fmt.Sprintf("fp-%d", i),
 			Pods:           pods,
 			FinishedInSec:  10,
@@ -9663,8 +9663,8 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 	}
 
 	// Child 204 (on page 2) is still RUNNING
-	pods204, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "pod-child-204", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods204, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-child-204", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	task204, err := store.TaskStore().CreateTask(&model.Task{
@@ -9673,8 +9673,8 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 		ParentTaskUUID: &dagTask.UUID,
 		Name:           "child-204",
 		ScopePath:      "root.child-204",
-		Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint:    "fp-204",
 		Pods:           pods204,
 	})
@@ -9710,12 +9710,12 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 	// Root DAG must still be RUNNING because child 204 on page 2 is still running (sibling deferral)
 	rootAfterReport, err := manager.GetTask(dagTask.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), rootAfterReport.State, "DAG must remain RUNNING while sibling on page 2 is running")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), rootAfterReport.State, "DAG must remain RUNNING while sibling on page 2 is running")
 
 	// Now child 204 finishes as SUCCEEDED
 	_, err = store.TaskStore().UpdateTask(&model.Task{
 		UUID:          task204.UUID,
-		State:         model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 		FinishedInSec: manager.time.Now().Unix() + 10,
 	})
 	require.NoError(t, err)
@@ -9727,7 +9727,7 @@ func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testin
 	// Now that no sibling is running, root DAG propagates FAILED (from child 0)
 	rootFinal, err := manager.GetTask(dagTask.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), rootFinal.State, "DAG must propagate FAILED once all siblings finish")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), rootFinal.State, "DAG must propagate FAILED once all siblings finish")
 }
 
 func TestReconcileStrandedTasks_PartialFailureRecovery(t *testing.T) {
@@ -9740,14 +9740,14 @@ func TestReconcileStrandedTasks_PartialFailureRecovery(t *testing.T) {
 		RunUUID:     run.UUID,
 		Name:        "parent-dag",
 		ScopePath:   "root.parent-dag",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_DAG),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_DAG),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-parent",
 	})
 	require.NoError(t, err)
 
-	leafPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "leaf-failed-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	leafPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "leaf-failed-pod", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 
@@ -9760,8 +9760,8 @@ func TestReconcileStrandedTasks_PartialFailureRecovery(t *testing.T) {
 		ParentTaskUUID: &dagTask.UUID,
 		Name:           "leaf-failed",
 		ScopePath:      "root.parent-dag.leaf-failed",
-		Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Fingerprint:    "fp-leaf",
 		Pods:           leafPods,
 		FinishedInSec:  10,
@@ -9800,7 +9800,7 @@ func TestReconcileStrandedTasks_PartialFailureRecovery(t *testing.T) {
 
 	updatedDag, err := manager.GetTask(dagTask.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedDag.State,
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), updatedDag.State,
 		"parent DAG must converge to FAILED on second invocation even when leaf is already terminal")
 }
 
@@ -9808,8 +9808,8 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 	store, manager, run := initWithOneTimeRunWithUUID(t)
 	defer store.Close()
 
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "worker-executor", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "worker-executor", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 
@@ -9818,8 +9818,8 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 		RunUUID:     run.UUID,
 		Name:        "dag",
 		ScopePath:   "root.dag",
-		Type:        model.TaskType(apiv2beta1.PipelineTask_DAG),
-		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:        model.TaskType(apiv2.PipelineTask_DAG),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint: "fp-dag-barrier",
 	})
 	require.NoError(t, err)
@@ -9830,8 +9830,8 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 		ParentTaskUUID: &dagTask.UUID,
 		Name:           "worker",
 		ScopePath:      "root.dag.worker",
-		Type:           model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint:    "fp-worker-barrier",
 		Pods:           pods,
 	})
@@ -9878,14 +9878,14 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 	require.NotNil(t, foundWorker)
 	require.NotNil(t, foundDag)
 
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), foundWorker.State, "exit handler must see worker FAILED")
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), foundDag.State, "exit handler must see parent DAG FAILED")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), foundWorker.State, "exit handler must see worker FAILED")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), foundDag.State, "exit handler must see parent DAG FAILED")
 
 	dbWorker, err := manager.GetTask(workerTask.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), dbWorker.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), dbWorker.State)
 
 	dbDag, err := manager.GetTask(dagTask.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), dbDag.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), dbDag.State)
 }
