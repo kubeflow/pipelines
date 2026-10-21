@@ -242,9 +242,10 @@ describe('tensorboard-proxy', () => {
 
   it('rewrites absolute TensorBoard subrequests using the referer-scoped token', async () => {
     const app = express();
-    const authorizeFn = vi.fn(
-      async (): Promise<ErrorDetails | undefined> => ({ message: 'denied', additionalInfo: '' }),
-    );
+    const authorizeFn = vi.fn(async (): Promise<ErrorDetails | undefined> => ({
+      message: 'denied',
+      additionalInfo: '',
+    }));
     const proxyPath = createTensorboardProxyPath(
       'test-ns',
       'viewer-abcdefg',
