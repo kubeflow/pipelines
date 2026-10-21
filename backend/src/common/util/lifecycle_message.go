@@ -45,10 +45,23 @@ func NormalizeLifecycleMessage(message string, state string) string {
 	}
 	// Argo records "Error (exit code N)" for normal non-zero exits; these are user-script
 	// failures, not infrastructure lifecycle events.
-	if strings.HasPrefix(message, "Error (exit code ") {
+	// Argo can prefix the message with the container name and append its log output, e.g.
+	// "main: Error (exit code 1): <logs>", so check the text after that prefix as well.
+	if strings.HasPrefix(message, userExitMessagePrefix) || strings.HasPrefix(withoutContainerPrefix(message), userExitMessagePrefix) {
 		return ""
 	}
 	return message
+}
+
+const userExitMessagePrefix = "Error (exit code "
+
+// withoutContainerPrefix drops a leading "<container>: " from an Argo node message.
+func withoutContainerPrefix(message string) string {
+	name, rest, ok := strings.Cut(message, ": ")
+	if !ok || name == "" || strings.ContainsAny(name, " \t\n") {
+		return message
+	}
+	return rest
 }
 
 // ResolveNodeLifecycleMessages propagates executor-pod messages up to parent task nodes.
