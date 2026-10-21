@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """File-based local task output cache for kfp.local."""
+
 import hashlib
 import json
 import logging
@@ -100,10 +101,12 @@ class LocalCache:
                 self._serialize_value_for_key(arguments),
                 sort_keys=True,
                 default=str,
-            ).encode('utf-8'))
+            ).encode('utf-8')
+        )
         h.update(b'\0')
         h.update(
-            json.dumps(dict(env_vars or {}), sort_keys=True).encode('utf-8'))
+            json.dumps(dict(env_vars or {}), sort_keys=True).encode('utf-8')
+        )
         return h.hexdigest()
 
     # ----- read/write -----
@@ -133,7 +136,8 @@ class LocalCache:
         except _MissingArtifactError as e:
             logging.info(
                 f'Cache entry for key {key} references missing artifact '
-                f'{e.uri}. Treating as cache miss.')
+                f'{e.uri}. Treating as cache miss.'
+            )
             return None
 
     def put(self, key: str, outputs: Dict[str, Any]) -> None:
@@ -143,7 +147,8 @@ class LocalCache:
         with self._lock:
             # Atomic write: write to a tempfile in the same directory, rename.
             fd, tmp_path = tempfile.mkstemp(
-                prefix='.kfp_cache_', suffix='.tmp', dir=self.cache_root)
+                prefix='.kfp_cache_', suffix='.tmp', dir=self.cache_root
+            )
             try:
                 with os.fdopen(fd, 'w') as f:
                     json.dump(serialized, f)
@@ -163,8 +168,11 @@ class LocalCache:
     def _serialize_output(value: Any) -> Any:
         if isinstance(value, dsl.Artifact):
             return LocalCache._serialize_artifact(value)
-        if isinstance(value, list) and value and isinstance(
-                value[0], dsl.Artifact):
+        if (
+            isinstance(value, list)
+            and value
+            and isinstance(value[0], dsl.Artifact)
+        ):
             return {
                 _ARTIFACT_LIST_MARKER: True,
                 'artifacts': [LocalCache._serialize_artifact(a) for a in value],
@@ -218,14 +226,19 @@ class LocalCache:
 
 
 class _MissingArtifactError(Exception):
-
     def __init__(self, uri: str) -> None:
         super().__init__(f'Artifact file missing: {uri}')
         self.uri = uri
 
 
-_REMOTE_URI_PREFIXES = ('gs://', 's3://', 'minio://', 'oci://', 'http://',
-                        'https://')
+_REMOTE_URI_PREFIXES = (
+    'gs://',
+    's3://',
+    'minio://',
+    'oci://',
+    'http://',
+    'https://',
+)
 
 
 def _is_remote_uri(uri: str) -> bool:
@@ -252,11 +265,12 @@ def get_local_cache() -> Optional[LocalCache]:
         return None
 
     cache_root = getattr(cfg, 'cache_root', None) or os.path.join(
-        cfg.pipeline_root, '.kfp_cache')
+        cfg.pipeline_root, '.kfp_cache'
+    )
 
     global _cache_singleton, _cache_singleton_root
     with _cache_singleton_lock:
-        if (_cache_singleton is None or _cache_singleton_root != cache_root):
+        if _cache_singleton is None or _cache_singleton_root != cache_root:
             _cache_singleton = LocalCache(cache_root=cache_root)
             _cache_singleton_root = cache_root
     return _cache_singleton

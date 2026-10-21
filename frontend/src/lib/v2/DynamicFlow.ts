@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 import { Node } from '@xyflow/react';
+import type { LayerElementsResolver, PipelineFlowElement } from './FlowTypes';
 import {
   InputOutputsIOArtifact,
   PipelineTaskTaskState,
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
   FlowElementDataBase,
   SubDagFlowElementData,
+  SubDagTaskData,
 } from 'src/components/graph/Constants';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import {
@@ -36,7 +38,6 @@ import {
   getTaskNodeKey,
   isNode,
   NodeTypeNames,
-  PipelineFlowElement,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
@@ -47,19 +48,19 @@ import {
 } from 'src/lib/v2/RuntimeLayerUtils';
 
 export interface NodeRuntimeInfo {
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
 }
 
 interface TaskIndex {
-  rootTask?: V2beta1PipelineTask;
-  tasksById: Map<string, V2beta1PipelineTask>;
-  childrenByParentId: Map<string, V2beta1PipelineTask[]>;
-  childrenByParentAndIteration: Map<string, Map<number, V2beta1PipelineTask[]>>;
+  rootTask?: V2PipelineTask;
+  tasksById: Map<string, V2PipelineTask>;
+  childrenByParentId: Map<string, V2PipelineTask[]>;
+  childrenByParentAndIteration: Map<string, Map<number, V2PipelineTask[]>>;
 }
 
 interface RuntimeLayerContext {
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   iterationIndex?: number;
 }
 
@@ -87,17 +88,28 @@ function normalizeRuntimeScopePath(scopePath?: string): string | undefined {
 export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
+): PipelineFlowElement[] {
+  return buildRuntimeLayer(
+    spec,
+    layers,
+    buildRuntimeFlowContext(layers, tasks, runIsTerminal, runCompletedSuccessfully),
+  );
+}
+
+function buildRuntimeLayer(
+  spec: PipelineSpec,
+  layers: string[],
+  context: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
   }
 
-  const taskIndex = buildTaskIndex(tasks);
-  const runtimeContext = getRuntimeLayerContext(layers, taskIndex);
+  const { runtimeLayerContext: runtimeContext } = context;
   const componentsMap = spec.components;
 
   for (let index = 1; index < layers.length; index++) {
@@ -126,22 +138,37 @@ export function convertSubDagToRuntimeFlowElements(
   ) {
     const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
     return (
-      buildParallelForDag(
-        runtimeContext.task,
-        taskIndex,
-        expectedTaskCount,
-        runIsTerminal,
-        runCompletedSuccessfully,
-      ) || annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
+      buildParallelForDag(context, expectedTaskCount) ||
+      annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
     );
   }
   return buildDag(spec, componentSpec);
 }
 
+/** Resolve many visible scopes from one task index, rather than re-indexing each iteration. */
+export function createRuntimeLayerResolver(
+  spec: PipelineSpec,
+  tasks: V2PipelineTask[],
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
+): LayerElementsResolver {
+  const taskIndex = buildTaskIndex(tasks);
+  return (layers) => {
+    const context = buildIndexedRuntimeFlowContext(
+      layers,
+      taskIndex,
+      runIsTerminal,
+      runCompletedSuccessfully,
+    );
+    const elements = buildRuntimeLayer(spec, layers, context);
+    return reconcileRuntimeFlowElements(layers, elements, tasks, context);
+  };
+}
+
 export function updateFlowElementsState(
   layers: string[],
   elements: PipelineFlowElement[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
@@ -219,7 +246,7 @@ function taskCompletedSuccessfully(state: PipelineTaskTaskState | undefined): bo
 export function reconcileRuntimeFlowElements(
   layers: string[],
   elements: PipelineFlowElement[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
   const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
@@ -234,13 +261,7 @@ export function reconcileRuntimeFlowElements(
     // failure and non-triggered paths). Keep the declarative body visible until runtime iteration
     // structure is authoritative instead of replacing it with an empty graph.
     runtimeStructure =
-      buildParallelForDag(
-        runtimeContext.task,
-        flowContext.taskIndex,
-        getExpectedTaskCount(elements),
-        flowContext.runIsTerminal,
-        flowContext.runCompletedSuccessfully,
-      ) || runtimeStructure;
+      buildParallelForDag(flowContext, getExpectedTaskCount(elements)) || runtimeStructure;
   }
 
   return updateFlowElementsState(layers, runtimeStructure, tasks, flowContext);
@@ -248,7 +269,7 @@ export function reconcileRuntimeFlowElements(
 
 function hasParallelForStructure(
   elements: PipelineFlowElement[],
-  loopTask: V2beta1PipelineTask,
+  loopTask: V2PipelineTask,
 ): boolean {
   const iterationCount = getParallelForIterationCount(loopTask);
   if (iterationCount === undefined) {
@@ -270,7 +291,7 @@ function hasParallelForStructure(
 
 export function getNodeRuntimeInfo(
   element: PipelineFlowElement | null,
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   layers: string[],
   existingFlowContext?: RuntimeFlowContext,
 ): NodeRuntimeInfo {
@@ -297,11 +318,24 @@ export function getNodeRuntimeInfo(
 
 export function buildRuntimeFlowContext(
   layers: string[],
-  tasks: V2beta1PipelineTask[],
+  tasks: V2PipelineTask[],
   runIsTerminal = false,
   runCompletedSuccessfully = false,
 ): RuntimeFlowContext {
-  const taskIndex = buildTaskIndex(tasks);
+  return buildIndexedRuntimeFlowContext(
+    layers,
+    buildTaskIndex(tasks),
+    runIsTerminal,
+    runCompletedSuccessfully,
+  );
+}
+
+function buildIndexedRuntimeFlowContext(
+  layers: string[],
+  taskIndex: TaskIndex,
+  runIsTerminal: boolean,
+  runCompletedSuccessfully: boolean,
+): RuntimeFlowContext {
   return {
     taskIndex,
     runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
@@ -311,18 +345,18 @@ export function buildRuntimeFlowContext(
 }
 
 export function getTaskRuntimeLayers(
-  task: V2beta1PipelineTask,
-  tasks: V2beta1PipelineTask[],
+  task: V2PipelineTask,
+  tasks: V2PipelineTask[],
 ): string[] | undefined {
-  const tasksById = new Map<string, V2beta1PipelineTask>();
+  const tasksById = new Map<string, V2PipelineTask>();
   for (const candidate of tasks) {
     if (candidate.task_id) {
       tasksById.set(candidate.task_id, candidate);
     }
   }
-  const ancestry: V2beta1PipelineTask[] = [];
+  const ancestry: V2PipelineTask[] = [];
   const visited = new Set<string>();
-  let current: V2beta1PipelineTask | undefined = task;
+  let current: V2PipelineTask | undefined = task;
   while (current) {
     ancestry.unshift(current);
     if (current.type === PipelineTaskTaskType.ROOT || !current.parent_task_id) {
@@ -422,11 +456,11 @@ export function getTaskRuntimeLayers(
   return layers;
 }
 
-function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
-  const tasksById = new Map<string, V2beta1PipelineTask>();
-  const childrenByParentId = new Map<string, V2beta1PipelineTask[]>();
-  const childrenByParentAndIteration = new Map<string, Map<number, V2beta1PipelineTask[]>>();
-  let rootTask: V2beta1PipelineTask | undefined;
+function buildTaskIndex(tasks: V2PipelineTask[]): TaskIndex {
+  const tasksById = new Map<string, V2PipelineTask>();
+  const childrenByParentId = new Map<string, V2PipelineTask[]>();
+  const childrenByParentAndIteration = new Map<string, Map<number, V2PipelineTask[]>>();
+  let rootTask: V2PipelineTask | undefined;
 
   for (const task of tasks) {
     if (task.task_id) {
@@ -448,7 +482,7 @@ function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
       ) {
         const childrenByIteration =
           childrenByParentAndIteration.get(task.parent_task_id) ||
-          new Map<number, V2beta1PipelineTask[]>();
+          new Map<number, V2PipelineTask[]>();
         const iterationChildren = childrenByIteration.get(iterationIndex) || [];
         iterationChildren.push(task);
         childrenByIteration.set(iterationIndex, iterationChildren);
@@ -465,7 +499,7 @@ function getIterationTasks(
   taskIndex: TaskIndex,
   parentTaskId: string | undefined,
   iterationIndex: number,
-): V2beta1PipelineTask[] {
+): V2PipelineTask[] {
   return taskIndex.childrenByParentAndIteration.get(parentTaskId || '')?.get(iterationIndex) || [];
 }
 
@@ -502,7 +536,7 @@ function findTaskForElement(
   element: Node<FlowElementDataBase>,
   runtimeContext: RuntimeLayerContext,
   taskIndex: TaskIndex,
-): V2beta1PipelineTask | undefined {
+): V2PipelineTask | undefined {
   if (element.data?.taskId) {
     const task = taskIndex.tasksById.get(element.data.taskId);
     if (task) {
@@ -552,7 +586,7 @@ function getArtifactRuntimeInfo(
 function getTasksUnderContext(
   runtimeContext: RuntimeLayerContext,
   taskIndex: TaskIndex,
-): V2beta1PipelineTask[] {
+): V2PipelineTask[] {
   const children = taskIndex.childrenByParentId.get(runtimeContext.task?.task_id || '') || [];
   if (runtimeContext.iterationIndex === undefined) {
     return children;
@@ -560,7 +594,7 @@ function getTasksUnderContext(
   return getIterationTasks(taskIndex, runtimeContext.task?.task_id, runtimeContext.iterationIndex);
 }
 
-function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | undefined {
+function getParallelForIterationCount(loopTask: V2PipelineTask): number | undefined {
   const value = loopTask.type_attributes?.iteration_count;
   if (value === undefined || value === '') {
     return undefined;
@@ -570,12 +604,12 @@ function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | u
 }
 
 function buildParallelForDag(
-  loopTask: V2beta1PipelineTask,
-  taskIndex: TaskIndex,
+  context: RuntimeFlowContext,
   expectedTaskCount?: number,
-  runIsTerminal = false,
-  runCompletedSuccessfully = false,
 ): PipelineFlowElement[] | undefined {
+  const { taskIndex, runIsTerminal, runCompletedSuccessfully } = context;
+  const loopTask = context.runtimeLayerContext.task;
+  if (!loopTask) return undefined;
   const flowGraph: PipelineFlowElement[] = [];
   const iterationCount = getParallelForIterationCount(loopTask);
   if (iterationCount === undefined) {
@@ -583,10 +617,11 @@ function buildParallelForDag(
   }
   for (let index = 0; index < iterationCount; index++) {
     const iterationNodeName = formatRuntimeIterationLayer(loopTask.name || '', index);
-    const node: Node<FlowElementDataBase> = {
+    const node: Node<SubDagTaskData> = {
       id: getTaskNodeKey(iterationNodeName),
       data: {
         label: iterationNodeName,
+        groupKind: 'Iteration',
         expectedTaskCount,
         state: getIterationState(
           getIterationTasks(taskIndex, loopTask.task_id, index),
@@ -606,7 +641,7 @@ function buildParallelForDag(
 }
 
 function getIterationState(
-  iterationTasks: V2beta1PipelineTask[],
+  iterationTasks: V2PipelineTask[],
   expectedTaskCount?: number,
   loopState?: PipelineTaskTaskState,
   runIsTerminal = false,

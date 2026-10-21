@@ -14,12 +14,10 @@ All tracked Go modules are managed. The current set is:
 - `backend/api/tools/go.mod`
 - `kubernetes_platform/go.mod`
 - `test/tools/project-cleaner/go.mod`
-- `third_party/ml-metadata/go.mod`
 
 The managed Go builder images are the single builder `FROM` instructions in:
 
 - `backend/Dockerfile`
-- `backend/Dockerfile.cacheserver`
 - `backend/Dockerfile.conformance`
 - `backend/Dockerfile.driver`
 - `backend/Dockerfile.launcher`

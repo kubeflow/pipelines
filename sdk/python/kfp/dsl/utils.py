@@ -18,7 +18,7 @@ import os
 import re
 import sys
 import types
-from typing import List
+from typing import List, Optional
 
 COMPONENT_NAME_PREFIX = 'comp-'
 _EXECUTOR_LABEL_PREFIX = 'exec-'
@@ -41,7 +41,8 @@ def load_module(module_name: str, module_directory: str) -> types.ModuleType:
     """
     module_spec = importlib.util.spec_from_file_location(
         name=module_name,
-        location=os.path.join(module_directory, f'{module_name}.py'))
+        location=os.path.join(module_directory, f'{module_name}.py'),
+    )
     module = importlib.util.module_from_spec(module_spec)
     sys.modules[module_spec.name] = module
     sys.path.insert(0, str(module_directory))
@@ -58,8 +59,11 @@ def maybe_rename_for_k8s(name: str) -> str:
     Returns:
       A sanitized name.
     """
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-',
-                                    name.lower())).lstrip('-').rstrip('-')
+    return (
+        re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower()))
+        .lstrip('-')
+        .rstrip('-')
+    )
 
 
 def sanitize_input_name(name: str) -> str:
@@ -125,4 +129,37 @@ def validate_pipeline_name(name: str) -> None:
             'Invalid pipeline name: %s.\n'
             'Please specify a pipeline name that matches the regular '
             'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
-            '`dsl.pipeline(name=...)` decorator.' % name)
+            '`dsl.pipeline(name=...)` decorator.' % name
+        )
+
+
+# Kubernetes resource quantity grammar, without the leading sign and without
+# the suffix-only form that Kubernetes reads as zero:
+# https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/
+_RESOURCE_QUANTITY_PATTERN = re.compile(
+    r'^\+?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)'
+    r'(?:Ki|Mi|Gi|Ti|Pi|Ei|[numkMGTPE]|[eE][+-]?[0-9]+)?$'
+)
+
+
+def normalize_resource_quantity(value: str) -> Optional[str]:
+    """Normalizes a Kubernetes resource quantity such as ``'1.5Gi'``.
+
+    KFP accepts ``'K'`` as a kilobyte suffix, but Kubernetes
+    only reads the lowercase ``'k'`` and rejects the rest of the quantity when
+    it sees ``'K'``. Such a value is rewritten rather than refused, so pipelines
+    written against the older docs keep compiling and start reaching the cluster
+    intact.
+
+    Args:
+        value: The quantity to normalize.
+
+    Returns:
+        The quantity Kubernetes will accept, or None when value is not a
+        non-negative quantity.
+    """
+    if not isinstance(value, str):
+        return None
+    if value.endswith('K'):
+        value = value[:-1] + 'k'
+    return value if _RESOURCE_QUANTITY_PATTERN.match(value) else None

@@ -22,7 +22,7 @@ import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
 import TestUtils from 'src/TestUtils';
 import * as Utils from 'src/lib/Utils';
 import { logger } from 'src/lib/Utils';
-import { V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { V2RunStorageState, V2RuntimeState } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { ExpandState } from 'src/components/CustomTable';
 import { PageProps } from './Page';
@@ -31,10 +31,10 @@ import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { MemoryRouter } from 'react-router';
-import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { V2ExperimentStorageState } from 'src/apisv2/experiment';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 
-// Default arguments for Apis.experimentServiceApi.listExperiment.
+// Default arguments for Apis.experimentServiceApiV2.listExperiments.
 const LIST_EXPERIMENT_DEFAULTS = [
   '', // page token
   10, // page size
@@ -44,11 +44,11 @@ const LIST_EXPERIMENT_DEFAULTS = [
       predicates: [
         {
           key: 'storage_state',
-          operation: V2beta1PredicateOperation.NOT_EQUALS,
-          string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+          operation: V2PredicateOperation.NOT_EQUALS,
+          string_value: V2ExperimentStorageState.ARCHIVED.toString(),
         },
       ],
-    } as V2beta1Filter),
+    } as V2Filter),
   ), // filter
   undefined, // namespace
 ];
@@ -210,11 +210,11 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOT_EQUALS,
-              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.NOT_EQUALS,
+              string_value: V2RunStorageState.ARCHIVED.toString(),
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
       true,
     );
@@ -438,7 +438,7 @@ describe('ExperimentList', () => {
       await compareBtn!.action();
     });
     expect(navigateSpy).toHaveBeenLastCalledWith(
-      `${RoutePage.COMPARE}?${QUERY_PARAMS.runlist}=run1,run2,run3`,
+      `${RoutePage.COMPARE}?${QUERY_PARAMS.runlist}=run1%2Crun2%2Crun3`,
     );
   });
 
@@ -504,11 +504,11 @@ describe('ExperimentList', () => {
     const statusRenderer = getInstance()._last5RunsCustomRenderer({
       experiment_id: 'experiment-id',
       value: [
-        { state: V2beta1RuntimeState.SUCCEEDED },
-        { state: V2beta1RuntimeState.PENDING },
-        { state: V2beta1RuntimeState.FAILED },
-        { state: V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED },
-        { state: V2beta1RuntimeState.SUCCEEDED },
+        { state: V2RuntimeState.SUCCEEDED },
+        { state: V2RuntimeState.PENDING },
+        { state: V2RuntimeState.FAILED },
+        { state: V2RuntimeState.RUNTIME_STATE_UNSPECIFIED },
+        { state: V2RuntimeState.SUCCEEDED },
       ],
     } as any);
     const { unmount } = render(<div>{statusRenderer}</div>);

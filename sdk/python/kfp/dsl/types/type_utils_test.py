@@ -14,24 +14,24 @@
 import os
 import sys
 import tempfile
-from typing import Any, Dict, List, Optional, Union
 import unittest
+from typing import Any, Dict, List, Optional, Union
 
 from absl.testing import parameterized
+
 import kfp
-from kfp import compiler
-from kfp import components
-from kfp import dsl
-from kfp.dsl import base_component
-from kfp.dsl import Dataset
-from kfp.dsl import for_loop
-from kfp.dsl import Input
-from kfp.dsl import Output
-from kfp.dsl import pipeline_channel
-from kfp.dsl import structures
-from kfp.dsl import yaml_component
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_utils
+from kfp import compiler, components, dsl
+from kfp.dsl import (
+    Dataset,
+    Input,
+    Output,
+    base_component,
+    for_loop,
+    pipeline_channel,
+    structures,
+    yaml_component,
+)
+from kfp.dsl.types import artifact_types, type_utils
 from kfp.dsl.types.type_utils import InconsistentTypeException
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
@@ -48,11 +48,6 @@ _PARAMETER_TYPES = [
     'List',
     'JsonObject',
     'JsonArray',
-    {
-        'JsonObject': {
-            'data_type': 'proto:tfx.components.trainer.TrainArgs'
-        }
-    },
     'PipelineTaskFinalStatus',
 ]
 
@@ -90,7 +85,6 @@ except ImportError:
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestPydanticBaseModelSupport(parameterized.TestCase):
-
     def test_is_pydantic_basemodel_subclass_true(self):
 
         class MyModel(pydantic.BaseModel):
@@ -100,7 +94,8 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
 
     def test_is_pydantic_basemodel_subclass_false_for_plain_class(self):
         self.assertFalse(
-            type_utils.is_pydantic_basemodel_subclass(_ArbitraryClass))
+            type_utils.is_pydantic_basemodel_subclass(_ArbitraryClass)
+        )
 
     def test_is_pydantic_basemodel_subclass_false_for_non_type(self):
         self.assertFalse(type_utils.is_pydantic_basemodel_subclass('MyModel'))
@@ -119,8 +114,9 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
             foo: str
 
         type_struct = type_utils._annotation_to_type_struct(MyModel)
-        self.assertEqual(pb.ParameterType.STRUCT,
-                         type_utils.get_parameter_type(type_struct))
+        self.assertEqual(
+            pb.ParameterType.STRUCT, type_utils.get_parameter_type(type_struct)
+        )
 
     def test_validate_pydantic_basemodel_version_passes_for_v2(self):
 
@@ -139,8 +135,8 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
         pydantic.VERSION = '1.10.13'
         try:
             with self.assertRaisesRegex(
-                    TypeError,
-                    r'requires pydantic>=2\. Found pydantic==1\.10\.13'):
+                TypeError, r'requires pydantic>=2\. Found pydantic==1\.10\.13'
+            ):
                 type_utils.validate_pydantic_basemodel_version(MyModel)
         finally:
             pydantic.VERSION = original_version
@@ -164,7 +160,8 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
             foo: str
 
         self.assertEqual(
-            'Dict', type_utils._annotation_to_type_struct(Optional[MyModel]))
+            'Dict', type_utils._annotation_to_type_struct(Optional[MyModel])
+        )
 
     def test_is_parameter_true_for_optional_pydantic_basemodel(self):
         from kfp.dsl import executor
@@ -174,19 +171,25 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
 
         self.assertTrue(executor.is_parameter(Optional[MyModel]))
 
-    @unittest.skipUnless(sys.version_info >= (3, 10),
-                         'PEP 604 `X | Y` union syntax requires Python 3.10+.')
+    @unittest.skipUnless(
+        sys.version_info >= (3, 10),
+        'PEP 604 `X | Y` union syntax requires Python 3.10+.',
+    )
     def test_annotation_to_type_struct_for_pep604_optional_pydantic_basemodel(
-            self):
+        self,
+    ):
 
         class MyModel(pydantic.BaseModel):
             foo: str
 
-        self.assertEqual('Dict',
-                         type_utils._annotation_to_type_struct(MyModel | None))
+        self.assertEqual(
+            'Dict', type_utils._annotation_to_type_struct(MyModel | None)
+        )
 
-    @unittest.skipUnless(sys.version_info >= (3, 10),
-                         'PEP 604 `X | Y` union syntax requires Python 3.10+.')
+    @unittest.skipUnless(
+        sys.version_info >= (3, 10),
+        'PEP 604 `X | Y` union syntax requires Python 3.10+.',
+    )
     def test_is_parameter_true_for_pep604_optional_pydantic_basemodel(self):
         from kfp.dsl import executor
 
@@ -200,8 +203,9 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
         class IntRoot(pydantic.RootModel[int]):
             pass
 
-        self.assertEqual('Integer',
-                         type_utils._annotation_to_type_struct(IntRoot))
+        self.assertEqual(
+            'Integer', type_utils._annotation_to_type_struct(IntRoot)
+        )
 
     def test_annotation_to_type_struct_for_rootmodel_list(self):
 
@@ -209,8 +213,9 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
             pass
 
         type_struct = type_utils._annotation_to_type_struct(ListRoot)
-        self.assertEqual(pb.ParameterType.LIST,
-                         type_utils.get_parameter_type(type_struct))
+        self.assertEqual(
+            pb.ParameterType.LIST, type_utils.get_parameter_type(type_struct)
+        )
 
     def test_is_pydantic_rootmodel_subclass_true(self):
 
@@ -227,7 +232,8 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
         self.assertFalse(type_utils.is_pydantic_rootmodel_subclass(MyModel))
 
     def test_annotation_to_type_struct_does_not_raise_for_mismatched_alias(
-            self):
+        self,
+    ):
         # KFP does not validate pydantic alias configuration up front (see
         # _pydantic_basemodel_to_type_struct's docstring) -- a model with a
         # validation_alias/serialization_alias mismatch still compiles. Round
@@ -236,19 +242,24 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
 
         class MyModel(pydantic.BaseModel):
             foo: str = pydantic.Field(
-                validation_alias='foo_in', serialization_alias='foo_out')
+                validation_alias='foo_in', serialization_alias='foo_out'
+            )
 
         self.assertEqual('Dict', type_utils._annotation_to_type_struct(MyModel))
 
 
 class TypeUtilsTest(parameterized.TestCase):
-
-    @parameterized.parameters([(item, True) for item in _PARAMETER_TYPES] +
-                              [(item, False) for item in _KNOWN_ARTIFACT_TYPES +
-                               _UNKNOWN_ARTIFACT_TYPES])
+    @parameterized.parameters(
+        [(item, True) for item in _PARAMETER_TYPES]
+        + [
+            (item, False)
+            for item in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES
+        ]
+    )
     def test_is_parameter_type_true(self, type_name, expected_result):
-        self.assertEqual(expected_result,
-                         type_utils.is_parameter_type(type_name))
+        self.assertEqual(
+            expected_result, type_utils.is_parameter_type(type_name)
+        )
 
     @parameterized.parameters(
         {
@@ -319,22 +330,16 @@ class TypeUtilsTest(parameterized.TestCase):
             'given_type': List[Any],
             'expected_type': pb.ParameterType.LIST,
         },
-        {
-            'given_type': {
-                'JsonObject': {
-                    'data_type': 'proto:tfx.components.trainer.TrainArgs'
-                }
-            },
-            'expected_type': pb.ParameterType.STRUCT,
-        },
     )
     def test_get_parameter_type(self, given_type, expected_type):
-        self.assertEqual(expected_type,
-                         type_utils.get_parameter_type(given_type))
+        self.assertEqual(
+            expected_type, type_utils.get_parameter_type(given_type)
+        )
 
         # Test get parameter by Python type.
-        self.assertEqual(pb.ParameterType.NUMBER_INTEGER,
-                         type_utils.get_parameter_type(int))
+        self.assertEqual(
+            pb.ParameterType.NUMBER_INTEGER, type_utils.get_parameter_type(int)
+        )
 
     def test_get_parameter_type_invalid(self):
         with self.assertRaises(AttributeError):
@@ -377,7 +382,8 @@ class TypeUtilsTest(parameterized.TestCase):
     ):
         self.assertEqual(
             expected_type_name,
-            type_utils.get_canonical_type_name_for_type(given_type))
+            type_utils.get_canonical_type_name_for_type(given_type),
+        )
 
     @parameterized.parameters(
         {
@@ -394,8 +400,9 @@ class TypeUtilsTest(parameterized.TestCase):
         },
     )
     def test_is_task_final_statu_type(self, given_type, expected_result):
-        self.assertEqual(expected_result,
-                         type_utils.is_task_final_status_type(given_type))
+        self.assertEqual(
+            expected_result, type_utils.is_task_final_status_type(given_type)
+        )
 
     def test_pipeline_compile_with_builtin_generic_annotations(self):
 
@@ -426,8 +433,9 @@ class TypeUtilsTest(parameterized.TestCase):
             return {'value': x}
 
         @dsl.component
-        def extract_values(mapping: dict[str, int],
-                           keys: list[str]) -> list[int]:
+        def extract_values(
+            mapping: dict[str, int], keys: list[str]
+        ) -> list[int]:
             return [mapping[key] for key in keys]
 
         @dsl.pipeline
@@ -436,8 +444,9 @@ class TypeUtilsTest(parameterized.TestCase):
             extract_values(mapping=mapping_output.output, keys=['value'])
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            package_path = os.path.join(tmpdir,
-                                        'typed_pipeline_list_and_dict.json')
+            package_path = os.path.join(
+                tmpdir, 'typed_pipeline_list_and_dict.json'
+            )
             compiler.Compiler().compile(typed_pipeline, package_path)
             self.assertTrue(os.path.exists(package_path))
 
@@ -454,8 +463,9 @@ class TypeUtilsTest(parameterized.TestCase):
             return {str(idx): value for idx, value in enumerate(values)}
 
         @dsl.component
-        def merge_mappings(primary: dict[str, int],
-                           secondary: Dict[str, int]) -> list[int]:
+        def merge_mappings(
+            primary: dict[str, int], secondary: Dict[str, int]
+        ) -> list[int]:
             merged = {**secondary, **primary}
             return list(merged.values())
 
@@ -467,32 +477,34 @@ class TypeUtilsTest(parameterized.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(
-                tmpdir, 'typed_pipeline_builtin_and_typing.json')
+                tmpdir, 'typed_pipeline_builtin_and_typing.json'
+            )
             compiler.Compiler().compile(typed_pipeline, package_path)
             self.assertTrue(os.path.exists(package_path))
 
 
 class TestGetArtifactTypeSchema(parameterized.TestCase):
-
-    @parameterized.parameters([
-        # v2 standard system types
-        {
-            'schema_title': 'system.Artifact@0.0.1',
-            'exp_schema_title': 'system.Artifact',
-            'exp_schema_version': '0.0.1',
-        },
-        {
-            'schema_title': 'system.Dataset@0.0.1',
-            'exp_schema_title': 'system.Dataset',
-            'exp_schema_version': '0.0.1',
-        },
-        # google type with schema_version
-        {
-            'schema_title': 'google.VertexDataset@0.0.2',
-            'exp_schema_title': 'google.VertexDataset',
-            'exp_schema_version': '0.0.2',
-        },
-    ])
+    @parameterized.parameters(
+        [
+            # v2 standard system types
+            {
+                'schema_title': 'system.Artifact@0.0.1',
+                'exp_schema_title': 'system.Artifact',
+                'exp_schema_version': '0.0.1',
+            },
+            {
+                'schema_title': 'system.Dataset@0.0.1',
+                'exp_schema_title': 'system.Dataset',
+                'exp_schema_version': '0.0.1',
+            },
+            # google type with schema_version
+            {
+                'schema_title': 'google.VertexDataset@0.0.2',
+                'exp_schema_title': 'google.VertexDataset',
+                'exp_schema_version': '0.0.2',
+            },
+        ]
+    )
     def test_valid(
         self,
         schema_title: str,
@@ -500,14 +512,15 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
         exp_schema_version: str,
     ):
         artifact_type_schema = type_utils.bundled_artifact_to_artifact_proto(
-            schema_title)
+            schema_title
+        )
         self.assertEqual(artifact_type_schema.schema_title, exp_schema_title)
-        self.assertEqual(artifact_type_schema.schema_version,
-                         exp_schema_version)
+        self.assertEqual(
+            artifact_type_schema.schema_version, exp_schema_version
+        )
 
 
 class TestTypeCheckManager(unittest.TestCase):
-
     def check_false_to_true(self):
         kfp.TYPE_CHECK = False
         with type_utils.TypeCheckManager(enable=True):
@@ -522,301 +535,111 @@ class TestTypeCheckManager(unittest.TestCase):
 
 
 class TestCreateBundledArtifacttType(parameterized.TestCase):
-
-    @parameterized.parameters([
-        {
-            'schema_title': 'system.Artifact',
-            'schema_version': '0.0.2',
-            'expected': 'system.Artifact@0.0.2'
-        },
-        {
-            'schema_title': 'google.Artifact',
-            'schema_version': '0.0.3',
-            'expected': 'google.Artifact@0.0.3'
-        },
-        {
-            'schema_title': 'system.Artifact',
-            'schema_version': None,
-            'expected': 'system.Artifact@0.0.1'
-        },
-        {
-            'schema_title': 'google.Artifact',
-            'schema_version': None,
-            'expected': 'google.Artifact@0.0.1'
-        },
-    ])
-    def test(self, schema_title: str, schema_version: Union[str, None],
-             expected: str):
+    @parameterized.parameters(
+        [
+            {
+                'schema_title': 'system.Artifact',
+                'schema_version': '0.0.2',
+                'expected': 'system.Artifact@0.0.2',
+            },
+            {
+                'schema_title': 'google.Artifact',
+                'schema_version': '0.0.3',
+                'expected': 'google.Artifact@0.0.3',
+            },
+            {
+                'schema_title': 'system.Artifact',
+                'schema_version': None,
+                'expected': 'system.Artifact@0.0.1',
+            },
+            {
+                'schema_title': 'google.Artifact',
+                'schema_version': None,
+                'expected': 'google.Artifact@0.0.1',
+            },
+        ]
+    )
+    def test(
+        self, schema_title: str, schema_version: Union[str, None], expected: str
+    ):
         actual = type_utils.create_bundled_artifact_type(
-            schema_title, schema_version)
+            schema_title, schema_version
+        )
         self.assertEqual(actual, expected)
 
 
 class TestValidateBundledArtifactType(parameterized.TestCase):
-
-    @parameterized.parameters([
-        {
-            'type_': 'system.Artifact@0.0.1'
-        },
-        {
-            'type_': 'system.Dataset@2.0.1'
-        },
-        {
-            'type_': 'google.Model@2.0.0'
-        },
-    ])
+    @parameterized.parameters(
+        [
+            {'type_': 'system.Artifact@0.0.1'},
+            {'type_': 'system.Dataset@2.0.1'},
+            {'type_': 'google.Model@2.0.0'},
+        ]
+    )
     def test_valid(self, type_: str):
         type_utils.validate_bundled_artifact_type(type_)
 
-    @parameterized.parameters([
-        {
-            'type_': 'system.Artifact'
-        },
-        {
-            'type_': '2.0.1'
-        },
-        {
-            'type_': 'google.Model2.0.0'
-        },
-        {
-            'type_': 'google.Model2.0.0'
-        },
-        {
-            'type_': 'google.Model@'
-        },
-        {
-            'type_': 'google.Model@'
-        },
-        {
-            'type_': '@2.0.0'
-        },
-    ])
+    @parameterized.parameters(
+        [
+            {'type_': 'system.Artifact'},
+            {'type_': '2.0.1'},
+            {'type_': 'google.Model2.0.0'},
+            {'type_': 'google.Model2.0.0'},
+            {'type_': 'google.Model@'},
+            {'type_': 'google.Model@'},
+            {'type_': '@2.0.0'},
+        ]
+    )
     def test_missing_part(self, type_: str):
         with self.assertRaisesRegex(
-                TypeError,
-                r'Artifacts must have both a schema_title and a schema_version, separated by `@`'
+            TypeError,
+            r'Artifacts must have both a schema_title and a schema_version, separated by `@`',
         ):
             type_utils.validate_bundled_artifact_type(type_)
 
-    @parameterized.parameters([
-        {
-            'type_': 'system@0.0.1'
-        },
-        {
-            'type_': 'google@0.0.1'
-        },
-        {
-            'type_': 'other@0.0.1'
-        },
-        {
-            'type_': 'Artifact@0.0.1'
-        },
-    ])
+    @parameterized.parameters(
+        [
+            {'type_': 'system@0.0.1'},
+            {'type_': 'google@0.0.1'},
+            {'type_': 'other@0.0.1'},
+            {'type_': 'Artifact@0.0.1'},
+        ]
+    )
     def test_one_part_schema_title(self, type_: str):
         with self.assertRaisesRegex(
-                TypeError,
-                r'Artifact schema_title must have both a namespace and a name'):
+            TypeError,
+            r'Artifact schema_title must have both a namespace and a name',
+        ):
             type_utils.validate_bundled_artifact_type(type_)
 
-    @parameterized.parameters([
-        {
-            'type_': 'other.Artifact@0.0.1'
-        },
-    ])
+    @parameterized.parameters(
+        [
+            {'type_': 'other.Artifact@0.0.1'},
+        ]
+    )
     def test_must_be_system_or_google_namespace(self, type_: str):
         with self.assertRaisesRegex(
-                TypeError,
-                r'Artifact schema_title must belong to `system` or `google` namespace'
+            TypeError,
+            r'Artifact schema_title must belong to `system` or `google` namespace',
         ):
             type_utils.validate_bundled_artifact_type(type_)
 
-    @parameterized.parameters([
-        {
-            'type_': 'system.Artifact@0'
-        },
-        {
-            'type_': 'system.Artifact@0.0'
-        },
-        {
-            'type_': 'google.Artifact@0.01'
-        },
-    ])
+    @parameterized.parameters(
+        [
+            {'type_': 'system.Artifact@0'},
+            {'type_': 'system.Artifact@0.0'},
+            {'type_': 'google.Artifact@0.01'},
+        ]
+    )
     def test_must_be_valid_semantic_version(self, type_: str):
         with self.assertRaisesRegex(
-                TypeError,
-                r'Artifact schema_version must use three-part semantic versioning'
+            TypeError,
+            r'Artifact schema_version must use three-part semantic versioning',
         ):
             type_utils.validate_bundled_artifact_type(type_)
-
-
-class TestDeserializeV1ComponentYamlDefault(parameterized.TestCase):
-
-    @parameterized.parameters([
-        {
-            'type_': 'String',
-            'default': 'val',
-            'expected_type': str,
-            'expected_val': 'val',
-        },
-        {
-            'type_': 'Boolean',
-            'default': 'True',
-            'expected_type': bool,
-            'expected_val': True,
-        },
-        {
-            'type_': 'Boolean',
-            'default': 'true',
-            'expected_type': bool,
-            'expected_val': True,
-        },
-        {
-            'type_': 'Boolean',
-            'default': 'False',
-            'expected_type': bool,
-            'expected_val': False,
-        },
-        {
-            'type_': 'Boolean',
-            'default': 'false',
-            'expected_type': bool,
-            'expected_val': False,
-        },
-        {
-            'type_': 'Float',
-            'default': '0.0',
-            'expected_type': float,
-            'expected_val': 0.0,
-        },
-        {
-            'type_': 'Float',
-            'default': '1.0',
-            'expected_type': float,
-            'expected_val': 1.0,
-        },
-        {
-            'type_': 'Integer',
-            'default': '0',
-            'expected_type': int,
-            'expected_val': 0,
-        },
-        {
-            'type_': 'JsonObject',
-            'default': '[]',
-            'expected_type': list,
-            'expected_val': [],
-        },
-        {
-            'type_': 'JsonObject',
-            'default': '[1, 1.0, "a", true]',
-            'expected_type': list,
-            'expected_val': [1, 1.0, 'a', True],
-        },
-        {
-            'type_': 'JsonObject',
-            'default': '{}',
-            'expected_type': dict,
-            'expected_val': {},
-        },
-        {
-            'type_': 'JsonObject',
-            'default': '{"a": 1.0, "b": true}',
-            'expected_type': dict,
-            'expected_val': {
-                'a': 1.0,
-                'b': True
-            },
-        },
-    ])
-    def test_for_defaults_as_strings(
-        self,
-        type_: Any,
-        default: str,
-        expected_type: type,
-        expected_val: Any,
-    ):
-        res = type_utils.deserialize_v1_component_yaml_default(type_, default)
-        # check type first since equals check is insufficient since 1.0 == 1
-        self.assertIsInstance(res, expected_type)
-        self.assertEqual(res, expected_val)
-
-    @parameterized.parameters([
-        {
-            'type_': 'Boolean',
-            'default': True,
-            'expected_type': bool,
-            'expected_val': True,
-        },
-        {
-            'type_': 'Boolean',
-            'default': False,
-            'expected_type': bool,
-            'expected_val': False,
-        },
-        {
-            'type_': 'Float',
-            'default': 0.0,
-            'expected_type': float,
-            'expected_val': 0.0,
-        },
-        {
-            'type_': 'Float',
-            'default': 1.0,
-            'expected_type': float,
-            'expected_val': 1.0,
-        },
-        {
-            'type_': 'Integer',
-            'default': 0,
-            'expected_type': int,
-            'expected_val': 0,
-        },
-        {
-            'type_': 'JsonObject',
-            'default': [],
-            'expected_type': list,
-            'expected_val': [],
-        },
-        {
-            'type_': 'JsonObject',
-            'default': [1, 1.0, 'a', True],
-            'expected_type': list,
-            'expected_val': [1, 1.0, 'a', True],
-        },
-        {
-            'type_': 'JsonObject',
-            'default': {},
-            'expected_type': dict,
-            'expected_val': {},
-        },
-        {
-            'type_': 'JsonObject',
-            'default': {
-                'a': 1.0,
-                'b': True
-            },
-            'expected_type': dict,
-            'expected_val': {
-                'a': 1.0,
-                'b': True
-            },
-        },
-    ])
-    def test_robustness_to_literals(
-        self,
-        type_: Any,
-        default: str,
-        expected_type: type,
-        expected_val: Any,
-    ):
-        res = type_utils.deserialize_v1_component_yaml_default(type_, default)
-        # check type first since equals check is insufficient since 1.0 == 1
-        self.assertIsInstance(res, expected_type)
-        self.assertEqual(res, expected_val)
 
 
 class TestTypeChecking(parameterized.TestCase):
-
     @parameterized.parameters(
         # param True
         {
@@ -832,151 +655,134 @@ class TestTypeChecking(parameterized.TestCase):
         },
         # param Artifact compat, irrespective of version
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'system.Artifact@1.0.0'),
-            'parameter_input_spec':
-                structures.InputSpec('system.Model@0.0.1'),
-            'is_compatible':
-                True,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Artifact@1.0.0'
+            ),
+            'parameter_input_spec': structures.InputSpec('system.Model@0.0.1'),
+            'is_compatible': True,
         },
         # param Artifact compat, irrespective of version, other way
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'system.Metrics@1.0.0'),
-            'parameter_input_spec':
-                structures.InputSpec('system.Artifact@0.0.1'),
-            'is_compatible':
-                True,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Metrics@1.0.0'
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Artifact@0.0.1'
+            ),
+            'is_compatible': True,
         },
         # different schema_title incompat, irrespective of version
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'system.Metrics@1.0.0'),
-            'parameter_input_spec':
-                structures.InputSpec('system.Dataset@1.0.0'),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Metrics@1.0.0'
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Dataset@1.0.0'
+            ),
+            'is_compatible': False,
         },
         # different major version incompat
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'system.Metrics@1.0.0'),
-            'parameter_input_spec':
-                structures.InputSpec('system.Metrics@2.1.1'),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Metrics@1.0.0'
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Metrics@2.1.1'
+            ),
+            'is_compatible': False,
         },
         # namespace must match
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'google.Model@1.0.0'),
-            'parameter_input_spec':
-                structures.InputSpec('system.Model@1.0.0'),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'google.Model@1.0.0'
+            ),
+            'parameter_input_spec': structures.InputSpec('system.Model@1.0.0'),
+            'is_compatible': False,
         },
         # system.Artifact compatible works across namespace
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'google.Model@1.0.0'),
-            'parameter_input_spec':
-                structures.InputSpec('system.Artifact@1.0.0'),
-            'is_compatible':
-                True,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'google.Model@1.0.0'
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Artifact@1.0.0'
+            ),
+            'is_compatible': True,
         },
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel',
-                    'system.Artifact@1.0.0',
-                    is_artifact_list=True),
-            'parameter_input_spec':
-                structures.InputSpec(
-                    'system.Artifact@1.0.0', is_artifact_list=True),
-            'is_compatible':
-                True,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Artifact@1.0.0', is_artifact_list=True
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Artifact@1.0.0', is_artifact_list=True
+            ),
+            'is_compatible': True,
         },
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel',
-                    'system.Artifact@1.0.0',
-                    is_artifact_list=True),
-            'parameter_input_spec':
-                structures.InputSpec(
-                    'system.Artifact@1.0.0', is_artifact_list=False),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Artifact@1.0.0', is_artifact_list=True
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Artifact@1.0.0', is_artifact_list=False
+            ),
+            'is_compatible': False,
         },
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel',
-                    'system.Artifact@1.0.0',
-                    is_artifact_list=False),
-            'parameter_input_spec':
-                structures.InputSpec(
-                    'system.Artifact@1.0.0', is_artifact_list=True),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Artifact@1.0.0', is_artifact_list=False
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Artifact@1.0.0', is_artifact_list=True
+            ),
+            'is_compatible': False,
         },
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel',
-                    'system.Artifact@1.0.0',
-                    is_artifact_list=True),
-            'parameter_input_spec':
-                structures.InputSpec('String'),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'system.Artifact@1.0.0', is_artifact_list=True
+            ),
+            'parameter_input_spec': structures.InputSpec('String'),
+            'is_compatible': False,
         },
         {
-            'argument_value':
-                pipeline_channel.create_pipeline_channel(
-                    'dummy_channel', 'String'),
-            'parameter_input_spec':
-                structures.InputSpec(
-                    'system.Artifact@1.0.0', is_artifact_list=True),
-            'is_compatible':
-                False,
+            'argument_value': pipeline_channel.create_pipeline_channel(
+                'dummy_channel', 'String'
+            ),
+            'parameter_input_spec': structures.InputSpec(
+                'system.Artifact@1.0.0', is_artifact_list=True
+            ),
+            'is_compatible': False,
         },
         {
-            'argument_value':
-                for_loop.LoopArgumentVariable(
-                    loop_argument=for_loop.LoopParameterArgument
-                    .from_pipeline_channel(
-                        pipeline_channel.create_pipeline_channel(
-                            'Output-loop-item', 'List[str]',
-                            'list-dict-without-type-maker-5')),
-                    subvar_name='a'),
-            'parameter_input_spec':
-                structures.InputSpec('Integer'),
-            'is_compatible':
-                True,
-        },
-        {
-            'argument_value':
-                for_loop.LoopParameterArgument.from_pipeline_channel(
+            'argument_value': for_loop.LoopArgumentVariable(
+                loop_argument=for_loop.LoopParameterArgument.from_pipeline_channel(
                     pipeline_channel.create_pipeline_channel(
-                        'Output-loop-item', 'List[int]',
-                        'list-dict-without-type-maker-5')),
-            'parameter_input_spec':
-                structures.InputSpec('Integer'),
-            'is_compatible':
-                True,
+                        'Output-loop-item',
+                        'List[str]',
+                        'list-dict-without-type-maker-5',
+                    )
+                ),
+                subvar_name='a',
+            ),
+            'parameter_input_spec': structures.InputSpec('Integer'),
+            'is_compatible': True,
+        },
+        {
+            'argument_value': for_loop.LoopParameterArgument.from_pipeline_channel(
+                pipeline_channel.create_pipeline_channel(
+                    'Output-loop-item',
+                    'List[int]',
+                    'list-dict-without-type-maker-5',
+                )
+            ),
+            'parameter_input_spec': structures.InputSpec('Integer'),
+            'is_compatible': True,
         },
     )
     def test_verify_type_compatibility(
         self,
-        argument_value: Union[pipeline_channel.PipelineChannel, str, bool, int,
-                              float, dict, list],
+        argument_value: Union[
+            pipeline_channel.PipelineChannel, str, bool, int, float, dict, list
+        ],
         parameter_input_spec: structures.InputSpec,
         is_compatible: bool,
     ):
@@ -986,7 +792,8 @@ class TestTypeChecking(parameterized.TestCase):
                     given_value=argument_value,
                     expected_spec=parameter_input_spec,
                     error_message_prefix='',
-                ))
+                )
+            )
         else:
             with self.assertRaises(InconsistentTypeException):
                 type_utils.verify_type_compatibility(
@@ -998,13 +805,12 @@ class TestTypeChecking(parameterized.TestCase):
     def test_list_of_artifacts_across_compilation_valid(self):
 
         @dsl.component
-        def double(num: int, out_dataset: Output[Dataset]):
-            ...
+        def double(num: int, out_dataset: Output[Dataset]): ...
 
         @dsl.component
-        def add(in_datasets: Input[List[Dataset]],
-                out_dataset: Output[Dataset]):
-            ...
+        def add(
+            in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]
+        ): ...
 
         loaded_add = compile_and_load_component(add)
 
@@ -1021,7 +827,8 @@ class TestTypeChecking(parameterized.TestCase):
 
         @dsl.pipeline
         def outer_math_pipeline(
-                in_datasets: Input[List[Dataset]]) -> List[Dataset]:
+            in_datasets: Input[List[Dataset]],
+        ) -> List[Dataset]:
             # artifact list arg can be provided for artifact list type (of pipeline)
             t = loaded_math_pipeline(in_datasets=in_datasets)
             # artifact list output can be surfaced to artifact list output
@@ -1030,14 +837,13 @@ class TestTypeChecking(parameterized.TestCase):
     def test_list_of_artifacts_across_compilation_invalid_component_input(self):
 
         @dsl.component
-        def add(in_datasets: Input[Dataset]):
-            ...
+        def add(in_datasets: Input[Dataset]): ...
 
         loaded_add = compile_and_load_component(add)
 
         with self.assertRaisesRegex(
-                InconsistentTypeException,
-                r"Incompatible argument passed to the input 'in_datasets' of component 'add': Argument type 'List\[system\.Dataset@0\.0\.1\]' is incompatible with the input type 'system\.Dataset@0\.0\.1'"
+            InconsistentTypeException,
+            r"Incompatible argument passed to the input 'in_datasets' of component 'add': Argument type 'List\[system\.Dataset@0\.0\.1\]' is incompatible with the input type 'system\.Dataset@0\.0\.1'",
         ):
 
             @dsl.pipeline
@@ -1048,13 +854,12 @@ class TestTypeChecking(parameterized.TestCase):
     def test_list_of_artifacts_across_compilation_invalid_pipeline_input(self):
 
         @dsl.component
-        def double(num: int, out_dataset: Output[Dataset]):
-            ...
+        def double(num: int, out_dataset: Output[Dataset]): ...
 
         @dsl.component
-        def add(in_datasets: Input[List[Dataset]],
-                out_dataset: Output[Dataset]):
-            ...
+        def add(
+            in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]
+        ): ...
 
         @dsl.pipeline
         def math_pipeline(in_datasets: Input[List[Dataset]]) -> List[Dataset]:
@@ -1065,13 +870,14 @@ class TestTypeChecking(parameterized.TestCase):
             return dsl.Collected(t.outputs['out_dataset'])
 
         with self.assertRaisesRegex(
-                InconsistentTypeException,
-                r"Incompatible argument passed to the input 'in_datasets' of component 'math-pipeline': Argument type 'system\.Dataset@0\.0\.1' is incompatible with the input type 'List\[system.Dataset@0\.0\.1\]'"
+            InconsistentTypeException,
+            r"Incompatible argument passed to the input 'in_datasets' of component 'math-pipeline': Argument type 'system\.Dataset@0\.0\.1' is incompatible with the input type 'List\[system.Dataset@0\.0\.1\]'",
         ):
 
             @dsl.pipeline
             def outer_math_pipeline(
-                    in_dataset: Input[Dataset]) -> List[Dataset]:
+                in_dataset: Input[Dataset],
+            ) -> List[Dataset]:
                 # single artifact arg cannot be provided to artifact list type (of pipeline)
                 t = math_pipeline(in_datasets=in_dataset)
                 return t.output
@@ -1079,13 +885,12 @@ class TestTypeChecking(parameterized.TestCase):
     def test_list_of_artifacts_across_compilation_invalid_pipeline_output(self):
 
         @dsl.component
-        def double(num: int, out_dataset: Output[Dataset]):
-            ...
+        def double(num: int, out_dataset: Output[Dataset]): ...
 
         @dsl.component
-        def add(in_datasets: Input[List[Dataset]],
-                out_dataset: Output[Dataset]):
-            ...
+        def add(
+            in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]
+        ): ...
 
         @dsl.pipeline
         def math_pipeline(in_datasets: Input[List[Dataset]]) -> List[Dataset]:
@@ -1096,20 +901,22 @@ class TestTypeChecking(parameterized.TestCase):
             return dsl.Collected(t.outputs['out_dataset'])
 
         with self.assertRaisesRegex(
-                InconsistentTypeException,
-                r"Incompatible return type provided for output of pipeline 'outer-math-pipeline'\. Output of type 'List\[system\.Dataset@0\.0\.1\]' cannot be surfaced as pipeline output type 'system\.Dataset@0\.0\.1"
+            InconsistentTypeException,
+            r"Incompatible return type provided for output of pipeline 'outer-math-pipeline'\. Output of type 'List\[system\.Dataset@0\.0\.1\]' cannot be surfaced as pipeline output type 'system\.Dataset@0\.0\.1",
         ):
 
             @dsl.pipeline
             def outer_math_pipeline(
-                    in_dataset: Input[List[Dataset]]) -> Dataset:
+                in_dataset: Input[List[Dataset]],
+            ) -> Dataset:
                 t = math_pipeline(in_datasets=in_dataset)
                 # artifact list output cannot be surfaced as single artifact output
                 return t.output
 
 
 def compile_and_load_component(
-        comp: base_component.BaseComponent) -> yaml_component.YamlComponent:
+    comp: base_component.BaseComponent,
+) -> yaml_component.YamlComponent:
 
     with tempfile.TemporaryDirectory() as tempdir:
         output_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -1118,25 +925,26 @@ def compile_and_load_component(
 
 
 class TestGetCanonicalNameForOuterGeneric(parameterized.TestCase):
-
-    @parameterized.parameters([
-        {
-            'type_name': 'typing.List[str]',
-            'expected': 'List',
-        },
-        {
-            'type_name': 'typing.Dict[str, str]',
-            'expected': 'Dict',
-        },
-        {
-            'type_name': 'String',
-            'expected': 'String',
-        },
-    ])
+    @parameterized.parameters(
+        [
+            {
+                'type_name': 'typing.List[str]',
+                'expected': 'List',
+            },
+            {
+                'type_name': 'typing.Dict[str, str]',
+                'expected': 'Dict',
+            },
+            {
+                'type_name': 'String',
+                'expected': 'String',
+            },
+        ]
+    )
     def test(self, type_name, expected):
         self.assertEqual(
-            expected,
-            type_utils.get_canonical_name_for_outer_generic(type_name))
+            expected, type_utils.get_canonical_name_for_outer_generic(type_name)
+        )
 
 
 if __name__ == '__main__':

@@ -38,10 +38,12 @@ def _without_extraction_filters():
             tarfile.data_filter = saved
 
 
-def _archive(name: str,
-             data: bytes = b'payload',
-             typeflag: bytes = tarfile.REGTYPE,
-             linkname: str = '') -> io.BytesIO:
+def _archive(
+    name: str,
+    data: bytes = b'payload',
+    typeflag: bytes = tarfile.REGTYPE,
+    linkname: str = '',
+) -> io.BytesIO:
     """Build an in-memory tar holding a single member."""
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode='w') as tar:
@@ -58,7 +60,6 @@ def _archive(name: str,
 
 
 class TestSafeExtract(unittest.TestCase):
-
     @contextlib.contextmanager
     def _dest(self):
         """Yield (extraction destination, a sibling directory outside it)."""
@@ -89,7 +90,8 @@ class TestSafeExtract(unittest.TestCase):
             with self.assertRaises(_REFUSALS):
                 self._extract(_archive('../outside/escaped.txt'), dest)
             self.assertFalse(
-                os.path.exists(os.path.join(outside, 'escaped.txt')))
+                os.path.exists(os.path.join(outside, 'escaped.txt'))
+            )
 
     def test_absolute_member_does_not_escape(self):
         with self._dest() as (dest, outside):
@@ -110,7 +112,10 @@ class TestSafeExtract(unittest.TestCase):
                     _archive(
                         'link',
                         typeflag=tarfile.SYMTYPE,
-                        linkname=os.path.join(outside, 'target')), dest)
+                        linkname=os.path.join(outside, 'target'),
+                    ),
+                    dest,
+                )
             self.assertFalse(os.path.exists(os.path.join(dest, 'link')))
 
     def test_compatibility_path_extracts_ordinary_member(self):
@@ -126,7 +131,8 @@ class TestSafeExtract(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     self._extract(_archive('../outside/escaped.txt'), dest)
             self.assertFalse(
-                os.path.exists(os.path.join(outside, 'escaped.txt')))
+                os.path.exists(os.path.join(outside, 'escaped.txt'))
+            )
 
     def test_compatibility_path_rejects_absolute_member(self):
         with self._dest() as (dest, outside):
@@ -144,12 +150,14 @@ class TestSafeExtract(unittest.TestCase):
                         _archive(
                             'link',
                             typeflag=tarfile.SYMTYPE,
-                            linkname=os.path.join(outside, 'target')), dest)
+                            linkname=os.path.join(outside, 'target'),
+                        ),
+                        dest,
+                    )
             self.assertFalse(os.path.exists(os.path.join(dest, 'link')))
 
 
 class TestSafeExtractSource(unittest.TestCase):
-
     def test_source_defines_the_helper(self):
         namespace = {}
         exec(safe_extract.get_safe_extract_source(), namespace)  # noqa: S102
@@ -163,7 +171,8 @@ class TestSafeExtractSource(unittest.TestCase):
             dest = os.path.join(root, 'assets')
             os.makedirs(dest)
             with tarfile.open(
-                    fileobj=_archive('../escaped.txt'), mode='r') as tar:
+                fileobj=_archive('../escaped.txt'), mode='r'
+            ) as tar:
                 with self.assertRaises(_REFUSALS):
                     embedded(tar, dest)
             self.assertFalse(os.path.exists(os.path.join(root, 'escaped.txt')))

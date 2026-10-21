@@ -20,14 +20,16 @@ import (
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Helper function to create a run with tasks for testing
@@ -47,7 +49,7 @@ func initWithRunAndTasks(t *testing.T) (*resource.FakeClientManager, *resource.R
 		DisplayName: "test-run",
 		Namespace:   "ns1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	}
 	createdRun, err := resourceManager.CreateRun(ctx, run)
@@ -59,7 +61,7 @@ func initWithRunAndTasks(t *testing.T) (*resource.FakeClientManager, *resource.R
 			Namespace: "ns1",
 			RunUUID:   createdRun.UUID,
 			Name:      fmt.Sprintf("task-%d", i),
-			State:     model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+			State:     model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		}
 		_, err := clientManager.TaskStore().CreateTask(task)
 		assert.Nil(t, err)
@@ -81,8 +83,8 @@ func TestGetRun_DefaultView(t *testing.T) {
 	}
 
 	// Get run with DEFAULT view (or unspecified)
-	defaultView := apiv2beta1.GetRunRequest_DEFAULT
-	response, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	defaultView := apiv2.GetRunRequest_DEFAULT
+	response, err := server.GetRun(ctx, &apiv2.GetRunRequest{
 		RunId: createdRun.UUID,
 		View:  &defaultView,
 	})
@@ -111,7 +113,7 @@ func TestGetRun_DefaultView_Unspecified(t *testing.T) {
 	}
 
 	// Get run without specifying view (should default to DEFAULT behavior)
-	response, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	response, err := server.GetRun(ctx, &apiv2.GetRunRequest{
 		RunId: createdRun.UUID,
 	})
 
@@ -139,8 +141,8 @@ func TestGetRun_FullView(t *testing.T) {
 	}
 
 	// Get run with FULL view
-	fullView := apiv2beta1.GetRunRequest_FULL
-	response, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	response, err := server.GetRun(ctx, &apiv2.GetRunRequest{
 		RunId: createdRun.UUID,
 		View:  &fullView,
 	})
@@ -179,8 +181,8 @@ func TestListRuns_DefaultView(t *testing.T) {
 	}
 
 	// List runs with DEFAULT view
-	defaultView := apiv2beta1.ListRunsRequest_DEFAULT
-	response, err := server.ListRuns(ctx, &apiv2beta1.ListRunsRequest{
+	defaultView := apiv2.ListRunsRequest_DEFAULT
+	response, err := server.ListRuns(ctx, &apiv2.ListRunsRequest{
 		Namespace: "ns1",
 		View:      &defaultView,
 	})
@@ -190,7 +192,7 @@ func TestListRuns_DefaultView(t *testing.T) {
 	assert.True(t, len(response.Runs) > 0)
 
 	// Find our created run
-	var foundRun *apiv2beta1.Run
+	var foundRun *apiv2.Run
 	for _, run := range response.Runs {
 		if run.RunId == createdRun.UUID {
 			foundRun = run
@@ -220,7 +222,7 @@ func TestListRuns_DefaultView_Unspecified(t *testing.T) {
 	}
 
 	// List runs without specifying view (should default to DEFAULT behavior)
-	response, err := server.ListRuns(ctx, &apiv2beta1.ListRunsRequest{
+	response, err := server.ListRuns(ctx, &apiv2.ListRunsRequest{
 		Namespace: "ns1",
 	})
 
@@ -229,7 +231,7 @@ func TestListRuns_DefaultView_Unspecified(t *testing.T) {
 	assert.True(t, len(response.Runs) > 0)
 
 	// Find our created run
-	var foundRun *apiv2beta1.Run
+	var foundRun *apiv2.Run
 	for _, run := range response.Runs {
 		if run.RunId == createdRun.UUID {
 			foundRun = run
@@ -259,8 +261,8 @@ func TestListRuns_FullView(t *testing.T) {
 	}
 
 	// List runs with FULL view
-	fullView := apiv2beta1.ListRunsRequest_FULL
-	response, err := server.ListRuns(ctx, &apiv2beta1.ListRunsRequest{
+	fullView := apiv2.ListRunsRequest_FULL
+	response, err := server.ListRuns(ctx, &apiv2.ListRunsRequest{
 		Namespace: "ns1",
 		View:      &fullView,
 	})
@@ -270,7 +272,7 @@ func TestListRuns_FullView(t *testing.T) {
 	assert.True(t, len(response.Runs) > 0)
 
 	// Find our created run
-	var foundRun *apiv2beta1.Run
+	var foundRun *apiv2.Run
 	for _, run := range response.Runs {
 		if run.RunId == createdRun.UUID {
 			foundRun = run
@@ -314,15 +316,15 @@ func TestGetRun_NoTasks(t *testing.T) {
 		DisplayName: "test-run-no-tasks",
 		Namespace:   "ns1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	}
 	createdRun, err := manager.CreateRun(ctx, run)
 	assert.Nil(t, err)
 
 	// Get run with DEFAULT view
-	defaultView := apiv2beta1.GetRunRequest_DEFAULT
-	response, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	defaultView := apiv2.GetRunRequest_DEFAULT
+	response, err := server.GetRun(ctx, &apiv2.GetRunRequest{
 		RunId: createdRun.UUID,
 		View:  &defaultView,
 	})
@@ -350,8 +352,8 @@ func TestTaskCount_AlwaysPopulated(t *testing.T) {
 	}
 
 	// Test with DEFAULT view
-	defaultView := apiv2beta1.GetRunRequest_DEFAULT
-	defaultResponse, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	defaultView := apiv2.GetRunRequest_DEFAULT
+	defaultResponse, err := server.GetRun(ctx, &apiv2.GetRunRequest{
 		RunId: createdRun.UUID,
 		View:  &defaultView,
 	})
@@ -359,8 +361,8 @@ func TestTaskCount_AlwaysPopulated(t *testing.T) {
 	assert.Equal(t, int32(3), defaultResponse.TaskCount)
 
 	// Test with FULL view
-	fullView := apiv2beta1.GetRunRequest_FULL
-	fullResponse, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	fullResponse, err := server.GetRun(ctx, &apiv2.GetRunRequest{
 		RunId: createdRun.UUID,
 		View:  &fullView,
 	})
@@ -380,8 +382,8 @@ func TestListRunsPageSizeForView(t *testing.T) {
 		viper.Set(common.ListRunsFullViewMaxPageSize, originalFullViewMaxPageSize)
 	})
 
-	fullView := apiv2beta1.ListRunsRequest_FULL
-	defaultView := apiv2beta1.ListRunsRequest_DEFAULT
+	fullView := apiv2.ListRunsRequest_FULL
+	defaultView := apiv2.ListRunsRequest_DEFAULT
 
 	viper.Set(common.ListRunsFullViewMaxPageSize, 7)
 
@@ -409,7 +411,7 @@ func TestGetRun_FullView_OrdersTasksAndChildTasksDeterministically(t *testing.T)
 		Name:           "parent",
 		CreatedAtInSec: 30,
 		StartedInSec:   30,
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	assert.NoError(t, err)
 	_, err = taskStore.CreateTask(&model.Task{
@@ -419,7 +421,7 @@ func TestGetRun_FullView_OrdersTasksAndChildTasksDeterministically(t *testing.T)
 		ParentTaskUUID: &parentTask.UUID,
 		CreatedAtInSec: 25,
 		StartedInSec:   25,
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	assert.NoError(t, err)
 	_, err = taskStore.CreateTask(&model.Task{
@@ -428,7 +430,7 @@ func TestGetRun_FullView_OrdersTasksAndChildTasksDeterministically(t *testing.T)
 		Name:           "sibling-early",
 		CreatedAtInSec: 10,
 		StartedInSec:   10,
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	assert.NoError(t, err)
 	_, err = taskStore.CreateTask(&model.Task{
@@ -438,12 +440,12 @@ func TestGetRun_FullView_OrdersTasksAndChildTasksDeterministically(t *testing.T)
 		ParentTaskUUID: &parentTask.UUID,
 		CreatedAtInSec: 15,
 		StartedInSec:   15,
-		State:          model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	assert.NoError(t, err)
 
-	fullView := apiv2beta1.GetRunRequest_FULL
-	response, err := server.GetRun(context.Background(), &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	response, err := server.GetRun(context.Background(), &apiv2.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
@@ -455,7 +457,7 @@ func TestGetRun_FullView_OrdersTasksAndChildTasksDeterministically(t *testing.T)
 		assert.Equal(t, "parent", response.GetTasks()[3].GetName())
 	}
 
-	var apiParent *apiv2beta1.PipelineTask
+	var apiParent *apiv2.PipelineTask
 	for _, task := range response.GetTasks() {
 		if task.GetTaskId() == parentTask.UUID {
 			apiParent = task
@@ -477,11 +479,14 @@ func TestGetRun_FullView_AfterReportWorkflowHydratesTasks(t *testing.T) {
 		Namespace: run.Namespace,
 		RunUUID:   run.UUID,
 		Name:      "reported-task",
-		State:     model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		State:     model.TaskStatus(apiv2.PipelineTask_RUNNING),
 	})
 	assert.NoError(t, err)
 
-	workflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	execution, err := clients.ExecClient().Execution(run.Namespace).Get(context.Background(), run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	workflow, ok := execution.(*util.Workflow)
+	require.True(t, ok)
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
 	workflow.Status.Phase = v1alpha1.WorkflowFailed
 	workflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
@@ -495,8 +500,8 @@ func TestGetRun_FullView_AfterReportWorkflowHydratesTasks(t *testing.T) {
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.NoError(t, err)
 
-	fullView := apiv2beta1.GetRunRequest_FULL
-	response, err := server.GetRun(context.Background(), &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	response, err := server.GetRun(context.Background(), &apiv2.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
@@ -533,7 +538,7 @@ func TestListRuns_FullView_UsesConfiguredMaxPageSize(t *testing.T) {
 			DisplayName: fmt.Sprintf("test-run-extra-%d", index),
 			Namespace:   "ns1",
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+				PipelineSpecManifest: model.LargeText(testIRPipeline),
 			},
 		}
 		extraRun, err := manager.CreateRun(ctx, run)
@@ -543,13 +548,13 @@ func TestListRuns_FullView_UsesConfiguredMaxPageSize(t *testing.T) {
 			Namespace: "ns1",
 			RunUUID:   extraRun.UUID,
 			Name:      fmt.Sprintf("task-extra-%d", index),
-			State:     model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+			State:     model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		})
 		assert.NoError(t, err)
 	}
 
-	fullView := apiv2beta1.ListRunsRequest_FULL
-	response, err := server.ListRuns(ctx, &apiv2beta1.ListRunsRequest{
+	fullView := apiv2.ListRunsRequest_FULL
+	response, err := server.ListRuns(ctx, &apiv2.ListRunsRequest{
 		Namespace: "ns1",
 		View:      &fullView,
 		PageSize:  10,

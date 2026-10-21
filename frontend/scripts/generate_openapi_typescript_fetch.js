@@ -25,85 +25,52 @@ const GLOBAL_PROPERTIES = [
 const DEFAULT_CONCURRENCY = Math.max(1, Math.min(os.cpus().length, 4));
 
 const SPEC_TARGETS = {
-  'v1:experiment': {
-    spec: 'backend/api/v1beta1/swagger/experiment.swagger.json',
-    output: 'frontend/src/apis/experiment',
+  'v2:experiment': {
+    spec: 'backend/api/v2/swagger/experiment.swagger.json',
+    output: 'frontend/src/apisv2/experiment',
   },
-  'v1:job': {
-    spec: 'backend/api/v1beta1/swagger/job.swagger.json',
-    output: 'frontend/src/apis/job',
+  'v2:artifact': {
+    spec: 'backend/api/v2/swagger/artifact.swagger.json',
+    output: 'frontend/src/apisv2/artifact',
   },
-  'v1:pipeline': {
-    spec: 'backend/api/v1beta1/swagger/pipeline.swagger.json',
-    output: 'frontend/src/apis/pipeline',
+  'v2:artifact-server': {
+    spec: 'backend/api/v2/swagger/artifact.swagger.json',
+    output: 'frontend/server/src/generated/apisv2/artifact',
   },
-  'v1:run': {
-    spec: 'backend/api/v1beta1/swagger/run.swagger.json',
-    output: 'frontend/src/apis/run',
+  'v2:recurringrun': {
+    spec: 'backend/api/v2/swagger/recurring_run.swagger.json',
+    output: 'frontend/src/apisv2/recurringrun',
   },
-  'v1:filter': {
-    spec: 'backend/api/v1beta1/swagger/filter.swagger.json',
-    output: 'frontend/src/apis/filter',
+  'v2:pipeline': {
+    spec: 'backend/api/v2/swagger/pipeline.swagger.json',
+    output: 'frontend/src/apisv2/pipeline',
   },
-  'v1:visualization': {
-    spec: 'backend/api/v1beta1/swagger/visualization.swagger.json',
-    output: 'frontend/src/apis/visualization',
+  'v2:run': {
+    spec: 'backend/api/v2/swagger/run.swagger.json',
+    output: 'frontend/src/apisv2/run',
   },
-  'v1:auth': {
-    spec: 'backend/api/v1beta1/swagger/auth.swagger.json',
-    output: 'frontend/server/src/generated/apis/auth',
+  'v2:filter': {
+    spec: 'backend/api/v2/swagger/filter.swagger.json',
+    output: 'frontend/src/apisv2/filter',
   },
-  'v2beta1:experiment': {
-    spec: 'backend/api/v2beta1/swagger/experiment.swagger.json',
-    output: 'frontend/src/apisv2beta1/experiment',
-  },
-  'v2beta1:artifact': {
-    spec: 'backend/api/v2beta1/swagger/artifact.swagger.json',
-    output: 'frontend/src/apisv2beta1/artifact',
-  },
-  'v2beta1:artifact-server': {
-    spec: 'backend/api/v2beta1/swagger/artifact.swagger.json',
-    output: 'frontend/server/src/generated/apisv2beta1/artifact',
-  },
-  'v2beta1:recurringrun': {
-    spec: 'backend/api/v2beta1/swagger/recurring_run.swagger.json',
-    output: 'frontend/src/apisv2beta1/recurringrun',
-  },
-  'v2beta1:pipeline': {
-    spec: 'backend/api/v2beta1/swagger/pipeline.swagger.json',
-    output: 'frontend/src/apisv2beta1/pipeline',
-  },
-  'v2beta1:run': {
-    spec: 'backend/api/v2beta1/swagger/run.swagger.json',
-    output: 'frontend/src/apisv2beta1/run',
-  },
-  'v2beta1:filter': {
-    spec: 'backend/api/v2beta1/swagger/filter.swagger.json',
-    output: 'frontend/src/apisv2beta1/filter',
-  },
-  'v2beta1:visualization': {
-    spec: 'backend/api/v2beta1/swagger/visualization.swagger.json',
-    output: 'frontend/src/apisv2beta1/visualization',
-  },
-  'v2beta1:auth': {
-    spec: 'backend/api/v2beta1/swagger/auth.swagger.json',
-    output: 'frontend/server/src/generated/apisv2beta1/auth',
+  'v2:auth': {
+    spec: 'backend/api/v2/swagger/auth.swagger.json',
+    output: 'frontend/server/src/generated/apisv2/auth',
   },
 };
 
 const GROUPS = {
-  v1: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v1:')),
-  v2beta1: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v2beta1:')),
+  v2: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v2:')),
   all: Object.keys(SPEC_TARGETS),
 };
 const SHARED_OPENAPI_SUPPORT_GROUPS = [
   {
-    outputPrefixes: ['frontend/src/apis/', 'frontend/src/apisv2beta1/'],
+    outputPrefixes: ['frontend/src/apisv2/'],
     sharedRoot: 'frontend/src/generated/openapi',
     importExtension: '',
   },
   {
-    outputPrefixes: ['frontend/server/src/generated/apis/', 'frontend/server/src/generated/apisv2beta1/'],
+    outputPrefixes: ['frontend/server/src/generated/apisv2/'],
     sharedRoot: 'frontend/server/src/generated/openapi',
     importExtension: '.js',
   },
@@ -153,12 +120,8 @@ function resolveTargets(args) {
       continue;
     }
 
-    if (SPEC_TARGETS[`v1:${arg}`]) {
-      resolved.push(`v1:${arg}`);
-      continue;
-    }
-    if (SPEC_TARGETS[`v2beta1:${arg}`]) {
-      resolved.push(`v2beta1:${arg}`);
+    if (SPEC_TARGETS[`v2:${arg}`]) {
+      resolved.push(`v2:${arg}`);
       continue;
     }
 
@@ -243,14 +206,6 @@ function removeGeneratorMetadata(outputDir) {
   });
 }
 
-function normalizeV1ApiSymbols(source) {
-  let updated = source;
-  updated = updated.replace(/\b([A-Z][A-Za-z0-9_]*)V1Request\b/g, '$1Request');
-  updated = updated.replace(/\b([a-z][A-Za-z0-9_]*)V1Raw\b/g, '$1Raw');
-  updated = updated.replace(/\b([a-z][A-Za-z0-9_]*)V1(?=\s*\()/g, '$1');
-  return updated;
-}
-
 function normalizeNodeCompatibleFetchTypes(source) {
   let updated = source;
   updated = updated.replace(/WindowOrWorkerGlobalScope\['fetch'\]/g, 'typeof fetch');
@@ -268,11 +223,8 @@ function normalizeNodeCompatibleFetchTypes(source) {
 }
 
 function normalizeGeneratedTypeScriptSource(source, options = {}) {
-  const { nodeCompatibleFetchTypes = false, renameV1ApiSymbols = false } = options;
+  const { nodeCompatibleFetchTypes = false } = options;
   let updated = source;
-  if (renameV1ApiSymbols) {
-    updated = normalizeV1ApiSymbols(updated);
-  }
   if (nodeCompatibleFetchTypes) {
     updated = normalizeNodeCompatibleFetchTypes(updated);
   }
@@ -284,15 +236,12 @@ function normalizeGeneratedTypeScript(outputDir, options = {}) {
     return;
   }
 
-  const { nodeCompatibleFetchTypes = false, renameV1ApiSymbols = false } = options;
+  const { nodeCompatibleFetchTypes = false } = options;
   const tsFiles = listTypeScriptFiles(outputDir);
   for (const filePath of tsFiles) {
-    const relativePath = path.relative(outputDir, filePath);
-    const isApiFile = relativePath.split(path.sep)[0] === 'apis';
     const original = fs.readFileSync(filePath, 'utf8');
     const updated = normalizeGeneratedTypeScriptSource(original, {
       nodeCompatibleFetchTypes,
-      renameV1ApiSymbols: renameV1ApiSymbols && isApiFile,
     });
 
     if (updated !== original) {
@@ -562,7 +511,6 @@ function postProcessTarget(repoRoot, targetKey) {
   removeGeneratorMetadata(outputPath);
   normalizeGeneratedTypeScript(outputPath, {
     nodeCompatibleFetchTypes: isServerTarget(target),
-    renameV1ApiSymbols: targetKey.startsWith('v1:'),
   });
 }
 
@@ -670,6 +618,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  prepareTarget,
   formatGeneratedTypeScript,
   assertSharedOpenApiSupportMatches,
   createOpenApiReExportShim,
@@ -684,7 +633,6 @@ module.exports = {
   normalizeGeneratedTypeScript,
   normalizeGeneratedTypeScriptSource,
   normalizeNodeCompatibleFetchTypes,
-  normalizeV1ApiSymbols,
   resetFullySelectedSharedOpenApiSupportDirs,
   resolvePrettierModule,
   resolveTargets,

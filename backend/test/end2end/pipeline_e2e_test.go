@@ -21,10 +21,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
@@ -56,9 +56,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 		testContext.Pipeline.UploadParams = upload_params.NewUploadPipelineParams()
 		testContext.Pipeline.PipelineGeneratedName = "e2e-test-" + randomName
-		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
+		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2Pipeline, 0)
 		testContext.PipelineRun.CreatedRunIds = make([]string, 0)
-		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2beta1Pipeline)
+		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2Pipeline)
 		testContext.Pipeline.ExpectedPipeline.CreatedAt = strfmt.DateTime(testContext.TestStartTimeUTC)
 		var secrets []*v1.Secret
 		secret1 := &v1.Secret{
@@ -128,6 +128,43 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 
+	It("runs all 120 nodes of a cache-disabled DAG", Label("E2EScale"), func() {
+		var pipelineDir = "valid/scale"
+		pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, "dag_120.yaml")
+		uploadedPipeline, err := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+		Expect(err).NotTo(HaveOccurred())
+		testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+		version := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+		runID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext,
+			uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &version.PipelineVersionID,
+			experimentID, nil, 1200)
+
+		run := testutil.GetPipelineRun(runClient, &runID)
+		AddReportEntry("120-node DAG run", run)
+		Expect(run.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED.Pointer()),
+			"120-node DAG did not succeed; run ID: %s", runID)
+
+		expectedNames := make([]string, 120)
+		for nodeID := range expectedNames {
+			expectedNames[nodeID] = fmt.Sprintf("scale-node-%03d", nodeID)
+		}
+		// Task persistence may lag the terminal run update.
+		Eventually(func(g Gomega) {
+			run := testutil.GetPipelineRun(runClient, &runID)
+			var actualNames []string
+			for _, task := range run.Tasks {
+				if !strings.HasPrefix(task.DisplayName, "scale-node-") {
+					continue // The root DAG is a task too.
+				}
+				actualNames = append(actualNames, task.DisplayName)
+				g.Expect(task.State).To(Equal(run_model.PipelineTaskTaskStateSUCCEEDED.Pointer()), task.DisplayName)
+				g.Expect(task.Pods).To(ContainElement(HaveField("Type", Equal(run_model.PipelineTaskTaskPodTypeEXECUTOR.Pointer()))),
+					"Task %s must have an executor pod, not only a driver or cache hit", task.DisplayName)
+			}
+			g.Expect(actualNames).To(ConsistOf(expectedNames), "Expected exactly 120 executed DAG nodes")
+		}, time.Minute, 2*time.Second).Should(Succeed())
+	})
+
 	// Few of the following pipelines randomly fail in Multi User Mode during CI run - which is why a FlakeAttempt is added, but we need to investigate, create ticket and fix it in the future
 	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", E2eCritical), func() {
 		var pipelineDir = "valid/critical"
@@ -191,7 +228,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
-			createdExperiment := testutil.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+			createdExperiment := testutil.CreateExperimentWithParams(experimentClient, &experiment_model.V2Experiment{
 				DisplayName: "ProxyTest-" + randomName,
 				Namespace:   testutil.GetNamespace(),
 			})
@@ -199,14 +236,14 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			pipelineRuntimeInputs := map[string]interface{}{
 				"env_var": "http_proxy",
 			}
-			createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+			createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
 			if *config.RunProxyTests {
 				logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
 				compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 				e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
 			} else {
 				runState := testutil.GetPipelineRun(runClient, &createdRunID).State
-				expectedRunState := run_model.V2beta1RuntimeStateFAILED
+				expectedRunState := run_model.V2RuntimeStateFAILED
 				Expect(runState).To(Equal(&expectedRunState), fmt.Sprintf("Expected run with id=%s to fail with proxy=false", createdRunID))
 			}
 		})
@@ -226,11 +263,12 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
 				uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 				pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+				// Negative fixtures may intentionally use images that cannot be pulled.
+				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, nil, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
 				logger.Log("Fetching updated pipeline run details for run with id=%s", createdRunID)
 				updatedRun := testutil.GetPipelineRun(runClient, &createdRunID)
 				Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
-				Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
+				Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
 
 			})
 		}
@@ -278,7 +316,7 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
 	uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 	pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
 	logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
 	if strings.Contains(pipelineFile, "/") {
 		pipelineFile = strings.Split(pipelineFile, "/")[1]

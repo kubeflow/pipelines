@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.27.1-bookworm@sha256:648f440f42a0958804efb24df176f806f9d353b41f1c0627f666428e40310f6b AS builder
+FROM golang:1.27.2-bookworm@sha256:5cf287a799e6b94384bad13d16b14904c531f51ba65792237e122ce42b392f61 AS builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -32,11 +32,24 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.11-slim AS compiler
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl
-RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-COPY backend/requirements.txt .
-RUN python3 -m pip install -r requirements.txt --no-cache-dir
+FROM python:3.14-slim AS compiler
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl protobuf-compiler make git
+RUN pip install uv
+
+WORKDIR /workspace
+COPY pyproject.toml uv.lock ./
+COPY sdk/python ./sdk/python
+COPY kubernetes_platform/python ./kubernetes_platform/python
+COPY kubernetes_platform/proto ./kubernetes_platform/proto
+COPY api/Makefile ./api/Makefile
+COPY api/v2alpha1/python ./api/v2alpha1/python
+COPY api/v2alpha1/pipeline_spec.proto ./api/v2alpha1/pipeline_spec.proto
+# Ensure clean checkouts include generated pipeline spec Python module.
+RUN make -C api fetch-protos && \
+    python3 /workspace/api/v2alpha1/python/generate_proto.py && \
+    python3 /workspace/kubernetes_platform/python/generate_proto.py
+RUN uv sync --frozen --no-dev
+ENV PATH="/workspace/.venv/bin:$PATH"
 
 ARG TARGETARCH
 RUN echo "Building for architecture: ${TARGETARCH}"
@@ -58,10 +71,16 @@ COPY backend/src/apiserver/config/sample_config.json /samples/
 
 # Compiling the preloaded samples.
 # The default image is replaced with the GCR-hosted python image.
-RUN set -e; \
-    < /samples/sample_config.json jq ".pipelines[].file" --raw-output | while read pipeline_yaml; do \
+RUN apt-get update && apt-get install -y jq
+RUN set -ex; \
+    echo "Checking sample_config.json"; \
+    cat /samples/sample_config.json; \
+    jq ".pipelines[].file" --raw-output /samples/sample_config.json | while read pipeline_yaml; do \
     pipeline_py="${pipeline_yaml%.yaml}"; \
-    echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
+    echo "Compiling: $pipeline_py"; \
+    python3 "$pipeline_py" || exit 1; \
+    echo "Checking output..."; \
+    ls "$pipeline_py.yaml" || exit 1; \
     done
 
 # 3. Start api web server

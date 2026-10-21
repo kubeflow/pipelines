@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -120,15 +120,15 @@ type TaskArtifactHydrated struct {
 	Value    *Artifact
 	Producer *IOProducer
 	Key      string
-	Type     apiv2beta1.IOType
+	Type     apiv2.IOType
 }
 type IOProducer struct {
 	TaskName  string
 	Iteration *int64
 }
 
-type TaskType apiv2beta1.PipelineTask_TaskType
-type TaskStatus apiv2beta1.PipelineTask_TaskState
+type TaskType apiv2.PipelineTask_TaskType
+type TaskStatus apiv2.PipelineTask_TaskState
 
 type Task struct {
 	// idx_tasks_uuid_run is a composite candidate key so artifact_tasks can enforce
@@ -155,6 +155,9 @@ type Task struct {
 	TypeAttrs        JSONData   `gorm:"column:TypeAttrs; not null; type:json;"`
 	ScopePath        string     `gorm:"column:ScopePath; type:text; default:null;"`
 	LogicalKey       *string    `gorm:"column:LogicalKey; type:varchar(64); default:null; uniqueIndex:idx_tasks_logical_key;"`
+	// LifecycleMessage is the latest pod lifecycle diagnostic (e.g. "Back-off pulling image…").
+	// nil means "leave this field unchanged" in UpdateTask; a non-nil pointer (including empty) is written.
+	LifecycleMessage *LargeText `gorm:"column:LifecycleMessage; default:null;"`
 
 	// Transient fields populated during hydration (not stored in DB)
 	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
@@ -213,6 +216,7 @@ var taskAPIToModelFieldMap = map[string]string{
 	"inputs":            "InputParameters",
 	"outputs":           "OutputParameters",
 	"scope_path":        "ScopePath",
+	"lifecycle_message": "LifecycleMessage",
 }
 
 func (t Task) GetField(name string) (string, string, bool) {
@@ -268,6 +272,11 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.TypeAttrs
 	case "ScopePath":
 		return t.ScopePath
+	case "LifecycleMessage":
+		if t.LifecycleMessage != nil {
+			return *t.LifecycleMessage
+		}
+		return LargeText("")
 	default:
 		return nil
 	}

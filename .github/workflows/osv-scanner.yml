@@ -44,8 +44,7 @@ jobs:
           ./osv-scanner scan source \
             --recursive \
             --no-resolve \
-            --experimental-exclude backend/api/v1beta1/python_http_client \
-            --experimental-exclude backend/api/v2beta1/python_http_client \
+            --experimental-exclude backend/api/v2/python_http_client \
             --format sarif \
             --output-file osv-results.sarif \
             . || scan_exit_code=$?
@@ -82,6 +81,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
           persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
 
       - name: Install Kustomize
         env:

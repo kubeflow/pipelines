@@ -18,7 +18,7 @@ import * as React from 'react';
 import { Apis } from '../lib/Apis';
 import { generateGcsConsoleUri } from '../lib/Utils';
 import { parseArtifactFileLocation } from '../lib/v2/ArtifactFileUtils';
-import { StorageService } from '../lib/WorkflowParser';
+import { StorageService } from '../lib/StoragePath';
 
 interface ArtifactLinkProps {
   artifactUri?: string;

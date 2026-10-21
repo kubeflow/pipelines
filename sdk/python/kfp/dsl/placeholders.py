@@ -18,13 +18,8 @@ import abc
 import json
 from typing import Any, Dict, List, Optional, Union
 
-from kfp import dsl
-from kfp.dsl import utils
-from kfp.dsl.types import type_utils
-
 
 class Placeholder(abc.ABC):
-
     @abc.abstractmethod
     def _to_string(self) -> str:
         raise NotImplementedError
@@ -39,12 +34,13 @@ class Placeholder(abc.ABC):
 
     def __eq__(self, other: Any) -> bool:
         """Used for comparing placeholders in tests."""
-        return isinstance(other,
-                          self.__class__) and self.__dict__ == other.__dict__
+        return (
+            isinstance(other, self.__class__)
+            and self.__dict__ == other.__dict__
+        )
 
 
 class InputValuePlaceholder(Placeholder):
-
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
@@ -53,7 +49,6 @@ class InputValuePlaceholder(Placeholder):
 
 
 class InputListOfArtifactsPlaceholder(Placeholder):
-
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
@@ -75,7 +70,6 @@ class InputListOfArtifactsPlaceholder(Placeholder):
 
 
 class OutputListOfArtifactsPlaceholder(Placeholder):
-
     def __init__(self, input_name: str) -> None:
         self.output_name = input_name
 
@@ -97,7 +91,6 @@ class OutputListOfArtifactsPlaceholder(Placeholder):
 
 
 class InputPathPlaceholder(Placeholder):
-
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
@@ -106,7 +99,6 @@ class InputPathPlaceholder(Placeholder):
 
 
 class InputUriPlaceholder(Placeholder):
-
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
@@ -115,7 +107,6 @@ class InputUriPlaceholder(Placeholder):
 
 
 class InputMetadataPlaceholder(Placeholder):
-
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
@@ -123,11 +114,12 @@ class InputMetadataPlaceholder(Placeholder):
         return f"{{{{$.inputs.artifacts['{self.input_name}'].metadata}}}}"
 
     def __getitem__(self, key: str) -> str:
-        return f"{{{{$.inputs.artifacts['{self.input_name}'].metadata['{key}']}}}}"
+        return (
+            f"{{{{$.inputs.artifacts['{self.input_name}'].metadata['{key}']}}}}"
+        )
 
 
 class OutputParameterPlaceholder(Placeholder):
-
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
@@ -136,7 +128,6 @@ class OutputParameterPlaceholder(Placeholder):
 
 
 class OutputPathPlaceholder(Placeholder):
-
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
@@ -145,7 +136,6 @@ class OutputPathPlaceholder(Placeholder):
 
 
 class OutputUriPlaceholder(Placeholder):
-
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
@@ -154,7 +144,6 @@ class OutputUriPlaceholder(Placeholder):
 
 
 class OutputMetadataPlaceholder(Placeholder):
-
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
@@ -207,7 +196,8 @@ class ConcatPlaceholder(Placeholder):
 
     def __str__(self) -> str:
         raise ValueError(
-            f'Cannot use {self.__class__.__name__} in an f-string.')
+            f'Cannot use {self.__class__.__name__} in an f-string.'
+        )
 
 
 class IfPresentPlaceholder(Placeholder):
@@ -245,8 +235,9 @@ class IfPresentPlaceholder(Placeholder):
         self,
         input_name: str,
         then: Union['CommandLineElement', List['CommandLineElement']],
-        else_: Optional[Union['CommandLineElement',
-                              List['CommandLineElement']]] = None,
+        else_: Optional[
+            Union['CommandLineElement', List['CommandLineElement']]
+        ] = None,
     ) -> None:
         self.input_name = input_name
         self.then = then
@@ -285,24 +276,28 @@ class IfPresentPlaceholder(Placeholder):
     def _to_dict(self) -> Dict[str, Any]:
         struct = {
             'IfPresent': {
-                'InputName':
-                    self.input_name,
+                'InputName': self.input_name,
                 'Then': [
                     convert_command_line_element_to_string_or_struct(e)
                     for e in self.then
-                ] if isinstance(self.then, list) else
-                        convert_command_line_element_to_string_or_struct(
-                            self.then)
+                ]
+                if isinstance(self.then, list)
+                else convert_command_line_element_to_string_or_struct(
+                    self.then
+                ),
             }
         }
         if self.else_:
-            struct['IfPresent']['Else'] = [
-                convert_command_line_element_to_string_or_struct(e)
-                for e in self.else_
-            ] if isinstance(
-                self.else_,
-                list) else convert_command_line_element_to_string_or_struct(
-                    self.else_)
+            struct['IfPresent']['Else'] = (
+                [
+                    convert_command_line_element_to_string_or_struct(e)
+                    for e in self.else_
+                ]
+                if isinstance(self.else_, list)
+                else convert_command_line_element_to_string_or_struct(
+                    self.else_
+                )
+            )
         return struct
 
     def _to_string(self) -> str:
@@ -310,144 +305,43 @@ class IfPresentPlaceholder(Placeholder):
 
     def __str__(self) -> str:
         raise ValueError(
-            f'Cannot use {self.__class__.__name__} in an f-string.')
+            f'Cannot use {self.__class__.__name__} in an f-string.'
+        )
 
 
 _CONTAINER_PLACEHOLDERS = (IfPresentPlaceholder, ConcatPlaceholder)
-PRIMITIVE_INPUT_PLACEHOLDERS = (InputValuePlaceholder, InputPathPlaceholder,
-                                InputUriPlaceholder, InputMetadataPlaceholder,
-                                InputListOfArtifactsPlaceholder)
-PRIMITIVE_OUTPUT_PLACEHOLDERS = (OutputParameterPlaceholder,
-                                 OutputPathPlaceholder, OutputUriPlaceholder,
-                                 OutputMetadataPlaceholder,
-                                 OutputListOfArtifactsPlaceholder)
+PRIMITIVE_INPUT_PLACEHOLDERS = (
+    InputValuePlaceholder,
+    InputPathPlaceholder,
+    InputUriPlaceholder,
+    InputMetadataPlaceholder,
+    InputListOfArtifactsPlaceholder,
+)
+PRIMITIVE_OUTPUT_PLACEHOLDERS = (
+    OutputParameterPlaceholder,
+    OutputPathPlaceholder,
+    OutputUriPlaceholder,
+    OutputMetadataPlaceholder,
+    OutputListOfArtifactsPlaceholder,
+)
 
 CommandLineElement = Union[str, Placeholder]
 
 
 def convert_command_line_element_to_string(
-        element: Union[str, Placeholder]) -> str:
+    element: Union[str, Placeholder],
+) -> str:
     return element._to_string() if isinstance(element, Placeholder) else element
 
 
 def convert_command_line_element_to_string_or_struct(
-        element: Union[Placeholder, Any]) -> Any:
+    element: Union[Placeholder, Any],
+) -> Any:
     if isinstance(element, Placeholder):
-        return element._to_dict() if isinstance(
-            element, _CONTAINER_PLACEHOLDERS) else element._to_string()
+        return (
+            element._to_dict()
+            if isinstance(element, _CONTAINER_PLACEHOLDERS)
+            else element._to_string()
+        )
 
     return element
-
-
-def maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-        arg: Dict[str, Any],
-        component_dict: Dict[str, Any]) -> Union[CommandLineElement, Any]:
-    if isinstance(arg, str):
-        return arg
-
-    if not isinstance(arg, dict):
-        raise ValueError
-
-    has_one_entry = len(arg) == 1
-
-    if not has_one_entry:
-        raise ValueError(
-            f'Got unexpected dictionary {arg}. Expected a dictionary with one entry.'
-        )
-
-    first_key = list(arg.keys())[0]
-    first_value = list(arg.values())[0]
-    if first_key == 'inputValue':
-        return InputValuePlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'inputPath':
-        return InputPathPlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'inputUri':
-        return InputUriPlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'outputPath':
-        outputs = component_dict['outputs']
-        for output in outputs:
-            if output['name'] == first_value:
-                type_ = output.get('type')
-                is_parameter = type_utils.is_parameter_type(type_)
-                if is_parameter:
-                    return OutputParameterPlaceholder(
-                        output_name=utils.sanitize_input_name(first_value))
-                else:
-                    return OutputPathPlaceholder(
-                        output_name=utils.sanitize_input_name(first_value))
-        raise ValueError(
-            f'{first_value} not found in component outputs. Could not process placeholders. Component spec: {component_dict}.'
-        )
-
-    elif first_key == 'outputUri':
-        return OutputUriPlaceholder(
-            output_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'ifPresent':
-        structure_kwargs = arg['ifPresent']
-        structure_kwargs['input_name'] = structure_kwargs.pop('inputName')
-        structure_kwargs['otherwise'] = structure_kwargs.pop('else')
-        structure_kwargs['then'] = [
-            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                e, component_dict=component_dict)
-            for e in structure_kwargs['then']
-        ]
-        structure_kwargs['otherwise'] = [
-            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                e, component_dict=component_dict)
-            for e in structure_kwargs['otherwise']
-        ]
-        return IfPresentPlaceholder(**structure_kwargs)
-
-    elif first_key == 'concat':
-        return ConcatPlaceholder(items=[
-            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                e, component_dict=component_dict) for e in arg['concat']
-        ])
-
-    elif first_key == 'executorInput':
-        return dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER
-
-    elif 'if' in arg:
-        if_ = arg['if']
-        input_name = utils.sanitize_input_name(if_['cond']['isPresent'])
-        then = if_['then']
-        else_ = if_.get('else')
-
-        if isinstance(then, list):
-            then = [
-                maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                    val, component_dict=component_dict) for val in then
-            ]
-        else:
-            then = maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                then, component_dict=component_dict)
-
-        if else_ is None:
-            pass
-        elif isinstance(else_, list):
-            else_ = [
-                maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                    val, component_dict=component_dict) for val in else_
-            ]
-        else:
-            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                else_, component_dict=component_dict)
-
-        return IfPresentPlaceholder(
-            input_name=input_name, then=then, else_=else_)
-
-    elif 'concat' in arg:
-
-        return ConcatPlaceholder(items=[
-            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                val, component_dict=component_dict) for val in arg['concat']
-        ])
-    else:
-        raise TypeError(f'Unexpected argument {arg} of type {type(arg)}.')

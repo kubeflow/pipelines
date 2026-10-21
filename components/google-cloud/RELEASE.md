@@ -609,7 +609,7 @@ Google Cloud Pipeline Components v2 is generally available!
 
 ## Release 0.3.0
 * Update BQML export model input from string to artifact
-* Move model/endpoint/job/bqml compoennts to 1.0 namespace
+* Move model/endpoint/job/bqml components to 1.0 namespace
 * Expose `enable_web_access` and `reserved_ip_ranges` for custom job component
 * Add delete model and undeploy model components
 * Add utility library for google artifacts

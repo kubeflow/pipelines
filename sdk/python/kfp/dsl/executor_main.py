@@ -18,14 +18,14 @@ import os
 import sys
 
 from kfp.dsl import executor as component_executor
-from kfp.dsl import kfp_config
-from kfp.dsl import utils
+from kfp.dsl import kfp_config, utils
 
 
 def _setup_logging():
     logging_format = '[KFP Executor %(asctime)s %(levelname)s]: %(message)s'
     logging.basicConfig(
-        stream=sys.stdout, format=logging_format, level=logging.INFO)
+        stream=sys.stdout, format=logging_format, level=logging.INFO
+    )
 
 
 def executor_main():
@@ -35,20 +35,23 @@ def executor_main():
     parser.add_argument(
         '--component_module_path',
         type=str,
-        help='Path to a module containing the KFP component.')
+        help='Path to a module containing the KFP component.',
+    )
 
     parser.add_argument(
         '--function_to_execute',
         type=str,
         required=True,
         help='The name of the component function in '
-        '--component_module_path file that is to be executed.')
+        '--component_module_path file that is to be executed.',
+    )
 
     parser.add_argument(
         '--executor_input',
         type=str,
         help='JSON-serialized ExecutorInput from the orchestrator. '
-        'This should contain inputs and placeholders for outputs.')
+        'This should contain inputs and placeholders for outputs.',
+    )
 
     args, _ = parser.parse_known_args()
 
@@ -63,7 +66,9 @@ def executor_main():
         )
         module_path = args.component_module_path
         module_directory = os.path.dirname(args.component_module_path)
-        module_name = os.path.basename(args.component_module_path)[:-len('.py')]
+        module_name = os.path.basename(args.component_module_path)[
+            : -len('.py')
+        ]
     else:
         # Look for module directory using kfp_config.ini
         logging.info(
@@ -81,14 +86,15 @@ def executor_main():
             )
 
         module_directory = str(module_path.parent)
-        module_name = str(module_path.name)[:-len('.py')]
+        module_name = str(module_path.name)[: -len('.py')]
 
     logging.info(
         f'Loading KFP component "{func_name}" from {module_path} (directory "{module_directory}" and module name "{module_name}")'
     )
 
     module = utils.load_module(
-        module_name=module_name, module_directory=module_directory)
+        module_name=module_name, module_directory=module_directory
+    )
 
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, func_name)
@@ -96,7 +102,8 @@ def executor_main():
     logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 
     executor = component_executor.Executor(
-        executor_input=executor_input, function_to_execute=function_to_execute)
+        executor_input=executor_input, function_to_execute=function_to_execute
+    )
 
     output_file = executor.execute()
     if output_file is None:

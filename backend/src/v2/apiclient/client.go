@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
@@ -40,7 +40,7 @@ const (
 	defaultMinConnectTimeout          = 20 * time.Second
 )
 
-// Client provides typed clients for KFP v2beta1 API services used by driver/launcher.
+// Client provides typed clients for KFP v2 API services used by driver/launcher.
 type Client struct {
 	Run      gc.RunServiceClient
 	Pipeline gc.PipelineServiceClient
@@ -53,6 +53,9 @@ type Client struct {
 type Config struct {
 	// Endpoint in host:port form, e.g. ml-pipeline.kubeflow:8887
 	Endpoint string
+	// TokenSource overrides projected-file credentials for this client only.
+	// When nil, the client reads the launcher token at KFPTokenPath.
+	TokenSource TokenSource
 	// Optional gRPC connection backoff settings propagated from the API server.
 	BackoffBaseDelay  string
 	BackoffMultiplier string
@@ -101,7 +104,7 @@ func New(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 	dialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(defaultMaxCallRecvMsgSize)),
 		grpc.WithTransportCredentials(creds),
-		grpc.WithPerRPCCredentials(newTokenPerRPCCredentials(tlsCfg != nil)),
+		grpc.WithPerRPCCredentials(newTokenPerRPCCredentials(tlsCfg != nil, cfg.TokenSource)),
 	}
 	connectParams, err := cfg.connectParams()
 	if err != nil {

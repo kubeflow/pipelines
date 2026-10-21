@@ -14,10 +14,8 @@
 import collections
 from typing import NamedTuple
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Artifact, Output
 
 
 @dsl.component
@@ -29,7 +27,7 @@ def print_op1(msg: str) -> str:
 @dsl.container_component
 def print_op2(msg: str, data: Output[Artifact]):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=[
             'sh',
             '-c',
@@ -40,11 +38,13 @@ def print_op2(msg: str, data: Output[Artifact]):
 
 
 @dsl.pipeline
-def inner_pipeline(
-        msg: str) -> NamedTuple('Outputs', [
-            ('msg', str),
-            ('data', Artifact),
-        ]):
+def inner_pipeline(msg: str) -> NamedTuple(
+    'Outputs',
+    [
+        ('msg', str),
+        ('data', Artifact),
+    ],
+):
     task1 = print_op1(msg=msg)
     task2 = print_op2(msg=task1.output)
 
@@ -61,5 +61,5 @@ def my_pipeline(msg: str = 'Hello') -> Artifact:
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

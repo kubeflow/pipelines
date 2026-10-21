@@ -19,53 +19,56 @@ import re
 import subprocess
 import tempfile
 import textwrap
-from typing import Any, Dict, List, NamedTuple, Optional
 import unittest
+from typing import Any, Dict, List, NamedTuple, Optional
 
+import yaml
 from absl.testing import parameterized
 from click import testing
 from google.protobuf import json_format
+
 import kfp
-from kfp import components
-from kfp import dsl
+from kfp import components, dsl
 from kfp.cli import cli
-from kfp.compiler import compiler
-from kfp.compiler import compiler_utils
+from kfp.compiler import compiler, compiler_utils
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
-from kfp.dsl import Artifact
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Dataset
-from kfp.dsl import graph_component
-from kfp.dsl import Input
-from kfp.dsl import Model
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
-from kfp.dsl import pipeline_task
-from kfp.dsl import PipelineTaskFinalStatus
-from kfp.dsl import tasks_group
-from kfp.dsl import yaml_component
-from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
-from kfp.dsl.pipeline_config import PipelineConfig
-from kfp.dsl.pipeline_config import WorkspaceConfig
+from kfp.dsl import (
+    Artifact,
+    ContainerSpec,
+    Dataset,
+    Input,
+    Model,
+    Output,
+    OutputPath,
+    PipelineTaskFinalStatus,
+    graph_component,
+    pipeline_task,
+    placeholders,
+    tasks_group,
+    yaml_component,
+)
+from kfp.dsl.pipeline_config import (
+    KubernetesWorkspaceConfig,
+    PipelineConfig,
+    WorkspaceConfig,
+)
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
-VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
-    name: producer
-    inputs:
-    - {name: input_param, type: String}
-    outputs:
-    - {name: output_model, type: Model}
-    - {name: output_value, type: Integer}
-    implementation:
-      container:
-        image: gcr.io/my-project/my-image:tag
-        args:
-        - {inputValue: input_param}
-        - {outputPath: output_model}
-        - {outputPath: output_value}
-    """)
+
+@dsl.container_component
+def valid_producer_component_sample(
+    output_model: dsl.Output[dsl.Model],
+    output_value: dsl.OutputPath(int),
+    input_param: str,
+):
+    return dsl.ContainerSpec(
+        image='gcr.io/my-project/my-image:tag',
+        args=[input_param, output_model.path, output_value],
+    )
+
+
+VALID_PRODUCER_COMPONENT_SAMPLE = valid_producer_component_sample
 
 ### components used throughout tests ###
 
@@ -73,6 +76,7 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
 @dsl.component
 def flip_coin() -> str:
     import random
+
     return 'heads' if random.randint(0, 1) == 0 else 'tails'
 
 
@@ -85,6 +89,7 @@ def print_and_return(text: str) -> str:
 @dsl.component
 def roll_three_sided_die() -> str:
     import random
+
     val = random.randint(0, 2)
 
     if val == 0:
@@ -98,6 +103,7 @@ def roll_three_sided_die() -> str:
 @dsl.component
 def int_zero_through_three() -> int:
     import random
+
     return random.randint(0, 3)
 
 
@@ -186,7 +192,6 @@ def print_artifact(a: Input[Artifact]):
 
 
 class TestCompilePipeline(parameterized.TestCase):
-
     def test_can_use_dsl_attribute_on_kfp(self):
 
         @kfp.dsl.pipeline
@@ -196,50 +201,45 @@ class TestCompilePipeline(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline,
-                package_path=os.path.join(tmpdir, 'pipeline.yaml'))
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+            )
 
     def test_compile_simple_pipeline(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            producer_op = components.load_component_from_text("""
-      name: producer
-      inputs:
-      - {name: input_param, type: String}
-      outputs:
-      - {name: output_model, type: Model}
-      - {name: output_value, type: Integer}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: input_param}
-          - {outputPath: output_model}
-          - {outputPath: output_value}
-      """)
 
-            consumer_op = components.load_component_from_text("""
-      name: consumer
-      inputs:
-      - {name: input_model, type: Model}
-      - {name: input_value, type: Integer}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputPath: input_model}
-          - {inputValue: input_value}
-      """)
+            @dsl.container_component
+            def producer_op(
+                output_model: dsl.Output[dsl.Model],
+                output_value: dsl.OutputPath(int),
+                input_param: str,
+            ):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[input_param, output_model.path, output_value],
+                )
+
+            @dsl.container_component
+            def consumer_op(
+                input_model: dsl.Input[dsl.Model], input_value: int
+            ):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[input_model.path, input_value],
+                )
 
             @dsl.pipeline(name='test-pipeline')
             def simple_pipeline(pipeline_input: str = 'Hello KFP!'):
                 producer = producer_op(input_param=pipeline_input)
                 consumer = consumer_op(
                     input_model=producer.outputs['output_model'],
-                    input_value=producer.outputs['output_value'])
+                    input_value=producer.outputs['output_value'],
+                )
 
             target_file = os.path.join(tmpdir, 'result.yaml')
 
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_file)
+                pipeline_func=simple_pipeline, package_path=target_file
+            )
 
             self.assertTrue(os.path.exists(target_file))
             with open(target_file, 'r') as f:
@@ -248,16 +248,13 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_compile_pipeline_with_bool(self):
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            predict_op = components.load_component_from_text("""
-      name: predict
-      inputs:
-      - {name: generate_explanation, type: Boolean, default: False}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: generate_explanation}
-      """)
+
+            @dsl.container_component
+            def predict_op(generate_explanation: bool = False):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[generate_explanation],
+                )
 
             @dsl.pipeline(name='test-boolean-pipeline')
             def simple_pipeline():
@@ -265,7 +262,8 @@ class TestCompilePipeline(parameterized.TestCase):
 
             target_json_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_json_file)
+                pipeline_func=simple_pipeline, package_path=target_json_file
+            )
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
@@ -273,30 +271,23 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
-        upstream_op = components.load_component_from_text("""
-        name: upstream compoent
-        outputs:
-        - {name: model, type: Model}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {outputPath: model}
-        """)
-        downstream_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: model, type: Model}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputValue: model}
-        """)
+        @dsl.container_component
+        def upstream_op(model: dsl.Output[dsl.Model]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[model.path],
+            )
+
+        @dsl.container_component
+        def downstream_op(model: dsl.Input[dsl.Model]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.InputValuePlaceholder('model')],
+            )
 
         with self.assertRaisesRegex(
-                TypeError,
-                ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
+            TypeError,
+            ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.',
         ):
 
             @dsl.pipeline(name='test-pipeline')
@@ -305,20 +296,17 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: text, type: String}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputPath: text}
-        """)
+        @dsl.container_component
+        def component_op(text: str):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.InputPathPlaceholder('text')],
+            )
 
         with self.assertRaisesRegex(
-                TypeError,
-                ' type "String" cannot be paired with InputPathPlaceholder.'):
+            TypeError,
+            ' type "String" cannot be paired with InputPathPlaceholder.',
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: str):
@@ -326,8 +314,9 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_missing_task_should_raise_error(self):
 
-        with self.assertRaisesRegex(ValueError,
-                                    'Task is missing from pipeline.'):
+        with self.assertRaisesRegex(
+            ValueError, 'Task is missing from pipeline.'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: str):
@@ -335,20 +324,17 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: value, type: Float}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputUri: value}
-        """)
+        @dsl.container_component
+        def component_op(value: float):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.InputUriPlaceholder('value')],
+            )
 
         with self.assertRaisesRegex(
-                TypeError,
-                ' type "Float" cannot be paired with InputUriPlaceholder.'):
+            TypeError,
+            ' type "Float" cannot be paired with InputUriPlaceholder.',
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(value: float):
@@ -356,20 +342,17 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        outputs:
-        - {name: value, type: Integer}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {outputUri: value}
-        """)
+        @dsl.container_component
+        def component_op(value: dsl.OutputPath(int)):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.OutputUriPlaceholder('value')],
+            )
 
         with self.assertRaisesRegex(
-                TypeError,
-                ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
+            TypeError,
+            ' type "Integer" cannot be paired with OutputUriPlaceholder.',
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline():
@@ -385,7 +368,8 @@ class TestCompilePipeline(parameterized.TestCase):
             output_path = os.path.join(tmpdir, 'output.yaml')
 
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_path)
+                pipeline_func=my_pipeline, package_path=output_path
+            )
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
@@ -393,8 +377,9 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        self.assertEqual(my_pipeline.pipeline_spec.default_pipeline_root,
-                         'gs://path')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.default_pipeline_root, 'gs://path'
+        )
 
     def test_set_display_name_through_pipeline_decorator(self):
 
@@ -402,8 +387,10 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
-                         'my display name')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.display_name,
+            'my display name',
+        )
 
     def test_set_name_and_display_name_through_pipeline_decorator(self):
 
@@ -414,10 +401,13 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.name,
-                         'my-pipeline-name')
-        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.display_name,
-                         'my display name')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.name, 'my-pipeline-name'
+        )
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.display_name,
+            'my display name',
+        )
 
     def test_set_description_through_pipeline_decorator(self):
 
@@ -426,8 +416,9 @@ class TestCompilePipeline(parameterized.TestCase):
             """Don't prefer me"""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
-                         'Prefer me.')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.description, 'Prefer me.'
+        )
 
     def test_set_description_through_pipeline_docstring_short(self):
 
@@ -436,8 +427,10 @@ class TestCompilePipeline(parameterized.TestCase):
             """Docstring-specified description."""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
-                         'Docstring-specified description.')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.pipeline_info.description,
+            'Docstring-specified description.',
+        )
 
     def test_set_description_through_pipeline_docstring_long(self):
 
@@ -450,69 +443,62 @@ class TestCompilePipeline(parameterized.TestCase):
 
         self.assertEqual(
             my_pipeline.pipeline_spec.pipeline_info.description,
-            'Docstring-specified description.\nMore information about this pipeline.'
+            'Docstring-specified description.\nMore information about this pipeline.',
         )
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
-        component_op = components.load_component_from_text("""
-      name: component
-      inputs:
-      - {name: some_input, type: , description: an uptyped input}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {inputPath: some_input}
-      """)
+        @dsl.container_component
+        def component_op(some_input: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[some_input.path],
+            )
+
         with self.assertRaisesRegex(
-                type_utils.InconsistentTypeException,
-                "Incompatible argument passed to the input 'some_input' of "
-                "component 'component': Argument type 'STRING' is incompatible "
-                "with the input type 'system.Artifact@0.0.1'"):
+            type_utils.InconsistentTypeException,
+            "Incompatible argument passed to the input 'some_input' of "
+            "component 'component-op': Argument type 'STRING' is incompatible "
+            "with the input type 'system.Artifact@0.0.1'",
+        ):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline(input1: str):
                 component_op(some_input=input1)
 
     def test_passing_missing_type_annotation_on_pipeline_input_should_error(
-            self):
+        self,
+    ):
 
         with self.assertRaisesRegex(
-                TypeError, 'Missing type annotation for argument: input1'):
+            TypeError, 'Missing type annotation for argument: input1'
+        ):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline(input1):
                 pass
 
     def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
-            self):
+        self,
+    ):
 
-        producer_op1 = components.load_component_from_text("""
-      name: producer compoent
-      outputs:
-      - {name: output, type: Artifact}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {outputPath: output}
-      """)
+        @dsl.container_component
+        def producer_op1(output: dsl.Output[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[output.path],
+            )
 
         @dsl.component
         def producer_op2(output: dsl.Output[dsl.Artifact]):
             pass
 
-        consumer_op1 = components.load_component_from_text("""
-      name: consumer compoent
-      inputs:
-      - {name: input1, type: MyDataset}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {inputPath: input1}
-      """)
+        @dsl.container_component
+        def consumer_op1(input1: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[input1.path],
+            )
 
         @dsl.component
         def consumer_op2(input1: dsl.Input[dsl.Dataset]):
@@ -528,38 +514,32 @@ class TestCompilePipeline(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_yaml_file)
+                pipeline_func=my_pipeline, package_path=target_yaml_file
+            )
 
             self.assertTrue(os.path.exists(target_yaml_file))
 
     def test_passing_concrete_artifact_to_input_expecting_generic_artifact(
-            self):
+        self,
+    ):
 
-        producer_op1 = components.load_component_from_text("""
-      name: producer compoent
-      outputs:
-      - {name: output, type: Dataset}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {outputPath: output}
-      """)
+        @dsl.container_component
+        def producer_op1(output: dsl.Output[dsl.Dataset]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[output.path],
+            )
 
         @dsl.component
         def producer_op2(output: dsl.Output[dsl.Model]):
             pass
 
-        consumer_op1 = components.load_component_from_text("""
-      name: consumer compoent
-      inputs:
-      - {name: input1, type: Artifact}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {inputPath: input1}
-      """)
+        @dsl.container_component
+        def consumer_op1(input1: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[input1.path],
+            )
 
         @dsl.component
         def consumer_op2(input1: dsl.Input[dsl.Artifact]):
@@ -575,23 +555,21 @@ class TestCompilePipeline(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_yaml_file)
+                pipeline_func=my_pipeline, package_path=target_yaml_file
+            )
 
             self.assertTrue(os.path.exists(target_yaml_file))
 
     def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
-            self):
+        self,
+    ):
 
-        producer_op1 = components.load_component_from_text("""
-      name: producer compoent
-      outputs:
-      - {name: output, type: SomeArbitraryType}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {outputPath: output}
-      """)
+        @dsl.container_component
+        def producer_op1(output: dsl.Output[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[output.path],
+            )
 
         @dsl.component
         def consumer_op(input1: dsl.Input[dsl.Dataset]):
@@ -604,15 +582,16 @@ class TestCompilePipeline(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=target_yaml_file)
+                pipeline_func=my_pipeline, package_path=target_yaml_file
+            )
 
             self.assertTrue(os.path.exists(target_yaml_file))
 
     def test_invalid_data_dependency_loop(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.ParallelFor context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.ParallelFor context\.',
         ):
 
             @dsl.pipeline(name='test-pipeline')
@@ -625,8 +604,9 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_invalid_data_dependency_condition(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency .* within a dsl\.If context .*'):
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency .* within a dsl\.If context .*',
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -646,13 +626,14 @@ class TestCompilePipeline(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+                pipeline_func=my_pipeline, package_path=package_path
+            )
 
     def test_invalid_data_dependency_exit_handler(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op-2 within an uncommon dsl\.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op-2 within an uncommon dsl\.ExitHandler context\.',
         ):
 
             @dsl.pipeline(name='test-pipeline')
@@ -675,7 +656,8 @@ class TestCompilePipeline(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+                pipeline_func=my_pipeline, package_path=package_path
+            )
 
     def test_use_task_final_status_in_non_exit_op(self):
 
@@ -684,8 +666,9 @@ class TestCompilePipeline(parameterized.TestCase):
             return status
 
         with self.assertRaisesRegex(
-                ValueError,
-                'PipelineTaskFinalStatus can only be used in an exit task.'):
+            ValueError,
+            'PipelineTaskFinalStatus can only be used in an exit task.',
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: bool):
@@ -693,21 +676,22 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_use_task_final_status_in_non_exit_op_yaml(self):
 
-        print_op = components.load_component_from_text("""
-name: Print Op
-inputs:
-- {name: message, type: PipelineTaskFinalStatus}
-implementation:
-  container:
-    image: python:3.11
-    command:
-    - echo
-    - {inputValue: message}
-""")
+        @dsl.container_component
+        def print_op(message: dsl.PipelineTaskFinalStatus):
+            return dsl.ContainerSpec(
+                image='python:3.11',
+                command=['echo', message],
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'component.yaml')
+            compiler.Compiler().compile(print_op, path)
+            print_op = components.load_component_from_file(path)
 
         with self.assertRaisesRegex(
-                ValueError,
-                'PipelineTaskFinalStatus can only be used in an exit task.'):
+            ValueError,
+            'PipelineTaskFinalStatus can only be used in an exit task.',
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: bool):
@@ -728,8 +712,10 @@ implementation:
 
         self.assertEqual(
             my_pipeline.pipeline_spec.components['comp-exit-comp']
-            .input_definitions.parameters['status'].parameter_type,
-            pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS)
+            .input_definitions.parameters['status']
+            .parameter_type,
+            pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS,
+        )
 
     def test_compile_parallel_for_with_valid_parallelism(self):
 
@@ -745,12 +731,16 @@ implementation:
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
-            pipeline_spec['root']['dag']['tasks']['for-loop-2']
-            ['iteratorPolicy']['parallelismLimit'], 2)
+            pipeline_spec['root']['dag']['tasks']['for-loop-2'][
+                'iteratorPolicy'
+            ]['parallelismLimit'],
+            2,
+        )
 
     def test_compile_parallel_for_with_incompatible_input_type(self):
 
@@ -763,8 +753,8 @@ implementation:
             return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
         with self.assertRaisesRegex(
-                type_utils.InconsistentTypeException,
-                "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
+            type_utils.InconsistentTypeException,
+            "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'",
         ):
 
             @dsl.pipeline
@@ -793,8 +783,9 @@ implementation:
         def producer_op(item: str) -> str:
             return item
 
-        with self.assertRaisesRegex(ValueError,
-                                    'ParallelFor parallelism must be >= 0.'):
+        with self.assertRaisesRegex(
+            ValueError, 'ParallelFor parallelism must be >= 0.'
+        ):
 
             @dsl.pipeline(name='test-parallel-for-with-parallelism')
             def my_pipeline(text: bool):
@@ -818,7 +809,8 @@ implementation:
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         for_loop_2 = pipeline_spec['root']['dag']['tasks']['for-loop-2']
@@ -831,8 +823,8 @@ implementation:
     def test_cannot_compile_parallel_for_with_single_param(self):
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'Cannot iterate over a single parameter using `dsl\.ParallelFor`\. Expected a list of parameters as argument to `items`\.'
+            ValueError,
+            r'Cannot iterate over a single parameter using `dsl\.ParallelFor`\. Expected a list of parameters as argument to `items`\.',
         ):
 
             @dsl.pipeline
@@ -856,19 +848,21 @@ implementation:
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
 
     def test_cannot_compile_parallel_for_with_single_artifact(self):
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'Cannot iterate over a single artifact using `dsl\.ParallelFor`\. Expected a list of artifacts as argument to `items`\.'
+            ValueError,
+            r'Cannot iterate over a single artifact using `dsl\.ParallelFor`\. Expected a list of artifacts as argument to `items`\.',
         ):
 
             @dsl.pipeline
             def my_pipeline():
                 single_artifact_task = print_and_return_as_artifact(
-                    text='string')
+                    text='string'
+                )
                 with dsl.ParallelFor(items=single_artifact_task.output) as item:
                     print_artifact(a=item)
 
@@ -885,7 +879,8 @@ implementation:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_yaml = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
             self.assertTrue(os.path.exists(output_yaml))
 
             with open(output_yaml, 'r') as f:
@@ -893,20 +888,28 @@ implementation:
                 self.assertEqual(2, len(pipeline_spec['components']))
                 self.assertTrue('comp-print-op' in pipeline_spec['components'])
                 self.assertTrue(
-                    'comp-graph-component' in pipeline_spec['components'])
+                    'comp-graph-component' in pipeline_spec['components']
+                )
                 self.assertEqual(
-                    1, len(pipeline_spec['deploymentSpec']['executors']))
-                self.assertTrue('exec-print-op' in
-                                pipeline_spec['deploymentSpec']['executors'])
+                    1, len(pipeline_spec['deploymentSpec']['executors'])
+                )
+                self.assertTrue(
+                    'exec-print-op'
+                    in pipeline_spec['deploymentSpec']['executors']
+                )
 
     def test_pipeline_with_invalid_output(self):
         with self.assertRaisesRegex(
-                ValueError, r'Pipeline or component output not defined: msg1'):
+            ValueError, r'Pipeline or component output not defined: msg1'
+        ):
 
             @dsl.pipeline
-            def my_pipeline() -> NamedTuple('Outputs', [
-                ('msg', str),
-            ]):
+            def my_pipeline() -> NamedTuple(
+                'Outputs',
+                [
+                    ('msg', str),
+                ],
+            ):
                 task = print_and_return(text='Hello')
                 output = collections.namedtuple('Outputs', ['msg1'])
                 return output(task.output)
@@ -915,18 +918,25 @@ implementation:
         with self.assertRaisesRegex(ValueError, 'Missing pipeline output: msg'):
 
             @dsl.pipeline
-            def my_pipeline() -> NamedTuple('Outputs', [
-                ('msg', str),
-            ]):
+            def my_pipeline() -> NamedTuple(
+                'Outputs',
+                [
+                    ('msg', str),
+                ],
+            ):
                 task = print_and_return(text='Hello')
 
-        with self.assertRaisesRegex(ValueError,
-                                    'Missing pipeline output: model'):
+        with self.assertRaisesRegex(
+            ValueError, 'Missing pipeline output: model'
+        ):
 
             @dsl.pipeline
-            def my_pipeline() -> NamedTuple('Outputs', [
-                ('model', dsl.Model),
-            ]):
+            def my_pipeline() -> NamedTuple(
+                'Outputs',
+                [
+                    ('model', dsl.Model),
+                ],
+            ):
                 task = print_and_return(text='Hello')
 
     def test_pipeline_reusing_other_pipeline_multiple_times(self):
@@ -950,7 +960,8 @@ implementation:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_yaml = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=orchestrator_pipeline, package_path=output_yaml)
+                pipeline_func=orchestrator_pipeline, package_path=output_yaml
+            )
             self.assertTrue(os.path.exists(output_yaml))
 
             with open(output_yaml, 'r') as f:
@@ -959,11 +970,13 @@ implementation:
                     comp.get('dag', {}).get('tasks', {})
                     for comp in pipeline_spec['components'].values()
                 ]
-                component_refs = [[
-                    x.get('componentRef', {}).get('name')
-                    for x in task.values()
+                component_refs = [
+                    [
+                        x.get('componentRef', {}).get('name')
+                        for x in task.values()
+                    ]
+                    for task in tasks
                 ]
-                                  for task in tasks]
                 all_component_refs = [
                     item for sublist in component_refs for item in sublist
                 ]
@@ -988,26 +1001,31 @@ implementation:
             compiler.Compiler().compile(
                 pipeline_func=simple_pipeline,
                 package_path=output_yaml,
-                pipeline_parameters={'img': 'someimage'})
+                pipeline_parameters={'img': 'someimage'},
+            )
             self.assertTrue(os.path.exists(output_yaml))
 
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
                 container = pipeline_spec['deploymentSpec']['executors'][
-                    'exec-empty-component']['container']
+                    'exec-empty-component'
+                ]['container']
                 self.assertEqual(
                     container['image'],
-                    "{{$.inputs.parameters['pipelinechannel--img']}}")
+                    "{{$.inputs.parameters['pipelinechannel--img']}}",
+                )
                 # A parameter value should result in 2 input parameters
                 # One for storing pipeline channel template to be resolved during runtime.
                 # Two for holding the key to the resolved input.
                 input_parameters = pipeline_spec['root']['dag']['tasks'][
-                    'empty-component']['inputs']['parameters']
+                    'empty-component'
+                ]['inputs']['parameters']
                 self.assertTrue('base_image' in input_parameters)
                 self.assertTrue('pipelinechannel--img' in input_parameters)
 
     def test_pipeline_with_parameterized_container_image_inside_parallel_for(
-            self):
+        self,
+    ):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             @dsl.component(base_image='docker.io/python:3.11.17')
@@ -1024,7 +1042,8 @@ implementation:
             compiler.Compiler().compile(
                 pipeline_func=simple_pipeline,
                 package_path=output_yaml,
-                pipeline_parameters={'img': 'someimage'})
+                pipeline_parameters={'img': 'someimage'},
+            )
 
             self.assertTrue(os.path.exists(output_yaml))
 
@@ -1038,7 +1057,7 @@ implementation:
             }
             self.assertTrue(
                 loop_components,
-                'Expected to find at least one ParallelFor component in the pipeline spec'
+                'Expected to find at least one ParallelFor component in the pipeline spec',
             )
 
             loop_component = next(iter(loop_components.values()))
@@ -1048,7 +1067,8 @@ implementation:
             loop_tasks = loop_component['dag']['tasks']
             self.assertIn('empty-component', loop_tasks)
             loop_task_inputs = loop_tasks['empty-component']['inputs'][
-                'parameters']
+                'parameters'
+            ]
             self.assertIn('base_image', loop_task_inputs)
             self.assertIn('pipelinechannel--img', loop_task_inputs)
 
@@ -1067,25 +1087,29 @@ implementation:
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=output_yaml)
+                pipeline_func=simple_pipeline, package_path=output_yaml
+            )
 
             self.assertTrue(os.path.exists(output_yaml))
 
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
                 container = pipeline_spec['deploymentSpec']['executors'][
-                    'exec-empty-component']['container']
+                    'exec-empty-component'
+                ]['container']
                 self.assertEqual(container['image'], 'constant-value')
                 # A constant value should yield no parameters
                 dag_task = pipeline_spec['root']['dag']['tasks'][
-                    'empty-component']
+                    'empty-component'
+                ]
                 self.assertTrue('inputs' not in dag_task)
 
     def test_compile_with_kubernetes_manifest_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             @dsl.pipeline(
-                name='my-pipeline', description='A simple test pipeline')
+                name='my-pipeline', description='A simple test pipeline'
+            )
             def my_pipeline(input1: str):
                 print_op(message=input1)
 
@@ -1104,7 +1128,8 @@ implementation:
                 pipeline_version_name=pipeline_version_name,
                 pipeline_version_display_name=pipeline_version_display_name,
                 namespace=namespace,
-                include_pipeline_manifest=True)
+                include_pipeline_manifest=True,
+            )
 
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline,
@@ -1122,29 +1147,43 @@ implementation:
             # Check Pipeline manifest
             pipeline_manifest = documents[0]
             self.assertEqual(pipeline_manifest['kind'], 'Pipeline')
-            self.assertEqual(pipeline_manifest['metadata']['name'],
-                             pipeline_name)
-            self.assertEqual(pipeline_manifest['spec']['displayName'],
-                             pipeline_display_name)
-            self.assertEqual(pipeline_manifest['spec']['description'],
-                             'A simple test pipeline')
-            self.assertEqual(pipeline_manifest['metadata']['namespace'],
-                             namespace)
+            self.assertEqual(
+                pipeline_manifest['metadata']['name'], pipeline_name
+            )
+            self.assertEqual(
+                pipeline_manifest['spec']['displayName'], pipeline_display_name
+            )
+            self.assertEqual(
+                pipeline_manifest['spec']['description'],
+                'A simple test pipeline',
+            )
+            self.assertEqual(
+                pipeline_manifest['metadata']['namespace'], namespace
+            )
 
             # Check PipelineVersion manifest
             pipeline_version_manifest = documents[1]
-            self.assertEqual(pipeline_version_manifest['kind'],
-                             'PipelineVersion')
-            self.assertEqual(pipeline_version_manifest['metadata']['name'],
-                             pipeline_version_name)
-            self.assertEqual(pipeline_version_manifest['spec']['displayName'],
-                             pipeline_version_display_name)
-            self.assertEqual(pipeline_version_manifest['spec']['description'],
-                             'A simple test pipeline')
-            self.assertEqual(pipeline_version_manifest['spec']['pipelineName'],
-                             pipeline_name)
-            self.assertEqual(pipeline_version_manifest['metadata']['namespace'],
-                             namespace)
+            self.assertEqual(
+                pipeline_version_manifest['kind'], 'PipelineVersion'
+            )
+            self.assertEqual(
+                pipeline_version_manifest['metadata']['name'],
+                pipeline_version_name,
+            )
+            self.assertEqual(
+                pipeline_version_manifest['spec']['displayName'],
+                pipeline_version_display_name,
+            )
+            self.assertEqual(
+                pipeline_version_manifest['spec']['description'],
+                'A simple test pipeline',
+            )
+            self.assertEqual(
+                pipeline_version_manifest['spec']['pipelineName'], pipeline_name
+            )
+            self.assertEqual(
+                pipeline_version_manifest['metadata']['namespace'], namespace
+            )
             self.assertNotIn('platformSpec', pipeline_version_manifest['spec'])
 
             # Test with include_pipeline_manifest=False and has a platform spec
@@ -1152,7 +1191,8 @@ implementation:
                 name='my-pipeline',
                 description='A simple test pipeline with platform spec',
                 pipeline_config=dsl.PipelineConfig(
-                    workspace=dsl.WorkspaceConfig(size='25Gi'),),
+                    workspace=dsl.WorkspaceConfig(size='25Gi'),
+                ),
             )
             def my_pipeline(input1: str):
                 print_op(message=input1)
@@ -1164,7 +1204,8 @@ implementation:
                 pipeline_version_name=pipeline_version_name,
                 pipeline_version_display_name=pipeline_version_display_name,
                 namespace=namespace,
-                include_pipeline_manifest=False)
+                include_pipeline_manifest=False,
+            )
 
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline,
@@ -1181,35 +1222,42 @@ implementation:
 
             # Check PipelineVersion manifest
             pipeline_version_manifest2 = documents2[0]
-            self.assertEqual(pipeline_version_manifest2['kind'],
-                             'PipelineVersion')
-            self.assertEqual(pipeline_version_manifest2['metadata']['name'],
-                             pipeline_version_name)
-            self.assertEqual(pipeline_version_manifest2['spec']['displayName'],
-                             pipeline_version_display_name)
-            self.assertEqual(pipeline_version_manifest2['spec']['pipelineName'],
-                             pipeline_name)
             self.assertEqual(
-                pipeline_version_manifest2['metadata']['namespace'], namespace)
+                pipeline_version_manifest2['kind'], 'PipelineVersion'
+            )
             self.assertEqual(
-                pipeline_version_manifest2['spec']['platformSpec'], {
+                pipeline_version_manifest2['metadata']['name'],
+                pipeline_version_name,
+            )
+            self.assertEqual(
+                pipeline_version_manifest2['spec']['displayName'],
+                pipeline_version_display_name,
+            )
+            self.assertEqual(
+                pipeline_version_manifest2['spec']['pipelineName'],
+                pipeline_name,
+            )
+            self.assertEqual(
+                pipeline_version_manifest2['metadata']['namespace'], namespace
+            )
+            self.assertEqual(
+                pipeline_version_manifest2['spec']['platformSpec'],
+                {
                     'platforms': {
                         'kubernetes': {
                             'pipelineConfig': {
                                 'workspace': {
-                                    'kubernetes': {
-                                        'pvcSpecPatch': {}
-                                    },
-                                    'size': '25Gi'
+                                    'kubernetes': {'pvcSpecPatch': {}},
+                                    'size': '25Gi',
                                 }
                             }
                         }
                     }
-                })
+                },
+            )
 
 
 class TestCompilePipelineCaching(unittest.TestCase):
-
     def test_compile_pipeline_with_caching_enabled(self):
         """Test pipeline compilation with caching enabled."""
 
@@ -1225,7 +1273,8 @@ class TestCompilePipelineCaching(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
 
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
@@ -1250,7 +1299,8 @@ class TestCompilePipelineCaching(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
 
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
@@ -1276,7 +1326,8 @@ class TestCompilePipelineCaching(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
 
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
@@ -1304,7 +1355,8 @@ class V2NamespaceAliasTest(unittest.TestCase):
             return text
 
         @v2.dsl.pipeline(
-            name='hello-world', description='A simple intro pipeline')
+            name='hello-world', description='A simple intro pipeline'
+        )
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
 
@@ -1314,14 +1366,14 @@ class V2NamespaceAliasTest(unittest.TestCase):
             # you can e.g. create a file here:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             v2.compiler.Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath
+            )
 
             with open(temp_filepath, 'r') as f:
                 yaml.safe_load(f)
 
     def test_import_modules(self):
-        from kfp.v2 import compiler
-        from kfp.v2 import dsl
+        from kfp.v2 import compiler, dsl
 
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
@@ -1333,15 +1385,15 @@ class V2NamespaceAliasTest(unittest.TestCase):
             # you can e.g. create a file here:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath
+            )
 
             with open(temp_filepath, 'r') as f:
                 yaml.safe_load(f)
 
     def test_import_object(self):
         from kfp.v2.compiler import Compiler
-        from kfp.v2.dsl import component
-        from kfp.v2.dsl import pipeline
+        from kfp.v2.dsl import component, pipeline
 
         @component
         def hello_world(text: str) -> str:
@@ -1358,7 +1410,8 @@ class V2NamespaceAliasTest(unittest.TestCase):
             # you can e.g. create a file here:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath
+            )
 
             with open(temp_filepath, 'r') as f:
                 yaml.safe_load(f)
@@ -1386,14 +1439,16 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             target_file = os.path.join(tmpdir, f'result{extension}')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_spec, package_path=target_file)
+                pipeline_func=pipeline_spec, package_path=target_file
+            )
 
             self.assertTrue(os.path.exists(target_file))
             with open(target_file) as f:
                 pipeline_spec = yaml.safe_load(f)
 
-            self.assertEqual(self.pipeline_name,
-                             pipeline_spec['pipelineInfo']['name'])
+            self.assertEqual(
+                self.pipeline_name, pipeline_spec['pipelineInfo']['name']
+            )
 
     def test_can_write_to_json(self):
 
@@ -1401,43 +1456,44 @@ class TestWriteToFileTypes(parameterized.TestCase):
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.json')
-            with self.assertWarnsRegex(DeprecationWarning,
-                                       r'Compiling to JSON is deprecated'):
+            with self.assertWarnsRegex(
+                DeprecationWarning, r'Compiling to JSON is deprecated'
+            ):
                 compiler.Compiler().compile(
-                    pipeline_func=pipeline_spec, package_path=target_file)
+                    pipeline_func=pipeline_spec, package_path=target_file
+                )
             with open(target_file) as f:
                 pipeline_spec = json.load(f)
 
-            self.assertEqual(self.pipeline_name,
-                             pipeline_spec['pipelineInfo']['name'])
+            self.assertEqual(
+                self.pipeline_name, pipeline_spec['pipelineInfo']['name']
+            )
 
     def test_cannot_write_to_bad_extension(self):
 
         with tempfile.TemporaryDirectory() as tmpdir:
-
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.bad_extension')
-            with self.assertRaisesRegex(ValueError,
-                                        r'.* should end with "\.yaml".*'):
+            with self.assertRaisesRegex(
+                ValueError, r'.* should end with "\.yaml".*'
+            ):
                 compiler.Compiler().compile(
-                    pipeline_func=pipeline_spec, package_path=target_file)
+                    pipeline_func=pipeline_spec, package_path=target_file
+                )
 
     def test_compile_pipeline_with_default_value(self):
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            producer_op = components.load_component_from_text("""
-      name: producer
-      inputs:
-      - {name: location, type: String, default: 'us-central1'}
-      - {name: name, type: Integer, default: 1}
-      - {name: nodefault, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: location}
-      """)
+
+            @dsl.container_component
+            def producer_op(
+                nodefault: str, location: str = 'us-central1', name: int = 1
+            ):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[location],
+                )
 
             @dsl.pipeline(name='test-pipeline')
             def simple_pipeline():
@@ -1445,28 +1501,31 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             target_json_file = os.path.join(tmpdir, 'result.json')
             compiler.Compiler().compile(
-                pipeline_func=simple_pipeline, package_path=target_json_file)
+                pipeline_func=simple_pipeline, package_path=target_json_file
+            )
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
                 f.read()
 
     def test_compile_fails_with_bad_pipeline_func(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Unsupported pipeline_func type'):
+        with self.assertRaisesRegex(
+            ValueError, r'Unsupported pipeline_func type'
+        ):
             compiler.Compiler().compile(
-                pipeline_func=None, package_path='/tmp/pipeline.yaml')
+                pipeline_func=None, package_path='/tmp/pipeline.yaml'
+            )
 
 
 class TestCompileComponent(parameterized.TestCase):
-
     @parameterized.parameters(['.json', '.yaml', '.yml'])
     def test_compile_component_simple(self, extension: str):
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, f'component{extension}')
             compiler.Compiler().compile(
-                pipeline_func=hello_world, package_path=output_json)
+                pipeline_func=hello_world, package_path=output_json
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
@@ -1483,13 +1542,17 @@ class TestCompileComponent(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
-                pipeline_func=hello_world, package_path=output_json)
+                pipeline_func=hello_world, package_path=output_json
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
-            pipeline_spec['root']['inputDefinitions']['parameters']['integer']
-            ['parameterType'], 'NUMBER_INTEGER')
+            pipeline_spec['root']['inputDefinitions']['parameters']['integer'][
+                'parameterType'
+            ],
+            'NUMBER_INTEGER',
+        )
 
     def test_compile_component_with_default(self):
 
@@ -1501,14 +1564,18 @@ class TestCompileComponent(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
-                pipeline_func=hello_world, package_path=output_json)
+                pipeline_func=hello_world, package_path=output_json
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
         self.assertEqual(
-            pipeline_spec['root']['inputDefinitions']['parameters']['text']
-            ['defaultValue'], 'default_string')
+            pipeline_spec['root']['inputDefinitions']['parameters']['text'][
+                'defaultValue'
+            ],
+            'default_string',
+        )
 
     def test_compile_component_with_pipeline_name(self):
 
@@ -1522,7 +1589,8 @@ class TestCompileComponent(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=hello_world,
                 package_path=output_json,
-                pipeline_name='custom-name')
+                pipeline_name='custom-name',
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
@@ -1535,13 +1603,17 @@ class TestCompileComponent(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=hello_world,
                 package_path=output_json,
-                pipeline_parameters={'text': 'override_string'})
+                pipeline_parameters={'text': 'override_string'},
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
-            pipeline_spec['root']['inputDefinitions']['parameters']['text']
-            ['defaultValue'], 'override_string')
+            pipeline_spec['root']['inputDefinitions']['parameters']['text'][
+                'defaultValue'
+            ],
+            'override_string',
+        )
 
     def test_compile_container_component_simple(self):
 
@@ -1559,13 +1631,16 @@ class TestCompileComponent(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=hello_world_container,
                 package_path=output_json,
-                pipeline_name='hello-world-container')
+                pipeline_name='hello-world-container',
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
-            pipeline_spec['deploymentSpec']['executors']
-            ['exec-hello-world-container']['container']['command'],
-            ['echo', 'hello world'])
+            pipeline_spec['deploymentSpec']['executors'][
+                'exec-hello-world-container'
+            ]['container']['command'],
+            ['echo', 'hello world'],
+        )
 
     def test_compile_container_with_simple_io(self):
 
@@ -1574,32 +1649,38 @@ class TestCompileComponent(parameterized.TestCase):
             return dsl.ContainerSpec(
                 image='python:3.11',
                 command=['my_program', text],
-                args=['--output_path', output_path])
+                args=['--output_path', output_path],
+            )
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=container_simple_io,
                 package_path=output_json,
-                pipeline_name='container-simple-io')
+                pipeline_name='container-simple-io',
+            )
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
-            pipeline_spec['components']['comp-container-simple-io']
-            ['inputDefinitions']['parameters']['text']['parameterType'],
-            'STRING')
+            pipeline_spec['components']['comp-container-simple-io'][
+                'inputDefinitions'
+            ]['parameters']['text']['parameterType'],
+            'STRING',
+        )
         self.assertEqual(
-            pipeline_spec['components']['comp-container-simple-io']
-            ['outputDefinitions']['parameters']['output_path']['parameterType'],
-            'STRING')
+            pipeline_spec['components']['comp-container-simple-io'][
+                'outputDefinitions'
+            ]['parameters']['output_path']['parameterType'],
+            'STRING',
+        )
 
     def test_compile_container_with_artifact_output(self):
 
         @dsl.container_component
         def container_with_artifact_output(
-                num_epochs: int,  # also as an input
-                model: dsl.Output[dsl.Model],
-                model_config_path: dsl.OutputPath(str),
+            num_epochs: int,  # also as an input
+            model: dsl.Output[dsl.Model],
+            model_config_path: dsl.OutputPath(str),
         ):
             return dsl.ContainerSpec(
                 image='gcr.io/my-image',
@@ -1611,50 +1692,64 @@ class TestCompileComponent(parameterized.TestCase):
                     model.uri,
                     '--model_config_path',
                     model_config_path,
-                ])
+                ],
+            )
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=container_with_artifact_output,
                 package_path=output_yaml,
-                pipeline_name='container-with-artifact-output')
+                pipeline_name='container-with-artifact-output',
+            )
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
-            pipeline_spec['components']['comp-container-with-artifact-output']
-            ['inputDefinitions']['parameters']['num_epochs']['parameterType'],
-            'NUMBER_INTEGER')
+            pipeline_spec['components']['comp-container-with-artifact-output'][
+                'inputDefinitions'
+            ]['parameters']['num_epochs']['parameterType'],
+            'NUMBER_INTEGER',
+        )
         self.assertEqual(
-            pipeline_spec['components']['comp-container-with-artifact-output']
-            ['outputDefinitions']['artifacts']['model']['artifactType']
-            ['schemaTitle'], 'system.Model')
+            pipeline_spec['components']['comp-container-with-artifact-output'][
+                'outputDefinitions'
+            ]['artifacts']['model']['artifactType']['schemaTitle'],
+            'system.Model',
+        )
         self.assertEqual(
-            pipeline_spec['components']['comp-container-with-artifact-output']
-            ['outputDefinitions']['parameters']['model_config_path']
-            ['parameterType'], 'STRING')
+            pipeline_spec['components']['comp-container-with-artifact-output'][
+                'outputDefinitions'
+            ]['parameters']['model_config_path']['parameterType'],
+            'STRING',
+        )
         args_to_check = pipeline_spec['deploymentSpec']['executors'][
-            'exec-container-with-artifact-output']['container']['args']
-        self.assertEqual(args_to_check[3],
-                         "{{$.outputs.artifacts['model'].uri}}")
+            'exec-container-with-artifact-output'
+        ]['container']['args']
+        self.assertEqual(
+            args_to_check[3], "{{$.outputs.artifacts['model'].uri}}"
+        )
         self.assertEqual(
             args_to_check[5],
-            "{{$.outputs.parameters['model_config_path'].output_file}}")
+            "{{$.outputs.parameters['model_config_path'].output_file}}",
+        )
 
 
 class TestCompileBadInput(unittest.TestCase):
-
     def test_compile_non_pipeline_func(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Unsupported pipeline_func type.'):
+        with self.assertRaisesRegex(
+            ValueError, 'Unsupported pipeline_func type.'
+        ):
             compiler.Compiler().compile(
-                pipeline_func=lambda x: x, package_path='output.json')
+                pipeline_func=lambda x: x, package_path='output.json'
+            )
 
     def test_compile_int(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Unsupported pipeline_func type.'):
+        with self.assertRaisesRegex(
+            ValueError, 'Unsupported pipeline_func type.'
+        ):
             compiler.Compiler().compile(
-                pipeline_func=1, package_path='output.json')
+                pipeline_func=1, package_path='output.json'
+            )
 
 
 def pipeline_spec_from_file(filepath: str) -> str:
@@ -1665,26 +1760,30 @@ def pipeline_spec_from_file(filepath: str) -> str:
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 _TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'test_data')
-UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR,
-                                                    'components', 'unsupported')
 
 
 class TestReadWriteEquality(parameterized.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.runner = testing.CliRunner()
 
-    def _test_compile(self,
-                      file_base_name: str,
-                      directory: str,
-                      fn: Optional[str] = None,
-                      additional_arguments: Optional[List[str]] = None) -> None:
-        py_file = os.path.join(directory, 'sdk_compiled_pipelines', 'valid',
-                               f'{file_base_name}.py')
+    def _test_compile(
+        self,
+        file_base_name: str,
+        directory: str,
+        fn: Optional[str] = None,
+        additional_arguments: Optional[List[str]] = None,
+    ) -> None:
+        py_file = os.path.join(
+            directory, 'sdk_compiled_pipelines', 'valid', f'{file_base_name}.py'
+        )
 
-        golden_compiled_file = os.path.join(directory, 'sdk_compiled_pipelines',
-                                            'valid', f'{file_base_name}.yaml')
+        golden_compiled_file = os.path.join(
+            directory,
+            'sdk_compiled_pipelines',
+            'valid',
+            f'{file_base_name}.yaml',
+        )
 
         if additional_arguments is None:
             additional_arguments = []
@@ -1692,16 +1791,24 @@ class TestReadWriteEquality(parameterized.TestCase):
         function_parts = [] if fn is None else ['--function', fn]
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            generated_compiled_file = os.path.join(tmpdir,
-                                                   f'{file_base_name}.yaml')
+            generated_compiled_file = os.path.join(
+                tmpdir, f'{file_base_name}.yaml'
+            )
 
             result = self.runner.invoke(
                 cli=cli.cli,
                 args=[
-                    'dsl', 'compile', '--py', py_file, '--output',
-                    generated_compiled_file
-                ] + function_parts + additional_arguments,
-                catch_exceptions=False)
+                    'dsl',
+                    'compile',
+                    '--py',
+                    py_file,
+                    '--output',
+                    generated_compiled_file,
+                ]
+                + function_parts
+                + additional_arguments,
+                catch_exceptions=False,
+            )
 
             if result.exit_code != 0:
                 print(result.output)
@@ -1717,47 +1824,39 @@ class TestReadWriteEquality(parameterized.TestCase):
             'two_step_pipeline',
             directory=_TEST_DATA_DIR,
             additional_arguments=[
-                '--pipeline-parameters', '{"text":"Hello KFP!"}'
-            ])
+                '--pipeline-parameters',
+                '{"text":"Hello KFP!"}',
+            ],
+        )
 
     def test_two_step_pipeline_failure_parameter_parse(self):
-        with self.assertRaisesRegex(json.decoder.JSONDecodeError,
-                                    r'Unterminated string starting at:'):
+        with self.assertRaisesRegex(
+            json.decoder.JSONDecodeError, r'Unterminated string starting at:'
+        ):
             self._test_compile(
                 'two_step_pipeline',
                 directory=_TEST_DATA_DIR,
                 additional_arguments=[
-                    '--pipeline-parameters', '{"text":"Hello KFP!}'
-                ])
+                    '--pipeline-parameters',
+                    '{"text":"Hello KFP!}',
+                ],
+            )
 
     def test_compile_components_not_found(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Pipeline function or component "step1" not found in module two_step_pipeline\.py\.'
+            ValueError,
+            r'Pipeline function or component "step1" not found in module two_step_pipeline\.py\.',
         ):
             self._test_compile(
-                'two_step_pipeline', directory=_TEST_DATA_DIR, fn='step1')
+                'two_step_pipeline', directory=_TEST_DATA_DIR, fn='step1'
+            )
 
     def test_deprecation_warning(self):
         res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
-        self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
-                      res.stdout.decode('utf-8'))
-
-    # TODO: the sample does not throw as expected.
-    # def test_compile_unsupported_components_with_output_named_tuple(self):
-    #     with self.assertRaisesRegex(TODO):
-    #         self._test_compile(
-    #             'output_named_tuple',
-    #             directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
-    #             fn='output_named_tuple')
-
-    # TODO: the sample does not throw as expected.
-    # def test_compile_unsupported_components_with_task_status(self):
-    #     with self.assertRaisesRegex(TODO):
-    #         self._test_compile(
-    #             'task_status',
-    #             directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
-    #             fn='task_status')
+        self.assertIn(
+            'Deprecated. Please use `kfp dsl compile` instead.)',
+            res.stdout.decode('utf-8'),
+        )
 
 
 def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
@@ -1770,29 +1869,35 @@ def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
 
     if 'executors' in pipeline_spec['deploymentSpec']:
         for executor in pipeline_spec['deploymentSpec']['executors']:
-            pipeline_spec['deploymentSpec']['executors'][
-                executor] = yaml.safe_load(
+            pipeline_spec['deploymentSpec']['executors'][executor] = (
+                yaml.safe_load(
                     re.sub(
-                        r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
+                        r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'",
+                        'kfp',
                         yaml.dump(
-                            pipeline_spec['deploymentSpec']['executors']
-                            [executor],
-                            sort_keys=True)))
+                            pipeline_spec['deploymentSpec']['executors'][
+                                executor
+                            ],
+                            sort_keys=True,
+                        ),
+                    )
+                )
+            )
     return spec
 
 
 def load_compiled_file(filename: str) -> Dict[str, Any]:
     with open(filename, 'r') as f:
         contents = yaml.safe_load(f)
-        pipeline_spec = contents[
-            'pipelineSpec'] if 'pipelineSpec' in contents else contents
+        pipeline_spec = (
+            contents['pipelineSpec'] if 'pipelineSpec' in contents else contents
+        )
         # ignore the sdkVersion
         del pipeline_spec['sdkVersion']
         return ignore_kfp_version_helper(contents)
 
 
 class TestSetRetryCompilation(unittest.TestCase):
-
     def test_set_retry(self):
 
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
@@ -1809,7 +1914,8 @@ class TestSetRetryCompilation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_hello_world, package_path=package_path)
+                pipeline_func=pipeline_hello_world, package_path=package_path
+            )
             pipeline_spec = pipeline_spec_from_file(package_path)
 
         retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
@@ -1818,12 +1924,34 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.backoff_factor, 1.0)
         self.assertEqual(retry_policy.backoff_max_duration.seconds, 10800)
 
+    def test_set_retry_with_policy(self):
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_retry(
+                num_retries=3,
+                policy='OnError',
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
+        retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 3)
+        self.assertEqual(retry_policy.policy, _Policy.POLICY_ON_ERROR)
+
 
 from google.protobuf import json_format
 
 
 class TestMultipleExitHandlerCompilation(unittest.TestCase):
-
     def test_basic(self):
 
         @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
@@ -1840,31 +1968,42 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+                pipeline_func=my_pipeline, package_path=package_path
+            )
             pipeline_spec = pipeline_spec_from_file(package_path)
         # check that the exit handler dags exist
         self.assertEqual(
-            pipeline_spec.components['comp-exit-handler-1'].dag
-            .tasks['print-op-2'].inputs.parameters['message'].runtime_value
-            .constant.string_value, 'Inside first exit handler.')
+            pipeline_spec.components['comp-exit-handler-1']
+            .dag.tasks['print-op-2']
+            .inputs.parameters['message']
+            .runtime_value.constant.string_value,
+            'Inside first exit handler.',
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-exit-handler-2'].dag
-            .tasks['print-op-4'].inputs.parameters['message'].runtime_value
-            .constant.string_value, 'Inside second exit handler.')
+            pipeline_spec.components['comp-exit-handler-2']
+            .dag.tasks['print-op-4']
+            .inputs.parameters['message']
+            .runtime_value.constant.string_value,
+            'Inside second exit handler.',
+        )
         # check that the exit handler dags are in the root dag
         self.assertIn('exit-handler-1', pipeline_spec.root.dag.tasks)
         self.assertIn('exit-handler-2', pipeline_spec.root.dag.tasks)
         # check that the exit tasks are in the root dag
         self.assertIn('print-op', pipeline_spec.root.dag.tasks)
         self.assertEqual(
-            pipeline_spec.root.dag.tasks['print-op'].inputs
-            .parameters['message'].runtime_value.constant.string_value,
-            'First exit task.')
+            pipeline_spec.root.dag.tasks['print-op']
+            .inputs.parameters['message']
+            .runtime_value.constant.string_value,
+            'First exit task.',
+        )
         self.assertIn('print-op-3', pipeline_spec.root.dag.tasks)
         self.assertEqual(
-            pipeline_spec.root.dag.tasks['print-op-3'].inputs
-            .parameters['message'].runtime_value.constant.string_value,
-            'Second exit task.')
+            pipeline_spec.root.dag.tasks['print-op-3']
+            .inputs.parameters['message']
+            .runtime_value.constant.string_value,
+            'Second exit task.',
+        )
 
     def test_task_after_exit_handler_group(self):
 
@@ -1880,12 +2019,14 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+                pipeline_func=my_pipeline, package_path=package_path
+            )
             pipeline_spec = pipeline_spec_from_file(package_path)
 
         self.assertEqual(
             list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
-            ['exit-handler-1'])
+            ['exit-handler-1'],
+        )
 
     def test_tasks_after_multiple_exit_handler_groups(self):
 
@@ -1896,40 +2037,48 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             with dsl.ExitHandler(first_exit_task) as first_exit_group:
                 print_op(message='Inside first exit handler.')
 
-            after_first = print_op(
-                message='After first exit handler.').after(first_exit_group)
+            after_first = print_op(message='After first exit handler.').after(
+                first_exit_group
+            )
 
             second_exit_task = print_op(message='Second exit task.')
 
             with dsl.ExitHandler(second_exit_task) as second_exit_group:
-                print_op(
-                    message='Inside second exit handler.').after(after_first)
+                print_op(message='Inside second exit handler.').after(
+                    after_first
+                )
 
-            print_op(
-                message='After second exit handler.').after(second_exit_group)
+            print_op(message='After second exit handler.').after(
+                second_exit_group
+            )
 
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+                pipeline_func=my_pipeline, package_path=package_path
+            )
             pipeline_spec = pipeline_spec_from_file(package_path)
 
         self.assertEqual(
             list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
-            ['exit-handler-1'])
+            ['exit-handler-1'],
+        )
         self.assertEqual(
             list(
-                pipeline_spec.root.dag.tasks['exit-handler-2'].dependent_tasks),
-            ['print-op-3'])
+                pipeline_spec.root.dag.tasks['exit-handler-2'].dependent_tasks
+            ),
+            ['print-op-3'],
+        )
         self.assertEqual(
             list(pipeline_spec.root.dag.tasks['print-op-6'].dependent_tasks),
-            ['exit-handler-2'])
+            ['exit-handler-2'],
+        )
 
     def test_task_after_non_exit_handler_group_raises_early(self):
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'"\.after\(\)" on task group "condition-[0-9]+" of type dsl\.If is not supported\. Only dsl\.ExitHandler groups can be used as \.after\(\) dependencies\.'
+            ValueError,
+            r'"\.after\(\)" on task group "condition-[0-9]+" of type dsl\.If is not supported\. Only dsl\.ExitHandler groups can be used as \.after\(\) dependencies\.',
         ):
 
             @dsl.pipeline(name='pipeline-after-if-group')
@@ -1942,8 +2091,8 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
     def test_task_after_task_inside_exit_handler_is_still_invalid(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.',
         ):
 
             @dsl.pipeline(name='pipeline-after-task-inside-exit-handler')
@@ -1962,7 +2111,8 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             print(status)
 
         @dsl.pipeline(
-            name='pipeline-after-exit-handler-group-with-task-final-status')
+            name='pipeline-after-exit-handler-group-with-task-final-status'
+        )
         def my_pipeline():
             exit_task = print_op(message='Exit task.')
 
@@ -1972,19 +2122,24 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             cancel_handler().after(exit_group).ignore_upstream_failure()
 
         cancel_handler_task = my_pipeline.pipeline_spec.root.dag.tasks[
-            'cancel-handler']
+            'cancel-handler'
+        ]
         self.assertEqual(
-            list(cancel_handler_task.dependent_tasks), ['exit-handler-1'])
+            list(cancel_handler_task.dependent_tasks), ['exit-handler-1']
+        )
         self.assertEqual(cancel_handler_task.trigger_policy.strategy, 2)
         self.assertEqual(
-            cancel_handler_task.inputs.parameters['status'].task_final_status
-            .producer_task, 'exit-handler-1')
+            cancel_handler_task.inputs.parameters[
+                'status'
+            ].task_final_status.producer_task,
+            'exit-handler-1',
+        )
 
     def test_task_after_exit_handler_group_raises_on_unknown_dependency(self):
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'Dependency "missing-task" does not exist as either a task or a group in the pipeline\.'
+            ValueError,
+            r'Dependency "missing-task" does not exist as either a task or a group in the pipeline\.',
         ):
 
             @dsl.pipeline(
@@ -2005,10 +2160,12 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(
-                ValueError, r'Ambiguous dependency name "exit-handler-1"\.'):
+            ValueError, r'Ambiguous dependency name "exit-handler-1"\.'
+        ):
 
             @dsl.pipeline(
-                name='pipeline-after-exit-handler-group-with-ambiguous-name')
+                name='pipeline-after-exit-handler-group-with-ambiguous-name'
+            )
             def my_pipeline():
                 exit_handler_1()
                 exit_task = print_op(message='Exit task.')
@@ -2021,8 +2178,8 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
     def test_nested_unsupported(self):
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'ExitHandler can only be used within the outermost scope of a pipeline function definition\.'
+            ValueError,
+            r'ExitHandler can only be used within the outermost scope of a pipeline function definition\.',
         ):
 
             @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
@@ -2047,13 +2204,19 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
 
         # test inner component interface
         self.assertEqual(
-            comp.pipeline_spec.components['comp-comp'].input_definitions
-            .parameters['boolean'].default_value.bool_value, True)
+            comp.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean']
+            .default_value.bool_value,
+            True,
+        )
 
         # test outer pipeline "wrapper" interface
         self.assertEqual(
-            comp.pipeline_spec.root.input_definitions.parameters['boolean']
-            .default_value.bool_value, True)
+            comp.pipeline_spec.root.input_definitions.parameters[
+                'boolean'
+            ].default_value.bool_value,
+            True,
+        )
 
     def test_python_component_with_overrides(self):
 
@@ -2064,13 +2227,17 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                comp, pipeline_spec_path, pipeline_parameters={'boolean': True})
+                comp, pipeline_spec_path, pipeline_parameters={'boolean': True}
+            )
             pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
 
         # test outer pipeline "wrapper" interface
         self.assertEqual(
-            pipeline_spec.root.input_definitions.parameters['boolean']
-            .default_value.bool_value, True)
+            pipeline_spec.root.input_definitions.parameters[
+                'boolean'
+            ].default_value.bool_value,
+            True,
+        )
 
     def test_container_component(self):
 
@@ -2080,13 +2247,19 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
 
         # test inner component interface
         self.assertEqual(
-            comp.pipeline_spec.components['comp-comp'].input_definitions
-            .parameters['boolean'].default_value.bool_value, True)
+            comp.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean']
+            .default_value.bool_value,
+            True,
+        )
 
         # test pipeline "wrapper" interface
         self.assertEqual(
-            comp.pipeline_spec.root.input_definitions.parameters['boolean']
-            .default_value.bool_value, True)
+            comp.pipeline_spec.root.input_definitions.parameters[
+                'boolean'
+            ].default_value.bool_value,
+            True,
+        )
 
     def test_container_component_with_overrides(self):
 
@@ -2097,13 +2270,17 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                comp, pipeline_spec_path, pipeline_parameters={'boolean': True})
+                comp, pipeline_spec_path, pipeline_parameters={'boolean': True}
+            )
             pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
 
         # test outer pipeline "wrapper" interface
         self.assertEqual(
-            pipeline_spec.root.input_definitions.parameters['boolean']
-            .default_value.bool_value, True)
+            pipeline_spec.root.input_definitions.parameters[
+                'boolean'
+            ].default_value.bool_value,
+            True,
+        )
 
     def test_pipeline_no_input(self):
 
@@ -2118,8 +2295,10 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
         # test inner component interface
         self.assertEqual(
             pipeline_no_input.pipeline_spec.components['comp-comp']
-            .input_definitions.parameters['boolean'].default_value.bool_value,
-            True)
+            .input_definitions.parameters['boolean']
+            .default_value.bool_value,
+            True,
+        )
 
     def test_pipeline_with_input(self):
 
@@ -2134,13 +2313,18 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
         # test inner component interface
         self.assertEqual(
             pipeline_with_input.pipeline_spec.components['comp-comp']
-            .input_definitions.parameters['boolean'].default_value.bool_value,
-            True)
+            .input_definitions.parameters['boolean']
+            .default_value.bool_value,
+            True,
+        )
 
         # test pipeline interface
         self.assertEqual(
-            pipeline_with_input.pipeline_spec.root.input_definitions
-            .parameters['boolean'].default_value.bool_value, True)
+            pipeline_with_input.pipeline_spec.root.input_definitions.parameters[
+                'boolean'
+            ].default_value.bool_value,
+            True,
+        )
 
     def test_pipeline_with_with_overrides(self):
 
@@ -2157,18 +2341,25 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_with_input,
                 pipeline_spec_path,
-                pipeline_parameters={'boolean': True})
+                pipeline_parameters={'boolean': True},
+            )
             pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
 
         # test inner component interface
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .parameters['boolean'].default_value.bool_value, True)
+            pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean']
+            .default_value.bool_value,
+            True,
+        )
 
         # test pipeline interface
         self.assertEqual(
-            pipeline_spec.root.input_definitions.parameters['boolean']
-            .default_value.bool_value, True)
+            pipeline_spec.root.input_definitions.parameters[
+                'boolean'
+            ].default_value.bool_value,
+            True,
+        )
 
     def test_constant_passed_to_component(self):
 
@@ -2185,20 +2376,23 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
             compiler.Compiler().compile(my_pipeline, pipeline_spec_path)
             pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
         self.assertTrue(
-            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean1']
-            .runtime_value.constant.bool_value)
+            pipeline_spec.root.dag.tasks['comp']
+            .inputs.parameters['boolean1']
+            .runtime_value.constant.bool_value
+        )
         self.assertFalse(
-            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean2']
-            .runtime_value.constant.bool_value)
+            pipeline_spec.root.dag.tasks['comp']
+            .inputs.parameters['boolean2']
+            .runtime_value.constant.bool_value
+        )
 
 
 class TestTopologyValidation(unittest.TestCase):
-
     def test_invalid_condition_1(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.',
         ):
 
             @dsl.pipeline
@@ -2210,8 +2404,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_condition_2(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.',
         ):
 
             @dsl.pipeline
@@ -2223,8 +2417,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_condition_3(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.',
         ):
 
             @dsl.pipeline
@@ -2237,8 +2431,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_condition_4(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.',
         ):
 
             @dsl.pipeline
@@ -2293,8 +2487,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_exithandler_1(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.',
         ):
 
             @dsl.pipeline
@@ -2307,8 +2501,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_exithandler_2(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.',
         ):
 
             @dsl.pipeline
@@ -2321,8 +2515,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_exithandler_3(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.',
         ):
 
             @dsl.pipeline
@@ -2337,8 +2531,8 @@ class TestTopologyValidation(unittest.TestCase):
     def test_invalid_exithandler_4(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-4 which depends on upstream task print-and-return-2 within an uncommon dsl.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-4 which depends on upstream task print-and-return-2 within an uncommon dsl.ExitHandler context\.',
         ):
 
             @dsl.pipeline
@@ -2376,8 +2570,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_parallelfor_1(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.',
         ):
 
             @dsl.pipeline
@@ -2389,8 +2583,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_parallelfor_2(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.',
         ):
 
             @dsl.pipeline
@@ -2405,8 +2599,8 @@ class TestTopologyValidation(unittest.TestCase):
 
     def test_invalid_parallelfor_3(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.',
         ):
 
             @dsl.pipeline
@@ -2469,12 +2663,12 @@ class TestTopologyValidation(unittest.TestCase):
 
 
 class TestYamlComments(unittest.TestCase):
-
     def test_comments_include_inputs_and_outputs_and_pipeline_name(self):
 
         @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
+        def my_pipeline(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
 
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2483,7 +2677,8 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
@@ -2509,8 +2704,9 @@ class TestYamlComments(unittest.TestCase):
     def test_no_description(self):
 
         @dsl.pipeline()
-        def pipeline_with_no_description(sample_input1: bool = True,
-                                         sample_input2: str = 'string') -> str:
+        def pipeline_with_no_description(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
@@ -2519,16 +2715,19 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_no_description,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
             # load and recompile to ensure idempotent description
             loaded_pipeline = components.load_component_from_file(
-                pipeline_spec_path)
+                pipeline_spec_path
+            )
 
             compiler.Compiler().compile(
-                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
@@ -2538,17 +2737,20 @@ class TestYamlComments(unittest.TestCase):
         self.assertNotIn(comment_description, reloaded_yaml_content)
         proto_description = ''
         self.assertEqual(
-            pipeline_with_no_description.pipeline_spec.pipeline_info
-            .description, proto_description)
+            pipeline_with_no_description.pipeline_spec.pipeline_info.description,
+            proto_description,
+        )
         self.assertEqual(
             loaded_pipeline.pipeline_spec.pipeline_info.description,
-            proto_description)
+            proto_description,
+        )
 
     def test_description_from_docstring(self):
 
         @dsl.pipeline()
-        def pipeline_with_description(sample_input1: bool = True,
-                                      sample_input2: str = 'string') -> str:
+        def pipeline_with_description(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """This is a description of this pipeline."""
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2558,36 +2760,44 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_description,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
             # load and recompile to ensure idempotent description
             loaded_pipeline = components.load_component_from_file(
-                pipeline_spec_path)
+                pipeline_spec_path
+            )
 
             compiler.Compiler().compile(
-                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
 
-        comment_description = '# Description: This is a description of this pipeline.'
+        comment_description = (
+            '# Description: This is a description of this pipeline.'
+        )
         self.assertIn(comment_description, yaml_content)
         self.assertIn(comment_description, reloaded_yaml_content)
         proto_description = 'This is a description of this pipeline.'
         self.assertEqual(
             pipeline_with_description.pipeline_spec.pipeline_info.description,
-            proto_description)
+            proto_description,
+        )
         self.assertEqual(
             loaded_pipeline.pipeline_spec.pipeline_info.description,
-            proto_description)
+            proto_description,
+        )
 
     def test_description_from_decorator(self):
 
         @dsl.pipeline(description='Prefer this description.')
-        def pipeline_with_description(sample_input1: bool = True,
-                                      sample_input2: str = 'string') -> str:
+        def pipeline_with_description(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """Don't prefer this description."""
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2597,31 +2807,38 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_description,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
             # load and recompile to ensure idempotent description
             loaded_pipeline = components.load_component_from_file(
-                pipeline_spec_path)
+                pipeline_spec_path
+            )
 
             compiler.Compiler().compile(
-                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=loaded_pipeline, package_path=pipeline_spec_path
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
 
         comment_description = '# Description: Prefer this description.'
         self.assertIn(comment_description, yaml_content)
-        self.assertIn(loaded_pipeline.pipeline_spec.pipeline_info.description,
-                      reloaded_yaml_content)
+        self.assertIn(
+            loaded_pipeline.pipeline_spec.pipeline_info.description,
+            reloaded_yaml_content,
+        )
         proto_description = 'Prefer this description.'
         self.assertEqual(
             pipeline_with_description.pipeline_spec.pipeline_info.description,
-            proto_description)
+            proto_description,
+        )
         self.assertEqual(
             loaded_pipeline.pipeline_spec.pipeline_info.description,
-            proto_description)
+            proto_description,
+        )
 
     def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
 
@@ -2635,7 +2852,8 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_no_inputs,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2645,15 +2863,17 @@ class TestYamlComments(unittest.TestCase):
         self.assertNotIn(inputs_string, yaml_content)
 
         @dsl.pipeline()
-        def pipeline_with_no_outputs(sample_input1: bool = True,
-                                     sample_input2: str = 'string'):
+        def pipeline_with_no_outputs(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ):
             my_comp(string=sample_input2, model=sample_input1)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_no_outputs,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2665,8 +2885,9 @@ class TestYamlComments(unittest.TestCase):
     def test_comments_follow_pattern(self):
 
         @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
+        def my_pipeline(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """This is a definition of this pipeline."""
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2675,7 +2896,8 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2699,17 +2921,20 @@ class TestYamlComments(unittest.TestCase):
         def output_model(metrics: Output[Model]):
             """Dummy component that outputs metrics with a random accuracy."""
             import random
+
             result = random.randint(0, 100)
             metrics.log_metric('accuracy', result)
 
         @dsl.pipeline(name='Test pipeline')
-        def my_pipeline(sample_input1: bool,
-                        sample_input2: str,
-                        sample_input3: Input[Model],
-                        sample_input4: float = 3.14,
-                        sample_input5: list = [1],
-                        sample_input6: dict = {'one': 1},
-                        sample_input7: int = 5) -> Model:
+        def my_pipeline(
+            sample_input1: bool,
+            sample_input2: str,
+            sample_input3: Input[Model],
+            sample_input4: float = 3.14,
+            sample_input5: list = [1],
+            sample_input6: dict = {'one': 1},
+            sample_input7: int = 5,
+        ) -> Model:
             """This is a definition of this pipeline."""
 
             task = output_model()
@@ -2718,7 +2943,8 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2751,7 +2977,8 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_component, package_path=pipeline_spec_path)
+                pipeline_func=my_component, package_path=pipeline_spec_path
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2773,13 +3000,15 @@ class TestYamlComments(unittest.TestCase):
             return ContainerSpec(
                 image='python:3.11',
                 command=['my_program', text],
-                args=['--output_path', output_path])
+                args=['--output_path', output_path],
+            )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_container_component,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2797,8 +3026,9 @@ class TestYamlComments(unittest.TestCase):
     def test_comments_idempotency(self):
 
         @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
+        def my_pipeline(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """My description."""
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2807,12 +3037,14 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
             comp = components.load_component_from_file(pipeline_spec_path)
             compiler.Compiler().compile(
-                pipeline_func=comp, package_path=pipeline_spec_path)
+                pipeline_func=comp, package_path=pipeline_spec_path
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
 
@@ -2837,8 +3069,8 @@ class TestYamlComments(unittest.TestCase):
 
         @dsl.pipeline()
         def pipeline_with_multiline_definition(
-                sample_input1: bool = True,
-                sample_input2: str = 'string') -> str:
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """docstring short description.
             docstring long description. docstring long description.
             """
@@ -2850,7 +3082,8 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_multiline_definition,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2864,8 +3097,8 @@ class TestYamlComments(unittest.TestCase):
 
         @dsl.pipeline()
         def pipeline_with_multiline_definition(
-                sample_input1: bool = True,
-                sample_input2: str = 'string') -> str:
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """
             docstring long description.
             docstring long description.
@@ -2879,7 +3112,8 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_multiline_definition,
-                package_path=pipeline_spec_path)
+                package_path=pipeline_spec_path,
+            )
 
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
@@ -2895,8 +3129,9 @@ class TestYamlComments(unittest.TestCase):
     def test_idempotency_on_comment_with_multiline_docstring(self):
 
         @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
+        def my_pipeline(
+            sample_input1: bool = True, sample_input2: str = 'string'
+        ) -> str:
             """docstring short description.
             docstring long description.
             docstring long description.
@@ -2908,12 +3143,14 @@ class TestYamlComments(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
             comp = components.load_component_from_file(pipeline_spec_path)
             compiler.Compiler().compile(
-                pipeline_func=comp, package_path=pipeline_spec_path)
+                pipeline_func=comp, package_path=pipeline_spec_path
+            )
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
 
@@ -2938,7 +3175,6 @@ class TestYamlComments(unittest.TestCase):
 
 
 class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
-
     def test__component__param__None_default(self):
 
         @dsl.component
@@ -2950,8 +3186,11 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
             comp()
 
         # test can use without args before compile
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'comp.yaml')
@@ -2963,8 +3202,11 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
             loaded_comp()
 
         # test can use without args after compile and load
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
     def test__component__param__non_None_default(self):
 
@@ -2987,8 +3229,11 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             loaded_comp()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
     def test__pipeline__param__None_default(self):
 
@@ -3004,11 +3249,16 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             inner_pipeline()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
         self.assertTrue(
             my_pipeline.pipeline_spec.components['comp-inner-pipeline']
-            .input_definitions.parameters['x'].is_optional)
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'comp.yaml')
@@ -3019,11 +3269,16 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             loaded_comp()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
         self.assertTrue(
             my_pipeline.pipeline_spec.components['comp-inner-pipeline']
-            .input_definitions.parameters['x'].is_optional)
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
     def test__pipeline__param__non_None_default(self):
 
@@ -3039,11 +3294,16 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             inner_pipeline()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
         self.assertTrue(
             my_pipeline.pipeline_spec.components['comp-inner-pipeline']
-            .input_definitions.parameters['x'].is_optional)
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'comp.yaml')
@@ -3054,11 +3314,16 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             loaded_comp()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['x']
+            .is_optional
+        )
         self.assertTrue(
             my_pipeline.pipeline_spec.components['comp-inner-pipeline']
-            .input_definitions.parameters['x'].is_optional)
+            .input_definitions.parameters['x']
+            .is_optional
+        )
 
     def test__component__artifact(self):
 
@@ -3070,8 +3335,11 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             comp()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.artifacts['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['x']
+            .is_optional
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'comp.yaml')
@@ -3082,8 +3350,11 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             loaded_comp()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.artifacts['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['x']
+            .is_optional
+        )
 
     def test__pipeline__artifact(self):
 
@@ -3099,8 +3370,11 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             inner_pipeline()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.artifacts['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['x']
+            .is_optional
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'comp.yaml')
@@ -3111,24 +3385,28 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         def my_pipeline():
             loaded_comp()
 
-        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
-                        .input_definitions.artifacts['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['x']
+            .is_optional
+        )
 
 
 class TestCompileOptionalArtifacts(unittest.TestCase):
-
     def test_python_comp(self):
 
         @dsl.component
         def comp(x: Optional[Input[Artifact]] = None):
             print(x)
 
-        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            comp.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
         artifact_spec_from_comp = comp.pipeline_spec.components[
-            'comp-comp'].input_definitions.artifacts['x']
+            'comp-comp'
+        ].input_definitions.artifacts['x']
         self.assertTrue(artifact_spec_from_comp.is_optional)
 
     def test_python_comp_with_model(self):
@@ -3137,12 +3415,14 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
         def comp(x: Optional[Input[Model]] = None):
             print(x)
 
-        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            comp.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
         artifact_spec_from_comp = comp.pipeline_spec.components[
-            'comp-comp'].input_definitions.artifacts['x']
+            'comp-comp'
+        ].input_definitions.artifacts['x']
         self.assertTrue(artifact_spec_from_comp.is_optional)
 
     def test_python_comp_without_optional_type_modifier(self):
@@ -3151,12 +3431,14 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
         def comp(x: Input[Model] = None):
             print(x)
 
-        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            comp.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
         artifact_spec_from_comp = comp.pipeline_spec.components[
-            'comp-comp'].input_definitions.artifacts['x']
+            'comp-comp'
+        ].input_definitions.artifacts['x']
         self.assertTrue(artifact_spec_from_comp.is_optional)
 
     def test_container_comp(self):
@@ -3169,15 +3451,19 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=['echo', x.uri],
-                        else_=['echo', 'No artifact provided!'])
-                ])
+                        else_=['echo', 'No artifact provided!'],
+                    )
+                ],
+            )
 
-        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            comp.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
         artifact_spec_from_comp = comp.pipeline_spec.components[
-            'comp-comp'].input_definitions.artifacts['x']
+            'comp-comp'
+        ].input_definitions.artifacts['x']
         self.assertTrue(artifact_spec_from_comp.is_optional)
 
     def test_pipeline(self):
@@ -3186,8 +3472,9 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
         def my_pipeline(x: Optional[Input[Artifact]] = None):
             print_hello()
 
-        artifact_spec_from_root = my_pipeline.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
     def test_pipeline_without_optional_type_modifier(self):
@@ -3196,8 +3483,9 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
         def my_pipeline(x: Input[Artifact] = None):
             print_hello()
 
-        artifact_spec_from_root = my_pipeline.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
     def test_pipeline_and_inner_component_together(self):
@@ -3210,30 +3498,35 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
         def my_pipeline(x: Optional[Input[Artifact]] = None):
             comp()
 
-        artifact_spec_from_root = my_pipeline.pipeline_spec.root.input_definitions.artifacts[
-            'x']
+        artifact_spec_from_root = (
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts['x']
+        )
         self.assertTrue(artifact_spec_from_root.is_optional)
 
         artifact_spec_from_comp = my_pipeline.pipeline_spec.components[
-            'comp-comp'].input_definitions.artifacts['x']
+            'comp-comp'
+        ].input_definitions.artifacts['x']
         self.assertTrue(artifact_spec_from_comp.is_optional)
 
     def test_invalid_default_comp(self):
         with self.assertRaisesRegex(
-                ValueError,
-                'Optional Input artifacts may only have default value None'):
+            ValueError,
+            'Optional Input artifacts may only have default value None',
+        ):
 
             @dsl.component
             def comp(x: Optional[Input[Model]] = 1):
                 print(x)
 
         with self.assertRaisesRegex(
-                ValueError,
-                'Optional Input artifacts may only have default value None'):
+            ValueError,
+            'Optional Input artifacts may only have default value None',
+        ):
 
             @dsl.component
-            def comp(x: Optional[Input[Model]] = Model(
-                name='', uri='', metadata={})):
+            def comp(
+                x: Optional[Input[Model]] = Model(name='', uri='', metadata={}),
+            ):
                 print(x)
 
     def test_invalid_default_pipeline(self):
@@ -3243,25 +3536,27 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
             print('hello')
 
         with self.assertRaisesRegex(
-                ValueError,
-                'Optional Input artifacts may only have default value None'):
+            ValueError,
+            'Optional Input artifacts may only have default value None',
+        ):
 
             @dsl.pipeline
             def my_pipeline(x: Input[Artifact] = 1):
                 comp()
 
         with self.assertRaisesRegex(
-                ValueError,
-                'Optional Input artifacts may only have default value None'):
+            ValueError,
+            'Optional Input artifacts may only have default value None',
+        ):
 
             @dsl.pipeline
-            def my_pipeline(x: Input[Artifact] = Artifact(
-                name='', uri='', metadata={})):
+            def my_pipeline(
+                x: Input[Artifact] = Artifact(name='', uri='', metadata={}),
+            ):
                 comp()
 
 
 class TestCrossTasksGroupFanInCollection(unittest.TestCase):
-
     def test_correct_subdag_return_type(self):
 
         @dsl.component
@@ -3278,13 +3573,15 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         self.assertEqual(
             math_pipeline.pipeline_spec.components['comp-for-loop-2']
             .output_definitions.parameters['pipelinechannel--double-Output']
-            .parameter_type, type_utils.LIST)
+            .parameter_type,
+            type_utils.LIST,
+        )
 
     def test_missing_collected_with_correct_annotation(self):
 
         with self.assertRaisesRegex(
-                type_utils.InconsistentTypeException,
-                "Argument type 'NUMBER_INTEGER' is incompatible with the input type 'LIST'"
+            type_utils.InconsistentTypeException,
+            "Argument type 'NUMBER_INTEGER' is incompatible with the input type 'LIST'",
         ):
 
             @dsl.pipeline
@@ -3302,8 +3599,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
         # the annotation is incorrect, but the user didn't use dsl.Collected
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task add which depends on upstream task double within an uncommon dsl\.ParallelFor context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task add which depends on upstream task double within an uncommon dsl\.ParallelFor context\.',
         ):
 
             @dsl.pipeline
@@ -3327,8 +3624,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
     def test_producer_condition_illegal1(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.',
         ):
 
             @dsl.pipeline
@@ -3343,8 +3640,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
     def test_producer_condition_illegal2(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.',
         ):
 
             @dsl.pipeline
@@ -3361,8 +3658,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
             print('Running exit task!')
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.ExitHandler context manager unless the consumer task is too\. Task add consumes from double within a dsl\.ExitHandler context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.ExitHandler context manager unless the consumer task is too\. Task add consumes from double within a dsl\.ExitHandler context\.',
         ):
 
             @dsl.pipeline
@@ -3381,6 +3678,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         @dsl.component
         def add(nums: List[List[int]]) -> int:
             import itertools
+
             return sum(itertools.chain(*nums))
 
         @dsl.pipeline
@@ -3407,7 +3705,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         @dsl.pipeline
         def my_pipeline():
             with dsl.ParallelFor(
-                    items=['a', 'b'], name='My custom Loop') as item:
+                items=['a', 'b'], name='My custom Loop'
+            ) as item:
                 work = echo(item=item)
             collect(items=dsl.Collected(work.output))
 
@@ -3418,8 +3717,10 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
         # 2. Downstream task references the stable DAG task key:
         consumer_producer_task = (
-            tasks['collect'].inputs.parameters['items'].task_output_parameter
-            .producer_task)
+            tasks['collect']
+            .inputs.parameters['items']
+            .task_output_parameter.producer_task
+        )
         self.assertEqual(consumer_producer_task, 'for-loop-2')
 
     def test_parallelfor_nested_legal_params2(self):
@@ -3431,6 +3732,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         @dsl.component
         def add(nums: List[List[int]]) -> int:
             import itertools
+
             return sum(itertools.chain(*nums))
 
         @dsl.pipeline
@@ -3444,8 +3746,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
     def test_producer_and_consumer_in_same_context(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+            compiler_utils.InvalidTopologyException,
+            r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.',
         ):
 
             @dsl.pipeline
@@ -3457,8 +3759,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
     def test_no_parallelfor_context(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
+            compiler_utils.InvalidTopologyException,
+            r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.',
         ):
 
             @dsl.pipeline
@@ -3468,12 +3770,12 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
 
 class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
-
     def test_basic_permitted(self):
 
         @dsl.component
         def fail_op(message: str) -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
@@ -3486,14 +3788,21 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         def my_pipeline(sample_input1: str = 'message'):
             task = fail_op(message=sample_input1)
             clean_up_task = print_op(
-                message=task.output).ignore_upstream_failure()
+                message=task.output
+            ).ignore_upstream_failure()
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
-            .strategy, 2)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'print-op'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'fail-op'
+            ].trigger_policy.strategy,
+            0,
+        )
 
     def test_can_use_task_final_status(self):
 
@@ -3513,25 +3822,36 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         def my_pipeline():
             worker_task = worker_component()
             exit_task = cancel_handler(
-                text=worker_task.output).ignore_upstream_failure()
+                text=worker_task.output
+            ).ignore_upstream_failure()
 
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'cancel-handler'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['cancel-handler']
-            .trigger_policy.strategy, 2)
-        self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['cancel-handler'].inputs
-            .parameters['status'].task_final_status.producer_task,
-            'worker-component')
+            .inputs.parameters['status']
+            .task_final_status.producer_task,
+            'worker-component',
+        )
 
         status_param = my_pipeline.pipeline_spec.components[
-            'comp-cancel-handler'].input_definitions.parameters['status']
+            'comp-cancel-handler'
+        ].input_definitions.parameters['status']
         self.assertTrue(status_param.is_optional)
-        self.assertEqual(status_param.parameter_type,
-                         type_utils.TASK_FINAL_STATUS)
+        self.assertEqual(
+            status_param.parameter_type, type_utils.TASK_FINAL_STATUS
+        )
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['worker-component']
-            .trigger_policy.strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'worker-component'
+            ].trigger_policy.strategy,
+            0,
+        )
 
     def test_cannot_use_task_final_status_under_task_group(self):
 
@@ -3548,8 +3868,8 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             print(status)
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope\. Got task 'cancel-handler' beneath a 'dsl\.Condition' that does not also contain the upstream dependent task\.",
+            compiler_utils.InvalidTopologyException,
+            r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope\. Got task 'cancel-handler' beneath a 'dsl\.Condition' that does not also contain the upstream dependent task\.",
         ):
 
             @dsl.pipeline
@@ -3557,7 +3877,8 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
                 worker_task = worker_component()
                 with dsl.Condition(worker_task.output == 'foo'):
                     exit_task = cancel_handler(
-                        text=worker_task.output).ignore_upstream_failure()
+                        text=worker_task.output
+                    ).ignore_upstream_failure()
 
     def test_cannot_use_final_task_status_if_zero_dependencies(self):
 
@@ -3566,12 +3887,14 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             return 'hello'
 
         @dsl.component
-        def cancel_handler(status: PipelineTaskFinalStatus,):
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+        ):
             print(status)
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got task 'cancel-handler with no upstream dependencies\.",
+            compiler_utils.InvalidTopologyException,
+            r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got task 'cancel-handler with no upstream dependencies\.",
         ):
 
             @dsl.pipeline
@@ -3580,7 +3903,8 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
                 exit_task = cancel_handler().ignore_upstream_failure()
 
     def test_cannot_use_task_final_status_if_more_than_one_dependency_implicit(
-            self):
+        self,
+    ):
 
         @dsl.component
         def worker_component() -> str:
@@ -3595,8 +3919,8 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             print(status)
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
+            compiler_utils.InvalidTopologyException,
+            r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
         ):
 
             @dsl.pipeline
@@ -3604,37 +3928,44 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
                 worker_task1 = worker_component()
                 worker_task2 = worker_component()
                 exit_task = cancel_handler(
-                    a=worker_task1.output,
-                    b=worker_task2.output).ignore_upstream_failure()
+                    a=worker_task1.output, b=worker_task2.output
+                ).ignore_upstream_failure()
 
     def test_cannot_use_task_final_status_if_more_than_one_dependency_explicit(
-            self):
+        self,
+    ):
 
         @dsl.component
         def worker_component() -> str:
             return 'hello'
 
         @dsl.component
-        def cancel_handler(status: PipelineTaskFinalStatus,):
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+        ):
             print(status)
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
+            compiler_utils.InvalidTopologyException,
+            r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
         ):
 
             @dsl.pipeline
             def my_pipeline():
                 worker_task1 = worker_component()
                 worker_task2 = worker_component()
-                exit_task = cancel_handler().after(
-                    worker_task1, worker_task2).ignore_upstream_failure()
+                exit_task = (
+                    cancel_handler()
+                    .after(worker_task1, worker_task2)
+                    .ignore_upstream_failure()
+                )
 
     def test_component_with_no_input_permitted(self):
 
         @dsl.component
         def fail_op(message: str) -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
@@ -3649,17 +3980,24 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             clean_up_task = print_op().ignore_upstream_failure()
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
-            .strategy, 2)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'print-op'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'fail-op'
+            ].trigger_policy.strategy,
+            0,
+        )
 
     def test_clean_up_on_wrapped_pipeline_permitted(self):
 
         @dsl.component
         def fail_op(message: str = 'message') -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
@@ -3677,20 +4015,28 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         def my_pipeline(sample_input1: str = 'message'):
             task = wrapped_pipeline(message=sample_input1)
             clean_up_task = print_op(
-                message=task.output).ignore_upstream_failure()
+                message=task.output
+            ).ignore_upstream_failure()
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
-            .strategy, 2)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'print-op'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
-            .trigger_policy.strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'wrapped-pipeline'
+            ].trigger_policy.strategy,
+            0,
+        )
 
     def test_ignore_upstream_on_pipeline_task(self):
 
         @dsl.component
         def fail_op(message: str = 'message') -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
@@ -3704,40 +4050,53 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         def my_pipeline(sample_input1: str = 'message'):
             task = fail_op(message=sample_input1)
             clean_up_task = wrapped_pipeline(
-                message=task.output).ignore_upstream_failure()
+                message=task.output
+            ).ignore_upstream_failure()
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['wrapped-pipeline']
-            .trigger_policy.strategy, 2)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'wrapped-pipeline'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'fail-op'
+            ].trigger_policy.strategy,
+            0,
+        )
 
     def test_clean_up_task_with_no_default_value_for_upstream_input_blocked(
-            self):
+        self,
+    ):
 
         @dsl.component
         def fail_op(message: str) -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
 
         with self.assertRaisesRegex(
-                ValueError, r'Tasks can only use .ignore_upstream_failure()'):
+            ValueError, r'Tasks can only use .ignore_upstream_failure()'
+        ):
 
             @dsl.pipeline()
             def my_pipeline(sample_input1: str = 'message'):
                 task = fail_op(message=sample_input1)
                 clean_up_task = print_op(
-                    message=task.output).ignore_upstream_failure()
+                    message=task.output
+                ).ignore_upstream_failure()
 
     def test_clean_up_task_with_no_default_value_for_pipeline_input_permitted(
-            self):
+        self,
+    ):
 
         @dsl.component
         def fail_op(message: str) -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
@@ -3746,20 +4105,28 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         def my_pipeline(sample_input1: str = 'message'):
             task = fail_op(message=sample_input1)
             clean_up_task = print_op(
-                message=sample_input1).ignore_upstream_failure()
+                message=sample_input1
+            ).ignore_upstream_failure()
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
-            .strategy, 2)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'print-op'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'fail-op'
+            ].trigger_policy.strategy,
+            0,
+        )
 
     def test_clean_up_task_with_no_default_value_for_constant_permitted(self):
 
         @dsl.component
         def fail_op(message: str) -> str:
             import sys
+
             print(message)
             sys.exit(1)
             return message
@@ -3770,27 +4137,32 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             clean_up_task = print_op(message='sample').ignore_upstream_failure()
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['print-op'].trigger_policy
-            .strategy, 2)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'print-op'
+            ].trigger_policy.strategy,
+            2,
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
-            .strategy, 0)
+            my_pipeline.pipeline_spec.root.dag.tasks[
+                'fail-op'
+            ].trigger_policy.strategy,
+            0,
+        )
 
 
 class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
-
     def test_basic_permitted(self):
 
         @dsl.component
         def comp(message: str) -> str:
             return message
 
-        self.assertIn('Output',
-                      comp.pipeline_spec.root.output_definitions.parameters)
+        self.assertIn(
+            'Output', comp.pipeline_spec.root.output_definitions.parameters
+        )
 
 
 class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
-
     def test_python_component(self):
 
         @dsl.component
@@ -3798,53 +4170,82 @@ class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
             pass
 
         self.assertEqual(
-            python_component.pipeline_spec.root.input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            python_component.pipeline_spec.root.input_definitions.artifacts[
+                'input_list'
+            ].is_artifact_list,
+            True,
+        )
         self.assertEqual(
             python_component.pipeline_spec.components['comp-python-component']
-            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+            .input_definitions.artifacts['input_list']
+            .is_artifact_list,
+            True,
+        )
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=python_component, package_path=output_yaml)
+                pipeline_func=python_component, package_path=output_yaml
+            )
             loaded_component = components.load_component_from_file(output_yaml)
 
         self.assertEqual(
-            loaded_component.pipeline_spec.root.input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            loaded_component.pipeline_spec.root.input_definitions.artifacts[
+                'input_list'
+            ].is_artifact_list,
+            True,
+        )
         self.assertEqual(
             loaded_component.pipeline_spec.components['comp-python-component']
-            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+            .input_definitions.artifacts['input_list']
+            .is_artifact_list,
+            True,
+        )
 
     def test_container_component(self):
 
         @dsl.container_component
         def container_component(input_list: Input[List[Artifact]]):
             return dsl.ContainerSpec(
-                image='alpine', command=['echo'], args=['hello world'])
+                image='alpine', command=['echo'], args=['hello world']
+            )
 
         self.assertEqual(
-            container_component.pipeline_spec.root.input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            container_component.pipeline_spec.root.input_definitions.artifacts[
+                'input_list'
+            ].is_artifact_list,
+            True,
+        )
         self.assertEqual(
-            container_component.pipeline_spec
-            .components['comp-container-component'].input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            container_component.pipeline_spec.components[
+                'comp-container-component'
+            ]
+            .input_definitions.artifacts['input_list']
+            .is_artifact_list,
+            True,
+        )
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=container_component, package_path=output_yaml)
+                pipeline_func=container_component, package_path=output_yaml
+            )
             loaded_component = components.load_component_from_file(output_yaml)
 
         self.assertEqual(
-            loaded_component.pipeline_spec.root.input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            loaded_component.pipeline_spec.root.input_definitions.artifacts[
+                'input_list'
+            ].is_artifact_list,
+            True,
+        )
         self.assertEqual(
-            loaded_component.pipeline_spec
-            .components['comp-container-component'].input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            loaded_component.pipeline_spec.components[
+                'comp-container-component'
+            ]
+            .input_definitions.artifacts['input_list']
+            .is_artifact_list,
+            True,
+        )
 
     def test_pipeline(self):
 
@@ -3857,28 +4258,42 @@ class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
             python_component(input_list=input_list)
 
         self.assertEqual(
-            pipeline_component.pipeline_spec.root.input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            pipeline_component.pipeline_spec.root.input_definitions.artifacts[
+                'input_list'
+            ].is_artifact_list,
+            True,
+        )
         self.assertEqual(
             pipeline_component.pipeline_spec.components['comp-python-component']
-            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+            .input_definitions.artifacts['input_list']
+            .is_artifact_list,
+            True,
+        )
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_component, package_path=output_yaml)
+                pipeline_func=pipeline_component, package_path=output_yaml
+            )
             loaded_component = components.load_component_from_file(output_yaml)
 
         self.assertEqual(
-            loaded_component.pipeline_spec.root.input_definitions
-            .artifacts['input_list'].is_artifact_list, True)
+            loaded_component.pipeline_spec.root.input_definitions.artifacts[
+                'input_list'
+            ].is_artifact_list,
+            True,
+        )
         self.assertEqual(
             loaded_component.pipeline_spec.components['comp-python-component']
-            .input_definitions.artifacts['input_list'].is_artifact_list, True)
+            .input_definitions.artifacts['input_list']
+            .is_artifact_list,
+            True,
+        )
 
 
-def foo_platform_set_bar_feature(task: pipeline_task.PipelineTask,
-                                 val: str) -> pipeline_task.PipelineTask:
+def foo_platform_set_bar_feature(
+    task: pipeline_task.PipelineTask, val: str
+) -> pipeline_task.PipelineTask:
     platform_key = 'platform_foo'
     feature_key = 'bar'
 
@@ -3888,8 +4303,9 @@ def foo_platform_set_bar_feature(task: pipeline_task.PipelineTask,
     return task
 
 
-def foo_platform_append_bop_feature(task: pipeline_task.PipelineTask,
-                                    val: str) -> pipeline_task.PipelineTask:
+def foo_platform_append_bop_feature(
+    task: pipeline_task.PipelineTask, val: str
+) -> pipeline_task.PipelineTask:
     platform_key = 'platform_foo'
     feature_key = 'bop'
 
@@ -3901,8 +4317,9 @@ def foo_platform_append_bop_feature(task: pipeline_task.PipelineTask,
     return task
 
 
-def baz_platform_set_bat_feature(task: pipeline_task.PipelineTask,
-                                 val: str) -> pipeline_task.PipelineTask:
+def baz_platform_set_bat_feature(
+    task: pipeline_task.PipelineTask, val: str
+) -> pipeline_task.PipelineTask:
     platform_key = 'platform_baz'
     feature_key = 'bat'
 
@@ -3913,17 +4330,17 @@ def baz_platform_set_bat_feature(task: pipeline_task.PipelineTask,
 
 
 def compile_and_reload(
-        pipeline: graph_component.GraphComponent
+    pipeline: graph_component.GraphComponent,
 ) -> yaml_component.YamlComponent:
     with tempfile.TemporaryDirectory() as tempdir:
         output_yaml = os.path.join(tempdir, 'pipeline.yaml')
         compiler.Compiler().compile(
-            pipeline_func=pipeline, package_path=output_yaml)
+            pipeline_func=pipeline, package_path=output_yaml
+        )
         return components.load_component_from_file(output_yaml)
 
 
 class TestResourceConfig(unittest.TestCase):
-
     def test_cpu_memory_optional(self):
 
         @dsl.pipeline
@@ -3932,58 +4349,104 @@ class TestResourceConfig(unittest.TestCase):
             return_1().set_cpu_limit('5')
             return_1().set_memory_limit('50G')
             return_1().set_cpu_request('2').set_cpu_limit(
-                '5').set_memory_request('4G').set_memory_limit('50G')
+                '5'
+            ).set_memory_request('4G').set_memory_limit('50G')
 
         dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
 
         self.assertNotIn(
-            'resources', dict_format['deploymentSpec']['executors']
-            ['exec-return-1']['container'])
+            'resources',
+            dict_format['deploymentSpec']['executors']['exec-return-1'][
+                'container'
+            ],
+        )
 
         self.assertEqual(
-            '5', dict_format['deploymentSpec']['executors']['exec-return-1-2']
-            ['container']['resources']['resourceCpuLimit'])
+            '5',
+            dict_format['deploymentSpec']['executors']['exec-return-1-2'][
+                'container'
+            ]['resources']['resourceCpuLimit'],
+        )
         self.assertEqual(
-            5.0, dict_format['deploymentSpec']['executors']['exec-return-1-2']
-            ['container']['resources']['cpuLimit'])
+            5.0,
+            dict_format['deploymentSpec']['executors']['exec-return-1-2'][
+                'container'
+            ]['resources']['cpuLimit'],
+        )
         self.assertNotIn(
-            'memoryLimit', dict_format['deploymentSpec']['executors']
-            ['exec-return-1-2']['container']['resources'])
+            'memoryLimit',
+            dict_format['deploymentSpec']['executors']['exec-return-1-2'][
+                'container'
+            ]['resources'],
+        )
 
         self.assertEqual(
-            '50G', dict_format['deploymentSpec']['executors']['exec-return-1-3']
-            ['container']['resources']['resourceMemoryLimit'])
+            '50G',
+            dict_format['deploymentSpec']['executors']['exec-return-1-3'][
+                'container'
+            ]['resources']['resourceMemoryLimit'],
+        )
         self.assertEqual(
-            50.0, dict_format['deploymentSpec']['executors']['exec-return-1-3']
-            ['container']['resources']['memoryLimit'])
+            50.0,
+            dict_format['deploymentSpec']['executors']['exec-return-1-3'][
+                'container'
+            ]['resources']['memoryLimit'],
+        )
         self.assertNotIn(
-            'cpuLimit', dict_format['deploymentSpec']['executors']
-            ['exec-return-1-3']['container']['resources'])
+            'cpuLimit',
+            dict_format['deploymentSpec']['executors']['exec-return-1-3'][
+                'container'
+            ]['resources'],
+        )
 
         self.assertEqual(
-            '2', dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['resourceCpuRequest'])
+            '2',
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['resourceCpuRequest'],
+        )
         self.assertEqual(
-            2.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['cpuRequest'])
+            2.0,
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['cpuRequest'],
+        )
         self.assertEqual(
-            '5', dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['resourceCpuLimit'])
+            '5',
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['resourceCpuLimit'],
+        )
         self.assertEqual(
-            5.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['cpuLimit'])
+            5.0,
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['cpuLimit'],
+        )
         self.assertEqual(
-            '4G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['resourceMemoryRequest'])
+            '4G',
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['resourceMemoryRequest'],
+        )
         self.assertEqual(
-            4.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['memoryRequest'])
+            4.0,
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['memoryRequest'],
+        )
         self.assertEqual(
-            '50G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['resourceMemoryLimit'])
+            '50G',
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['resourceMemoryLimit'],
+        )
         self.assertEqual(
-            50.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['memoryLimit'])
+            50.0,
+            dict_format['deploymentSpec']['executors']['exec-return-1-4'][
+                'container'
+            ]['resources']['memoryLimit'],
+        )
 
     def test_cpu_memory_input_parameter(self):
 
@@ -3996,16 +4459,16 @@ class TestResourceConfig(unittest.TestCase):
             ac_type: str,
             ac_count: int,
         ):
-            return_1().set_cpu_request(cpu_request)\
-                .set_cpu_limit(cpu_limt)\
-                .set_memory_request(memory_request)\
-                .set_memory_limit(memory_limit)\
-                .set_accelerator_limit(ac_count)\
-                .set_accelerator_type(ac_type)
+            return_1().set_cpu_request(cpu_request).set_cpu_limit(
+                cpu_limt
+            ).set_memory_request(memory_request).set_memory_limit(
+                memory_limit
+            ).set_accelerator_limit(ac_count).set_accelerator_type(ac_type)
 
         dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
         resources = dict_format['deploymentSpec']['executors']['exec-return-1'][
-            'container']['resources']
+            'container'
+        ]['resources']
 
         self.assertIn('resourceCpuRequest', resources)
         self.assertNotIn('cpuRequest', resources)
@@ -4022,7 +4485,6 @@ class TestResourceConfig(unittest.TestCase):
 
 
 class TestPlatformConfig(unittest.TestCase):
-
     def test_no_platform_config(self):
 
         @dsl.pipeline
@@ -4035,7 +4497,8 @@ class TestPlatformConfig(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
             loaded_comp = components.load_component_from_file(output_yaml)
 
             with open(output_yaml) as f:
@@ -4058,15 +4521,13 @@ class TestPlatformConfig(unittest.TestCase):
                 'platforms': {
                     'platform_foo': {
                         'deployment_spec': {
-                            'executors': {
-                                'exec-comp': {
-                                    'bar': 12
-                                }
-                            }
+                            'executors': {'exec-comp': {'bar': 12}}
                         }
                     }
                 }
-            }, expected)
+            },
+            expected,
+        )
         self.assertEqual(my_pipeline.platform_spec, expected)
 
         loaded_pipeline = compile_and_reload(my_pipeline)
@@ -4092,24 +4553,19 @@ class TestPlatformConfig(unittest.TestCase):
                     'platform_foo': {
                         'deployment_spec': {
                             'executors': {
-                                'exec-comp': {
-                                    'bar': 12,
-                                    'bop': ['element']
-                                }
+                                'exec-comp': {'bar': 12, 'bop': ['element']}
                             }
                         }
                     },
                     'platform_baz': {
                         'deployment_spec': {
-                            'executors': {
-                                'exec-comp': {
-                                    'bat': 'hello'
-                                }
-                            }
+                            'executors': {'exec-comp': {'bat': 'hello'}}
                         }
-                    }
+                    },
                 }
-            }, expected)
+            },
+            expected,
+        )
         self.assertEqual(my_pipeline.platform_spec, expected)
 
         loaded_pipeline = compile_and_reload(my_pipeline)
@@ -4139,28 +4595,20 @@ class TestPlatformConfig(unittest.TestCase):
                     'platform_foo': {
                         'deployment_spec': {
                             'executors': {
-                                'exec-comp': {
-                                    'bar': 12,
-                                    'bop': ['a']
-                                },
-                                'exec-comp-2': {
-                                    'bar': 20,
-                                    'bop': ['b', 'c']
-                                }
+                                'exec-comp': {'bar': 12, 'bop': ['a']},
+                                'exec-comp-2': {'bar': 20, 'bop': ['b', 'c']},
                             }
                         }
                     },
                     'platform_baz': {
                         'deployment_spec': {
-                            'executors': {
-                                'exec-comp': {
-                                    'bat': 'hello'
-                                }
-                            }
+                            'executors': {'exec-comp': {'bat': 'hello'}}
                         }
-                    }
+                    },
                 }
-            }, expected)
+            },
+            expected,
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4209,32 +4657,21 @@ class TestPlatformConfig(unittest.TestCase):
                     'platform_foo': {
                         'deployment_spec': {
                             'executors': {
-                                'exec-comp': {
-                                    'bar': 12,
-                                    'bop': ['a']
-                                },
-                                'exec-comp-2': {
-                                    'bar': 20,
-                                    'bop': ['b', 'c']
-                                },
-                                'exec-comp-3': {
-                                    'bar': 20,
-                                    'bop': ['d', 'e']
-                                }
+                                'exec-comp': {'bar': 12, 'bop': ['a']},
+                                'exec-comp-2': {'bar': 20, 'bop': ['b', 'c']},
+                                'exec-comp-3': {'bar': 20, 'bop': ['d', 'e']},
                             }
                         }
                     },
                     'platform_baz': {
                         'deployment_spec': {
-                            'executors': {
-                                'exec-comp': {
-                                    'bat': 'hello'
-                                }
-                            }
+                            'executors': {'exec-comp': {'bat': 'hello'}}
                         }
-                    }
+                    },
                 }
-            }, expected)
+            },
+            expected,
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4269,23 +4706,19 @@ class TestPlatformConfig(unittest.TestCase):
                                 'exec-comp': {
                                     'bar': 12,
                                 },
-                                'exec-comp-2': {
-                                    'bop': ['a']
-                                }
+                                'exec-comp-2': {'bop': ['a']},
                             }
                         }
                     },
                     'platform_baz': {
                         'deployment_spec': {
-                            'executors': {
-                                'exec-comp-2': {
-                                    'bat': 'hello'
-                                }
-                            }
+                            'executors': {'exec-comp-2': {'bat': 'hello'}}
                         }
                     },
                 }
-            }, expected)
+            },
+            expected,
+        )
         self.assertEqual(my_pipeline.platform_spec, expected)
 
         loaded_pipeline = compile_and_reload(my_pipeline)
@@ -4336,30 +4769,25 @@ class TestPlatformConfig(unittest.TestCase):
                             'executors': {
                                 'exec-comp': {
                                     'bar': 20,
-                                    'bop': ['element1', 'element2']
+                                    'bop': ['element1', 'element2'],
                                 },
                                 'exec-comp-2': {
                                     'bar': 20,
-                                    'bop': ['element3', 'element4']
+                                    'bop': ['element3', 'element4'],
                                 },
-                                'exec-comp-3': {
-                                    'bar': 12,
-                                    'bop': ['element']
-                                },
+                                'exec-comp-3': {'bar': 12, 'bop': ['element']},
                             }
                         }
                     },
                     'platform_baz': {
                         'deployment_spec': {
-                            'executors': {
-                                'exec-comp-3': {
-                                    'bat': 'hello'
-                                }
-                            }
+                            'executors': {'exec-comp-3': {'bat': 'hello'}}
                         }
-                    }
+                    },
                 }
-            }, expected)
+            },
+            expected,
+        )
         self.assertEqual(my_pipeline.platform_spec, expected)
 
         loaded_pipeline = compile_and_reload(my_pipeline)
@@ -4380,24 +4808,26 @@ class TestPlatformConfig(unittest.TestCase):
             foo_platform_set_bar_feature(task, 12)
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Platform-specific features are only supported when serializing to YAML\. Argument for 'package_path' has file extension '\.json'\."
+            ValueError,
+            r"Platform-specific features are only supported when serializing to YAML\. Argument for 'package_path' has file extension '\.json'\.",
         ):
             with tempfile.TemporaryDirectory() as tempdir:
                 output_yaml = os.path.join(tempdir, 'pipeline.json')
                 compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=output_yaml)
+                    pipeline_func=my_pipeline, package_path=output_yaml
+                )
 
     def test_cannot_set_platform_specific_config_on_in_memory_pipeline_task(
-            self):
+        self,
+    ):
 
         @dsl.pipeline
         def inner():
             task = comp()
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'Platform\-specific features can only be set on primitive components\. Found platform\-specific feature set on a pipeline\.'
+            ValueError,
+            r'Platform\-specific features can only be set on primitive components\. Found platform\-specific feature set on a pipeline\.',
         ):
 
             @dsl.pipeline
@@ -4411,7 +4841,10 @@ class TestPlatformConfig(unittest.TestCase):
             workspace=WorkspaceConfig(
                 size='10Gi',
                 kubernetes=KubernetesWorkspaceConfig(
-                    pvcSpecPatch={'accessModes': ['ReadWriteOnce']})))
+                    pvcSpecPatch={'accessModes': ['ReadWriteOnce']}
+                ),
+            )
+        )
 
         @dsl.pipeline(pipeline_config=config)
         def my_pipeline():
@@ -4424,13 +4857,13 @@ class TestPlatformConfig(unittest.TestCase):
                     'workspace': {
                         'size': '10Gi',
                         'kubernetes': {
-                            'pvcSpecPatch': {
-                                'accessModes': ['ReadWriteOnce']
-                            }
-                        }
+                            'pvcSpecPatch': {'accessModes': ['ReadWriteOnce']}
+                        },
                     }
                 }
-            }, expected.platforms['kubernetes'])
+            },
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4444,11 +4877,23 @@ class TestPlatformConfig(unittest.TestCase):
         """Test that workspace size validation works correctly."""
         from kfp.dsl.pipeline_config import WorkspaceConfig
 
-        valid_sizes = ['10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki']
+        valid_sizes = [
+            '10Gi',
+            '1.5Gi',
+            '1000Ti',
+            '500Mi',
+            '2Ki',
+            '100k',
+            '500m',
+            '1e3',
+        ]
         for size in valid_sizes:
             with self.subTest(size=size):
                 workspace = WorkspaceConfig(size=size)
                 self.assertEqual(workspace.size, size)
+
+        # Kubernetes only reads the lowercase kilobyte suffix.
+        self.assertEqual(WorkspaceConfig(size='10K').size, '10k')
 
         with self.assertRaises(ValueError) as context:
             WorkspaceConfig(size='')
@@ -4460,20 +4905,31 @@ class TestPlatformConfig(unittest.TestCase):
             with self.subTest(size=repr(size)):
                 with self.assertRaises(ValueError) as context:
                     WorkspaceConfig(size=size)
-                self.assertIn('required and cannot be empty',
-                              str(context.exception))
+                self.assertIn(
+                    'required and cannot be empty', str(context.exception)
+                )
 
         # Test None size raises error
         with self.assertRaises(ValueError):
             WorkspaceConfig(size=None)
 
         # Test invalid size raise error
-        invalid_sizes = ['abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi']
+        invalid_sizes = [
+            'abc',
+            '10XYZ',
+            'Gi',
+            '.',
+            '1..5Gi',
+            '-10Gi',
+            '1gi',
+            '1GB',
+            '1KI',
+        ]
         for size in invalid_sizes:
             with self.subTest(invalid_size=size):
                 with self.assertRaisesRegex(
-                        ValueError,
-                        r'Workspace size \".*\" is invalid\. Must be a valid Kubernetes resource quantity \(e\.g\., \"10Gi\", \"500Mi\", \"1Ti\"\)'
+                    ValueError,
+                    r'Workspace size \".*\" is invalid\. Must be a valid Kubernetes resource quantity \(e\.g\., \"10Gi\", \"500Mi\", \"1Ti\"\)',
                 ):
                     WorkspaceConfig(size=size)
 
@@ -4495,12 +4951,14 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertIn('required and cannot be empty', str(context.exception))
 
     def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
-            self):
+        self,
+    ):
         """Tests that compilation fails if placeholder is used and no workspace configured."""
 
         @dsl.component
         def uses_workspace(workspace_path: str) -> str:
             import os
+
             file_path = os.path.join(workspace_path, 'test.txt')
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'w') as f:
@@ -4509,8 +4967,8 @@ class TestPlatformConfig(unittest.TestCase):
 
         # No PipelineConfig provided (i.e., no workspace configured)
         with self.assertRaisesRegex(
-                ValueError,
-                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+            ValueError,
+            r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.',
         ):
 
             @dsl.pipeline
@@ -4520,17 +4978,18 @@ class TestPlatformConfig(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
                 compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=output_yaml)
+                    pipeline_func=my_pipeline, package_path=output_yaml
+                )
 
     def test_compile_fails_when_workspace_placeholder_used_in_nested_groups_without_workspace_config(
-            self):
+        self,
+    ):
         """Tests that compilation fails if placeholder is used within nested groups and no workspace configured."""
 
         import os
         import tempfile
 
-        from kfp import compiler
-        from kfp import dsl
+        from kfp import compiler, dsl
 
         @dsl.component
         def gen_int() -> int:
@@ -4539,6 +4998,7 @@ class TestPlatformConfig(unittest.TestCase):
         @dsl.component
         def uses_workspace(workspace_path: str) -> str:
             import os as _os
+
             file_path = _os.path.join(workspace_path, 'nested.txt')
             _os.makedirs(_os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'w') as f:
@@ -4546,8 +5006,8 @@ class TestPlatformConfig(unittest.TestCase):
             return file_path
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+            ValueError,
+            r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.',
         ):
 
             @dsl.pipeline
@@ -4555,27 +5015,29 @@ class TestPlatformConfig(unittest.TestCase):
                 x = gen_int()
                 with dsl.If(x.output == 0):
                     uses_workspace(
-                        workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+                        workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER
+                    )
 
             with tempfile.TemporaryDirectory() as tmpdir:
                 output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
                 compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=output_yaml)
+                    pipeline_func=my_pipeline, package_path=output_yaml
+                )
 
     def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
-            self):
+        self,
+    ):
         """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
 
         import os
         import tempfile
 
-        from kfp import compiler
-        from kfp import dsl
+        from kfp import compiler, dsl
 
         # No PipelineConfig provided (i.e., no workspace configured)
         with self.assertRaisesRegex(
-                ValueError,
-                r'dsl\.importer\(download_to_workspace=True\) requires PipelineConfig\(workspace=\.\.\.\) on the pipeline\.'
+            ValueError,
+            r'dsl\.importer\(download_to_workspace=True\) requires PipelineConfig\(workspace=\.\.\.\) on the pipeline\.',
         ):
 
             @dsl.pipeline
@@ -4589,21 +5051,24 @@ class TestPlatformConfig(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
                 compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=output_yaml)
+                    pipeline_func=my_pipeline, package_path=output_yaml
+                )
 
     def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
-            self):
+        self,
+    ):
         """Tests that compilation succeeds with both download_to_workspace and workspace config."""
 
         import os
         import tempfile
 
-        from kfp import compiler
-        from kfp import dsl
+        from kfp import compiler, dsl
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(
-                workspace=dsl.WorkspaceConfig(size='1Gi')))
+                workspace=dsl.WorkspaceConfig(size='1Gi')
+            )
+        )
         def my_pipeline():
             dsl.importer(
                 artifact_uri='gs://bucket/file.txt',
@@ -4614,7 +5079,8 @@ class TestPlatformConfig(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
+                pipeline_func=my_pipeline, package_path=output_yaml
+            )
             # Should not raise an error
             self.assertTrue(os.path.exists(output_yaml))
 
@@ -4622,15 +5088,16 @@ class TestPlatformConfig(unittest.TestCase):
         """ttl_seconds_after_finished → resource_ttl_on_completion (SecondsAfterCompletion)."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=300))
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=300)
+        )
         def my_pipeline():
             comp()
 
         expected = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
-            {'pipelineConfig': {
-                'resourceTtlOnCompletion': 300
-            }}, expected.platforms['kubernetes'])
+            {'pipelineConfig': {'resourceTtlOnCompletion': 300}},
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4641,14 +5108,16 @@ class TestPlatformConfig(unittest.TestCase):
         """ttl_seconds_after_success → resource_ttl_on_success (SecondsAfterSuccess)."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_success=600))
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_success=600)
+        )
         def my_pipeline():
             comp()
 
         expected = pipeline_spec_pb2.PlatformSpec()
-        json_format.ParseDict({'pipelineConfig': {
-            'resourceTtlOnSuccess': 600
-        }}, expected.platforms['kubernetes'])
+        json_format.ParseDict(
+            {'pipelineConfig': {'resourceTtlOnSuccess': 600}},
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4659,14 +5128,16 @@ class TestPlatformConfig(unittest.TestCase):
         """ttl_seconds_after_failure → resource_ttl_on_failure (SecondsAfterFailure)."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_failure=120))
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_failure=120)
+        )
         def my_pipeline():
             comp()
 
         expected = pipeline_spec_pb2.PlatformSpec()
-        json_format.ParseDict({'pipelineConfig': {
-            'resourceTtlOnFailure': 120
-        }}, expected.platforms['kubernetes'])
+        json_format.ParseDict(
+            {'pipelineConfig': {'resourceTtlOnFailure': 120}},
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4681,7 +5152,8 @@ class TestPlatformConfig(unittest.TestCase):
                 ttl_seconds_after_finished=300,
                 ttl_seconds_after_success=3600,
                 ttl_seconds_after_failure=60,
-            ))
+            )
+        )
         def my_pipeline():
             comp()
 
@@ -4693,7 +5165,9 @@ class TestPlatformConfig(unittest.TestCase):
                     'resourceTtlOnSuccess': 3600,
                     'resourceTtlOnFailure': 60,
                 }
-            }, expected.platforms['kubernetes'])
+            },
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4706,7 +5180,8 @@ class TestPlatformConfig(unittest.TestCase):
         """
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=0))
+            pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=0)
+        )
         def my_pipeline():
             comp()
 
@@ -4735,13 +5210,13 @@ class TestPlatformConfig(unittest.TestCase):
                 'pipelineConfig': {
                     'workspace': {
                         'size': '10Gi',
-                        'kubernetes': {
-                            'pvcSpecPatch': {}
-                        }
+                        'kubernetes': {'pvcSpecPatch': {}},
                     },
                     'resourceTtlOnCompletion': 3600,
                 }
-            }, expected.platforms['kubernetes'])
+            },
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4772,15 +5247,16 @@ class TestPlatformConfig(unittest.TestCase):
         """active_deadline_seconds → activeDeadlineSeconds in platform spec."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=3600))
+            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=3600)
+        )
         def my_pipeline():
             comp()
 
         expected = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(
-            {'pipelineConfig': {
-                'activeDeadlineSeconds': 3600
-            }}, expected.platforms['kubernetes'])
+            {'pipelineConfig': {'activeDeadlineSeconds': 3600}},
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4791,7 +5267,8 @@ class TestPlatformConfig(unittest.TestCase):
         """active_deadline_seconds=None (default) produces no platform spec entry."""
 
         @dsl.pipeline(
-            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None))
+            pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None)
+        )
         def my_pipeline():
             comp()
 
@@ -4809,7 +5286,8 @@ class TestPlatformConfig(unittest.TestCase):
             pipeline_config=dsl.PipelineConfig(
                 ttl_seconds_after_finished=300,
                 active_deadline_seconds=7200,
-            ))
+            )
+        )
         def my_pipeline():
             comp()
 
@@ -4820,7 +5298,9 @@ class TestPlatformConfig(unittest.TestCase):
                     'resourceTtlOnCompletion': 300,
                     'activeDeadlineSeconds': 7200,
                 }
-            }, expected.platforms['kubernetes'])
+            },
+            expected.platforms['kubernetes'],
+        )
 
         self.assertEqual(my_pipeline.platform_spec, expected)
 
@@ -4844,7 +5324,6 @@ class TestPlatformConfig(unittest.TestCase):
 
 
 class ExtractInputOutputDescription(unittest.TestCase):
-
     def test_no_descriptions(self):
         from kfp import dsl
 
@@ -4873,7 +5352,8 @@ class ExtractInputOutputDescription(unittest.TestCase):
             )
             return Outputs(
                 out_str=t.outputs['Output'],
-                out_artifact=t.outputs['out_artifact'])
+                out_artifact=t.outputs['out_artifact'],
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
 
@@ -4881,50 +5361,81 @@ class ExtractInputOutputDescription(unittest.TestCase):
         # check key with assertIn first to prevent false negatives with errored key and easier debugging
         self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
         self.assertEqual(
-            pipeline_spec.root.input_definitions.parameters['string']
-            .description, '')
-        self.assertIn('in_artifact',
-                      pipeline_spec.root.input_definitions.artifacts)
+            pipeline_spec.root.input_definitions.parameters[
+                'string'
+            ].description,
+            '',
+        )
+        self.assertIn(
+            'in_artifact', pipeline_spec.root.input_definitions.artifacts
+        )
         self.assertEqual(
-            pipeline_spec.root.input_definitions.artifacts['in_artifact']
-            .description, '')
-        self.assertIn('out_str',
-                      pipeline_spec.root.output_definitions.parameters)
+            pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].description,
+            '',
+        )
+        self.assertIn(
+            'out_str', pipeline_spec.root.output_definitions.parameters
+        )
         self.assertEqual(
-            pipeline_spec.root.output_definitions.parameters['out_str']
-            .description, '')
-        self.assertIn('out_artifact',
-                      pipeline_spec.root.output_definitions.artifacts)
+            pipeline_spec.root.output_definitions.parameters[
+                'out_str'
+            ].description,
+            '',
+        )
+        self.assertIn(
+            'out_artifact', pipeline_spec.root.output_definitions.artifacts
+        )
         self.assertEqual(
-            pipeline_spec.root.output_definitions.artifacts['out_artifact']
-            .description, '')
+            pipeline_spec.root.output_definitions.artifacts[
+                'out_artifact'
+            ].description,
+            '',
+        )
 
         # test component
         # check key with assertIn first to prevent false negatives with errored key and easier debugging
         self.assertIn(
             'string',
-            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+            pipeline_spec.components['comp-comp'].input_definitions.parameters,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .parameters['string'].description, '')
+            pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['string']
+            .description,
+            '',
+        )
         self.assertIn(
             'in_artifact',
-            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .artifacts['in_artifact'].description, '')
+            pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['in_artifact']
+            .description,
+            '',
+        )
         self.assertIn(
             'Output',
-            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+            pipeline_spec.components['comp-comp'].output_definitions.parameters,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].output_definitions
-            .parameters['Output'].description, '')
+            pipeline_spec.components['comp-comp']
+            .output_definitions.parameters['Output']
+            .description,
+            '',
+        )
         self.assertIn(
             'out_artifact',
-            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].output_definitions
-            .artifacts['out_artifact'].description, '')
+            pipeline_spec.components['comp-comp']
+            .output_definitions.artifacts['out_artifact']
+            .description,
+            '',
+        )
 
     def test_google_style(self):
 
@@ -4973,7 +5484,8 @@ class ExtractInputOutputDescription(unittest.TestCase):
             )
             return Outputs(
                 out_str=t.outputs['Output'],
-                out_artifact=t.outputs['out_artifact'])
+                out_artifact=t.outputs['out_artifact'],
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
 
@@ -4981,51 +5493,81 @@ class ExtractInputOutputDescription(unittest.TestCase):
         # check key with assertIn first to prevent false negatives with errored key and easier debugging
         self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
         self.assertEqual(
-            pipeline_spec.root.input_definitions.parameters['string']
-            .description, 'Pipeline input string.')
-        self.assertIn('in_artifact',
-                      pipeline_spec.root.input_definitions.artifacts)
+            pipeline_spec.root.input_definitions.parameters[
+                'string'
+            ].description,
+            'Pipeline input string.',
+        )
+        self.assertIn(
+            'in_artifact', pipeline_spec.root.input_definitions.artifacts
+        )
         self.assertEqual(
-            pipeline_spec.root.input_definitions.artifacts['in_artifact']
-            .description, 'Pipeline input artifact.')
-        self.assertIn('out_str',
-                      pipeline_spec.root.output_definitions.parameters)
+            pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].description,
+            'Pipeline input artifact.',
+        )
+        self.assertIn(
+            'out_str', pipeline_spec.root.output_definitions.parameters
+        )
         self.assertEqual(
-            pipeline_spec.root.output_definitions.parameters['out_str']
-            .description, 'Pipeline output string.')
-        self.assertIn('out_artifact',
-                      pipeline_spec.root.output_definitions.artifacts)
+            pipeline_spec.root.output_definitions.parameters[
+                'out_str'
+            ].description,
+            'Pipeline output string.',
+        )
+        self.assertIn(
+            'out_artifact', pipeline_spec.root.output_definitions.artifacts
+        )
         self.assertEqual(
-            pipeline_spec.root.output_definitions.artifacts['out_artifact']
-            .description, 'Pipeline output artifact.')
+            pipeline_spec.root.output_definitions.artifacts[
+                'out_artifact'
+            ].description,
+            'Pipeline output artifact.',
+        )
 
         # test component
         # check key with assertIn first to prevent false negatives with errored key and easier debugging
         self.assertIn(
             'string',
-            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+            pipeline_spec.components['comp-comp'].input_definitions.parameters,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .parameters['string'].description, 'Component input string.')
+            pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['string']
+            .description,
+            'Component input string.',
+        )
         self.assertIn(
             'in_artifact',
-            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .artifacts['in_artifact'].description, 'Component input artifact.')
+            pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['in_artifact']
+            .description,
+            'Component input artifact.',
+        )
         self.assertIn(
             'Output',
-            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+            pipeline_spec.components['comp-comp'].output_definitions.parameters,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].output_definitions
-            .parameters['Output'].description, 'Component output string.')
+            pipeline_spec.components['comp-comp']
+            .output_definitions.parameters['Output']
+            .description,
+            'Component output string.',
+        )
         self.assertIn(
             'out_artifact',
-            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].output_definitions
-            .artifacts['out_artifact'].description,
-            'Component output artifact.')
+            pipeline_spec.components['comp-comp']
+            .output_definitions.artifacts['out_artifact']
+            .description,
+            'Component output artifact.',
+        )
 
     def test_inner_return_keywords_does_not_mess_up_extraction(self):
         # we do string replacement for Return and Returns, so need to ensure having those words elsewhere plays well with extraction
@@ -5074,7 +5616,8 @@ class ExtractInputOutputDescription(unittest.TestCase):
             )
             return Outputs(
                 out_str=t.outputs['Output'],
-                out_artifact=t.outputs['out_artifact'])
+                out_artifact=t.outputs['out_artifact'],
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
 
@@ -5082,60 +5625,88 @@ class ExtractInputOutputDescription(unittest.TestCase):
         # check key with assertIn first to prevent false negatives with errored key and easier debugging
         self.assertIn('string', pipeline_spec.root.input_definitions.parameters)
         self.assertEqual(
-            pipeline_spec.root.input_definitions.parameters['string']
-            .description, 'Return Pipeline input string. Returns')
-        self.assertIn('in_artifact',
-                      pipeline_spec.root.input_definitions.artifacts)
+            pipeline_spec.root.input_definitions.parameters[
+                'string'
+            ].description,
+            'Return Pipeline input string. Returns',
+        )
+        self.assertIn(
+            'in_artifact', pipeline_spec.root.input_definitions.artifacts
+        )
         self.assertEqual(
-            pipeline_spec.root.input_definitions.artifacts['in_artifact']
-            .description, 'Pipeline input Return artifact.')
-        self.assertIn('out_str',
-                      pipeline_spec.root.output_definitions.parameters)
+            pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].description,
+            'Pipeline input Return artifact.',
+        )
+        self.assertIn(
+            'out_str', pipeline_spec.root.output_definitions.parameters
+        )
         self.assertEqual(
-            pipeline_spec.root.output_definitions.parameters['out_str']
-            .description, 'Pipeline output string.')
-        self.assertIn('out_artifact',
-                      pipeline_spec.root.output_definitions.artifacts)
+            pipeline_spec.root.output_definitions.parameters[
+                'out_str'
+            ].description,
+            'Pipeline output string.',
+        )
+        self.assertIn(
+            'out_artifact', pipeline_spec.root.output_definitions.artifacts
+        )
         self.assertEqual(
-            pipeline_spec.root.output_definitions.artifacts['out_artifact']
-            .description, 'Pipeline output artifact.')
+            pipeline_spec.root.output_definitions.artifacts[
+                'out_artifact'
+            ].description,
+            'Pipeline output artifact.',
+        )
 
         # test component
         # check key with assertIn first to prevent false negatives with errored key and easier debugging
         self.assertIn(
             'string',
-            pipeline_spec.components['comp-comp'].input_definitions.parameters)
+            pipeline_spec.components['comp-comp'].input_definitions.parameters,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .parameters['string'].description, 'Component Return input string.')
+            pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['string']
+            .description,
+            'Component Return input string.',
+        )
         self.assertIn(
             'in_artifact',
-            pipeline_spec.components['comp-comp'].input_definitions.artifacts)
+            pipeline_spec.components['comp-comp'].input_definitions.artifacts,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].input_definitions
-            .artifacts['in_artifact'].description,
-            'Component Returns input artifact.')
+            pipeline_spec.components['comp-comp']
+            .input_definitions.artifacts['in_artifact']
+            .description,
+            'Component Returns input artifact.',
+        )
         self.assertIn(
             'Output',
-            pipeline_spec.components['comp-comp'].output_definitions.parameters)
+            pipeline_spec.components['comp-comp'].output_definitions.parameters,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].output_definitions
-            .parameters['Output'].description, 'Component output string.')
+            pipeline_spec.components['comp-comp']
+            .output_definitions.parameters['Output']
+            .description,
+            'Component output string.',
+        )
         self.assertIn(
             'out_artifact',
-            pipeline_spec.components['comp-comp'].output_definitions.artifacts)
+            pipeline_spec.components['comp-comp'].output_definitions.artifacts,
+        )
         self.assertEqual(
-            pipeline_spec.components['comp-comp'].output_definitions
-            .artifacts['out_artifact'].description,
-            'Component output artifact.')
+            pipeline_spec.components['comp-comp']
+            .output_definitions.artifacts['out_artifact']
+            .description,
+            'Component output artifact.',
+        )
 
 
 class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
-
     def test_condition_raises(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.Condition\.'
+            compiler_utils.InvalidTopologyException,
+            r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.Condition\.',
         ):
 
             @dsl.pipeline
@@ -5146,8 +5717,8 @@ class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
     def test_loop_raises(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.ParallelFor\.'
+            compiler_utils.InvalidTopologyException,
+            r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.ParallelFor\.',
         ):
 
             @dsl.pipeline
@@ -5158,8 +5729,8 @@ class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
     def test_exit_handler_raises(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.ExitHandler\.'
+            compiler_utils.InvalidTopologyException,
+            r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.ExitHandler\.',
         ):
 
             @dsl.pipeline
@@ -5169,7 +5740,6 @@ class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
 
 
 class TestConditionLogic(unittest.TestCase):
-
     def test_if(self):
 
         @dsl.pipeline
@@ -5179,9 +5749,10 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Got heads!')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
-            .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-1'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'",
         )
 
     def test_if_else(self):
@@ -5195,17 +5766,21 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Got tails!')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-2']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-2']
             .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'",
         )
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-3']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-3']
             .trigger_policy.condition,
-            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads')"
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads')",
         )
 
     def test_if_elif_else(self):
@@ -5221,23 +5796,29 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Draw!')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-2']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-2']
             .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads'"
+            "inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads'",
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-3']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-3']
             .trigger_policy.condition,
-            "!(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'tails'"
+            "!(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'tails'",
         )
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-4']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-4']
             .trigger_policy.condition,
-            "!(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'tails')"
+            "!(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'tails')",
         )
 
     def test_if_multiple_elif_else(self):
@@ -5256,23 +5837,27 @@ class TestConditionLogic(unittest.TestCase):
 
         self.assertEqual(
             int_to_string.pipeline_spec.components['comp-condition-branches-1']
-            .dag.tasks['condition-2'].trigger_policy.condition,
-            "int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0"
+            .dag.tasks['condition-2']
+            .trigger_policy.condition,
+            "int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0",
         )
         self.assertEqual(
             int_to_string.pipeline_spec.components['comp-condition-branches-1']
-            .dag.tasks['condition-3'].trigger_policy.condition,
-            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1"
+            .dag.tasks['condition-3']
+            .trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1",
         )
         self.assertEqual(
             int_to_string.pipeline_spec.components['comp-condition-branches-1']
-            .dag.tasks['condition-4'].trigger_policy.condition,
-            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2"
+            .dag.tasks['condition-4']
+            .trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2",
         )
         self.assertEqual(
             int_to_string.pipeline_spec.components['comp-condition-branches-1']
-            .dag.tasks['condition-5'].trigger_policy.condition,
-            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)"
+            .dag.tasks['condition-5']
+            .trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)",
         )
 
     def test_nested_if_elif_else_with_pipeline_param(self):
@@ -5311,61 +5896,76 @@ class TestConditionLogic(unittest.TestCase):
         ## top level conditions
         ### if
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
-            .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-1'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'",
         )
         ## second level nested conditions
         ### if
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-2'].dag.tasks['condition-3']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-2'
+            ]
+            .dag.tasks['condition-3']
             .trigger_policy.condition,
-            "int(inputs.parameter_values[\'pipelinechannel--int-zero-through-three-Output\']) == 0"
+            "int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0",
         )
         ### elif
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-2'].dag.tasks['condition-4']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-2'
+            ]
+            .dag.tasks['condition-4']
             .trigger_policy.condition,
-            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1"
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1",
         )
         ### elif #2
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-2'].dag.tasks['condition-6']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-2'
+            ]
+            .dag.tasks['condition-6']
             .trigger_policy.condition,
-            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2"
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2",
         )
         ### else
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-2'].dag.tasks['condition-7']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-2'
+            ]
+            .dag.tasks['condition-7']
             .trigger_policy.condition,
-            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)"
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)",
         )
         ## third level nested conditions
         ### if
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
-            .tasks['condition-5'].trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--confirm'] == true")
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-4']
+            .dag.tasks['condition-5']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--confirm'] == true",
+        )
 
         # second group
 
         ## if
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-10'].dag.tasks['condition-11']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-10'
+            ]
+            .dag.tasks['condition-11']
             .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads'"
+            "inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads'",
         )
         ## elif
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-10'].dag.tasks['condition-12']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-10'
+            ]
+            .dag.tasks['condition-12']
             .trigger_policy.condition,
-            "!(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads')"
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads')",
         )
 
     def test_multiple_ifs_permitted(self):
@@ -5379,20 +5979,22 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Got tails!')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
-            .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-1'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'",
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-2']
-            .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'tails'"
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-2'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'tails'",
         )
 
     def test_multiple_else_not_permitted(self):
         with self.assertRaisesRegex(
-                tasks_group.InvalidControlFlowException,
-                r'Cannot use dsl\.Else following another dsl\.Else\. dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+            tasks_group.InvalidControlFlowException,
+            r'Cannot use dsl\.Else following another dsl\.Else\. dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.',
         ):
 
             @dsl.pipeline
@@ -5407,8 +6009,8 @@ class TestConditionLogic(unittest.TestCase):
 
     def test_else_no_if_not_supported(self):
         with self.assertRaisesRegex(
-                tasks_group.InvalidControlFlowException,
-                r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+            tasks_group.InvalidControlFlowException,
+            r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.',
         ):
 
             @dsl.pipeline
@@ -5418,8 +6020,8 @@ class TestConditionLogic(unittest.TestCase):
 
     def test_elif_no_if_not_supported(self):
         with self.assertRaisesRegex(
-                tasks_group.InvalidControlFlowException,
-                r'dsl\.Elif can only be used following an upstream dsl\.If or dsl\.Elif\.'
+            tasks_group.InvalidControlFlowException,
+            r'dsl\.Elif can only be used following an upstream dsl\.If or dsl\.Elif\.',
         ):
 
             @dsl.pipeline
@@ -5430,8 +6032,8 @@ class TestConditionLogic(unittest.TestCase):
 
     def test_boolean_condition_has_helpful_error(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Got constant boolean True as a condition\. This is likely because the provided condition evaluated immediately\. At least one of the operands must be an output from an upstream task or a pipeline parameter\.'
+            ValueError,
+            r'Got constant boolean True as a condition\. This is likely because the provided condition evaluated immediately\. At least one of the operands must be an output from an upstream task or a pipeline parameter\.',
         ):
 
             @dsl.pipeline
@@ -5441,8 +6043,8 @@ class TestConditionLogic(unittest.TestCase):
 
     def test_boolean_elif_has_helpful_error(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Got constant boolean False as a condition\. This is likely because the provided condition evaluated immediately\. At least one of the operands must be an output from an upstream task or a pipeline parameter\.'
+            ValueError,
+            r'Got constant boolean False as a condition\. This is likely because the provided condition evaluated immediately\. At least one of the operands must be an output from an upstream task or a pipeline parameter\.',
         ):
 
             @dsl.pipeline
@@ -5469,32 +6071,40 @@ class TestConditionLogic(unittest.TestCase):
 
             with dsl.Else():
                 print_and_return(
-                    text=f'Coin three result: {flip_coin_task_3.output}')
+                    text=f'Coin three result: {flip_coin_task_3.output}'
+                )
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-2']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-2']
             .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'",
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-3']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-3']
             .trigger_policy.condition,
-            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails'"
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails'",
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].dag.tasks['condition-4']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.tasks['condition-4']
             .trigger_policy.condition,
-            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails')"
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails')",
         )
 
     def test_other_control_flow_instantiated_between_if_else_not_permitted(
-            self):
+        self,
+    ):
         with self.assertRaisesRegex(
-                tasks_group.InvalidControlFlowException,
-                r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+            tasks_group.InvalidControlFlowException,
+            r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.',
         ):
 
             @dsl.pipeline
@@ -5536,45 +6146,60 @@ class TestDslOneOf(unittest.TestCase):
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-2']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-Output'].parameter_type,
+                'pipelinechannel--print-and-return-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # hole punched through else
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-3']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-with-output-key-output_key']
+                'pipelinechannel--print-and-return-with-output-key-output_key'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
         # condition-branches surfaces
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
-        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        parameter_selectors = (
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .value_from_oneof.parameter_selectors
+        )
 
         self.assertEqual(
             parameter_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-Output',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         # surfaced as output
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter,
+            roll_die_pipeline.pipeline_spec.root.dag.outputs.parameters[
+                'Output'
+            ].value_from_parameter,
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 producer_subtask='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
@@ -5599,57 +6224,75 @@ class TestDslOneOf(unittest.TestCase):
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-2']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-Output'].parameter_type,
+                'pipelinechannel--print-and-return-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # hole punched through elif
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-3']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-2-Output'].parameter_type,
+                'pipelinechannel--print-and-return-2-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # hole punched through else
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-4']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-with-output-key-output_key']
+                'pipelinechannel--print-and-return-with-output-key-output_key'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
         # condition-branches surfaces
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
-        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        parameter_selectors = (
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .value_from_oneof.parameter_selectors
+        )
         self.assertEqual(
             parameter_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-Output',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-2-Output',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[2],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
                 producer_subtask='condition-4',
-            ))
+            ),
+        )
         # surfaced as output
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter,
+            roll_die_pipeline.pipeline_spec.root.dag.outputs.parameters[
+                'Output'
+            ].value_from_parameter,
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 producer_subtask='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
@@ -5669,65 +6312,83 @@ class TestDslOneOf(unittest.TestCase):
             with dsl.Else():
                 t3 = print_and_return_with_output_key(text='Draw!')
             print_and_return(
-                text=dsl.OneOf(t1.output, t2.output, t3.outputs['output_key']))
+                text=dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])
+            )
 
         # hole punched through if
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-2']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-Output'].parameter_type,
+                'pipelinechannel--print-and-return-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # hole punched through elif
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-3']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-2-Output'].parameter_type,
+                'pipelinechannel--print-and-return-2-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # hole punched through else
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-4']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-with-output-key-output_key']
+                'pipelinechannel--print-and-return-with-output-key-output_key'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
         # condition-branches surfaces
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
-        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        parameter_selectors = (
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .value_from_oneof.parameter_selectors
+        )
         self.assertEqual(
             parameter_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-Output',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-2-Output',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[2],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
                 producer_subtask='condition-4',
-            ))
+            ),
+        )
         # consumed from condition-branches
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.root.dag.tasks['print-and-return-3']
-            .inputs.parameters['text'].task_output_parameter,
-            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
-            .TaskOutputParameterSpec(
+            .inputs.parameters['text']
+            .task_output_parameter,
+            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec(
                 producer_task='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
             ),
@@ -5751,46 +6412,62 @@ class TestDslOneOf(unittest.TestCase):
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-2']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-Output'].parameter_type,
+                'pipelinechannel--print-and-return-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # hole punched through else
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-3']
             .output_definitions.parameters[
-                'pipelinechannel--print-and-return-2-Output'].parameter_type,
+                'pipelinechannel--print-and-return-2-Output'
+            ]
+            .parameter_type,
             type_utils.STRING,
         )
         # condition-branches surfaces
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
-        parameter_selectors = flip_coin_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        parameter_selectors = (
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .value_from_oneof.parameter_selectors
+        )
         self.assertEqual(
             parameter_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-Output',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-2-Output',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         # consumed from condition-branches
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag
-            .tasks['print-and-return-3'].inputs.parameters['text']
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'print-and-return-3'
+            ]
+            .inputs.parameters['text']
             .task_output_parameter,
-            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
-            .TaskOutputParameterSpec(
+            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec(
                 producer_task='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
             ),
@@ -5798,8 +6475,9 @@ class TestDslOneOf(unittest.TestCase):
 
         # surfaced as output
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter,
+            flip_coin_pipeline.pipeline_spec.root.dag.outputs.parameters[
+                'Output'
+            ].value_from_parameter,
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 producer_subtask='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
@@ -5823,49 +6501,62 @@ class TestDslOneOf(unittest.TestCase):
         # hole punched through if
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-2']
-            .output_definitions
-            .artifacts['pipelinechannel--print-and-return-as-artifact-a']
+            .output_definitions.artifacts[
+                'pipelinechannel--print-and-return-as-artifact-a'
+            ]
             .artifact_type.schema_title,
             'system.Artifact',
         )
         # hole punched through else
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-3']
-            .output_definitions
-            .artifacts['pipelinechannel--print-and-return-as-artifact-2-a']
+            .output_definitions.artifacts[
+                'pipelinechannel--print-and-return-as-artifact-2-a'
+            ]
             .artifact_type.schema_title,
             'system.Artifact',
         )
         # condition-branches surfaces
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .artifacts['pipelinechannel--condition-branches-1-oneof-1']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.artifacts[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .artifact_type.schema_title,
             'system.Artifact',
         )
-        artifact_selectors = flip_coin_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.artifacts[
-                'pipelinechannel--condition-branches-1-oneof-1'].artifact_selectors
+        artifact_selectors = (
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.artifacts[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .artifact_selectors
+        )
         self.assertEqual(
             artifact_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
                 output_artifact_key='pipelinechannel--print-and-return-as-artifact-a',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             artifact_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
                 output_artifact_key='pipelinechannel--print-and-return-as-artifact-2-a',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
 
         # consumed from condition-branches
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.root.dag.tasks['print-artifact']
-            .inputs.artifacts['a'].task_output_artifact,
-            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
-            .TaskOutputArtifactSpec(
+            .inputs.artifacts['a']
+            .task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
                 producer_task='condition-branches-1',
                 output_artifact_key='pipelinechannel--condition-branches-1-oneof-1',
             ),
@@ -5873,8 +6564,9 @@ class TestDslOneOf(unittest.TestCase):
 
         # surfaced as output
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.outputs
-            .artifacts['Output'].artifact_selectors[0],
+            flip_coin_pipeline.pipeline_spec.root.dag.outputs.artifacts[
+                'Output'
+            ].artifact_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
                 producer_subtask='condition-branches-1',
                 output_artifact_key='pipelinechannel--condition-branches-1-oneof-1',
@@ -5890,65 +6582,83 @@ class TestDslOneOf(unittest.TestCase):
                 flip_coin_task = flip_coin()
                 with dsl.If(flip_coin_task.output == 'heads'):
                     print_task_1 = print_and_return_as_artifact(
-                        text='Got heads!')
+                        text='Got heads!'
+                    )
                 with dsl.Else():
                     print_task_2 = print_and_return_as_artifact(
-                        text='Got tails!')
-                x = dsl.OneOf(print_task_1.outputs['a'],
-                              print_task_2.outputs['a'])
+                        text='Got tails!'
+                    )
+                x = dsl.OneOf(
+                    print_task_1.outputs['a'], print_task_2.outputs['a']
+                )
                 print_artifact(a=x)
                 # test can be consumed multiple times from same oneof object
                 print_artifact(a=x)
-                y = dsl.OneOf(print_task_1.outputs['a'],
-                              print_task_2.outputs['a'])
+                y = dsl.OneOf(
+                    print_task_1.outputs['a'], print_task_2.outputs['a']
+                )
                 # test can be consumed multiple times from different equivalent oneof objects
                 print_artifact(a=y)
 
         # hole punched through if
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-3']
-            .output_definitions
-            .artifacts['pipelinechannel--print-and-return-as-artifact-a']
+            .output_definitions.artifacts[
+                'pipelinechannel--print-and-return-as-artifact-a'
+            ]
             .artifact_type.schema_title,
             'system.Artifact',
         )
         # hole punched through else
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-4']
-            .output_definitions
-            .artifacts['pipelinechannel--print-and-return-as-artifact-2-a']
+            .output_definitions.artifacts[
+                'pipelinechannel--print-and-return-as-artifact-2-a'
+            ]
             .artifact_type.schema_title,
             'system.Artifact',
         )
         # condition-branches surfaces
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-branches-2'].output_definitions
-            .artifacts['pipelinechannel--condition-branches-2-oneof-1']
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-2'
+            ]
+            .output_definitions.artifacts[
+                'pipelinechannel--condition-branches-2-oneof-1'
+            ]
             .artifact_type.schema_title,
             'system.Artifact',
         )
-        artifact_selectors = flip_coin_pipeline.pipeline_spec.components[
-            'comp-condition-branches-2'].dag.outputs.artifacts[
-                'pipelinechannel--condition-branches-2-oneof-1'].artifact_selectors
+        artifact_selectors = (
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-branches-2'
+            ]
+            .dag.outputs.artifacts[
+                'pipelinechannel--condition-branches-2-oneof-1'
+            ]
+            .artifact_selectors
+        )
         self.assertEqual(
             artifact_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
                 output_artifact_key='pipelinechannel--print-and-return-as-artifact-a',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         self.assertEqual(
             artifact_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
                 output_artifact_key='pipelinechannel--print-and-return-as-artifact-2-a',
                 producer_subtask='condition-4',
-            ))
+            ),
+        )
         # consumed from condition-branches
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact,
-            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
-            .TaskOutputArtifactSpec(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-1']
+            .dag.tasks['print-artifact']
+            .inputs.artifacts['a']
+            .task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
                 producer_task='condition-branches-2',
                 output_artifact_key='pipelinechannel--condition-branches-2-oneof-1',
             ),
@@ -5956,8 +6666,8 @@ class TestDslOneOf(unittest.TestCase):
 
     def test_nested_under_condition_returned_raises(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
+            compiler_utils.InvalidTopologyException,
+            r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.',
         ):
 
             @dsl.pipeline
@@ -5966,12 +6676,15 @@ class TestDslOneOf(unittest.TestCase):
                     flip_coin_task = flip_coin()
                     with dsl.If(flip_coin_task.output == 'heads'):
                         print_task_1 = print_and_return_as_artifact(
-                            text='Got heads!')
+                            text='Got heads!'
+                        )
                     with dsl.Else():
                         print_task_2 = print_and_return_as_artifact(
-                            text='Got tails!')
-                    return dsl.OneOf(print_task_1.outputs['a'],
-                                     print_task_2.outputs['a'])
+                            text='Got tails!'
+                        )
+                    return dsl.OneOf(
+                        print_task_1.outputs['a'], print_task_2.outputs['a']
+                    )
 
     def test_deeply_nested_consumed(self):
         """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
@@ -5984,23 +6697,30 @@ class TestDslOneOf(unittest.TestCase):
                         flip_coin_task = flip_coin()
                         with dsl.If(flip_coin_task.output == 'heads'):
                             print_task_1 = print_and_return_as_artifact(
-                                text='Got heads!')
+                                text='Got heads!'
+                            )
                         with dsl.Else():
                             print_task_2 = print_and_return_as_artifact(
-                                text='Got tails!')
-                        x = dsl.OneOf(print_task_1.outputs['a'],
-                                      print_task_2.outputs['a'])
+                                text='Got tails!'
+                            )
+                        x = dsl.OneOf(
+                            print_task_1.outputs['a'], print_task_2.outputs['a']
+                        )
                         print_artifact(a=x)
 
         self.assertIn(
-            'condition-branches-5', flip_coin_pipeline.pipeline_spec
-            .components['comp-condition-4'].dag.tasks)
+            'condition-branches-5',
+            flip_coin_pipeline.pipeline_spec.components[
+                'comp-condition-4'
+            ].dag.tasks,
+        )
         # consumed from condition-branches
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
-            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact,
-            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
-            .TaskOutputArtifactSpec(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-4']
+            .dag.tasks['print-artifact']
+            .inputs.artifacts['a']
+            .task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
                 producer_task='condition-branches-5',
                 output_artifact_key='pipelinechannel--condition-branches-5-oneof-1',
             ),
@@ -6009,8 +6729,8 @@ class TestDslOneOf(unittest.TestCase):
     def test_deeply_nested_returned_raises(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.ParallelFor\.'
+            compiler_utils.InvalidTopologyException,
+            r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.ParallelFor\.',
         ):
 
             @dsl.pipeline
@@ -6021,18 +6741,22 @@ class TestDslOneOf(unittest.TestCase):
                             flip_coin_task = flip_coin()
                             with dsl.If(flip_coin_task.output == 'heads'):
                                 print_task_1 = print_and_return_as_artifact(
-                                    text='Got heads!')
+                                    text='Got heads!'
+                                )
                             with dsl.Else():
                                 print_task_2 = print_and_return_as_artifact(
-                                    text='Got tails!')
-                            return dsl.OneOf(print_task_1.outputs['a'],
-                                             print_task_2.outputs['a'])
+                                    text='Got tails!'
+                                )
+                            return dsl.OneOf(
+                                print_task_1.outputs['a'],
+                                print_task_2.outputs['a'],
+                            )
 
     def test_consume_at_wrong_level(self):
 
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-artifact which depends on upstream task condition-branches-5 within an uncommon dsl\.If context\.'
+            compiler_utils.InvalidTopologyException,
+            r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-artifact which depends on upstream task condition-branches-5 within an uncommon dsl\.If context\.',
         ):
 
             @dsl.pipeline
@@ -6043,19 +6767,23 @@ class TestDslOneOf(unittest.TestCase):
                             flip_coin_task = flip_coin()
                             with dsl.If(flip_coin_task.output == 'heads'):
                                 print_task_1 = print_and_return_as_artifact(
-                                    text='Got heads!')
+                                    text='Got heads!'
+                                )
                             with dsl.Else():
                                 print_task_2 = print_and_return_as_artifact(
-                                    text='Got tails!')
-                            x = dsl.OneOf(print_task_1.outputs['a'],
-                                          print_task_2.outputs['a'])
+                                    text='Got tails!'
+                                )
+                            x = dsl.OneOf(
+                                print_task_1.outputs['a'],
+                                print_task_2.outputs['a'],
+                            )
                         # this is one level dedented from the permitted case
                         print_artifact(a=x)
 
     def test_return_at_wrong_level(self):
         with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
+            compiler_utils.InvalidTopologyException,
+            r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.',
         ):
 
             @dsl.pipeline
@@ -6064,13 +6792,16 @@ class TestDslOneOf(unittest.TestCase):
                     flip_coin_task = flip_coin()
                     with dsl.If(flip_coin_task.output == 'heads'):
                         print_task_1 = print_and_return_as_artifact(
-                            text='Got heads!')
+                            text='Got heads!'
+                        )
                     with dsl.Else():
                         print_task_2 = print_and_return_as_artifact(
-                            text='Got tails!')
+                            text='Got tails!'
+                        )
                 # this is returned at the right level, but not permitted since it's still effectively returning from within the dsl.If group
-                return dsl.OneOf(print_task_1.outputs['a'],
-                                 print_task_2.outputs['a'])
+                return dsl.OneOf(
+                    print_task_1.outputs['a'], print_task_2.outputs['a']
+                )
 
     def test_oneof_in_condition(self):
         """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
@@ -6091,38 +6822,51 @@ class TestDslOneOf(unittest.TestCase):
 
         # condition-branches surfaces
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
-        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        parameter_selectors = (
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .value_from_oneof.parameter_selectors
+        )
         self.assertEqual(
             parameter_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-Output',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-2-Output',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[2],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
                 producer_subtask='condition-4',
-            ))
+            ),
+        )
         # condition points to correct upstream output
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.tasks['condition-5']
-            .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'] == inputs.parameter_values['pipelinechannel--repeat_on']"
+            roll_die_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-5'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'] == inputs.parameter_values['pipelinechannel--repeat_on']",
         )
 
     def test_consumed_in_nested_groups(self):
@@ -6148,51 +6892,68 @@ class TestDslOneOf(unittest.TestCase):
 
         # condition-branches surfaces
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
             .parameter_type,
             type_utils.STRING,
         )
-        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        parameter_selectors = (
+            roll_die_pipeline.pipeline_spec.components[
+                'comp-condition-branches-1'
+            ]
+            .dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .value_from_oneof.parameter_selectors
+        )
         self.assertEqual(
             parameter_selectors[0],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-Output',
                 producer_subtask='condition-2',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[1],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-2-Output',
                 producer_subtask='condition-3',
-            ))
+            ),
+        )
         self.assertEqual(
             parameter_selectors[2],
             pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
                 output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
                 producer_subtask='condition-4',
-            ))
+            ),
+        )
         # condition points to correct upstream output
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-6']
             .input_definitions.parameters[
-                'pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1']
-            .parameter_type, type_utils.STRING)
+                'pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'
+            ]
+            .parameter_type,
+            type_utils.STRING,
+        )
         # inner task consumes from condition input parameter
         self.assertEqual(
-            roll_die_pipeline.pipeline_spec.components['comp-condition-6'].dag
-            .tasks['print-and-return-3'].inputs.parameters['text']
+            roll_die_pipeline.pipeline_spec.components['comp-condition-6']
+            .dag.tasks['print-and-return-3']
+            .inputs.parameters['text']
             .component_input_parameter,
-            'pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'
+            'pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1',
         )
 
     def test_oneof_in_fstring(self):
         with self.assertRaisesRegex(
-                NotImplementedError,
-                r'dsl\.OneOf does not support string interpolation\.'):
+            NotImplementedError,
+            r'dsl\.OneOf does not support string interpolation\.',
+        ):
 
             @dsl.pipeline
             def roll_die_pipeline():
@@ -6204,13 +6965,13 @@ class TestDslOneOf(unittest.TestCase):
                 with dsl.Else():
                     t3 = print_and_return_with_output_key(text='Draw!')
                 print_and_return(
-                    text=f"Final result: {dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])}"
+                    text=f'Final result: {dsl.OneOf(t1.output, t2.output, t3.outputs["output_key"])}'
                 )
 
     def test_type_checking_parameters(self):
         with self.assertRaisesRegex(
-                type_utils.InconsistentTypeException,
-                "Incompatible argument passed to the input 'val' of component 'print-int': Argument type 'STRING' is incompatible with the input type 'NUMBER_INTEGER'",
+            type_utils.InconsistentTypeException,
+            "Incompatible argument passed to the input 'val' of component 'print-int': Argument type 'STRING' is incompatible with the input type 'NUMBER_INTEGER'",
         ):
 
             @dsl.component
@@ -6227,13 +6988,16 @@ class TestDslOneOf(unittest.TestCase):
                 with dsl.Else():
                     t3 = print_and_return_with_output_key(text='Draw!')
                 print_int(
-                    val=dsl.OneOf(t1.output, t2.output,
-                                  t3.outputs['output_key']))
+                    val=dsl.OneOf(
+                        t1.output, t2.output, t3.outputs['output_key']
+                    )
+                )
 
     def test_oneof_of_oneof(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'dsl.OneOf cannot be used inside of another dsl\.OneOf\.'):
+            ValueError,
+            r'dsl.OneOf cannot be used inside of another dsl\.OneOf\.',
+        ):
 
             @dsl.pipeline
             def roll_die_pipeline() -> str:
@@ -6260,14 +7024,16 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             'system.Artifact',
         )
 
         self.assertFalse(
-            pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.parameters)
+            pythonic_style.pipeline_spec.components[
+                'comp-pythonic-style'
+            ].input_definitions.parameters
+        )
 
         @dsl.component
         def standard_style(in_artifact: Input[Artifact]):
@@ -6275,11 +7041,11 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
         )
 
     def test_pythonic_input_artifact_optional(self):
@@ -6290,14 +7056,16 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             'system.Artifact',
         )
 
         self.assertFalse(
-            pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.parameters)
+            pythonic_style.pipeline_spec.components[
+                'comp-pythonic-style'
+            ].input_definitions.parameters
+        )
 
         @dsl.component
         def standard_style(in_artifact: Optional[Input[Artifact]] = None):
@@ -6305,11 +7073,11 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
         )
 
     def test_pythonic_input_list_of_artifacts(self):
@@ -6320,17 +7088,21 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             'system.Artifact',
         )
         self.assertTrue(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].is_artifact_list)
+            .input_definitions.artifacts['in_artifact']
+            .is_artifact_list
+        )
 
         self.assertFalse(
-            pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.parameters)
+            pythonic_style.pipeline_spec.components[
+                'comp-pythonic-style'
+            ].input_definitions.parameters
+        )
 
         @dsl.component
         def standard_style(in_artifact: Input[List[Artifact]]):
@@ -6338,11 +7110,11 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
         )
 
     def test_pythonic_input_list_of_artifacts_optional(self):
@@ -6353,17 +7125,21 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             'system.Artifact',
         )
         self.assertTrue(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].is_artifact_list)
+            .input_definitions.artifacts['in_artifact']
+            .is_artifact_list
+        )
 
         self.assertFalse(
-            pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.parameters)
+            pythonic_style.pipeline_spec.components[
+                'comp-pythonic-style'
+            ].input_definitions.parameters
+        )
 
         @dsl.component
         def standard_style(in_artifact: Optional[Input[List[Artifact]]] = None):
@@ -6371,11 +7147,11 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .input_definitions.artifacts['in_artifact'].artifact_type
-            .schema_title,
+            .input_definitions.artifacts['in_artifact']
+            .artifact_type.schema_title,
         )
 
     def test_pythonic_output_artifact(self):
@@ -6386,13 +7162,16 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.artifacts['Output'].artifact_type.schema_title,
+            .output_definitions.artifacts['Output']
+            .artifact_type.schema_title,
             'system.Artifact',
         )
 
         self.assertFalse(
-            pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.parameters)
+            pythonic_style.pipeline_spec.components[
+                'comp-pythonic-style'
+            ].output_definitions.parameters
+        )
 
         @dsl.component
         def standard_style(named_output: Output[Artifact]):
@@ -6400,10 +7179,11 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.artifacts['Output'].artifact_type.schema_title,
+            .output_definitions.artifacts['Output']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .output_definitions.artifacts['named_output'].artifact_type
-            .schema_title,
+            .output_definitions.artifacts['named_output']
+            .artifact_type.schema_title,
         )
 
     def test_pythonic_output_artifact_multiple_returns(self):
@@ -6417,18 +7197,22 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            .output_definitions.artifacts['a']
+            .artifact_type.schema_title,
             'system.Artifact',
         )
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            .output_definitions.artifacts['d']
+            .artifact_type.schema_title,
             'system.Dataset',
         )
 
         self.assertFalse(
-            pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.parameters)
+            pythonic_style.pipeline_spec.components[
+                'comp-pythonic-style'
+            ].output_definitions.parameters
+        )
 
         @dsl.component
         def standard_style(a: Output[Artifact], d: Output[Dataset]):
@@ -6437,23 +7221,27 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            .output_definitions.artifacts['a']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            .output_definitions.artifacts['a']
+            .artifact_type.schema_title,
         )
 
         self.assertEqual(
             pythonic_style.pipeline_spec.components['comp-pythonic-style']
-            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            .output_definitions.artifacts['d']
+            .artifact_type.schema_title,
             standard_style.pipeline_spec.components['comp-standard-style']
-            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            .output_definitions.artifacts['d']
+            .artifact_type.schema_title,
         )
 
     def test_pythonic_output_list_artifacts(self):
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'Output' of component 'pythonic-style'\."
+            ValueError,
+            r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'Output' of component 'pythonic-style'\.",
         ):
 
             @dsl.component
@@ -6491,13 +7279,15 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
             pythonic_style(in_artifact=in_artifact)
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.input_definitions
-            .artifacts['in_artifact'].artifact_type.schema_title,
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].artifact_type.schema_title,
             'system.Artifact',
         )
 
         self.assertFalse(
-            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+            my_pipeline.pipeline_spec.root.input_definitions.parameters
+        )
 
     def test_pipeline_input_artifact_optional(self):
 
@@ -6510,13 +7300,15 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
             pythonic_style(in_artifact=in_artifact)
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.input_definitions
-            .artifacts['in_artifact'].artifact_type.schema_title,
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].artifact_type.schema_title,
             'system.Artifact',
         )
 
         self.assertFalse(
-            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+            my_pipeline.pipeline_spec.root.input_definitions.parameters
+        )
 
     def test_pipeline_input_list_of_artifacts(self):
 
@@ -6529,15 +7321,20 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
             pythonic_style(in_artifact=in_artifact)
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.input_definitions
-            .artifacts['in_artifact'].artifact_type.schema_title,
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].artifact_type.schema_title,
             'system.Artifact',
         )
-        self.assertTrue(my_pipeline.pipeline_spec.root.input_definitions
-                        .artifacts['in_artifact'].is_artifact_list)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].is_artifact_list
+        )
 
         self.assertFalse(
-            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+            my_pipeline.pipeline_spec.root.input_definitions.parameters
+        )
 
     def test_pipeline_input_list_of_artifacts_optional(self):
 
@@ -6550,13 +7347,15 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
             pythonic_style(in_artifact=in_artifact)
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.input_definitions
-            .artifacts['in_artifact'].artifact_type.schema_title,
+            my_pipeline.pipeline_spec.root.input_definitions.artifacts[
+                'in_artifact'
+            ].artifact_type.schema_title,
             'system.Artifact',
         )
 
         self.assertFalse(
-            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+            my_pipeline.pipeline_spec.root.input_definitions.parameters
+        )
 
     def test_pipeline_output_artifact(self):
 
@@ -6569,11 +7368,15 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
             return pythonic_style().output
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.output_definitions
-            .artifacts['Output'].artifact_type.schema_title, 'system.Artifact')
+            my_pipeline.pipeline_spec.root.output_definitions.artifacts[
+                'Output'
+            ].artifact_type.schema_title,
+            'system.Artifact',
+        )
 
         self.assertFalse(
-            my_pipeline.pipeline_spec.root.output_definitions.parameters)
+            my_pipeline.pipeline_spec.root.output_definitions.parameters
+        )
 
     def test_pipeline_output_list_of_artifacts(self):
 
@@ -6590,19 +7393,26 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
             return dsl.Collected(t.output)
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.root.output_definitions
-            .artifacts['Output'].artifact_type.schema_title, 'system.Artifact')
-        self.assertTrue(my_pipeline.pipeline_spec.root.output_definitions
-                        .artifacts['Output'].is_artifact_list)
+            my_pipeline.pipeline_spec.root.output_definitions.artifacts[
+                'Output'
+            ].artifact_type.schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(
+            my_pipeline.pipeline_spec.root.output_definitions.artifacts[
+                'Output'
+            ].is_artifact_list
+        )
 
         self.assertFalse(
-            my_pipeline.pipeline_spec.root.output_definitions.parameters)
+            my_pipeline.pipeline_spec.root.output_definitions.parameters
+        )
 
     # container
     def test_container_input_artifact(self):
         with self.assertRaisesRegex(
-                TypeError,
-                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
+            TypeError,
+            r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\.",
         ):
 
             @dsl.container_component
@@ -6611,8 +7421,8 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
     def test_container_input_artifact_optional(self):
         with self.assertRaisesRegex(
-                TypeError,
-                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
+            TypeError,
+            r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\.",
         ):
 
             @dsl.container_component
@@ -6621,8 +7431,8 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
     def test_container_input_list_of_artifacts(self):
         with self.assertRaisesRegex(
-                TypeError,
-                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
+            TypeError,
+            r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\.",
         ):
 
             @dsl.container_component
@@ -6631,8 +7441,8 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
     def test_container_input_list_of_artifacts_optional(self):
         with self.assertRaisesRegex(
-                TypeError,
-                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
+            TypeError,
+            r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\.",
         ):
 
             @dsl.container_component
@@ -6641,8 +7451,8 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
     def test_container_output_artifact(self):
         with self.assertRaisesRegex(
-                TypeError,
-                r'Return annotation should be either ContainerSpec or omitted for container components\.'
+            TypeError,
+            r'Return annotation should be either ContainerSpec or omitted for container components\.',
         ):
 
             @dsl.container_component
@@ -6651,8 +7461,8 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
     def test_container_output_list_of_artifact(self):
         with self.assertRaisesRegex(
-                TypeError,
-                r'Return annotation should be either ContainerSpec or omitted for container components\.'
+            TypeError,
+            r'Return annotation should be either ContainerSpec or omitted for container components\.',
         ):
 
             @dsl.container_component
@@ -6661,7 +7471,6 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
 
 
 class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
-
     def test_compiles(self):
         # in a previous version of the KFP SDK there was an error when:
         # - a component has a dsl.OutputPath parameter
@@ -6674,7 +7483,8 @@ class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
         @dsl.container_component
         def existing_comp():
             return dsl.ContainerSpec(
-                image='alpine', command=['echo'], args=['foo'])
+                image='alpine', command=['echo'], args=['foo']
+            )
 
         @dsl.container_component
         def issue_comp(v: dsl.OutputPath(str)):

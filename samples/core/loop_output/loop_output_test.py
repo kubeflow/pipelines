@@ -16,17 +16,19 @@ from __future__ import annotations
 
 import unittest
 
-from kfp.samples.test.utils import KfpTask
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
-import kfp_server_api
+import kfp.server_api
+from kfp.samples.test.utils import KfpTask, TestCase, run_pipeline_func
 from loop_output import my_pipeline
 from ml_metadata.proto.metadata_store_pb2 import Execution
 
 
-def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
-           tasks: dict[str, KfpTask], **kwargs):
-    t.assertEqual(run.status, 'Succeeded')
+def verify(
+    t: unittest.TestCase,
+    run: kfp.server_api.V2Run,
+    tasks: dict[str, KfpTask],
+    **kwargs,
+):
+    t.assertEqual(run.state, 'SUCCEEDED')
     # assert DAG structure
     t.assertCountEqual(tasks.keys(), ['args-generator-op', 'for-loop-1'])
     t.assertCountEqual(
@@ -37,8 +39,9 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertCountEqual(
         ['1.1', '1.2', '1.3'],
         [
-            x.inputs
-            .parameters['pipelinechannel--args-generator-op-Output-loop-item']
+            x.inputs.parameters[
+                'pipelinechannel--args-generator-op-Output-loop-item'
+            ]
             for x in tasks['for-loop-1'].children.values()
         ],
     )
@@ -47,8 +50,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
         {
             'name': 'for-loop-1-#0',
             'type': 'system.DAGExecution',
-            'state':
-                Execution.State.RUNNING,  # TODO(Bobgy): this should be COMPLETE
+            'state': Execution.State.RUNNING,  # TODO(Bobgy): this should be COMPLETE
             'inputs': {
                 'parameters': {
                     'pipelinechannel--args-generator-op-Output-loop-item': '1.1'
@@ -70,14 +72,18 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             },
             'outputs': {},
         },
-        tasks['for-loop-1'].children['for-loop-1-#0'].children['print-op']
+        tasks['for-loop-1']
+        .children['for-loop-1-#0']
+        .children['print-op']
         .get_dict(),
     )
 
 
-run_pipeline_func([
-    TestCase(
-        pipeline_func=my_pipeline,
-        verify_func=verify,
-    ),
-])
+run_pipeline_func(
+    [
+        TestCase(
+            pipeline_func=my_pipeline,
+            verify_func=verify,
+        ),
+    ]
+)

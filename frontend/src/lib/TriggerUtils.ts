@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// We use a version-independent format here to support both v1 and v2 usage.
 export interface TriggerSchedule {
   cron_schedule?: CronSchedule;
   periodic_schedule?: PeriodicSchedule;

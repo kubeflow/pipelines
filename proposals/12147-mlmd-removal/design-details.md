@@ -469,9 +469,10 @@ provenance signal. The following rollout constraints are therefore intentional:
   allowlist entry must name the final origin. Custom endpoint base paths remain supported,
   but AWS S3 endpoints must use HTTPS even if an HTTP origin is explicitly allowlisted.
   Endpoint-less settings may upgrade the configured store to TLS, not downgrade it.
-* Direct custom-root reads are denied unless ownership is independently established by the
-  standard namespace prefix. An Artifact API row alone does not authorize the central UI to use
-  privileged credentials for an arbitrary URI.
+* Multi-user object-store and HTTP(S) reads require the namespace key prefix, including when
+  delegated to an artifact proxy. Proxy mode does not prove that downstream credentials are
+  tenant-isolated. An Artifact API row alone cannot authorize an arbitrary custom-root URI.
+  See [artifact ownership migration](../../frontend/README.md#multi-user-artifact-ownership).
 * In multi-user direct mode, customer-namespace provider authority (including Secret references
   and custom endpoints) returns a controlled `400` and requires the namespace-isolated artifact
   proxy. The shared UI does not substitute its central endpoint or ambient credentials when that

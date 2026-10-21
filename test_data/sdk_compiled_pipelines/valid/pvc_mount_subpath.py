@@ -13,14 +13,14 @@
 # limitations under the License.
 """Example pipeline demonstrating PVC mount with subPath."""
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
 def write_to_models() -> None:
     """Writes data to the models subdirectory."""
     import os
+
     os.makedirs('/data', exist_ok=True)
     with open('/data/model.txt', 'w') as f:
         f.write('model data')
@@ -31,6 +31,7 @@ def write_to_models() -> None:
 def write_to_logs() -> None:
     """Writes data to the logs subdirectory."""
     import os
+
     os.makedirs('/data', exist_ok=True)
     with open('/data/log.txt', 'w') as f:
         f.write('log data')
@@ -90,7 +91,7 @@ def pvc_mount_subpath_pipeline(pvc_name: str):
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pvc_mount_subpath_pipeline,
-        'pvc_mount_subpath.yaml'
+        pvc_mount_subpath_pipeline, 'pvc_mount_subpath.yaml'
     )

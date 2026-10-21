@@ -1,33 +1,32 @@
-## Api Server Integration Tests
+## Shared backend integration tests
 
-### WARNING
+The v2 API integration suites are in [../v2/integration](../v2/integration).
+This directory retains database initialization checks that are independent of
+the removed KFP v1 API. Kubernetes pipeline-webhook coverage lives alongside
+the v2 API integration suites.
 
-**These integration tests will delete all the data in your KFP instance, please only use a test cluster to run these.**
+### Webhook integration tests
 
-### How to run
+Deploy the Kubernetes-native Kubeflow Pipelines environment with its webhooks,
+then run from the repository root:
 
-The default integration test will test the default Database, MySQL.
-
-1. Configure kubectl to connect to your kfp cluster.
-2. Run the following for all integration tests: `NAMESPACE=<kfp-namespace> ./run_tests_locally.sh`.
-3. Or run the following to select certain tests: `NAMESPACE=<kfp-namespace> ./run_tests_locally.sh -testify.m Job`.
-   Reference: https://stackoverflow.com/a/43312451
-
-### Webhook Integration Tests
-
-The Kubernetes webhooks require Kubeflow Pipelines to be deployed using the
-`manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native` manifests which is why they are gated by
-the `WEBHOOK_INTEGRATION=true` environment variable value. If the correct environment is deployed, you may run
-the tests with `make -C backend/test/integration test-webhook` from the root of the repository.
-
-### Run database tests with PostgreSQL
-
-To run this test, you need to first deploy the PostgreSQL images on your Kubernetes cluster. For how to deploy,
-see [instructions here](../../../manifests/kustomize/third-party/postgresql/README.md).
-
-When testing against postgreSQL, all integration tests with MySQL will be disabled. Use an argument `postgres` to run
-tests against a PostgreSQL database:
-
+```sh
+make -C backend/test/v2/integration test-webhook
 ```
-NAMESPACE=<kfp-namespace> ./run_tests_locally.sh postgres
+
+The target sets `WEBHOOK_INTEGRATION=true`. Without it, webhook tests are skipped.
+These checks use the `pipelines.kubeflow.org/v2beta1` Pipeline and PipelineVersion
+CRDs.
+
+### Database initialization
+
+Use an isolated test database, reachable at localhost through port forwarding.
+These checks initialize the schema; do not point them at a production database.
+
+```sh
+go test ./backend/test/integration -run '^TestDB$' -runIntegrationTests
+# PostgreSQL instead of MySQL:
+go test ./backend/test/integration -run '^TestDB$' -runIntegrationTests -runPostgreSQLTests
 ```
+
+Database tests are skipped unless `-runIntegrationTests` is supplied.

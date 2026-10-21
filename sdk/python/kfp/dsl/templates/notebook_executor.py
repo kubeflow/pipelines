@@ -60,6 +60,7 @@ def _kfp_stream_single_output(output, cell_idx):
     notebook finishes).
     """
     import sys
+
     output_type = output.get('output_type')
 
     if output_type == 'stream':
@@ -81,6 +82,7 @@ def _kfp_stream_single_output(output, cell_idx):
         elif 'application/json' in data:
             try:
                 import json as __kfp_json
+
                 parsed = data['application/json']
                 # Some kernels send JSON as string; try to parse if needed
                 if isinstance(parsed, str):
@@ -90,7 +92,8 @@ def _kfp_stream_single_output(output, cell_idx):
                         pass
                 print(
                     __kfp_json.dumps(parsed, indent=2, ensure_ascii=False),
-                    flush=True)
+                    flush=True,
+                )
             except Exception:
                 # Fallback to raw
                 print(str(data.get('application/json')), flush=True)
@@ -112,41 +115,54 @@ def kfp_run_notebook(**kwargs):
     import subprocess
     import sys
 
-    from nbclient import NotebookClient
     import nbformat
 
     # Ensure a usable 'python3' kernel is present; install kernelspec if missing
     print('[KFP Notebook] Checking for Python kernel...', flush=True)
     try:
         from jupyter_client.kernelspec import KernelSpecManager  # type: ignore
+
         ksm = KernelSpecManager()
         have_py3 = 'python3' in ksm.find_kernel_specs()
         if not have_py3:
             print(
                 '[KFP Notebook] Python3 kernel not found, installing...',
-                flush=True)
+                flush=True,
+            )
             try:
-                subprocess.run([
-                    sys.executable, '-m', 'ipykernel', 'install', '--user',
-                    '--name', 'python3', '--display-name', 'Python 3'
-                ],
-                               check=True,
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL)
+                subprocess.run(
+                    [
+                        sys.executable,
+                        '-m',
+                        'ipykernel',
+                        'install',
+                        '--user',
+                        '--name',
+                        'python3',
+                        '--display-name',
+                        'Python 3',
+                    ],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
                 print(
                     '[KFP Notebook] Python3 kernel installed successfully',
-                    flush=True)
+                    flush=True,
+                )
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(
                     "Failed to install 'python3' kernelspec for ipykernel. "
                     'Ensure ipykernel is available in the environment or include it via packages_to_install. '
-                    f'Error: {e}') from e
+                    f'Error: {e}'
+                ) from e
         else:
             print('[KFP Notebook] Python3 kernel found', flush=True)
     except ImportError as e:
         raise RuntimeError(
             "jupyter_client is not available. Ensure it's installed in the environment or include it via packages_to_install. "
-            f'Error: {e}') from e
+            f'Error: {e}'
+        ) from e
 
     nb_path = os.path.join(__KFP_EMBEDDED_ASSET_DIR, __KFP_NOTEBOOK_REL_PATH)
 
@@ -161,7 +177,8 @@ def kfp_run_notebook(**kwargs):
         __kfp_write_parameters_cell(nb, kwargs)
         print(
             f'[KFP Notebook] Executing notebook with {len(nb.get("cells", []))} cells',
-            flush=True)
+            flush=True,
+        )
 
         # Use our custom streaming client for real-time output (defined in the
         # generated ephemeral source)
@@ -170,7 +187,8 @@ def kfp_run_notebook(**kwargs):
             timeout=None,
             allow_errors=False,
             store_widget_state=False,
-            kernel_name='python3')
+            kernel_name='python3',
+        )
         client.execute(cwd=__KFP_EMBEDDED_ASSET_DIR)
 
         print('[KFP Notebook] Execution complete', flush=True)
@@ -179,8 +197,9 @@ def kfp_run_notebook(**kwargs):
         raise RuntimeError(f'Notebook execution failed. Error: {e}') from e
 
 
-def get_notebook_executor_source(archive_b64_placeholder: str,
-                                 notebook_relpath_placeholder: str) -> str:
+def get_notebook_executor_source(
+    archive_b64_placeholder: str, notebook_relpath_placeholder: str
+) -> str:
     """Generate the notebook execution helper source code.
 
     Uses inspect.getsource() to extract the actual function definitions,
@@ -195,7 +214,9 @@ def get_notebook_executor_source(archive_b64_placeholder: str,
     """
     # Get source code for helper functions that don't require nbclient
     functions = [
-        __kfp_write_parameters_cell, _kfp_stream_single_output, kfp_run_notebook
+        __kfp_write_parameters_cell,
+        _kfp_stream_single_output,
+        kfp_run_notebook,
     ]
 
     # Extract and dedent source code for all helper functions
@@ -220,8 +241,9 @@ def get_notebook_executor_source(archive_b64_placeholder: str,
         """)
 
     # Combine everything into the final source with archive extraction at import
-    functions_code = streaming_client_source + '\n' + '\n'.join(
-        function_sources)
+    functions_code = (
+        streaming_client_source + '\n' + '\n'.join(function_sources)
+    )
     safe_extract_source = get_safe_extract_source()
     return f"""__KFP_EMBEDDED_ARCHIVE_B64 = '{archive_b64_placeholder}'
 __KFP_NOTEBOOK_REL_PATH = '{notebook_relpath_placeholder}'

@@ -9,6 +9,7 @@ on:
       - 'manifests/kustomize/**'
       - '!**/*.md'
       - '!**/OWNERS'
+      - 'docs/operator-guides/server-config.md'
 
 
 concurrency:

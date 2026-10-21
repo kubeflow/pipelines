@@ -2,37 +2,39 @@
 
 ## Overview
 
-One of the benefits of KFP is cross-platform portability. 
+One of the benefits of KFP is cross-platform portability.
 The KFP SDK compiles pipeline definitions to [IR YAML][ir-yaml] which can be read and executed by different backends, including the Kubeflow Pipelines [open source backend][oss-be] and [Vertex AI Pipelines](https://cloud.google.com/vertex-ai/docs/pipelines/introduction).
 
 For cases where features are not portable across platforms, users may author pipelines with platform-specific functionality via KFP SDK platform-specific plugin libraries.
-In general, platform-specific plugin libraries provide functions that act on tasks similarly to [task-level configuration methods][task-level-config-methods] provided by the KFP SDK directly. 
+In general, platform-specific plugin libraries provide functions that act on tasks similarly to [task-level configuration methods][task-level-config-methods] provided by the KFP SDK directly.
 
 <!-- TODO: add docs on how to create a platform-specific authoring library -->
 
 ## kfp-kubernetes
 
-Currently, the only KFP SDK platform-specific plugin library is [`kfp-kubernetes`][kfp-kubernetes-pypi], which is supported by the Kubeflow Pipelines [open source backend][oss-be] and enables direct access to some Kubernetes resources and functionality.
+The `kfp.kubernetes` module is included in the unified `kfp` SDK. It is supported by the Kubeflow Pipelines [open source backend][oss-be] and enables direct access to some Kubernetes resources and functionality. Older SDK releases distributed these helpers separately as `kfp-kubernetes`.
 
-For more information, see the [`kfp-kubernetes` documentation ][kfp-kubernetes-docs].
+For more information, see the [`kfp.kubernetes` API reference][kfp-kubernetes-docs].
 
 ### **Kubernetes PersistentVolumeClaims**
 
-In this example we will use `kfp-kubernetes` to create a [PersistentVolumeClaim (PVC)][persistent-volume], use the PVC to pass data between tasks, and then delete the PVC.
+In this example we will use `kfp.kubernetes` to create a [PersistentVolumeClaim (PVC)][persistent-volume], use the PVC to pass data between tasks, and then delete the PVC.
 
 We will assume you have basic familiarity with `PersistentVolume` and `PersistentVolumeClaim` resources in Kubernetes, in addition to [authoring components][authoring-components], and [authoring pipelines][authoring-pipelines] in KFP.
 
-#### **Step 1:** Install the `kfp-kubernetes` library
+#### **Step 1:** Install the SDK
 
-Run the following command to install the `kfp-kubernetes` library:
+In a fresh environment, install `kfp`:
 
 ```sh
-pip install kfp[kubernetes]
+python -m pip install kfp
 ```
+
+When migrating from the split packages, follow the [SDK upgrade instructions](https://github.com/kubeflow/pipelines/blob/master/sdk/python/README.md#migrating-from-the-split-packages) first. The `kfp[kubernetes]` extra remains accepted for compatibility.
 
 #### **Step 2:** Create components that read/write to the mount path
 
-Create two simple components that read and write to a file in the `/data` directory. 
+Create two simple components that read and write to a file in the `/data` directory.
 
 In a later step, we will mount a PVC volume to the `/data` directory.
 
@@ -58,7 +60,7 @@ def consumer() -> str:
 
 #### **Step 3:** Dynamically provision a PVC using CreatePVC
 
-Now that we have our components, we can begin constructing a pipeline. 
+Now that we have our components, we can begin constructing a pipeline.
 
 We need a PVC to mount, so we will create one using the `kubernetes.CreatePVC` pre-baked component:
 
@@ -83,7 +85,7 @@ The PVC will be named after the underlying Argo workflow that creates it, concat
 
 #### **Step 4:** Read and write data to the PVC
 
-Next, we'll use the `mount_pvc` task modifier with the `producer` and `consumer` components. 
+Next, we'll use the `mount_pvc` task modifier with the `producer` and `consumer` components.
 
 We schedule `task2` to run after `task1` so the components don't read and write to the PVC at the same time.
 
@@ -121,9 +123,8 @@ For the full pipeline and more information, see a [similar example][full-example
 
 [ir-yaml]: ../../concepts/ir-yaml.md
 [oss-be]: ../../operator-guides/installation.md
-[kfp-kubernetes-pypi]: https://pypi.org/project/kfp-kubernetes/
 [task-level-config-methods]: ../components/compose-components-into-pipelines.md#task-configurations
-[kfp-kubernetes-docs]: https://kfp-kubernetes.readthedocs.io/
+[kfp-kubernetes-docs]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/kubernetes.html
 [persistent-volume]: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 [storage-class]: https://kubernetes.io/docs/concepts/storage/storage-classes/
 [access-mode]: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes

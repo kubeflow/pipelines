@@ -14,146 +14,328 @@
  * limitations under the License.
  */
 
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
-  Controls,
   Edge,
   MiniMap,
   Node,
   OnNodeDrag,
+  OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
+import { style } from 'typestyle';
+import GraphControls from 'src/components/graph/GraphControls';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
-import SubDagLayer from 'src/components/graph/SubDagLayer';
+import { NODE_TYPES } from 'src/components/graph/NodeTypes';
+import { SUB_DAG_HEADER_CLASS_NAME } from 'src/components/graph/SubDagGroupNode';
+import { buildGroupedFlow, GROUP_NODE_TYPE, layerNodeId } from 'src/lib/v2/GroupedFlow';
 import { color } from 'src/Css';
-import {
-  getTaskKeyFromNodeKey,
-  isNode,
-  NodeTypeNames,
-  NODE_TYPES,
+import type {
+  LayerElementsResolver,
+  LayerFlowElement,
   PipelineFlowElement,
-} from 'src/lib/v2/StaticFlow';
+} from 'src/lib/v2/FlowTypes';
+import { getTaskNodeKey } from 'src/lib/v2/StaticFlow';
+import { loadGraphExpansion, saveGraphExpansion } from 'src/lib/v2/GraphExpansionState';
 
 type PipelineNode = Node<FlowElementDataBase>;
+const emptyLayer: LayerElementsResolver = () => [];
+const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parentId ?? null]);
+const lockedCanvas = style({
+  $nest: { '& .react-flow__edge, & .react-flow__edge *': { pointerEvents: 'none' } },
+});
+// Scrolling the view moves graph content in the opposite direction.
+const panDirections = new Map([
+  ['ArrowLeft', { x: 40, y: 0 }],
+  ['ArrowRight', { x: -40, y: 0 }],
+  ['ArrowUp', { x: 0, y: 40 }],
+  ['ArrowDown', { x: 0, y: -40 }],
+]);
+const editableSelector =
+  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"]';
 
 export interface DagCanvasProps {
   elements: PipelineFlowElement[];
-  setFlowElements: (elements: PipelineFlowElement[]) => void;
   layers: string[];
-  onLayersUpdate: (layers: string[]) => void;
-  onElementClick: (event: ReactMouseEvent, element: PipelineFlowElement) => void;
+  onElementClick: (event: ReactMouseEvent, selection: LayerFlowElement) => void;
+  getSubDagElements?: LayerElementsResolver;
+  selectedElement?: LayerFlowElement | null;
   nodesDraggable?: boolean;
-  selectedNodeId?: string;
   focusNodeId?: string;
+  /** Stable run or pipeline-version identity; omitted for ephemeral graphs. */
+  graphId?: string;
 }
 
-export default function DagCanvas({
+export default function DagCanvas(props: DagCanvasProps) {
+  return <DagCanvasView key={props.graphId} {...props} />;
+}
+
+function DagCanvasView({
   elements,
   layers,
-  onLayersUpdate,
-  setFlowElements,
   onElementClick,
   nodesDraggable = true,
-  selectedNodeId,
+  selectedElement,
   focusNodeId,
+  getSubDagElements,
+  graphId,
 }: DagCanvasProps) {
+  // Node cards use rem-based Tailwind dimensions. Match their actual size in
+  // both the application's 13px root font and standalone Storybook's 16px root.
+  const [nodeScale] = useState(
+    () => (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16,
+  );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
-  const subDagExpand = useCallback(
-    (nodeKey: string) => {
-      const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
-      onLayersUpdate(newLayers);
-    },
-    [layers, onLayersUpdate],
+  const [locked, setLocked] = useState(true);
+  const canDrag = nodesDraggable && !locked;
+  const [expansion, setExpansion] = useState(() => loadGraphExpansion(graphId));
+  // External synchronization: persist preferences after committed state changes.
+  useEffect(() => saveGraphExpansion(graphId, expansion), [graphId, expansion]);
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const selectionLayers = selectedElement?.layers ?? layers;
+  const selectedId = selectedElement
+    ? layerNodeId(selectionLayers, selectedElement.element.id)
+    : undefined;
+  const focusedId = focusNodeId ? layerNodeId(selectionLayers, focusNodeId) : undefined;
+  const [previousFocus, setPreviousFocus] = useState<string>();
+  if (focusedId !== previousFocus) {
+    setPreviousFocus(focusedId);
+    if (focusedId) {
+      // A new deep link opens its ancestors once; later user collapse choices win.
+      const expanded = new Set(expansion.expanded);
+      const collapsed = new Set(expansion.collapsed);
+      for (let index = layers.length; index < selectionLayers.length; index++) {
+        const id = layerNodeId(
+          selectionLayers.slice(0, index),
+          getTaskNodeKey(selectionLayers[index]),
+        );
+        expanded.add(id);
+        collapsed.delete(id);
+      }
+      setExpansion({ ...expansion, expanded, collapsed });
+      setPositions({});
+    }
+  }
+  const grouped = useMemo(
+    () =>
+      buildGroupedFlow(elements, layers, getSubDagElements ?? emptyLayer, expansion.collapsed, {
+        expanded: expansion.expanded,
+        expansionMode: getSubDagElements ? expansion.mode : 'none',
+        nodeScale,
+      }),
+    [elements, layers, getSubDagElements, expansion, nodeScale],
   );
-
+  const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
+    setExpansion((previous) => {
+      const collapsed = new Set(previous.collapsed);
+      const expanded = new Set(previous.expanded);
+      if (isCollapsed) {
+        collapsed.delete(id);
+        expanded.add(id);
+      } else {
+        collapsed.add(id);
+        expanded.delete(id);
+      }
+      return { ...previous, collapsed, expanded };
+    });
+    // A changed group size requires a fresh layout, not stale drag offsets.
+    setPositions({});
+  }, []);
+  const resetPositionsAndFitView = useCallback(() => {
+    setPositions({});
+    requestAnimationFrame(() => {
+      void reactFlowInstance.current?.fitView();
+    });
+  }, []);
+  const expandAll = useCallback(() => {
+    setExpansion({ collapsed: new Set(), expanded: new Set(), mode: 'all' });
+    resetPositionsAndFitView();
+  }, [resetPositionsAndFitView]);
+  const collapseAll = useCallback(() => {
+    setExpansion({ collapsed: new Set(), expanded: new Set(), mode: 'none' });
+    resetPositionsAndFitView();
+  }, [resetPositionsAndFitView]);
   const nodes = useMemo(
     () =>
-      elements.filter(isNode).map((node) => {
-        const selectedNode = { ...node, selected: node.id === selectedNodeId };
-        return selectedNode.type === NodeTypeNames.SUB_DAG && selectedNode.data
-          ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
-          : selectedNode;
+      grouped.nodes.map<PipelineNode>((node) => {
+        const selectedNode = {
+          ...node,
+          position: positions[positionKey(node)] ?? node.position,
+          selected: node.id === selectedId,
+          draggable: canDrag,
+          selectable: true,
+        };
+        if (node.type === GROUP_NODE_TYPE) {
+          return {
+            ...selectedNode,
+            // Let empty group space hit the pane for panning; only the header accepts pointers.
+            style: { ...node.style, pointerEvents: 'none' },
+            dragHandle: `.${SUB_DAG_HEADER_CLASS_NAME}`,
+            data: { ...node.data, expand: (id: string) => toggleGroup(id, node.data.collapsed) },
+          };
+        }
+        return selectedNode;
       }),
-    [elements, selectedNodeId, subDagExpand],
+    [grouped, positions, selectedId, toggleGroup, canDrag],
   );
-  const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
+  const edges = grouped.edges;
+
+  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
+  const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
+    (changes) => {
+      // Only accept position updates; selection belongs to the details panel and
+      // this read-only graph does not support deleting or resizing pipeline nodes.
+      const updates: Record<string, { x: number; y: number }> = {};
+      for (const change of changes) {
+        const node = 'id' in change ? nodeById.get(change.id) : undefined;
+        if (change.type === 'position' && change.position && node?.draggable) {
+          updates[positionKey(node)] = change.position;
+        }
+      }
+      if (Object.keys(updates).length) setPositions((previous) => ({ ...previous, ...updates }));
+    },
+    [nodeById],
+  );
 
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
     (_event, draggedNode) => {
-      const updatedElements = elements.map((el) =>
-        isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
-      );
-      setFlowElements(updatedElements);
+      if (!canDrag) return;
+      setPositions((previous) => ({
+        ...previous,
+        [positionKey(draggedNode)]: draggedNode.position,
+      }));
     },
-    [elements, setFlowElements],
+    [canDrag],
   );
 
-  const handleNodeClick = useCallback(
-    (event: ReactMouseEvent, node: PipelineNode) => onElementClick(event, node),
-    [onElementClick],
+  const handleElementClick = useCallback(
+    (event: ReactMouseEvent, element: PipelineFlowElement) => {
+      onElementClick(event, grouped.sources.get(element.id) ?? { element, layers });
+    },
+    [grouped, layers, onElementClick],
   );
 
-  const handleEdgeClick = useCallback(
-    (event: ReactMouseEvent, edge: Edge) => onElementClick(event, edge),
-    [onElementClick],
-  );
+  const handleGraphKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const instance = reactFlowInstance.current;
+    if (
+      !instance ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      (event.target instanceof Element && event.target.closest(editableSelector))
+    )
+      return;
+    if (event.key === 'f' || event.key === 'F') {
+      event.preventDefault();
+      event.stopPropagation();
+      void instance.fitView();
+      return;
+    }
+    const direction = panDirections.get(event.key);
+    if (!locked || !direction) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const viewport = instance.getViewport();
+    void instance.setViewport({
+      ...viewport,
+      x: viewport.x + direction.x,
+      y: viewport.y + direction.y,
+    });
+  };
 
   const fitCurrentView = useCallback(
     (instance: ReactFlowInstance<PipelineNode, Edge>) => {
-      const focusedNodes = focusNodeId
-        ? nodes.filter((node) => node.id === focusNodeId)
-        : undefined;
+      const focusedNodes = focusedId ? nodes.filter((node) => node.id === focusedId) : undefined;
       void instance.fitView(focusedNodes?.length ? { nodes: focusedNodes } : undefined);
     },
-    [focusNodeId, nodes],
+    [focusedId, nodes],
   );
 
+  // External synchronization: focus a node requested by URL navigation in React Flow.
   useEffect(() => {
-    if (!focusNodeId) {
+    if (!focusedId) {
       lastFocusedNodeId.current = null;
       return;
     }
-    if (reactFlowInstance.current && lastFocusedNodeId.current !== focusNodeId) {
-      lastFocusedNodeId.current = focusNodeId;
+    if (reactFlowInstance.current && lastFocusedNodeId.current !== focusedId) {
+      lastFocusedNodeId.current = focusedId;
       fitCurrentView(reactFlowInstance.current);
     }
-  }, [fitCurrentView, focusNodeId]);
+  }, [fitCurrentView, focusedId]);
 
   return (
-    <>
-      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
-      <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
-        <ReactFlowProvider>
-          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
-              does not need keyboard deletion, multi-select, or internal selection
-              tracking. Drag persistence is handled via onNodeDragStop only. */}
-          <ReactFlow<PipelineNode, Edge>
-            style={{ background: color.lightGrey }}
-            nodes={nodes}
-            edges={edges}
-            snapToGrid={true}
-            nodesDraggable={nodesDraggable}
-            onInit={(instance) => {
-              reactFlowInstance.current = instance;
-              lastFocusedNodeId.current = focusNodeId || null;
-              fitCurrentView(instance);
-            }}
-            nodeTypes={NODE_TYPES}
-            edgeTypes={{}}
-            onNodeClick={handleNodeClick}
-            onEdgeClick={handleEdgeClick}
-            onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
-          >
-            <MiniMap />
-            <Controls />
-            <Background />
-          </ReactFlow>
-        </ReactFlowProvider>
-      </div>
-    </>
+    <div
+      data-testid='DagCanvas'
+      role='region'
+      aria-label='Pipeline graph'
+      aria-description={
+        locked
+          ? 'Drag or use arrow keys to pan. Press F to fit the graph. Click nodes to inspect details. Unlock to move nodes.'
+          : 'Drag nodes or use arrow keys on a selected node to move it. Press F to fit the graph.'
+      }
+      tabIndex={0}
+      className={locked ? lockedCanvas : undefined}
+      onKeyDownCapture={handleGraphKeyDown}
+      onPointerDownCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          !event.target.closest(editableSelector + ', button, .react-flow__panel')
+        )
+          event.currentTarget.focus({ preventScroll: true });
+      }}
+      style={{ width: '100%', height: '100%' }}
+    >
+      <ReactFlowProvider>
+        <ReactFlow<PipelineNode, Edge>
+          style={{ background: color.lightGrey }}
+          nodes={nodes}
+          edges={edges}
+          snapToGrid={true}
+          nodesDraggable={canDrag}
+          elementsSelectable
+          selectionKeyCode={locked ? null : 'Shift'}
+          multiSelectionKeyCode={locked ? null : undefined}
+          nodesConnectable={false}
+          onInit={(instance) => {
+            reactFlowInstance.current = instance;
+            lastFocusedNodeId.current = focusedId || null;
+            fitCurrentView(instance);
+          }}
+          fitView
+          fitViewOptions={focusedId ? { nodes: [{ id: focusedId }] } : undefined}
+          minZoom={0.05}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={{}}
+          onNodeClick={handleElementClick}
+          onEdgeClick={handleElementClick}
+          onNodesChange={onNodesChange}
+          onNodeDragStop={canDrag ? onNodeDragStop : undefined}
+          deleteKeyCode={null}
+        >
+          <MiniMap />
+          <GraphControls
+            showSubDagControls={!!getSubDagElements}
+            hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+            locked={locked}
+            onLockChange={setLocked}
+            onExpandAll={expandAll}
+            onCollapseAll={collapseAll}
+          />
+          <Background />
+        </ReactFlow>
+      </ReactFlowProvider>
+    </div>
   );
 }

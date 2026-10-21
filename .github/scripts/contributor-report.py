@@ -2,23 +2,21 @@
 
 from __future__ import annotations
 
-import base64
-from dataclasses import dataclass
-from datetime import datetime
-from datetime import timezone
 import json
 import os
 import sys
 import time
-from typing import Any
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any
 
-REPORT_MARKER = "<!-- kfp-contributor-report -->"
-KUBEFLOW_ORG_YAML_PATH = "github-orgs/kubeflow/org.yaml"
-KUBEFLOW_INTERNAL_ACLS_REPO = "kubeflow/internal-acls"
-KFP_REPO = "kubeflow/pipelines"
+from kubeflow_membership import is_kubeflow_member
+
+REPORT_MARKER = '<!-- kfp-contributor-report -->'
+KFP_REPO = 'kubeflow/pipelines'
 TRANSIENT_HTTP_STATUSES = {502, 503, 504}
 TRANSIENT_ATTEMPTS = 4
 
@@ -69,7 +67,7 @@ class ContributorStats:
     created_at: str
     issues_opened: int
     merged_prs: int
-    pr_comments: int
+    pr_comments: int | None
 
 
 @dataclass(frozen=True)
@@ -81,52 +79,56 @@ class MarkdownRow:
 def require_env(name: str) -> str:
     value = os.environ.get(name)
     if not value:
-        raise RuntimeError(f"Missing required environment variable: {name}")
+        raise RuntimeError(f'Missing required environment variable: {name}')
     return value
 
 
 def parse_repo(full_name: str) -> tuple[str, str]:
-    parts = full_name.split("/", 1)
+    parts = full_name.split('/', 1)
     if len(parts) != 2 or not parts[0] or not parts[1]:
-        raise RuntimeError(f"Invalid repository name: {full_name}")
+        raise RuntimeError(f'Invalid repository name: {full_name}')
     return parts[0], parts[1]
 
 
 def is_human_user(author: dict[str, Any]) -> bool:
-    return author.get("type", "User") == "User"
+    return author.get('type', 'User') == 'User'
 
 
-def github_request(path: str,
-                   method: str = "GET",
-                   body: Any | None = None) -> Any:
-    token = require_env("GITHUB_TOKEN")
-    api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com")
-    url = urllib.parse.urljoin(api_url.rstrip("/") + "/", path.lstrip("/"))
+def github_request(
+    path: str, method: str = 'GET', body: Any | None = None
+) -> Any:
+    token = require_env('GITHUB_TOKEN')
+    api_url = os.environ.get('GITHUB_API_URL', 'https://api.github.com')
+    url = urllib.parse.urljoin(api_url.rstrip('/') + '/', path.lstrip('/'))
     data = None
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "kubeflow-pipelines-contributor-report",
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'kubeflow-pipelines-contributor-report',
     }
     if body is not None:
-        headers["Content-Type"] = "application/json"
-        data = json.dumps(body).encode("utf-8")
+        headers['Content-Type'] = 'application/json'
+        data = json.dumps(body).encode('utf-8')
 
     last_error: Exception | None = None
     for attempt in range(1, TRANSIENT_ATTEMPTS + 1):
         request = urllib.request.Request(
-            url, data=data, method=method, headers=headers)
+            url, data=data, method=method, headers=headers
+        )
         try:
             with urllib.request.urlopen(request) as response:
-                payload = response.read().decode("utf-8")
+                payload = response.read().decode('utf-8')
                 return json.loads(payload) if payload else None
         except urllib.error.HTTPError as error:
-            if error.code in TRANSIENT_HTTP_STATUSES and attempt < TRANSIENT_ATTEMPTS:
+            if (
+                error.code in TRANSIENT_HTTP_STATUSES
+                and attempt < TRANSIENT_ATTEMPTS
+            ):
                 time.sleep(0.5 * attempt)
                 continue
-            detail = error.read().decode("utf-8", errors="replace")
+            detail = error.read().decode('utf-8', errors='replace')
             raise RuntimeError(
-                f"GitHub API {method} {url} failed: {error.code} {error.reason} {detail}"
+                f'GitHub API {method} {url} failed: {error.code} {error.reason} {detail}'
             ) from error
         except urllib.error.URLError as error:
             last_error = error
@@ -136,109 +138,106 @@ def github_request(path: str,
 
     if last_error is None:
         raise RuntimeError(
-            f"GitHub API {method} {url} failed for an unknown reason")
+            f'GitHub API {method} {url} failed for an unknown reason'
+        )
     raise last_error
+
+
+def is_denied_comment_node(error: dict[str, Any]) -> bool:
+    path = error.get('path')
+    return (
+        error.get('type') == 'FORBIDDEN'
+        and isinstance(path, list)
+        and len(path) == 4
+        and path[:3] == ['user', 'issueComments', 'nodes']
+        and type(path[3]) is int
+        and path[3] >= 0
+    )
 
 
 def github_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
     result = github_request(
-        "/graphql",
-        method="POST",
+        '/graphql',
+        method='POST',
         body={
-            "query": query,
-            "variables": variables,
+            'query': query,
+            'variables': variables,
         },
     )
-    if result.get("errors"):
-        raise RuntimeError(
-            f"GitHub GraphQL failed: {json.dumps(result['errors'])}")
-    return result["data"]
-
-
-def parse_kubeflow_org_members(yaml_text: str) -> set[str]:
-    members: set[str] = set()
-    in_kubeflow_org = False
-    current_list: str | None = None
-
-    for raw_line in yaml_text.splitlines():
-        line = raw_line.replace("\t", "    ")
-
-        if not in_kubeflow_org:
-            if line == "    kubeflow:":
-                in_kubeflow_org = True
-            continue
-
-        if line == "        teams:":
-            break
-        if line == "        admins:":
-            current_list = "admins"
-            continue
-        if line == "        members:":
-            current_list = "members"
-            continue
-        if line.startswith("        ") and ":" in line and not line.startswith(
-                "        - "):
-            current_list = None
-            continue
-        if current_list and line.startswith("        - "):
-            members.add(line[len("        - "):].strip().lower())
-
-    return members
-
-
-def fetch_kubeflow_org_members() -> set[str]:
-    payload = github_request(
-        f"/repos/{KUBEFLOW_INTERNAL_ACLS_REPO}/contents/{KUBEFLOW_ORG_YAML_PATH}"
-    )
-    if payload.get("encoding") != "base64" or not payload.get("content"):
-        raise RuntimeError(
-            "Unexpected response when fetching kubeflow org.yaml")
-    yaml_text = base64.b64decode(payload["content"]).decode("utf-8")
-    return parse_kubeflow_org_members(yaml_text)
+    errors = result.get('errors', [])
+    if errors and not all(is_denied_comment_node(error) for error in errors):
+        raise RuntimeError(f'GitHub GraphQL failed: {json.dumps(errors)}')
+    return result
 
 
 def fetch_contributor_stats(username: str) -> ContributorStats:
-    issue_count_query = f"repo:{KFP_REPO} is:issue author:{username}"
-    merged_pr_query = f"repo:{KFP_REPO} is:pr is:merged author:{username}"
+    issue_count_query = f'repo:{KFP_REPO} is:issue author:{username}'
+    merged_pr_query = f'repo:{KFP_REPO} is:pr is:merged author:{username}'
 
     issue_comment_cursor = None
-    issue_comment_count = 0
+    issue_comment_count: int | None = 0
     created_at = None
     issues_opened = None
     merged_prs = None
 
     while True:
-        data = github_graphql(
+        result = github_graphql(
             CONTRIBUTOR_QUERY,
             {
-                "username": username,
-                "issueCountQuery": issue_count_query,
-                "mergedPrQuery": merged_pr_query,
-                "issueCommentCursor": issue_comment_cursor,
+                'username': username,
+                'issueCountQuery': issue_count_query,
+                'mergedPrQuery': merged_pr_query,
+                'issueCommentCursor': issue_comment_cursor,
             },
         )
-        user = data.get("user")
+        data = result['data']
+        user = data.get('user')
         if not user:
-            raise RuntimeError(f"GitHub user not found: {username}")
+            raise RuntimeError(f'GitHub user not found: {username}')
 
         if created_at is None:
-            created_at = user["createdAt"]
-            issues_opened = data["issuesOpened"]["issueCount"]
-            merged_prs = data["mergedPrs"]["issueCount"]
+            created_at = user['createdAt']
+            issues_opened = data['issuesOpened']['issueCount']
+            merged_prs = data['mergedPrs']['issueCount']
+            if (
+                not isinstance(created_at, str)
+                or not created_at
+                or any(
+                    type(count) is not int or count < 0
+                    for count in (issues_opened, merged_prs)
+                )
+            ):
+                raise RuntimeError(
+                    'GitHub returned invalid contributor metrics'
+                )
 
-        for node in user["issueComments"]["nodes"]:
-            issue = node.get("issue")
+        if result.get('errors'):
+            # The history spans repositories with independent access policies.
+            # Missing nodes cannot support an exact count, even on later pages.
+            issue_comment_count = None
+            print(
+                'PR comment count unavailable: GitHub denied access to '
+                'comment history; retaining the other verified metrics.',
+                file=sys.stderr,
+            )
+            break
+
+        for node in user['issueComments']['nodes']:
+            issue = node.get('issue')
             if not issue:
                 continue
-            repo = issue["repository"]
-            if repo["owner"]["login"] == "kubeflow" and repo[
-                    "name"] == "pipelines" and "/pull/" in issue["url"]:
+            repo = issue['repository']
+            if (
+                repo['owner']['login'] == 'kubeflow'
+                and repo['name'] == 'pipelines'
+                and '/pull/' in issue['url']
+            ):
                 issue_comment_count += 1
 
-        page_info = user["issueComments"]["pageInfo"]
-        if not page_info["hasNextPage"]:
+        page_info = user['issueComments']['pageInfo']
+        if not page_info['hasNextPage']:
             break
-        issue_comment_cursor = page_info["endCursor"]
+        issue_comment_cursor = page_info['endCursor']
 
     assert created_at is not None
     assert issues_opened is not None
@@ -253,7 +252,7 @@ def fetch_contributor_stats(username: str) -> ContributorStats:
 
 
 def format_age(created_at_iso: str) -> tuple[str, int]:
-    created_at = datetime.fromisoformat(created_at_iso.replace("Z", "+00:00"))
+    created_at = datetime.fromisoformat(created_at_iso.replace('Z', '+00:00'))
     now = datetime.now(timezone.utc)
     age_days = (now - created_at).days
     return created_at.date().isoformat(), age_days
@@ -261,71 +260,79 @@ def format_age(created_at_iso: str) -> tuple[str, int]:
 
 def render_table(rows: list[MarkdownRow]) -> list[str]:
     return [
-        "| Metric | Value |",
-        "|---|---:|",
-        *[f"| {row.metric} | {row.value} |" for row in rows],
+        '| Metric | Value |',
+        '|---|---:|',
+        *[f'| {row.metric} | {row.value} |' for row in rows],
     ]
 
 
-def build_user_rows(is_kubeflow_member: bool,
-                    stats: ContributorStats) -> list[MarkdownRow]:
+def build_user_rows(
+    is_kubeflow_member: bool, stats: ContributorStats
+) -> list[MarkdownRow]:
     created_date, age_days = format_age(stats.created_at)
-    member_text = "Yes" if is_kubeflow_member else "No"
+    member_text = 'Yes' if is_kubeflow_member else 'No'
     return [
         MarkdownRow(
-            metric="Kubeflow org member",
+            metric='Kubeflow org member',
             value=member_text,
         ),
         MarkdownRow(
-            metric=f"Issues opened in {KFP_REPO}",
+            metric=f'Issues opened in {KFP_REPO}',
             value=str(stats.issues_opened),
         ),
         MarkdownRow(
-            metric=f"Merged PRs in {KFP_REPO}",
+            metric=f'Merged PRs in {KFP_REPO}',
             value=str(stats.merged_prs),
         ),
         MarkdownRow(
-            metric="GitHub account age",
-            value=f"{age_days} days (created {created_date})",
+            metric='GitHub account age',
+            value=f'{age_days} days (created {created_date})',
         ),
         MarkdownRow(
-            metric=f"PR comments in {KFP_REPO}",
-            value=str(stats.pr_comments),
+            metric=f'PR comments in {KFP_REPO}',
+            value=(
+                str(stats.pr_comments)
+                if stats.pr_comments is not None
+                else 'Unavailable (GitHub access restrictions)'
+            ),
         ),
     ]
 
 
 def build_non_user_rows(author_type: str) -> list[MarkdownRow]:
-    reason = "N/A (non-human GitHub author)"
+    reason = 'N/A (non-human GitHub author)'
     return [
-        MarkdownRow(metric="GitHub author type", value=author_type),
-        MarkdownRow(metric="Kubeflow org member", value=reason),
-        MarkdownRow(metric=f"Issues opened in {KFP_REPO}", value=reason),
-        MarkdownRow(metric=f"Merged PRs in {KFP_REPO}", value=reason),
-        MarkdownRow(metric="GitHub account age", value=reason),
-        MarkdownRow(metric=f"PR comments in {KFP_REPO}", value=reason),
+        MarkdownRow(metric='GitHub author type', value=author_type),
+        MarkdownRow(metric='Kubeflow org member', value=reason),
+        MarkdownRow(metric=f'Issues opened in {KFP_REPO}', value=reason),
+        MarkdownRow(metric=f'Merged PRs in {KFP_REPO}', value=reason),
+        MarkdownRow(metric='GitHub account age', value=reason),
+        MarkdownRow(metric=f'PR comments in {KFP_REPO}', value=reason),
     ]
 
 
-def build_comment(username: str,
-                  rows: list[MarkdownRow],
-                  title: str | None = None) -> str:
-    resolved_title = title or f"#### Contributor Report for @{username}"
-    return "\n".join([
-        REPORT_MARKER,
-        resolved_title,
-        "",
-        *render_table(rows),
-    ])
+def build_comment(
+    username: str, rows: list[MarkdownRow], title: str | None = None
+) -> str:
+    resolved_title = title or f'#### Contributor Report for @{username}'
+    return '\n'.join(
+        [
+            REPORT_MARKER,
+            resolved_title,
+            '',
+            *render_table(rows),
+        ]
+    )
 
 
-def list_issue_comments(owner: str, repo: str,
-                        issue_number: int) -> list[dict[str, Any]]:
+def list_issue_comments(
+    owner: str, repo: str, issue_number: int
+) -> list[dict[str, Any]]:
     comments: list[dict[str, Any]] = []
     page = 1
     while True:
         page_comments = github_request(
-            f"/repos/{owner}/{repo}/issues/{issue_number}/comments?per_page=100&page={page}"
+            f'/repos/{owner}/{repo}/issues/{issue_number}/comments?per_page=100&page={page}'
         )
         comments.extend(page_comments)
         if len(page_comments) < 100:
@@ -335,64 +342,67 @@ def list_issue_comments(owner: str, repo: str,
 
 
 def is_report_comment(comment: dict[str, Any]) -> bool:
-    return (REPORT_MARKER in (comment.get("body") or "") and
-            comment.get("user", {}).get("type") == "Bot")
+    return (
+        REPORT_MARKER in (comment.get('body') or '')
+        and comment.get('user', {}).get('type') == 'Bot'
+    )
 
 
 def upsert_comment(owner: str, repo: str, issue_number: int, body: str) -> str:
     comments = list_issue_comments(owner, repo, issue_number)
     existing = next(
-        (comment for comment in comments if is_report_comment(comment)), None)
+        (comment for comment in comments if is_report_comment(comment)), None
+    )
     if existing:
         github_request(
-            f"/repos/{owner}/{repo}/issues/comments/{existing['id']}",
-            method="PATCH",
-            body={"body": body},
+            f'/repos/{owner}/{repo}/issues/comments/{existing["id"]}',
+            method='PATCH',
+            body={'body': body},
         )
-        return "updated"
+        return 'updated'
     github_request(
-        f"/repos/{owner}/{repo}/issues/{issue_number}/comments",
-        method="POST",
-        body={"body": body},
+        f'/repos/{owner}/{repo}/issues/{issue_number}/comments',
+        method='POST',
+        body={'body': body},
     )
-    return "created"
+    return 'created'
 
 
 def main() -> int:
-    event_path = require_env("GITHUB_EVENT_PATH")
-    with open(event_path, "r", encoding="utf-8") as handle:
+    event_path = require_env('GITHUB_EVENT_PATH')
+    with open(event_path, 'r', encoding='utf-8') as handle:
         event = json.load(handle)
-    pull_request = event.get("pull_request")
+    pull_request = event.get('pull_request')
     if not pull_request:
         raise RuntimeError(
-            "This workflow requires a pull_request or pull_request_target event payload"
+            'This workflow requires a pull_request or pull_request_target event payload'
         )
 
-    author = pull_request.get("user", {})
-    username = author.get("login")
+    author = pull_request.get('user', {})
+    username = author.get('login')
     if not username:
-        raise RuntimeError("Could not determine pull request author login")
+        raise RuntimeError('Could not determine pull request author login')
 
     if is_human_user(author):
-        org_members = fetch_kubeflow_org_members()
-        rows = build_user_rows(username.lower() in org_members,
-                               fetch_contributor_stats(username))
+        rows = build_user_rows(
+            is_kubeflow_member(username), fetch_contributor_stats(username)
+        )
     else:
-        rows = build_non_user_rows(author.get("type", "Unknown"))
+        rows = build_non_user_rows(author.get('type', 'Unknown'))
 
     comment = build_comment(username, rows)
 
-    if os.environ.get("CONTRIBUTOR_REPORT_DRY_RUN") == "true":
+    if os.environ.get('CONTRIBUTOR_REPORT_DRY_RUN') == 'true':
         print(comment)
         return 0
 
-    owner, repo = parse_repo(require_env("GITHUB_REPOSITORY"))
-    action = upsert_comment(owner, repo, pull_request["number"], comment)
-    print(f"Contributor report {action} for #{pull_request['number']}")
+    owner, repo = parse_repo(require_env('GITHUB_REPOSITORY'))
+    action = upsert_comment(owner, repo, pull_request['number'], comment)
+    print(f'Contributor report {action} for #{pull_request["number"]}')
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         raise SystemExit(main())
     except Exception as error:  # pragma: no cover - workflow script entrypoint

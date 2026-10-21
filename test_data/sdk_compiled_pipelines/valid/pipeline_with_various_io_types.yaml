@@ -1,9 +1,9 @@
 # PIPELINE DEFINITION
-# Name: pipeline-with-various-types
+# Name: pipeline-with-various-io-types
 # Inputs:
-#    input1: str
+#    input1: str [Default: 'Hello']
 #    input3: system.Artifact
-#    input4: str [Default: '']
+#    input4: str [Default: 'World']
 components:
   comp-downstream:
     executorLabel: exec-downstream
@@ -127,7 +127,7 @@ deploymentSpec:
         - '{{$.outputs.artifacts[''output_8''].path}}'
         image: gcr.io/image
 pipelineInfo:
-  name: pipeline-with-various-types
+  name: pipeline-with-various-io-types
 root:
   dag:
     tasks:
@@ -206,10 +206,11 @@ root:
           schemaVersion: 0.0.1
     parameters:
       input1:
+        defaultValue: Hello
         parameterType: STRING
       input4:
-        defaultValue: ''
+        defaultValue: World
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.15.2

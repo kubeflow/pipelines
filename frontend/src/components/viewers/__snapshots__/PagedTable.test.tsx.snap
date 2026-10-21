@@ -10,13 +10,6 @@ exports[`PagedTable > does not break on empty data 1`] = `
       class="MuiTable-root css-rqglhn-MuiTable-root"
       style="display: block; overflow: auto;"
     >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        />
-      </thead>
       <tbody
         class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >
@@ -239,17 +232,17 @@ exports[`PagedTable > renders simple data 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col3
           </td>
@@ -259,17 +252,17 @@ exports[`PagedTable > renders simple data 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col6
           </td>
@@ -399,13 +392,6 @@ exports[`PagedTable > renders simple data without labels 1`] = `
       class="MuiTable-root css-rqglhn-MuiTable-root"
       style="display: block; overflow: auto;"
     >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        />
-      </thead>
       <tbody
         class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >
@@ -414,17 +400,17 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
           >
             col3
           </td>
@@ -434,17 +420,17 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col6
           </td>
@@ -666,17 +652,17 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col3
           </td>
@@ -686,17 +672,17 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col6
           </td>
@@ -918,17 +904,17 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col6
           </td>
@@ -938,17 +924,17 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             col3
           </td>

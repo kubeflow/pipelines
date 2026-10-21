@@ -3,33 +3,33 @@ The sample pipelines give you a quick start to build and deploy machine learning
 * Build and deploy your pipeline [using the provided samples](https://www.kubeflow.org/docs/guides/pipelines/pipelines-samples/).
 
 # Sample Structure
-The samples are organized into the core set and the contrib set. 
+The samples are organized into the core set and the contrib set.
 
 **Core samples** demonstrate the full KFP functionality.
-A selected set of these core samples will also be preloaded to the KFP during deployment. 
-The core samples will also include intermediate samples that are 
-more complex than basic samples such as flip coins but simpler than TFX samples. 
+A selected set of these core samples will also be preloaded to the KFP during deployment.
+The core samples will also include intermediate samples that are
+more complex than basic samples such as flip coins but simpler than TFX samples.
 It serves to demonstrate a set of the outstanding features and offers users the next level KFP experience.
 
 # Run Samples
 
 ## Compile the pipeline specification
 
-Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow 
-Pipelines SDK and compile the sample Python into a workflow specification. 
-The specification takes one of the three forms: YAML file, YAML compressed into a `.tar.gz` file, and YAML compressed into a `.zip` file
+Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow
+Pipelines SDK and compile the sample Python into a IR YAML specification.
+Compile with the current KFP SDK to produce a `.yaml` file.
 
 For convenience, you can use the preloaded samples in the pipeline system. This saves you the steps required
-to compile and compress the pipeline specification.
+to compile the pipeline specification.
 
 ## Upload the pipeline to the Kubeflow Pipeline
 
-Open the Kubeflow pipelines UI, and follow the prompts to create a new pipeline and upload the generated workflow
-specification, `my-pipeline.zip` (example: `sequential.zip`).
+Open the Kubeflow pipelines UI, and follow the prompts to create a new pipeline and upload the generated IR YAML
+specification, `my-pipeline.yaml` (example: `sequential.yaml`).
 
 ## Run the pipeline
 
-Follow the pipeline UI to create pipeline runs. 
+Follow the pipeline UI to create pipeline runs.
 
 Useful parameter values:
 
@@ -44,10 +44,10 @@ All samples use pre-built components. The command to run for each container is b
 For better readability, samples are encouraged to adopt the following conventions.
 
 * The sample file should be either `*.py` or `*.ipynb`, and its file name is consistent with its directory name.
-* For `*.py` sample, it's recommended to have a main invoking `kfp.compiler.Compiler().compile()` to compile the 
+* For `*.py` sample, it's recommended to have a main invoking `kfp.compiler.Compiler().compile()` to compile the
 pipeline function into pipeline yaml spec.
 * For `*.ipynb` sample, parameters (e.g., `project_name`)
 should be defined in a dedicated cell and tagged as parameter.
-Detailed guideline is 
-[here](https://github.com/nteract/papermill). Also, all the environment setup and 
-preparation should be within the notebook, such as by `!pip install packages` 
+Detailed guideline is
+[here](https://github.com/nteract/papermill). Also, all the environment setup and
+preparation should be within the notebook, such as by `!pip install packages`

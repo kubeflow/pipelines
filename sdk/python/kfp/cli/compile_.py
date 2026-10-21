@@ -22,10 +22,10 @@ from typing import Callable, Dict, Optional
 
 import click
 from click_option_group import optgroup
+
 from kfp import compiler
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
-from kfp.dsl import base_component
-from kfp.dsl import graph_component
+from kfp.dsl import base_component, graph_component
 from kfp.dsl.pipeline_context import Pipeline
 
 
@@ -51,11 +51,13 @@ def is_component_func(func: Callable) -> bool:
         bool: True if the function is a component function.
     """
     return not is_pipeline_func(func) and isinstance(
-        func, base_component.BaseComponent)
+        func, base_component.BaseComponent
+    )
 
 
 def collect_pipeline_or_component_from_module(
-        target_module: types.ModuleType) -> base_component.BaseComponent:
+    target_module: types.ModuleType,
+) -> base_component.BaseComponent:
     pipelines = []
     components = []
     module_attrs = dir(target_module)
@@ -77,15 +79,16 @@ def collect_pipeline_or_component_from_module(
 
 
 def collect_pipeline_or_component_func(
-        python_file: str,
-        function_name: Optional[str]) -> base_component.BaseComponent:
+    python_file: str, function_name: Optional[str]
+) -> base_component.BaseComponent:
     sys.path.insert(0, os.path.dirname(python_file))
     try:
         filename = os.path.basename(python_file)
         module_name = os.path.splitext(filename)[0]
         if function_name is None:
             return collect_pipeline_or_component_from_module(
-                target_module=__import__(module_name))
+                target_module=__import__(module_name)
+            )
 
         module = __import__(module_name, fromlist=[function_name])
         if not hasattr(module, function_name):
@@ -104,7 +107,8 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
         return json.loads(parameters) if parameters is not None else {}
     except json.JSONDecodeError as e:
         logging.error(
-            f'Failed to parse --pipeline-parameters argument: {parameters}')
+            f'Failed to parse --pipeline-parameters argument: {parameters}'
+        )
         raise e
 
 
@@ -113,80 +117,85 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     '--py',
     type=click.Path(exists=True, dir_okay=False),
     required=True,
-    help='Local absolute path to a py file.')
+    help='Local absolute path to a py file.',
+)
 @click.option(
     '--output',
     type=click.Path(exists=False, dir_okay=False),
     required=True,
-    help='Path to write the compiled result.')
+    help='Path to write the compiled result.',
+)
 @click.option(
     '--function',
     'function_name',
     type=str,
     default=None,
-    help='The name of the pipeline or component to compile if there are multiple.'
+    help='The name of the pipeline or component to compile if there are multiple.',
 )
 @click.option(
     '--pipeline-parameters',
     type=str,
     default=None,
-    help='The pipeline or component input parameters in JSON dict format.')
+    help='The pipeline or component input parameters in JSON dict format.',
+)
 @click.option(
     '--disable-type-check',
     is_flag=True,
     default=False,
-    help='Whether to disable type checking.')
+    help='Whether to disable type checking.',
+)
 @click.option(
     '--disable-execution-caching-by-default',
     is_flag=True,
     default=False,
     envvar='KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT',
-    help='Whether to disable execution caching by default.')
+    help='Whether to disable execution caching by default.',
+)
 @click.option(
     '--kubernetes-manifest-format',
     is_flag=True,
     default=False,
-    help='Output the compiled pipeline as a Kubernetes PipelineVersion manifest, with the option to include the Kubernetes Pipeline manifest as well when used with --include-pipeline-manifest.'
+    help='Output the compiled pipeline as a Kubernetes PipelineVersion manifest, with the option to include the Kubernetes Pipeline manifest as well when used with --include-pipeline-manifest.',
 )
 @optgroup.group(
     'Kubernetes Manifest Options',
-    help='Options only used when compiling pipelines to Kubernetes native manifest format. These control the metadata of the generated Kubernetes resources. Only relevant if --kubernetes-manifest-format is set.'
+    help='Options only used when compiling pipelines to Kubernetes native manifest format. These control the metadata of the generated Kubernetes resources. Only relevant if --kubernetes-manifest-format is set.',
 )
 @optgroup.option(
     '--pipeline-name',
     type=str,
     default=None,
-    help='Name for the Pipeline resource. Only relevant if --kubernetes-manifest-format is set.'
+    help='Name for the Pipeline resource. Only relevant if --kubernetes-manifest-format is set.',
 )
 @optgroup.option(
     '--pipeline-display-name',
     type=str,
     default=None,
-    help='Display name for the Pipeline resource. Only relevant if --kubernetes-manifest-format is set.'
+    help='Display name for the Pipeline resource. Only relevant if --kubernetes-manifest-format is set.',
 )
 @optgroup.option(
     '--pipeline-version-name',
     type=str,
     default=None,
-    help='Name for the PipelineVersion resource. Only relevant if --kubernetes-manifest-format is set.'
+    help='Name for the PipelineVersion resource. Only relevant if --kubernetes-manifest-format is set.',
 )
 @optgroup.option(
     '--pipeline-version-display-name',
     type=str,
     default=None,
-    help='Display name for the PipelineVersion resource. Only relevant if --kubernetes-manifest-format is set.'
+    help='Display name for the PipelineVersion resource. Only relevant if --kubernetes-manifest-format is set.',
 )
 @optgroup.option(
     '--namespace',
     type=str,
     default=None,
-    help='Kubernetes namespace for the resources. Only relevant if --kubernetes-manifest-format is set.'
+    help='Kubernetes namespace for the resources. Only relevant if --kubernetes-manifest-format is set.',
 )
 @optgroup.option(
     '--include-pipeline-manifest',
     is_flag=True,
     default=False,
-    help='Include the Pipeline manifest in the output. Defaults to False. Only relevant if --kubernetes-manifest-format is set.'
+    help='Include the Pipeline manifest in the output. Defaults to False. Only relevant if --kubernetes-manifest-format is set.',
 )
 def compile_(
     py: str,
@@ -203,56 +212,76 @@ def compile_(
     namespace: Optional[str] = None,
     include_pipeline_manifest: bool = False,
 ) -> None:
-    """Compiles a pipeline or component written in a .py file."""
+    """Compiles a pipeline or component written in a .py file.
 
-    Pipeline._execution_caching_default = not disable_execution_caching_by_default
-    pipeline_func = collect_pipeline_or_component_func(
-        python_file=py, function_name=function_name)
-    parsed_parameters = parse_parameters(parameters=pipeline_parameters)
-    package_path = os.path.join(os.getcwd(), output)
-
-    manifest_options_provided = any([
-        pipeline_name, pipeline_display_name, pipeline_version_name,
-        pipeline_version_display_name, namespace, include_pipeline_manifest
-    ])
-    kubernetes_manifest_options = None
-    if kubernetes_manifest_format:
-        kubernetes_manifest_options = KubernetesManifestOptions(
-            pipeline_name=pipeline_name,
-            pipeline_display_name=pipeline_display_name,
-            pipeline_version_name=pipeline_version_name,
-            pipeline_version_display_name=pipeline_version_display_name,
-            namespace=namespace,
-            include_pipeline_manifest=include_pipeline_manifest,
+    The caching default override applies only to this invocation.
+    """
+    original_caching_default = Pipeline.get_execution_caching_default()
+    try:
+        Pipeline._execution_caching_default = (
+            not disable_execution_caching_by_default
         )
-    elif manifest_options_provided:
+        pipeline_func = collect_pipeline_or_component_func(
+            python_file=py, function_name=function_name
+        )
+        parsed_parameters = parse_parameters(parameters=pipeline_parameters)
+        package_path = os.path.join(os.getcwd(), output)
+
+        manifest_options_provided = any(
+            [
+                pipeline_name,
+                pipeline_display_name,
+                pipeline_version_name,
+                pipeline_version_display_name,
+                namespace,
+                include_pipeline_manifest,
+            ]
+        )
+        kubernetes_manifest_options = None
+        if kubernetes_manifest_format:
+            kubernetes_manifest_options = KubernetesManifestOptions(
+                pipeline_name=pipeline_name,
+                pipeline_display_name=pipeline_display_name,
+                pipeline_version_name=pipeline_version_name,
+                pipeline_version_display_name=pipeline_version_display_name,
+                namespace=namespace,
+                include_pipeline_manifest=include_pipeline_manifest,
+            )
+        elif manifest_options_provided:
+            click.echo(
+                'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format was not set. '
+                'These options will be ignored.',
+                err=True,
+            )
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline_func,
+            pipeline_parameters=parsed_parameters,
+            package_path=package_path,
+            type_check=not disable_type_check,
+            kubernetes_manifest_options=kubernetes_manifest_options,
+            kubernetes_manifest_format=kubernetes_manifest_format,
+        )
+
         click.echo(
-            'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format was not set. '
-            'These options will be ignored.',
-            err=True)
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline_func,
-        pipeline_parameters=parsed_parameters,
-        package_path=package_path,
-        type_check=not disable_type_check,
-        kubernetes_manifest_options=kubernetes_manifest_options,
-        kubernetes_manifest_format=kubernetes_manifest_format,
-    )
-
-    click.echo(
-        f'Pipeline code was successfully compiled with the output saved to {package_path}'
-    )
+            f'Pipeline code was successfully compiled with the output saved to {package_path}'
+        )
+    finally:
+        Pipeline._execution_caching_default = original_caching_default
 
 
 def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     try:
-        compile_.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + compile_.help
+        compile_.help = (
+            '(Deprecated. Please use `kfp dsl compile` instead.)\n\n'
+            + compile_.help
+        )
 
         click.echo(
             '`dsl-compile` is deprecated. Please use `kfp dsl compile` instead.',
-            err=True)
+            err=True,
+        )
 
         compile_(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:

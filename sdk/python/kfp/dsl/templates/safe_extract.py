@@ -33,18 +33,23 @@ def __kfp_safe_extract(tar, path):
         if __kfp_member.issym() or __kfp_member.islnk():
             raise RuntimeError(
                 'Refusing to extract link member %r from the embedded archive.'
-                % __kfp_member.name)
+                % __kfp_member.name
+            )
         if not (__kfp_member.isfile() or __kfp_member.isdir()):
             raise RuntimeError(
                 'Refusing to extract special member %r from the embedded archive.'
-                % __kfp_member.name)
+                % __kfp_member.name
+            )
         __kfp_target = __kfp_os.path.realpath(
-            __kfp_os.path.join(__kfp_dest, __kfp_member.name))
+            __kfp_os.path.join(__kfp_dest, __kfp_member.name)
+        )
         if __kfp_target != __kfp_dest and not __kfp_target.startswith(
-                __kfp_dest + __kfp_os.sep):
+            __kfp_dest + __kfp_os.sep
+        ):
             raise RuntimeError(
-                'Refusing to extract %r outside the embedded asset directory.' %
-                __kfp_member.name)
+                'Refusing to extract %r outside the embedded asset directory.'
+                % __kfp_member.name
+            )
     tar.extractall(path=path)
 
 

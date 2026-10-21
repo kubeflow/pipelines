@@ -18,14 +18,15 @@ from __future__ import annotations
 import logging
 import os
 
+import kfp.server_api
 from kfp.kubeflow_client.backends.kubernetes import constants
-import kfp_server_api
 
 logger = logging.getLogger(__name__)
 
 
 def apply_in_cluster_credentials(
-    api_config: kfp_server_api.Configuration,) -> None:
+    api_config: kfp.server_api.Configuration,
+) -> None:
     """Apply default in-cluster service account credentials."""
     token_path = os.environ.get(constants.TOKEN_PATH_ENV)
     if not token_path:
@@ -35,19 +36,24 @@ def apply_in_cluster_credentials(
             token_path = constants.K8S_SA_TOKEN_PATH
             logger.debug(
                 'Kubeflow pipelines token path missing; using Kubernetes '
-                'service account token at %s for API auth.', token_path)
+                'service account token at %s for API auth.',
+                token_path,
+            )
 
     if not token_path:
         logger.debug(
-            'No in-cluster token file found; skipping credential setup.')
+            'No in-cluster token file found; skipping credential setup.'
+        )
         return
 
     try:
-        from kfp.client.set_volume_credentials import \
-            ServiceAccountTokenVolumeCredentials
+        from kfp.client.set_volume_credentials import (
+            ServiceAccountTokenVolumeCredentials,
+        )
     except ImportError:
         logger.debug(
-            'In-cluster credential module not available.', exc_info=True)
+            'In-cluster credential module not available.', exc_info=True
+        )
         return
     try:
         credentials = ServiceAccountTokenVolumeCredentials(path=token_path)
@@ -57,13 +63,18 @@ def apply_in_cluster_credentials(
     except FileNotFoundError:
         logger.warning(
             'Token file not found; proceeding without authentication.',
-            exc_info=True)
+            exc_info=True,
+        )
 
 
-def refresh_credentials(api_config: kfp_server_api.Configuration,) -> None:
+def refresh_credentials(
+    api_config: kfp.server_api.Configuration,
+) -> None:
     """Refresh the API token using the configured refresh hook."""
     if api_config.refresh_api_key_hook is not None:
         api_config.refresh_api_key_hook(api_config)
     else:
-        raise RuntimeError('Token expired but no refresh hook is configured. '
-                           'Re-create the client with a fresh token.')
+        raise RuntimeError(
+            'Token expired but no refresh hook is configured. '
+            'Re-create the client with a fresh token.'
+        )

@@ -14,10 +14,10 @@
 """Focused tests for the bounded repository Go-version updater."""
 
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import update_go_version as updater
@@ -42,9 +42,11 @@ def _git(repo_root, *arguments):
 
 
 def _dockerfile(version, pin, digest=OLD_DIGEST):
-    return ('# syntax owned by this fixture\n'
-            f'FROM golang:{version}{pin.flavor}@{digest} AS {pin.stage}\n'
-            'RUN true\n')
+    return (
+        '# syntax owned by this fixture\n'
+        f'FROM golang:{version}{pin.flavor}@{digest} AS {pin.stage}\n'
+        'RUN true\n'
+    )
 
 
 def _setup_action():
@@ -67,19 +69,20 @@ def _image_configs(version='1.27.1'):
             'config': {
                 'Env': ['PATH=/usr/local/go/bin', f'GOLANG_VERSION={version}'],
             },
-        } for architecture in ('amd64', 'arm64')
+        }
+        for architecture in ('amd64', 'arm64')
     }
 
 
 class RepositoryFixture:
-
     def __init__(self, test_case, docker_pins=None):
         self._temporary = tempfile.TemporaryDirectory()
         test_case.addCleanup(self._temporary.cleanup)
         self.root = Path(self._temporary.name)
         self.docker_pins = tuple(
-            docker_pins or
-            (updater.DockerPin(Path('Dockerfile'), '-alpine', 'builder'),))
+            docker_pins
+            or (updater.DockerPin(Path('Dockerfile'), '-alpine', 'builder'),)
+        )
         self.setup_actions = (Path('.github/actions/setup-go/action.yml'),)
 
         self.write(
@@ -91,8 +94,7 @@ class RepositoryFixture:
         )
         self.write(
             Path('nested/go.mod'),
-            'module example.com/nested\n\n'
-            'go 1.25.0\n',
+            'module example.com/nested\n\ngo 1.25.0\n',
         )
         for pin in self.docker_pins:
             self.write(pin.path, _dockerfile('1.26.6', pin))
@@ -126,7 +128,9 @@ class RepositoryFixture:
     def snapshot(self):
         paths = _git(self.root, 'ls-files', '-z').stdout.split('\0')
         return {
-            Path(path): (self.root / path).read_bytes() for path in paths if path
+            Path(path): (self.root / path).read_bytes()
+            for path in paths
+            if path
         }
 
     def plan(self, target, resolver):
@@ -156,11 +160,17 @@ class RepositoryFixture:
 
 
 class GoVersionUpdaterTest(unittest.TestCase):
-
     def test_exact_target_version(self):
         self.assertEqual(updater._parse_exact_version('1.27.0'), (1, 27, 0))
-        for invalid in ('1.27', 'go1.27.0', '2.27.0', '1.027.0', '1.27.00',
-                        '1.27.0-rc1', ''):
+        for invalid in (
+            '1.27',
+            'go1.27.0',
+            '2.27.0',
+            '1.027.0',
+            '1.27.00',
+            '1.27.0-rc1',
+            '',
+        ):
             with self.subTest(invalid=invalid):
                 with self.assertRaises(updater.PolicyError):
                     updater._parse_exact_version(invalid)
@@ -169,14 +179,16 @@ class GoVersionUpdaterTest(unittest.TestCase):
         fixture = RepositoryFixture(self)
         original = fixture.read(Path('go.mod'))
 
-        patch_release = updater._render_module(fixture.root, original,
-                                               (1, 26, 5), (1, 26, 7))
+        patch_release = updater._render_module(
+            fixture.root, original, (1, 26, 5), (1, 26, 7)
+        )
         self.assertIn('\ngo 1.26.5\n', patch_release)
         self.assertIn('\ntoolchain go1.26.7\n', patch_release)
         self.assertIn('require example.com/dependency v1.0.0', patch_release)
 
-        minor_release = updater._render_module(fixture.root, original,
-                                               (1, 27, 0), None)
+        minor_release = updater._render_module(
+            fixture.root, original, (1, 27, 0), None
+        )
         self.assertIn('\ngo 1.27.0\n', minor_release)
         self.assertNotIn('toolchain ', minor_release)
         self.assertIn('require example.com/dependency v1.0.0', minor_release)
@@ -186,10 +198,12 @@ class GoVersionUpdaterTest(unittest.TestCase):
             with self.subTest(invalid=invalid):
                 fixture = RepositoryFixture(self)
                 contents = fixture.read(Path('go.mod')).replace(
-                    'go 1.26.5', invalid)
+                    'go 1.26.5', invalid
+                )
                 fixture.write(Path('go.mod'), contents)
-                with self.assertRaisesRegex(updater.PolicyError,
-                                            'exact line go 1.X.Y'):
+                with self.assertRaisesRegex(
+                    updater.PolicyError, 'exact line go 1.X.Y'
+                ):
                     fixture.plan('1.27.1', lambda tag: NEW_DIGESTS[tag])
 
     def test_plan_preserves_floor_for_patch_and_advances_it_for_minor(self):
@@ -221,11 +235,13 @@ class GoVersionUpdaterTest(unittest.TestCase):
         (fixture.root / 'nested/go.mod').unlink()
         resolver_calls = []
 
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'nested/go.mod must be a regular file'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'nested/go.mod must be a regular file'
+        ):
             fixture.check()
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'nested/go.mod must be a regular file'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'nested/go.mod must be a regular file'
+        ):
             fixture.update(
                 '1.27.1',
                 lambda tag: resolver_calls.append(tag) or OLD_DIGEST,
@@ -241,8 +257,8 @@ class GoVersionUpdaterTest(unittest.TestCase):
                 module.symlink_to(target)
 
                 with self.assertRaisesRegex(
-                        updater.PolicyError,
-                        'nested/go.mod must be a regular file'):
+                    updater.PolicyError, 'nested/go.mod must be a regular file'
+                ):
                     fixture.check()
 
     def test_tracked_module_under_symlinked_parent_is_rejected(self):
@@ -262,11 +278,13 @@ class GoVersionUpdaterTest(unittest.TestCase):
         module.parent.symlink_to(external.name, target_is_directory=True)
         resolver_calls = []
 
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'nested/go.mod must be a regular file'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'nested/go.mod must be a regular file'
+        ):
             fixture.check()
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'nested/go.mod must be a regular file'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'nested/go.mod must be a regular file'
+        ):
             fixture.update(
                 '1.27.1',
                 lambda tag: resolver_calls.append(tag) or OLD_DIGEST,
@@ -281,8 +299,9 @@ class GoVersionUpdaterTest(unittest.TestCase):
         self.assertEqual(metadata.version, '1.26.6')
         self.assertEqual(metadata.flavor, '-alpine')
 
-        updated = updater._updated_dockerfile(original, metadata, '1.27.1',
-                                              NEW_DIGESTS['1.27.1-alpine'])
+        updated = updater._updated_dockerfile(
+            original, metadata, '1.27.1', NEW_DIGESTS['1.27.1-alpine']
+        )
         self.assertIn(
             'FROM golang:1.27.1-alpine@'
             f'{NEW_DIGESTS["1.27.1-alpine"]} AS builder',
@@ -310,11 +329,14 @@ class GoVersionUpdaterTest(unittest.TestCase):
         pins = (
             updater.DockerPin(Path('Dockerfile.default'), '', 'generator'),
             updater.DockerPin(
-                Path('Dockerfile.alpine-a'), '-alpine', 'builder'),
+                Path('Dockerfile.alpine-a'), '-alpine', 'builder'
+            ),
             updater.DockerPin(
-                Path('Dockerfile.alpine-b'), '-alpine', 'builder'),
+                Path('Dockerfile.alpine-b'), '-alpine', 'builder'
+            ),
             updater.DockerPin(
-                Path('Dockerfile.bookworm'), '-bookworm', 'builder'),
+                Path('Dockerfile.bookworm'), '-bookworm', 'builder'
+            ),
         )
         fixture = RepositoryFixture(self, pins)
         before = fixture.snapshot()
@@ -339,8 +361,9 @@ class GoVersionUpdaterTest(unittest.TestCase):
         def fail(_tag):
             raise updater.PolicyError('registry unavailable')
 
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'registry unavailable'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'registry unavailable'
+        ):
             fixture.plan('1.27.1', fail)
         self.assertEqual(fixture.snapshot(), before)
 
@@ -355,9 +378,7 @@ class GoVersionUpdaterTest(unittest.TestCase):
         changed = fixture.update('1.27.1', resolver)
         self.assertEqual(
             changed,
-            [Path('Dockerfile'),
-             Path('go.mod'),
-             Path('nested/go.mod')],
+            [Path('Dockerfile'), Path('go.mod'), Path('nested/go.mod')],
         )
         fixture.check()
 
@@ -366,25 +387,30 @@ class GoVersionUpdaterTest(unittest.TestCase):
         self.assertEqual(resolver_calls, ['1.27.1-alpine', '1.27.1-alpine'])
 
     def test_update_rejects_dirty_managed_paths_but_allows_unrelated_changes(
-            self):
+        self,
+    ):
         dirty_managed = RepositoryFixture(self)
         dirty_managed.write(
-            Path('go.mod'),
-            dirty_managed.read(Path('go.mod')) + '\n')
+            Path('go.mod'), dirty_managed.read(Path('go.mod')) + '\n'
+        )
         resolver_called = []
 
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'managed files must be clean'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'managed files must be clean'
+        ):
             dirty_managed.update(
-                '1.27.1', lambda tag: resolver_called.append(tag) or OLD_DIGEST)
+                '1.27.1', lambda tag: resolver_called.append(tag) or OLD_DIGEST
+            )
         self.assertEqual(resolver_called, ['1.27.1-alpine'])
 
         dirty_unrelated = RepositoryFixture(self)
         dirty_unrelated.write(Path('README.md'), 'unrelated local edit\n')
-        dirty_unrelated.update('1.27.1',
-                               lambda _tag: NEW_DIGESTS['1.27.1-alpine'])
+        dirty_unrelated.update(
+            '1.27.1', lambda _tag: NEW_DIGESTS['1.27.1-alpine']
+        )
         self.assertEqual(
-            dirty_unrelated.read(Path('README.md')), 'unrelated local edit\n')
+            dirty_unrelated.read(Path('README.md')), 'unrelated local edit\n'
+        )
 
     def test_check_ignores_missing_unregistered_scan_candidates(self):
         fixture = RepositoryFixture(self)
@@ -404,8 +430,8 @@ class GoVersionUpdaterTest(unittest.TestCase):
 
         directory.symlink_to('missing', target_is_directory=True)
         with self.assertRaisesRegex(
-                updater.PolicyError,
-                'Dockerfile.unrelated must be a regular file'):
+            updater.PolicyError, 'Dockerfile.unrelated must be a regular file'
+        ):
             fixture.check()
 
     def test_update_rechecks_managed_paths_after_digest_resolution(self):
@@ -416,21 +442,25 @@ class GoVersionUpdaterTest(unittest.TestCase):
             (fixture.root / 'nested/go.mod').unlink()
             return NEW_DIGESTS['1.27.1-alpine']
 
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'managed files must be clean'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'managed files must be clean'
+        ):
             fixture.update('1.27.1', edit_during_resolution)
         self.assertFalse((fixture.root / 'nested/go.mod').exists())
         self.assertEqual(
             fixture.read(Path('Dockerfile')),
-            before[Path('Dockerfile')].decode())
+            before[Path('Dockerfile')].decode(),
+        )
 
     def test_verify_image_digests_accepts_pin_after_tag_moves(self):
         fixture = RepositoryFixture(self)
         fixture.update('1.27.1', lambda _tag: OLD_DIGEST)
-        resolver = mock.Mock(return_value={
-            'linux/amd64': '1.27.1',
-            'linux/arm64': '1.27.1',
-        })
+        resolver = mock.Mock(
+            return_value={
+                'linux/amd64': '1.27.1',
+                'linux/arm64': '1.27.1',
+            }
+        )
 
         updater.verify_image_digests(
             fixture.root,
@@ -464,20 +494,28 @@ class GoVersionUpdaterTest(unittest.TestCase):
         pins = (
             updater.DockerPin(Path('Dockerfile.default'), '', 'generator'),
             updater.DockerPin(
-                Path('Dockerfile.alpine-a'), '-alpine', 'builder'),
+                Path('Dockerfile.alpine-a'), '-alpine', 'builder'
+            ),
             updater.DockerPin(
-                Path('Dockerfile.alpine-b'), '-alpine', 'builder'),
+                Path('Dockerfile.alpine-b'), '-alpine', 'builder'
+            ),
             updater.DockerPin(
-                Path('Dockerfile.bookworm'), '-bookworm', 'builder'),
+                Path('Dockerfile.bookworm'), '-bookworm', 'builder'
+            ),
         )
         fixture = RepositoryFixture(self, pins)
         fixture.update(
-            '1.27.1', lambda tag:
-            (NEW_DIGESTS[tag] if tag.endswith('-bookworm') else OLD_DIGEST))
-        resolver = mock.Mock(return_value={
-            'linux/amd64': '1.27.1',
-            'linux/arm64': '1.27.1',
-        })
+            '1.27.1',
+            lambda tag: (
+                NEW_DIGESTS[tag] if tag.endswith('-bookworm') else OLD_DIGEST
+            ),
+        )
+        resolver = mock.Mock(
+            return_value={
+                'linux/amd64': '1.27.1',
+                'linux/arm64': '1.27.1',
+            }
+        )
 
         updater.verify_image_digests(
             fixture.root,
@@ -486,23 +524,29 @@ class GoVersionUpdaterTest(unittest.TestCase):
             fixture.setup_actions,
         )
 
-        self.assertCountEqual(resolver.call_args_list, [
-            mock.call(OLD_DIGEST),
-            mock.call(NEW_DIGESTS['1.27.1-bookworm']),
-        ])
+        self.assertCountEqual(
+            resolver.call_args_list,
+            [
+                mock.call(OLD_DIGEST),
+                mock.call(NEW_DIGESTS['1.27.1-bookworm']),
+            ],
+        )
 
     def test_verify_image_digests_keeps_same_flavor_consistency_check(self):
         pins = (
             updater.DockerPin(
-                Path('Dockerfile.alpine-a'), '-alpine', 'builder'),
+                Path('Dockerfile.alpine-a'), '-alpine', 'builder'
+            ),
             updater.DockerPin(
-                Path('Dockerfile.alpine-b'), '-alpine', 'builder'),
+                Path('Dockerfile.alpine-b'), '-alpine', 'builder'
+            ),
         )
         fixture = RepositoryFixture(self, pins)
         fixture.update('1.27.1', lambda _tag: OLD_DIGEST)
         fixture.write(
             pins[1].path,
-            _dockerfile('1.27.1', pins[1], NEW_DIGESTS['1.27.1-alpine']))
+            _dockerfile('1.27.1', pins[1], NEW_DIGESTS['1.27.1-alpine']),
+        )
         resolver = mock.Mock()
 
         with self.assertRaisesRegex(updater.PolicyError, 'must use one digest'):
@@ -515,56 +559,51 @@ class GoVersionUpdaterTest(unittest.TestCase):
         resolver.assert_not_called()
 
     def test_resolve_image_versions_inspects_pinned_config(self):
-        result = subprocess.CompletedProcess([],
-                                             0,
-                                             stdout=json.dumps(
-                                                 _image_configs()))
+        result = subprocess.CompletedProcess(
+            [], 0, stdout=json.dumps(_image_configs())
+        )
         with mock.patch.object(updater, '_run', return_value=result) as run:
             self.assertEqual(
-                updater.resolve_image_versions(OLD_DIGEST), {
+                updater.resolve_image_versions(OLD_DIGEST),
+                {
                     'linux/amd64': '1.27.1',
                     'linux/arm64': '1.27.1',
-                })
+                },
+            )
 
         run.assert_called_once_with(
-            ('docker', 'buildx', 'imagetools', 'inspect',
-             f'golang@{OLD_DIGEST}', '--format', '{{json .Image}}'),
+            (
+                'docker',
+                'buildx',
+                'imagetools',
+                'inspect',
+                f'golang@{OLD_DIGEST}',
+                '--format',
+                '{{json .Image}}',
+            ),
             updater.REPOSITORY_ROOT,
             timeout=updater.DIGEST_LOOKUP_TIMEOUT_SECONDS,
         )
 
     def test_resolve_image_versions_rejects_unusable_config(self):
         cases = {
-            'invalid JSON':
-                'not JSON',
-            'non-object JSON':
-                '[]',
-            'missing platform':
-                json.dumps({
+            'invalid JSON': 'not JSON',
+            'non-object JSON': '[]',
+            'missing platform': json.dumps(
+                {
                     'linux/amd64': _image_configs()['linux/amd64'],
-                }),
+                }
+            ),
         }
         invalid_configs = (
             None,
             {},
-            {
-                'Env': None
-            },
-            {
-                'Env': 'GOLANG_VERSION=1.27.1'
-            },
-            {
-                'Env': [None, 'GOLANG_VERSION=1.27.1']
-            },
-            {
-                'Env': ['PATH=/usr/local/go/bin']
-            },
-            {
-                'Env': ['GOLANG_VERSION=1.27']
-            },
-            {
-                'Env': ['GOLANG_VERSION=1.27.1', 'GOLANG_VERSION=1.27.0']
-            },
+            {'Env': None},
+            {'Env': 'GOLANG_VERSION=1.27.1'},
+            {'Env': [None, 'GOLANG_VERSION=1.27.1']},
+            {'Env': ['PATH=/usr/local/go/bin']},
+            {'Env': ['GOLANG_VERSION=1.27']},
+            {'Env': ['GOLANG_VERSION=1.27.1', 'GOLANG_VERSION=1.27.0']},
         )
         for config in invalid_configs:
             images = _image_configs()
@@ -582,76 +621,98 @@ class GoVersionUpdaterTest(unittest.TestCase):
         for name, payload in cases.items():
             with self.subTest(name=name):
                 result = subprocess.CompletedProcess([], 0, stdout=payload)
-                with mock.patch.object(updater, '_run', return_value=result), \
-                        mock.patch.object(updater.time, 'sleep'):
+                with (
+                    mock.patch.object(updater, '_run', return_value=result),
+                    mock.patch.object(updater.time, 'sleep'),
+                ):
                     with self.assertRaises(updater.PolicyError):
                         updater.resolve_image_versions(OLD_DIGEST)
 
     def test_resolve_image_versions_retries_same_digest_after_timeout(self):
-        result = subprocess.CompletedProcess([],
-                                             0,
-                                             stdout=json.dumps(
-                                                 _image_configs()))
+        result = subprocess.CompletedProcess(
+            [], 0, stdout=json.dumps(_image_configs())
+        )
         timeout = subprocess.TimeoutExpired('docker', 30)
         with mock.patch.object(
-                updater.subprocess, 'run', side_effect=[timeout,
-                                                        result]) as run:
+            updater.subprocess, 'run', side_effect=[timeout, result]
+        ) as run:
             self.assertEqual(
-                updater.resolve_image_versions(OLD_DIGEST), {
+                updater.resolve_image_versions(OLD_DIGEST),
+                {
                     'linux/amd64': '1.27.1',
                     'linux/arm64': '1.27.1',
-                })
-        self.assertEqual([call.args[0][4] for call in run.call_args_list], [
-            f'golang@{OLD_DIGEST}',
-            f'mirror.gcr.io/library/golang@{OLD_DIGEST}',
-        ])
+                },
+            )
+        self.assertEqual(
+            [call.args[0][4] for call in run.call_args_list],
+            [
+                f'golang@{OLD_DIGEST}',
+                f'mirror.gcr.io/library/golang@{OLD_DIGEST}',
+            ],
+        )
         for call in run.call_args_list:
-            self.assertEqual(call.kwargs['timeout'],
-                             updater.DIGEST_LOOKUP_TIMEOUT_SECONDS)
+            self.assertEqual(
+                call.kwargs['timeout'], updater.DIGEST_LOOKUP_TIMEOUT_SECONDS
+            )
 
     def test_resolve_image_versions_bounds_registry_retries(self):
-        with mock.patch.object(
-                updater, '_run',
-                side_effect=updater.PolicyError('registry unavailable')) as run, \
-                mock.patch.object(updater.time, 'sleep'):
-            with self.assertRaisesRegex(updater.PolicyError,
-                                        'registry unavailable'):
+        with (
+            mock.patch.object(
+                updater,
+                '_run',
+                side_effect=updater.PolicyError('registry unavailable'),
+            ) as run,
+            mock.patch.object(updater.time, 'sleep'),
+        ):
+            with self.assertRaisesRegex(
+                updater.PolicyError, 'registry unavailable'
+            ):
                 updater.resolve_image_versions(OLD_DIGEST)
 
-        self.assertEqual([call.args[0][4] for call in run.call_args_list], [
-            f'golang@{OLD_DIGEST}',
-            f'mirror.gcr.io/library/golang@{OLD_DIGEST}',
-        ] * updater.DIGEST_LOOKUP_ATTEMPTS)
+        self.assertEqual(
+            [call.args[0][4] for call in run.call_args_list],
+            [
+                f'golang@{OLD_DIGEST}',
+                f'mirror.gcr.io/library/golang@{OLD_DIGEST}',
+            ]
+            * updater.DIGEST_LOOKUP_ATTEMPTS,
+        )
 
     def test_inventory_rejects_unregistered_literal_docker_source(self):
         fixture = RepositoryFixture(self)
         extra = updater.DockerPin(
-            Path('Dockerfile.unregistered'), '-bookworm', 'builder')
+            Path('Dockerfile.unregistered'), '-bookworm', 'builder'
+        )
         fixture.write(extra.path, _dockerfile('1.26.6', extra))
         fixture.commit('add unregistered Dockerfile')
 
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'register literal Go sources'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'register literal Go sources'
+        ):
             fixture.plan('1.27.1', lambda tag: NEW_DIGESTS[tag])
 
     def test_inventory_rejects_unregistered_or_malformed_setup_action(self):
         unregistered = RepositoryFixture(self)
         unregistered.write(
-            Path('.github/workflows/direct-setup.yml'), _setup_action())
+            Path('.github/workflows/direct-setup.yml'), _setup_action()
+        )
         unregistered.commit('add direct setup-go caller')
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'route setup-go callers'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'route setup-go callers'
+        ):
             unregistered.plan('1.27.1', lambda tag: NEW_DIGESTS[tag])
 
         malformed = RepositoryFixture(self)
         path = malformed.setup_actions[0]
         malformed.write(
             path,
-            _setup_action().replace('go-version-file: go.mod',
-                                    'go-version: 1.26.6'),
+            _setup_action().replace(
+                'go-version-file: go.mod', 'go-version: 1.26.6'
+            ),
         )
-        with self.assertRaisesRegex(updater.PolicyError,
-                                    'go-version-file: go.mod'):
+        with self.assertRaisesRegex(
+            updater.PolicyError, 'go-version-file: go.mod'
+        ):
             malformed.plan('1.27.1', lambda tag: NEW_DIGESTS[tag])
 
         conflicting = RepositoryFixture(self)

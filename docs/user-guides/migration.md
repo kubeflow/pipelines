@@ -1,6 +1,6 @@
 # Migrate to Kubeflow Pipelines v2
 
-## Overview 
+## Overview
 
 Kubeflow Pipelines V2 is a significant update to the Kubeflow Pipelines (KFP) platform.
 
@@ -21,18 +21,17 @@ Release Date | Kubeflow Community Distribution Version | KFP Backend Version | S
 --- | --- | --- | --- | --- | ---
 2024-07-22 | [Kubeflow 1.9](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.9/) | [2.2.0](https://github.com/kubeflow/pipelines/releases/tag/2.2.0) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i>
 2023-11-01 | [Kubeflow 1.8](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.8/) | [2.0.3](https://github.com/kubeflow/pipelines/releases/tag/2.0.3) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i>
-2023-03-29 | [Kubeflow 1.7](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.7/) | [2.0.0-alpha.7](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.7) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i> 
-2022-10-10 | [Kubeflow 1.6](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.6/) | [2.0.0-alpha.5](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.5) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i> 
+2023-03-29 | [Kubeflow 1.7](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.7/) | [2.0.0-alpha.7](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.7) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i>
+2022-10-10 | [Kubeflow 1.6](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.6/) | [2.0.0-alpha.5](https://github.com/kubeflow/pipelines/releases/tag/2.0.0-alpha.5) | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-check"></i>
 2022-06-15 | [Kubeflow 1.5](https://www.kubeflow.org/docs/kubeflow-distribution/releases/kubeflow-1.5/) | [1.8.2](https://github.com/kubeflow/pipelines/releases/tag/1.8.2)  | <i class="fa-solid fa-check"></i> | <i class="fa-solid fa-xmark"></i> | <i class="fa-solid fa-xmark"></i>
 
 ## Backward Compatibility
 
-If you have existing KFP Pipelines that you compiled with the V1 SDK, you can run them on the new KFP V2 backend without any changes.
+The KFP V2 backend no longer runs pipelines compiled with the V1 SDK. To run these pipelines, migrate them to the V2 SDK and compile them to IR YAML.
 If you wish to author new pipelines, there are some recommended and required steps to migrate which are detailed below.
 
 :::{warning}
-Running V1 pipelines on KFP V2 requires that you compile and submit them using the V1 SDK.
-The last version of the V1 SDK was [`kfp==1.8.22`](https://pypi.org/project/kfp/1.8.22/), there will be no further releases.
+The last version of the V1 SDK was [`kfp==1.8.22`](https://pypi.org/project/kfp/1.8.22/); there will be no further releases.
 :::
 
 ## Terminology
@@ -240,7 +239,7 @@ KFP v1 supported authoring components directly in YAML via the v1 component YAML
 
 In KFP v2, both components and pipelines are compiled to the same [IR YAML][ir-yaml] format, which is different than the v1 component YAML format.
 
-KFP v2 will continue to support loading existing v1 component YAML using the [`components.load_component_from_file`][components-load-component-from-file] function and [similar functions][load] for backward compatibility.
+The KFP SDK v2 component loaders require PipelineSpec IR YAML and do not load v1 component YAML. Migrate the component to a v2 component definition before loading it.
 
 **Change:** To author components via custom image, command, and args, use the [`@dsl.container_component`][dsl-container-component] decorator as described in [Container Components][container-components]. Note that unlike when authoring v1 component YAML, Container Components do not support setting environment variables on the component itself. Environment variables should be set on the task instantiated from the component within a pipeline definition using the [`.set_env_variable`][dsl-pipelinetask-set-env-variable] task [configuration method][task-configuration-methods].
 

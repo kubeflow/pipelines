@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1Artifact } from 'src/apisv2beta1/run';
+import { V2Artifact } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
-import WorkflowParser, { StorageService } from 'src/lib/WorkflowParser';
+import { parseStoragePath, StorageService } from 'src/lib/StoragePath';
 
 const LAUNCHER_ARTIFACT_SOURCES = new Set<StorageService>([
   StorageService.GCS,
@@ -27,7 +27,7 @@ function isLauncherArtifactSource(source: StorageService): boolean {
 }
 
 export interface ArtifactFileLocation {
-  path: ReturnType<typeof WorkflowParser.parseStoragePath>;
+  path: ReturnType<typeof parseStoragePath>;
   artifactUriQuery?: string;
 }
 
@@ -86,7 +86,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
       'Artifact URIs cannot end with an empty query marker. Remove the trailing ? and retry.',
     );
   }
-  const parsedPath = WorkflowParser.parseStoragePath(uriWithoutQuery);
+  const parsedPath = parseStoragePath(uriWithoutQuery);
   const schemeEnd = uriWithoutQuery.indexOf('://');
   const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
   const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
@@ -114,10 +114,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   return { path, artifactUriQuery: query };
 }
 
-export async function readArtifactFile(
-  artifact: V2beta1Artifact,
-  namespace?: string,
-): Promise<string> {
+export async function readArtifactFile(artifact: V2Artifact, namespace?: string): Promise<string> {
   if (!artifact.uri) {
     throw new Error('Artifact has no URI. Verify the artifact output location.');
   }

@@ -16,39 +16,36 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
-import re
 import subprocess
+from pathlib import Path
 
-CONTAINER_LIST_PATTERN = re.compile(r'^(?:initContainers|containers):\s*$')
-IMAGE_PATTERN = re.compile(
-    r'''^(?:-\s*)?image:\s*["']?([^\s"'#]+)["']?\s*(?:#.*)?$''')
+import yaml
 
 
 def extract_images(rendered_manifest: str) -> set[str]:
-    """Returns the unique container images in a rendered Kubernetes manifest."""
+    """Returns unique container images from rendered Kubernetes resources."""
     images = set()
-    container_list_indent = None
-    for line in rendered_manifest.splitlines():
-        stripped_line = line.lstrip()
-        line_indent = len(line) - len(stripped_line)
 
-        if CONTAINER_LIST_PATTERN.match(stripped_line):
-            container_list_indent = line_indent
-            continue
+    def visit(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in ('initContainers', 'containers') and isinstance(
+                    value, list
+                ):
+                    for container in value:
+                        if isinstance(container, dict):
+                            image = container.get('image')
+                            if isinstance(image, str) and image:
+                                images.add(image)
+                visit(value)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
 
-        if container_list_indent is None:
-            continue
-
-        if (line_indent < container_list_indent or
-            (line_indent == container_list_indent and
-             not stripped_line.startswith('-'))):
-            container_list_indent = None
-            continue
-
-        image_match = IMAGE_PATTERN.match(stripped_line)
-        if image_match:
-            images.add(image_match.group(1))
+    # ConfigMaps can embed source manifests as strings for hashing. Those are
+    # not deployed containers, even when their text contains a containers list.
+    for document in yaml.safe_load_all(rendered_manifest):
+        visit(document)
 
     return images
 
@@ -73,16 +70,20 @@ def render_overlay(kustomize: Path, overlay: Path) -> str:
 def create_matrix(images: set[str]) -> dict[str, list[dict[str, str]]]:
     """Creates a stable GitHub Actions matrix for the discovered images."""
     return {
-        'include': [{
-            'image': image,
-            'category': hashlib.sha256(image.encode()).hexdigest()[:16],
-        } for image in sorted(images)]
+        'include': [
+            {
+                'image': image,
+                'category': hashlib.sha256(image.encode()).hexdigest()[:16],
+            }
+            for image in sorted(images)
+        ]
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Render KFP Kustomize overlays and emit an image matrix.')
+        description='Render KFP Kustomize overlays and emit an image matrix.'
+    )
     parser.add_argument('--kustomize', required=True, type=Path)
     parser.add_argument('--overlay', action='append', required=True, type=Path)
     return parser.parse_args()
@@ -96,7 +97,8 @@ def main() -> None:
 
     if not images:
         raise RuntimeError(
-            'No container images found in rendered KFP manifests')
+            'No container images found in rendered KFP manifests'
+        )
 
     print(json.dumps(create_matrix(images), separators=(',', ':')))
 

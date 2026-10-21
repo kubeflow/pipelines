@@ -5,24 +5,10 @@ export interface Feature {
 }
 
 export enum FeatureKey {
-  V2 = 'v2', // Please start using V2_ALPHA instead of V2, because we have switched to V2_ALPHA as V2 feature is enabled by default.
-  V2_ALPHA = 'v2_alpha',
   FUNCTIONAL_COMPONENT = 'functional_component',
   // We plan to refactor the class component to functional component.
   // To avoid breacking current behavior, enable this feature to do the bugbash / validation test for functional components.
 }
-
-const FEATURE_V2 = {
-  name: FeatureKey.V2,
-  description: 'Show v2 features.',
-  active: false,
-};
-
-const FEATURE_V2_ALPHA = {
-  name: FeatureKey.V2_ALPHA,
-  description: 'Show v2 features, enabled by default starting at V2_ALPHA phase.',
-  active: true,
-};
 
 const FEATURE_FUNCTIONAL_COMPONENT = {
   name: FeatureKey.FUNCTIONAL_COMPONENT,
@@ -30,7 +16,7 @@ const FEATURE_FUNCTIONAL_COMPONENT = {
   active: false,
 };
 
-const features: Feature[] = [FEATURE_V2, FEATURE_V2_ALPHA, FEATURE_FUNCTIONAL_COMPONENT];
+const features: Feature[] = [FEATURE_FUNCTIONAL_COMPONENT];
 
 declare global {
   var __FEATURE_FLAGS__: string;

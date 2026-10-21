@@ -113,10 +113,10 @@ func TestScheduledWorkflow_lastIndex(t *testing.T) {
 	assert.Equal(t, int64(50), schedule.lastIndex())
 }
 
-func TestScheduledWorkflow_nextIndex(t *testing.T) {
+func TestScheduledWorkflow_NextIndex(t *testing.T) {
 	// Never ran a workflow
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
-	assert.Equal(t, int64(1), schedule.nextIndex())
+	assert.Equal(t, int64(1), schedule.NextIndex())
 
 	// Ran one workflow
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -126,7 +126,7 @@ func TestScheduledWorkflow_nextIndex(t *testing.T) {
 			},
 		},
 	})
-	assert.Equal(t, int64(51), schedule.nextIndex())
+	assert.Equal(t, int64(51), schedule.NextIndex())
 }
 
 func TestScheduledWorkflow_MinIndex(t *testing.T) {

@@ -27,7 +27,6 @@ import (
 type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
-	metricsReporter               *MetricsReporter
 	ttlSecondsAfterWorkflowFinish int64
 }
 
@@ -36,7 +35,6 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 	return &WorkflowSaver{
 		client:                        client,
 		pipelineClient:                pipelineClient,
-		metricsReporter:               NewMetricsReporter(pipelineClient),
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
 }
@@ -87,5 +85,5 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	log.WithFields(log.Fields{
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
-	return s.metricsReporter.ReportMetrics(wf)
+	return nil
 }

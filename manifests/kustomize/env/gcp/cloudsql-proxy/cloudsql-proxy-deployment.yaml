@@ -16,16 +16,16 @@ spec:
     spec:
       serviceAccountName: kubeflow-pipelines-cloudsql-proxy
       containers:
-        - image: gcr.io/cloudsql-docker/gce-proxy:1.38.3
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.38.4
           name: cloudsqlproxy
-          env:            
+          env:
             - name: GCP_CLOUDSQL_INSTANCE_NAME
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: gcsCloudSqlInstanceName
           command: ["/cloud_sql_proxy",
-                    "-dir=/cloudsql",                    
+                    "-dir=/cloudsql",
                     "-instances=$(GCP_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
                     "-use_http_health_check",
                     "term_timeout=10s"]

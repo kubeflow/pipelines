@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   contributor-report:
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'copybara-service[bot]'
     concurrency:
       group: contributor-report-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -23,7 +26,17 @@ jobs:
           ref: ${{ github.workflow_sha }}
           sparse-checkout: |
             .github/scripts/contributor-report.py
+            .github/scripts/kubeflow_membership.py
+            .github/scripts/requirements.txt
           sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
 
       - name: Generate contributor report
         env:

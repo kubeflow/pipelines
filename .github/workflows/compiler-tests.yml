@@ -3,7 +3,7 @@ name: Workflow Compiler Tests
 env:
   TESTS_DIR: "./backend/test/compiler"
   TESTS_LABEL: "WorkflowCompiler"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 on:
   push:
@@ -29,8 +29,12 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/compiler-tests.yml'
       - '.github/actions/test-and-report/**'
+      - '.github/resources/scripts/download-go-modules.sh'
+      - '.github/resources/scripts/helper-functions.sh'
       - 'backend/src/v2/compiler/**'
       - 'test_data/**'
       - '!**/*.md'

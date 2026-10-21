@@ -23,39 +23,45 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+import typing
 import warnings
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import docstring_parser
+
 import kfp
 from kfp import dsl
-from kfp.dsl import container_component_artifact_channel
-from kfp.dsl import container_component_class
-from kfp.dsl import graph_component
-from kfp.dsl import pipeline_config
-from kfp.dsl import placeholders
-from kfp.dsl import python_component
-from kfp.dsl import structures
-from kfp.dsl import task_final_status
+from kfp.dsl import (
+    container_component_artifact_channel,
+    container_component_class,
+    graph_component,
+    pipeline_config,
+    placeholders,
+    python_component,
+    structures,
+    task_final_status,
+)
 from kfp.dsl.component_task_config import TaskConfigPassthrough
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.templates.safe_extract import get_safe_extract_source
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import custom_artifact_types
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import (
+    artifact_types,
+    custom_artifact_types,
+    type_annotations,
+    type_utils,
+)
 
 _DEFAULT_BASE_IMAGE = 'python:3.11'
 SINGLE_OUTPUT_NAME = 'Output'
 
 
 @dataclasses.dataclass
-class ComponentInfo():
+class ComponentInfo:
     """A dataclass capturing registered components.
 
     This will likely be subsumed/augmented with BaseComponent.
     """
+
     name: str
     function_name: str
     func: Callable
@@ -82,8 +88,9 @@ def _python_function_name_to_component_name(name):
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
-def make_index_url_options(pip_index_urls: Optional[List[str]],
-                           pip_trusted_hosts: Optional[List[str]]) -> str:
+def make_index_url_options(
+    pip_index_urls: Optional[List[str]], pip_trusted_hosts: Optional[List[str]]
+) -> str:
     """Generates index URL options for the pip install command based on the
     provided pip_index_urls and pip_trusted_hosts.
 
@@ -111,12 +118,16 @@ def make_index_url_options(pip_index_urls: Optional[List[str]],
     extra_index_urls = pip_index_urls[1:]
 
     options = [f'--index-url {index_url}']
-    options.extend(f'--extra-index-url {extra_index_url}'
-                   for extra_index_url in extra_index_urls)
+    options.extend(
+        f'--extra-index-url {extra_index_url}'
+        for extra_index_url in extra_index_urls
+    )
 
     if pip_trusted_hosts:
-        options.extend(f'--trusted-host {trusted_host}'
-                       for trusted_host in pip_trusted_hosts)
+        options.extend(
+            f'--trusted-host {trusted_host}'
+            for trusted_host in pip_trusted_hosts
+        )
 
     return ' '.join(options) + ' '
 
@@ -126,26 +137,27 @@ def make_pip_install_command(
     index_url_options: str,
 ) -> str:
     concat_package_list = ' '.join(
-        [repr(str(package)) for package in install_parts])
+        [repr(str(package)) for package in install_parts]
+    )
     return f'python3 -m pip install --quiet --no-warn-script-location {index_url_options}{concat_package_list}'
 
 
-_install_python_packages_script_template = '''
+_install_python_packages_script_template = """
 if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 {pip_install_commands} && "$0" "$@"
-'''
+"""
 
 # Creates and activates a virtual environment in a temporary directory.
 # The environment inherits the system site packages.
-_use_venv_script_template = '''
+_use_venv_script_template = """
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 tmp=$(mktemp -d)
 python3 -m venv "$tmp/venv" --system-site-packages
 . "$tmp/venv/bin/activate"
-'''
+"""
 
 
 def _get_packages_to_install_command(
@@ -162,18 +174,18 @@ def _get_packages_to_install_command(
     # if the user doesn't say "don't install", they aren't building a
     # container component, and they haven't already specified a KFP dep
     # themselves, we install KFP for them
-    inject_kfp_install = install_kfp_package and target_image is None and not kfp_in_user_pkgs
+    inject_kfp_install = (
+        install_kfp_package and target_image is None and not kfp_in_user_pkgs
+    )
     if not inject_kfp_install and not packages_to_install:
         return []
     pip_install_strings = []
-    index_url_options = make_index_url_options(pip_index_urls,
-                                               pip_trusted_hosts)
+    index_url_options = make_index_url_options(
+        pip_index_urls, pip_trusted_hosts
+    )
 
-    # Install packages before KFP. This allows us to
-    # control where we source kfp-pipeline-spec.
-    # This is particularly useful for development and
-    # CI use-case when you want to install the spec
-    # from source.
+    # Install explicit user packages before the SDK, which may be installed
+    # without dependencies for lightweight component execution.
     if packages_to_install:
         user_packages_pip_install_command = make_pip_install_command(
             install_parts=packages_to_install,
@@ -188,8 +200,10 @@ def _get_packages_to_install_command(
             pip_install_strings.append(_use_venv_script_template)
         if kfp_package_path:
             install_parts = [kfp_package_path]
-            if (os.path.exists(kfp_package_path) or
-                    '@refs/pull/' in kfp_package_path):
+            if (
+                os.path.exists(kfp_package_path)
+                or '@refs/pull/' in kfp_package_path
+            ):
                 install_parts.append('--no-deps')
             kfp_pip_install_command = make_pip_install_command(
                 install_parts=install_parts,
@@ -207,9 +221,11 @@ def _get_packages_to_install_command(
         pip_install_strings.append(kfp_pip_install_command)
 
     return [
-        'sh', '-c',
+        'sh',
+        '-c',
         _install_python_packages_script_template.format(
-            pip_install_commands=' '.join(pip_install_strings))
+            pip_install_commands=' '.join(pip_install_strings)
+        ),
     ]
 
 
@@ -224,8 +240,9 @@ def _get_function_source_definition(func: Callable) -> str:
 
     # Removing possible decorators (can be multiline) until the function
     # definition is found
-    func_code_lines = itertools.dropwhile(lambda x: not x.startswith('def'),
-                                          func_code_lines)
+    func_code_lines = itertools.dropwhile(
+        lambda x: not x.startswith('def'), func_code_lines
+    )
 
     if not func_code_lines:
         raise ValueError(
@@ -266,12 +283,14 @@ def get_name_to_specs(
         name = func_param.name
         if name == SINGLE_OUTPUT_NAME:
             raise ValueError(
-                f'"{SINGLE_OUTPUT_NAME}" is an invalid parameter name.')
+                f'"{SINGLE_OUTPUT_NAME}" is an invalid parameter name.'
+            )
         # Stripping Optional from Optional[<type>] is the only processing done
         # on annotations in this flow. Other than that, we extract the raw
         # annotation and process later.
         annotation = type_annotations.maybe_strip_optional_from_annotation(
-            func_param.annotation)
+            func_param.annotation
+        )
 
         # no annotation
         if annotation == inspect._empty:
@@ -281,41 +300,44 @@ def get_name_to_specs(
         elif type_annotations.is_embedded_input_annotation(annotation):
             continue
         # is Input[Artifact], Input[List[<Artifact>]], <param> (e.g., str), or InputPath(<param>)
-        elif (type_annotations.is_artifact_wrapped_in_Input(annotation) or
-              isinstance(
-                  annotation,
-                  type_annotations.InputPath,
-              ) or type_utils.is_parameter_type(annotation)):
-            name_to_input_specs[maybe_make_unique(
-                name, list(name_to_input_specs))] = make_input_spec(
-                    annotation, func_param)
+        elif (
+            type_annotations.is_artifact_wrapped_in_Input(annotation)
+            or isinstance(
+                annotation,
+                type_annotations.InputPath,
+            )
+            or type_utils.is_parameter_type(annotation)
+        ):
+            name_to_input_specs[
+                maybe_make_unique(name, list(name_to_input_specs))
+            ] = make_input_spec(annotation, func_param)
         # is Artifact annotation (e.g., Artifact, Dataset, etc.)
         # or List[<Artifact>]
         elif type_annotations.issubclass_of_artifact(
-                annotation) or type_annotations.is_list_of_artifacts(
-                    annotation):
+            annotation
+        ) or type_annotations.is_list_of_artifacts(annotation):
             if containerized:
                 raise TypeError(
                     f"Container Components must wrap input and output artifact annotations with Input/Output type markers (Input[<artifact>] or Output[<artifact>]). Got function input '{name}' with annotation {annotation}."
                 )
-            name_to_input_specs[maybe_make_unique(
-                name, list(name_to_input_specs))] = make_input_spec(
-                    annotation, func_param)
+            name_to_input_specs[
+                maybe_make_unique(name, list(name_to_input_specs))
+            ] = make_input_spec(annotation, func_param)
 
         # is Output[Artifact] or OutputPath(<param>)
         elif type_annotations.is_artifact_wrapped_in_Output(
-                annotation) or isinstance(annotation,
-                                          type_annotations.OutputPath):
-            name_to_output_specs[maybe_make_unique(
-                name,
-                list(name_to_output_specs))] = make_output_spec(annotation)
+            annotation
+        ) or isinstance(annotation, type_annotations.OutputPath):
+            name_to_output_specs[
+                maybe_make_unique(name, list(name_to_output_specs))
+            ] = make_output_spec(annotation)
 
         # parameter type
         else:
             type_string = type_utils._annotation_to_type_struct(annotation)
-            name_to_input_specs[maybe_make_unique(
-                name, list(name_to_input_specs))] = make_input_spec(
-                    type_string, func_param)
+            name_to_input_specs[
+                maybe_make_unique(name, list(name_to_input_specs))
+            ] = make_input_spec(type_string, func_param)
 
     ### handle return annotations ###
     return_ann = signature.return_annotation
@@ -323,8 +345,8 @@ def get_name_to_specs(
     # validate container component returns
     if containerized:
         if return_ann not in [
-                inspect.Parameter.empty,
-                structures.ContainerSpec,
+            inspect.Parameter.empty,
+            structures.ContainerSpec,
         ]:
             raise TypeError(
                 'Return annotation should be either ContainerSpec or omitted for container components.'
@@ -337,35 +359,24 @@ def get_name_to_specs(
         # Getting field type annotations.
         # __annotations__ does not exist in python 3.5 and earlier
         # _field_types does not exist in python 3.9 and later
-        field_annotations = getattr(return_ann, '__annotations__',
-                                    None) or getattr(return_ann, '_field_types')
+        field_annotations = getattr(
+            return_ann, '__annotations__', None
+        ) or getattr(return_ann, '_field_types')
         for name in return_ann._fields:
             annotation = field_annotations[name]
             if not type_annotations.is_list_of_artifacts(
-                    annotation) and not type_annotations.is_artifact_class(
-                        annotation):
+                annotation
+            ) and not type_annotations.is_artifact_class(annotation):
                 annotation = type_utils._annotation_to_type_struct(annotation)
-            name_to_output_specs[maybe_make_unique(
-                name,
-                list(name_to_output_specs))] = make_output_spec(annotation)
-    # is deprecated dict returns style
-    elif isinstance(return_ann, dict):
-        warnings.warn(
-            'The ability to specify multiple outputs using the dict syntax'
-            ' has been deprecated. It will be removed soon after release'
-            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
-            ' outputs.', DeprecationWarning)
-        for output_name, output_type_annotation in return_ann.items():
-            output_type = type_utils._annotation_to_type_struct(
-                output_type_annotation)
-            name_to_output_specs[maybe_make_unique(
-                output_name, list(name_to_output_specs))] = output_type
+            name_to_output_specs[
+                maybe_make_unique(name, list(name_to_output_specs))
+            ] = make_output_spec(annotation)
     # is the simple single return case (can be `-> <param>` or `-> Artifact`)
     # treated the same way, since processing is done in inner functions
     else:
-        name_to_output_specs[maybe_make_unique(
-            SINGLE_OUTPUT_NAME,
-            list(name_to_output_specs))] = make_output_spec(return_ann)
+        name_to_output_specs[
+            maybe_make_unique(SINGLE_OUTPUT_NAME, list(name_to_output_specs))
+        ] = make_output_spec(return_ann)
     return name_to_input_specs, name_to_output_specs
 
 
@@ -374,8 +385,9 @@ def canonicalize_annotation(annotation: Any):
     annotations."""
     if type_annotations.is_Input_Output_artifact_annotation(annotation):
         annotation = type_annotations.strip_Input_or_Output_marker(annotation)
-    if isinstance(annotation,
-                  (type_annotations.InputPath, type_annotations.OutputPath)):
+    if isinstance(
+        annotation, (type_annotations.InputPath, type_annotations.OutputPath)
+    ):
         annotation = annotation.type
     return annotation
 
@@ -387,8 +399,9 @@ def make_input_output_spec_args(annotation: Any) -> Dict[str, Any]:
         annotation = type_annotations.get_inner_type(annotation)
 
     if type_annotations.issubclass_of_artifact(annotation):
-        typ = type_utils.create_bundled_artifact_type(annotation.schema_title,
-                                                      annotation.schema_version)
+        typ = type_utils.create_bundled_artifact_type(
+            annotation.schema_title, annotation.schema_version
+        )
     else:
         typ = type_utils._annotation_to_type_struct(annotation)
     return {'type': typ, 'is_artifact_list': is_artifact_list}
@@ -400,28 +413,37 @@ def make_output_spec(annotation: Any) -> structures.OutputSpec:
     return structures.OutputSpec(**args)
 
 
-def make_input_spec(annotation: Any,
-                    inspect_param: inspect.Parameter) -> structures.InputSpec:
+def make_input_spec(
+    annotation: Any, inspect_param: inspect.Parameter
+) -> structures.InputSpec:
     """Makes an InputSpec from a cleaned output annotation."""
     annotation = canonicalize_annotation(annotation)
     input_output_spec_args = make_input_output_spec_args(annotation)
 
-    if (type_annotations.issubclass_of_artifact(annotation) or
-            input_output_spec_args['is_artifact_list']
-       ) and inspect_param.default not in {None, inspect._empty}:
+    if (
+        type_annotations.issubclass_of_artifact(annotation)
+        or input_output_spec_args['is_artifact_list']
+    ) and inspect_param.default not in {None, inspect._empty}:
         raise ValueError(
             f'Optional Input artifacts may only have default value None. Got: {inspect_param.default}.'
         )
 
-    default = None if inspect_param.default == inspect.Parameter.empty or type_annotations.issubclass_of_artifact(
-        annotation) else inspect_param.default
+    default = (
+        None
+        if inspect_param.default == inspect.Parameter.empty
+        or type_annotations.issubclass_of_artifact(annotation)
+        else inspect_param.default
+    )
 
     optional = (
-        inspect_param.default is not inspect.Parameter.empty or
-        type_utils.is_task_final_status_type(
-            getattr(inspect_param.annotation, '__name__', '')) or
-        type_utils.is_task_config_type(
-            getattr(inspect_param.annotation, '__name__', '')))
+        inspect_param.default is not inspect.Parameter.empty
+        or type_utils.is_task_final_status_type(
+            getattr(inspect_param.annotation, '__name__', '')
+        )
+        or type_utils.is_task_config_type(
+            getattr(inspect_param.annotation, '__name__', '')
+        )
+    )
     return structures.InputSpec(
         **input_output_spec_args,
         default=default,
@@ -437,8 +459,9 @@ def extract_component_interface(
 ) -> structures.ComponentSpec:
 
     def assign_descriptions(
-        inputs_or_outputs: Mapping[str, Union[structures.InputSpec,
-                                              structures.OutputSpec]],
+        inputs_or_outputs: typing.Mapping[
+            str, Union[structures.InputSpec, structures.OutputSpec]
+        ],
         docstring_params: List[docstring_parser.DocstringParam],
     ) -> None:
         """Assigns descriptions to InputSpec or OutputSpec for each component
@@ -449,8 +472,8 @@ def extract_component_interface(
                 spec.description = docstring_inputs[name].description
 
     def parse_docstring_with_return_as_args(
-            docstring: Union[str,
-                             None]) -> Optional[docstring_parser.Docstring]:
+        docstring: Union[str, None],
+    ) -> Optional[docstring_parser.Docstring]:
         """Modifies docstring so that a return section can be treated as an
         args section, then parses the docstring."""
         if docstring is None:
@@ -468,17 +491,20 @@ def extract_component_interface(
 
     signature = inspect.signature(func)
     name_to_input_spec, name_to_output_spec = get_name_to_specs(
-        signature, containerized)
+        signature, containerized
+    )
     original_docstring = inspect.getdoc(func)
     parsed_docstring = docstring_parser.parse(original_docstring)
 
     assign_descriptions(name_to_input_spec, parsed_docstring.params)
 
     modified_parsed_docstring = parse_docstring_with_return_as_args(
-        original_docstring)
+        original_docstring
+    )
     if modified_parsed_docstring is not None:
-        assign_descriptions(name_to_output_spec,
-                            modified_parsed_docstring.params)
+        assign_descriptions(
+            name_to_output_spec, modified_parsed_docstring.params
+        )
 
     description = get_pipeline_description(
         decorator_description=description,
@@ -486,7 +512,8 @@ def extract_component_interface(
     )
 
     component_name = name or _python_function_name_to_component_name(
-        func.__name__)
+        func.__name__
+    )
     return structures.ComponentSpec(
         name=component_name,
         description=description,
@@ -530,8 +557,10 @@ def _safe_add_to_tar(
         return
 
     if not resolved_root.is_dir():
-        raise ValueError(f'Embedded artifact path does not exist or is not a '
-                         f'file/directory: {root}')
+        raise ValueError(
+            f'Embedded artifact path does not exist or is not a '
+            f'file/directory: {root}'
+        )
 
     def _walk(
         current: pathlib.Path,
@@ -551,19 +580,24 @@ def _safe_add_to_tar(
         if resolved.is_dir():
             if current != resolved:
                 raise ValueError(
-                    f'Directory symlinks are not supported: {current}')
+                    f'Directory symlinks are not supported: {current}'
+                )
 
             tar.add(str(resolved), arcname=arc_prefix, recursive=False)
             for child in sorted(resolved.iterdir()):
-                child_arc = (f'{arc_prefix}/{child.name}'
-                             if arc_prefix != '.' else child.name)
+                child_arc = (
+                    f'{arc_prefix}/{child.name}'
+                    if arc_prefix != '.'
+                    else child.name
+                )
                 _walk(child, child_arc)
         elif resolved.is_file():
             try:
                 resolved.relative_to(resolved_root)
             except ValueError:
                 raise ValueError(
-                    f'Path escapes artifact tree: {current} -> {resolved}')
+                    f'Path escapes artifact tree: {current} -> {resolved}'
+                )
             tar.add(str(resolved), arcname=arc_prefix)
         else:
             raise ValueError(f'Unsupported file type: {current}')
@@ -577,21 +611,25 @@ def _get_command_and_args_for_lightweight_component(
     embedded_artifact_path: Optional[str] = None,
     _helper_source_template: Optional[str] = None,
 ) -> Tuple[List[str], List[str]]:
-    imports_source = [
-        'import kfp',
-        'from kfp import dsl',
-        'from kfp.dsl import *',
-        'from typing import *',
-    ] + custom_artifact_types.get_custom_artifact_type_import_statements(
-        func
-    ) + custom_artifact_types.get_pydantic_basemodel_type_import_statements(
-        func)
+    imports_source = (
+        [
+            'import kfp',
+            'from kfp import dsl',
+            'from kfp.dsl import *',
+            'from typing import *',
+        ]
+        + custom_artifact_types.get_custom_artifact_type_import_statements(func)
+        + custom_artifact_types.get_pydantic_basemodel_type_import_statements(
+            func
+        )
+    )
 
     func_source = _get_function_source_definition(func)
     additional_funcs_source = ''
     if additional_funcs:
         additional_funcs_source = '\n\n' + '\n\n'.join(
-            _get_function_source_definition(_f) for _f in additional_funcs)
+            _get_function_source_definition(_f) for _f in additional_funcs
+        )
     # If an embedded_artifact_path is provided, build the archive and generate
     # a shared extraction helper.
     helper_source = None
@@ -618,7 +656,8 @@ def _get_command_and_args_for_lightweight_component(
                 f'Embedded artifact archive is large ({compressed_size_mb:.1f}MB compressed). '
                 f'Consider moving large assets to a container image or object store.',
                 UserWarning,
-                stacklevel=4)
+                stacklevel=4,
+            )
 
         archive_b64 = base64.b64encode(compressed_bytes).decode('ascii')
 
@@ -627,25 +666,28 @@ def _get_command_and_args_for_lightweight_component(
             # Use literal replacement to avoid str.format interpreting other braces
             # in the helper source (e.g., f-strings) as format fields.
             helper_source = _helper_source_template.replace(
-                '{embedded_archive}', archive_b64)
+                '{embedded_archive}', archive_b64
+            )
         else:
             file_basename = asset_path.name if asset_path.is_file() else None
             helper_source = _generate_shared_extraction_helper(
-                archive_b64, file_basename)
+                archive_b64, file_basename
+            )
 
     helper_block = f'\n\n{helper_source}\n' if helper_source else ''
-    source = textwrap.dedent('''
+    source = textwrap.dedent("""
         {imports_source}{additional_funcs_source}{helper_block}
 
-        {func_source}\n''').format(
+        {func_source}\n""").format(
         imports_source='\n'.join(imports_source),
         additional_funcs_source=additional_funcs_source,
         helper_block=helper_block,
-        func_source=func_source)
+        func_source=func_source,
+    )
     command = [
         'sh',
         '-ec',
-        textwrap.dedent(f'''\
+        textwrap.dedent(f"""\
                     program_path=$(mktemp -d)
 
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
@@ -653,7 +695,7 @@ def _get_command_and_args_for_lightweight_component(
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
-                '''),
+                """),
         source,
     ]
 
@@ -667,9 +709,9 @@ def _get_command_and_args_for_lightweight_component(
     return command, args
 
 
-def _generate_shared_extraction_helper(embedded_archive_b64: str,
-                                       file_basename: Optional[str] = None
-                                      ) -> str:
+def _generate_shared_extraction_helper(
+    embedded_archive_b64: str, file_basename: Optional[str] = None
+) -> str:
     """Generate shared archive extraction helper source code.
 
     Produces Python source that extracts a tar.gz archive (provided as
@@ -682,7 +724,7 @@ def _generate_shared_extraction_helper(embedded_archive_b64: str,
     if file_basename:
         file_assignment = f"\n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR, '{file_basename}')\n"
     safe_extract_source = get_safe_extract_source()
-    return f'''__KFP_EMBEDDED_ARCHIVE_B64 = '{embedded_archive_b64}'
+    return f"""__KFP_EMBEDDED_ARCHIVE_B64 = '{embedded_archive_b64}'
 
 import base64 as __kfp_b64
 import io as __kfp_io
@@ -706,7 +748,7 @@ except Exception as __kfp_e:
 if __KFP_EMBEDDED_ASSET_DIR not in __kfp_sys.path:
     __kfp_sys.path.insert(0, __KFP_EMBEDDED_ASSET_DIR)
 {file_assignment}
-'''
+"""
 
 
 def create_notebook_component_from_func(
@@ -736,10 +778,8 @@ def create_notebook_component_from_func(
     if packages_to_install is None:
         packages_to_install = [
             'nbclient>=0.10,<1',
-            'ipykernel>=6,<7',
+            'ipykernel>=6',
             'jupyter_client>=7,<9',
-            # 2.22.0 uses Python 3.10 union syntax but permits Python 3.9.
-            'fastjsonschema<2.22; python_version < "3.10"',
         ]
 
     # Validate notebook path and determine relpath
@@ -750,12 +790,14 @@ def create_notebook_component_from_func(
     if nb_path.is_dir():
         # Ignore .ipynb_checkpoints directories
         ipynbs = [
-            p for p in nb_path.rglob('*.ipynb')
+            p
+            for p in nb_path.rglob('*.ipynb')
             if p.is_file() and '.ipynb_checkpoints' not in p.parts
         ]
         if len(ipynbs) == 0:
             raise ValueError(
-                f'No .ipynb files found in directory: {notebook_path}')
+                f'No .ipynb files found in directory: {notebook_path}'
+            )
         if len(ipynbs) > 1:
             raise ValueError(
                 f'Multiple .ipynb files found in directory: {notebook_path}. Exactly one is required.'
@@ -770,10 +812,11 @@ def create_notebook_component_from_func(
         notebook_relpath = nb_path.name
 
     # Build the helper source template with a placeholder for the embedded archive
-    from kfp.dsl.templates.notebook_executor import \
-        get_notebook_executor_source
-    helper_template = get_notebook_executor_source('{embedded_archive}',
-                                                   notebook_relpath)
+    from kfp.dsl.templates import notebook_executor
+
+    helper_template = notebook_executor.get_notebook_executor_source(
+        '{embedded_archive}', notebook_relpath
+    )
 
     # Delegate to the common component creation using the embedded artifact path
     return create_component_from_func(
@@ -795,7 +838,8 @@ def create_notebook_component_from_func(
 
 
 def _get_command_and_args_for_containerized_component(
-        function_name: str) -> Tuple[List[str], List[str]]:
+    function_name: str,
+) -> Tuple[List[str], List[str]]:
 
     args = [
         '--executor_input',
@@ -843,7 +887,8 @@ def create_component_from_func(
     if base_image is None:
         base_image = _DEFAULT_BASE_IMAGE
         warnings.warn(
-            ("The default base_image used by the @dsl.component decorator will switch from 'python:3.11' to 'python:3.12' on Oct 1, 2027. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.12."
+            (
+                "The default base_image used by the @dsl.component decorator will switch from 'python:3.11' to 'python:3.12' on Oct 1, 2027. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.12."
             ),
             FutureWarning,
             stacklevel=3,
@@ -854,7 +899,8 @@ def create_component_from_func(
     if target_image:
         component_image = target_image
         command, args = _get_command_and_args_for_containerized_component(
-            function_name=func.__name__,)
+            function_name=func.__name__,
+        )
     else:
         command, args = _get_command_and_args_for_lightweight_component(
             func=func,
@@ -872,7 +918,8 @@ def create_component_from_func(
             image=component_image,
             command=packages_to_install_command + command,
             args=args,
-        ))
+        )
+    )
 
     module_path = pathlib.Path(inspect.getsourcefile(func))
     module_path.resolve()
@@ -890,7 +937,8 @@ def create_component_from_func(
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
-        task_config_passthroughs=task_config_passthroughs)
+        task_config_passthroughs=task_config_passthroughs,
+    )
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
@@ -899,52 +947,62 @@ def create_component_from_func(
         component_spec.save_to_component_yaml(output_component_file)
 
     return python_component.PythonComponent(
-        component_spec=component_spec, python_func=func)
+        component_spec=component_spec, python_func=func
+    )
 
 
 def make_input_for_parameterized_container_component_function(
-    name: str, annotation: Union[Type[List[artifact_types.Artifact]],
-                                 Type[artifact_types.Artifact]]
-) -> Union[placeholders.Placeholder, container_component_artifact_channel
-           .ContainerComponentArtifactChannel]:
+    name: str,
+    annotation: Union[
+        Type[List[artifact_types.Artifact]], Type[artifact_types.Artifact]
+    ],
+) -> Union[
+    placeholders.Placeholder,
+    container_component_artifact_channel.ContainerComponentArtifactChannel,
+]:
     if type_annotations.is_artifact_wrapped_in_Input(annotation):
-
         if type_annotations.is_list_of_artifacts(annotation.__origin__):
             return placeholders.InputListOfArtifactsPlaceholder(name)
         else:
             return container_component_artifact_channel.ContainerComponentArtifactChannel(
-                io_type='input', var_name=name)
+                io_type='input', var_name=name
+            )
 
     elif type_annotations.is_artifact_wrapped_in_Output(annotation):
-
         if type_annotations.is_list_of_artifacts(annotation.__origin__):
             return placeholders.OutputListOfArtifactsPlaceholder(name)
         else:
             return container_component_artifact_channel.ContainerComponentArtifactChannel(
-                io_type='output', var_name=name)
+                io_type='output', var_name=name
+            )
 
     elif isinstance(
-            annotation,
-        (type_annotations.OutputAnnotation, type_annotations.OutputPath)):
+        annotation,
+        (type_annotations.OutputAnnotation, type_annotations.OutputPath),
+    ):
         return placeholders.OutputParameterPlaceholder(name)
 
     else:
         placeholder = placeholders.InputValuePlaceholder(name)
         # small hack to encode the runtime value's type for a custom json.dumps function
-        if (annotation == task_final_status.PipelineTaskFinalStatus or
-                type_utils.is_task_final_status_type(annotation)):
+        if (
+            annotation == task_final_status.PipelineTaskFinalStatus
+            or type_utils.is_task_final_status_type(annotation)
+        ):
             placeholder._ir_type = 'STRUCT'
         elif annotation == TaskConfig:
             # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
             placeholder._ir_type = type_utils.get_parameter_type_name(
-                annotation)
+                annotation
+            )
         return placeholder
 
 
 def create_container_component_from_func(
-        func: Callable) -> container_component_class.ContainerComponent:
+    func: Callable,
+) -> container_component_class.ContainerComponent:
     """Implementation for the @container_component decorator.
 
     The decorator is defined under container_component_decorator.py. See
@@ -957,16 +1015,23 @@ def create_container_component_from_func(
     arg_list = []
     for parameter in parameters:
         parameter_type = type_annotations.maybe_strip_optional_from_annotation(
-            parameter.annotation)
+            parameter.annotation
+        )
         arg_list.append(
             make_input_for_parameterized_container_component_function(
-                parameter.name, parameter_type))
+                parameter.name, parameter_type
+            )
+        )
 
     container_spec = func(*arg_list)
-    container_spec_implementation = structures.ContainerSpecImplementation.from_container_spec(
-        container_spec)
+    container_spec_implementation = (
+        structures.ContainerSpecImplementation.from_container_spec(
+            container_spec
+        )
+    )
     component_spec.implementation = structures.Implementation(
-        container_spec_implementation)
+        container_spec_implementation
+    )
     component_spec._validate_placeholders()
     return container_component_class.ContainerComponent(component_spec, func)
 
@@ -1011,6 +1076,9 @@ def get_pipeline_description(
 
     short_description = docstring.short_description
     long_description = docstring.long_description
-    docstring_description = short_description + '\n' + long_description if (
-        short_description and long_description) else short_description
+    docstring_description = (
+        short_description + '\n' + long_description
+        if (short_description and long_description)
+        else short_description
+    )
     return docstring_description.strip() if docstring_description else None

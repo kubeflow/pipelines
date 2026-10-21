@@ -11,6 +11,12 @@ Please see https://github.com/kubeflow/community/tree/master/dco-signoff-hook#si
 
 ## Contribution Guidelines
 
+Before starting work, review the [pull request admission requirements](#pull-request-admission-for-external-contributors).
+If you are not a Kubeflow GitHub organization member, your PR needs to be linked
+to an issue in this repository that a maintainer has labeled `ready` before it
+can proceed through the CI gate. This applies to bug fixes and documentation
+changes as well as feature proposals.
+
 To propose a new feature or a change that alters some existing user experience
 or creates a new user experience, follow these steps:
 
@@ -62,7 +68,60 @@ project.
 After you get formal approval from a Kubeflow Pipelines team member, you can
 implement your design and send a pull request. Make sure existing tests are all
 passing and new tests are added when applicable. Remember to link to the feature
-request issue to help reviewers catch up on the context.
+request issue in the PR description to help reviewers catch up on the context
+and meet the admission requirements below.
+
+### Pull Request Admission for External Contributors
+
+The [PR Gate workflow](.github/workflows/pr-gate.yml) checks the **PR author's**
+Kubeflow organization membership, not the membership of the person triggering
+the workflow. A maintainer pushing to or reopening an external contributor's
+PR does not exempt it from the gate.
+
+- Pull requests opened by users listed under Kubeflow's `admins` or `members`
+  in [`kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`](https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml)
+  can proceed without this extra gate. This lookup is case-insensitive and does
+  not depend on public membership visibility or GitHub's `author_association`.
+- Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
+  from this linked-issue gate. Required CI checks and merge requirements still
+  apply.
+- Pull requests opened by other contributors must reference an issue in this
+  repository with a closing keyword such as `Fixes #1234` on its own line in
+  the PR description. An issue reference only in the PR title or a comment,
+  or a plain mention such as `Related to #1234`, is not sufficient.
+  For PRs targeting a release branch or another non-default branch, GitHub does
+  not automatically create an issue link from the closing keyword, but the
+  admission gate recognizes the reference in the description.
+- The referenced **issue**, not the PR, must have the exact `ready` label
+  applied by a Kubeflow Pipelines maintainer. Find or create an issue, discuss
+  the proposed change with maintainers, and wait for that label before opening
+  your PR. An open or assigned issue without `ready` does not qualify.
+
+For example, replace `1234` with your issue number and include this line in
+your PR description:
+
+```text
+Fixes #1234
+```
+
+Once a non-member PR is admitted, the workflow adds `ok-to-test` to the PR,
+removes `needs-ok-to-test` if present, and approves eligible pending CI runs.
+Admission does not bypass required CI checks, code review, or other merge
+requirements.
+
+If you plan to contribute regularly, becoming a Kubeflow GitHub organization
+member is straightforward. Follow the instructions in the
+[`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
+
+If a non-member pull request subject to this gate does not reference an issue,
+or the referenced issue is not labeled `ready`, the workflow comments on the
+PR and closes it. Work with maintainers to get the issue triaged and labeled
+`ready`, add the closing reference to the PR description, and then reopen the
+PR to rerun the gate. Editing the PR description or labeling the issue alone
+does not trigger a recheck.
+
+If the membership lookup fails, the workflow fails without closing the PR; a
+maintainer can rerun it after the lookup problem is resolved.
 
 ## Project Structure
 
@@ -81,7 +140,7 @@ See the [SDK-specific Contribution Guidelines](sdk/CONTRIBUTING.md) for contribu
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
 
 ### Backend
-Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details. 
+Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details.
 
 ## Unit Testing Best Practices
 
@@ -165,11 +224,11 @@ Scope is optional, it can be one of the following:
 * **frontend**: user interface or frontend server related, folder `frontend`, `frontend/server`
 * **backend**: Backend, folder `backend`
 * **sdk**: `kfp` python package, folder `sdk`
-* **sdk/client**: `kfp-server-api` python package, folder `backend/api/python_http_client`
+* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2/python_http_client`
 * **components**: Pipeline components, folder `components`
 * **deployment**: Kustomize or gcp marketplace manifests, folder `manifests`
 * **metadata**: Related to machine learning metadata (MLMD), folder `backend/metadata_writer`
-* **cache**: Caching, folder `backend/src/cache`
+* **cache**: Native task caching, folder `backend/src/v2/cacheutils`
 * **swf**: Scheduled workflow, folder `backend/src/crd/controller/scheduledworkflow`
 * **viewer**: Tensorboard viewer, folder `backend/src/crd/controller/viewer`
 

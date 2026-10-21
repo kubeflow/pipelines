@@ -32,9 +32,9 @@ class IOStore:
     """
 
     def __init__(self, parent: Optional['IOStore'] = None):
-        self._task_output_data: Dict[str,
-                                     Dict[str,
-                                          Any]] = collections.defaultdict(dict)
+        self._task_output_data: Dict[str, Dict[str, Any]] = (
+            collections.defaultdict(dict)
+        )
         self._parent_input_data: Dict[str, Any] = {}
         self._task_status_data: Dict[str, str] = {}
         self._parent = parent
@@ -88,7 +88,8 @@ class IOStore:
         working.
         """
         common_exception_string = (
-            f"Tried to get output '{key}' from task '{task_name}'")
+            f"Tried to get output '{key}' from task '{task_name}'"
+        )
 
         if task_name in self._task_output_data:
             outputs = self._task_output_data[task_name]
@@ -101,7 +102,8 @@ class IOStore:
                     pass
             raise ValueError(
                 f"{common_exception_string}, but task '{task_name}' has no "
-                f"output named '{key}'.")
+                f"output named '{key}'."
+            )
 
         if self._parent is not None:
             try:
@@ -109,7 +111,8 @@ class IOStore:
             except ValueError:
                 pass
         raise ValueError(
-            f"{common_exception_string}, but task '{task_name}' not found.")
+            f"{common_exception_string}, but task '{task_name}' not found."
+        )
 
     def put_task_status(
         self,

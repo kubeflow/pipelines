@@ -13,20 +13,9 @@
 # limitations under the License.
 """Pipeline-level config options."""
 
-import re
 from typing import Any, Dict, Optional
 
-# Workspace size validation regex
-_SIZE_REGEX = re.compile(
-    r'^(?:(?:0|[1-9]\d*)(?:\.\d+)?)(?:Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$')
-
-
-def _is_valid_workspace_size(value: str) -> bool:
-    """Returns True if size is a valid Kubernetes resource quantity string."""
-    if not isinstance(value, str):
-        return False
-    size = value.strip()
-    return _SIZE_REGEX.match(size) is not None
+from kfp.dsl import utils
 
 
 class KubernetesWorkspaceConfig:
@@ -55,9 +44,9 @@ class WorkspaceConfig:
         kubernetes: (Optional) Kubernetes-specific configuration for the underlying PVC.
     """
 
-    def __init__(self,
-                 size: str,
-                 kubernetes: Optional[KubernetesWorkspaceConfig] = None):
+    def __init__(
+        self, size: str, kubernetes: Optional[KubernetesWorkspaceConfig] = None
+    ):
         self.size = size
         self.kubernetes = kubernetes or KubernetesWorkspaceConfig()
 
@@ -66,8 +55,8 @@ class WorkspaceConfig:
         """The size of the workspace (e.g., ``'250Gi'``). This is a required
         field.
 
-        See the `Kubernetes quantity documentation
-        <https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/>`_
+        See the
+        `Kubernetes quantity documentation <https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/>`_
         for valid quantity formats.
         """
         return self._size
@@ -76,11 +65,13 @@ class WorkspaceConfig:
     def size(self, size: str) -> None:
         if not size or not str(size).strip():
             raise ValueError('Workspace size is required and cannot be empty')
-        if not _is_valid_workspace_size(str(size)):
+        normalized = utils.normalize_resource_quantity(str(size).strip())
+        if normalized is None:
             raise ValueError(
                 f'Workspace size "{size}" is invalid. Must be a valid Kubernetes resource quantity '
-                '(e.g., "10Gi", "500Mi", "1Ti")')
-        self._size = str(size).strip()
+                '(e.g., "10Gi", "500Mi", "1Ti")'
+            )
+        self._size = normalized
 
     def get_workspace(self) -> dict:
         workspace = {'size': self.size}
@@ -93,8 +84,9 @@ class WorkspaceConfig:
     def set_size(self, size: str):
         self.size = size
 
-    def set_kubernetes_config(self,
-                              kubernetes_config: KubernetesWorkspaceConfig):
+    def set_kubernetes_config(
+        self, kubernetes_config: KubernetesWorkspaceConfig
+    ):
         self.kubernetes = kubernetes_config
 
 
@@ -143,14 +135,17 @@ class PipelineConfig:
                 continue
             if isinstance(value, bool) or not isinstance(value, int):
                 raise TypeError(
-                    f'{name} must be an int. Got: {type(value).__name__}')
+                    f'{name} must be an int. Got: {type(value).__name__}'
+                )
             if value < 0:
                 raise ValueError(
-                    f'{name} must be a non-negative integer. Got: {value}')
+                    f'{name} must be a non-negative integer. Got: {value}'
+                )
             if value > 2147483647:
                 raise ValueError(
                     f'{name} must not exceed the int32 maximum (2147483647).'
-                    f' Got: {value}')
+                    f' Got: {value}'
+                )
         self.ttl_seconds_after_finished = ttl_seconds_after_finished
         self.ttl_seconds_after_success = ttl_seconds_after_success
         self.ttl_seconds_after_failure = ttl_seconds_after_failure

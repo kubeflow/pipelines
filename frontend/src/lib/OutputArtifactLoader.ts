@@ -24,7 +24,7 @@ import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
 import { errorToMessage, logger } from './Utils';
-import WorkflowParser, { StoragePath } from './WorkflowParser';
+import { parseStoragePath, StoragePath } from './StoragePath';
 import { parseArtifactFileLocation } from './v2/ArtifactFileUtils';
 export interface PlotMetadata {
   format?: 'csv';
@@ -266,14 +266,12 @@ export class OutputArtifactLoader {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    if (!namespace) {
-      throw new Error('Namespace is required.');
-    }
-    WorkflowParser.parseStoragePath(metadata.source);
+    parseStoragePath(metadata.source);
     return {
       type: PlotType.TENSORBOARD,
       url: metadata.source,
-      namespace,
+      // The server resolves an omitted namespace only for standalone installs.
+      namespace: namespace || '',
       podTemplateSpec: metadata.pod_template_spec,
       image: metadata.image,
     };

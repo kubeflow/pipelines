@@ -55,7 +55,11 @@ func (c *FakeScheduledWorkflowClient) Delete(ctx context.Context, name string, o
 }
 
 func (c *FakeScheduledWorkflowClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
-	return nil, nil
+	scheduledWorkflow, ok := c.scheduledWorkflows[name]
+	if !ok {
+		return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("scheduledworkflows.kubeflow.org"), name)
+	}
+	return scheduledWorkflow, nil
 }
 
 func (c *FakeScheduledWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (*v1beta1.ScheduledWorkflow, error) {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -73,8 +73,8 @@ func TestNativeStoresPostgreSQL(t *testing.T) {
 	links := NewArtifactTaskStore(db, uuid, d)
 	taskInput := &model.Task{
 		Namespace: "pg-ns", RunUUID: "pg-run", Name: "producer", Fingerprint: "pg-cache",
-		ScopePath: "root.producer", Type: model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State: model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		ScopePath: "root.producer", Type: model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 		Pods:  model.JSONSlice{}, TypeAttrs: model.JSONData{},
 	}
 	task, err := tasks.CreateTask(taskInput)
@@ -88,7 +88,7 @@ func TestNativeStoresPostgreSQL(t *testing.T) {
 		Metadata: model.JSONData{"accuracy": 0.9},
 	}
 	linkInput := &model.ArtifactTask{
-		TaskID: task.UUID, RunUUID: "pg-run", Type: model.IOType(apiv2beta1.IOType_OUTPUT), ArtifactKey: "result",
+		TaskID: task.UUID, RunUUID: "pg-run", Type: model.IOType(apiv2.IOType_OUTPUT), ArtifactKey: "result",
 		Producer: model.JSONData{"taskName": "producer", "iteration": float64(2)},
 	}
 	artifact, link, err := artifacts.FindOrCreateArtifactWithTask(artifactInput, linkInput)
@@ -136,7 +136,7 @@ func TestNativeStoresPostgreSQL(t *testing.T) {
 	require.NoError(t, tasks.ResetTasksForRetry([]string{task.UUID}))
 	loaded, err = tasks.GetTask(task.UUID)
 	require.NoError(t, err)
-	require.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), loaded.State)
+	require.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), loaded.State)
 	require.NoError(t, links.DeleteOutputArtifactTasksByTaskIDs([]string{task.UUID}))
 	require.NoError(t, tasks.DeleteTasksForRun(nil, "pg-run"))
 	count, err := tasks.GetTaskCountForRun("pg-run")

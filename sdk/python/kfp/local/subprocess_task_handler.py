@@ -18,14 +18,12 @@ import os
 import subprocess
 import sys
 import tempfile
-from typing import Dict, List, Optional
 import venv
 import warnings
+from typing import Dict, List, Optional
 
 from kfp.dsl import component_factory
-from kfp.local import config
-from kfp.local import status
-from kfp.local import task_handler_interface
+from kfp.local import config, status, task_handler_interface
 
 
 class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
@@ -57,15 +55,18 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         """
         # Check if command contains pip install operations
         command_str = ' '.join(self.full_command) if self.full_command else ''
-        has_pip_install = ('pip install' in command_str or
-                           'python3 -m pip install' in command_str or
-                           'python -m pip install' in command_str or
-                           '-m pip install' in command_str)
+        has_pip_install = (
+            'pip install' in command_str
+            or 'python3 -m pip install' in command_str
+            or 'python -m pip install' in command_str
+            or '-m pip install' in command_str
+        )
 
         with environment(
-                use_venv=self.runner.use_venv,
-                runner_config=self.runner,
-                has_pip_install=has_pip_install) as py_executable:
+            use_venv=self.runner.use_venv,
+            runner_config=self.runner,
+            has_pip_install=has_pip_install,
+        ) as py_executable:
             full_command = replace_python_executable(
                 self.full_command,
                 py_executable,
@@ -74,12 +75,16 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
                 full_command=full_command,
                 env_vars=self.env_vars,
             )
-            return status.Status.SUCCESS if return_code == 0 else status.Status.FAILURE
+            return (
+                status.Status.SUCCESS
+                if return_code == 0
+                else status.Status.FAILURE
+            )
 
     def validate_image(self, image: str) -> None:
         if 'python' not in image:
             warnings.warn(
-                f'You may be attemping to run a task that uses custom or non-Python base image "{image}" in a Python environment. This may result in incorrect dependencies and/or incorrect behavior. Consider using the "DockerRunner" to run this task in a container.',
+                f'You may be attempting to run a task that uses custom or non-Python base image "{image}" in a Python environment. This may result in incorrect dependencies and/or incorrect behavior. Consider using the "DockerRunner" to run this task in a container.',
                 RuntimeWarning,
             )
 
@@ -87,8 +92,9 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         self,
         full_command: List[str],
     ) -> None:
-        if not any(component_factory.EXECUTOR_MODULE in part
-                   for part in full_command):
+        if not any(
+            component_factory.EXECUTOR_MODULE in part for part in full_command
+        ):
             raise RuntimeError(
                 f'The {config.SubprocessRunner.__name__} only supports running Lightweight Python Components. You are attempting to run a Container Component.'
             )
@@ -97,9 +103,12 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         self,
         full_command: List[str],
     ) -> None:
-        if full_command[:len(
-                component_factory.CONTAINERIZED_PYTHON_COMPONENT_COMMAND
-        )] == component_factory.CONTAINERIZED_PYTHON_COMPONENT_COMMAND:
+        if (
+            full_command[
+                : len(component_factory.CONTAINERIZED_PYTHON_COMPONENT_COMMAND)
+            ]
+            == component_factory.CONTAINERIZED_PYTHON_COMPONENT_COMMAND
+        ):
             raise RuntimeError(
                 f'The {config.SubprocessRunner.__name__} only supports running Lightweight Python Components. You are attempting to run a Containerized Python Component.'
             )
@@ -114,17 +123,17 @@ def run_local_subprocess(
         env = {**os.environ, **env_vars}
 
     with subprocess.Popen(
-            full_command,
-            stdout=subprocess.PIPE,
-            # No change to behavior in terminal for user,
-            # but inner process logs redirected to stdout. This separates from
-            # the outer process logs which, per logging module default, go to
-            # stderr.
-            stderr=subprocess.STDOUT,
-            text=True,
-            # buffer line-by-line
-            bufsize=1,
-            env=env,
+        full_command,
+        stdout=subprocess.PIPE,
+        # No change to behavior in terminal for user,
+        # but inner process logs redirected to stdout. This separates from
+        # the outer process logs which, per logging module default, go to
+        # stderr.
+        stderr=subprocess.STDOUT,
+        text=True,
+        # buffer line-by-line
+        bufsize=1,
+        env=env,
     ) as process:
         if process.stdout:
             for line in iter(process.stdout.readline, ''):
@@ -136,8 +145,9 @@ def run_local_subprocess(
         return process.wait()
 
 
-def replace_python_executable(full_command: List[str],
-                              new_executable: str) -> List[str]:
+def replace_python_executable(
+    full_command: List[str], new_executable: str
+) -> List[str]:
     """Replaces the 'python3' string in each element of the full_command with
     the new_executable. It does not replace the python executable in the user
     code.
@@ -153,7 +163,11 @@ def replace_python_executable(full_command: List[str],
     new_full_command = []
 
     for i, el in enumerate(full_command):
-        if user_code_index is None and '"$program_path/ephemeral_component.py"' in el and '"$@"' in el:
+        if (
+            user_code_index is None
+            and '"$program_path/ephemeral_component.py"' in el
+            and '"$@"' in el
+        ):
             user_code_index = i + 1
 
         if i != user_code_index:
@@ -166,9 +180,11 @@ def replace_python_executable(full_command: List[str],
 
 
 @contextlib.contextmanager
-def environment(use_venv: bool,
-                runner_config: config.SubprocessRunner = None,
-                has_pip_install: bool = False) -> str:
+def environment(
+    use_venv: bool,
+    runner_config: config.SubprocessRunner = None,
+    has_pip_install: bool = False,
+) -> str:
     """Context manager that handles the environment used for the subprocess.
 
     Args:
@@ -183,8 +199,10 @@ def environment(use_venv: bool,
         # Use the managed install context for virtual environment setup
         # Track stats only if packages will be installed
         from kfp.local.pip_install_manager import pip_install_manager
+
         with pip_install_manager.managed_install(
-                'subprocess', track_stats=has_pip_install):
+            'subprocess', track_stats=has_pip_install
+        ):
             with tempfile.TemporaryDirectory() as tempdir:
                 # Create the virtual environment inside the temporary directory
                 venv.create(tempdir, with_pip=True)
@@ -194,12 +212,19 @@ def environment(use_venv: bool,
                 python_path = os.path.join(tempdir, 'bin', 'python')
                 try:
                     # First upgrade pip itself to ensure we have a compatible version
-                    subprocess.run([
-                        python_path, '-m', 'pip', 'install', '--upgrade', 'pip'
-                    ],
-                                   check=True,
-                                   capture_output=True,
-                                   text=True)
+                    subprocess.run(
+                        [
+                            python_path,
+                            '-m',
+                            'pip',
+                            'install',
+                            '--upgrade',
+                            'pip',
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
                     # Then install setuptools and wheel
                     # For Python 3.13+, require setuptools>=70.0.0 (needed for 3.13 compatibility)
                     # For older versions, just upgrade to latest compatible version
@@ -210,27 +235,38 @@ def environment(use_venv: bool,
                         # For Python < 3.13, upgrade setuptools without minimum version requirement
                         # pip will install the latest version compatible with the Python version
                         setuptools_req = 'setuptools'
-                    subprocess.run([
-                        python_path, '-m', 'pip', 'install', '--upgrade',
-                        setuptools_req, 'wheel'
-                    ],
-                                   check=True,
-                                   capture_output=True,
-                                   text=True)
+                    subprocess.run(
+                        [
+                            python_path,
+                            '-m',
+                            'pip',
+                            'install',
+                            '--upgrade',
+                            setuptools_req,
+                            'wheel',
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
                 except subprocess.CalledProcessError as e:
                     # Log the error but continue, as some packages might still work
                     import logging
+
                     logger = logging.getLogger(__name__)
                     logger.warning(
-                        f'Failed to install setuptools and wheel in venv: {e}')
+                        f'Failed to install setuptools and wheel in venv: {e}'
+                    )
 
                 yield python_path
     else:
         # When not using venv but still have pip installs, serialize to prevent concurrency issues
         if has_pip_install:
             from kfp.local.pip_install_manager import pip_install_manager
+
             with pip_install_manager.managed_install(
-                    'subprocess', track_stats=True):
+                'subprocess', track_stats=True
+            ):
                 yield sys.executable
         else:
             yield sys.executable

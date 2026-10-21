@@ -20,22 +20,11 @@ const defaultTimeout = 10000;
 const screenshotDir = process.env.FRONTEND_INTEGRATION_SCREENSHOT_DIR || '/tmp';
 const runPageLoadingText = 'Currently loading pipeline information';
 
-const legacyRunFormSelectors = {
-  description: '#descriptionInput',
-  message: 'input#newRunPipelineParam0',
-  runName: '#runNameInput',
-};
-
-const v2RunFormSelectors = {
+const runFormSelectors = {
   description: '//label[normalize-space()="Description"]/following::*[self::textarea or self::input][1]',
   message: '#message',
   runName: '//label[starts-with(normalize-space(), "Run name")]/following::input[1]',
 };
-
-const defaultRunFormVariants = [
-  { name: 'legacy', selectors: legacyRunFormSelectors },
-  { name: 'v2', selectors: v2RunFormSelectors },
-];
 
 async function waitForCondition(condition, { timeout = defaultTimeout, timeoutMsg, interval } = {}) {
   const waitOptions = { timeout };
@@ -73,10 +62,7 @@ async function waitForRunPageReady({
   timeout = defaultTimeout,
   requirePipelineVersion = true,
   timeoutMsg = 'expected a run creation form to load',
-  variants = defaultRunFormVariants,
 } = {}) {
-  let matchedVariant;
-
   try {
     await waitForCondition(
       async () => {
@@ -92,17 +78,13 @@ async function waitForRunPageReady({
           return false;
         }
 
-        for (const variant of variants) {
-          if (
-            (await isSelectorDisplayed(variant.selectors.runName)) &&
-            (await isSelectorDisplayed(variant.selectors.description))
-          ) {
-            matchedVariant = variant;
-            return true;
+        for (const selector of [runFormSelectors.runName, runFormSelectors.description]) {
+          if (!(await isSelectorDisplayed(selector))) {
+            return false;
           }
         }
 
-        return false;
+        return true;
       },
       {
         timeout,
@@ -116,7 +98,7 @@ async function waitForRunPageReady({
     throw error;
   }
 
-  return matchedVariant;
+  return runFormSelectors;
 }
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
@@ -196,6 +178,14 @@ async function selectPipelineForRun(
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout, reverse: true });
 }
 
+async function waitForSelectorDisplayed(selector, { timeout = defaultTimeout } = {}) {
+  // Navigation can replace an element without changing its selector.
+  await waitForCondition(() => isSelectorDisplayed(selector), {
+    timeout,
+    timeoutMsg: `expected selector ${selector} to be displayed`,
+  });
+}
+
 async function isSelectorDisplayed(selector) {
   const element = await $(selector);
   return (await element.isExisting()) && (await element.isDisplayed());
@@ -203,13 +193,13 @@ async function isSelectorDisplayed(selector) {
 
 async function waitForGraphNodeCount(expectedCount, { timeout = defaultTimeout } = {}) {
   await waitForCondition(
-    async () => (await $$('.graphNode')).length === expectedCount,
+    async () => (await $$('.react-flow__node-EXECUTION')).length === expectedCount,
     {
       timeout,
       timeoutMsg: `expected ${expectedCount} graph node(s) to be visible`,
     },
   );
-  const nodes = await $$('.graphNode');
+  const nodes = await $$('.react-flow__node-EXECUTION');
   assert(
     nodes.length === expectedCount,
     `should have a ${expectedCount}-node graph, instead has: ${nodes.length}`,
@@ -345,5 +335,6 @@ module.exports = {
   waitForHashPrefix,
   waitForLogViewerText,
   waitForRunPageReady,
+  waitForSelectorDisplayed,
   waitForTableRows,
 };

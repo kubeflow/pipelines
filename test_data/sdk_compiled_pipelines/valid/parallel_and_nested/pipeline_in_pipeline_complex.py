@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
@@ -26,22 +24,20 @@ def print_op1(msg: str) -> str:
 @dsl.container_component
 def print_op2(msg: str):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=['echo', msg],
     )
 
 
-print_op3 = components.load_component_from_text("""
-name: Print Op
-inputs:
-- {name: msg, type: String}
-implementation:
-  container:
-    image: alpine
-    command:
-    - echo
-    - {inputValue: msg}
-""")
+@dsl.container_component
+def print_op(msg: str):
+    return dsl.ContainerSpec(
+        image='docker.io/alpine:3.23',
+        command=['echo', msg],
+    )
+
+
+print_op3 = print_op
 
 
 @dsl.pipeline(name='inner-pipeline')
@@ -67,5 +63,5 @@ def my_pipeline(msg: str = 'Hello'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )
