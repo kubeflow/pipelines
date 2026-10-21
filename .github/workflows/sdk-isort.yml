@@ -1,5 +1,5 @@
-# Keep this legacy workflow identity: CI Check expects paths from the PR base.
-name: KFP SDK Isort Test
+# Keep the legacy file path: CI Check matches paths from the PR base.
+name: Python Ruff Lint
 
 on:
   push:
@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   ruff:
+    name: Ruff lint
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code

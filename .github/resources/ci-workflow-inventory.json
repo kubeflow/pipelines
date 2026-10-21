@@ -118,7 +118,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "154fb1fa1f854e7be7ba13c783e53deb887e22df9415e9744a1fb018e4a48e4d",
+      "header_sha256": "6df897d5f41127f359c4e63d5011b3a8b3506f0edf99664729bf83003ae715f6",
       "pull_request": null
     },
     {
@@ -691,8 +691,8 @@
     },
     {
       "path": ".github/workflows/sdk-isort.yml",
-      "name": "KFP SDK Isort Test",
-      "header_sha256": "b6ae1fff979d9810d6c0158590d6f6bde22d876102bb4968cdc22264107797e9",
+      "name": "Python Ruff Lint",
+      "header_sha256": "554e9734cc75e7a15064fc8e6ff940ba4c378cf3936548343a9ae0f029cb4f9c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -728,8 +728,8 @@
     },
     {
       "path": ".github/workflows/sdk-yapf.yml",
-      "name": "KFP SDK YAPF Tests",
-      "header_sha256": "eda61f5f3ab46eb87226d4c3c9d45b18fc5d14682d7ac4c15989145e8426e96a",
+      "name": "Python Ruff Format",
+      "header_sha256": "3d8a5c5b0a197d0c1547d99ff61d60faa93333e466d0803badacd9b29f2ff6be",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",

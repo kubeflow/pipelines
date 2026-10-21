@@ -145,21 +145,27 @@ else:
     def test_sdk_client_setup_failure_collects_uploadable_logs(self):
         root = SCRIPT.parents[3]
         workflow = yaml.safe_load(
-            (root / '.github/workflows/kfp-sdk-client-tests.yml').read_text())
+            (root / '.github/workflows/kfp-sdk-client-tests.yml').read_text()
+        )
         steps = next(
-            job['steps'] for job in workflow['jobs'].values() if 'steps' in job)
+            job['steps'] for job in workflow['jobs'].values() if 'steps' in job
+        )
         collect = next(
-            step for step in steps if step['name'] == 'Collect failed logs')
+            step for step in steps if step['name'] == 'Collect failed logs'
+        )
         self.assertIn('failure()', collect['if'])
         self.assertIn('!cancelled()', collect['if'])
-        self.assertIn("steps.create-kfp-cluster.outcome != 'success'",
-                      collect['if'])
+        self.assertIn(
+            "steps.create-kfp-cluster.outcome != 'success'", collect['if']
+        )
         self.assertIn('exit 1', collect['run'])
         self.assertIn('--output /tmp/tmp.log/tmp_pod_log.txt', collect['run'])
         upload = next(
-            step for step in steps if step['name'] == 'Collect test results')
+            step for step in steps if step['name'] == 'Collect test results'
+        )
         self.assertTrue(
-            Path('/tmp/tmp.log/tmp_pod_log.txt').match(upload['with']['path']))
+            Path('/tmp/tmp.log/tmp_pod_log.txt').match(upload['with']['path'])
+        )
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
-# Keep this legacy workflow identity: CI Check expects paths from the PR base.
-name: KFP SDK YAPF Tests
+# Keep the legacy file path: CI Check matches paths from the PR base.
+name: Python Ruff Format
 
 on:
   push:
@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   ruff:
+    name: Ruff formatting
     runs-on: ubuntu-latest
 
     steps:

@@ -186,16 +186,16 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertNotIn('string_fixer', script)
         self.assertNotIn('|| true', script)
 
-    def test_ruff_workflows_keep_gate_identities_and_cover_all_python(self):
+    def test_ruff_workflows_keep_gate_paths_and_cover_all_python(self):
         for filename, name, command in (
             (
                 'sdk-isort.yml',
-                'KFP SDK Isort Test',
+                'Python Ruff Lint',
                 'uv run --frozen --extra lint ruff check .',
             ),
             (
                 'sdk-yapf.yml',
-                'KFP SDK YAPF Tests',
+                'Python Ruff Format',
                 'uv run --frozen --extra lint ruff format --check .',
             ),
         ):
