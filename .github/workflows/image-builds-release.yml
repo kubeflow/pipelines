@@ -94,7 +94,11 @@ jobs:
             arch: { arch_name: arm64 }
 
     uses: ./.github/workflows/build-and-push.yml
-    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     with:
       src_branch: ${{ inputs.src_branch }}
       target_tag: ${{ inputs.target_tag }}
@@ -130,7 +134,9 @@ jobs:
           - image: kfp-metadata-envoy
           - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
-    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}

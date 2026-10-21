@@ -29,7 +29,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4

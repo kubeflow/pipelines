@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-02
+- Last updated: 2026-10-21
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -519,6 +519,12 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
+- Release image callers explicitly grant the reusable build's package,
+  attestation, and OIDC scopes; manifest promotion grants package write without
+  OIDC. The `dry_run` input skips publication but still uses the release build
+  caller, so do not use it to validate token least privilege. Preserve this
+  branch's image and architecture matrices when changing those grants. The
+  docs-freshness workflow checks these caller/callee contracts and dry-run gates.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
