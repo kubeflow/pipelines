@@ -26,7 +26,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	apicommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -220,13 +219,6 @@ func emptyCollectedParameterOutput(key, producerTaskName string) *apiv2.Pipeline
 			TaskName: producerTaskName,
 		},
 	}
-}
-
-func canonicalTaskFinalStatusCode(task *apiv2beta1.PipelineTask) int32 {
-	if task != nil {
-		return canonicalTaskFinalStatusCodeForState(task.GetState())
-	}
-	return int32(codes.OK)
 }
 
 func canonicalTaskFinalStatusCodeForState(state apiv2.PipelineTask_TaskState) int32 {
@@ -556,40 +548,40 @@ func resolveParameterIterator(
 	return parameterMetadataList, &count, nil
 }
 
-func isTerminalTaskState(state apiv2beta1.PipelineTask_TaskState) bool {
+func isTerminalTaskState(state apiv2.PipelineTask_TaskState) bool {
 	switch state {
-	case apiv2beta1.PipelineTask_SUCCEEDED,
-		apiv2beta1.PipelineTask_FAILED,
-		apiv2beta1.PipelineTask_SKIPPED,
-		apiv2beta1.PipelineTask_CACHED:
+	case apiv2.PipelineTask_SUCCEEDED,
+		apiv2.PipelineTask_FAILED,
+		apiv2.PipelineTask_SKIPPED,
+		apiv2.PipelineTask_CACHED:
 		return true
 	default:
 		return false
 	}
 }
 
-func findInconsistentFailedChild(producer *apiv2beta1.PipelineTask, tasks []*apiv2beta1.PipelineTask) (*apiv2beta1.PipelineTask, bool) {
+func findInconsistentFailedChild(producer *apiv2.PipelineTask, tasks []*apiv2.PipelineTask) (*apiv2.PipelineTask, bool) {
 	if producer == nil || len(tasks) == 0 {
 		return nil, false
 	}
 	switch producer.GetType() {
-	case apiv2beta1.PipelineTask_DAG,
-		apiv2beta1.PipelineTask_ROOT,
-		apiv2beta1.PipelineTask_LOOP,
-		apiv2beta1.PipelineTask_CONDITION,
-		apiv2beta1.PipelineTask_CONDITION_BRANCH:
+	case apiv2.PipelineTask_DAG,
+		apiv2.PipelineTask_ROOT,
+		apiv2.PipelineTask_LOOP,
+		apiv2.PipelineTask_CONDITION,
+		apiv2.PipelineTask_CONDITION_BRANCH:
 	default:
 		return nil, false
 	}
 
-	childrenByParent := make(map[string][]*apiv2beta1.PipelineTask)
+	childrenByParent := make(map[string][]*apiv2.PipelineTask)
 	for _, t := range tasks {
 		if t.GetParentTaskId() != "" {
 			childrenByParent[t.GetParentTaskId()] = append(childrenByParent[t.GetParentTaskId()], t)
 		}
 	}
 
-	queue := append([]*apiv2beta1.PipelineTask{}, childrenByParent[producer.GetTaskId()]...)
+	queue := append([]*apiv2.PipelineTask{}, childrenByParent[producer.GetTaskId()]...)
 	visited := make(map[string]bool)
 	for len(queue) > 0 {
 		curr := queue[0]
@@ -599,7 +591,7 @@ func findInconsistentFailedChild(producer *apiv2beta1.PipelineTask, tasks []*api
 		}
 		visited[curr.GetTaskId()] = true
 
-		if curr.GetState() == apiv2beta1.PipelineTask_FAILED {
+		if curr.GetState() == apiv2.PipelineTask_FAILED {
 			return curr, true
 		}
 		if children, ok := childrenByParent[curr.GetTaskId()]; ok {
@@ -609,28 +601,28 @@ func findInconsistentFailedChild(producer *apiv2beta1.PipelineTask, tasks []*api
 	return nil, false
 }
 
-func findInconsistentRunningChild(producer *apiv2beta1.PipelineTask, tasks []*apiv2beta1.PipelineTask) (*apiv2beta1.PipelineTask, bool) {
+func findInconsistentRunningChild(producer *apiv2.PipelineTask, tasks []*apiv2.PipelineTask) (*apiv2.PipelineTask, bool) {
 	if producer == nil || len(tasks) == 0 {
 		return nil, false
 	}
 	switch producer.GetType() {
-	case apiv2beta1.PipelineTask_DAG,
-		apiv2beta1.PipelineTask_ROOT,
-		apiv2beta1.PipelineTask_LOOP,
-		apiv2beta1.PipelineTask_CONDITION,
-		apiv2beta1.PipelineTask_CONDITION_BRANCH:
+	case apiv2.PipelineTask_DAG,
+		apiv2.PipelineTask_ROOT,
+		apiv2.PipelineTask_LOOP,
+		apiv2.PipelineTask_CONDITION,
+		apiv2.PipelineTask_CONDITION_BRANCH:
 	default:
 		return nil, false
 	}
 
-	childrenByParent := make(map[string][]*apiv2beta1.PipelineTask)
+	childrenByParent := make(map[string][]*apiv2.PipelineTask)
 	for _, t := range tasks {
 		if t.GetParentTaskId() != "" {
 			childrenByParent[t.GetParentTaskId()] = append(childrenByParent[t.GetParentTaskId()], t)
 		}
 	}
 
-	queue := append([]*apiv2beta1.PipelineTask{}, childrenByParent[producer.GetTaskId()]...)
+	queue := append([]*apiv2.PipelineTask{}, childrenByParent[producer.GetTaskId()]...)
 	visited := make(map[string]bool)
 	for len(queue) > 0 {
 		curr := queue[0]
@@ -640,7 +632,7 @@ func findInconsistentRunningChild(producer *apiv2beta1.PipelineTask, tasks []*ap
 		}
 		visited[curr.GetTaskId()] = true
 
-		if curr.GetState() == apiv2beta1.PipelineTask_RUNNING || curr.GetState() == apiv2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
+		if curr.GetState() == apiv2.PipelineTask_RUNNING || curr.GetState() == apiv2.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
 			return curr, true
 		}
 		if children, ok := childrenByParent[curr.GetTaskId()]; ok {
@@ -650,14 +642,14 @@ func findInconsistentRunningChild(producer *apiv2beta1.PipelineTask, tasks []*ap
 	return nil, false
 }
 
-func isAuthoritativelyTerminal(producer *apiv2beta1.PipelineTask, tasks []*apiv2beta1.PipelineTask) bool {
+func isAuthoritativelyTerminal(producer *apiv2.PipelineTask, tasks []*apiv2.PipelineTask) bool {
 	if !isTerminalTaskState(producer.GetState()) {
 		return false
 	}
 	if _, hasRunning := findInconsistentRunningChild(producer, tasks); hasRunning {
 		return false
 	}
-	if producer.GetState() == apiv2beta1.PipelineTask_SUCCEEDED || producer.GetState() == apiv2beta1.PipelineTask_SKIPPED {
+	if producer.GetState() == apiv2.PipelineTask_SUCCEEDED || producer.GetState() == apiv2.PipelineTask_SKIPPED {
 		if _, hasFailed := findInconsistentFailedChild(producer, tasks); hasFailed {
 			return false
 		}
@@ -689,7 +681,7 @@ func resolveTaskFinalStatusWithContext(
 		return nil, fmt.Errorf("task %v has no dependent tasks", opts.Task.TaskInfo.GetName())
 	}
 
-	findProducer := func(run *apiv2beta1.Run) (*apiv2beta1.PipelineTask, error) {
+	findProducer := func(run *apiv2.Run) (*apiv2.PipelineTask, error) {
 		if run == nil {
 			return nil, fmt.Errorf("run is nil")
 		}
@@ -793,8 +785,8 @@ func resolveTaskFinalStatusWithContext(
 	}
 
 	if failedChild, hasFailed := findInconsistentFailedChild(producer, opts.Run.Tasks); hasFailed {
-		if resolvedState != apiv2beta1.PipelineTask_FAILED {
-			resolvedState = apiv2beta1.PipelineTask_FAILED
+		if resolvedState != apiv2.PipelineTask_FAILED {
+			resolvedState = apiv2.PipelineTask_FAILED
 		}
 		if resolvedMessage == "" && failedChild.GetStatusMetadata() != nil {
 			resolvedMessage = failedChild.GetStatusMetadata().GetMessage()
