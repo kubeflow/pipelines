@@ -106,15 +106,32 @@ func ClassifyPodFailure(message, phase string) PodFailure {
 }
 
 func getFailureCategoryForMessage(message string) FailureCategory {
+	// Argo can prefix the container name, as in "main: OOMKilled (exit code 137)".
+	// Only a single-word prefix counts, so that name is not taken as the reason.
+	rest, hasPrefix := "", false
+	if prefix, after, found := strings.Cut(message, ":"); found && !strings.ContainsAny(strings.TrimSpace(prefix), " \t") {
+		rest, hasPrefix = strings.TrimSpace(after), true
+	}
+	// Argo wraps user-script exits as "Error (exit code N): <stderr tail>", with or
+	// without the container prefix. The stderr may contain lifecycle keywords such
+	// as "is forbidden", so detect the envelope before any phrase matching runs.
+	if isUserExitMessage(message) || (hasPrefix && isUserExitMessage(rest)) {
+		return FailureCategoryUnknown
+	}
 	if category := matchFailureCategory(message); category != FailureCategoryUnknown {
 		return category
 	}
-	// Argo can prefix the container name, as in "main: OOMKilled (exit code 137)".
-	// Retry on the text after a single-word prefix so that name is not taken as the reason.
-	if prefix, rest, found := strings.Cut(message, ":"); found && !strings.ContainsAny(strings.TrimSpace(prefix), " \t") {
-		return matchFailureCategory(strings.TrimSpace(rest))
+	if hasPrefix {
+		return matchFailureCategory(rest)
 	}
 	return FailureCategoryUnknown
+}
+
+// isUserExitMessage returns true when the message is Argo's envelope for a
+// user-script non-zero exit: "Error (exit code N)" optionally followed by
+// ": <stderr tail>". These are user failures, not infrastructure problems.
+func isUserExitMessage(msg string) bool {
+	return strings.HasPrefix(msg, "Error (exit code ")
 }
 
 func matchFailureCategory(message string) FailureCategory {

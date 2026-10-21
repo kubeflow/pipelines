@@ -203,6 +203,9 @@ func TestClassifyPodFailure_ContainerPrefixedMessages(t *testing.T) {
 		{"crash loop with container prefix", "main: CrashLoopBackOff", FailureCategoryRuntime},
 		{"bare error with container prefix", "wait: Error", FailureCategoryRuntime},
 		{"user exit code with container prefix stays unknown", "main: Error (exit code 1)", FailureCategoryUnknown},
+		{"user exit wrapping forbidden stays unknown", `main: Error (exit code 1): pods "child" is forbidden: User "system:serviceaccount:ns:pipeline-runner" cannot create resource "pods"`, FailureCategoryUnknown},
+		{"user exit wrapping forbidden no prefix stays unknown", `Error (exit code 1): pods "child" is forbidden: User "system:serviceaccount:ns:pipeline-runner" cannot create resource "pods"`, FailureCategoryUnknown},
+		{"user exit wrapping oom text stays unknown", `main: Error (exit code 137): OOMKilled`, FailureCategoryUnknown},
 		{"unrelated text with prefix stays unknown", "main: something went wrong", FailureCategoryUnknown},
 		{"multi-word prefix is not a container name", "the pod: OOMKilled (exit code 137)", FailureCategoryUnknown},
 	}
