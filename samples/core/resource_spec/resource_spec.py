@@ -24,7 +24,8 @@ def training_op(n: int) -> int:
 
 @dsl.pipeline(
     name='pipeline-with-resource-spec',
-    description='A pipeline with resource specification.')
+    description='A pipeline with resource specification.',
+)
 def my_pipeline(n: int = 11234567):
     # For units of these resource limits,
     # refer to https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes

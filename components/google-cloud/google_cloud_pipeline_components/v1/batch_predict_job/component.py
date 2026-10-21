@@ -14,20 +14,24 @@
 
 from typing import Dict, List
 
-from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components.types.artifact_types import BQTable
-from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
-from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
-from google_cloud_pipeline_components.types.artifact_types import VertexModel
-from kfp.dsl import Artifact
-from kfp.dsl import ConcatPlaceholder
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import IfPresentPlaceholder
-from kfp.dsl import Input
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
+from kfp.dsl import (
+    Artifact,
+    ConcatPlaceholder,
+    ContainerSpec,
+    IfPresentPlaceholder,
+    Input,
+    Output,
+    OutputPath,
+    container_component,
+)
+
+from google_cloud_pipeline_components import _image, _placeholders
+from google_cloud_pipeline_components.types.artifact_types import (
+    BQTable,
+    UnmanagedContainerModel,
+    VertexBatchPredictionJob,
+    VertexModel,
+)
 
 
 @container_component
@@ -65,8 +69,8 @@ def model_batch_predict(
     encryption_spec_key_name: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-  # fmt: off
-  """Creates a Google Cloud Vertex [BatchPredictionJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs) and waits for it to complete. For more details, see [BatchPredictionJob.Create](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create).
+    # fmt: off
+    """Creates a Google Cloud Vertex [BatchPredictionJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs) and waits for it to complete. For more details, see [BatchPredictionJob.Create](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create).
 
   Args:
       job_display_name: The user-defined name of this BatchPredictionJob.
@@ -104,130 +108,138 @@ def model_batch_predict(
       bigquery_output_table: Artifact tracking the batch prediction job output. This is only available if bigquery_output_table is specified.
       gcp_resources: Serialized gcp_resources proto tracking the batch prediction job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
-  # fmt: on
-  return ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher',
-      ],
-      args=[
-          '--type',
-          'BatchPredictionJob',
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name": "',
-              job_display_name,
-              '", ',
-              IfPresentPlaceholder(
-                  input_name='model',
-                  then=ConcatPlaceholder([
-                      '"model": "',
-                      model.metadata['resourceName'],
-                      '",',
-                  ]),
-              ),
-              ' "input_config": {',
-              '"instances_format": "',
-              instances_format,
-              '"',
-              ', "gcs_source": {',
-              '"uris":',
-              gcs_source_uris,
-              '}',
-              ', "bigquery_source": {',
-              '"input_uri": "',
-              bigquery_source_input_uri,
-              '"',
-              '}',
-              '}',
-              ', "instance_config": {',
-              '"instance_type": "',
-              instance_type,
-              '"',
-              ', "key_field": "',
-              key_field,
-              '" ',
-              IfPresentPlaceholder(
-                  input_name='included_fields',
-                  then=ConcatPlaceholder([
-                      ', "included_fields": ',
-                      included_fields,
-                  ]),
-              ),
-              IfPresentPlaceholder(
-                  input_name='excluded_fields',
-                  then=ConcatPlaceholder([
-                      ', "excluded_fields": ',
-                      excluded_fields,
-                  ]),
-              ),
-              '}',
-              ', "model_parameters": ',
-              model_parameters,
-              ', "output_config": {',
-              '"predictions_format": "',
-              predictions_format,
-              '"',
-              ', "gcs_destination": {',
-              '"output_uri_prefix": "',
-              gcs_destination_output_uri_prefix,
-              '"',
-              '}',
-              ', "bigquery_destination": {',
-              '"output_uri": "',
-              bigquery_destination_output_uri,
-              '"',
-              '}',
-              '}',
-              ', "dedicated_resources": {',
-              '"machine_spec": {',
-              '"machine_type": "',
-              machine_type,
-              '"',
-              ', "accelerator_type": "',
-              accelerator_type,
-              '"',
-              ', "accelerator_count": ',
-              accelerator_count,
-              '}',
-              ', "starting_replica_count": ',
-              starting_replica_count,
-              ', "max_replica_count": ',
-              max_replica_count,
-              '}',
-              ', "service_account": "',
-              service_account,
-              '"',
-              ', "manual_batch_tuning_parameters": {',
-              '"batch_size": ',
-              manual_batch_tuning_parameters_batch_size,
-              '}',
-              ', "generate_explanation": ',
-              generate_explanation,
-              ', "explanation_spec": {',
-              '"parameters": ',
-              explanation_parameters,
-              ', "metadata": ',
-              explanation_metadata,
-              '}',
-              ', "labels": ',
-              labels,
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher',
+        ],
+        args=[
+            '--type',
+            'BatchPredictionJob',
+            '--payload',
+            ConcatPlaceholder(
+                [
+                    '{',
+                    '"display_name": "',
+                    job_display_name,
+                    '", ',
+                    IfPresentPlaceholder(
+                        input_name='model',
+                        then=ConcatPlaceholder(
+                            [
+                                '"model": "',
+                                model.metadata['resourceName'],
+                                '",',
+                            ]
+                        ),
+                    ),
+                    ' "input_config": {',
+                    '"instances_format": "',
+                    instances_format,
+                    '"',
+                    ', "gcs_source": {',
+                    '"uris":',
+                    gcs_source_uris,
+                    '}',
+                    ', "bigquery_source": {',
+                    '"input_uri": "',
+                    bigquery_source_input_uri,
+                    '"',
+                    '}',
+                    '}',
+                    ', "instance_config": {',
+                    '"instance_type": "',
+                    instance_type,
+                    '"',
+                    ', "key_field": "',
+                    key_field,
+                    '" ',
+                    IfPresentPlaceholder(
+                        input_name='included_fields',
+                        then=ConcatPlaceholder(
+                            [
+                                ', "included_fields": ',
+                                included_fields,
+                            ]
+                        ),
+                    ),
+                    IfPresentPlaceholder(
+                        input_name='excluded_fields',
+                        then=ConcatPlaceholder(
+                            [
+                                ', "excluded_fields": ',
+                                excluded_fields,
+                            ]
+                        ),
+                    ),
+                    '}',
+                    ', "model_parameters": ',
+                    model_parameters,
+                    ', "output_config": {',
+                    '"predictions_format": "',
+                    predictions_format,
+                    '"',
+                    ', "gcs_destination": {',
+                    '"output_uri_prefix": "',
+                    gcs_destination_output_uri_prefix,
+                    '"',
+                    '}',
+                    ', "bigquery_destination": {',
+                    '"output_uri": "',
+                    bigquery_destination_output_uri,
+                    '"',
+                    '}',
+                    '}',
+                    ', "dedicated_resources": {',
+                    '"machine_spec": {',
+                    '"machine_type": "',
+                    machine_type,
+                    '"',
+                    ', "accelerator_type": "',
+                    accelerator_type,
+                    '"',
+                    ', "accelerator_count": ',
+                    accelerator_count,
+                    '}',
+                    ', "starting_replica_count": ',
+                    starting_replica_count,
+                    ', "max_replica_count": ',
+                    max_replica_count,
+                    '}',
+                    ', "service_account": "',
+                    service_account,
+                    '"',
+                    ', "manual_batch_tuning_parameters": {',
+                    '"batch_size": ',
+                    manual_batch_tuning_parameters_batch_size,
+                    '}',
+                    ', "generate_explanation": ',
+                    generate_explanation,
+                    ', "explanation_spec": {',
+                    '"parameters": ',
+                    explanation_parameters,
+                    ', "metadata": ',
+                    explanation_metadata,
+                    '}',
+                    ', "labels": ',
+                    labels,
+                    ', "encryption_spec": {"kms_key_name":"',
+                    encryption_spec_key_name,
+                    '"}',
+                    '}',
+                ]
+            ),
+            '--project',
+            project,
+            '--location',
+            location,
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+        ],
+    )

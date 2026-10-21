@@ -16,25 +16,32 @@ from __future__ import annotations
 
 import unittest
 
-from kfp.samples.test.utils import KfpTask
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
 import kfp.server_api
+from kfp.samples.test.utils import KfpTask, TestCase, run_pipeline_func
 from loop_parameter import my_pipeline
 
 
-def verify(t: unittest.TestCase, run: kfp.server_api.V2Run,
-           tasks: dict[str, KfpTask], **kwargs):
+def verify(
+    t: unittest.TestCase,
+    run: kfp.server_api.V2Run,
+    tasks: dict[str, KfpTask],
+    **kwargs,
+):
     t.assertEqual(run.state, 'SUCCEEDED')
     # assert DAG structure
     t.assertCountEqual(['generate-op', 'print-op', 'for-loop-1'], tasks.keys())
     # assert all iteration outputs
-    t.assertCountEqual(['110', '220', '330', '440'], [
-        x.children['print-op-2'].outputs.parameters['Output']
-        for x in tasks['for-loop-1'].children.values()
-    ])
+    t.assertCountEqual(
+        ['110', '220', '330', '440'],
+        [
+            x.children['print-op-2'].outputs.parameters['Output']
+            for x in tasks['for-loop-1'].children.values()
+        ],
+    )
 
 
-run_pipeline_func([
-    TestCase(pipeline_func=my_pipeline, verify_func=verify),
-])
+run_pipeline_func(
+    [
+        TestCase(pipeline_func=my_pipeline, verify_func=verify),
+    ]
+)

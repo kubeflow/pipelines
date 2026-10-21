@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # fmt: off
-"""Wait on the completion of GCP resources spawned from an upstream pipeline component."""
+"""Wait on the completion of GCP resources spawned from an upstream pipeline
+component."""
 # fmt: on
 
-from google_cloud_pipeline_components.v1.wait_gcp_resources.component import wait_gcp_resources as WaitGcpResourcesOp
+from google_cloud_pipeline_components.v1.wait_gcp_resources.component import (
+    wait_gcp_resources as WaitGcpResourcesOp,
+)
 
 __all__ = [
     'WaitGcpResourcesOp',

@@ -13,15 +13,18 @@
 # limitations under the License.
 """Starry Net component for data preparation."""
 
+from kfp import dsl
+
 from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components._implementation.starry_net import version
-from kfp import dsl
 
 
 @dsl.container_component
 def dataprep(
     gcp_resources: dsl.OutputPath(str),
-    dataprep_dir: dsl.Output[dsl.Artifact],  # pytype: disable=unsupported-operands
+    dataprep_dir: dsl.Output[
+        dsl.Artifact
+    ],  # pytype: disable=unsupported-operands
     backcast_length: int,
     forecast_length: int,
     train_end_date: str,
@@ -52,70 +55,70 @@ def dataprep(
     gcs_static_covariate_source: str,
     encryption_spec_key_name: str,
 ):
-  # fmt: off
-  """Runs Dataprep for training and evaluating a STARRY-Net model.
+    # fmt: off
+    """Runs Dataprep for training and evaluating a STARRY-Net model.
 
-  Args:
-    gcp_resources: Serialized JSON of ``gcp_resources`` which tracks the
-      CustomJob.
-    dataprep_dir: The gcp bucket path where all dataprep artifacts
-      are saved.
-    backcast_length: The length of the input window to feed into the model.
-    forecast_length: The length of the forecast horizon.
-    train_end_date: The last date of data to use in the training set. All
-      subsequent dates are part of the test set.
-    n_val_windows: The number of windows to use for the val set. If 0, no
-      validation set is used.
-    n_test_windows: The number of windows to use for the test set. Must be >= 1.
-    test_set_stride: The number of timestamps to roll forward when
-      constructing the val and test sets.
-    model_blocks: The stringified tuple of blocks to use in the order
-      that they appear in the model. Possible values are `cleaning`,
-      `change_point`, `trend`, `hour_of_week-hybrid`, `day_of_week-hybrid`,
-      `day_of_year-hybrid`, `week_of_year-hybrid`, `month_of_year-hybrid`,
-      `residual`, `quantile`.
-    bigquery_source: The BigQuery source of the data.
-    ts_identifier_columns: The columns that identify unique time series in the BigQuery
-      data source.
-    time_column: The column with timestamps in the BigQuery source.
-    static_covariate_columns: The names of the staic covariates.
-    static_covariates_vocab_path: The path to the master static covariates vocab
-      json.
-    target_column: The target column in the Big Query data source.
-    machine_type: The machine type of the dataflow workers.
-    docker_region: The docker region, used to determine which image to use.
-    location: The location where the job is run.
-    project: The name of the project.
-    job_id: The pipeline job id.
-    job_name_prefix: The name of the dataflow job name prefix.
-    num_workers: The initial number of workers in the dataflow job.
-    max_num_workers: The maximum number of workers in the dataflow job.
-    disk_size_gb: The disk size of each dataflow worker.
-    test_set_only: Whether to only create the test set BigQuery table or also
-      to create TFRecords for traiing and validation.
-    bigquery_output: The BigQuery dataset where the test set is written in the
-      form bq://project.dataset.
-    nan_threshold: Series having more nan / missing values than
-      nan_threshold (inclusive) in percentage for either backtest or forecast
-      will not be sampled in the training set (including missing due to
-      train_start and train_end). All existing nans are replaced by zeros.
-    zero_threshold: Series having more 0.0 values than zero_threshold
-      (inclusive) in percentage for either backtest or forecast will not be
-      sampled in the training set.
-    gcs_source: The path the csv file of the data source.
-    gcs_static_covariate_source: The path to the csv file of static covariates.
-    encryption_spec_key_name: Customer-managed encryption key options for the
-      CustomJob. If this is set, then all resources created by the CustomJob
-      will be encrypted with the provided encryption key.
+    Args:
+      gcp_resources: Serialized JSON of ``gcp_resources`` which tracks the
+        CustomJob.
+      dataprep_dir: The gcp bucket path where all dataprep artifacts
+        are saved.
+      backcast_length: The length of the input window to feed into the model.
+      forecast_length: The length of the forecast horizon.
+      train_end_date: The last date of data to use in the training set. All
+        subsequent dates are part of the test set.
+      n_val_windows: The number of windows to use for the val set. If 0, no
+        validation set is used.
+      n_test_windows: The number of windows to use for the test set. Must be >= 1.
+      test_set_stride: The number of timestamps to roll forward when
+        constructing the val and test sets.
+      model_blocks: The stringified tuple of blocks to use in the order
+        that they appear in the model. Possible values are `cleaning`,
+        `change_point`, `trend`, `hour_of_week-hybrid`, `day_of_week-hybrid`,
+        `day_of_year-hybrid`, `week_of_year-hybrid`, `month_of_year-hybrid`,
+        `residual`, `quantile`.
+      bigquery_source: The BigQuery source of the data.
+      ts_identifier_columns: The columns that identify unique time series in the BigQuery
+        data source.
+      time_column: The column with timestamps in the BigQuery source.
+      static_covariate_columns: The names of the staic covariates.
+      static_covariates_vocab_path: The path to the master static covariates vocab
+        json.
+      target_column: The target column in the Big Query data source.
+      machine_type: The machine type of the dataflow workers.
+      docker_region: The docker region, used to determine which image to use.
+      location: The location where the job is run.
+      project: The name of the project.
+      job_id: The pipeline job id.
+      job_name_prefix: The name of the dataflow job name prefix.
+      num_workers: The initial number of workers in the dataflow job.
+      max_num_workers: The maximum number of workers in the dataflow job.
+      disk_size_gb: The disk size of each dataflow worker.
+      test_set_only: Whether to only create the test set BigQuery table or also
+        to create TFRecords for traiing and validation.
+      bigquery_output: The BigQuery dataset where the test set is written in the
+        form bq://project.dataset.
+      nan_threshold: Series having more nan / missing values than
+        nan_threshold (inclusive) in percentage for either backtest or forecast
+        will not be sampled in the training set (including missing due to
+        train_start and train_end). All existing nans are replaced by zeros.
+      zero_threshold: Series having more 0.0 values than zero_threshold
+        (inclusive) in percentage for either backtest or forecast will not be
+        sampled in the training set.
+      gcs_source: The path the csv file of the data source.
+      gcs_static_covariate_source: The path to the csv file of static covariates.
+      encryption_spec_key_name: Customer-managed encryption key options for the
+        CustomJob. If this is set, then all resources created by the CustomJob
+        will be encrypted with the provided encryption key.
 
-  Returns:
-    gcp_resources: Serialized JSON of ``gcp_resources`` which tracks the
-      CustomJob.
-    dataprep_dir: The gcp bucket path where all dataprep artifacts
-      are saved.
-  """
-  job_name = f'{job_name_prefix}-{job_id}'
-  payload = {
+    Returns:
+      gcp_resources: Serialized JSON of ``gcp_resources`` which tracks the
+        CustomJob.
+      dataprep_dir: The gcp bucket path where all dataprep artifacts
+        are saved.
+    """
+    job_name = f'{job_name_prefix}-{job_id}'
+    payload = {
       'display_name': job_name,
       'encryption_spec': {
           'kms_key_name': str(encryption_spec_key_name),
@@ -165,7 +168,7 @@ def dataprep(
           }]
       }
     }
-  return utils.build_serverless_customjob_container_spec(
+    return utils.build_serverless_customjob_container_spec(
       project=project,
       location=location,
       custom_job_payload=payload,

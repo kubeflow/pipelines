@@ -15,10 +15,18 @@
 """Manage models via [Vertex AI Model Registry](https://cloud.google.com/vertex-ai/docs/model-registry/introduction)."""
 # fmt: on
 
-from google_cloud_pipeline_components.v1.model.delete_model.component import model_delete as ModelDeleteOp
-from google_cloud_pipeline_components.v1.model.export_model.component import model_export as ModelExportOp
-from google_cloud_pipeline_components.v1.model.get_model.component import model_get as ModelGetOp
-from google_cloud_pipeline_components.v1.model.upload_model.component import model_upload as ModelUploadOp
+from google_cloud_pipeline_components.v1.model.delete_model.component import (
+    model_delete as ModelDeleteOp,
+)
+from google_cloud_pipeline_components.v1.model.export_model.component import (
+    model_export as ModelExportOp,
+)
+from google_cloud_pipeline_components.v1.model.get_model.component import (
+    model_get as ModelGetOp,
+)
+from google_cloud_pipeline_components.v1.model.upload_model.component import (
+    model_upload as ModelUploadOp,
+)
 
 __all__ = [
     'ModelExportOp',

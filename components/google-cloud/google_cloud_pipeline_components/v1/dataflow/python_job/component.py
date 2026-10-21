@@ -13,11 +13,9 @@
 # limitations under the License.
 from typing import List
 
-from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components import _placeholders
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import OutputPath
+from kfp.dsl import ContainerSpec, OutputPath, container_component
+
+from google_cloud_pipeline_components import _image, _placeholders
 
 
 @container_component
@@ -30,44 +28,44 @@ def dataflow_python(
     args: List[str] = [],
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-  # fmt: off
-  """Launch a self-executing Beam Python file on Google Cloud using the
-  Dataflow Runner.
+    # fmt: off
+    """Launch a self-executing Beam Python file on Google Cloud using the
+    Dataflow Runner.
 
-  Args:
-      location: Location of the Dataflow job. If not set, defaults to `'us-central1'`.
-      python_module_path: The GCS path to the Python file to run.
-      temp_location: A GCS path for Dataflow to stage temporary job files created during the execution of the pipeline.
-      requirements_file_path: The GCS path to the pip requirements file.
-      args: The list of args to pass to the Python file. Can include additional parameters for the Dataflow Runner.
-      project: Project to create the Dataflow job. Defaults to the project in which the PipelineJob is run.
+    Args:
+        location: Location of the Dataflow job. If not set, defaults to `'us-central1'`.
+        python_module_path: The GCS path to the Python file to run.
+        temp_location: A GCS path for Dataflow to stage temporary job files created during the execution of the pipeline.
+        requirements_file_path: The GCS path to the pip requirements file.
+        args: The list of args to pass to the Python file. Can include additional parameters for the Dataflow Runner.
+        project: Project to create the Dataflow job. Defaults to the project in which the PipelineJob is run.
 
-  Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the Dataflow job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
-  """
-  # fmt: on
-  return ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.dataflow.dataflow_launcher',
-      ],
-      args=[
-          '--project',
-          project,
-          '--location',
-          location,
-          '--python_module_path',
-          python_module_path,
-          '--temp_location',
-          temp_location,
-          '--requirements_file_path',
-          requirements_file_path,
-          '--args',
-          args,
-          '--gcp_resources',
-          gcp_resources,
-      ],
-  )
+    Returns:
+        gcp_resources: Serialized gcp_resources proto tracking the Dataflow job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+    """
+    # fmt: on
+    return ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.dataflow.dataflow_launcher',
+        ],
+        args=[
+            '--project',
+            project,
+            '--location',
+            location,
+            '--python_module_path',
+            python_module_path,
+            '--temp_location',
+            temp_location,
+            '--requirements_file_path',
+            requirements_file_path,
+            '--args',
+            args,
+            '--gcp_resources',
+            gcp_resources,
+        ],
+    )

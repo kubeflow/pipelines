@@ -13,7 +13,6 @@
 # limitations under the License.
 """KFP Component that uploads tensorboard metrics."""
 
-from google_cloud_pipeline_components import _image
 from kfp import dsl
 
 _TB_UPLOADER_SHELL_SCRIPT = """
@@ -89,34 +88,36 @@ echo -n "https://${LOCATION}.${web_server_uri}/experiment/${tensorboard_resource
 def upload_tensorboard_metrics(
     tensorboard_resource_id: str,
     experiment_name: str,
-    metrics_directory: dsl.Input[dsl.Artifact],  # pytype: disable=unsupported-operands
+    metrics_directory: dsl.Input[
+        dsl.Artifact
+    ],  # pytype: disable=unsupported-operands
     tensorboard_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
 ) -> dsl.ContainerSpec:
-  # fmt: off
-  # pylint: disable=g-doc-args
-  """Uploads tensorboard metrics.
+    # fmt: off
+    # pylint: disable=g-doc-args
+    """Uploads tensorboard metrics.
 
-  Args:
-      tensorboard_resource_id: TensorBoard resource ID in the form `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`.
-      experiment_name: Name of this tensorboard experiment. Must be unique to a given `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`.
-      metrics_directory_uri: Cloud storage location of the TensorBoard logs.
+    Args:
+        tensorboard_resource_id: TensorBoard resource ID in the form `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`.
+        experiment_name: Name of this tensorboard experiment. Must be unique to a given `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`.
+        metrics_directory_uri: Cloud storage location of the TensorBoard logs.
 
-  Returns:
-      tensorboard_uri: URI of the uploaded tensorboard experiment.
-  """
-  # pylint: enable=g-doc-args
-  # fmt: on
-  return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/training/tf-cpu.2-11:latest',
-      command=[
-          'bash',
-          '-c',
-          _TB_UPLOADER_SHELL_SCRIPT,
-      ],
-      args=[
-          tensorboard_resource_id,
-          metrics_directory.path,
-          experiment_name,
-          tensorboard_uri,
-      ],
-  )
+    Returns:
+        tensorboard_uri: URI of the uploaded tensorboard experiment.
+    """
+    # pylint: enable=g-doc-args
+    # fmt: on
+    return dsl.ContainerSpec(
+        image='us-docker.pkg.dev/vertex-ai/training/tf-cpu.2-11:latest',
+        command=[
+            'bash',
+            '-c',
+            _TB_UPLOADER_SHELL_SCRIPT,
+        ],
+        args=[
+            tensorboard_resource_id,
+            metrics_directory.path,
+            experiment_name,
+            tensorboard_uri,
+        ],
+    )

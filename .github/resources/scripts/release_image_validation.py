@@ -17,20 +17,18 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import platform
 import re
 import subprocess
 import sys
+from pathlib import Path
 
-from arm64_smoke import image_refs
-from arm64_smoke import IMAGES
-from publish_image_index import digest
-from publish_image_index import inspect
-from publish_image_index import validate_index
+from arm64_smoke import IMAGES, image_refs
+from publish_image_index import digest, inspect, validate_index
 
 VERSION = re.compile(
-    r'^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$')
+    r'^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$'
+)
 
 
 def validate_source(target_tag, source_version):
@@ -44,7 +42,8 @@ def validate_source(target_tag, source_version):
     if int(target[1]) < 3:
         raise ValueError(
             'Publish 2.x using the workflow from its release-2.x branch; '
-            'the post-MLMD workflow is for 3.0 and later')
+            'the post-MLMD workflow is for 3.0 and later'
+        )
     if target.groups() != source.groups():
         raise ValueError(
             'Target tag and source VERSION must have the same major.minor.patch'
@@ -56,14 +55,18 @@ def validate_source_inventory(source_root):
     # Load the selected product's actual inventory in a separate interpreter;
     # importing it here would reuse the workflow revision's cached module.
     scripts = source_root / '.github/resources/scripts'
-    output = subprocess.check_output([
-        sys.executable, '-I', '-c',
-        'import json, sys; sys.path.insert(0, sys.argv[1]); '
-        'from arm64_smoke import IMAGES; print(json.dumps(sorted(IMAGES)))',
-        str(scripts.resolve())
-    ],
-                                     text=True,
-                                     timeout=30)
+    output = subprocess.check_output(
+        [
+            sys.executable,
+            '-I',
+            '-c',
+            'import json, sys; sys.path.insert(0, sys.argv[1]); '
+            'from arm64_smoke import IMAGES; print(json.dumps(sorted(IMAGES)))',
+            str(scripts.resolve()),
+        ],
+        text=True,
+        timeout=30,
+    )
     source_images = set(json.loads(output))
     if source_images != IMAGES:
         raise ValueError(
@@ -71,14 +74,16 @@ def validate_source_inventory(source_root):
             f'source-only={sorted(source_images - IMAGES)}, '
             f'workflow-only={sorted(IMAGES - source_images)}. '
             'Use a matching publication workflow or align the inventories '
-            'before publishing.')
+            'before publishing.'
+        )
 
 
 def validate_native_images(records, source_sha, target_tag, architecture):
     """Pull shared tags naturally and verify their native image identity."""
     if not VERSION.fullmatch(target_tag) or int(target_tag.split('.')[0]) < 3:
         raise ValueError(
-            'Native release qualification requires a 3.0+ release tag')
+            'Native release qualification requires a 3.0+ release tag'
+        )
     host_arch = {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(platform.machine())
     if platform.system() != 'Linux' or architecture != host_arch:
         raise ValueError(f'Requires a native Linux {architecture} runner')
@@ -90,46 +95,62 @@ def validate_native_images(records, source_sha, target_tag, architecture):
         index = inspect(tag)
         if index.get('digest') != index_digest:
             raise ValueError(
-                f'{tag} does not resolve to this publication\'s verified index')
+                f"{tag} does not resolve to this publication's verified index"
+            )
         inventory = validate_index(index, {'linux/amd64', 'linux/arm64'})
-        child_digest = next(entry[2]
-                            for entry in inventory
-                            if entry[:2] == ('platform',
-                                             f'linux/{architecture}'))
+        child_digest = next(
+            entry[2]
+            for entry in inventory
+            if entry[:2] == ('platform', f'linux/{architecture}')
+        )
         # .Manifest contains only a descriptor for a single image, not its config.
-        raw_child = subprocess.check_output([
-            'docker', 'buildx', 'imagetools', 'inspect',
-            f'{repository}@{child_digest}', '--raw'
-        ])
+        raw_child = subprocess.check_output(
+            [
+                'docker',
+                'buildx',
+                'imagetools',
+                'inspect',
+                f'{repository}@{child_digest}',
+                '--raw',
+            ]
+        )
         if f'sha256:{hashlib.sha256(raw_child).hexdigest()}' != child_digest:
             raise ValueError(
-                f'{name}: registry returned a different child manifest')
+                f'{name}: registry returned a different child manifest'
+            )
         child = json.loads(raw_child)
         expected_config = digest(child['config']['digest'])
         # No --platform: prove the native daemon selects the right platform.
         subprocess.run(['docker', 'pull', tag], check=True)
         local = json.loads(
-            subprocess.check_output(['docker', 'image', 'inspect', tag],
-                                    text=True))[0]
+            subprocess.check_output(
+                ['docker', 'image', 'inspect', tag], text=True
+            )
+        )[0]
         # Classic Docker uses the config ID; containerd uses an index/manifest ID.
-        if (local.get('Os') != 'linux' or
-                local.get('Architecture') != architecture or
-                reference not in local.get('RepoDigests', []) or local.get('Id')
-                not in {expected_config, index_digest, child_digest}):
+        if (
+            local.get('Os') != 'linux'
+            or local.get('Architecture') != architecture
+            or reference not in local.get('RepoDigests', [])
+            or local.get('Id')
+            not in {expected_config, index_digest, child_digest}
+        ):
             raise ValueError(
                 f'{tag}: native pull did not select the verified {architecture} image'
             )
         if inspect(tag).get('digest') != index_digest:
             raise ValueError(f'{tag} changed during native verification')
-        results.append({
-            'image': name,
-            'tag': tag,
-            'reference': reference,
-            'platform': f'linux/{architecture}',
-            'child_digest': child_digest,
-            'config_digest': expected_config,
-            'local_image_id': local['Id']
-        })
+        results.append(
+            {
+                'image': name,
+                'tag': tag,
+                'reference': reference,
+                'platform': f'linux/{architecture}',
+                'child_digest': child_digest,
+                'config_digest': expected_config,
+                'local_image_id': local['Id'],
+            }
+        )
     return {'source_sha': source_sha, 'images': results}
 
 
@@ -144,15 +165,17 @@ def main():
     native.add_argument('--source-sha', required=True)
     native.add_argument('--records', type=Path, required=True)
     native.add_argument(
-        '--architecture', choices=('amd64', 'arm64'), required=True)
+        '--architecture', choices=('amd64', 'arm64'), required=True
+    )
     native.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.command == 'source':
         validate_source(args.target_tag, args.version_file.read_text())
         validate_source_inventory(args.version_file.parent)
     else:
-        result = validate_native_images(args.records, args.source_sha,
-                                        args.target_tag, args.architecture)
+        result = validate_native_images(
+            args.records, args.source_sha, args.target_tag, args.architecture
+        )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, indent=2) + '\n')
 

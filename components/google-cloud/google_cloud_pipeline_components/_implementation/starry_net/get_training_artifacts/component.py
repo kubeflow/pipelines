@@ -19,16 +19,17 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.11', packages_to_install=['tensorflow==2.16.1'])
+    base_image='python:3.11', packages_to_install=['tensorflow==2.16.1']
+)
 def get_training_artifacts(
     docker_region: str,
     trainer_dir: dsl.InputPath(),
 ) -> NamedTuple(
-        'TrainingArtifacts',
-        image_uri=str,
-        artifact_uri=str,
-        prediction_schema_uri=str,
-        instance_schema_uri=str,
+    'TrainingArtifacts',
+    image_uri=str,
+    artifact_uri=str,
+    prediction_schema_uri=str,
+    instance_schema_uri=str,
 ):
     # fmt: off
     """Gets the artifact URIs from the training job.

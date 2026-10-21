@@ -14,14 +14,19 @@
 
 from typing import Dict
 
+from kfp.dsl import (
+    ConcatPlaceholder,
+    ContainerSpec,
+    Input,
+    OutputPath,
+    container_component,
+)
+
 from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
-from google_cloud_pipeline_components.types.artifact_types import VertexModel
-from kfp.dsl import ConcatPlaceholder
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Input
-from kfp.dsl import OutputPath
+from google_cloud_pipeline_components.types.artifact_types import (
+    VertexEndpoint,
+    VertexModel,
+)
 
 
 @container_component
@@ -44,8 +49,8 @@ def model_deploy(
     explanation_metadata: Dict[str, str] = {},
     explanation_parameters: Dict[str, str] = {},
 ):
-  # fmt: off
-  """[Deploys](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel) a Google Cloud Vertex Model to an [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints) creating a [DeployedModel](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel) within it. See the [deploy Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel) method for more information.
+    # fmt: off
+    """[Deploys](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel) a Google Cloud Vertex Model to an [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints) creating a [DeployedModel](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel) within it. See the [deploy Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel) method for more information.
 
   Args:
       model: The model to be deployed.
@@ -68,73 +73,75 @@ def model_deploy(
   Returns:
       gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the deploy Model's long-running operation.
   """
-  # fmt: on
-  return ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.endpoint.deploy_model.launcher',
-      ],
-      args=[
-          '--type',
-          'DeployModel',
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"endpoint": "',
-              endpoint.metadata['resourceName'],
-              '"',
-              ', "traffic_split": ',
-              traffic_split,
-              ', "deployed_model": {',
-              '"model": "',
-              model.metadata['resourceName'],
-              '"',
-              ', "dedicated_resources": {',
-              '"machine_spec": {',
-              '"machine_type": "',
-              dedicated_resources_machine_type,
-              '"',
-              ', "accelerator_type": "',
-              dedicated_resources_accelerator_type,
-              '"',
-              ', "accelerator_count": ',
-              dedicated_resources_accelerator_count,
-              '}',
-              ', "min_replica_count": ',
-              dedicated_resources_min_replica_count,
-              ', "max_replica_count": ',
-              dedicated_resources_max_replica_count,
-              '}',
-              ', "automatic_resources": {',
-              '"min_replica_count": ',
-              automatic_resources_min_replica_count,
-              ', "max_replica_count": ',
-              automatic_resources_max_replica_count,
-              '}',
-              ', "service_account": "',
-              service_account,
-              '"',
-              ', "disable_container_logging": ',
-              disable_container_logging,
-              ', "enable_access_logging": ',
-              enable_access_logging,
-              ', "explanation_spec": {',
-              '"parameters": ',
-              explanation_parameters,
-              ', "metadata": ',
-              explanation_metadata,
-              '}',
-              '}',
-              '}',
-          ]),
-          '--project',
-          '',
-          '--location',
-          '',
-          '--gcp_resources',
-          gcp_resources,
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.endpoint.deploy_model.launcher',
+        ],
+        args=[
+            '--type',
+            'DeployModel',
+            '--payload',
+            ConcatPlaceholder(
+                [
+                    '{',
+                    '"endpoint": "',
+                    endpoint.metadata['resourceName'],
+                    '"',
+                    ', "traffic_split": ',
+                    traffic_split,
+                    ', "deployed_model": {',
+                    '"model": "',
+                    model.metadata['resourceName'],
+                    '"',
+                    ', "dedicated_resources": {',
+                    '"machine_spec": {',
+                    '"machine_type": "',
+                    dedicated_resources_machine_type,
+                    '"',
+                    ', "accelerator_type": "',
+                    dedicated_resources_accelerator_type,
+                    '"',
+                    ', "accelerator_count": ',
+                    dedicated_resources_accelerator_count,
+                    '}',
+                    ', "min_replica_count": ',
+                    dedicated_resources_min_replica_count,
+                    ', "max_replica_count": ',
+                    dedicated_resources_max_replica_count,
+                    '}',
+                    ', "automatic_resources": {',
+                    '"min_replica_count": ',
+                    automatic_resources_min_replica_count,
+                    ', "max_replica_count": ',
+                    automatic_resources_max_replica_count,
+                    '}',
+                    ', "service_account": "',
+                    service_account,
+                    '"',
+                    ', "disable_container_logging": ',
+                    disable_container_logging,
+                    ', "enable_access_logging": ',
+                    enable_access_logging,
+                    ', "explanation_spec": {',
+                    '"parameters": ',
+                    explanation_parameters,
+                    ', "metadata": ',
+                    explanation_metadata,
+                    '}',
+                    '}',
+                    '}',
+                ]
+            ),
+            '--project',
+            '',
+            '--location',
+            '',
+            '--gcp_resources',
+            gcp_resources,
+        ],
+    )

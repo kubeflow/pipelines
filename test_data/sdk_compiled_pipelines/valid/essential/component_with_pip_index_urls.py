@@ -13,8 +13,7 @@
 # limitations under the License.
 import os
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 PACKAGES_TO_INSTALL = ['yapf']
@@ -24,9 +23,11 @@ if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
 
 @component(
     pip_index_urls=['https://pypi.org/simple'],
-    packages_to_install=PACKAGES_TO_INSTALL)
+    packages_to_install=PACKAGES_TO_INSTALL,
+)
 def component_op():
     import yapf
+
     print(dir(yapf))
 
 
@@ -37,4 +38,5 @@ def pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

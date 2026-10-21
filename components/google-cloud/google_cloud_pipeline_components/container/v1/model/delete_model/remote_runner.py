@@ -15,9 +15,13 @@
 import json
 import re
 
-from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher import (
+    lro_remote_runner,
+)
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import (
+    error_util,
+    json_util,
+)
 
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 
@@ -29,36 +33,37 @@ def delete_model(
     payload: str,
     gcp_resources: str,
 ) -> None:
-  """Delete model and poll the LongRunningOperator till it reaches a final state."""
-  # TODO(IronPan) temporarily remove the empty fields from the spec
-  delete_model_request = json_util.recursive_remove_empty(
-      json.loads(payload, strict=False)
-  )
-  model_name = delete_model_request['model']
+    """Delete model and poll the LongRunningOperator till it reaches a final
+    state."""
+    # TODO(IronPan) temporarily remove the empty fields from the spec
+    delete_model_request = json_util.recursive_remove_empty(
+        json.loads(payload, strict=False)
+    )
+    model_name = delete_model_request['model']
 
-  uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
-  match = uri_pattern.match(model_name)
-  try:
-    location = match.group('location')  # pyrefly: ignore[missing-attribute]
-  except AttributeError as err:
-    # TODO(ruifang) propagate the error.
-    raise ValueError(
-        'Invalid model name: {}. Expect: {}.'.format(
-            model_name,
-            'projects/[project_id]/locations/[location]/models/[model_id]',
+    uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
+    match = uri_pattern.match(model_name)
+    try:
+        location = match.group('location')  # pyrefly: ignore[missing-attribute]
+    except AttributeError as err:
+        # TODO(ruifang) propagate the error.
+        raise ValueError(
+            'Invalid model name: {}. Expect: {}.'.format(
+                model_name,
+                'projects/[project_id]/locations/[location]/models/[model_id]',
+            )
         )
-    )
-  api_endpoint = location + '-aiplatform.googleapis.com'
-  vertex_uri_prefix = f'https://{api_endpoint}/v1/'
-  # vertex AI delete model API deletes the full model, not only the version
-  model_name_no_version = model_name.rsplit('@', 1)[0]
-  delete_model_url = f'{vertex_uri_prefix}{model_name_no_version}'
+    api_endpoint = location + '-aiplatform.googleapis.com'
+    vertex_uri_prefix = f'https://{api_endpoint}/v1/'
+    # vertex AI delete model API deletes the full model, not only the version
+    model_name_no_version = model_name.rsplit('@', 1)[0]
+    delete_model_url = f'{vertex_uri_prefix}{model_name_no_version}'
 
-  try:
-    remote_runner = lro_remote_runner.LroRemoteRunner(location)
-    delete_model_lro = remote_runner.create_lro(
-        delete_model_url, '', gcp_resources, 'delete'
-    )
-    remote_runner.poll_lro(lro=delete_model_lro)
-  except (ConnectionError, RuntimeError) as err:
-    error_util.exit_with_internal_error(err.args[0])
+    try:
+        remote_runner = lro_remote_runner.LroRemoteRunner(location)
+        delete_model_lro = remote_runner.create_lro(
+            delete_model_url, '', gcp_resources, 'delete'
+        )
+        remote_runner.poll_lro(lro=delete_model_lro)
+    except (ConnectionError, RuntimeError) as err:
+        error_util.exit_with_internal_error(err.args[0])

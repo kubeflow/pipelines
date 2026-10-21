@@ -14,10 +14,8 @@
 
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
+from kfp import compiler, dsl
+from kfp.dsl import Artifact, Dataset
 
 
 @dsl.component
@@ -36,7 +34,8 @@ def make_dataset(data: str) -> Dataset:
 
 @dsl.pipeline
 def make_datasets(
-        texts: List[str] = ['Hello', ',', ' ', 'world!']) -> List[Dataset]:
+    texts: List[str] = ['Hello', ',', ' ', 'world!'],
+) -> List[Dataset]:
     with dsl.ParallelFor(texts) as text:
         t1 = make_dataset(data=text)
 
@@ -53,7 +52,8 @@ def make_artifact(data: str) -> Artifact:
 
 @dsl.pipeline
 def make_artifacts(
-        texts: List[str] = ['Hello', ',', ' ', 'world!']) -> List[Artifact]:
+    texts: List[str] = ['Hello', ',', ' ', 'world!'],
+) -> List[Artifact]:
     with dsl.ParallelFor(texts) as text:
         t1 = make_artifact(data=text)
 
@@ -73,5 +73,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

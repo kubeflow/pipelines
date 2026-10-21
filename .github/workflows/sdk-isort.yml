@@ -1,3 +1,4 @@
+# Keep this legacy workflow identity: CI Check expects paths from the PR base.
 name: KFP SDK Isort Test
 
 on:
@@ -8,21 +9,22 @@ on:
     paths:
       - '**/pyproject.toml'
       - 'uv.lock'
-      - 'api/**'
-      - 'sdk/python/**'
-      - 'test/presubmit-isort-sdk.sh'
+      - '**/*.py'
+      - '**/*.pyi'
+      - '.gitignore'
+      - '.pre-commit-config.yaml'
+      - 'test/presubmit-ruff.sh'
       - '.github/workflows/sdk-isort.yml'
       - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test-isort-kfp-sdk:
+  ruff:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -33,5 +35,5 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run isort tests
-        run: ./test/presubmit-isort-sdk.sh
+      - name: Check Python imports and escapes with Ruff
+        run: uv run --frozen --extra lint ruff check .

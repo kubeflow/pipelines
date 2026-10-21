@@ -15,9 +15,15 @@
 """Compose [tabular data forecasting](https://cloud.google.com/vertex-ai/docs/tabular-data/forecasting/overview) pipelines."""
 # fmt: on
 
-from google_cloud_pipeline_components.v1.forecasting.prepare_data_for_train.component import prepare_data_for_train as ForecastingPrepareDataForTrainOp
-from google_cloud_pipeline_components.v1.forecasting.preprocess.component import forecasting_preprocessing as ForecastingPreprocessingOp
-from google_cloud_pipeline_components.v1.forecasting.validate.component import forecasting_validation as ForecastingValidationOp
+from google_cloud_pipeline_components.v1.forecasting.prepare_data_for_train.component import (
+    prepare_data_for_train as ForecastingPrepareDataForTrainOp,
+)
+from google_cloud_pipeline_components.v1.forecasting.preprocess.component import (
+    forecasting_preprocessing as ForecastingPreprocessingOp,
+)
+from google_cloud_pipeline_components.v1.forecasting.validate.component import (
+    forecasting_validation as ForecastingValidationOp,
+)
 
 __all__ = [
     'ForecastingPreprocessingOp',

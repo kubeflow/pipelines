@@ -13,8 +13,9 @@
 # limitations under the License.
 """_implementation model components."""
 
-
-from google_cloud_pipeline_components._implementation.model.get_model.component import get_vertex_model as GetVertexModelOp
+from google_cloud_pipeline_components._implementation.model.get_model.component import (
+    get_vertex_model as GetVertexModelOp,
+)
 
 __all__ = [
     'GetVertexModelOp',

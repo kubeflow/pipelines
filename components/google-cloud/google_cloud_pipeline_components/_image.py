@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Constants for the GCPC image."""
+
 from google_cloud_pipeline_components import version
 
 GCPC_IMAGE_NAME = 'gcr.io/ml-pipeline/google-cloud-pipeline-components'

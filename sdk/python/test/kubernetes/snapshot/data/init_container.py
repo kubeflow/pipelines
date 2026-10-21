@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from kfp import dsl
-from kfp.kubernetes import add_init_container
-from kfp.kubernetes import empty_dir_mount
+from kfp.kubernetes import add_init_container, empty_dir_mount
 
 
 @dsl.component

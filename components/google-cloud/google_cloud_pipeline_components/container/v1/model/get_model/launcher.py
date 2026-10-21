@@ -16,44 +16,46 @@
 import argparse
 import sys
 
-from google_cloud_pipeline_components.container.v1.model.get_model import remote_runner
+from google_cloud_pipeline_components.container.v1.model.get_model import (
+    remote_runner,
+)
 
 
 def _parse_args(args):
-  """Parse command line arguments."""
-  parser = argparse.ArgumentParser(
-      prog='Vertex Pipelines get model launcher', description=''
-  )
-  parser.add_argument(
-      '--executor_input',
-      dest='executor_input',
-      type=str,
-      # executor_input is only needed for components that emit output artifacts.
-      required=True,
-      default=argparse.SUPPRESS,
-  )
-  parser.add_argument('--project', dest='project', type=str)
-  parser.add_argument('--location', dest='location', type=str)
-  parser.add_argument('--model_name', dest='model_name', type=str)
-  parsed_args, _ = parser.parse_known_args(args)
-  return vars(parsed_args)
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        prog='Vertex Pipelines get model launcher', description=''
+    )
+    parser.add_argument(
+        '--executor_input',
+        dest='executor_input',
+        type=str,
+        # executor_input is only needed for components that emit output artifacts.
+        required=True,
+        default=argparse.SUPPRESS,
+    )
+    parser.add_argument('--project', dest='project', type=str)
+    parser.add_argument('--location', dest='location', type=str)
+    parser.add_argument('--model_name', dest='model_name', type=str)
+    parsed_args, _ = parser.parse_known_args(args)
+    return vars(parsed_args)
 
 
 def main(argv):
-  """Main entry.
+    """Main entry.
 
-  Expected input args are as follows:
-    model_name - Required. Provided string resource name to create a model
-    artifact.
-    project - Required. Project to get this Model from.
-    location - Required. Location to get this Model from.
+    Expected input args are as follows:
+      model_name - Required. Provided string resource name to create a model
+      artifact.
+      project - Required. Project to get this Model from.
+      location - Required. Location to get this Model from.
 
-  Args:
-    argv: A list of system arguments.
-  """
-  parsed_args = _parse_args(argv)
-  remote_runner.get_model(**parsed_args)
+    Args:
+      argv: A list of system arguments.
+    """
+    parsed_args = _parse_args(argv)
+    remote_runner.get_model(**parsed_args)
 
 
 if __name__ == '__main__':
-  main(sys.argv[1:])
+    main(sys.argv[1:])

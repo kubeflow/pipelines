@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -23,7 +22,9 @@ def generate_random_number(low: int, high: int, output: dsl.OutputPath(int)):
         command=['sh', '-c'],
         args=[
             'mkdir -p "$(dirname $2)" && python -c "import random; print(random.randint($0, $1), end=\'\')" | tee $2',
-            low, high, output
+            low,
+            high,
+            output,
         ],
     )
 
@@ -34,8 +35,8 @@ def flip_coin(output: dsl.OutputPath(str)):
         image='python:3.11',
         command=['sh', '-c'],
         args=[
-            'mkdir -p "$(dirname $0)" && python -c "import random; print(\'heads\' if random.randint(0,1) == 0 else \'tails\', end=\'\')" | tee $0',
-            output
+            "mkdir -p \"$(dirname $0)\" && python -c \"import random; print('heads' if random.randint(0,1) == 0 else 'tails', end='')\" | tee $0",
+            output,
         ],
     )
 
@@ -48,7 +49,8 @@ def print_op(msg: str):
 @dsl.pipeline(
     name='conditional-execution-pipeline',
     display_name='Conditional execution pipeline.',
-    description='Shows how to use dsl.Condition().')
+    description='Shows how to use dsl.Condition().',
+)
 def my_pipeline():
     flip = flip_coin()
     with dsl.Condition(flip.output == 'heads'):
@@ -68,5 +70,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

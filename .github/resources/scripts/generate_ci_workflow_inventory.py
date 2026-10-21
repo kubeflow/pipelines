@@ -16,9 +16,9 @@
 
 import hashlib
 import json
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -61,8 +61,9 @@ def upgrade_paused(path, definition):
         return False
     for job in jobs.values():
         condition = job.get('if') if isinstance(job, dict) else None
-        if condition is not False and not (isinstance(condition, str) and
-                                           condition.strip() == '${{ false }}'):
+        if condition is not False and not (
+            isinstance(condition, str) and condition.strip() == '${{ false }}'
+        ):
             return False
     return True
 
@@ -74,10 +75,14 @@ def trigger_header(content):
     keys = set()
     for line in content.decode('utf-8').splitlines():
         if line and not line[0].isspace() and not line.startswith('#'):
-            match = re.match(r'''^(?:([a-z_]+)|"([a-z_]+)"|'([a-z_]+)')\s*:''',
-                             line)
-            key = next(
-                (part for part in match.groups() if part), '') if match else ''
+            match = re.match(
+                r"""^(?:([a-z_]+)|"([a-z_]+)"|'([a-z_]+)')\s*:""", line
+            )
+            key = (
+                next((part for part in match.groups() if part), '')
+                if match
+                else ''
+            )
             selected = key in ('name', 'on')
             if selected:
                 if key in keys:
@@ -98,9 +103,13 @@ def build_inventory(records):
     seen = set()
     for record in records:
         path = record['path']
-        if (not isinstance(path, str) or not re.fullmatch(
-                r'\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml', path) or
-                path in seen):
+        if (
+            not isinstance(path, str)
+            or not re.fullmatch(
+                r'\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml', path
+            )
+            or path in seen
+        ):
             raise ValueError('Invalid or duplicate workflow path')
         seen.add(path)
         content = record['content'].encode('utf-8')
@@ -109,11 +118,14 @@ def build_inventory(records):
             raise ValueError(f'Invalid workflow definition: {path}')
         header = trigger_header(content)
         header_definition = yaml.load(header, Loader=UniqueKeyLoader)
-        if (header_definition.get('name') != definition.get('name') or
-                header_definition.get('on', header_definition.get(True))
-                != definition.get('on', definition.get(True))):
+        if header_definition.get('name') != definition.get(
+            'name'
+        ) or header_definition.get(
+            'on', header_definition.get(True)
+        ) != definition.get('on', definition.get(True)):
             raise ValueError(
-                f'Workflow header extraction is incomplete: {path}')
+                f'Workflow header extraction is incomplete: {path}'
+            )
         # Preserve support for both quoted and unquoted workflow event keys.
         events = definition.get('on', definition.get(True, {}))
         if isinstance(events, str):
@@ -122,18 +134,18 @@ def build_inventory(records):
             events = {event: None for event in events}
         if not isinstance(events, dict):
             raise ValueError(f'Unsupported workflow trigger: {path}')
-        if not isinstance(definition.get('name'),
-                          str) or not definition['name']:
+        if (
+            not isinstance(definition.get('name'), str)
+            or not definition['name']
+        ):
             raise ValueError(f'Invalid workflow name: {path}')
         workflow = {
-            'path':
-                path,
-            'name':
-                definition['name'],
-            'header_sha256':
-                hashlib.sha256(header).hexdigest(),
+            'path': path,
+            'name': definition['name'],
+            'header_sha256': hashlib.sha256(header).hexdigest(),
             'pull_request': (events['pull_request'] or {})
-                            if 'pull_request' in events else None,
+            if 'pull_request' in events
+            else None,
         }
         if upgrade_paused(path, definition):
             workflow['disabled_for_migration'] = True
@@ -147,23 +159,31 @@ def main():
         inventory = build_inventory(json.load(sys.stdin))
         json.dump(
             {
-                'inventory':
-                    inventory,
-                'workflowFiles': [{
-                    'path': workflow['path'],
-                    'header_sha256': workflow['header_sha256'],
-                } for workflow in inventory['workflows']],
-            }, sys.stdout)
+                'inventory': inventory,
+                'workflowFiles': [
+                    {
+                        'path': workflow['path'],
+                        'header_sha256': workflow['header_sha256'],
+                    }
+                    for workflow in inventory['workflows']
+                ],
+            },
+            sys.stdout,
+        )
     elif not sys.argv[1:]:
         inventory = build_inventory(
-            [{
-                'path': path.relative_to(ROOT).as_posix(),
-                'content': path.read_text(encoding='utf-8'),
-            }
-             for path in sorted((ROOT / '.github/workflows').iterdir())
-             if path.suffix in ('.yml', '.yaml')])
+            [
+                {
+                    'path': path.relative_to(ROOT).as_posix(),
+                    'content': path.read_text(encoding='utf-8'),
+                }
+                for path in sorted((ROOT / '.github/workflows').iterdir())
+                if path.suffix in ('.yml', '.yaml')
+            ]
+        )
         OUTPUT.write_text(
-            json.dumps(inventory, indent=2) + '\n', encoding='utf-8')
+            json.dumps(inventory, indent=2) + '\n', encoding='utf-8'
+        )
     else:
         raise ValueError('Expected no arguments or --stdin')
 

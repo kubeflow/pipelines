@@ -15,7 +15,9 @@
 """Serve batch predictions from your models using [Vertex AI Batch Predictions](https://cloud.google.com/vertex-ai/docs/predictions/overview?_ga=2.161419069.-1686833729.1684288907#batch_predictions)."""
 # fmt: on
 
-from google_cloud_pipeline_components.v1.batch_predict_job.component import model_batch_predict as ModelBatchPredictOp
+from google_cloud_pipeline_components.v1.batch_predict_job.component import (
+    model_batch_predict as ModelBatchPredictOp,
+)
 
 __all__ = [
     'ModelBatchPredictOp',

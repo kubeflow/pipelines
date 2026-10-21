@@ -14,13 +14,16 @@
 
 from typing import Dict
 
+from kfp.dsl import (
+    ConcatPlaceholder,
+    ContainerSpec,
+    Input,
+    OutputPath,
+    container_component,
+)
+
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
-from kfp.dsl import ConcatPlaceholder
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Input
-from kfp.dsl import OutputPath
 
 
 @container_component
@@ -32,8 +35,8 @@ def model_export(
     artifact_destination: str = '',
     image_destination: str = '',
 ):
-  # fmt: off
-  """[Exports](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) to a user-specified location. The Model must be exportable. A Model is considered to be exportable if it has at least one supported export format. See the [Model export](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export) method for more information.
+    # fmt: off
+    """[Exports](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) to a user-specified location. The Model must be exportable. A Model is considered to be exportable if it has at least one supported export format. See the [Model export](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export) method for more information.
 
   Args:
       model: The Model to export.
@@ -45,48 +48,50 @@ def model_export(
       output_info: Details of the completed export with output destination paths to the artifacts or container image.
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the export Model's long-running operation.
   """
-  # fmt: on
-  return ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.model.export_model.launcher',
-      ],
-      args=[
-          '--type',
-          'ExportModel',
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"name": "',
-              model.metadata['resourceName'],
-              '"',
-              ', "output_config": {',
-              '"export_format_id": "',
-              export_format_id,
-              '"',
-              ', "artifact_destination": {',
-              '"output_uri_prefix": "',
-              artifact_destination,
-              '"',
-              '}',
-              ', "image_destination":  {',
-              '"output_uri": "',
-              image_destination,
-              '"',
-              '}',
-              '}',
-              '}',
-          ]),
-          '--project',
-          '',  # not being used
-          '--location',
-          '',  # not being used
-          '--gcp_resources',
-          gcp_resources,
-          '--output_info',
-          output_info,
-      ],
-  )
+    # fmt: on
+    return ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.model.export_model.launcher',
+        ],
+        args=[
+            '--type',
+            'ExportModel',
+            '--payload',
+            ConcatPlaceholder(
+                [
+                    '{',
+                    '"name": "',
+                    model.metadata['resourceName'],
+                    '"',
+                    ', "output_config": {',
+                    '"export_format_id": "',
+                    export_format_id,
+                    '"',
+                    ', "artifact_destination": {',
+                    '"output_uri_prefix": "',
+                    artifact_destination,
+                    '"',
+                    '}',
+                    ', "image_destination":  {',
+                    '"output_uri": "',
+                    image_destination,
+                    '"',
+                    '}',
+                    '}',
+                    '}',
+                ]
+            ),
+            '--project',
+            '',  # not being used
+            '--location',
+            '',  # not being used
+            '--gcp_resources',
+            gcp_resources,
+            '--output_info',
+            output_info,
+        ],
+    )

@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Python function-based components used in KFP pipelies."""
+
 import functools
 from typing import List, NamedTuple, Optional
 
+from kfp import dsl
+
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components._implementation.llm import env
-from kfp import dsl
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
@@ -31,76 +33,76 @@ def resolve_machine_spec(
     accelerator_type=str,
     accelerator_count=int,
 ):
-  """Returns machine spec to use for a given accelerator_type.
+    """Returns machine spec to use for a given accelerator_type.
 
-  Args:
-    accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning
-      components run in europe-west4. Otherwise tuning components run in
-      us-central1 on GPUs. Default is 'GPU'.
-    use_test_spec: Whether to use a lower resource machine for testing. If True,
-      a machine with the specified `accelerator_type` is provisioned.
+    Args:
+      accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning
+        components run in europe-west4. Otherwise tuning components run in
+        us-central1 on GPUs. Default is 'GPU'.
+      use_test_spec: Whether to use a lower resource machine for testing. If True,
+        a machine with the specified `accelerator_type` is provisioned.
 
-  Returns:
-    Machine spec.
-    tuning_location: Where the machine will run.
+    Returns:
+      Machine spec.
+      tuning_location: Where the machine will run.
 
-  Raises:
-    ValueError: If accelerators are requested in an unsupported location.
-  """
-  outputs = NamedTuple(  # pyrefly: ignore[bad-class-definition]
-      'MachineSpec',
-      machine_type=str,
-      accelerator_count=int,
-      tuning_location=str,
-      accelerator_type=str,
-  )
-  if use_test_spec:
+    Raises:
+      ValueError: If accelerators are requested in an unsupported location.
+    """
+    outputs = NamedTuple(  # pyrefly: ignore[bad-class-definition]
+        'MachineSpec',
+        machine_type=str,
+        accelerator_count=int,
+        tuning_location=str,
+        accelerator_type=str,
+    )
+    if use_test_spec:
+        if accelerator_type == 'TPU':
+            return outputs(
+                machine_type='cloud-tpu',  # pyrefly: ignore[unexpected-keyword]
+                accelerator_type='TPU_V3',  # pyrefly: ignore[unexpected-keyword]
+                accelerator_count=32,  # pyrefly: ignore[unexpected-keyword]
+                tuning_location='europe-west4',  # pyrefly: ignore[unexpected-keyword]
+            )
+        elif accelerator_type == 'GPU':
+            return outputs(
+                machine_type='a2-highgpu-1g',  # pyrefly: ignore[unexpected-keyword]
+                accelerator_type='NVIDIA_TESLA_A100',  # pyrefly: ignore[unexpected-keyword]
+                accelerator_count=1,  # pyrefly: ignore[unexpected-keyword]
+                tuning_location='us-central1',  # pyrefly: ignore[unexpected-keyword]
+            )
+        elif accelerator_type == 'CPU':
+            return outputs(
+                machine_type='e2-standard-16',  # pyrefly: ignore[unexpected-keyword]
+                accelerator_type='ACCELERATOR_TYPE_UNSPECIFIED',  # pyrefly: ignore[unexpected-keyword]
+                accelerator_count=0,  # pyrefly: ignore[unexpected-keyword]
+                tuning_location='us-central1',  # pyrefly: ignore[unexpected-keyword]
+            )
+        else:
+            raise ValueError(
+                f'Unsupported test accelerator_type {accelerator_type}. Must be one '
+                'of TPU, GPU or CPU.'
+            )
+
     if accelerator_type == 'TPU':
-      return outputs(
-          machine_type='cloud-tpu',  # pyrefly: ignore[unexpected-keyword]
-          accelerator_type='TPU_V3',  # pyrefly: ignore[unexpected-keyword]
-          accelerator_count=32,  # pyrefly: ignore[unexpected-keyword]
-          tuning_location='europe-west4',  # pyrefly: ignore[unexpected-keyword]
-      )
+        return outputs(
+            machine_type='cloud-tpu',  # pyrefly: ignore[unexpected-keyword]
+            accelerator_type='TPU_V3',  # pyrefly: ignore[unexpected-keyword]
+            accelerator_count=64,  # pyrefly: ignore[unexpected-keyword]
+            tuning_location='europe-west4',  # pyrefly: ignore[unexpected-keyword]
+        )
     elif accelerator_type == 'GPU':
-      return outputs(
-          machine_type='a2-highgpu-1g',  # pyrefly: ignore[unexpected-keyword]
-          accelerator_type='NVIDIA_TESLA_A100',  # pyrefly: ignore[unexpected-keyword]
-          accelerator_count=1,  # pyrefly: ignore[unexpected-keyword]
-          tuning_location='us-central1',  # pyrefly: ignore[unexpected-keyword]
-      )
-    elif accelerator_type == 'CPU':
-      return outputs(
-          machine_type='e2-standard-16',  # pyrefly: ignore[unexpected-keyword]
-          accelerator_type='ACCELERATOR_TYPE_UNSPECIFIED',  # pyrefly: ignore[unexpected-keyword]
-          accelerator_count=0,  # pyrefly: ignore[unexpected-keyword]
-          tuning_location='us-central1',  # pyrefly: ignore[unexpected-keyword]
-      )
+        return outputs(
+            machine_type='a2-ultragpu-8g',  # pyrefly: ignore[unexpected-keyword]
+            accelerator_type='NVIDIA_A100_80GB',  # pyrefly: ignore[unexpected-keyword]
+            accelerator_count=8,  # pyrefly: ignore[unexpected-keyword]
+            tuning_location='us-central1',  # pyrefly: ignore[unexpected-keyword]
+        )
     else:
-      raise ValueError(
-          f'Unsupported test accelerator_type {accelerator_type}. Must be one '
-          'of TPU, GPU or CPU.'
-      )
-
-  if accelerator_type == 'TPU':
-    return outputs(
-        machine_type='cloud-tpu',  # pyrefly: ignore[unexpected-keyword]
-        accelerator_type='TPU_V3',  # pyrefly: ignore[unexpected-keyword]
-        accelerator_count=64,  # pyrefly: ignore[unexpected-keyword]
-        tuning_location='europe-west4',  # pyrefly: ignore[unexpected-keyword]
-    )
-  elif accelerator_type == 'GPU':
-    return outputs(
-        machine_type='a2-ultragpu-8g',  # pyrefly: ignore[unexpected-keyword]
-        accelerator_type='NVIDIA_A100_80GB',  # pyrefly: ignore[unexpected-keyword]
-        accelerator_count=8,  # pyrefly: ignore[unexpected-keyword]
-        tuning_location='us-central1',  # pyrefly: ignore[unexpected-keyword]
-    )
-  else:
-    raise ValueError(
-        f'Unsupported accelerator_type {accelerator_type}. Must be one of'
-        'TPU or GPU.'
-    )
+        raise ValueError(
+            f'Unsupported accelerator_type {accelerator_type}. Must be one of'
+            'TPU or GPU.'
+        )
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
@@ -112,40 +114,43 @@ def resolve_refined_image_uri(
     accelerator_type: str = '',
     use_experimental_image: bool = False,
 ) -> str:
-  """Generates image uri based on base image name and accelerator type.
+    """Generates image uri based on base image name and accelerator type.
 
-  Args:
-    project: Project that contains the artifact registry.
-    location: Region that contains the artifact registry.
-    artifact_registry: Registry that contains Docker images.
-    tag: Image tag.
-    accelerator_type: One of the supported accelerator types, e.g. ``'TPU_V3'``.
-    use_experimental_image: Whether to use refined experimental image. Default
-      is False.
+    Args:
+      project: Project that contains the artifact registry.
+      location: Region that contains the artifact registry.
+      artifact_registry: Registry that contains Docker images.
+      tag: Image tag.
+      accelerator_type: One of the supported accelerator types, e.g. ``'TPU_V3'``.
+      use_experimental_image: Whether to use refined experimental image. Default
+        is False.
 
-  Returns:
-    Docker image uri
+    Returns:
+      Docker image uri
 
-  Raises:
-    ValueError: if an unsupported accelerator type is provided.
-  """
-  if not accelerator_type or accelerator_type == 'ACCELERATOR_TYPE_UNSPECIFIED':
-    accelerator_postfix = 'cpu'
-  elif 'TPU' in accelerator_type:
-    accelerator_postfix = 'tpu'
-  elif 'A100' in accelerator_type:
-    accelerator_postfix = 'gpu'
-  else:
-    raise ValueError(
-        f'Unsupported accelerator type {accelerator_type}. Must a TPU, an A100'
-        'variant or empty if using a CPU-only machine.'
-    )
+    Raises:
+      ValueError: if an unsupported accelerator type is provided.
+    """
+    if (
+        not accelerator_type
+        or accelerator_type == 'ACCELERATOR_TYPE_UNSPECIFIED'
+    ):
+        accelerator_postfix = 'cpu'
+    elif 'TPU' in accelerator_type:
+        accelerator_postfix = 'tpu'
+    elif 'A100' in accelerator_type:
+        accelerator_postfix = 'gpu'
+    else:
+        raise ValueError(
+            f'Unsupported accelerator type {accelerator_type}. Must a TPU, an A100'
+            'variant or empty if using a CPU-only machine.'
+        )
 
-  image_name_prefix = 'refined_'
-  if use_experimental_image:
-    image_name_prefix += 'experimental_'
+    image_name_prefix = 'refined_'
+    if use_experimental_image:
+        image_name_prefix += 'experimental_'
 
-  return f'{location}-docker.pkg.dev/{project}/{artifact_registry}/{image_name_prefix}{accelerator_postfix}:{tag}'
+    return f'{location}-docker.pkg.dev/{project}/{artifact_registry}/{image_name_prefix}{accelerator_postfix}:{tag}'
 
 
 # Resolves image uri from the environment's private artifact registry.
@@ -170,225 +175,228 @@ def resolve_reference_model_metadata(
     reward_model_reference=str,
     reward_model_path=str,
 ):
-  """Resolves reference model metadata needed by downstream components.
+    """Resolves reference model metadata needed by downstream components.
 
-  Args:
-    large_model_reference: User-provided reference model name.
-    reference_model_path: Optional path to a tuned based model to use in place
-      of the default base model. If specified, the model at this path must be a
-      tuned version of the base model associated with ``large_model_reference``.
+    Args:
+      large_model_reference: User-provided reference model name.
+      reference_model_path: Optional path to a tuned based model to use in place
+        of the default base model. If specified, the model at this path must be a
+        tuned version of the base model associated with ``large_model_reference``.
 
-  Returns:
-    Base model name (used by downstream components to find gin configs and load
-    vocabularies) and the path to the base model checkpoint.
+    Returns:
+      Base model name (used by downstream components to find gin configs and load
+      vocabularies) and the path to the base model checkpoint.
 
-  Raises:
-    ValueError: if no metadata exists for the given base model.
-  """
-  reference_model_metadata = NamedTuple(  # pyrefly: ignore[bad-class-definition]
-      'ReferenceModelMetadata',
-      large_model_reference=str,
-      reference_model_path=str,
-      reward_model_reference=str,
-      reward_model_path=str,
-      is_supported=bool,
-  )
-
-  reference_models = {
-      't5-small': reference_model_metadata(
-          large_model_reference='T5_SMALL',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
-              'safe_flan_t5/small/v1/checkpoint_1200000/'
-          ),
-          reward_model_reference='T5_SMALL',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_small',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      't5-large': reference_model_metadata(
-          large_model_reference='T5_LARGE',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
-              'safe_flan_t5/large/v1/checkpoint_1200000/'
-          ),
-          reward_model_reference='T5_LARGE',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_large',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      't5-xl': reference_model_metadata(
-          large_model_reference='T5_XL',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
-              'safe_flan_t5/xl/v1/checkpoint_1200000/'
-          ),
-          reward_model_reference='T5_XL',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      't5-xxl': reference_model_metadata(
-          large_model_reference='T5_XXL',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
-              'safe_flan_t5/xxl/v1/checkpoint_1190000/'
-          ),
-          reward_model_reference='T5_XXL',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xxl',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'palm-tiny': reference_model_metadata(
-          large_model_reference='PALM_TINY',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_reference='PALM_TINY',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=False,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'gecko': reference_model_metadata(
-          large_model_reference='GECKO',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko/'
-          ),
-          reward_model_reference='GECKO',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko_pretrain/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=False,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'otter': reference_model_metadata(
-          large_model_reference='OTTER',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter/'
-          ),
-          reward_model_reference='OTTER',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=False,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'bison': reference_model_metadata(
-          large_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
-          ),
-          reward_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
-          ),
-          is_supported=False,  # Deprecated: Use text-bision@001 instead.  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'text-bison@001': reference_model_metadata(
-          large_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
-          ),
-          reward_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
-          ),
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'text-bison@002': reference_model_metadata(
-          large_model_reference='BISON_002',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/'
-          ),
-          reward_model_reference='BISON_002',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'chat-bison@001': reference_model_metadata(
-          large_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
-          ),
-          reward_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
-          ),
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'elephant': reference_model_metadata(
-          large_model_reference='ELEPHANT',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_elephant/'
-          ),
-          reward_model_reference='OTTER',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=False,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'llama-2-7b': reference_model_metadata(
-          large_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'llama-2-13b': reference_model_metadata(
-          large_model_reference='LLAMA_2_13B',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'llama-2-7b-chat': reference_model_metadata(
-          large_model_reference='LLAMA_2_7B_CHAT',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b_chat/',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-      'llama-2-13b-chat': reference_model_metadata(
-          large_model_reference='LLAMA_2_13B_CHAT',  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b_chat/',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
-          is_supported=True,  # pyrefly: ignore[unexpected-keyword]
-      ),
-  }
-
-  reference_model_key = large_model_reference.lower().replace('_', '-')
-  if reference_model_key not in reference_models:
-    supported_models = [
-        k for k, v in reference_models.items() if v.is_supported  # pyrefly: ignore[missing-attribute]
-    ]
-    raise ValueError(
-        f'Unknown reference model {large_model_reference}.'
-        ' large_model_reference must be one of'
-        f' {sorted(supported_models)}.'
+    Raises:
+      ValueError: if no metadata exists for the given base model.
+    """
+    reference_model_metadata = NamedTuple(  # pyrefly: ignore[bad-class-definition]
+        'ReferenceModelMetadata',
+        large_model_reference=str,
+        reference_model_path=str,
+        reward_model_reference=str,
+        reward_model_path=str,
+        is_supported=bool,
     )
 
-  reference_model = reference_models[reference_model_key]
+    reference_models = {
+        't5-small': reference_model_metadata(
+            large_model_reference='T5_SMALL',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+                'safe_flan_t5/small/v1/checkpoint_1200000/'
+            ),
+            reward_model_reference='T5_SMALL',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_small',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        't5-large': reference_model_metadata(
+            large_model_reference='T5_LARGE',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+                'safe_flan_t5/large/v1/checkpoint_1200000/'
+            ),
+            reward_model_reference='T5_LARGE',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_large',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        't5-xl': reference_model_metadata(
+            large_model_reference='T5_XL',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+                'safe_flan_t5/xl/v1/checkpoint_1200000/'
+            ),
+            reward_model_reference='T5_XL',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        't5-xxl': reference_model_metadata(
+            large_model_reference='T5_XXL',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+                'safe_flan_t5/xxl/v1/checkpoint_1190000/'
+            ),
+            reward_model_reference='T5_XXL',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xxl',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'palm-tiny': reference_model_metadata(
+            large_model_reference='PALM_TINY',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_reference='PALM_TINY',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=False,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'gecko': reference_model_metadata(
+            large_model_reference='GECKO',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko/'
+            ),
+            reward_model_reference='GECKO',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko_pretrain/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=False,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'otter': reference_model_metadata(
+            large_model_reference='OTTER',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter/'
+            ),
+            reward_model_reference='OTTER',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=False,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'bison': reference_model_metadata(
+            large_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+            ),
+            reward_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+            ),
+            is_supported=False,  # Deprecated: Use text-bision@001 instead.  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'text-bison@001': reference_model_metadata(
+            large_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+            ),
+            reward_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+            ),
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'text-bison@002': reference_model_metadata(
+            large_model_reference='BISON_002',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/'
+            ),
+            reward_model_reference='BISON_002',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'chat-bison@001': reference_model_metadata(
+            large_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+            ),
+            reward_model_reference='BISON',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+            ),
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'elephant': reference_model_metadata(
+            large_model_reference='ELEPHANT',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+                'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_elephant/'
+            ),
+            reward_model_reference='OTTER',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=False,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'llama-2-7b': reference_model_metadata(
+            large_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'llama-2-13b': reference_model_metadata(
+            large_model_reference='LLAMA_2_13B',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'llama-2-7b-chat': reference_model_metadata(
+            large_model_reference='LLAMA_2_7B_CHAT',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b_chat/',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+        'llama-2-13b-chat': reference_model_metadata(
+            large_model_reference='LLAMA_2_13B_CHAT',  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b_chat/',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_reference='LLAMA_2_7B',  # pyrefly: ignore[unexpected-keyword]
+            reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',  # pyrefly: ignore[unexpected-keyword]
+            is_supported=True,  # pyrefly: ignore[unexpected-keyword]
+        ),
+    }
 
-  outputs = NamedTuple(  # pyrefly: ignore[bad-class-definition]
-      'Outputs',
-      large_model_reference=str,
-      reference_model_path=str,
-      reward_model_reference=str,
-      reward_model_path=str,
-  )
+    reference_model_key = large_model_reference.lower().replace('_', '-')
+    if reference_model_key not in reference_models:
+        supported_models = [
+            k
+            for k, v in reference_models.items()
+            if v.is_supported  # pyrefly: ignore[missing-attribute]
+        ]
+        raise ValueError(
+            f'Unknown reference model {large_model_reference}.'
+            ' large_model_reference must be one of'
+            f' {sorted(supported_models)}.'
+        )
 
-  return outputs(
-      large_model_reference=reference_model.large_model_reference,  # pyrefly: ignore[missing-attribute, unexpected-keyword]
-      reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
-          reference_model_path or reference_model.reference_model_path  # pyrefly: ignore[missing-attribute]
-      ),
-      reward_model_reference=reference_model.reward_model_reference,  # pyrefly: ignore[missing-attribute, unexpected-keyword]
-      reward_model_path=reference_model.reward_model_path,  # pyrefly: ignore[missing-attribute, unexpected-keyword]
-  )
+    reference_model = reference_models[reference_model_key]
+
+    outputs = NamedTuple(  # pyrefly: ignore[bad-class-definition]
+        'Outputs',
+        large_model_reference=str,
+        reference_model_path=str,
+        reward_model_reference=str,
+        reward_model_path=str,
+    )
+
+    return outputs(
+        large_model_reference=reference_model.large_model_reference,  # pyrefly: ignore[missing-attribute, unexpected-keyword]
+        reference_model_path=(  # pyrefly: ignore[unexpected-keyword]
+            reference_model_path or reference_model.reference_model_path  # pyrefly: ignore[missing-attribute]
+        ),
+        reward_model_reference=reference_model.reward_model_reference,  # pyrefly: ignore[missing-attribute, unexpected-keyword]
+        reward_model_path=reference_model.reward_model_path,  # pyrefly: ignore[missing-attribute, unexpected-keyword]
+    )
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def convert_to_delimited_string(items: List[str], delimiter: str = ',') -> str:
-  """Converts a list of strings to single string delimited by the specified character."""
-  return delimiter.join(items)
+    """Converts a list of strings to single string delimited by the specified
+    character."""
+    return delimiter.join(items)
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_regional_endpoint(upload_location: str) -> str:
-  """Gets the regional endpoint used to upload a model to the registry.
+    """Gets the regional endpoint used to upload a model to the registry.
 
-  Args:
-    upload_location: Region where the model will be uploaded.
+    Args:
+      upload_location: Region where the model will be uploaded.
 
-  Returns:
-    Regional endpoint.
-  """
-  return f'https://{upload_location}-aiplatform.googleapis.com/ui'
+    Returns:
+      Regional endpoint.
+    """
+    return f'https://{upload_location}-aiplatform.googleapis.com/ui'
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
@@ -396,88 +404,91 @@ def resolve_model_display_name(
     large_model_reference: str,
     model_display_name: Optional[str] = None,
 ) -> str:
-  """Gets the model display name shown in the registry and used for endpoints.
+    """Gets the model display name shown in the registry and used for
+    endpoints.
 
-  Args:
-    large_model_reference: Base model tuned by the pipeline.
-    model_display_name: User-provided display name. If not provided, a default
-      display name will be created.
+    Args:
+      large_model_reference: Base model tuned by the pipeline.
+      model_display_name: User-provided display name. If not provided, a default
+        display name will be created.
 
-  Returns:
-    Either the user-provided name or a default display name with the form
-    ``{large_model_reference}-{timestamp}``
-  """
-  # pylint: disable=g-import-not-at-top
-  import datetime
-  # pylint: enable=g-import-not-at-top
-  now = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-  return model_display_name or f'{large_model_reference.lower()}-{now}'
+    Returns:
+      Either the user-provided name or a default display name with the form
+      ``{large_model_reference}-{timestamp}``
+    """
+    # pylint: disable=g-import-not-at-top
+    import datetime
+
+    # pylint: enable=g-import-not-at-top
+    now = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    return model_display_name or f'{large_model_reference.lower()}-{now}'
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_deploy_model(
     deploy_model: bool, large_model_reference: str
 ) -> bool:
-  """Resolves runtime parameter that determines whether the tuned model should be deployed."""
-  supported_models = {'BISON', 'BISON_002'}
-  if deploy_model and large_model_reference in supported_models:
-    return True
-  return False
+    """Resolves runtime parameter that determines whether the tuned model
+    should be deployed."""
+    supported_models = {'BISON', 'BISON_002'}
+    if deploy_model and large_model_reference in supported_models:
+        return True
+    return False
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def value_exists(value: Optional[str] = None) -> bool:
-  """Returns whether a runtime parameter was provided.
+    """Returns whether a runtime parameter was provided.
 
-  Args:
-    value: That might have been provided.
+    Args:
+      value: That might have been provided.
 
-  Returns:
-    Whether the string is not None and non-empty.
-  """
-  if not value:
-    return False
-  return True
+    Returns:
+      Whether the string is not None and non-empty.
+    """
+    if not value:
+        return False
+    return True
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_upload_model(large_model_reference: str) -> bool:
-  """Returns whether the model should be uploaded."""
-  supported_models = {'BISON', 'BISON_002'}
-  if large_model_reference in supported_models:
-    return True
-  return False
+    """Returns whether the model should be uploaded."""
+    supported_models = {'BISON', 'BISON_002'}
+    if large_model_reference in supported_models:
+        return True
+    return False
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_instruction(
     large_model_reference: str, instruction: Optional[str] = None
 ) -> str:
-  """Resolves the instruction to use for a given reference model.
+    """Resolves the instruction to use for a given reference model.
 
-  Args:
-    large_model_reference: Base model tuned by the pipeline.
-    instruction: Instruction provided at runtime.
+    Args:
+      large_model_reference: Base model tuned by the pipeline.
+      instruction: Instruction provided at runtime.
 
-  Returns:
-    Instruction to use during tokenization based on model type. Returns an empty
-      string for chat models because the instruction is prepended as the default
-      context. Otherwise the original instruction is returned.
-  """
-  instruction = instruction or ''
-  return instruction if 'chat' not in large_model_reference.lower() else ''
+    Returns:
+      Instruction to use during tokenization based on model type. Returns an empty
+        string for chat models because the instruction is prepended as the default
+        context. Otherwise the original instruction is returned.
+    """
+    instruction = instruction or ''
+    return instruction if 'chat' not in large_model_reference.lower() else ''
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_num_microbatches(large_model_reference: str) -> int:
-  """Resolves the number of microbatches to use during training.
+    """Resolves the number of microbatches to use during training.
 
-  Args:
-    large_model_reference: Base model tuned by the pipeline.
+    Args:
+      large_model_reference: Base model tuned by the pipeline.
 
-  Returns:
-    Number of microbatches to break the total batch size into during training.
-  """
-  if 'llama' in large_model_reference.lower():
-    return 2
-  return 0
+    Returns:
+      Number of microbatches to break the total batch size into during training.
+    """
+    if 'llama' in large_model_reference.lower():
+        return 2
+    return 0

@@ -77,33 +77,37 @@ Dependencies for code style checks/changes are managed in [pyproject.toml](https
 
 
 #### Style Guide [Required]
-The KFP SDK follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html).
+The KFP SDK follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), with formatting and import layout defined by Ruff.
 
 #### Formatting [Required]
-Please format your code using [yapf](https://github.com/google/yapf) according to the [`.style.yapf`](https://github.com/kubeflow/pipelines/blob/master/.style.yapf) file.
+Use [Ruff](https://docs.astral.sh/ruff/) with the repository's `pyproject.toml` configuration. From the project root:
 
-From the project root, run the following code to format your code:
 ```sh
-yapf --in-place --recursive ./sdk/python
+uv sync --extra dev
+uv run ruff check --fix .
+uv run ruff format .
 ```
+
+This formats Python sources throughout the repository, excluding generated clients
+and protobuf bindings. Notebooks and Markdown are outside this check. Run
+`bash test/presubmit-ruff.sh` for the same read-only lint and formatting checks as CI.
 
 #### Docformatter [Required]
 We encourage you to lint your docstrings using [docformatter](https://github.com/PyCQA/docformatter).
 
 From the project root, run the following code to lint your docstrings:
 ```sh
-docformatter --in-place --recursive ./sdk/python
+uv run docformatter --in-place --recursive sdk/python \
+  --exclude "compiler_test.py" "*_pb2.py" "server_api" "kubernetes"
+uv run ruff format sdk/python
 ```
 
-### Code Style
-
-#### Formatting Imports [Required]
-Please organize your imports using [isort](https://pycqa.github.io/isort/index.html) according to the [`.isort.cfg`](https://github.com/kubeflow/pipelines/blob/master/.isort.cfg) file.
-
-From the project root, run the following code to format your code:
-```sh
-uv run isort sdk/python
-```
+#### Imports and Escape Sequences [Required]
+`ruff check` sorts imports, removes unused imports, and checks invalid escape
+sequences. Package `__init__.py` imports are retained as public re-exports. Mark
+intentional side-effect imports with `# noqa: F401` and a short explanation.
+Docformatter remains responsible for docstring prose wrapping; run it before
+Ruff's formatter.
 
 #### Pylint [Encouraged]
 We encourage you to lint your code using [pylint](https://pylint.org/) according to the project [`.pylintrc`](https://github.com/kubeflow/pipelines/blob/master/.pylintrc) file.

@@ -14,14 +14,16 @@
 
 from typing import Dict, List
 
-from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components import _placeholders
+from kfp.dsl import (
+    ConcatPlaceholder,
+    ContainerSpec,
+    Output,
+    OutputPath,
+    container_component,
+)
+
+from google_cloud_pipeline_components import _image, _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQTable
-from kfp.dsl import ConcatPlaceholder
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
 
 
 @container_component
@@ -36,69 +38,73 @@ def bigquery_query_job(
     encryption_spec_key_name: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-  # fmt: off
-  """Launch a BigQuery query job and waits for it to finish.
+    # fmt: off
+    """Launch a BigQuery query job and waits for it to finish.
 
-  Note: The total input commands/args to the component can be at most 50KB. This means the BigQuery query must be less than 50KB, since the input commands/args contain other non-query characters, including all parameter names, parameter values, and various JSON characters.
+    Note: The total input commands/args to the component can be at most 50KB. This means the BigQuery query must be less than 50KB, since the input commands/args contain other non-query characters, including all parameter names, parameter values, and various JSON characters.
 
-  Args:
-      location: Location for creating the BigQuery job. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      query: SQL query text to execute. Only standard SQL is supported.  If query are both specified in here and in job_configuration_query, the value in here will override the other one.
-      query_parameters: jobs.query parameters for standard SQL queries.  If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
-      job_configuration_query: A json formatted string describing the rest of the job configuration.  For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
-        Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name: Describes the Cloud KMS encryption key that will be used to protect destination BigQuery table. The BigQuery Service Account associated with your project requires access to this encryption key. If encryption_spec_key_name are both specified in here and in job_configuration_query, the value in here will override the other one.
-      project: Project to run the BigQuery query job. Defaults to the project in which the PipelineJob is run.
+    Args:
+        location: Location for creating the BigQuery job. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        query: SQL query text to execute. Only standard SQL is supported.  If query are both specified in here and in job_configuration_query, the value in here will override the other one.
+        query_parameters: jobs.query parameters for standard SQL queries.  If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+        job_configuration_query: A json formatted string describing the rest of the job configuration.  For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+        labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
+          Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+        encryption_spec_key_name: Describes the Cloud KMS encryption key that will be used to protect destination BigQuery table. The BigQuery Service Account associated with your project requires access to this encryption key. If encryption_spec_key_name are both specified in here and in job_configuration_query, the value in here will override the other one.
+        project: Project to run the BigQuery query job. Defaults to the project in which the PipelineJob is run.
 
-  Returns:
-      destination_table: Describes the table where the query results should be stored. This property must be set for large results that exceed the maximum response size. For queries that produce anonymous (cached) results, this field will be populated by BigQuery.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
-  """
-  # fmt: on
-  return ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher',
-      ],
-      args=[
-          '--type',
-          'BigqueryQueryJob',
-          '--project',
-          project,
-          '--location',
-          location,
-          '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"configuration": {',
-              '"query": ',
-              job_configuration_query,
-              ', "labels": ',
-              labels,
-              '}',
-              '}',
-          ]),
-          '--job_configuration_query_override',
-          ConcatPlaceholder([
-              '{',
-              '"query": "',
-              query,
-              '"',
-              ', "query_parameters": ',
-              query_parameters,
-              ', "destination_encryption_configuration": {',
-              '"kmsKeyName": "',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
-          '--gcp_resources',
-          gcp_resources,
-          '--executor_input',
-          '{{$}}',
-      ],
-  )
+    Returns:
+        destination_table: Describes the table where the query results should be stored. This property must be set for large results that exceed the maximum response size. For queries that produce anonymous (cached) results, this field will be populated by BigQuery.
+        gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+    """
+    # fmt: on
+    return ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher',
+        ],
+        args=[
+            '--type',
+            'BigqueryQueryJob',
+            '--project',
+            project,
+            '--location',
+            location,
+            '--payload',
+            ConcatPlaceholder(
+                [
+                    '{',
+                    '"configuration": {',
+                    '"query": ',
+                    job_configuration_query,
+                    ', "labels": ',
+                    labels,
+                    '}',
+                    '}',
+                ]
+            ),
+            '--job_configuration_query_override',
+            ConcatPlaceholder(
+                [
+                    '{',
+                    '"query": "',
+                    query,
+                    '"',
+                    ', "query_parameters": ',
+                    query_parameters,
+                    ', "destination_encryption_configuration": {',
+                    '"kmsKeyName": "',
+                    encryption_spec_key_name,
+                    '"}',
+                    '}',
+                ]
+            ),
+            '--gcp_resources',
+            gcp_resources,
+            '--executor_input',
+            '{{$}}',
+        ],
+    )

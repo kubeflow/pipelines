@@ -37,21 +37,23 @@ def pipeline_with_dynamic_condition_output(
     with dsl.Condition(flip1.output == 'heads'):
         custom_job.CustomTrainingJobOp(
             display_name='add-numbers',
-            worker_pool_specs=[{
-                'container_spec': {
-                    'image_uri': (
-                        'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0'
-                    ),
-                    'command': ['echo'],
-                    'args': ['foo'],
-                },
-                'machine_spec': {
-                    'machine_type': machine_type_task.output,
-                    'accelerator_type': accelerator_type_task.output,
-                    'accelerator_count': accelerator_count_task.output,
-                },
-                'replica_count': 1,
-            }],
+            worker_pool_specs=[
+                {
+                    'container_spec': {
+                        'image_uri': (
+                            'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0'
+                        ),
+                        'command': ['echo'],
+                        'args': ['foo'],
+                    },
+                    'machine_spec': {
+                        'machine_type': machine_type_task.output,
+                        'accelerator_type': accelerator_type_task.output,
+                        'accelerator_count': accelerator_count_task.output,
+                    },
+                    'replica_count': 1,
+                }
+            ],
             project=project,
             location=location,
             encryption_spec_key_name=encryption_spec_key_name,
@@ -60,5 +62,8 @@ def pipeline_with_dynamic_condition_output(
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pipeline_func=pipeline_with_dynamic_condition_output, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline_with_dynamic_condition_output,
+        package_path=__file__.replace('.py', '.yaml'),
+    )

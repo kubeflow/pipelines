@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""""Starry Net component to set TFRecord args."""
+"""Starry Net component to set TFRecord args."""
 
 from typing import List, NamedTuple
 
@@ -23,11 +23,11 @@ def set_tfrecord_args(
     dataprep_dir: dsl.InputPath(),
     static_covariates: List[str],
 ) -> NamedTuple(
-        'TfrecordArgs',
-        static_covariates_vocab_path=str,
-        train_tf_record_patterns=str,
-        val_tf_record_patterns=str,
-        test_tf_record_patterns=str,
+    'TfrecordArgs',
+    static_covariates_vocab_path=str,
+    train_tf_record_patterns=str,
+    val_tf_record_patterns=str,
+    test_tf_record_patterns=str,
 ):
     # fmt: off
     """Creates Trainer TFRecord args.

@@ -14,10 +14,9 @@
 
 from typing import Dict, List
 
-from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components import utils
 from kfp import dsl
+
+from google_cloud_pipeline_components import _image, _placeholders, utils
 
 
 # keep consistent with create_custom_training_job_from_component
@@ -40,8 +39,8 @@ def custom_training_job(
     persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-  # fmt: off
-  """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
+    # fmt: off
+    """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
 
   Args:
     location: Location for creating the custom training job. If not set, default to us-central1.
@@ -62,47 +61,51 @@ def custom_training_job(
   Returns:
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
-  # fmt: on
-  return dsl.ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-u',
-          '-m',
-          'google_cloud_pipeline_components.container.preview.custom_job.launcher',
-      ],
-      args=[
-          '--type',
-          'CustomJob',
-          '--payload',
-          utils.container_component_dumps({
-              'display_name': display_name,
-              'job_spec': {
-                  'worker_pool_specs': worker_pool_specs,
-                  'scheduling': {
-                      'timeout': timeout,
-                      'restart_job_on_worker_restart': (
-                          restart_job_on_worker_restart
-                      ),
-                  },
-                  'service_account': service_account,
-                  'tensorboard': tensorboard,
-                  'enable_web_access': enable_web_access,
-                  'network': network,
-                  'reserved_ip_ranges': reserved_ip_ranges,
-                  'base_output_directory': {
-                      'output_uri_prefix': base_output_directory
-                  },
-                  'persistent_resource_id': persistent_resource_id,
-              },
-              'labels': labels,
-              'encryption_spec': {'kms_key_name': encryption_spec_key_name},
-          }),
-          '--project',
-          project,
-          '--location',
-          location,
-          '--gcp_resources',
-          gcp_resources,
-      ],
-  )
+    # fmt: on
+    return dsl.ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-u',
+            '-m',
+            'google_cloud_pipeline_components.container.preview.custom_job.launcher',
+        ],
+        args=[
+            '--type',
+            'CustomJob',
+            '--payload',
+            utils.container_component_dumps(
+                {
+                    'display_name': display_name,
+                    'job_spec': {
+                        'worker_pool_specs': worker_pool_specs,
+                        'scheduling': {
+                            'timeout': timeout,
+                            'restart_job_on_worker_restart': (
+                                restart_job_on_worker_restart
+                            ),
+                        },
+                        'service_account': service_account,
+                        'tensorboard': tensorboard,
+                        'enable_web_access': enable_web_access,
+                        'network': network,
+                        'reserved_ip_ranges': reserved_ip_ranges,
+                        'base_output_directory': {
+                            'output_uri_prefix': base_output_directory
+                        },
+                        'persistent_resource_id': persistent_resource_id,
+                    },
+                    'labels': labels,
+                    'encryption_spec': {
+                        'kms_key_name': encryption_spec_key_name
+                    },
+                }
+            ),
+            '--project',
+            project,
+            '--location',
+            location,
+            '--gcp_resources',
+            gcp_resources,
+        ],
+    )

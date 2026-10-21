@@ -15,59 +15,59 @@
 
 import copy
 import textwrap
-from typing import Callable, Dict, List, Optional, Union
 import warnings
+from typing import Callable, Dict, List, Optional, Union
+
+import yaml
+from google.protobuf import json_format
+from kfp import components
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.v1.custom_job import component
-from kfp import components
-import yaml
-
-from google.protobuf import json_format
 
 
 def _replace_executor_placeholder(
     container_input: List[str],
 ) -> List[str]:
-  """Replace executor placeholder in container command or args.
+    """Replace executor placeholder in container command or args.
 
-  Args:
-    container_input: Container command or args.
+    Args:
+      container_input: Container command or args.
 
-  Returns: container_input with executor placeholder replaced.
-  """
-  # Executor replacement is used as executor content needs to be jsonified before
-  # injection into the payload, since payload is already a JSON serialized string.
-  EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
-  JSON_ESCAPED_EXECUTOR_INPUT_PLACEHOLDER = '{{$.json_escape[1]}}'
-  return [
-      JSON_ESCAPED_EXECUTOR_INPUT_PLACEHOLDER
-      if cmd_part == EXECUTOR_INPUT_PLACEHOLDER
-      else cmd_part
-      for cmd_part in container_input
-  ]
+    Returns: container_input with executor placeholder replaced.
+    """
+    # Executor replacement is used as executor content needs to be jsonified before
+    # injection into the payload, since payload is already a JSON serialized string.
+    EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
+    JSON_ESCAPED_EXECUTOR_INPUT_PLACEHOLDER = '{{$.json_escape[1]}}'
+    return [
+        JSON_ESCAPED_EXECUTOR_INPUT_PLACEHOLDER
+        if cmd_part == EXECUTOR_INPUT_PLACEHOLDER
+        else cmd_part
+        for cmd_part in container_input
+    ]
 
 
 def _get_default_boot_disk_type(machine_type: str) -> str:
-  """Get default boot disk type for a given machine type.
+    """Get default boot disk type for a given machine type.
 
-  Args:
-    machine_type: The machine type to get the default boot disk type for.
+    Args:
+      machine_type: The machine type to get the default boot disk type for.
 
-  Returns:
-    The default boot disk type for the given machine type.
-  """
-  if (
-      machine_type.startswith('a3-ultragpu-')
-      or machine_type.startswith('a4-highgpu')
-      or machine_type.startswith('a4x-highgpu')
-      or machine_type.startswith('g4-standard')
-      or machine_type.startswith('ct6e-')
-      or machine_type.startswith('tpu7x')
-      or machine_type.startswith('n4-')
-  ):
-    return 'hyperdisk-balanced'
-  return 'pd-ssd'
+    Returns:
+      The default boot disk type for the given machine type.
+    """
+    if (
+        machine_type.startswith('a3-ultragpu-')
+        or machine_type.startswith('a4-highgpu')
+        or machine_type.startswith('a4x-highgpu')
+        or machine_type.startswith('g4-standard')
+        or machine_type.startswith('ct6e-')
+        or machine_type.startswith('tpu7x')
+        or machine_type.startswith('n4-')
+    ):
+        return 'hyperdisk-balanced'
+    return 'pd-ssd'
 
 
 # keep identical to CustomTrainingJobOp
@@ -102,8 +102,8 @@ def create_custom_training_job_from_component(
         Dict[str, Union[str, List[Dict[str, str]]]]
     ] = None,
 ) -> Callable:
-  # fmt: off
-  """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
+    # fmt: off
+    """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
 
   This utility converts a [KFP component](https://www.kubeflow.org/docs/components/pipelines/v2/components/) provided to `component_spec` into `CustomTrainingJobOp` component. Your components inputs, outputs, and logic are carried over, with additional [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec) parameters exposed. Note that this utility constructs a ClusterSpec where the master and all the workers use the same spec, meaning all disk/machine spec related parameters will apply to all replicas. This is suitable for uses cases such as executing a training component over multiple replicas with [MultiWorkerMirroredStrategy](https://www.tensorflow.org/api_docs/python/tf/distribute/MultiWorkerMirroredStrategy) or [MirroredStrategy](https://www.tensorflow.org/api_docs/python/tf/distribute/MirroredStrategy). See [Create custom training jobs](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
 
@@ -139,191 +139,193 @@ def create_custom_training_job_from_component(
    Returns:
     A KFP component with CustomJob specification applied.
   """
-  # fmt: on
-  # This function constructs a Custom Job component based on the input
-  # component, by performing a 3-way merge of the inputs/outputs of the
-  # input component, the Custom Job component and the arguments given to this
-  # function.
-  #
-  # It first retrieves the PipelineSpec (as a Python dict) for each of the two
-  # components (the input component and the Custom Job component).
-  #   Note: The advantage of using the PipelineSpec here is that the
-  #   placeholders are (mostly) serialized, so there is less processing
-  #   needed (and avoids unnecessary dependency on KFP internals).
-  #
-  # The arguments to this function are first inserted into each input parameter
-  # of the Custom Job component as a default value (which will be used at
-  # runtime, unless when overridden by specifying the input).
-  # One particular input parameter that needs detailed construction is the
-  # worker_pool_spec, before being inserted into the Custom Job component.
-  #
-  # After inserting the arguments into the Custom Job input parameters as
-  # default values, the input/output parameters from the input component are
-  # then merged with the Custom Job input/output parameters. Preference is given
-  # to Custom Job input parameters to make sure they are not overridden (which
-  # follows the same logic as the original version).
-  #
-  # It is assumed that the Custom Job component itself has no input/output
-  # artifacts, so the artifacts from the input component needs no merging.
-  # (There is a unit test to make sure this is the case, otherwise merging of
-  # artifacts need to be done here.)
-  #
-  # Once the above is done, and the dict of the Custom Job is converted back
-  # into a KFP component (by first converting to YAML, then using
-  # load_component_from_text to load the YAML).
-  # After adding the appropriate description and the name, the new component
-  # is returned.
-  if network and psc_interface_config:
-    raise ValueError(
-        '`network` and `psc_interface_config` field cannot be set at the same'
-        ' time.'
+    # fmt: on
+    # This function constructs a Custom Job component based on the input
+    # component, by performing a 3-way merge of the inputs/outputs of the
+    # input component, the Custom Job component and the arguments given to this
+    # function.
+    #
+    # It first retrieves the PipelineSpec (as a Python dict) for each of the two
+    # components (the input component and the Custom Job component).
+    #   Note: The advantage of using the PipelineSpec here is that the
+    #   placeholders are (mostly) serialized, so there is less processing
+    #   needed (and avoids unnecessary dependency on KFP internals).
+    #
+    # The arguments to this function are first inserted into each input parameter
+    # of the Custom Job component as a default value (which will be used at
+    # runtime, unless when overridden by specifying the input).
+    # One particular input parameter that needs detailed construction is the
+    # worker_pool_spec, before being inserted into the Custom Job component.
+    #
+    # After inserting the arguments into the Custom Job input parameters as
+    # default values, the input/output parameters from the input component are
+    # then merged with the Custom Job input/output parameters. Preference is given
+    # to Custom Job input parameters to make sure they are not overridden (which
+    # follows the same logic as the original version).
+    #
+    # It is assumed that the Custom Job component itself has no input/output
+    # artifacts, so the artifacts from the input component needs no merging.
+    # (There is a unit test to make sure this is the case, otherwise merging of
+    # artifacts need to be done here.)
+    #
+    # Once the above is done, and the dict of the Custom Job is converted back
+    # into a KFP component (by first converting to YAML, then using
+    # load_component_from_text to load the YAML).
+    # After adding the appropriate description and the name, the new component
+    # is returned.
+    if network and psc_interface_config:
+        raise ValueError(
+            '`network` and `psc_interface_config` field cannot be set at the same'
+            ' time.'
+        )
+
+    cj_pipeline_spec = json_format.MessageToDict(
+        component.custom_training_job.pipeline_spec
+    )
+    user_pipeline_spec = json_format.MessageToDict(component_spec.pipeline_spec)
+
+    user_component_container = list(
+        user_pipeline_spec['deploymentSpec']['executors'].values()
+    )[0]['container']
+
+    worker_pool_spec = {
+        'machine_spec': {'machine_type': machine_type},
+        'replica_count': 1,
+        'container_spec': {
+            'image_uri': user_component_container['image'],
+            'command': _replace_executor_placeholder(
+                user_component_container.get('command', [])
+            ),
+            'args': _replace_executor_placeholder(
+                user_component_container.get('args', [])
+            ),
+            'env': env or [],
+        },
+    }
+    if accelerator_type:
+        worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
+        worker_pool_spec['machine_spec']['accelerator_count'] = (
+            accelerator_count
+        )
+
+    if reservation_affinity_type is not None:
+        worker_pool_spec['machine_spec']['reservation_affinity'] = {
+            'reservation_affinity_type': reservation_affinity_type,
+        }
+        if reservation_affinity_key is not None:
+            worker_pool_spec['machine_spec']['reservation_affinity']['key'] = (
+                reservation_affinity_key
+            )
+        if reservation_affinity_values is not None:
+            worker_pool_spec['machine_spec']['reservation_affinity'][
+                'values'
+            ] = reservation_affinity_values
+
+    if not boot_disk_type:
+        boot_disk_type = _get_default_boot_disk_type(machine_type)
+    worker_pool_spec['disk_spec'] = {
+        'boot_disk_type': boot_disk_type,
+        'boot_disk_size_gb': boot_disk_size_gb,
+    }
+
+    if nfs_mounts:
+        worker_pool_spec['nfs_mounts'] = nfs_mounts
+
+    worker_pool_specs = [worker_pool_spec]
+
+    if int(replica_count) > 1:
+        additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
+        additional_worker_pool_spec['replica_count'] = replica_count - 1
+        worker_pool_specs.append(additional_worker_pool_spec)
+
+    # get the component spec for both components
+    cj_component_spec_key = list(cj_pipeline_spec['components'].keys())[0]
+    cj_component_spec = cj_pipeline_spec['components'][cj_component_spec_key]
+
+    user_component_spec_key = list(user_pipeline_spec['components'].keys())[0]
+    user_component_spec = user_pipeline_spec['components'][
+        user_component_spec_key
+    ]
+
+    # add custom job defaults based on user-provided args
+    custom_job_param_defaults = {
+        'display_name': display_name or component_spec.component_spec.name,
+        'worker_pool_specs': worker_pool_specs,
+        'timeout': timeout,
+        'restart_job_on_worker_restart': restart_job_on_worker_restart,
+        'strategy': strategy,
+        'max_wait_duration': max_wait_duration,
+        'service_account': service_account,
+        'tensorboard': tensorboard,
+        'enable_web_access': enable_web_access,
+        'network': network,
+        'reserved_ip_ranges': reserved_ip_ranges,
+        'base_output_directory': base_output_directory,
+        'labels': labels,
+        'encryption_spec_key_name': encryption_spec_key_name,
+        'persistent_resource_id': persistent_resource_id,
+        'psc_interface_config': psc_interface_config,
+    }
+
+    for param_name, default_value in custom_job_param_defaults.items():
+        param_definition = cj_component_spec['inputDefinitions']['parameters'][
+            param_name
+        ]
+        if default_value is None:
+            # If the provided value is None, remove the defaultValue key
+            if 'defaultValue' in param_definition:
+                del param_definition['defaultValue']
+        else:
+            # Otherwise, set the defaultValue to the provided value
+            param_definition['defaultValue'] = default_value
+
+    # merge parameters from user component into the customjob component
+    cj_component_spec['inputDefinitions']['parameters'].update(
+        user_component_spec.get('inputDefinitions', {}).get('parameters', {})
+    )
+    cj_component_spec['outputDefinitions']['parameters'].update(
+        user_component_spec.get('outputDefinitions', {}).get('parameters', {})
+    )
+    # use artifacts from user component
+    ## assign artifacts, not update, since customjob has no artifact outputs
+    cj_component_spec['inputDefinitions']['artifacts'] = (
+        user_component_spec.get('inputDefinitions', {}).get('artifacts', {})
+    )
+    cj_component_spec['outputDefinitions']['artifacts'] = (
+        user_component_spec.get('outputDefinitions', {}).get('artifacts', {})
     )
 
-  cj_pipeline_spec = json_format.MessageToDict(
-      component.custom_training_job.pipeline_spec
-  )
-  user_pipeline_spec = json_format.MessageToDict(component_spec.pipeline_spec)
+    # copy the input definitions to the root, which will have an identical interface for a single-step pipeline
+    cj_pipeline_spec['root']['inputDefinitions'] = copy.deepcopy(
+        cj_component_spec['inputDefinitions']
+    )
+    cj_pipeline_spec['root']['outputDefinitions'] = copy.deepcopy(
+        cj_component_spec['outputDefinitions']
+    )
 
-  user_component_container = list(
-      user_pipeline_spec['deploymentSpec']['executors'].values()
-  )[0]['container']
+    # update the customjob task with the user inputs
+    cj_task_key = list(cj_pipeline_spec['root']['dag']['tasks'].keys())[0]
+    user_task_key = list(user_pipeline_spec['root']['dag']['tasks'].keys())[0]
 
-  worker_pool_spec = {
-      'machine_spec': {'machine_type': machine_type},
-      'replica_count': 1,
-      'container_spec': {
-          'image_uri': user_component_container['image'],
-          'command': _replace_executor_placeholder(
-              user_component_container.get('command', [])
-          ),
-          'args': _replace_executor_placeholder(
-              user_component_container.get('args', [])
-          ),
-          'env': env or [],
-      },
-  }
-  if accelerator_type:
-    worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
-    worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
+    cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs'].update(
+        user_pipeline_spec['root']['dag']['tasks'][user_task_key].get(
+            'inputs', {}
+        )
+    )
 
-  if reservation_affinity_type is not None:
-    worker_pool_spec['machine_spec']['reservation_affinity'] = {
-        'reservation_affinity_type': reservation_affinity_type,
-    }
-    if reservation_affinity_key is not None:
-      worker_pool_spec['machine_spec']['reservation_affinity'][
-          'key'
-      ] = reservation_affinity_key
-    if reservation_affinity_values is not None:
-      worker_pool_spec['machine_spec']['reservation_affinity'][
-          'values'
-      ] = reservation_affinity_values
+    # reload the pipelinespec as a component using KFP
+    new_component = components.load_component_from_text(
+        yaml.safe_dump(cj_pipeline_spec)
+    )
 
-  if not boot_disk_type:
-    boot_disk_type = _get_default_boot_disk_type(machine_type)
-  worker_pool_spec['disk_spec'] = {
-      'boot_disk_type': boot_disk_type,
-      'boot_disk_size_gb': boot_disk_size_gb,
-  }
+    # Copy the component name and description
+    # TODO(b/262360354): The inner .component_spec.name is needed here as that is
+    # the name that is retrieved by the FE for display. Can simply reference the
+    # outer .name once setter is implemented.
+    new_component.component_spec.name = component_spec.component_spec.name
 
-  if nfs_mounts:
-    worker_pool_spec['nfs_mounts'] = nfs_mounts
-
-  worker_pool_specs = [worker_pool_spec]
-
-  if int(replica_count) > 1:
-    additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
-    additional_worker_pool_spec['replica_count'] = replica_count - 1
-    worker_pool_specs.append(additional_worker_pool_spec)
-
-  # get the component spec for both components
-  cj_component_spec_key = list(cj_pipeline_spec['components'].keys())[0]
-  cj_component_spec = cj_pipeline_spec['components'][cj_component_spec_key]
-
-  user_component_spec_key = list(user_pipeline_spec['components'].keys())[0]
-  user_component_spec = user_pipeline_spec['components'][
-      user_component_spec_key
-  ]
-
-  # add custom job defaults based on user-provided args
-  custom_job_param_defaults = {
-      'display_name': display_name or component_spec.component_spec.name,
-      'worker_pool_specs': worker_pool_specs,
-      'timeout': timeout,
-      'restart_job_on_worker_restart': restart_job_on_worker_restart,
-      'strategy': strategy,
-      'max_wait_duration': max_wait_duration,
-      'service_account': service_account,
-      'tensorboard': tensorboard,
-      'enable_web_access': enable_web_access,
-      'network': network,
-      'reserved_ip_ranges': reserved_ip_ranges,
-      'base_output_directory': base_output_directory,
-      'labels': labels,
-      'encryption_spec_key_name': encryption_spec_key_name,
-      'persistent_resource_id': persistent_resource_id,
-      'psc_interface_config': psc_interface_config,
-  }
-
-  for param_name, default_value in custom_job_param_defaults.items():
-    param_definition = cj_component_spec['inputDefinitions']['parameters'][
-        param_name
-    ]
-    if default_value is None:
-      # If the provided value is None, remove the defaultValue key
-      if 'defaultValue' in param_definition:
-        del param_definition['defaultValue']
-    else:
-      # Otherwise, set the defaultValue to the provided value
-      param_definition['defaultValue'] = default_value
-
-  # merge parameters from user component into the customjob component
-  cj_component_spec['inputDefinitions']['parameters'].update(
-      user_component_spec.get('inputDefinitions', {}).get('parameters', {})
-  )
-  cj_component_spec['outputDefinitions']['parameters'].update(
-      user_component_spec.get('outputDefinitions', {}).get('parameters', {})
-  )
-  # use artifacts from user component
-  ## assign artifacts, not update, since customjob has no artifact outputs
-  cj_component_spec['inputDefinitions']['artifacts'] = user_component_spec.get(
-      'inputDefinitions', {}
-  ).get('artifacts', {})
-  cj_component_spec['outputDefinitions']['artifacts'] = user_component_spec.get(
-      'outputDefinitions', {}
-  ).get('artifacts', {})
-
-  # copy the input definitions to the root, which will have an identical interface for a single-step pipeline
-  cj_pipeline_spec['root']['inputDefinitions'] = copy.deepcopy(
-      cj_component_spec['inputDefinitions']
-  )
-  cj_pipeline_spec['root']['outputDefinitions'] = copy.deepcopy(
-      cj_component_spec['outputDefinitions']
-  )
-
-  # update the customjob task with the user inputs
-  cj_task_key = list(cj_pipeline_spec['root']['dag']['tasks'].keys())[0]
-  user_task_key = list(user_pipeline_spec['root']['dag']['tasks'].keys())[0]
-
-  cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs'].update(
-      user_pipeline_spec['root']['dag']['tasks'][user_task_key].get(
-          'inputs', {}
-      )
-  )
-
-  # reload the pipelinespec as a component using KFP
-  new_component = components.load_component_from_text(
-      yaml.safe_dump(cj_pipeline_spec)
-  )
-
-  # Copy the component name and description
-  # TODO(b/262360354): The inner .component_spec.name is needed here as that is
-  # the name that is retrieved by the FE for display. Can simply reference the
-  # outer .name once setter is implemented.
-  new_component.component_spec.name = component_spec.component_spec.name
-
-  if component_spec.description:
-    component_description = textwrap.dedent(f"""
+    if component_spec.description:
+        component_description = textwrap.dedent(f"""
     A CustomJob that wraps {component_spec.component_spec.name}.
 
     Original component description:
@@ -332,22 +334,22 @@ def create_custom_training_job_from_component(
     Custom Job wrapper description:
     {component.custom_training_job.description}
     """)
-    new_component.description = component_description
+        new_component.description = component_description
 
-  return new_component
+    return new_component
 
 
 def create_custom_training_job_op_from_component(*args, **kwargs) -> Callable:
-  """Deprecated.
+    """Deprecated.
 
-  Please use create_custom_training_job_from_component instead.
-  """
+    Please use create_custom_training_job_from_component instead.
+    """
 
-  warnings.warn(
-      f'{create_custom_training_job_op_from_component.__name__!r} is'
-      ' deprecated. Please use'
-      f' {create_custom_training_job_from_component.__name__!r} instead.',
-      DeprecationWarning,
-  )
+    warnings.warn(
+        f'{create_custom_training_job_op_from_component.__name__!r} is'
+        ' deprecated. Please use'
+        f' {create_custom_training_job_from_component.__name__!r} instead.',
+        DeprecationWarning,
+    )
 
-  return create_custom_training_job_from_component(*args, **kwargs)
+    return create_custom_training_job_from_component(*args, **kwargs)

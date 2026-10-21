@@ -27,9 +27,13 @@ warnings.warn(
     category=DeprecationWarning,
 )
 
-from google_cloud_pipeline_components.preview.custom_job.component import custom_training_job as CustomTrainingJobOp
-from google_cloud_pipeline_components.preview.custom_job.utils import create_custom_training_job_from_component
-from google_cloud_pipeline_components.preview.custom_job.utils import create_custom_training_job_op_from_component
+from google_cloud_pipeline_components.preview.custom_job.component import (
+    custom_training_job as CustomTrainingJobOp,
+)
+from google_cloud_pipeline_components.preview.custom_job.utils import (
+    create_custom_training_job_from_component,
+    create_custom_training_job_op_from_component,
+)
 
 __all__ = [
     'CustomTrainingJobOp',

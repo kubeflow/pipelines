@@ -15,9 +15,9 @@
 """Verify frontend image timeouts leave room for recovery and artifact
 upload."""
 
-from pathlib import Path
 import shlex
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import build_frontend_image
@@ -28,37 +28,42 @@ WORKFLOW = ROOT / '.github/workflows/image-builds.yml'
 
 
 class FrontendImageRetryTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.job = yaml.safe_load(WORKFLOW.read_text())['jobs']['image-build']
         cls.steps = cls.job['steps']
         cls.frontend = next(
-            s for s in cls.steps if s.get('id') == 'frontend-image')
+            s for s in cls.steps if s.get('id') == 'frontend-image'
+        )
         cls.first = next(s for s in cls.steps if s.get('id') == 'save-image')
         cls.retry = next(s for s in cls.steps if s.get('id') == 'rebuild')
 
     def test_frontend_owns_its_recovery_and_other_images_keep_action_retry(
-            self):
-        self.assertEqual(self.frontend['if'],
-                         "${{ matrix.image == 'frontend' }}")
+        self,
+    ):
+        self.assertEqual(
+            self.frontend['if'], "${{ matrix.image == 'frontend' }}"
+        )
         self.assertNotIn('continue-on-error', self.frontend)
         setup = next(s for s in self.steps if s.get('id') == 'buildx')
         for step in (setup, self.first):
             self.assertEqual(step['if'], "${{ matrix.image != 'frontend' }}")
         self.assertTrue(self.first['continue-on-error'])
-        self.assertEqual(self.retry['if'],
-                         "${{ steps.save-image.outcome == 'failure' }}")
+        self.assertEqual(
+            self.retry['if'], "${{ steps.save-image.outcome == 'failure' }}"
+        )
         self.assertFalse(self.retry.get('continue-on-error', False))
         self.assertTrue(self.retry['with']['no-cache'])
         self.assertFalse(self.job['strategy']['fail-fast'])
 
     def test_workflow_arguments_reach_helper_with_native_platform_and_tags(
-            self):
+        self,
+    ):
         # Exercise the actual shell argument wiring and CLI parser together.
         for architecture in ('amd64', 'arm64'):
-            artifact = 'frontend' + ('-arm64'
-                                     if architecture == 'arm64' else '')
+            artifact = 'frontend' + (
+                '-arm64' if architecture == 'arm64' else ''
+            )
             values = {
                 'REGISTRY': 'kind-registry:5000',
                 'IMAGE_TAG': 'latest',
@@ -71,12 +76,20 @@ class FrontendImageRetryTest(unittest.TestCase):
             for name, value in values.items():
                 command = command.replace('$' + name, value)
             arguments = shlex.split(command)
-            self.assertEqual(arguments[:2], [
-                'python3', '.github/resources/scripts/build_frontend_image.py'
-            ])
-            with mock.patch('sys.argv', arguments[1:]), mock.patch.object(
-                    build_frontend_image, 'build',
-                    return_value=0) as build, mock.patch('signal.signal'):
+            self.assertEqual(
+                arguments[:2],
+                [
+                    'python3',
+                    '.github/resources/scripts/build_frontend_image.py',
+                ],
+            )
+            with (
+                mock.patch('sys.argv', arguments[1:]),
+                mock.patch.object(
+                    build_frontend_image, 'build', return_value=0
+                ) as build,
+                mock.patch('signal.signal'),
+            ):
                 self.assertEqual(build_frontend_image.main(), 0)
             build.assert_called_once_with(
                 '.',
@@ -85,26 +98,31 @@ class FrontendImageRetryTest(unittest.TestCase):
                 '24',
                 f'images_123/{artifact}.tar',
                 platform=f'linux/{architecture}',
-                additional_tags=['kind-registry:5000/frontend:ci'])
+                additional_tags=['kind-registry:5000/frontend:ci'],
+            )
 
     def test_only_successful_builds_publish_and_record_arm_identity(self):
         success = "steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success'"
         upload = next(s for s in self.steps if s['name'] == 'Upload artifact')
         identity = next(
-            s for s in self.steps if s['name'] == 'Record ARM image identity')
+            s for s in self.steps if s['name'] == 'Record ARM image identity'
+        )
         self.assertEqual(upload['if'], '${{ ' + success + ' }}')
         self.assertEqual(
             identity['if'],
-            "${{ inputs.architecture == 'arm64' && (" + success + ') }}')
+            "${{ inputs.architecture == 'arm64' && (" + success + ') }}',
+        )
         self.assertEqual(upload['with']['if-no-files-found'], 'error')
         self.assertLess(
-            self.steps.index(self.frontend), self.steps.index(identity))
+            self.steps.index(self.frontend), self.steps.index(identity)
+        )
         self.assertLess(self.steps.index(identity), self.steps.index(upload))
         self.assertIn('${{ env.ARTIFACT_NAME }}.tar', upload['with']['path'])
         self.assertIn('${{ env.ARTIFACT_NAME }}.json', upload['with']['path'])
 
     def test_bounded_attempts_and_cleanup_leave_setup_and_upload_budget(self):
         import inspect
+
         defaults = inspect.signature(build_frontend_image.build).parameters
         attempt = defaults['attempt_seconds'].default
         maintenance = defaults['maintenance_seconds'].default
@@ -112,8 +130,9 @@ class FrontendImageRetryTest(unittest.TestCase):
         # Worst case per attempt: setup/build termination plus two diagnostics,
         # builder removal, container removal, and an absence query.
         worst_case = 2 * (attempt + grace + 5 * (maintenance + grace))
-        self.assertGreaterEqual(self.job['timeout-minutes'] * 60 - worst_case,
-                                540)
+        self.assertGreaterEqual(
+            self.job['timeout-minutes'] * 60 - worst_case, 540
+        )
 
 
 if __name__ == '__main__':

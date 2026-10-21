@@ -17,13 +17,14 @@ The flaky component fails on its first invocation and succeeds on
 subsequent ones, using a counter file passed in as an arg so the caller
 controls uniqueness across runs.
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 
 
 @dsl.component
 def flaky(counter_path: str) -> str:
     import os
+
     count = 0
     if os.path.exists(counter_path):
         with open(counter_path) as f:

@@ -15,10 +15,18 @@
 """Manage model serving endpoints via [Vertex AI Endpoints](https://cloud.google.com/vertex-ai/docs/predictions/overview?_ga=2.161419069.-1686833729.1684288907#model_deployment)."""
 # fmt: on
 
-from google_cloud_pipeline_components.v1.endpoint.create_endpoint.component import endpoint_create as EndpointCreateOp
-from google_cloud_pipeline_components.v1.endpoint.delete_endpoint.component import endpoint_delete as EndpointDeleteOp
-from google_cloud_pipeline_components.v1.endpoint.deploy_model.component import model_deploy as ModelDeployOp
-from google_cloud_pipeline_components.v1.endpoint.undeploy_model.component import model_undeploy as ModelUndeployOp
+from google_cloud_pipeline_components.v1.endpoint.create_endpoint.component import (
+    endpoint_create as EndpointCreateOp,
+)
+from google_cloud_pipeline_components.v1.endpoint.delete_endpoint.component import (
+    endpoint_delete as EndpointDeleteOp,
+)
+from google_cloud_pipeline_components.v1.endpoint.deploy_model.component import (
+    model_deploy as ModelDeployOp,
+)
+from google_cloud_pipeline_components.v1.endpoint.undeploy_model.component import (
+    model_undeploy as ModelUndeployOp,
+)
 
 __all__ = [
     'EndpointCreateOp',

@@ -18,11 +18,11 @@ cluster."""
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -30,7 +30,6 @@ SCRIPT = Path(__file__).with_name('collect-logs.sh')
 
 
 class CollectLogsTest(unittest.TestCase):
-
     def test_kubectl_failures_are_bounded_and_best_effort(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -63,8 +62,7 @@ class CollectLogsTest(unittest.TestCase):
             environment['PATH'] = f'{temp_path}:{environment["PATH"]}'
 
             result = subprocess.run(
-                [str(SCRIPT), '--ns', 'kubeflow', '--output',
-                 str(output_file)],
+                [str(SCRIPT), '--ns', 'kubeflow', '--output', str(output_file)],
                 check=False,
                 capture_output=True,
                 env=environment,
@@ -80,8 +78,8 @@ class CollectLogsTest(unittest.TestCase):
             self.assertGreaterEqual(len(calls), 5)
             self.assertTrue(
                 all(
-                    call.startswith('--request-timeout=20s ')
-                    for call in calls),
+                    call.startswith('--request-timeout=20s ') for call in calls
+                ),
                 calls,
             )
 
@@ -90,7 +88,7 @@ class CollectLogsTest(unittest.TestCase):
             root = Path(directory)
             calls = root / 'calls.jsonl'
             stub = root / 'kubectl'
-            stub.write_text('''#!/usr/bin/env python3
+            stub.write_text("""#!/usr/bin/env python3
 import json
 import os
 import sys
@@ -118,22 +116,20 @@ elif args[0] == 'logs':
         print('driver-log')
 else:
     raise AssertionError(args)
-''')
+""")
             stub.chmod(0o755)
             output = root / 'logs.txt'
             subprocess.run(
-                ['bash',
-                 str(SCRIPT), '--ns', 'test', '--output',
-                 str(output)],
+                ['bash', str(SCRIPT), '--ns', 'test', '--output', str(output)],
                 env={
-                    **os.environ, 'PATH':
-                        str(root) + os.pathsep + os.environ['PATH'],
-                    'KUBECTL_CALLS':
-                        str(calls)
+                    **os.environ,
+                    'PATH': str(root) + os.pathsep + os.environ['PATH'],
+                    'KUBECTL_CALLS': str(calls),
                 },
                 check=True,
                 capture_output=True,
-                text=True)
+                text=True,
+            )
             logs = output.read_text()
             self.assertIn('workload-log', logs)
             self.assertIn('driver-log', logs)

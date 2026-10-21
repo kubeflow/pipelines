@@ -15,13 +15,11 @@
 
 from typing import Optional
 
-from google_cloud_pipeline_components import _image
-from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components import utils
-from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp.dsl import Input, Output
+
+from google_cloud_pipeline_components import _image, _placeholders, utils
+from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 
 
 @utils.gcpc_output_name_converter('dataset')
@@ -35,8 +33,8 @@ def video_dataset_import(
     import_schema_uri: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
-  # fmt: off
-  """Uploads data to an existing managed [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets).
+    # fmt: off
+    """Uploads data to an existing managed [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets).
 
   Args:
       location: Optional location to retrieve Dataset from.
@@ -49,38 +47,39 @@ def video_dataset_import(
   Returns:
       dataset: Instantiated representation of the managed Dataset resource.
   """
-  # fmt: on
+    # fmt: on
 
-  return dsl.ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
-      command=[
-          'python3',
-          '-m',
-          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
-          '--cls_name',
-          'VideoDataset',
-          '--method_name',
-          'import_data',
-      ],
-      args=[
-          '--init.project',
-          project,
-          '--init.location',
-          location,
-          '--init.dataset_name',
-          dataset.metadata['resourceName'],
-          '--method.data_item_labels',
-          data_item_labels,
-          dsl.IfPresentPlaceholder(
-              input_name='gcs_source', then=['--method.gcs_source', gcs_source]
-          ),
-          dsl.IfPresentPlaceholder(
-              input_name='import_schema_uri',
-              then=['--method.import_schema_uri', import_schema_uri],
-          ),
-          '--executor_input',
-          '{{$}}',
-          '--resource_name_output_artifact_uri',
-          output__dataset.uri,
-      ],
-  )
+    return dsl.ContainerSpec(
+        image=_image.GCPC_IMAGE_TAG,
+        command=[
+            'python3',
+            '-m',
+            'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
+            '--cls_name',
+            'VideoDataset',
+            '--method_name',
+            'import_data',
+        ],
+        args=[
+            '--init.project',
+            project,
+            '--init.location',
+            location,
+            '--init.dataset_name',
+            dataset.metadata['resourceName'],
+            '--method.data_item_labels',
+            data_item_labels,
+            dsl.IfPresentPlaceholder(
+                input_name='gcs_source',
+                then=['--method.gcs_source', gcs_source],
+            ),
+            dsl.IfPresentPlaceholder(
+                input_name='import_schema_uri',
+                then=['--method.import_schema_uri', import_schema_uri],
+            ),
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            output__dataset.uri,
+        ],
+    )

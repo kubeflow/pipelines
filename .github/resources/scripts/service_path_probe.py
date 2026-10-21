@@ -17,20 +17,18 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 import json
 import math
 import os
-from pathlib import Path
 import signal
 import socket
-import sys
 import threading
 import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable
-
 
 SELECTED_COUNTERS = {
     'Ip.InDiscards',
@@ -67,12 +65,14 @@ def load_targets(path: Path) -> list[dict[str, object]]:
                 port = int(fields[3])
             except ValueError:
                 continue
-            targets.append({
-                'pair': fields[0],
-                'path': fields[1],
-                'host': fields[2],
-                'port': port,
-            })
+            targets.append(
+                {
+                    'pair': fields[0],
+                    'path': fields[1],
+                    'host': fields[2],
+                    'port': port,
+                }
+            )
     return targets
 
 
@@ -224,7 +224,9 @@ def snapshot_network_metrics(proc_root: Path = Path('/proc')) -> dict[str, int]:
     for name in ('netstat', 'snmp'):
         try:
             values.update(
-                parse_proc_table((proc_root / 'net' / name).read_text(encoding='utf-8'))
+                parse_proc_table(
+                    (proc_root / 'net' / name).read_text(encoding='utf-8')
+                )
             )
         except OSError:
             pass
@@ -243,7 +245,9 @@ def snapshot_network_metrics(proc_root: Path = Path('/proc')) -> dict[str, int]:
     }
 
 
-def probe_target(target: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+def probe_target(
+    target: dict[str, object], timeout_seconds: float
+) -> dict[str, object]:
     started_ns = time.monotonic_ns()
     result = 'ok'
     error_number = None
@@ -285,55 +289,73 @@ def sample(
         network_namespace = os.readlink('/proc/self/ns/net')
     except OSError:
         network_namespace = 'unavailable'
-    write_event({
-        'type': 'meta',
-        'version': 1,
-        'source_pod': os.environ.get('POD_NAME', os.environ.get('HOSTNAME', 'unknown')),
-        'source_pod_ip': os.environ.get('POD_IP', 'unknown'),
-        'source_node': os.environ.get('NODE_NAME', 'unknown'),
-        'network_namespace': network_namespace,
-        'interval_seconds': interval_seconds,
-        'timeout_seconds': timeout_seconds,
-        'targets': targets,
-    })
+    write_event(
+        {
+            'type': 'meta',
+            'version': 1,
+            'source_pod': os.environ.get(
+                'POD_NAME', os.environ.get('HOSTNAME', 'unknown')
+            ),
+            'source_pod_ip': os.environ.get('POD_IP', 'unknown'),
+            'source_node': os.environ.get('NODE_NAME', 'unknown'),
+            'network_namespace': network_namespace,
+            'interval_seconds': interval_seconds,
+            'timeout_seconds': timeout_seconds,
+            'targets': targets,
+        }
+    )
     if not targets:
         return
 
     started_ns = time.monotonic_ns()
     cycle = 0
     with ThreadPoolExecutor(max_workers=len(targets)) as executor:
-        while not STOP_EVENT.is_set() and (max_cycles <= 0 or cycle < max_cycles):
-            scheduled_ns = started_ns + int(cycle * interval_seconds * 1_000_000_000)
-            remaining_seconds = (scheduled_ns - time.monotonic_ns()) / 1_000_000_000
+        while not STOP_EVENT.is_set() and (
+            max_cycles <= 0 or cycle < max_cycles
+        ):
+            scheduled_ns = started_ns + int(
+                cycle * interval_seconds * 1_000_000_000
+            )
+            remaining_seconds = (
+                scheduled_ns - time.monotonic_ns()
+            ) / 1_000_000_000
             if remaining_seconds > 0 and STOP_EVENT.wait(remaining_seconds):
                 break
             actual_ns = time.monotonic_ns()
             timestamp_ms = time.time_ns() // 1_000_000
-            write_event({
-                'type': 'cycle',
-                'cycle': cycle,
-                'timestamp_ms': timestamp_ms,
-                'loop_lag_ms': round(max(0, actual_ns - scheduled_ns) / 1_000_000, 3),
-            })
-            for metric, value in snapshot_network_metrics().items():
-                write_event({
-                    'type': 'metric',
+            write_event(
+                {
+                    'type': 'cycle',
                     'cycle': cycle,
                     'timestamp_ms': timestamp_ms,
-                    'metric': metric,
-                    'value': value,
-                })
+                    'loop_lag_ms': round(
+                        max(0, actual_ns - scheduled_ns) / 1_000_000, 3
+                    ),
+                }
+            )
+            for metric, value in snapshot_network_metrics().items():
+                write_event(
+                    {
+                        'type': 'metric',
+                        'cycle': cycle,
+                        'timestamp_ms': timestamp_ms,
+                        'metric': metric,
+                        'value': value,
+                    }
+                )
             futures = [
                 executor.submit(probe_target, target, timeout_seconds)
                 for target in targets
             ]
             for future in futures:
-                write_event({
-                    'type': 'probe',
-                    'cycle': cycle,
-                    'timestamp_ms': timestamp_ms,
-                    **future.result(),
-                })
+                write_event(
+                    {
+                        'type': 'probe',
+                        'cycle': cycle,
+                        'timestamp_ms': timestamp_ms,
+                        **future.result(),
+                    }
+                )
             cycle += 1
 
 
@@ -359,9 +381,12 @@ def longest_failure_streak(records: Iterable[dict[str, object]]) -> int:
 def format_timestamp(timestamp_ms: int | None) -> str:
     if timestamp_ms is None:
         return '—'
-    return datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc).strftime(
-        '%Y-%m-%d %H:%M:%S.%f'
-    )[:-3] + 'Z'
+    return (
+        datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc).strftime(
+            '%Y-%m-%d %H:%M:%S.%f'
+        )[:-3]
+        + 'Z'
+    )
 
 
 def metric_summary(records: list[dict[str, object]]) -> list[str]:
@@ -413,7 +438,9 @@ def build_report(path: Path) -> str:
 
     lines = ['', '## Service VIP versus direct Endpoint probes', '']
     if not probes:
-        lines.append('_No in-cluster Service-path probe samples were collected._')
+        lines.append(
+            '_No in-cluster Service-path probe samples were collected._'
+        )
         return '\n'.join(lines) + '\n'
     lines.append(
         f'_Source: pod `{meta.get("source_pod", "unknown")}` on node '
@@ -427,12 +454,16 @@ def build_report(path: Path) -> str:
             f'_Collected {len(cycles)} cycles; maximum sampler scheduling lag '
             f'was {max_lag:.1f} ms._'
         )
-    lines.extend([
-        '',
-        '| Pair | Path | Address | Attempts | Failures | Timeouts | p50 connect | p95 connect | Longest failure streak |',
-        '|---|---|---|---:|---:|---:|---:|---:|---:|',
-    ])
-    by_target: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
+    lines.extend(
+        [
+            '',
+            '| Pair | Path | Address | Attempts | Failures | Timeouts | p50 connect | p95 connect | Longest failure streak |',
+            '|---|---|---|---:|---:|---:|---:|---:|---:|',
+        ]
+    )
+    by_target: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(
+        list
+    )
     for probe in probes:
         by_target[(str(probe['pair']), str(probe['path']))].append(probe)
     for (pair, path_name), records in sorted(by_target.items()):
@@ -480,13 +511,15 @@ def build_report(path: Path) -> str:
         classifications[key[1]][classification] += 1
         if classification != 'both succeeded':
             failure_windows.append((timestamps[key], key[1], classification))
-    lines.extend([
-        '',
-        '### Paired outcomes',
-        '',
-        '| Pair | Outcome | Cycles | Interpretation |',
-        '|---|---|---:|---|',
-    ])
+    lines.extend(
+        [
+            '',
+            '### Paired outcomes',
+            '',
+            '| Pair | Outcome | Cycles | Interpretation |',
+            '|---|---|---:|---|',
+        ]
+    )
     interpretations = {
         'VIP failed / Endpoint succeeded': 'Service/netfilter path isolated',
         'both failed': 'Shared source/host/backend path',
@@ -501,26 +534,30 @@ def build_report(path: Path) -> str:
                 f'{classifications[pair][classification]} | {interpretation} |'
             )
     if failure_windows:
-        lines.extend([
-            '',
-            '### First paired failure windows',
-            '',
-            '| Timestamp | Pair | Outcome |',
-            '|---|---|---|',
-        ])
+        lines.extend(
+            [
+                '',
+                '### First paired failure windows',
+                '',
+                '| Timestamp | Pair | Outcome |',
+                '|---|---|---|',
+            ]
+        )
         for timestamp_ms, pair, classification in failure_windows[:20]:
             lines.append(
                 f'| {format_timestamp(timestamp_ms)} | {pair} | {classification} |'
             )
     if metrics:
-        lines.extend([
-            '',
-            '### Probe-netns network counter deltas',
-            '',
-            '| Metric | Samples | Window delta/type | Peak interval delta/value | Peak time | Status |',
-            '|---|---:|---:|---:|---|---|',
-            *metric_summary(metrics),
-        ])
+        lines.extend(
+            [
+                '',
+                '### Probe-netns network counter deltas',
+                '',
+                '| Metric | Samples | Window delta/type | Peak interval delta/value | Peak time | Status |',
+                '|---|---:|---:|---:|---|---|',
+                *metric_summary(metrics),
+            ]
+        )
     lines.append('')
     return '\n'.join(lines)
 
@@ -549,7 +586,9 @@ def parse_args() -> argparse.Namespace:
     resolve_parser.add_argument('--endpoint-slices', type=Path, required=True)
     resolve_parser.add_argument('--port-name', required=True)
     resolve_pod_parser = subparsers.add_parser('resolve-pod')
-    resolve_pod_parser.add_argument('--endpoint-slices', type=Path, required=True)
+    resolve_pod_parser.add_argument(
+        '--endpoint-slices', type=Path, required=True
+    )
     resolve_pod_parser.add_argument('--port-name', required=True)
     return parser.parse_args()
 

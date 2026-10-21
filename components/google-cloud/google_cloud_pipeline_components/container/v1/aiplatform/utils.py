@@ -19,8 +19,7 @@ import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
-from google.cloud import aiplatform
-from google.cloud import aiplatform_v1beta1
+from google.cloud import aiplatform, aiplatform_v1beta1
 
 PROTO_PLUS_CLASS_TYPES = {
     aiplatform_v1beta1.types.explanation_metadata.ExplanationMetadata: (
@@ -35,29 +34,29 @@ PROTO_PLUS_CLASS_TYPES = {
 def get_forward_reference(
     annotation: Any,
 ) -> Optional[aiplatform.base.VertexAiResourceNoun]:
-  """Resolves forward references to AiPlatform Class."""
+    """Resolves forward references to AiPlatform Class."""
 
-  def get_aiplatform_class_by_name(_annotation):
-    """Resolves str annotation to AiPlatfrom Class."""
-    if isinstance(_annotation, str):
-      return getattr(aiplatform, _annotation, None)
+    def get_aiplatform_class_by_name(_annotation):
+        """Resolves str annotation to AiPlatfrom Class."""
+        if isinstance(_annotation, str):
+            return getattr(aiplatform, _annotation, None)
 
-  ai_platform_class = get_aiplatform_class_by_name(annotation)
-  if ai_platform_class:
-    return ai_platform_class
-
-  try:
-    # Python 3.7+
-    from typing import ForwardRef
-
-    if isinstance(annotation, ForwardRef):
-      annotation = annotation.__forward_arg__
-      ai_platform_class = get_aiplatform_class_by_name(annotation)
-      if ai_platform_class:
+    ai_platform_class = get_aiplatform_class_by_name(annotation)
+    if ai_platform_class:
         return ai_platform_class
 
-  except ImportError:
-    pass
+    try:
+        # Python 3.7+
+        from typing import ForwardRef
+
+        if isinstance(annotation, ForwardRef):
+            annotation = annotation.__forward_arg__
+            ai_platform_class = get_aiplatform_class_by_name(annotation)
+            if ai_platform_class:
+                return ai_platform_class
+
+    except ImportError:
+        pass
 
 
 # This is the Union of all typed datasets.
@@ -71,122 +70,122 @@ dataset_annotation = (
 
 
 def resolve_annotation(annotation: Any) -> Any:
-  """Resolves annotation type against a MB SDK type.
+    """Resolves annotation type against a MB SDK type.
 
-  Use this for Optional, Union, Forward References
+    Use this for Optional, Union, Forward References
 
-  Args:
-      annotation: Annotation to resolve
+    Args:
+        annotation: Annotation to resolve
 
-  Returns:
-      Direct annotation
-  """
+    Returns:
+        Direct annotation
+    """
 
-  # handle forward reference string
+    # handle forward reference string
 
-  # if this is an Ai Platform resource noun
-  if inspect.isclass(annotation):
-    if issubclass(annotation, aiplatform.base.VertexAiResourceNoun):
-      return annotation
+    # if this is an Ai Platform resource noun
+    if inspect.isclass(annotation):
+        if issubclass(annotation, aiplatform.base.VertexAiResourceNoun):
+            return annotation
 
-  # if this is a union of all typed datasets annotation
-  if annotation is dataset_annotation:
-    # return the catch all Dataset class
-    return aiplatform.datasets.dataset._Dataset
+    # if this is a union of all typed datasets annotation
+    if annotation is dataset_annotation:
+        # return the catch all Dataset class
+        return aiplatform.datasets.dataset._Dataset
 
-  # handle forward references
-  resolved_annotation = get_forward_reference(annotation)
-  if resolved_annotation:
-    return resolved_annotation
-
-  # handle optional types
-  if getattr(annotation, '__origin__', None) is Union:
-    # assume optional type
-    # TODO check for optional type
-    resolved_annotation = get_forward_reference(annotation.__args__[0])
+    # handle forward references
+    resolved_annotation = get_forward_reference(annotation)
     if resolved_annotation:
-      return resolved_annotation
-    else:
-      return annotation.__args__[0]
+        return resolved_annotation
 
-  if annotation is inspect._empty:
-    return None
+    # handle optional types
+    if getattr(annotation, '__origin__', None) is Union:
+        # assume optional type
+        # TODO check for optional type
+        resolved_annotation = get_forward_reference(annotation.__args__[0])
+        if resolved_annotation:
+            return resolved_annotation
+        else:
+            return annotation.__args__[0]
 
-  return annotation
+    if annotation is inspect._empty:
+        return None
+
+    return annotation
 
 
 def is_serializable_to_json(annotation: Any) -> bool:
-  """Checks if the type is serializable.
+    """Checks if the type is serializable.
 
-  Args:
-      annotation: parameter annotation
+    Args:
+        annotation: parameter annotation
 
-  Returns:
-      True if serializable to json.
-  """
-  serializable_types = (dict, list, collections.abc.Sequence, Dict, Sequence)
-  return getattr(annotation, '__origin__', None) in serializable_types
+    Returns:
+        True if serializable to json.
+    """
+    serializable_types = (dict, list, collections.abc.Sequence, Dict, Sequence)
+    return getattr(annotation, '__origin__', None) in serializable_types
 
 
 def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
-  """Determines if type passed in should be a metadata type.
+    """Determines if type passed in should be a metadata type.
 
-  Args:
-      mb_sdk_type: Type to check
+    Args:
+        mb_sdk_type: Type to check
 
-  Returns:
-      True if this is a resource noun
-  """
-  if inspect.isclass(mb_sdk_type):
-    return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
-  return False
+    Returns:
+        True if this is a resource noun
+    """
+    if inspect.isclass(mb_sdk_type):
+        return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
+    return False
 
 
 def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
-  """Get Proto Plus Class for this annotation.
+    """Get Proto Plus Class for this annotation.
 
-  Args:
-      annotation: parameter annotation
+    Args:
+        annotation: parameter annotation
 
-  Returns:
-      Proto Plus Class for annotation type
-  """
-  if annotation in PROTO_PLUS_CLASS_TYPES:
-    return annotation
+    Returns:
+        Proto Plus Class for annotation type
+    """
+    if annotation in PROTO_PLUS_CLASS_TYPES:
+        return annotation
 
 
 def get_proto_plus_deserializer(
     annotation: Any,
 ) -> Optional[Callable[..., str]]:
-  """Get deserializer for objects to pass them as strings.
+    """Get deserializer for objects to pass them as strings.
 
-  Remote runner will deserialize.
+    Remote runner will deserialize.
 
-  Args:
-      annotation: parameter annotation
+    Args:
+        annotation: parameter annotation
 
-  Returns:
-      deserializer for annotation type if it's a Proto Plus class
-  """
-  proto_plus_class = get_proto_plus_class(annotation)
-  if proto_plus_class:
-    return proto_plus_class.from_json
+    Returns:
+        deserializer for annotation type if it's a Proto Plus class
+    """
+    proto_plus_class = get_proto_plus_class(annotation)
+    if proto_plus_class:
+        return proto_plus_class.from_json
 
 
 def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
-  """Get deserializer for objects to pass them as strings.
+    """Get deserializer for objects to pass them as strings.
 
-  Remote runner will deserialize.
+    Remote runner will deserialize.
 
-  Args:
-      annotation: parameter annotation
+    Args:
+        annotation: parameter annotation
 
-  Returns:
-      deserializer for annotation type
-  """
-  proto_plus_deserializer = get_proto_plus_deserializer(annotation)
-  if proto_plus_deserializer:
-    return proto_plus_deserializer
+    Returns:
+        deserializer for annotation type
+    """
+    proto_plus_deserializer = get_proto_plus_deserializer(annotation)
+    if proto_plus_deserializer:
+        return proto_plus_deserializer
 
-  if is_serializable_to_json(annotation):
-    return json.loads
+    if is_serializable_to_json(annotation):
+        return json.loads

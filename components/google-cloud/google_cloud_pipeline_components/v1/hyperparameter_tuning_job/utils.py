@@ -20,10 +20,10 @@ from google.cloud.aiplatform_v1.types import study
 
 
 def serialize_parameters(
-    parameters: Dict[str, hyperparameter_tuning._ParameterSpec]
+    parameters: Dict[str, hyperparameter_tuning._ParameterSpec],
 ) -> List[Dict[str, Any]]:
-  # fmt: off
-  """Utility for converting a hyperparameter tuning [ParameterSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/StudySpec#ParameterSpec) into a list of dictionaries.
+    # fmt: off
+    """Utility for converting a hyperparameter tuning [ParameterSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/StudySpec#ParameterSpec) into a list of dictionaries.
 
   Args:
     parameters (Dict[str, hyperparameter_tuning._ParameterSpec]): Dictionary of parameter ids to subclasses of [_ParameterSpec](https://github.com/googleapis/python-aiplatform/blob/1fda4172baaf200414d95e7217bfef0e500cc16a/google/cloud/aiplatform/hyperparameter_tuning.py#L51). Supported subclasses include: `DoubleParameterSpec`, `IntegerParameterSpec`, `CategoricalParameterSpace`, `DiscreteParameterSpec`. Example:
@@ -34,19 +34,19 @@ def serialize_parameters(
   Returns:
     List of `ParameterSpec` dictionaries.
   """
-  # fmt: on
-  # the to_dict function is used here instead of the to_json function for compatibility with GAPIC
-  return [
-      study.StudySpec.ParameterSpec.to_dict(
-          parameter._to_parameter_spec(parameter_id=parameter_id)
-      )
-      for parameter_id, parameter in parameters.items()
-  ]
+    # fmt: on
+    # the to_dict function is used here instead of the to_json function for compatibility with GAPIC
+    return [
+        study.StudySpec.ParameterSpec.to_dict(
+            parameter._to_parameter_spec(parameter_id=parameter_id)
+        )
+        for parameter_id, parameter in parameters.items()
+    ]
 
 
 def serialize_metrics(metric_spec: Dict[str, str]) -> List[Dict[str, Any]]:
-  # fmt: off
-  """Utility for converting a hyperparameter tuning [MetricSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/StudySpec#metricspec) into a list of dictionaries.
+    # fmt: off
+    """Utility for converting a hyperparameter tuning [MetricSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/StudySpec#metricspec) into a list of dictionaries.
 
   Args:
     metric_spec (Dict[str, str]): Dictionary representing metrics to optimize. The dictionary key is the metric_id, which is reported by your training job, and the dictionary value is the optimization goal of the metric (`'minimize'`  or `'maximize'`). Example:
@@ -55,12 +55,12 @@ def serialize_metrics(metric_spec: Dict[str, str]) -> List[Dict[str, Any]]:
 
   Returns: List of `MetricSpec` dictionaries.
   """
-  # fmt: on
-  return [
-      study.StudySpec.MetricSpec.to_dict(
-          study.StudySpec.MetricSpec(
-              {'metric_id': metric_id, 'goal': goal.upper()}
-          )
-      )
-      for metric_id, goal in metric_spec.items()
-  ]
+    # fmt: on
+    return [
+        study.StudySpec.MetricSpec.to_dict(
+            study.StudySpec.MetricSpec(
+                {'metric_id': metric_id, 'goal': goal.upper()}
+            )
+        )
+        for metric_id, goal in metric_spec.items()
+    ]

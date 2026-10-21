@@ -19,11 +19,11 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.11', packages_to_install=['tensorflow==2.16.1'])
+    base_image='python:3.11', packages_to_install=['tensorflow==2.16.1']
+)
 def set_test_set(
     dataprep_dir: dsl.InputPath(),
-) -> NamedTuple(
-        'TestSetArtifact', uri=str, artifact=dsl.Artifact):
+) -> NamedTuple('TestSetArtifact', uri=str, artifact=dsl.Artifact):
     # fmt: off
     """Creates test set artifact.
 

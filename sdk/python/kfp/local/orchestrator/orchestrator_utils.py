@@ -9,7 +9,6 @@ Outputs = Dict[str, Any]
 
 
 class OrchestratorUtils:
-
     @classmethod
     def _apply_expression_selector(cls, value: Any, expression: str) -> Any:
         """Apply a parameter expression selector to extract a field from a
@@ -55,7 +54,8 @@ class OrchestratorUtils:
                             return value
                     else:
                         logging.warning(
-                            f'Cannot parse JSON from value type: {type(value)}')
+                            f'Cannot parse JSON from value type: {type(value)}'
+                        )
                         return value
                 else:
                     # No field extraction, just parse JSON if string
@@ -83,7 +83,8 @@ class OrchestratorUtils:
 
         except Exception as e:
             logging.warning(
-                f'Failed to apply expression selector "{expression}": {e}')
+                f'Failed to apply expression selector "{expression}": {e}'
+            )
             return value
 
     @classmethod
@@ -108,9 +109,11 @@ class OrchestratorUtils:
 
         for input_name, input_spec in dag_inputs_spec.parameters.items():
             if input_name not in copied_dag_arguments:
-                copied_dag_arguments[
-                    input_name] = executor_output_utils.pb2_value_to_python(
-                        input_spec.default_value)
+                copied_dag_arguments[input_name] = (
+                    executor_output_utils.pb2_value_to_python(
+                        input_spec.default_value
+                    )
+                )
         return copied_dag_arguments
 
     @classmethod
@@ -134,15 +137,16 @@ class OrchestratorUtils:
         task_arguments = {}
         # handle parameters
         for input_name, input_spec in task_inputs_spec.parameters.items():
-
             # handle constants
             if input_spec.HasField('runtime_value'):
                 # runtime_value's value should always be constant for the v2 compiler
                 if input_spec.runtime_value.WhichOneof('value') != 'constant':
                     raise ValueError('Expected constant.')
-                task_arguments[
-                    input_name] = executor_output_utils.pb2_value_to_python(
-                        input_spec.runtime_value.constant)
+                task_arguments[input_name] = (
+                    executor_output_utils.pb2_value_to_python(
+                        input_spec.runtime_value.constant
+                    )
+                )
 
             # handle upstream outputs
             elif input_spec.HasField('task_output_parameter'):
@@ -154,7 +158,8 @@ class OrchestratorUtils:
             # handle parent pipeline input parameters
             elif input_spec.HasField('component_input_parameter'):
                 parent_value = io_store.get_parent_input(
-                    input_spec.component_input_parameter)
+                    input_spec.component_input_parameter
+                )
 
                 # Check if there's a parameter expression selector to apply
                 # (used in ParallelFor to extract specific fields from structured loop items)
@@ -164,8 +169,9 @@ class OrchestratorUtils:
                         f"Applying expression selector '{expression_selector}' to parent value: {parent_value}"
                     )
                     parent_value = cls._apply_expression_selector(
-                        parent_value, expression_selector)
-                    logging.info(f"After expression selector: {parent_value}")
+                        parent_value, expression_selector
+                    )
+                    logging.info(f'After expression selector: {parent_value}')
 
                 task_arguments[input_name] = parent_value
 
@@ -182,14 +188,10 @@ class OrchestratorUtils:
                         'message': f'Task {producer_task} failed.',
                     }
                 task_arguments[input_name] = {
-                    'state':
-                        task_status_str,
-                    'pipeline_job_resource_name':
-                        f'local-pipeline-{producer_task}',
-                    'pipeline_task_name':
-                        producer_task,
-                    'error':
-                        error_info,
+                    'state': task_status_str,
+                    'pipeline_job_resource_name': f'local-pipeline-{producer_task}',
+                    'pipeline_task_name': producer_task,
+                    'error': error_info,
                 }
 
             else:
@@ -204,7 +206,8 @@ class OrchestratorUtils:
                 )
             elif input_spec.HasField('component_input_artifact'):
                 task_arguments[input_name] = io_store.get_parent_input(
-                    input_spec.component_input_artifact)
+                    input_spec.component_input_artifact
+                )
             else:
                 raise ValueError(f'Missing input for artifact {input_name}.')
 
@@ -227,11 +230,15 @@ class OrchestratorUtils:
             The DAG output parameters.
         """
         outputs = {}
-        for root_output_key, parameter_selector_spec in dag_outputs_spec.parameters.items(
-        ):
+        for (
+            root_output_key,
+            parameter_selector_spec,
+        ) in dag_outputs_spec.parameters.items():
             kind = parameter_selector_spec.WhichOneof('kind')
             if kind == 'value_from_parameter':
-                value_from_parameter = parameter_selector_spec.value_from_parameter
+                value_from_parameter = (
+                    parameter_selector_spec.value_from_parameter
+                )
                 outputs[root_output_key] = io_store.get_task_output(
                     value_from_parameter.producer_subtask,
                     value_from_parameter.output_parameter_key,
@@ -257,14 +264,17 @@ class OrchestratorUtils:
                     raise ValueError(
                         f"No value available for 'dsl.OneOf' output "
                         f"'{root_output_key}'. None of the conditional "
-                        f"branches produced an output.")
+                        f'branches produced an output.'
+                    )
                 else:
                     raise ValueError(
                         f"Multiple values available for 'dsl.OneOf' output "
-                        f"'{root_output_key}'. Expected exactly one.")
+                        f"'{root_output_key}'. Expected exactly one."
+                    )
             else:
                 raise ValueError(
-                    f"Got unknown 'parameter_selector_spec' kind: {kind}")
+                    f"Got unknown 'parameter_selector_spec' kind: {kind}"
+                )
         return outputs
 
     @classmethod
@@ -284,10 +294,13 @@ class OrchestratorUtils:
             The DAG output artifacts.
         """
         outputs = {}
-        for root_output_key, artifact_selector_spec in dag_outputs_spec.artifacts.items(
-        ):
+        for (
+            root_output_key,
+            artifact_selector_spec,
+        ) in dag_outputs_spec.artifacts.items():
             len_artifact_selectors = len(
-                artifact_selector_spec.artifact_selectors)
+                artifact_selector_spec.artifact_selectors
+            )
             if len_artifact_selectors != 1:
                 raise ValueError(
                     f'Expected 1 artifact in ArtifactSelectorSpec. Got: {len_artifact_selectors}'
