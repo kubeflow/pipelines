@@ -441,6 +441,33 @@ class DependabotConfigTest(unittest.TestCase):
     def test_frontend_vitest_coverage_matches_locked_runner(self):
         self.assert_vitest_coverage_matches_locked_runner('frontend')
 
+    def test_frontend_node_pins_and_engine_enforcement_agree(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        version = (frontend / '.nvmrc').read_text().strip().removeprefix('v')
+        manifest = json.loads((frontend / 'package.json').read_text())
+        lock = json.loads((frontend / 'package-lock.json').read_text())
+        self.assertEqual(manifest['engines']['node'], version)
+        self.assertEqual(lock['packages']['']['engines']['node'], version)
+        self.assertIn('engine-strict=true', (frontend / '.npmrc').read_text())
+
+    def test_frontend_node_consumers_use_shared_pin(self):
+        for path in (
+            '.github/workflows/frontend.yml',
+            '.github/workflows/e2e-test-frontend.yml',
+            '.github/workflows/image-builds.yml',
+            '.github/workflows/build-and-push.yml',
+            '.github/actions/build-tools-images/action.yml',
+            'test/cloudbuild/frontend.yaml',
+            'test/cloudbuild/batch_build.yaml',
+        ):
+            with self.subTest(path=path):
+                self.assertIn(
+                    'frontend/.nvmrc', (REPOSITORY_ROOT / path).read_text()
+                )
+        dockerfile = (REPOSITORY_ROOT / 'frontend/Dockerfile').read_text()
+        self.assertIn('FROM node:${NODE_VERSION}-slim AS build', dockerfile)
+        self.assertIn('FROM node:${NODE_VERSION}-${BASE_IMAGE}', dockerfile)
+
     def test_server_vitest_coverage_matches_locked_runner(self):
         self.assert_vitest_coverage_matches_locked_runner('frontend/server')
 

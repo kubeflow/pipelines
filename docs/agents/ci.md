@@ -2,6 +2,8 @@
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
+- Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
+
 - The Kubernetes-native migration experiment-creation test uses a 60-second polling budget for a reported run state. Initial Workflow persistence may temporarily omit the state before Argo reports a phase. API errors and observed failed/canceled runs fail immediately; an unreported state times out with the run ID and log guidance. CI Scripts Tests covers delayed state, timeout, and error behavior without a cluster.
 
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
