@@ -8881,6 +8881,116 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 	assert.Equal(t, "", msg)
 }
 
+// stuckPodNodes reproduces the node layout observed on a cluster running the Argo executor plugin
+// (lifecycle-demo run with bad-image, too-big, oom and healthy tasks). Every task X is a Retry node
+// X -> DAG X(0) -> Retry "executor" -> Pod "executor(0)". The driver runs in a shared agent pod, so
+// tasks only know that pod until the launcher registers the executor pod.
+// Node messages as Argo recorded them for the stuck pods (oom is cut after the first log line).
+const (
+	imagePullMsg     = `ImagePullBackOff: Back-off pulling image "ghcr.io/example/does-not-exist:v1": ErrImagePull: failed to authorize: 403 Forbidden`
+	unschedulableMsg = "Unschedulable: 0/1 nodes are available: 1 Insufficient cpu, 1 Insufficient memory. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+	oomMsg           = `main: OOMKilled (exit code 137): time=2026-10-21T07:32:22.993Z level=INFO msg="capturing logs" argo=true`
+)
+
+func stuckPodNodes() map[string]util.NodeStatus {
+	node := func(podName, name, typ, state, msg string, children ...string) util.NodeStatus {
+		return util.NodeStatus{ID: podName, DisplayName: name, Type: typ, State: state, Message: msg, Children: children}
+	}
+	return map[string]util.NodeStatus{
+		"wf-3900577527": node("wf-3900577527", "bad-image", "Retry", "Running", "", "wf-482333034"),
+		"wf-482333034":  node("wf-482333034", "bad-image(0)", "DAG", "Running", "", "wf-1006740785"),
+		"wf-1006740785": node("wf-1006740785", "executor", "Retry", "Running", "", "wf-1686722696"),
+		"wf-1686722696": node("wf-system-container-impl-1686722696", "executor(0)", "Pod", "Pending", imagePullMsg),
+
+		"wf-2928705689": node("wf-2928705689", "too-big", "Retry", "Running", "", "wf-573542336"),
+		"wf-573542336":  node("wf-573542336", "too-big(0)", "DAG", "Running", "", "wf-229472491"),
+		"wf-229472491":  node("wf-229472491", "executor", "Retry", "Running", "", "wf-3170731494"),
+		"wf-3170731494": node("wf-system-container-impl-3170731494", "executor(0)", "Pod", "Pending", unschedulableMsg),
+
+		"wf-1972745417": node("wf-1972745417", "oom", "Retry", "Failed", "", "wf-3607370928"),
+		"wf-3607370928": node("wf-3607370928", "oom(0)", "DAG", "Failed", "", "wf-1977730939"),
+		"wf-1977730939": node("wf-1977730939", "executor", "Retry", "Failed", "", "wf-1290726390"),
+		"wf-1290726390": node("wf-system-container-impl-1290726390", "executor(0)", "Pod", "Failed", oomMsg),
+
+		"wf-3306674949": node("wf-3306674949", "healthy", "Retry", "Succeeded", "", "wf-2211654756"),
+		"wf-2211654756": node("wf-2211654756", "healthy(0)", "DAG", "Succeeded", "", "wf-68694215"),
+		"wf-68694215":   node("wf-68694215", "executor", "Retry", "Succeeded", "", "wf-3163576314"),
+		"wf-3163576314": node("wf-system-container-impl-3163576314", "executor(0)", "Pod", "Succeeded", ""),
+	}
+}
+
+func agentOnlyTask(t *testing.T, name string) *model.Task {
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "wf-1340600742-agent", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+	return &model.Task{Name: name, Pods: pods}
+}
+
+func TestLifecycleMessageForTask_StuckPodMatchedThroughTaskNode(t *testing.T) {
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tests := []struct {
+		task string
+		want string
+	}{
+		{"bad-image", imagePullMsg},
+		{"too-big", unschedulableMsg},
+		{"oom", oomMsg},
+		{"healthy", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.task, func(t *testing.T) {
+			msg, matched := lifecycleMessageForTask(agentOnlyTask(t, tc.task), nodes, resolved)
+			assert.True(t, matched)
+			assert.Equal(t, tc.want, msg)
+		})
+	}
+}
+
+func TestLifecycleMessageForTask_PodNameMatchWinsOverTaskNode(t *testing.T) {
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{
+		{Name: "wf-1340600742-agent", Type: apiv2.PipelineTask_DRIVER},
+		{Name: "wf-system-container-impl-1686722696", Type: apiv2.PipelineTask_EXECUTOR},
+	})
+	require.NoError(t, err)
+	msg, matched := lifecycleMessageForTask(&model.Task{Name: "bad-image", Pods: pods}, nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+func TestLifecycleMessageForTask_TaskNodeLeavesAmbiguousNameUnmatched(t *testing.T) {
+	// The same task name in two sub-DAGs must not be attributed to either node.
+	nodes := stuckPodNodes()
+	nodes["other-bad-image"] = util.NodeStatus{ID: "other-bad-image", DisplayName: "bad-image", Type: "Retry", State: "Running"}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	_, matched := lifecycleMessageForTask(agentOnlyTask(t, "bad-image"), nodes, resolved)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TaskNodeDoesNotMatchExecutorNodes(t *testing.T) {
+	// Every task owns an "executor" Retry node, so a task named "executor" must not be attributed to one.
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	_, matched := lifecycleMessageForTask(agentOnlyTask(t, "executor"), nodes, resolved)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TaskNodeUsesLatestRetryAttempt(t *testing.T) {
+	// The first attempt hit a stuck pod, the second one recovered: the stale message is cleared.
+	nodes := map[string]util.NodeStatus{
+		"t":  {ID: "t", DisplayName: "train", Type: "Retry", State: "Running", Children: []string{"t0", "t1"}},
+		"t0": {ID: "pod-0", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "ImagePullBackOff"},
+		"t1": {ID: "pod-1", DisplayName: "train(1)", Type: "Pod", State: "Running"},
+	}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	msg, matched := lifecycleMessageForTask(agentOnlyTask(t, "train"), nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, "", msg)
+}
+
 // The guard must refuse whether or not the default version resolves.
 func TestDeletePipeline_DanglingDefaultVersionStillBlocksNonCascade(t *testing.T) {
 	initEnvVars()

@@ -4274,14 +4274,15 @@ func containsString(values []string, want string) bool {
 // lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
 // and returns the resolved message from the most recently created pod. matched is true when at
 // least one node was attributed to this task by pod name.
+//
+// A pod that is stuck before the launcher starts (image pull failure, unschedulable) never gets
+// registered on the task, so the task only knows the shared driver pod. In that case the task is
+// matched through its Argo task node instead, see lifecycleMessageForTaskNode.
 func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
 	if task == nil {
 		return "", false
 	}
 	podNames := podNamesFromTask(task)
-	if len(podNames) == 0 {
-		return "", false
-	}
 	type podMatch struct {
 		msg        string
 		createTime int64
@@ -4294,7 +4295,7 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		matches = append(matches, podMatch{msg: resolved[id], createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
-		return "", false
+		return lifecycleMessageForTaskNode(task, nodes, resolved)
 	}
 	// Pick the message from the most recently created pod so that a recovered retry
 	// (no lifecycle event) overrides a stale failure from an earlier attempt.
@@ -4302,6 +4303,29 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		return matches[i].createTime > matches[j].createTime
 	})
 	return matches[0].msg, true
+}
+
+// lifecycleMessageForTaskNode matches a task to the Argo Retry node named after it. That node sits
+// above the task's executor pod (task Retry -> task DAG -> executor Retry -> executor Pod), and
+// resolved already carries the executor pod's message up to it, following only the latest attempt.
+// The task name alone is not unique across sub-DAGs, so an ambiguous name is left unmatched
+// rather than guessed.
+func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+	if task.Name == "" {
+		return "", false
+	}
+	var nodeID string
+	count := 0
+	for id, node := range nodes {
+		if node.Type == "Retry" && node.DisplayName == task.Name {
+			nodeID = id
+			count++
+		}
+	}
+	if count != 1 {
+		return "", false
+	}
+	return resolved[nodeID], true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
