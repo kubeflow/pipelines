@@ -856,29 +856,31 @@ func TestUpdateTask_RejectsTerminalRun(t *testing.T) {
 	runSrv := createRunServer(manager)
 
 	// Create a task while the run is active
-	task, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	task, err := runSrv.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: runID,
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			RunId: runID,
 			Name:  "test-task",
-			State: apiv2beta1.PipelineTask_RUNNING,
+			State: apiv2.PipelineTask_RUNNING,
 		},
 	})
 	assert.NoError(t, err)
 
-	// Force the run into a terminal state using TerminateRun
-	err = manager.TerminateRun(context.Background(), runID)
-	assert.NoError(t, err)
+	storedRun, err := clients.RunStore().GetRun(runID, false)
+	require.NoError(t, err)
+	storedRun.State = model.RuntimeStateSucceeded
+	storedRun.FinishedAtInSec = 123456789
+	require.NoError(t, clients.RunStore().UpdateRun(storedRun))
 
 	// Attempt to update the task on a terminal run — should be blocked
-	_, err = runSrv.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	_, err = runSrv.UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		RunId:  runID,
 		TaskId: task.GetTaskId(),
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			TaskId: task.GetTaskId(),
 			RunId:  runID,
 			Name:   "test-task",
-			State:  apiv2beta1.PipelineTask_SUCCEEDED,
+			State:  apiv2.PipelineTask_SUCCEEDED,
 		},
 	})
 
@@ -894,28 +896,30 @@ func TestUpdateTasksBulk_RejectsTerminalRun(t *testing.T) {
 	runSrv := createRunServer(manager)
 
 	// Create a task while the run is active
-	task, err := runSrv.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	task, err := runSrv.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		RunId: runID,
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			RunId: runID,
 			Name:  "bulk-task",
-			State: apiv2beta1.PipelineTask_RUNNING,
+			State: apiv2.PipelineTask_RUNNING,
 		},
 	})
 	assert.NoError(t, err)
 
-	// Force the run into a terminal state using TerminateRun
-	err = manager.TerminateRun(context.Background(), runID)
-	assert.NoError(t, err)
+	storedRun, err := clients.RunStore().GetRun(runID, false)
+	require.NoError(t, err)
+	storedRun.State = model.RuntimeStateSucceeded
+	storedRun.FinishedAtInSec = 123456789
+	require.NoError(t, clients.RunStore().UpdateRun(storedRun))
 
 	// Attempt bulk update on a terminal run — should be blocked
-	bulkReq := &apiv2beta1.UpdateTasksBulkRequest{
+	bulkReq := &apiv2.UpdateTasksBulkRequest{
 		RunId: runID,
-		Tasks: map[string]*apiv2beta1.PipelineTask{
+		Tasks: map[string]*apiv2.PipelineTask{
 			task.GetTaskId(): {
 				TaskId: task.GetTaskId(),
 				Name:   "bulk-task",
-				State:  apiv2beta1.PipelineTask_SUCCEEDED,
+				State:  apiv2.PipelineTask_SUCCEEDED,
 			},
 		},
 	}

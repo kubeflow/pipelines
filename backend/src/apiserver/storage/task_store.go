@@ -1073,6 +1073,62 @@ func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error)
 	return task, nil
 }
 
+// Locks the parent run row and verifies that it is neither imported nor in a terminal lifecycle state.
+
+func (s *TaskStore) verifyParentRunAllowsWritesForUpdate(tx *sql.Tx, runID string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	sqlStr, args, err := qb.
+		Select(dialect.QuoteAll(q, []string{"State", "Conditions", "ImportedFrom"})...).
+		From(q("run_details")).
+		Where(sq.Eq{q("run_details") + "." + q("UUID"): runID}).
+		Limit(1).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to lock parent run: %v", err)
+	}
+
+	sqlStr = s.dbDialect.SelectForUpdate(sqlStr)
+
+	var runState, runConditions, importedFrom sql.NullString
+	if err := tx.QueryRow(sqlStr, args...).Scan(&runState, &runConditions, &importedFrom); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return util.NewResourceNotFoundError("run", runID)
+		}
+		return util.NewInternalServerError(err, "Failed to get parent run for update: %v", err)
+	}
+
+	if importedFrom.Valid && importedFrom.String != "" {
+		return util.NewFailedPreconditionError(
+			errors.New("the parent run is imported history"),
+			"Run %s is imported history and cannot accept runtime changes", runID,
+		)
+	}
+
+	effectiveState := model.RuntimeStateUnspecified
+	if runState.Valid && runState.String != "" {
+		effectiveState = model.RuntimeState(runState.String).ToV2()
+	} else if runConditions.Valid && runConditions.String != "" {
+		effectiveState = model.RuntimeState(runConditions.String).ToV2()
+	}
+
+	switch effectiveState {
+	case model.RuntimeStateSucceeded,
+		model.RuntimeStateFailed,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateCanceled:
+		return util.NewFailedPreconditionError(
+			errors.New("the execution is in a terminal state"),
+			"Run %s is in terminal state %s and cannot accept runtime changes", runID, effectiveState,
+		)
+	}
+
+	return nil
+
+}
+
 // UpdateTask updates an existing task in the tasks table and returns the updated task.
 // Uses row-level locking to prevent race conditions when multiple concurrent updates
 // try to modify the same task (e.g., loop iterations propagating parameters to parent task).
@@ -1104,6 +1160,10 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		return nil, err
 	}
 
+	// Lock parent run and enforce terminal-run immutability
+	if err := s.verifyParentRunAllowsWritesForUpdate(tx, lockedOld.RunUUID); err != nil {
+		return nil, err
+	}
 	// Use the locked version for merging instead of the 'old' parameter
 	// This ensures we merge against the most recent state
 
