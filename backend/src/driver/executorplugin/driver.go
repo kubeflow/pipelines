@@ -290,7 +290,7 @@ func (r *driverRunner) prepareLogStorage(ctx context.Context, args driverapi.Dri
 		launcherConfig, err = load(ctx, namespace)
 		if err == nil {
 			var session objectstore.SessionInfo
-			session, err = launcherConfig.GetStoreSessionInfo(pipelineRoot)
+			session, err = launcherConfig.GetStoreSessionInfo(pipelineRoot, true)
 			if err == nil {
 				var sessionJSON []byte
 				sessionJSON, err = json.Marshal(session)
