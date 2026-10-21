@@ -6,6 +6,31 @@ dependencies = [
   "kfp",
 ]
 
+[tool.ruff]
+target-version = "py311"
+line-length = 80
+include = ["*.py", "*.pyi"]
+# Apply exclusions even when pre-commit passes explicit paths.
+force-exclude = true
+extend-exclude = [
+  "backend/api/v2/python_http_client",
+  "backend/api/v2beta1/python_http_client",
+  "sdk/python/kfp/server_api",
+  "*_pb2.py",
+  # Scheduled for deletion; leave this tree untouched by the tooling migration.
+  "components/google-cloud",
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["F401", "I", "W605"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package imports are public re-exports, not necessarily used in the module.
+"__init__.py" = ["F401"]
+
 [tool.uv.workspace]
 members = [
   "sdk/python",
@@ -29,9 +54,8 @@ constraint-dependencies = [
 # Linting tools (pinned to avoid new lint failures)
 lint = [
   "docformatter==1.7.7",
-  "isort==5.10.1",  "pre-commit-hooks",  "pycln==2.6.0",
   "pylint==4.1.3",
-  "yapf==0.43.0",
+  "ruff==0.17.1",
 ]
 
 # Testing tools

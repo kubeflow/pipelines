@@ -2,7 +2,6 @@ name: Approve Workflow Runs
 
 permissions:
   actions: write
-  contents: read
   pull-requests: read
 
 on:
@@ -63,7 +62,7 @@ jobs:
 
       - name: Approve Pending Workflow Runs
         if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           IS_MEMBER: ${{ steps.membership-check.outputs.is_member }}
         with:
@@ -181,7 +180,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Approve pending runs for uniquely identified admitted PRs
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const repo = context.repo;

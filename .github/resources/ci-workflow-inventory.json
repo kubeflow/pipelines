@@ -118,7 +118,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "154fb1fa1f854e7be7ba13c783e53deb887e22df9415e9744a1fb018e4a48e4d",
+      "header_sha256": "6df897d5f41127f359c4e63d5011b3a8b3506f0edf99664729bf83003ae715f6",
       "pull_request": null
     },
     {
@@ -691,15 +691,17 @@
     },
     {
       "path": ".github/workflows/sdk-isort.yml",
-      "name": "KFP SDK Isort Test",
-      "header_sha256": "d4081b2b982f45f9a58681556375d20302490b155e3f1ed07587de328bc96138",
+      "name": "Python Ruff Lint",
+      "header_sha256": "554e9734cc75e7a15064fc8e6ff940ba4c378cf3936548343a9ae0f029cb4f9c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
-          "api/**",
-          "sdk/python/**",
-          "test/presubmit-isort-sdk.sh",
+          "**/*.py",
+          "**/*.pyi",
+          ".gitignore",
+          ".pre-commit-config.yaml",
+          "test/presubmit-ruff.sh",
           ".github/workflows/sdk-isort.yml",
           ".github/actions/setup-python/**",
           "!**/*.md",
@@ -726,15 +728,17 @@
     },
     {
       "path": ".github/workflows/sdk-yapf.yml",
-      "name": "KFP SDK YAPF Tests",
-      "header_sha256": "52da9933b091d486a5d674b0e2811b05d54b3023cf8b7a914b046318024e28ff",
+      "name": "Python Ruff Format",
+      "header_sha256": "3d8a5c5b0a197d0c1547d99ff61d60faa93333e466d0803badacd9b29f2ff6be",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
-          "api/**",
-          "sdk/python/**",
-          "test/presubmit-yapf-sdk.sh",
+          "**/*.py",
+          "**/*.pyi",
+          ".gitignore",
+          ".pre-commit-config.yaml",
+          "test/presubmit-ruff.sh",
           ".github/workflows/sdk-yapf.yml",
           ".github/actions/setup-python/**",
           "!**/*.md",

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilitites for formatting, coloring, and controlling the output of logs."""
+
 import builtins
 import contextlib
 import datetime
@@ -38,7 +39,6 @@ class Color:
 
 
 class MillisecondFormatter(logging.Formatter):
-
     def formatTime(
         self,
         record: logging.LogRecord,
@@ -130,7 +130,9 @@ def color_text(text: str, color: Color) -> str:
     return f'{color}{text}{Color.RESET}'
 
 
-def make_log_lines_for_artifact(artifact: dsl.Artifact,) -> List[str]:
+def make_log_lines_for_artifact(
+    artifact: dsl.Artifact,
+) -> List[str]:
     """Returns a list of log lines that represent a single artifact output."""
     artifact_class_name_and_paren = f'{artifact.__class__.__name__}( '
     # name

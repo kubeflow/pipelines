@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -30,10 +29,11 @@ def my_pipeline():
         mount_path='path',
         access_modes=['ReadWriteOnce'],
         size='5Gi',
-        annotations={"annotation1": "a1"},
+        annotations={'annotation1': 'a1'},
     )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))

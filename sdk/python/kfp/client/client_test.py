@@ -13,39 +13,37 @@
 # limitations under the License.
 
 import json
-from logging import WARNING
 import os
 import sys
 import tempfile
 import textwrap
 import unittest
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from logging import WARNING
+from unittest.mock import MagicMock, Mock, patch
 
-from absl.testing import parameterized
-from google.protobuf import json_format
-from kfp.client import auth
-from kfp.client import client
-from kfp.compiler import Compiler
-from kfp.dsl import component
-from kfp.dsl import pipeline
-from kfp.pipeline_spec import pipeline_spec_pb2
-import kfp.server_api
 import kubernetes as k8s
 import yaml
+from absl.testing import parameterized
+from google.protobuf import json_format
+
+import kfp.server_api
+from kfp.client import auth, client
+from kfp.compiler import Compiler
+from kfp.dsl import component, pipeline
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class TestRecurringRunAliases(parameterized.TestCase):
-
     @parameterized.parameters('delete', 'disable', 'enable')
     def test_job_alias_uses_recurring_run_service(self, operation):
         sdk_client = client.Client.__new__(client.Client)
         sdk_client._recurring_run_api = Mock(
-            spec=kfp.server_api.RecurringRunServiceApi)
+            spec=kfp.server_api.RecurringRunServiceApi
+        )
         service_method = getattr(
             sdk_client._recurring_run_api,
-            f'recurring_run_service_{operation}_recurring_run')
+            f'recurring_run_service_{operation}_recurring_run',
+        )
         with self.assertWarns(DeprecationWarning):
             result = getattr(sdk_client, f'{operation}_job')('run-id')
         service_method.assert_called_once_with(recurring_run_id='run-id')
@@ -54,40 +52,42 @@ class TestRecurringRunAliases(parameterized.TestCase):
     def test_job_id_alias_uses_recurring_run_service(self):
         sdk_client = client.Client.__new__(client.Client)
         sdk_client._recurring_run_api = Mock(
-            spec=kfp.server_api.RecurringRunServiceApi)
+            spec=kfp.server_api.RecurringRunServiceApi
+        )
         with self.assertWarns(DeprecationWarning):
             sdk_client.get_recurring_run(recurring_run_id=None, job_id='run-id')
         sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
-            recurring_run_id='run-id')
+            recurring_run_id='run-id'
+        )
 
 
 class TestValidatePipelineName(parameterized.TestCase):
-
-    @parameterized.parameters([
-        'pipeline',
-        'my-pipeline',
-        'my-pipeline-1',
-        '1pipeline',
-        'pipeline1',
-        'my_pipeline',
-        "person's-pipeline",
-        'my pipeline',
-        'pipeline.yaml',
-    ])
+    @parameterized.parameters(
+        [
+            'pipeline',
+            'my-pipeline',
+            'my-pipeline-1',
+            '1pipeline',
+            'pipeline1',
+            'my_pipeline',
+            "person's-pipeline",
+            'my pipeline',
+            'pipeline.yaml',
+        ]
+    )
     def test_valid(self, name: str):
         client.validate_pipeline_display_name(name)
 
     @parameterized.parameters(['', '   ', '\t'])
     def test_invalid(self, name: str):
         with self.assertRaisesRegex(
-                ValueError,
-                'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
+            ValueError,
+            'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.',
         ):
             client.validate_pipeline_display_name(name)
 
 
 class TestOverrideCachingOptions(parameterized.TestCase):
-
     def test_override_caching_of_multiple_components(self):
 
         @component
@@ -100,33 +100,51 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
         @pipeline(
             name='sample two-step pipeline',
-            description='a minimal two-step pipeline')
+            description='a minimal two-step pipeline',
+        )
         def pipeline_with_two_component(text: str = 'hi there'):
 
             component_1 = hello_word(text=text).set_caching_options(True)
-            component_2 = to_lower(
-                text=component_1.output).set_caching_options(False)
+            component_2 = to_lower(text=component_1.output).set_caching_options(
+                False
+            )
 
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             Compiler().compile(
                 pipeline_func=pipeline_with_two_component,
-                package_path=temp_filepath)
+                package_path=temp_filepath,
+            )
 
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
                 pipeline_spec = json_format.ParseDict(
-                    pipeline_obj, pipeline_spec_pb2.PipelineSpec())
+                    pipeline_obj, pipeline_spec_pb2.PipelineSpec()
+                )
                 client._override_caching_options(pipeline_spec, True)
                 pipeline_obj = json_format.MessageToDict(pipeline_spec)
-                self.assertTrue(pipeline_obj['root']['dag']['tasks']
-                                ['hello-word']['cachingOptions']['enableCache'])
-                self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
-                                ['cachingOptions']['enableCache'])
-                self.assertFalse('cacheKey' in pipeline_obj['root']['dag']
-                                 ['tasks']['hello-word']['cachingOptions'])
-                self.assertFalse('cacheKey' in pipeline_obj['root']['dag']
-                                 ['tasks']['to-lower']['cachingOptions'])
+                self.assertTrue(
+                    pipeline_obj['root']['dag']['tasks']['hello-word'][
+                        'cachingOptions'
+                    ]['enableCache']
+                )
+                self.assertTrue(
+                    pipeline_obj['root']['dag']['tasks']['to-lower'][
+                        'cachingOptions'
+                    ]['enableCache']
+                )
+                self.assertFalse(
+                    'cacheKey'
+                    in pipeline_obj['root']['dag']['tasks']['hello-word'][
+                        'cachingOptions'
+                    ]
+                )
+                self.assertFalse(
+                    'cacheKey'
+                    in pipeline_obj['root']['dag']['tasks']['to-lower'][
+                        'cachingOptions'
+                    ]
+                )
 
     def test_override_cache_key(self):
 
@@ -140,46 +158,62 @@ class TestOverrideCachingOptions(parameterized.TestCase):
 
         @pipeline(
             name='sample two-step pipeline',
-            description='a minimal two-step pipeline')
+            description='a minimal two-step pipeline',
+        )
         def pipeline_with_two_component(text: str = 'hi there'):
             component_1 = hello_word(text=text).set_caching_options(True)
-            component_2 = to_lower(
-                text=component_1.output).set_caching_options(False)
+            component_2 = to_lower(text=component_1.output).set_caching_options(
+                False
+            )
 
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
             Compiler().compile(
                 pipeline_func=pipeline_with_two_component,
-                package_path=temp_filepath)
+                package_path=temp_filepath,
+            )
 
             with open(temp_filepath, 'r') as f:
                 pipeline_obj = yaml.safe_load(f)
                 pipeline_spec = json_format.ParseDict(
-                    pipeline_obj, pipeline_spec_pb2.PipelineSpec())
+                    pipeline_obj, pipeline_spec_pb2.PipelineSpec()
+                )
                 client._override_caching_options(
-                    pipeline_spec, True, cache_key='OVERRIDE_KEY')
+                    pipeline_spec, True, cache_key='OVERRIDE_KEY'
+                )
                 pipeline_obj = json_format.MessageToDict(pipeline_spec)
-                self.assertTrue(pipeline_obj['root']['dag']['tasks']
-                                ['hello-word']['cachingOptions']['enableCache'])
+                self.assertTrue(
+                    pipeline_obj['root']['dag']['tasks']['hello-word'][
+                        'cachingOptions'
+                    ]['enableCache']
+                )
                 self.assertEqual(
-                    pipeline_obj['root']['dag']['tasks']['hello-word']
-                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
-                self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
-                                ['cachingOptions']['enableCache'])
+                    pipeline_obj['root']['dag']['tasks']['hello-word'][
+                        'cachingOptions'
+                    ]['cacheKey'],
+                    'OVERRIDE_KEY',
+                )
+                self.assertTrue(
+                    pipeline_obj['root']['dag']['tasks']['to-lower'][
+                        'cachingOptions'
+                    ]['enableCache']
+                )
                 self.assertEqual(
-                    pipeline_obj['root']['dag']['tasks']['to-lower']
-                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
+                    pipeline_obj['root']['dag']['tasks']['to-lower'][
+                        'cachingOptions'
+                    ]['cacheKey'],
+                    'OVERRIDE_KEY',
+                )
 
 
 class TestExtractPipelineYAML(parameterized.TestCase):
-
     def test_extract_pipeline_yaml_single_doc(self):
 
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'single_doc_pipeline.yaml')
             with open(temp_filepath, 'w') as f:
                 f.write(
-                    textwrap.dedent('''
+                    textwrap.dedent("""
                         components:
                           comp-foo:
                             executorLabel: exec-foo
@@ -204,12 +238,15 @@ class TestExtractPipelineYAML(parameterized.TestCase):
                                   name: foo
                         schemaVersion: 2.1.0
                         sdkVersion: kfp-2.0.0-beta.13
-                        '''))
+                        """)
+                )
 
             pipeline_dict = client._extract_pipeline_yaml(
-                temp_filepath).to_dict()
-            self.assertEqual('my-pipeline',
-                             pipeline_dict['pipelineInfo']['name'])
+                temp_filepath
+            ).to_dict()
+            self.assertEqual(
+                'my-pipeline', pipeline_dict['pipelineInfo']['name']
+            )
 
     def test_extract_pipeline_yaml_multiple_docs(self):
 
@@ -217,7 +254,7 @@ class TestExtractPipelineYAML(parameterized.TestCase):
             temp_filepath = os.path.join(tempdir, 'multi_docs_pipeline.yaml')
             with open(temp_filepath, 'w') as f:
                 f.write(
-                    textwrap.dedent('''
+                    textwrap.dedent("""
                         components:
                           comp-foo:
                             executorLabel: exec-foo
@@ -251,37 +288,44 @@ class TestExtractPipelineYAML(parameterized.TestCase):
                                   pvcMount:
                                   - mountPath: /data
                                     constant: my-pvc
-                        '''))
+                        """)
+                )
 
             pipeline_dict = client._extract_pipeline_yaml(
-                temp_filepath).to_dict()
+                temp_filepath
+            ).to_dict()
             self.assertEqual(
                 'my-pipeline',
-                pipeline_dict['pipeline_spec']['pipelineInfo']['name'])
+                pipeline_dict['pipeline_spec']['pipelineInfo']['name'],
+            )
             self.assertEqual(
-                'my-pvc', pipeline_dict['platform_spec']['platforms']
-                ['kubernetes']['deploymentSpec']['executors']['exec-foo']
-                ['pvcMount'][0]['constant'])
+                'my-pvc',
+                pipeline_dict['platform_spec']['platforms']['kubernetes'][
+                    'deploymentSpec'
+                ]['executors']['exec-foo']['pvcMount'][0]['constant'],
+            )
 
 
 class TestClient(parameterized.TestCase):
-
     def setUp(self):
         self.client = client.Client(namespace='ns1')
 
     def test_wait_for_run_completion_invalid_token_should_raise_error(self):
         with self.assertRaises(kfp.server_api.ApiException):
             with patch.object(
-                    self.client._run_api,
-                    'run_service_get_run',
-                    side_effect=kfp.server_api.ApiException) as mock_get_run:
+                self.client._run_api,
+                'run_service_get_run',
+                side_effect=kfp.server_api.ApiException,
+            ) as mock_get_run:
                 self.client.wait_for_run_completion(
-                    run_id='foo', timeout=1, sleep_duration=0)
+                    run_id='foo', timeout=1, sleep_duration=0
+                )
                 mock_get_run.assert_called_once()
 
     def test_wait_for_run_completion_expired_access_token(self):
-        with patch.object(self.client._run_api,
-                          'run_service_get_run') as mock_get_run:
+        with patch.object(
+            self.client._run_api, 'run_service_get_run'
+        ) as mock_get_run:
             # We need to iterate through multiple side effects in order to test this logic.
             mock_get_run.side_effect = [
                 Mock(state='unknown state'),
@@ -290,87 +334,103 @@ class TestClient(parameterized.TestCase):
             ]
 
             with patch.object(
-                    self.client, '_refresh_api_client_token',
-                    return_value=True) as mock_refresh_api_client_token:
+                self.client, '_refresh_api_client_token', return_value=True
+            ) as mock_refresh_api_client_token:
                 self.client.wait_for_run_completion(
-                    run_id='foo', timeout=1, sleep_duration=0)
+                    run_id='foo', timeout=1, sleep_duration=0
+                )
                 mock_get_run.assert_called_with(run_id='foo')
                 mock_refresh_api_client_token.assert_called_once()
 
     def test_wait_for_run_completion_valid_token(self):
-        with patch.object(self.client._run_api,
-                          'run_service_get_run') as mock_get_run:
+        with patch.object(
+            self.client._run_api, 'run_service_get_run'
+        ) as mock_get_run:
             mock_get_run.return_value = Mock(state='succeeded')
             response = self.client.wait_for_run_completion(
-                run_id='foo', timeout=1, sleep_duration=0)
+                run_id='foo', timeout=1, sleep_duration=0
+            )
             mock_get_run.assert_called_once_with(run_id='foo')
             assert response == mock_get_run.return_value
 
     def test_wait_for_run_completion_canceled_run(self):
-        with patch.object(self.client._run_api,
-                          'run_service_get_run') as mock_get_run:
+        with patch.object(
+            self.client._run_api, 'run_service_get_run'
+        ) as mock_get_run:
             mock_get_run.return_value = Mock(state='CANCELED')
             response = self.client.wait_for_run_completion(
-                run_id='foo', timeout=1, sleep_duration=0)
+                run_id='foo', timeout=1, sleep_duration=0
+            )
             mock_get_run.assert_called_once_with(run_id='foo')
             assert response == mock_get_run.return_value
 
     def test_wait_for_run_completion_run_timeout_should_raise_error(self):
         with self.assertRaises(TimeoutError):
-            with patch.object(self.client._run_api,
-                              'run_service_get_run') as mock_get_run:
+            with patch.object(
+                self.client._run_api, 'run_service_get_run'
+            ) as mock_get_run:
                 mock_get_run.return_value = Mock(run=Mock(status='foo'))
                 self.client.wait_for_run_completion(
-                    run_id='foo', timeout=1, sleep_duration=0)
+                    run_id='foo', timeout=1, sleep_duration=0
+                )
                 mock_get_run.assert_called_once_with(run_id='foo')
 
     @parameterized.parameters(None, 'test-ns')
     def test_get_pipeline_id_passes_namespace(self, namespace):
         with patch.object(
-                self.client._pipelines_api,
-                'pipeline_service_list_pipelines') as mock_list_pipelines:
+            self.client._pipelines_api, 'pipeline_service_list_pipelines'
+        ) as mock_list_pipelines:
             mock_list_pipelines.return_value = Mock(
-                pipelines=[Mock(pipeline_id='pipeline-id')])
+                pipelines=[Mock(pipeline_id='pipeline-id')]
+            )
 
             pipeline_id = self.client.get_pipeline_id(
-                'test-pipeline', namespace=namespace)
+                'test-pipeline', namespace=namespace
+            )
 
             self.assertEqual(pipeline_id, 'pipeline-id')
             mock_list_pipelines.assert_called_once()
-            self.assertEqual(mock_list_pipelines.call_args.kwargs['namespace'],
-                             namespace)
+            self.assertEqual(
+                mock_list_pipelines.call_args.kwargs['namespace'], namespace
+            )
             pipeline_filter = json.loads(
-                mock_list_pipelines.call_args.kwargs['filter'])
-            self.assertEqual(pipeline_filter['predicates'][0]['stringValue'],
-                             'test-pipeline')
+                mock_list_pipelines.call_args.kwargs['filter']
+            )
+            self.assertEqual(
+                pipeline_filter['predicates'][0]['stringValue'], 'test-pipeline'
+            )
 
     def test_get_pipeline_id_returns_none_when_not_found(self):
         with patch.object(
-                self.client._pipelines_api,
-                'pipeline_service_list_pipelines') as mock_list_pipelines:
+            self.client._pipelines_api, 'pipeline_service_list_pipelines'
+        ) as mock_list_pipelines:
             mock_list_pipelines.return_value = Mock(pipelines=None)
 
             self.assertIsNone(
                 self.client.get_pipeline_id(
-                    'test-pipeline', namespace='test-ns'))
+                    'test-pipeline', namespace='test-ns'
+                )
+            )
 
     def test_get_pipeline_id_raises_when_name_is_not_unique(self):
         with patch.object(
-                self.client._pipelines_api,
-                'pipeline_service_list_pipelines') as mock_list_pipelines:
+            self.client._pipelines_api, 'pipeline_service_list_pipelines'
+        ) as mock_list_pipelines:
             mock_list_pipelines.return_value = Mock(
-                pipelines=[Mock(pipeline_id='a'),
-                           Mock(pipeline_id='b')])
+                pipelines=[Mock(pipeline_id='a'), Mock(pipeline_id='b')]
+            )
 
             with self.assertRaisesRegex(ValueError, 'Multiple pipelines'):
                 self.client.get_pipeline_id(
-                    'test-pipeline', namespace='test-ns')
+                    'test-pipeline', namespace='test-ns'
+                )
 
     def test_run_pipeline_sends_namespace_without_experiment(self):
         # The server resolves the namespace's default experiment when
         # experiment_id is omitted, so both fields must reach the request.
-        with patch.object(self.client._run_api,
-                          'run_service_create_run') as mock_create:
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
             self.client.run_pipeline(
                 job_name='run1',
                 namespace='ns1',
@@ -384,8 +444,9 @@ class TestClient(parameterized.TestCase):
     def test_run_pipeline_keeps_positional_experiment_id(self):
         # experiment_id stays the first parameter, so existing positional
         # callers are unaffected.
-        with patch.object(self.client._run_api,
-                          'run_service_create_run') as mock_create:
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
             self.client.run_pipeline('exp1', 'run1', pipeline_id='p1')
 
             run = mock_create.call_args.kwargs['run']
@@ -395,34 +456,41 @@ class TestClient(parameterized.TestCase):
     def test_run_pipeline_keeps_later_positional_arguments(self):
         # namespace is appended rather than inserted, so a caller passing
         # pipeline_root positionally still sets the pipeline root.
-        with patch.object(self.client._run_api,
-                          'run_service_create_run') as mock_create:
-            self.client.run_pipeline('exp1', 'run1', None, {}, 'p1', 'v1',
-                                     'gs://bucket/root')
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
+            self.client.run_pipeline(
+                'exp1', 'run1', None, {}, 'p1', 'v1', 'gs://bucket/root'
+            )
 
             run = mock_create.call_args.kwargs['run']
-            self.assertEqual(run.runtime_config.pipeline_root,
-                             'gs://bucket/root')
+            self.assertEqual(
+                run.runtime_config.pipeline_root, 'gs://bucket/root'
+            )
             self.assertIsNone(run.namespace)
 
     def test_create_recurring_run_keeps_later_positional_arguments(self):
         # The same for recurring runs: interval_second must not shift onto
         # another parameter.
         with patch.object(
-                self.client._recurring_run_api,
-                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client._recurring_run_api,
+            'recurring_run_service_create_recurring_run',
+        ) as mock_create:
             self.client.create_recurring_run(
-                'exp1', 'recurring1', None, None, None, 3600, pipeline_id='p1')
+                'exp1', 'recurring1', None, None, None, 3600, pipeline_id='p1'
+            )
 
             recurring_run = mock_create.call_args.kwargs['recurring_run']
             self.assertEqual(
-                recurring_run.trigger.periodic_schedule.interval_second, 3600)
+                recurring_run.trigger.periodic_schedule.interval_second, 3600
+            )
             self.assertIsNone(recurring_run.namespace)
 
     def test_create_recurring_run_sends_namespace_without_experiment(self):
         with patch.object(
-                self.client._recurring_run_api,
-                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client._recurring_run_api,
+            'recurring_run_service_create_recurring_run',
+        ) as mock_create:
             self.client.create_recurring_run(
                 job_name='recurring1',
                 namespace='ns1',
@@ -437,11 +505,13 @@ class TestClient(parameterized.TestCase):
     def test_run_pipeline_requires_job_name(self):
         # job_name only defaults to None because experiment_id precedes it;
         # an empty name reaches the server as a 500, so reject it locally.
-        with patch.object(self.client._run_api,
-                          'run_service_create_run') as mock_create:
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
             for job_name in (None, ''):
-                with self.assertRaisesRegex(ValueError,
-                                            'job_name is required.'):
+                with self.assertRaisesRegex(
+                    ValueError, 'job_name is required.'
+                ):
                     self.client.run_pipeline(
                         job_name=job_name,
                         namespace='ns1',
@@ -452,11 +522,13 @@ class TestClient(parameterized.TestCase):
 
     def test_create_recurring_run_requires_job_name(self):
         with patch.object(
-                self.client._recurring_run_api,
-                'recurring_run_service_create_recurring_run') as mock_create:
+            self.client._recurring_run_api,
+            'recurring_run_service_create_recurring_run',
+        ) as mock_create:
             for job_name in (None, ''):
-                with self.assertRaisesRegex(ValueError,
-                                            'job_name is required.'):
+                with self.assertRaisesRegex(
+                    ValueError, 'job_name is required.'
+                ):
                     self.client.create_recurring_run(
                         job_name=job_name,
                         namespace='ns1',
@@ -468,10 +540,12 @@ class TestClient(parameterized.TestCase):
 
     @patch('kfp.Client.get_user_namespace', return_value='ns2')
     def test_list_recurring_runs_uses_user_namespace_when_not_provided(
-            self, mock_get_user_namespace):
+        self, mock_get_user_namespace
+    ):
         with patch.object(
-                self.client._recurring_run_api,
-                'recurring_run_service_list_recurring_runs') as mock_list:
+            self.client._recurring_run_api,
+            'recurring_run_service_list_recurring_runs',
+        ) as mock_list:
             self.client.list_recurring_runs()
             mock_get_user_namespace.assert_called_once()
             mock_list.assert_called_once_with(
@@ -479,43 +553,50 @@ class TestClient(parameterized.TestCase):
                 page_size=10,
                 sort_by='',
                 namespace='ns2',
-                filter=None)
+                filter=None,
+            )
 
     @patch('kfp.Client.get_experiment', side_effect=ValueError)
     def test_create_experiment_no_experiment_should_raise_error(
-            self, mock_get_experiment):
+        self, mock_get_experiment
+    ):
         with self.assertRaises(ValueError):
             self.client.create_experiment(name='foo', namespace='ns1')
             mock_get_experiment.assert_called_once_with(
-                name='foo', onamespace='ns1')
+                name='foo', onamespace='ns1'
+            )
 
     @patch('kfp.Client.get_experiment', return_value=Mock(id='foo'))
     @patch('kfp.Client._get_url_prefix', return_value='/pipeline')
-    def test_create_experiment_existing_experiment(self, mock_get_url_prefix,
-                                                   mock_get_experiment):
+    def test_create_experiment_existing_experiment(
+        self, mock_get_url_prefix, mock_get_experiment
+    ):
         self.client.create_experiment(name='foo')
         mock_get_experiment.assert_called_once_with(
-            experiment_name='foo', namespace='ns1')
+            experiment_name='foo', namespace='ns1'
+        )
         mock_get_url_prefix.assert_called_once()
 
     @patch('kfp.server_api.V2Experiment')
     @patch(
         'kfp.Client.get_experiment',
-        side_effect=ValueError('No experiment is found with name'))
+        side_effect=ValueError('No experiment is found with name'),
+    )
     @patch('kfp.Client._get_url_prefix', return_value='/pipeline')
-    def test__create_experiment_name_not_found(self, mock_get_url_prefix,
-                                               mock_get_experiment,
-                                               mock_api_experiment):
+    def test__create_experiment_name_not_found(
+        self, mock_get_url_prefix, mock_get_experiment, mock_api_experiment
+    ):
         # experiment with the specified name is not found, so a new experiment
         # is created.
         with patch.object(
-                self.client._experiment_api,
-                'experiment_service_create_experiment',
-                return_value=Mock(
-                    experiment_id='foo')) as mock_create_experiment:
+            self.client._experiment_api,
+            'experiment_service_create_experiment',
+            return_value=Mock(experiment_id='foo'),
+        ) as mock_create_experiment:
             self.client.create_experiment(name='foo')
             mock_get_experiment.assert_called_once_with(
-                experiment_name='foo', namespace='ns1')
+                experiment_name='foo', namespace='ns1'
+            )
             mock_api_experiment.assert_called_once()
             mock_create_experiment.assert_called_once()
             mock_get_url_prefix.assert_called_once()
@@ -526,50 +607,53 @@ class TestClient(parameterized.TestCase):
 
     @patch('kfp.Client.get_user_namespace', return_value=None)
     def test_get_experiment_does_not_exist_should_raise_error(
-            self, mock_get_user_namespace):
+        self, mock_get_user_namespace
+    ):
         with self.assertRaises(ValueError):
             with patch.object(
-                    self.client._experiment_api,
-                    'experiment_service_list_experiments',
-                    return_value=Mock(
-                        experiments=None)) as mock_list_experiments:
+                self.client._experiment_api,
+                'experiment_service_list_experiments',
+                return_value=Mock(experiments=None),
+            ) as mock_list_experiments:
                 self.client.get_experiment(experiment_name='foo')
                 mock_list_experiments.assert_called_once()
                 mock_get_user_namespace.assert_called_once()
 
     @patch('kfp.Client.get_user_namespace', return_value=None)
     def test_get_experiment_multiple_experiments_with_name_should_raise_error(
-            self, mock_get_user_namespace):
+        self, mock_get_user_namespace
+    ):
         with self.assertRaises(ValueError):
             with patch.object(
-                    self.client._experiment_api,
-                    'experiment_service_list_experiments',
-                    return_value=Mock(
-                        experiments=['foo', 'foo'])) as mock_list_experiments:
+                self.client._experiment_api,
+                'experiment_service_list_experiments',
+                return_value=Mock(experiments=['foo', 'foo']),
+            ) as mock_list_experiments:
                 self.client.get_experiment(experiment_name='foo')
                 mock_list_experiments.assert_called_once()
                 mock_get_user_namespace.assert_called_once()
 
     def test_get_experiment_with_experiment_id(self):
         with patch.object(
-                self.client._experiment_api,
-                'experiment_service_get_experiment') as mock_get_experiment:
+            self.client._experiment_api, 'experiment_service_get_experiment'
+        ) as mock_get_experiment:
             self.client.get_experiment(experiment_id='foo')
             mock_get_experiment.assert_called_once_with(experiment_id='foo')
 
     def test_get_experiment_with_experiment_name_and_namespace(self):
         with patch.object(
-                self.client._experiment_api,
-                'experiment_service_list_experiments') as mock_list_experiments:
+            self.client._experiment_api, 'experiment_service_list_experiments'
+        ) as mock_list_experiments:
             self.client.get_experiment(experiment_name='foo', namespace='ns1')
             mock_list_experiments.assert_called_once()
 
     @patch('kfp.Client.get_user_namespace', return_value=None)
     def test_get_experiment_with_experiment_name_and_no_namespace(
-            self, mock_get_user_namespace):
+        self, mock_get_user_namespace
+    ):
         with patch.object(
-                self.client._experiment_api,
-                'experiment_service_list_experiments') as mock_list_experiments:
+            self.client._experiment_api, 'experiment_service_list_experiments'
+        ) as mock_list_experiments:
             self.client.get_experiment(experiment_name='foo')
             mock_list_experiments.assert_called_once()
             mock_get_user_namespace.assert_called_once()
@@ -579,11 +663,12 @@ class TestClient(parameterized.TestCase):
         mock_get_kfp_healthz.return_value = json.dumps([{'foo': 'bar'}])
         response = self.client.get_kfp_healthz()
         mock_get_kfp_healthz.assert_called_once()
-        assert (response == mock_get_kfp_healthz.return_value)
+        assert response == mock_get_kfp_healthz.return_value
 
     @patch(
         'kfp.server_api.HealthzServiceApi.healthz_service_get_healthz',
-        side_effect=kfp.server_api.ApiException)
+        side_effect=kfp.server_api.ApiException,
+    )
     def test_get_kfp_healthz_should_raise_error(self, mock_get_kfp_healthz):
         with self.assertRaises(TimeoutError):
             self.client.get_kfp_healthz(sleep_duration=0)
@@ -594,8 +679,9 @@ class TestClient(parameterized.TestCase):
     def test_healthz_missing_api_fails_without_retry(self, get_healthz, sleep):
         get_healthz.side_effect = kfp.server_api.ApiException(status=404)
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'/apis/v2beta1/healthz.*Verify the client host/base path'):
+            RuntimeError,
+            r'/apis/v2beta1/healthz.*Verify the client host/base path',
+        ):
             self.client.get_kfp_healthz()
         get_healthz.assert_called_once()
         sleep.assert_not_called()
@@ -605,7 +691,8 @@ class TestClient(parameterized.TestCase):
     def test_healthz_transient_failure_still_retries(self, get_healthz, sleep):
         response = kfp.server_api.V2GetHealthzResponse(multi_user=False)
         get_healthz.side_effect = [
-            kfp.server_api.ApiException(status=503), response
+            kfp.server_api.ApiException(status=503),
+            response,
         ]
         self.assertIs(self.client.get_kfp_healthz(), response)
         self.assertEqual(get_healthz.call_count, 2)
@@ -621,40 +708,47 @@ class TestClient(parameterized.TestCase):
         def pipeline_test_upload_without_name(boolean: bool = True):
             return_bool(boolean=boolean)
 
-        with patch.object(self.client._upload_api,
-                          'upload_pipeline') as mock_upload_pipeline:
+        with patch.object(
+            self.client._upload_api, 'upload_pipeline'
+        ) as mock_upload_pipeline:
             with patch.object(auth, 'is_ipython', return_value=False):
                 with tempfile.TemporaryDirectory() as tmp_path:
                     pipeline_test_path = os.path.join(tmp_path, 'test.yaml')
                     Compiler().compile(
                         pipeline_func=pipeline_test_upload_without_name,
-                        package_path=pipeline_test_path)
+                        package_path=pipeline_test_path,
+                    )
                     self.client.upload_pipeline(
                         pipeline_package_path=pipeline_test_path,
                         description='description',
-                        namespace='ns1')
+                        namespace='ns1',
+                    )
                     mock_upload_pipeline.assert_called_once_with(
                         pipeline_test_path,
                         name='test-upload-without-name',
                         description='description',
-                        namespace='ns1')
+                        namespace='ns1',
+                    )
 
     @parameterized.parameters(None, 'tenant-ns')
     def test_upload_namespace_is_explicit(self, upload_namespace):
         # setUp configures the client default namespace as ns1. An omitted
         # upload namespace must still mean shared, not silently change scope.
-        with patch.object(self.client._upload_api,
-                          'upload_pipeline') as mock_upload:
+        with patch.object(
+            self.client._upload_api, 'upload_pipeline'
+        ) as mock_upload:
             with patch.object(auth, 'is_ipython', return_value=False):
                 self.client.upload_pipeline(
                     'fake.yaml',
                     pipeline_name='migration-test',
-                    namespace=upload_namespace)
+                    namespace=upload_namespace,
+                )
         mock_upload.assert_called_once_with(
             'fake.yaml',
             name='migration-test',
             description=None,
-            namespace=upload_namespace)
+            namespace=upload_namespace,
+        )
 
     def test_upload_pipeline_from_pipeline_func(self):
 
@@ -670,17 +764,21 @@ class TestClient(parameterized.TestCase):
         fake_pipeline_path = os.path.join(fake_tmpdir, 'pipeline.yaml')
         expected_result = MagicMock()
 
-        with patch('tempfile.TemporaryDirectory') as mock_tempdir, \
-             patch('kfp.compiler.Compiler.compile') as mock_compile, \
-             patch.object(self.client, 'upload_pipeline', return_value=expected_result) as mock_upload:
-
+        with (
+            patch('tempfile.TemporaryDirectory') as mock_tempdir,
+            patch('kfp.compiler.Compiler.compile') as mock_compile,
+            patch.object(
+                self.client, 'upload_pipeline', return_value=expected_result
+            ) as mock_upload,
+        ):
             mock_tempdir.return_value.__enter__.return_value = fake_tmpdir
 
             result = self.client.upload_pipeline_from_pipeline_func(
                 pipeline_func=pipeline_test_upload_without_name,
                 pipeline_name='test-pipeline',
                 description='A test pipeline',
-                namespace='test-ns')
+                namespace='test-ns',
+            )
 
             mock_compile.assert_called_once_with(
                 pipeline_func=pipeline_test_upload_without_name,
@@ -691,54 +789,64 @@ class TestClient(parameterized.TestCase):
                 pipeline_package_path=fake_pipeline_path,
                 pipeline_name='test-pipeline',
                 description='A test pipeline',
-                namespace='test-ns')
+                namespace='test-ns',
+            )
 
             self.assertEqual(result, expected_result)
 
-    @parameterized.parameters([
-        'pipeline',
-        'my-pipeline',
-        'my-pipeline-1',
-        '1pipeline',
-        'pipeline1',
-        'my_pipeline',
-        "person's-pipeline",
-        'my pipeline',
-        'pipeline.yaml',
-    ])
+    @parameterized.parameters(
+        [
+            'pipeline',
+            'my-pipeline',
+            'my-pipeline-1',
+            '1pipeline',
+            'pipeline1',
+            'my_pipeline',
+            "person's-pipeline",
+            'my pipeline',
+            'pipeline.yaml',
+        ]
+    )
     def test_upload_pipeline_with_name(self, pipeline_name):
-        with patch.object(self.client._upload_api,
-                          'upload_pipeline') as mock_upload_pipeline:
+        with patch.object(
+            self.client._upload_api, 'upload_pipeline'
+        ) as mock_upload_pipeline:
             with patch.object(auth, 'is_ipython', return_value=False):
                 self.client.upload_pipeline(
                     pipeline_package_path='fake.yaml',
                     pipeline_name=pipeline_name,
                     description='description',
-                    namespace='ns1')
+                    namespace='ns1',
+                )
                 mock_upload_pipeline.assert_called_once_with(
                     'fake.yaml',
                     name=pipeline_name,
                     description='description',
-                    namespace='ns1')
+                    namespace='ns1',
+                )
 
-    @parameterized.parameters([
-        '',
-        '   ',
-        '\t',
-    ])
+    @parameterized.parameters(
+        [
+            '',
+            '   ',
+            '\t',
+        ]
+    )
     def test_upload_pipeline_with_name_invalid(self, pipeline_name):
-        with patch.object(self.client._upload_api,
-                          'upload_pipeline') as mock_upload_pipeline:
+        with patch.object(
+            self.client._upload_api, 'upload_pipeline'
+        ) as mock_upload_pipeline:
             with patch.object(auth, 'is_ipython', return_value=False):
                 with self.assertRaisesRegex(
-                        ValueError,
-                        'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
+                    ValueError,
+                    'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.',
                 ):
                     self.client.upload_pipeline(
                         pipeline_package_path='fake.yaml',
                         pipeline_name=pipeline_name,
                         description='description',
-                        namespace='ns1')
+                        namespace='ns1',
+                    )
 
     def test_upload_pipeline_version_from_pipeline_func(self):
 
@@ -754,10 +862,15 @@ class TestClient(parameterized.TestCase):
         fake_pipeline_path = os.path.join(fake_tmpdir, 'pipeline.yaml')
         expected_result = MagicMock()
 
-        with patch('tempfile.TemporaryDirectory') as mock_tempdir, \
-             patch('kfp.compiler.Compiler.compile') as mock_compile, \
-             patch.object(self.client, 'upload_pipeline_version', return_value=expected_result) as mock_upload_version:
-
+        with (
+            patch('tempfile.TemporaryDirectory') as mock_tempdir,
+            patch('kfp.compiler.Compiler.compile') as mock_compile,
+            patch.object(
+                self.client,
+                'upload_pipeline_version',
+                return_value=expected_result,
+            ) as mock_upload_version,
+        ):
             mock_tempdir.return_value.__enter__.return_value = fake_tmpdir
 
             result = self.client.upload_pipeline_version_from_pipeline_func(
@@ -765,7 +878,8 @@ class TestClient(parameterized.TestCase):
                 pipeline_version_name='v1.0',
                 pipeline_id='pipeline123',
                 pipeline_name='test-pipeline',
-                description='A test pipeline version')
+                description='A test pipeline version',
+            )
 
             mock_compile.assert_called_once_with(
                 pipeline_func=pipeline_test_upload_without_name,
@@ -777,13 +891,13 @@ class TestClient(parameterized.TestCase):
                 pipeline_version_name='v1.0',
                 pipeline_id='pipeline123',
                 pipeline_name='test-pipeline',
-                description='A test pipeline version')
+                description='A test pipeline version',
+            )
 
             self.assertEqual(result, expected_result)
 
 
 class TestInverseProxyCredentials(parameterized.TestCase):
-
     def setUp(self):
         super().setUp()
         self.sdk_client = client.Client.__new__(client.Client)
@@ -800,7 +914,8 @@ class TestInverseProxyCredentials(parameterized.TestCase):
             ssl_ca_cert=None,
             kube_context=None,
             credentials=None,
-            verify_ssl=True)
+            verify_ssl=True,
+        )
         kwargs.update(overrides)
         return self.sdk_client._load_config(**kwargs)
 
@@ -812,9 +927,11 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         ('https://attacker.example', 'explicit-token', False),
     )
     def test_polling_cannot_switch_to_google_credentials(
-            self, host, existing_token, should_refresh):
+        self, host, existing_token, should_refresh
+    ):
         with patch.object(
-                auth, 'get_gcp_access_token', return_value='initial-token'):
+            auth, 'get_gcp_access_token', return_value='initial-token'
+        ):
             config = self._load_config(host, existing_token=existing_token)
         self.sdk_client._existing_config = config
         self.sdk_client._run_api = Mock()
@@ -828,26 +945,31 @@ class TestInverseProxyCredentials(parameterized.TestCase):
                 if len(headers_seen) == 2:
                     raise kfp.server_api.ApiException(status=401)
                 return Mock(
-                    state='succeeded' if len(headers_seen) == 3 else 'running')
+                    state='succeeded' if len(headers_seen) == 3 else 'running'
+                )
 
             self.sdk_client._run_api.run_service_get_run.side_effect = get_run
             with patch.object(
-                    auth, 'get_gcp_access_token',
-                    return_value='refreshed-token') as get_token:
+                auth, 'get_gcp_access_token', return_value='refreshed-token'
+            ) as get_token:
                 if should_refresh:
                     self.sdk_client.wait_for_run_completion(
-                        run_id='test-run', timeout=10, sleep_duration=0)
+                        run_id='test-run', timeout=10, sleep_duration=0
+                    )
                 else:
                     with self.assertRaises(
-                            kfp.server_api.ApiException) as error:
+                        kfp.server_api.ApiException
+                    ) as error:
                         self.sdk_client.wait_for_run_completion(
-                            run_id='test-run', timeout=10, sleep_duration=0)
+                            run_id='test-run', timeout=10, sleep_duration=0
+                        )
                     self.assertEqual(error.exception.status, 401)
                     self.assertLen(headers_seen, 2)
         if should_refresh:
             get_token.assert_called_once_with()
-            self.assertEqual(headers_seen[-1]['authorization'],
-                             'Bearer refreshed-token')
+            self.assertEqual(
+                headers_seen[-1]['authorization'], 'Bearer refreshed-token'
+            )
         else:
             get_token.assert_not_called()
             self.assertEqual(headers_seen[-1], headers_seen[0])
@@ -855,31 +977,38 @@ class TestInverseProxyCredentials(parameterized.TestCase):
     @parameterized.parameters(None, '', 'refreshed-token')
     def test_polling_stops_when_refresh_cannot_recover(self, refreshed_token):
         with patch.object(
-                auth, 'get_gcp_access_token', return_value='initial-token'):
+            auth, 'get_gcp_access_token', return_value='initial-token'
+        ):
             config = self._load_config('https://abc.googleusercontent.com')
         self.sdk_client._existing_config = config
         self.sdk_client._run_api = Mock()
         unauthorized = kfp.server_api.ApiException(status=401)
         self.sdk_client._run_api.run_service_get_run.side_effect = [
-            Mock(state='running'), unauthorized, unauthorized
+            Mock(state='running'),
+            unauthorized,
+            unauthorized,
         ]
         with patch.object(
-                auth, 'get_gcp_access_token',
-                return_value=refreshed_token) as get_token:
+            auth, 'get_gcp_access_token', return_value=refreshed_token
+        ) as get_token:
             with self.assertRaises(kfp.server_api.ApiException) as error:
                 self.sdk_client.wait_for_run_completion(
-                    run_id='test-run', timeout=10, sleep_duration=0)
+                    run_id='test-run', timeout=10, sleep_duration=0
+                )
         self.assertIs(error.exception, unauthorized)
         get_token.assert_called_once_with()
         self.assertEqual(
             self.sdk_client._run_api.run_service_get_run.call_count,
-            3 if refreshed_token else 2)
-        self.assertEqual(config.api_key['authorization'], refreshed_token or
-                         'initial-token')
+            3 if refreshed_token else 2,
+        )
+        self.assertEqual(
+            config.api_key['authorization'], refreshed_token or 'initial-token'
+        )
 
     def test_refresh_rechecks_endpoint(self):
         with patch.object(
-                auth, 'get_gcp_access_token', return_value='initial-token'):
+            auth, 'get_gcp_access_token', return_value='initial-token'
+        ):
             config = self._load_config('https://abc.googleusercontent.com')
         self.sdk_client._existing_config = config
         config.host = 'https://attacker.example'
@@ -889,22 +1018,25 @@ class TestInverseProxyCredentials(parameterized.TestCase):
 
     def test_failed_refresh_preserves_existing_token(self):
         with patch.object(
-                auth, 'get_gcp_access_token', return_value='initial-token'):
+            auth, 'get_gcp_access_token', return_value='initial-token'
+        ):
             config = self._load_config('https://abc.googleusercontent.com')
         self.sdk_client._existing_config = config
         with patch.object(auth, 'get_gcp_access_token', return_value=None):
             self.sdk_client._refresh_api_client_token()
         self.assertEqual(config.api_key['authorization'], 'initial-token')
 
-    @parameterized.parameters('https://abc.googleusercontent.com',
-                              'https://attacker.example')
+    @parameterized.parameters(
+        'https://abc.googleusercontent.com', 'https://attacker.example'
+    )
     def test_explicit_token_takes_precedence(self, host):
         with patch.object(auth, 'get_gcp_access_token') as get_token:
             config = self._load_config(host, existing_token='explicit-token')
         get_token.assert_not_called()
         self.assertEqual(
             config.get_api_key_with_prefix('authorization'),
-            'Bearer explicit-token')
+            'Bearer explicit-token',
+        )
 
     def test_missing_adc_does_not_add_token(self):
         with patch.object(auth, 'get_gcp_access_token', return_value=None):
@@ -915,22 +1047,26 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         credentials = Mock()
         with patch.object(auth, 'get_gcp_access_token') as get_token:
             config = self._load_config(
-                'https://custom.example', credentials=credentials)
+                'https://custom.example', credentials=credentials
+            )
         get_token.assert_not_called()
-        self.assertEqual(config.refresh_api_key_hook,
-                         credentials.refresh_api_key_hook)
+        self.assertEqual(
+            config.refresh_api_key_hook, credentials.refresh_api_key_hook
+        )
 
     def test_explicit_client_id_takes_precedence(self):
         with patch.object(auth, 'get_gcp_access_token') as get_token:
             with patch.object(
-                    auth, 'get_auth_token',
-                    return_value=('explicit-token', False)):
+                auth, 'get_auth_token', return_value=('explicit-token', False)
+            ):
                 config = self._load_config(
-                    'https://abc.googleusercontent.com', client_id='client-id')
+                    'https://abc.googleusercontent.com', client_id='client-id'
+                )
         get_token.assert_not_called()
         self.assertEqual(
             config.get_api_key_with_prefix('authorization'),
-            'Bearer explicit-token')
+            'Bearer explicit-token',
+        )
 
     @parameterized.parameters(
         ('https://abc.notebooks.googleusercontent.com', True),
@@ -965,10 +1101,11 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         ('https://attacker.example', False),
     )
     def test_automatic_credentials_only_for_trusted_authority(
-            self, host, trusted):
+        self, host, trusted
+    ):
         with patch.object(
-                auth, 'get_gcp_access_token',
-                return_value='synthetic-token') as get_token:
+            auth, 'get_gcp_access_token', return_value='synthetic-token'
+        ) as get_token:
             config = self._load_config(host)
         headers = {}
         with kfp.server_api.ApiClient(config) as api_client:
@@ -1019,70 +1156,78 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
         config_path = os.path.join(directory, 'config')
         # Expired exec credentials force the real kubeconfig loader to refresh
         # on each request, including replacement of its refresh hook.
-        script = ('import json, pathlib, sys; '
-                  'print(json.dumps({"apiVersion": '
-                  '"client.authentication.k8s.io/v1beta1", '
-                  '"kind": "ExecCredential", "status": {'
-                  '"token": pathlib.Path(sys.argv[1]).read_text(), '
-                  '"expirationTimestamp": "2000-01-01T00:00:00Z"}}))')
+        script = (
+            'import json, pathlib, sys; '
+            'print(json.dumps({"apiVersion": '
+            '"client.authentication.k8s.io/v1beta1", '
+            '"kind": "ExecCredential", "status": {'
+            '"token": pathlib.Path(sys.argv[1]).read_text(), '
+            '"expirationTimestamp": "2000-01-01T00:00:00Z"}}))'
+        )
         kube_config = {
-            'apiVersion':
-                'v1',
-            'kind':
-                'Config',
-            'clusters': [{
-                'name': 'test',
-                'cluster': {
-                    'server': 'https://127.0.0.1:6443'
-                },
-            }],
-            'contexts': [{
-                'name': 'test',
-                'context': {
-                    'cluster': 'test',
-                    'user': 'test'
-                },
-            }],
-            'current-context':
-                'test',
-            'users': [{
-                'name': 'test',
-                'user': {
-                    'exec': {
-                        'apiVersion': 'client.authentication.k8s.io/v1beta1',
-                        'command': sys.executable,
-                        'args': ['-c', script, token_path],
+            'apiVersion': 'v1',
+            'kind': 'Config',
+            'clusters': [
+                {
+                    'name': 'test',
+                    'cluster': {'server': 'https://127.0.0.1:6443'},
+                }
+            ],
+            'contexts': [
+                {
+                    'name': 'test',
+                    'context': {'cluster': 'test', 'user': 'test'},
+                }
+            ],
+            'current-context': 'test',
+            'users': [
+                {
+                    'name': 'test',
+                    'user': {
+                        'exec': {
+                            'apiVersion': 'client.authentication.k8s.io/v1beta1',
+                            'command': sys.executable,
+                            'args': ['-c', script, token_path],
+                        },
                     },
-                },
-            }],
+                }
+            ],
         }
         with open(config_path, 'w') as stream:
             yaml.safe_dump(kube_config, stream)
         with open(token_path, 'w') as stream:
             stream.write('initial-token')
-        with patch.dict(
-                os.environ,
-            {}, clear=True), patch(
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch(
                 'kubernetes.config.kube_config.KUBE_CONFIG_DEFAULT_LOCATION',
-                config_path):
+                config_path,
+            ),
+        ):
             config = self._load_config(kube_context='test')
             self.assertEqual(
-                config.host, 'https://127.0.0.1:6443/' +
-                client.Client._KUBE_PROXY_PATH.format('my-namespace'))
+                config.host,
+                'https://127.0.0.1:6443/'
+                + client.Client._KUBE_PROXY_PATH.format('my-namespace'),
+            )
             for token in ('initial-token', 'refreshed-token', 'rotated-token'):
                 with open(token_path, 'w') as stream:
                     stream.write(token)
-                self.assertEqual(config.auth_settings()['Bearer']['value'],
-                                 'Bearer ' + token)
+                self.assertEqual(
+                    config.auth_settings()['Bearer']['value'], 'Bearer ' + token
+                )
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')
     def test_kube_config_failure_logs_underlying_cause(
-            self, mock_load_kube_config, mock_load_incluster_config):
+        self, mock_load_kube_config, mock_load_incluster_config
+    ):
         mock_load_incluster_config.side_effect = k8s.config.ConfigException(
-            'Service host/port is not set.')
+            'Service host/port is not set.'
+        )
         mock_load_kube_config.side_effect = k8s.config.ConfigException(
-            'Invalid kube-config file. No configuration found.')
+            'Invalid kube-config file. No configuration found.'
+        )
 
         with self.assertLogs(level='WARNING') as logs:
             self._load_config()
@@ -1092,17 +1237,21 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
         self.assertIn('Failed to load kube config', message)
         # The cause is the actionable part of the message; without it the user
         # cannot tell a missing file from a malformed one.
-        self.assertIn('Invalid kube-config file. No configuration found.',
-                      message)
+        self.assertIn(
+            'Invalid kube-config file. No configuration found.', message
+        )
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')
-    def test_kube_config_failure_returns_config(self, mock_load_kube_config,
-                                                mock_load_incluster_config):
+    def test_kube_config_failure_returns_config(
+        self, mock_load_kube_config, mock_load_incluster_config
+    ):
         mock_load_incluster_config.side_effect = k8s.config.ConfigException(
-            'Service host/port is not set.')
+            'Service host/port is not set.'
+        )
         mock_load_kube_config.side_effect = k8s.config.ConfigException(
-            'Invalid kube-config file.')
+            'Invalid kube-config file.'
+        )
 
         with self.assertLogs(level='WARNING'):
             config = self._load_config()
@@ -1113,10 +1262,12 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')
-    def test_out_of_cluster_detection_does_not_warn(self, mock_load_kube_config,
-                                                    mock_load_incluster_config):
+    def test_out_of_cluster_detection_does_not_warn(
+        self, mock_load_kube_config, mock_load_incluster_config
+    ):
         mock_load_incluster_config.side_effect = k8s.config.ConfigException(
-            'Service host/port is not set.')
+            'Service host/port is not set.'
+        )
 
         with self.assertLogs(level='DEBUG') as logs:
             self._load_config()
@@ -1124,7 +1275,8 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
         # Running outside a cluster is the common case and must not surface a
         # warning, otherwise every local invocation emits a false alarm.
         self.assertEmpty(
-            [record for record in logs.records if record.levelno >= WARNING])
+            [record for record in logs.records if record.levelno >= WARNING]
+        )
 
     @parameterized.named_parameters(
         {
@@ -1132,10 +1284,10 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
             'incluster_side_effect': KeyboardInterrupt(),
         },
         {
-            'testcase_name':
-                'from_kube_config_load',
-            'incluster_side_effect':
-                k8s.config.ConfigException('Service host/port is not set.'),
+            'testcase_name': 'from_kube_config_load',
+            'incluster_side_effect': k8s.config.ConfigException(
+                'Service host/port is not set.'
+            ),
         },
     )
     def test_keyboard_interrupt_is_not_swallowed(self, incluster_side_effect):
@@ -1182,7 +1334,8 @@ class TestCreateJobConfigPipelineVersionReference(parameterized.TestCase):
         config = self._job_config(pipeline_id='p1', version_id=None)
 
         payload = kfp.server_api.ApiClient().sanitize_for_serialization(
-            config.pipeline_version_reference)
+            config.pipeline_version_reference
+        )
 
         self.assertEqual(payload, {'pipeline_id': 'p1'})
 
@@ -1190,12 +1343,14 @@ class TestCreateJobConfigPipelineVersionReference(parameterized.TestCase):
         config = self._job_config(pipeline_id='p1', version_id='v1')
 
         self.assertEqual(config.pipeline_version_reference.pipeline_id, 'p1')
-        self.assertEqual(config.pipeline_version_reference.pipeline_version_id,
-                         'v1')
+        self.assertEqual(
+            config.pipeline_version_reference.pipeline_version_id, 'v1'
+        )
 
     def test_version_id_without_pipeline_id_raises(self):
-        with self.assertRaisesRegex(ValueError,
-                                    '`pipeline_id` is also required'):
+        with self.assertRaisesRegex(
+            ValueError, '`pipeline_id` is also required'
+        ):
             self._job_config(pipeline_id=None, version_id='v1')
 
     def test_no_source_raises(self):

@@ -25,5 +25,6 @@ class CustomBuildHook(BuildHookInterface):
                 raise RuntimeError(
                     f'Missing generated SDK binding: {relative_path}. '
                     'Run "make -C sdk python" from the repository root before '
-                    'building distributions.')
+                    'building distributions.'
+                )
             build_data['force_include'][str(source)] = relative_path

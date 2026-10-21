@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import OutputPath
+from kfp.dsl import ContainerSpec, OutputPath, container_component
 
 
 @container_component
@@ -21,11 +19,14 @@ def container_io(text: str, output_path: OutputPath(str)):
     return ContainerSpec(
         image='registry.access.redhat.com/ubi9/python-311:latest',
         command=['my_program', text],
-        args=['--output_path', output_path])
+        args=['--output_path', output_path],
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=container_io,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

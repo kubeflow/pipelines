@@ -656,7 +656,13 @@ describe('RuntimeMetricsVisualizations', () => {
         </CommonTestWrapper>,
       );
 
-      await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(2));
+      expect(
+        await screen.findAllByText(
+          'The legacy UI metadata artifact contains no supported visualizations.',
+        ),
+      ).toHaveLength(2);
+      // Identical query keys share one request, but both artifacts must render.
+      expect(loadSpy).toHaveBeenCalledTimes(1);
       expect(
         consoleErrorSpy.mock.calls.some(([message]) =>
           String(message).includes('Encountered two children with the same key'),

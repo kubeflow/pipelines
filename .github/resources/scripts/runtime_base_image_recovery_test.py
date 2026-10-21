@@ -16,11 +16,11 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -33,13 +33,19 @@ MODELCAR_IMAGE = 'registry.domain.local/modelcar:test'
 
 
 def runtime_job_text():
-    return CONSUMER.read_text().split('  runtime-base-images:\n',
-                                      1)[1].split('\n  image-build:', 1)[0]
+    return (
+        CONSUMER.read_text()
+        .split('  runtime-base-images:\n', 1)[1]
+        .split('\n  image-build:', 1)[0]
+    )
 
 
 def consumer_step(name):
-    return runtime_job_text().split(f'      - name: {name}\n',
-                                    1)[1].split('\n      - name:', 1)[0]
+    return (
+        runtime_job_text()
+        .split(f'      - name: {name}\n', 1)[1]
+        .split('\n      - name:', 1)[0]
+    )
 
 
 def producer_artifact(**overrides):
@@ -60,7 +66,6 @@ def producer_artifact(**overrides):
 
 
 class FakeCommandsTestCase(unittest.TestCase):
-
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
@@ -74,8 +79,9 @@ class FakeCommandsTestCase(unittest.TestCase):
             'SLEEP_LOG': str(self.sleep_log),
         }
         self.write_command(
-            'sleep', '#!/usr/bin/env bash\n'
-            'printf \'%s\\n\' "$1" >> "$SLEEP_LOG"\n')
+            'sleep',
+            '#!/usr/bin/env bash\nprintf \'%s\\n\' "$1" >> "$SLEEP_LOG"\n',
+        )
 
     def write_command(self, name, contents):
         path = self.bin_directory / name
@@ -83,12 +89,14 @@ class FakeCommandsTestCase(unittest.TestCase):
         path.chmod(0o755)
 
     def sleeps(self):
-        return self.sleep_log.read_text().splitlines() if self.sleep_log.exists(
-        ) else []
+        return (
+            self.sleep_log.read_text().splitlines()
+            if self.sleep_log.exists()
+            else []
+        )
 
 
 class ProducerLookupRecoveryTest(FakeCommandsTestCase):
-
     def run_lookup(self, artifacts, fail_api=False):
         payload = self.directory / 'artifacts.json'
         payload.write_text(json.dumps({'artifacts': artifacts}))
@@ -96,39 +104,39 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
         github_output.touch()
         gh_log = self.directory / 'gh.log'
         self.write_command(
-            'gh', '#!/usr/bin/env bash\n'
+            'gh',
+            '#!/usr/bin/env bash\n'
             'printf \'%s\\n\' "$*" >> "$GH_LOG"\n'
             '[[ "$FAIL_API" == "true" ]] && exit 1\n'
-            'cat "$ARTIFACT_PAYLOAD"\n')
+            'cat "$ARTIFACT_PAYLOAD"\n',
+        )
         lookup = textwrap.dedent(
             consumer_step('Find runtime base image producer').split(
-                '        run: |\n', 1)[1])
+                '        run: |\n', 1
+            )[1]
+        )
         result = subprocess.run(
             ['bash', '-e', '-o', 'pipefail', '-c', lookup],
             cwd=ROOT,
             env={
                 **self.environment,
-                'ARTIFACT_NAME':
-                    'runtime-base-images-older-release-fingerprint',
-                'ARTIFACT_PAYLOAD':
-                    str(payload),
-                'FAIL_API':
-                    str(fail_api).lower(),
-                'GH_LOG':
-                    str(gh_log),
-                'GITHUB_OUTPUT':
-                    str(github_output),
-                'GITHUB_REPOSITORY':
-                    'kubeflow/pipelines',
-                'SOURCE_SHA':
-                    SOURCE_SHA,
+                'ARTIFACT_NAME': 'runtime-base-images-older-release-fingerprint',
+                'ARTIFACT_PAYLOAD': str(payload),
+                'FAIL_API': str(fail_api).lower(),
+                'GH_LOG': str(gh_log),
+                'GITHUB_OUTPUT': str(github_output),
+                'GITHUB_REPOSITORY': 'kubeflow/pipelines',
+                'SOURCE_SHA': SOURCE_SHA,
             },
             capture_output=True,
             text=True,
             check=False,
             timeout=10,
         )
-        return result, github_output.read_text(), gh_log.read_text().splitlines(
+        return (
+            result,
+            github_output.read_text(),
+            gh_log.read_text().splitlines(),
         )
 
     def test_trusted_hit_returns_producer_without_waiting(self):
@@ -137,8 +145,9 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, 'run-id=10\n')
         self.assertEqual(len(requests), 1)
-        self.assertIn('name=runtime-base-images-older-release-fingerprint',
-                      requests[0])
+        self.assertIn(
+            'name=runtime-base-images-older-release-fingerprint', requests[0]
+        )
         self.assertEqual(self.sleeps(), [])
 
     def test_missing_generation_falls_back_after_bounded_wait(self):
@@ -154,11 +163,13 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
 
     def test_current_source_fork_producer_remains_eligible(self):
         candidate = producer_artifact()
-        candidate['workflow_run'].update({
-            'head_repository_id': 2,
-            'head_sha': SOURCE_SHA,
-            'head_branch': 'feature',
-        })
+        candidate['workflow_run'].update(
+            {
+                'head_repository_id': 2,
+                'head_sha': SOURCE_SHA,
+                'head_branch': 'feature',
+            }
+        )
         result, output, requests = self.run_lookup([candidate])
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -179,14 +190,14 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
 
 
 class RuntimeArchiveBuildTest(FakeCommandsTestCase):
-
     def setUp(self):
         super().setUp()
         self.docker_log = self.directory / 'docker.jsonl'
         self.output_directory = self.directory / 'archives with spaces'
         self.cache_directory = self.directory / 'runtime-base-images-cache'
         self.write_command(
-            'docker', '''#!/usr/bin/env python3
+            'docker',
+            """#!/usr/bin/env python3
 import json
 import os
 from pathlib import Path
@@ -203,12 +214,12 @@ if arguments[0] == os.environ.get('FAIL_DOCKER_COMMAND'):
 if arguments[0] == 'save':
     flag = '-o' if '-o' in arguments else '--output'
     Path(arguments[arguments.index(flag) + 1]).write_bytes(b'new archive')
-''')
+""",
+        )
 
     def run_build(self, failed_command=''):
         result = subprocess.run(
-            ['bash', str(BUILD_SCRIPT),
-             str(self.output_directory)],
+            ['bash', str(BUILD_SCRIPT), str(self.output_directory)],
             cwd=ROOT,
             env={
                 **self.environment,
@@ -231,12 +242,15 @@ if arguments[0] == 'save':
 
         self.assertEqual(result.returncode, 0, result.stderr)
         for name in ('runtime-base-images.tar', 'modelcar.tar'):
-            self.assertEqual((self.output_directory / name).read_bytes(),
-                             b'new archive')
-        inventory = (ROOT /
-                     '.github/resources/runtime-base-images.txt').read_text()
+            self.assertEqual(
+                (self.output_directory / name).read_bytes(), b'new archive'
+            )
+        inventory = (
+            ROOT / '.github/resources/runtime-base-images.txt'
+        ).read_text()
         images = [
-            line for line in inventory.splitlines()
+            line
+            for line in inventory.splitlines()
             if line and not line.startswith('#')
         ]
         pulls = [command[1] for command in commands if command[0] == 'pull']
@@ -245,7 +259,8 @@ if arguments[0] == 'save':
         self.assertEqual(len(builds), 1)
         self.assertIn(
             'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile',
-            builds[0])
+            builds[0],
+        )
         self.assertIn(MODELCAR_IMAGE, builds[0])
         saves = [command for command in commands if command[0] == 'save']
         self.assertEqual(len(saves), 2)
@@ -260,7 +275,8 @@ if arguments[0] == 'save':
         self.assertTrue(all(command[0] == 'pull' for command in commands))
         self.assertEqual(len(self.sleeps()), 4)
         self.assertFalse(
-            (self.output_directory / 'runtime-base-images.tar').exists())
+            (self.output_directory / 'runtime-base-images.tar').exists()
+        )
         self.assertFalse((self.output_directory / 'modelcar.tar').exists())
 
     def test_modelcar_build_failure_is_bounded_and_not_saved(self):
@@ -270,23 +286,32 @@ if arguments[0] == 'save':
         self.assertEqual(sum(command[0] == 'build' for command in commands), 3)
         self.assertEqual(self.sleeps(), ['30', '30'])
         self.assertTrue(
-            (self.output_directory / 'runtime-base-images.tar').exists())
+            (self.output_directory / 'runtime-base-images.tar').exists()
+        )
         self.assertFalse((self.output_directory / 'modelcar.tar').exists())
         self.assertFalse(
-            any(command[0] == 'save' and MODELCAR_IMAGE in command
-                for command in commands))
+            any(
+                command[0] == 'save' and MODELCAR_IMAGE in command
+                for command in commands
+            )
+        )
 
-    def run_recovery(self,
-                     required_files=None,
-                     failed_command='',
-                     cache_path=None):
-        job = yaml.safe_load(
-            CONSUMER.read_text())['jobs']['runtime-base-images']
-        step = next(step for step in job['steps']
-                    if step.get('name') == 'Build runtime base image archives')
+    def run_recovery(
+        self, required_files=None, failed_command='', cache_path=None
+    ):
+        job = yaml.safe_load(CONSUMER.read_text())['jobs'][
+            'runtime-base-images'
+        ]
+        step = next(
+            step
+            for step in job['steps']
+            if step.get('name') == 'Build runtime base image archives'
+        )
         manifest = (
             job['env']['RUNTIME_IMAGE_FILES']
-            if required_files is None else required_files)
+            if required_files is None
+            else required_files
+        )
         summary = self.directory / 'summary'
         output = self.directory / 'recovery-output'
         output.touch()
@@ -295,27 +320,18 @@ if arguments[0] == 'save':
             cwd=ROOT,
             env={
                 **self.environment,
-                'DOCKER_LOG':
-                    str(self.docker_log),
-                'FAIL_DOCKER_COMMAND':
-                    failed_command,
-                'DOWNLOAD_OUTCOME':
-                    'failure',
-                'ARTIFACTS_PATH':
-                    job['env']['ARTIFACTS_PATH']
-                    if cache_path is None else cache_path,
-                'EXPECTED_REMOVED_CACHE':
-                    str(self.cache_directory),
-                'GITHUB_WORKSPACE':
-                    str(self.directory),
-                'REQUIRED_FILES':
-                    manifest,
-                'GITHUB_STEP_SUMMARY':
-                    str(summary),
-                'GITHUB_OUTPUT':
-                    str(output),
-                'RUNNER_TEMP':
-                    str(self.directory),
+                'DOCKER_LOG': str(self.docker_log),
+                'FAIL_DOCKER_COMMAND': failed_command,
+                'DOWNLOAD_OUTCOME': 'failure',
+                'ARTIFACTS_PATH': job['env']['ARTIFACTS_PATH']
+                if cache_path is None
+                else cache_path,
+                'EXPECTED_REMOVED_CACHE': str(self.cache_directory),
+                'GITHUB_WORKSPACE': str(self.directory),
+                'REQUIRED_FILES': manifest,
+                'GITHUB_STEP_SUMMARY': str(summary),
+                'GITHUB_OUTPUT': str(output),
+                'RUNNER_TEMP': str(self.directory),
             },
             capture_output=True,
             text=True,
@@ -323,7 +339,8 @@ if arguments[0] == 'save':
             timeout=10,
         )
         outputs = dict(
-            line.split('=', 1) for line in output.read_text().splitlines())
+            line.split('=', 1) for line in output.read_text().splitlines()
+        )
         return result, summary.read_text() if summary.exists() else '', outputs
 
     def test_recovery_reports_cache_failure_and_verifies_fresh_archives(self):
@@ -338,20 +355,24 @@ if arguments[0] == 'save':
         self.assertFalse(self.cache_directory.exists())
         self.assertEqual(
             set(path.name for path in rebuilt.iterdir()),
-            {'runtime-base-images.tar', 'modelcar.tar'})
+            {'runtime-base-images.tar', 'modelcar.tar'},
+        )
         for path in rebuilt.iterdir():
             self.assertEqual(path.read_bytes(), b'new archive')
 
     def test_drifted_manifest_fails_after_rebuild_even_with_stale_cache_file(
-            self):
+        self,
+    ):
         self.cache_directory.mkdir()
         (self.cache_directory / 'renamed-modelcar.tar').write_text('stale')
         result, _, outputs = self.run_recovery(
-            'runtime-base-images.tar\nrenamed-modelcar.tar')
+            'runtime-base-images.tar\nrenamed-modelcar.tar'
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
             'Missing or empty required artifact file: renamed-modelcar.tar',
-            result.stdout)
+            result.stdout,
+        )
         self.assertFalse(self.cache_directory.exists())
         self.assertEqual(outputs, {})
 
@@ -372,7 +393,8 @@ if arguments[0] == 'save':
         sentinel = self.output_directory / 'archive.tar'
         sentinel.write_text('keep')
         result, _, outputs = self.run_recovery(
-            cache_path=str(self.output_directory))
+            cache_path=str(self.output_directory)
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Unexpected runtime image cache path', result.stdout)
         self.assertEqual(outputs, {})
@@ -386,7 +408,6 @@ if arguments[0] == 'save':
 
 
 class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
-
     def test_missing_or_failed_download_rebuilds_before_upload(self):
         job = runtime_job_text()
         download = consumer_step('Download runtime base images from producer')
@@ -397,16 +418,19 @@ class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
 
         self.assertIn(
             "if: steps.runtime-base-images-producer.outputs.run-id != ''",
-            download)
+            download,
+        )
         self.assertIn('continue-on-error: true', download)
-        self.assertIn('uses: ./.github/actions/download-artifact-with-retry',
-                      download)
+        self.assertIn(
+            'uses: ./.github/actions/download-artifact-with-retry', download
+        )
         self.assertIn(recovery, build)
         self.assertIn(recovery, mirror)
         self.assertIn('id: build-runtime-base-images', build)
         self.assertIn(
             'path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}',
-            upload)
+            upload,
+        )
         self.assertLess(job.index(download), job.index(mirror))
         self.assertLess(job.index(mirror), job.index(build))
         self.assertLess(job.index(build), job.index(upload))
@@ -417,8 +441,9 @@ class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
         self.assertIn('      actions: read\n      contents: read', job)
         self.assertNotIn(': write', job)
         self.assertNotIn('release-2.18', job)
-        self.assertIn('required-files: ${{ env.RUNTIME_IMAGE_FILES }}',
-                      download)
+        self.assertIn(
+            'required-files: ${{ env.RUNTIME_IMAGE_FILES }}', download
+        )
         self.assertIn('REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}', build)
 
 

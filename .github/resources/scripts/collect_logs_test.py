@@ -18,17 +18,18 @@ cluster."""
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
+
+import yaml
 
 SCRIPT = Path(__file__).with_name('collect-logs.sh')
 
 
 class CollectLogsTest(unittest.TestCase):
-
     def test_kubectl_failures_are_bounded_and_best_effort(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -61,8 +62,7 @@ class CollectLogsTest(unittest.TestCase):
             environment['PATH'] = f'{temp_path}:{environment["PATH"]}'
 
             result = subprocess.run(
-                [str(SCRIPT), '--ns', 'kubeflow', '--output',
-                 str(output_file)],
+                [str(SCRIPT), '--ns', 'kubeflow', '--output', str(output_file)],
                 check=False,
                 capture_output=True,
                 env=environment,
@@ -71,14 +71,15 @@ class CollectLogsTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             output = output_file.read_text(encoding='utf-8')
-            self.assertIn('No events found for pod seaweedfs-0.', output)
+            self.assertIn('No description found for pod seaweedfs-0.', output)
             self.assertIn('No logs found for pod seaweedfs-0.', output)
+            self.assertIn('No previous logs found for pod seaweedfs-0.', output)
             calls = call_log.read_text(encoding='utf-8').splitlines()
             self.assertGreaterEqual(len(calls), 5)
             self.assertTrue(
                 all(
-                    call.startswith('--request-timeout=20s ')
-                    for call in calls),
+                    call.startswith('--request-timeout=20s ') for call in calls
+                ),
                 calls,
             )
 
@@ -87,7 +88,7 @@ class CollectLogsTest(unittest.TestCase):
             root = Path(directory)
             calls = root / 'calls.jsonl'
             stub = root / 'kubectl'
-            stub.write_text('''#!/usr/bin/env python3
+            stub.write_text("""#!/usr/bin/env python3
 import json
 import os
 import sys
@@ -103,8 +104,10 @@ elif args[:2] == ['get', 'pod']:
     assert args[-1] == r'jsonpath={.metadata.labels.workflows\\.argoproj\\.io/component}'
     print('agent' if args[2] == 'opaque-agent-pod' else 'pod')
 elif args[:2] == ['describe', 'pod']:
-    print('Events: none')
+    print('Last State: Terminated, Exit Code: 1\\nEvents: none')
 elif args[0] == 'logs':
+    if '--previous' in args:
+        print('previous-crash-log')
     if args[1] == 'my-agent-pipeline-task':
         assert '-c' not in args
         print('workload-log')
@@ -113,31 +116,56 @@ elif args[0] == 'logs':
         print('driver-log')
 else:
     raise AssertionError(args)
-''')
+""")
             stub.chmod(0o755)
             output = root / 'logs.txt'
             subprocess.run(
-                ['bash',
-                 str(SCRIPT), '--ns', 'test', '--output',
-                 str(output)],
+                ['bash', str(SCRIPT), '--ns', 'test', '--output', str(output)],
                 env={
-                    **os.environ, 'PATH':
-                        str(root) + os.pathsep + os.environ['PATH'],
-                    'KUBECTL_CALLS':
-                        str(calls)
+                    **os.environ,
+                    'PATH': str(root) + os.pathsep + os.environ['PATH'],
+                    'KUBECTL_CALLS': str(calls),
                 },
                 check=True,
                 capture_output=True,
-                text=True)
+                text=True,
+            )
             logs = output.read_text()
             self.assertIn('workload-log', logs)
             self.assertIn('driver-log', logs)
+            self.assertIn('Last State: Terminated, Exit Code: 1', logs)
+            self.assertEqual(logs.count('previous-crash-log'), 2)
             self.assertNotIn('No logs found', logs)
             requests = [
                 json.loads(line) for line in calls.read_text().splitlines()
             ]
             labels = [args for args in requests if args[1:3] == ['get', 'pod']]
             self.assertEqual(len(labels), 2)
+
+    def test_sdk_client_setup_failure_collects_uploadable_logs(self):
+        root = SCRIPT.parents[3]
+        workflow = yaml.safe_load(
+            (root / '.github/workflows/kfp-sdk-client-tests.yml').read_text()
+        )
+        steps = next(
+            job['steps'] for job in workflow['jobs'].values() if 'steps' in job
+        )
+        collect = next(
+            step for step in steps if step['name'] == 'Collect failed logs'
+        )
+        self.assertIn('failure()', collect['if'])
+        self.assertIn('!cancelled()', collect['if'])
+        self.assertIn(
+            "steps.create-kfp-cluster.outcome != 'success'", collect['if']
+        )
+        self.assertIn('exit 1', collect['run'])
+        self.assertIn('--output /tmp/tmp.log/tmp_pod_log.txt', collect['run'])
+        upload = next(
+            step for step in steps if step['name'] == 'Collect test results'
+        )
+        self.assertTrue(
+            Path('/tmp/tmp.log/tmp_pod_log.txt').match(upload['with']['path'])
+        )
 
 
 if __name__ == '__main__':

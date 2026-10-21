@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -27,9 +26,11 @@ def my_pipeline():
     kubernetes.use_config_map_as_env(
         task,
         config_map_name='my-cm',
-        config_map_key_to_env={'foo': 'CONFIG_MAP_VAR'})
+        config_map_key_to_env={'foo': 'CONFIG_MAP_VAR'},
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))

@@ -32,7 +32,10 @@ def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
 
     candidates = []
     for artifact in artifacts:
-        if not isinstance(artifact, dict) or artifact.get('expired') is not False:
+        if (
+            not isinstance(artifact, dict)
+            or artifact.get('expired') is not False
+        ):
             continue
         workflow_run = artifact.get('workflow_run')
         if not isinstance(workflow_run, dict):
@@ -51,10 +54,14 @@ def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
     if not candidates:
         return None
 
-    newest = max(candidates, key=lambda artifact: artifact.get('created_at', ''))
+    newest = max(
+        candidates, key=lambda artifact: artifact.get('created_at', '')
+    )
     run_id = newest['workflow_run'].get('id')
     if not isinstance(run_id, int):
-        raise ValueError('Selected artifact is missing an integer workflow run ID')
+        raise ValueError(
+            'Selected artifact is missing an integer workflow run ID'
+        )
     return run_id
 
 
@@ -73,11 +80,22 @@ def main() -> int:
         if args.command == 'fingerprint':
             print(fingerprint_files(args.paths))
         else:
-            run_id = select_producer_run_id(json.load(sys.stdin), args.source_sha)
+            run_id = select_producer_run_id(
+                json.load(sys.stdin), args.source_sha
+            )
             if run_id is not None:
                 print(run_id)
-    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
-        print(f'Cannot process runtime base-image artifacts: {error}', file=sys.stderr)
+    except (
+        KeyError,
+        OSError,
+        TypeError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as error:
+        print(
+            f'Cannot process runtime base-image artifacts: {error}',
+            file=sys.stderr,
+        )
         return 1
     return 0
 

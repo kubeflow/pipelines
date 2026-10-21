@@ -114,6 +114,18 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
+      # Coverage providers require the exact matching Vitest release.
+      # Keep these before the catch-all dependency-name group.
+      vitest-version:
+        applies-to: version-updates
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      vitest-security:
+        applies-to: security-updates
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       # @mui/icons-material declares a peer dependency on the matching
       # @mui/material version, so bumping either one alone leaves the other
       # outside its peer range and `npm install` fails to resolve. They have to
@@ -190,7 +202,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     ignore:
-      # v1.7.8 removes blank lines that YAPF restores on every formatter pass.
+      # v1.7.8 has continuation and blank-line tokenization regressions.
       - dependency-name: "https://github.com/pycqa/docformatter"
         versions: ["1.7.8"]
     groups:

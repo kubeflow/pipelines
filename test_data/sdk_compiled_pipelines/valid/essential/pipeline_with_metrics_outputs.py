@@ -13,17 +13,15 @@
 # limitations under the License.
 """Pipeline with Metrics outputs."""
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import component
-from kfp.dsl import Metrics
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Metrics, Output, component
 
 
 @component
 def output_metrics(metrics: Output[Metrics]):
     """Dummy component that outputs metrics with a random accuracy."""
     import random
+
     result = random.randint(0, 100)
     metrics.log_metric('accuracy', result)
 
@@ -38,5 +36,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

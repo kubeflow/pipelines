@@ -32,6 +32,8 @@ on:
         default: false
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
+permissions: {}
+
 jobs:
   resolve-source:
     runs-on: ubuntu-latest
@@ -40,13 +42,15 @@ jobs:
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.workflow_sha }}
-      - uses: actions/checkout@v7
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.src_branch }}
           path: release-source
+          persist-credentials: false
       - name: Validate release line, source version, and image inventory
         env:
           TARGET_TAG: ${{ inputs.target_tag }}
@@ -58,6 +62,11 @@ jobs:
 
   build-images-for-release:
     needs: resolve-source
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     strategy:
       fail-fast: true
       matrix:
@@ -93,7 +102,6 @@ jobs:
             platform: linux/arm64
 
     uses: ./.github/workflows/build-and-push.yml
-    secrets: inherit
     with:
       src_branch: ${{ needs.resolve-source.outputs.sha }}
       target_tag: ${{ inputs.target_tag }}
@@ -111,6 +119,9 @@ jobs:
   create-manifests:
     needs: [resolve-source, build-images-for-release]
     if: ${{ !inputs.dry_run }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: true
       matrix:
@@ -123,7 +134,6 @@ jobs:
           - image: kfp-launcher
           - image: kfp-driver
     uses: ./.github/workflows/create-manifest.yml
-    secrets: inherit
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
@@ -150,9 +160,10 @@ jobs:
       packages: read
     steps:
       - name: Checkout publication workflow policy
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.workflow_sha }}
+          persist-credentials: false
       - name: List required published image records
         id: image-records
         shell: bash
@@ -168,15 +179,16 @@ jobs:
       # Keep the workflow's download policy until all records are present.
       # They live outside the workspace so checkout cleanup preserves them.
       - name: Checkout product source for native validation
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.resolve-source.outputs.sha }}
-      - uses: docker/login-action@v4
+          persist-credentials: false
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
         with:
           driver: docker
       - name: Verify native shared-tag selection
@@ -198,7 +210,7 @@ jobs:
           source_sha: ${{ needs.resolve-source.outputs.sha }}
       - name: Upload native release image evidence
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-image-validation-${{ matrix.architecture }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/release-image-validation

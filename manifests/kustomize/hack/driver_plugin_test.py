@@ -17,44 +17,38 @@ variant."""
 import base64
 import copy
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
-from tensorboard_signing_key_test import render
-from tensorboard_signing_key_test import REPO_ROOT
-from tensorboard_signing_key_test import resource
+from tensorboard_signing_key_test import REPO_ROOT, render, resource
 
 
 class DriverPluginTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.variants = {}
         for name, path in {
-                'standalone':
-                    'manifests/kustomize/env/platform-agnostic',
-                'tls':
-                    'manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls',
-                'dev':
-                    'manifests/kustomize/env/dev',
-                'openshift':
-                    'manifests/kustomize/env/openshift/base',
-                'ci':
-                    '.github/resources/manifests/standalone/default',
-                'ci-tls':
-                    '.github/resources/manifests/standalone/tls-enabled',
+            'standalone': 'manifests/kustomize/env/platform-agnostic',
+            'tls': 'manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls',
+            'dev': 'manifests/kustomize/env/dev',
+            'openshift': 'manifests/kustomize/env/openshift/base',
+            'ci': '.github/resources/manifests/standalone/default',
+            'ci-tls': '.github/resources/manifests/standalone/tls-enabled',
         }.items():
             resources = render(REPO_ROOT / path, allow_external_patches=True)
-            config = resource(resources, 'ConfigMap',
-                              'ml-pipeline-driver-agent')
+            config = resource(
+                resources, 'ConfigMap', 'ml-pipeline-driver-agent'
+            )
             sidecar = json.loads(
                 subprocess.check_output(
                     ['yq', 'r', '-j', '-'],
                     input=config['data']['sidecar.container'],
-                    text=True))
+                    text=True,
+                )
+            )
             cls.variants[name] = resources, config, sidecar
 
     def test_released_images_match_the_launcher(self):
@@ -63,22 +57,30 @@ class DriverPluginTest(unittest.TestCase):
                 resources, _, sidecar = self.variants[name]
                 deployment = resource(resources, 'Deployment', 'ml-pipeline')
                 env = deployment['spec']['template']['spec']['containers'][0][
-                    'env']
-                launcher = next(item['value']
-                                for item in env
-                                if item['name'] == 'V2_LAUNCHER_IMAGE')
+                    'env'
+                ]
+                launcher = next(
+                    item['value']
+                    for item in env
+                    if item['name'] == 'V2_LAUNCHER_IMAGE'
+                )
                 self.assertEqual(
                     sidecar['image'],
-                    launcher.replace('kfp-launcher:', 'kfp-driver:'))
+                    launcher.replace('kfp-launcher:', 'kfp-driver:'),
+                )
                 self.assertNotIn(':dummy', sidecar['image'])
 
     def test_development_and_ci_images(self):
-        self.assertEqual(self.variants['dev'][2]['image'],
-                         'ghcr.io/kubeflow/kfp-driver:master')
+        self.assertEqual(
+            self.variants['dev'][2]['image'],
+            'ghcr.io/kubeflow/kfp-driver:master',
+        )
         for name in ('ci', 'ci-tls'):
             with self.subTest(variant=name):
-                self.assertEqual(self.variants[name][2]['image'],
-                                 'kind-registry:5000/driver:ci')
+                self.assertEqual(
+                    self.variants[name][2]['image'],
+                    'kind-registry:5000/driver:ci',
+                )
 
     def test_sidecars_share_runtime_configuration(self):
         # ConfigMap string data cannot be strategically merged by Kustomize.
@@ -88,7 +90,8 @@ class DriverPluginTest(unittest.TestCase):
             with self.subTest(variant=name):
                 self.assertEqual(
                     config['data']['sidecar.automountServiceAccountToken'],
-                    'true')
+                    'true',
+                )
                 actual = self.normalized_sidecar(sidecar)
                 if name == 'openshift':
                     self.assertNotIn('runAsUser', actual['securityContext'])
@@ -100,59 +103,82 @@ class DriverPluginTest(unittest.TestCase):
                 mounts = {
                     item['name']: item for item in sidecar['volumeMounts']
                 }
-                self.assertEqual(mounts['var-run-argo']['mountPath'],
-                                 '/kfp/log')
-                self.assertEqual(mounts['var-run-argo']['subPath'],
-                                 sidecar['name'])
+                self.assertEqual(
+                    mounts['var-run-argo']['mountPath'], '/kfp/log'
+                )
+                self.assertEqual(
+                    mounts['var-run-argo']['subPath'], sidecar['name']
+                )
                 self.assertFalse(mounts['var-run-argo']['readOnly'])
                 if name in ('tls', 'ci-tls'):
-                    self.assertEqual(env['CA_CERT_PATH']['value'],
-                                     '/kfp/certs/ca.crt')
                     self.assertEqual(
-                        mounts['argo-workflows-agent-ca-certificates']
-                        ['mountPath'], '/kfp/certs')
+                        env['CA_CERT_PATH']['value'], '/kfp/certs/ca.crt'
+                    )
+                    self.assertEqual(
+                        mounts['argo-workflows-agent-ca-certificates'][
+                            'mountPath'
+                        ],
+                        '/kfp/certs',
+                    )
                     self.assertTrue(
-                        mounts['argo-workflows-agent-ca-certificates']
-                        ['readOnly'])
+                        mounts['argo-workflows-agent-ca-certificates'][
+                            'readOnly'
+                        ]
+                    )
                 else:
                     self.assertNotIn('CA_CERT_PATH', env)
-                    self.assertNotIn('argo-workflows-agent-ca-certificates',
-                                     mounts)
+                    self.assertNotIn(
+                        'argo-workflows-agent-ca-certificates', mounts
+                    )
 
     def test_agent_controller_patches(self):
         for name in ('tls', 'ci-tls'):
             with self.subTest(variant=name):
-                config = resource(self.variants[name][0], 'ConfigMap',
-                                  'workflow-controller-configmap')
+                config = resource(
+                    self.variants[name][0],
+                    'ConfigMap',
+                    'workflow-controller-configmap',
+                )
                 defaults = json.loads(
                     subprocess.check_output(
                         ['yq', 'r', '-j', '-'],
                         input=config['data']['workflowDefaults'],
-                        text=True))
+                        text=True,
+                    )
+                )
                 patch = json.loads(
                     subprocess.check_output(
                         ['yq', 'r', '-j', '-'],
                         input=defaults['spec']['podSpecPatch'],
-                        text=True))
+                        text=True,
+                    )
+                )
                 secret = patch['volumes'][0]['secret']
-                self.assertEqual(secret['items'], [{
-                    'key': 'ca.crt',
-                    'path': 'ca.crt'
-                }])
-                self.assertEqual(secret['secretName'],
-                                 'argo-workflows-agent-ca-certificates')
-        config = resource(self.variants['openshift'][0], 'ConfigMap',
-                          'workflow-controller-configmap')
+                self.assertEqual(
+                    secret['items'], [{'key': 'ca.crt', 'path': 'ca.crt'}]
+                )
+                self.assertEqual(
+                    secret['secretName'], 'argo-workflows-agent-ca-certificates'
+                )
+        config = resource(
+            self.variants['openshift'][0],
+            'ConfigMap',
+            'workflow-controller-configmap',
+        )
         self.assertIn('enabled: false', config['data']['initlessPod'])
         executor = json.loads(
-            subprocess.check_output(['yq', 'r', '-j', '-'],
-                                    input=config['data']['executor'],
-                                    text=True))
+            subprocess.check_output(
+                ['yq', 'r', '-j', '-'],
+                input=config['data']['executor'],
+                text=True,
+            )
+        )
         self.assertNotIn('runAsUser', executor['securityContext'])
 
     def test_metacontroller_binds_role_without_driver_permissions(self):
         resources = render(
-            REPO_ROOT / 'manifests/kustomize/third-party/metacontroller/base')
+            REPO_ROOT / 'manifests/kustomize/third-party/metacontroller/base'
+        )
         role = resource(resources, 'ClusterRole', 'kubeflow-metacontroller')
         for rule in role['rules']:
             if '' in rule['apiGroups']:
@@ -160,13 +186,19 @@ class DriverPluginTest(unittest.TestCase):
                 self.assertNotIn('persistentvolumeclaims', rule['resources'])
             self.assertNotIn('mlflow.kubeflow.org', rule['apiGroups'])
         grants = [rule for rule in role['rules'] if 'bind' in rule['verbs']]
-        self.assertEqual(grants, [{
-            'apiGroups': ['rbac.authorization.k8s.io'],
-            'resources': ['clusterroles'],
-            'resourceNames':
-                ['ml-pipeline-driver-agent-executor-plugin-cluster-role'],
-            'verbs': ['bind'],
-        }])
+        self.assertEqual(
+            grants,
+            [
+                {
+                    'apiGroups': ['rbac.authorization.k8s.io'],
+                    'resources': ['clusterroles'],
+                    'resourceNames': [
+                        'ml-pipeline-driver-agent-executor-plugin-cluster-role'
+                    ],
+                    'verbs': ['bind'],
+                }
+            ],
+        )
 
     def test_documented_custom_ca_without_cert_manager(self):
         guide = (REPO_ROOT / 'manifests/kustomize/README.md').read_text()
@@ -182,24 +214,30 @@ class DriverPluginTest(unittest.TestCase):
             (overlay / 'company-ca.crt').write_text(bundle)
             (overlay / 'kustomization.yaml').write_text(overlay_yaml)
             resources = render(overlay, allow_external_patches=True)
-        secret = resource(resources, 'Secret',
-                          'argo-workflows-agent-ca-certificates')
+        secret = resource(
+            resources, 'Secret', 'argo-workflows-agent-ca-certificates'
+        )
         self.assertEqual(secret['metadata']['namespace'], 'kubeflow')
         self.assertEqual(
-            base64.b64decode(secret['data']['ca.crt']).decode(), bundle)
+            base64.b64decode(secret['data']['ca.crt']).decode(), bundle
+        )
         config = resource(resources, 'ConfigMap', 'company-ca')
         self.assertEqual(config['data']['ca.crt'], bundle)
         deployment = resource(resources, 'Deployment', 'ml-pipeline')
         containers = deployment['spec']['template']['spec']['containers']
         api = next(
-            c for c in containers if c['name'] == 'ml-pipeline-api-server')
+            c for c in containers if c['name'] == 'ml-pipeline-api-server'
+        )
         env = {item['name']: item for item in api['env']}
         self.assertEqual(env['CABUNDLE_CONFIGMAP_NAME']['value'], 'company-ca')
         config = resource(resources, 'ConfigMap', 'ml-pipeline-driver-agent')
         sidecar = json.loads(
-            subprocess.check_output(['yq', 'r', '-j', '-'],
-                                    input=config['data']['sidecar.container'],
-                                    text=True))
+            subprocess.check_output(
+                ['yq', 'r', '-j', '-'],
+                input=config['data']['sidecar.container'],
+                text=True,
+            )
+        )
         env = {item['name']: item for item in sidecar['env']}
         self.assertEqual(env['CA_CERT_PATH']['value'], '/kfp/certs/ca.crt')
         mounts = {item['name']: item for item in sidecar['volumeMounts']}
@@ -207,8 +245,11 @@ class DriverPluginTest(unittest.TestCase):
         self.assertEqual(mount['mountPath'], '/kfp/certs')
         self.assertTrue(mount['readOnly'])
         self.assertFalse(
-            any(item['apiVersion'].startswith('cert-manager.io/')
-                for item in resources))
+            any(
+                item['apiVersion'].startswith('cert-manager.io/')
+                for item in resources
+            )
+        )
 
     def test_documented_custom_artifact_secret_authorization_contract(self):
         guide = (REPO_ROOT / 'manifests/kustomize/README.md').read_text()
@@ -217,33 +258,49 @@ class DriverPluginTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             overlay = Path(directory)
             (overlay / 'grant.yaml').write_text(grant)
-            (overlay /
-             'kustomization.yaml').write_text('resources:\n  - grant.yaml\n')
+            (overlay / 'kustomization.yaml').write_text(
+                'resources:\n  - grant.yaml\n'
+            )
             resources = render(overlay)
         role = resource(resources, 'Role', 'driver-custom-artifact-credentials')
-        self.assertEqual(role['metadata']['namespace'],
-                         'your-pipeline-namespace')
-        self.assertEqual(role['rules'], [{
-            'apiGroups': [''],
-            'resources': ['secrets'],
-            'resourceNames': ['artifact-store-credentials'],
-            'verbs': ['get']
-        }])
-        binding = resource(resources, 'RoleBinding',
-                           'driver-custom-artifact-credentials')
-        self.assertEqual(binding['metadata']['namespace'],
-                         role['metadata']['namespace'])
         self.assertEqual(
-            binding['roleRef'], {
+            role['metadata']['namespace'], 'your-pipeline-namespace'
+        )
+        self.assertEqual(
+            role['rules'],
+            [
+                {
+                    'apiGroups': [''],
+                    'resources': ['secrets'],
+                    'resourceNames': ['artifact-store-credentials'],
+                    'verbs': ['get'],
+                }
+            ],
+        )
+        binding = resource(
+            resources, 'RoleBinding', 'driver-custom-artifact-credentials'
+        )
+        self.assertEqual(
+            binding['metadata']['namespace'], role['metadata']['namespace']
+        )
+        self.assertEqual(
+            binding['roleRef'],
+            {
                 'apiGroup': 'rbac.authorization.k8s.io',
                 'kind': 'Role',
-                'name': role['metadata']['name']
-            })
-        self.assertEqual(binding['subjects'], [{
-            'kind': 'ServiceAccount',
-            'name': 'ml-pipeline-driver-agent-executor-plugin',
-            'namespace': role['metadata']['namespace']
-        }])
+                'name': role['metadata']['name'],
+            },
+        )
+        self.assertEqual(
+            binding['subjects'],
+            [
+                {
+                    'kind': 'ServiceAccount',
+                    'name': 'ml-pipeline-driver-agent-executor-plugin',
+                    'namespace': role['metadata']['namespace'],
+                }
+            ],
+        )
 
     @staticmethod
     def normalized_sidecar(sidecar):
@@ -254,22 +311,29 @@ class DriverPluginTest(unittest.TestCase):
             item for item in sidecar['env'] if item['name'] != 'CA_CERT_PATH'
         ]
         sidecar['volumeMounts'] = [
-            item for item in sidecar['volumeMounts']
+            item
+            for item in sidecar['volumeMounts']
             if item['name'] != 'argo-workflows-agent-ca-certificates'
         ]
         return sidecar
 
     def test_attempt_resolver_has_only_taskset_read_permissions(self):
         standalone = self.variants['standalone'][0]
-        multiuser = render(REPO_ROOT /
-                           'manifests/kustomize/base/installs/multi-user')
+        multiuser = render(
+            REPO_ROOT / 'manifests/kustomize/base/installs/multi-user'
+        )
         for resources, kind, name in (
             (standalone, 'Role', 'ml-pipeline-executor-plugin-role'),
-            (multiuser, 'ClusterRole',
-             'ml-pipeline-driver-agent-executor-plugin-cluster-role')):
+            (
+                multiuser,
+                'ClusterRole',
+                'ml-pipeline-driver-agent-executor-plugin-cluster-role',
+            ),
+        ):
             role = resource(resources, kind, name)
             rules = [
-                rule for rule in role['rules']
+                rule
+                for rule in role['rules']
                 if 'workflowtasksets' in rule['resources']
             ]
             self.assertEqual(len(rules), 1)
@@ -280,12 +344,16 @@ class DriverPluginTest(unittest.TestCase):
 
     def test_runtime_account_token_secret(self):
         resources, _, _ = self.variants['standalone']
-        secret = resource(resources, 'Secret',
-                          'pipeline-runner.service-account-token')
+        secret = resource(
+            resources, 'Secret', 'pipeline-runner.service-account-token'
+        )
         self.assertEqual(secret['type'], 'kubernetes.io/service-account-token')
         self.assertEqual(
-            secret['metadata']['annotations']
-            ['kubernetes.io/service-account.name'], 'pipeline-runner')
+            secret['metadata']['annotations'][
+                'kubernetes.io/service-account.name'
+            ],
+            'pipeline-runner',
+        )
 
 
 if __name__ == '__main__':

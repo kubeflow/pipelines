@@ -15,7 +15,8 @@ import unittest
 
 # Allow running against a freshly regenerated client without installing it.
 _CLIENT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../../sdk/python"))
+    os.path.join(os.path.dirname(__file__), '../../../../sdk/python')
+)
 if _CLIENT_ROOT not in sys.path:
     sys.path.insert(0, _CLIENT_ROOT)
 
@@ -25,13 +26,10 @@ class TestPackageImport(unittest.TestCase):
 
     def test_import_server_api(self):
         import kfp.server_api  # noqa: F401
-        from kfp.server_api.api.artifact_service_api import \
-            ArtifactServiceApi  # noqa: F401
-        from kfp.server_api.api.run_service_api import \
-            RunServiceApi  # noqa: F401
-        from kfp.server_api.models.google_rpc_status import \
-            GoogleRpcStatus  # noqa: F401
+        from kfp.server_api.api.artifact_service_api import ArtifactServiceApi  # noqa: F401
+        from kfp.server_api.api.run_service_api import RunServiceApi  # noqa: F401
+        from kfp.server_api.models.google_rpc_status import GoogleRpcStatus  # noqa: F401
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

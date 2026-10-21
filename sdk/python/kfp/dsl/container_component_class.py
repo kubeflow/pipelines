@@ -15,8 +15,7 @@
 
 from typing import Callable
 
-from kfp.dsl import base_component
-from kfp.dsl import structures
+from kfp.dsl import base_component, structures
 
 
 class ContainerComponent(base_component.BaseComponent):
@@ -26,8 +25,9 @@ class ContainerComponent(base_component.BaseComponent):
         pipeline_func: The function that becomes the implementation of this component.
     """
 
-    def __init__(self, component_spec: structures.ComponentSpec,
-                 pipeline_func: Callable) -> None:
+    def __init__(
+        self, component_spec: structures.ComponentSpec, pipeline_func: Callable
+    ) -> None:
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
 

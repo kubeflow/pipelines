@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for config.py."""
+
 import os
 import unittest
 from unittest import mock
@@ -21,7 +22,6 @@ from kfp.local import config
 
 
 class LocalRunnerConfigTest(unittest.TestCase):
-
     def setUp(self):
         config.LocalExecutionConfig.instance = None
 
@@ -60,8 +60,9 @@ class LocalRunnerConfigTest(unittest.TestCase):
 
         self.assertEqual(instance.pipeline_root, 'other/local/root')
         self.assertEqual(instance.workspace_root, '/tmp/test-workspace-2')
-        self.assertEqual(instance.runner,
-                         local.SubprocessRunner(use_venv=False))
+        self.assertEqual(
+            instance.runner, local.SubprocessRunner(use_venv=False)
+        )
         self.assertFalse(instance.raise_on_error, False)
 
     def test_validate_success(self):
@@ -75,14 +76,13 @@ class LocalRunnerConfigTest(unittest.TestCase):
 
     def test_validate_fail(self):
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
+            RuntimeError,
+            r"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\.",
         ):
             config.LocalExecutionConfig.validate()
 
 
 class TestInitCalls(unittest.TestCase):
-
     def setUp(self):
         config.LocalExecutionConfig.instance = None
 
@@ -112,23 +112,26 @@ class TestInitCalls(unittest.TestCase):
 
         instance = config.LocalExecutionConfig.instance
 
-        self.assertEqual(instance.pipeline_root,
-                         os.path.abspath('other/local/root'))
-        self.assertEqual(instance.runner,
-                         local.SubprocessRunner(use_venv=False))
+        self.assertEqual(
+            instance.pipeline_root, os.path.abspath('other/local/root')
+        )
+        self.assertEqual(
+            instance.runner, local.SubprocessRunner(use_venv=False)
+        )
         self.assertFalse(instance.raise_on_error, False)
 
     def test_runner_validation(self):
         """Test config instance attributes with multiple init() calls."""
         with self.assertRaisesRegex(
-                ValueError,
-                r'Got unknown runner foo of type str\. Runner should be one of the following types: SubprocessRunner\.'
+            ValueError,
+            r'Got unknown runner foo of type str\. Runner should be one of the following types: SubprocessRunner\.',
         ):
             local.init(runner='foo')
 
     @mock.patch('kfp.local.pip_install_manager.pip_install_manager.configure')
     def test_subprocess_runner_configures_pip_manager_without_venv(
-            self, mock_configure):
+        self, mock_configure
+    ):
         local.SubprocessRunner(
             use_venv=False,
             serialize_pip_installs=True,
@@ -136,16 +139,16 @@ class TestInitCalls(unittest.TestCase):
         )
 
         mock_configure.assert_called_once_with(
-            serialize_installs=True, max_concurrent=1)
+            serialize_installs=True, max_concurrent=1
+        )
 
 
 class TestDockerRunner(unittest.TestCase):
-
     def test_import_error(self):
         with mock.patch.dict('sys.modules', {'docker': None}):
             with self.assertRaisesRegex(
-                    ImportError,
-                    r"Package 'docker' must be installed to use 'DockerRunner'\. Install it using 'pip install docker'\."
+                ImportError,
+                r"Package 'docker' must be installed to use 'DockerRunner'\. Install it using 'pip install docker'\.",
             ):
                 local.DockerRunner()
 
@@ -154,15 +157,15 @@ class TestDockerRunner(unittest.TestCase):
 
     def test_unknown_container_args(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Unsupported `docker run` arguments, see Package `docker` for details: .*'
+            ValueError,
+            r'Unsupported `docker run` arguments, see Package `docker` for details: .*',
         ):
             local.DockerRunner(image='spaghetti', favorite_vegetable='zucchini')
 
     def test_excess_container_args(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'The following docker run arguments should not be specified: .*'
+            ValueError,
+            r'The following docker run arguments should not be specified: .*',
         ):
             local.DockerRunner(image='spaghetti')
 

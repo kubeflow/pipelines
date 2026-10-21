@@ -40,7 +40,7 @@ runs:
     # attempt non-fatal so those failures can reach the explicit retry below.
     - name: Upload artifact
       id: primary
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
@@ -60,7 +60,7 @@ runs:
     - name: Retry artifact upload
       id: retry
       if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         # A timed-out CreateArtifact request may still have created its
         # immutable name server-side. Use a distinct name instead of risking a

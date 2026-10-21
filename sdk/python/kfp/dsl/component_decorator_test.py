@@ -14,16 +14,14 @@
 
 import os
 import tempfile
-from typing import Dict, List, NamedTuple
 import unittest
+from typing import Dict, List, NamedTuple
 
-from kfp.dsl import python_component
-from kfp.dsl import structures
+from kfp.dsl import python_component, structures
 from kfp.dsl.component_decorator import component
 
 
 class TestComponentDecorator(unittest.TestCase):
-
     def test_as_decorator_syntactic_sugar_no_args(self):
 
         @component
@@ -67,32 +65,37 @@ class TestComponentDecorator(unittest.TestCase):
         self.assertIsInstance(comp, python_component.PythonComponent)
 
         concat_command = ' '.join(
-            comp.component_spec.implementation.container.command)
-        self.assertTrue('numpy' in concat_command and
-                        'tensorflow' in concat_command)
+            comp.component_spec.implementation.container.command
+        )
+        self.assertTrue(
+            'numpy' in concat_command and 'tensorflow' in concat_command
+        )
 
     def test_packages_to_install_with_custom_index_url(self):
 
         @component(
             packages_to_install=['numpy', 'tensorflow'],
-            pip_index_urls=['https://pypi.org/simple'])
+            pip_index_urls=['https://pypi.org/simple'],
+        )
         def comp(text: str) -> str:
             return text
 
         self.assertIsInstance(comp, python_component.PythonComponent)
 
         concat_command = ' '.join(
-            comp.component_spec.implementation.container.command)
-        self.assertTrue('numpy' in concat_command and
-                        'tensorflow' in concat_command)
+            comp.component_spec.implementation.container.command
+        )
+        self.assertTrue(
+            'numpy' in concat_command and 'tensorflow' in concat_command
+        )
         self.assertTrue('https://pypi.org/simple' in concat_command)
 
     def test_output_component_file_parameter(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = os.path.join(tmpdir, 'my_component.yaml')
             with self.assertWarnsRegex(
-                    DeprecationWarning,
-                    r'output_component_file parameter is deprecated and will eventually be removed\.'
+                DeprecationWarning,
+                r'output_component_file parameter is deprecated and will eventually be removed\.',
             ):
 
                 @component(output_component_file=filepath)
@@ -110,14 +113,16 @@ class TestComponentDecorator(unittest.TestCase):
     def test_output_named_tuple_with_dict(self):
 
         @component
-        def comp(
-                text: str) -> NamedTuple('outputs', [('data', Dict[str, str])]):
+        def comp(text: str) -> NamedTuple(
+            'outputs', [('data', Dict[str, str])]
+        ):
             outputs = NamedTuple('outputs', [('data', Dict[str, str])])
             return outputs(data={text: text})
 
         # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
-        self.assertEqual(comp.component_spec.outputs['data'].type,
-                         'typing.Dict[str, str]')
+        self.assertEqual(
+            comp.component_spec.outputs['data'].type, 'typing.Dict[str, str]'
+        )
 
     def test_output_dict(self):
 
@@ -126,8 +131,9 @@ class TestComponentDecorator(unittest.TestCase):
             return {text: text}
 
         # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
-        self.assertEqual(comp.component_spec.outputs['Output'].type,
-                         'typing.Dict[str, str]')
+        self.assertEqual(
+            comp.component_spec.outputs['Output'].type, 'typing.Dict[str, str]'
+        )
 
     def test_output_named_tuple_with_list(self):
 
@@ -137,8 +143,9 @@ class TestComponentDecorator(unittest.TestCase):
             return outputs(data={text: text})
 
         # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
-        self.assertEqual(comp.component_spec.outputs['data'].type,
-                         'typing.List[str]')
+        self.assertEqual(
+            comp.component_spec.outputs['data'].type, 'typing.List[str]'
+        )
 
     def test_output_list(self):
 
@@ -147,5 +154,6 @@ class TestComponentDecorator(unittest.TestCase):
             return {text: text}
 
         # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
-        self.assertEqual(comp.component_spec.outputs['Output'].type,
-                         'typing.List[str]')
+        self.assertEqual(
+            comp.component_spec.outputs['Output'].type, 'typing.List[str]'
+        )

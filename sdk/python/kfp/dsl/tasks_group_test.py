@@ -15,19 +15,17 @@
 import unittest
 
 from kfp import dsl
-from kfp.dsl import for_loop
-from kfp.dsl import pipeline_context
-from kfp.dsl import tasks_group
+from kfp.dsl import for_loop, pipeline_context, tasks_group
 
 
 class ParallelForTest(unittest.TestCase):
-
     def test_basic(self):
         loop_items = ['pizza', 'hotdog', 'pasta']
         with pipeline_context.Pipeline('pipeline') as p:
             with tasks_group.ParallelFor(items=loop_items) as parallel_for:
                 loop_argument = for_loop.LoopParameterArgument.from_raw_items(
-                    loop_items, '1')
+                    loop_items, '1'
+                )
                 self.assertEqual(parallel_for.group_type, 'for-loop')
                 self.assertEqual(parallel_for.parallelism, 0)
                 self.assertEqual(parallel_for.loop_argument, loop_argument)
@@ -36,9 +34,11 @@ class ParallelForTest(unittest.TestCase):
         loop_items = ['pizza', 'hotdog', 'pasta']
         with pipeline_context.Pipeline('pipeline') as p:
             with tasks_group.ParallelFor(
-                    items=loop_items, parallelism=3) as parallel_for:
+                items=loop_items, parallelism=3
+            ) as parallel_for:
                 loop_argument = for_loop.LoopParameterArgument.from_raw_items(
-                    loop_items, '1')
+                    loop_items, '1'
+                )
                 self.assertEqual(parallel_for.group_type, 'for-loop')
                 self.assertEqual(parallel_for.parallelism, 3)
                 self.assertEqual(parallel_for.loop_argument, loop_argument)
@@ -47,23 +47,25 @@ class ParallelForTest(unittest.TestCase):
         loop_items = ['pizza', 'hotdog', 'pasta']
         with pipeline_context.Pipeline('pipeline') as p:
             with tasks_group.ParallelFor(
-                    items=loop_items, parallelism=0) as parallel_for:
+                items=loop_items, parallelism=0
+            ) as parallel_for:
                 loop_argument = for_loop.LoopParameterArgument.from_raw_items(
-                    loop_items, '1')
+                    loop_items, '1'
+                )
                 self.assertEqual(parallel_for.group_type, 'for-loop')
                 self.assertEqual(parallel_for.parallelism, 0)
                 self.assertEqual(parallel_for.loop_argument, loop_argument)
 
     def test_parallelfor_invalid_parallelism(self):
         loop_items = ['pizza', 'hotdog', 'pasta']
-        with self.assertRaisesRegex(ValueError,
-                                    'ParallelFor parallelism must be >= 0.'):
+        with self.assertRaisesRegex(
+            ValueError, 'ParallelFor parallelism must be >= 0.'
+        ):
             with pipeline_context.Pipeline('pipeline') as p:
                 tasks_group.ParallelFor(items=loop_items, parallelism=-1)
 
 
 class TestConditionDeprecated(unittest.TestCase):
-
     def test(self):
 
         @dsl.component
@@ -73,8 +75,8 @@ class TestConditionDeprecated(unittest.TestCase):
         @dsl.pipeline
         def my_pipeline(string: str):
             with self.assertWarnsRegex(
-                    DeprecationWarning,
-                    r'dsl\.Condition is deprecated\. Please use dsl\.If instead\.'
+                DeprecationWarning,
+                r'dsl\.Condition is deprecated\. Please use dsl\.If instead\.',
             ):
                 with dsl.Condition(string == 'text'):
                     foo()

@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source_root=$(pwd)
+cd "$(dirname "$0")/.."
 
-# Dependencies are already installed via 'uv sync' in CI
-uv run pycln --check --exclude 'server_api/|_pb2\.py$' "${source_root}/sdk/python"
-uv run isort --check --profile google --skip-glob '*/server_api/*' --skip-glob '*_pb2.py' "${source_root}/sdk/python"
+# Use the same pinned rules and generated-code exclusions as pre-commit.
+uv run --frozen --extra lint ruff check .
+uv run --frozen --extra lint ruff format --check .
