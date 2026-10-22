@@ -654,6 +654,18 @@
       }
     },
     {
+      "path": ".github/workflows/release-promote-latest.yml",
+      "name": "Promote Published Release Images",
+      "header_sha256": "9959b76421cf287b008dde6705e571752c118477dd39115f8fc33f2719c93539",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/release-qualification.yml",
+      "name": "Release Image Qualification",
+      "header_sha256": "ace3dfeceec9fe301b712618dfe7b96cdca1d067320512c4e586e25731bbcf2d",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
       "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",

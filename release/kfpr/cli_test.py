@@ -47,6 +47,158 @@ class PackageImportTest(unittest.TestCase):
         )
         self.assertIn('run', result.stdout)
 
+    def test_qualification_command_exposes_python_matrix_configuration(self):
+        from kfpr import cli
+
+        with (
+            mock.patch.object(cli, '_context') as context,
+            mock.patch.dict(
+                cli.STEP_HANDLERS, {'qualify-release': mock.Mock()}
+            ),
+        ):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--qualification-pythons',
+                    '/python39,/python311',
+                    '--security-policy',
+                    '2.17.3-approved-exceptions-v1',
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.stdout)
+        self.assertEqual(
+            context.call_args.kwargs['qualification_pythons'],
+            '/python39,/python311',
+        )
+        self.assertEqual(
+            context.call_args.kwargs['security_policy'],
+            '2.17.3-approved-exceptions-v1',
+        )
+
+    def test_general_security_exception_file_option(self):
+        from kfpr import cli
+
+        with (
+            mock.patch.object(cli, '_context') as context,
+            mock.patch.dict(
+                cli.STEP_HANDLERS, {'qualify-release': mock.Mock()}
+            ),
+        ):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--security-exceptions',
+                    '/tmp/exceptions.json',
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.stdout)
+        self.assertEqual(
+            context.call_args.kwargs['security_exceptions'],
+            Path('/tmp/exceptions.json'),
+        )
+
+    def test_local_image_qualification_is_explicit_cli_choice(self):
+        from kfpr import cli
+
+        with (
+            mock.patch.object(cli, '_context') as context,
+            mock.patch.dict(
+                cli.STEP_HANDLERS, {'qualify-release': mock.Mock()}
+            ),
+        ):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--image-qualification',
+                    'local',
+                ],
+            )
+            self.assertEqual(result.exit_code, 0, result.stdout)
+            self.assertEqual(
+                context.call_args.kwargs['image_qualification'], 'local'
+            )
+            rejected = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--image-qualification',
+                    'automatic',
+                ],
+            )
+            self.assertNotEqual(rejected.exit_code, 0)
+
+    def test_image_mode_defaults_to_ci_and_preserves_explicit_saved_local(self):
+        from kfpr import cli
+
+        with TemporaryDirectory() as temporary:
+            state = ReleaseState(Path(temporary) / 'state.json')
+            with (
+                mock.patch.object(cli, '_load_state', return_value=state),
+                mock.patch.object(cli, 'collect_context'),
+            ):
+                args = [state.path, False, None, None, None, None, None, None]
+                cli._context(*args)
+                self.assertEqual(state.answers['image_qualification'], 'ci')
+                cli._context(*args, image_qualification='local')
+                self.assertEqual(state.answers['image_qualification'], 'local')
+                cli._context(*args)
+                self.assertEqual(state.answers['image_qualification'], 'local')
+
+    def test_exception_selection_persists_and_strict_selection_clears_it(self):
+        from kfpr import cli
+
+        with TemporaryDirectory() as temporary:
+            state = ReleaseState(Path(temporary) / 'state.json')
+            exceptions = Path(temporary) / 'exceptions.json'
+            exceptions.write_text('{"schema": 1, "exceptions": []}')
+            with (
+                mock.patch.object(cli, '_load_state', return_value=state),
+                mock.patch.object(cli, 'collect_context'),
+            ):
+                args = [state.path, False, None, None, None, None, None, None]
+                cli._context(*args, security_exceptions=exceptions)
+                self.assertEqual(
+                    state.answers['security_policy'], 'approved-exceptions'
+                )
+                self.assertEqual(
+                    state.answers['security_exceptions'],
+                    str(exceptions.resolve()),
+                )
+                cli._context(*args)
+                self.assertEqual(
+                    state.answers['security_policy'], 'approved-exceptions'
+                )
+                cli._context(*args, security_policy='zero-fixable')
+                self.assertNotIn('security_exceptions', state.answers)
+                with self.assertRaises(cli.typer.BadParameter):
+                    cli._context(*args, security_policy='approved-exceptions')
+
+    def test_promote_latest_dispatches_ci_without_release_checkpoint(self):
+        promotion = mock.Mock()
+        with mock.patch.dict(sys.modules, {'kfpr.promotion': promotion}):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'promote-latest',
+                    '--version',
+                    '2.17.3',
+                    '--dry-run',
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.stdout)
+        promotion.dispatch.assert_called_once_with('2.17.3', dry_run=True)
+
     def test_kfpr_cli_has_module_entrypoint(self):
         result = subprocess.run(
             [sys.executable, '-m', 'kfpr.cli', '--help'],

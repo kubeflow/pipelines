@@ -141,6 +141,7 @@ def update_release_docs(
     sleep: Callable[[float], None] = time.sleep,
     *,
     consolidated: bool,
+    set_defaults: bool = True,
 ) -> None:
     """Build and update defaults for the target SDK's documentation
     projects."""
@@ -178,6 +179,7 @@ def update_release_docs(
         build_id = client.trigger_build(project, version_slug)
         print(f'Waiting for {project} build {build_id} to finish...')
         wait_for_build(client, project, build_id, sleep=sleep)
-    print('Setting ReadTheDocs defaults...')
-    for project, _, defaults in projects:
-        client.patch_project(project, defaults)
+    if set_defaults:
+        print('Setting ReadTheDocs defaults...')
+        for project, _, defaults in projects:
+            client.patch_project(project, defaults)

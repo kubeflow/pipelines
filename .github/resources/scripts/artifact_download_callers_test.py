@@ -15,6 +15,7 @@
 """Keep download manifests complete and aligned with their artifact
 producers."""
 
+import json
 import os
 import re
 import subprocess
@@ -29,6 +30,7 @@ from artifact_workflow_test_support import render
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
+WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = {
     ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
@@ -38,6 +40,7 @@ CALLERS = {
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
+    ('.github/workflows/release-qualification.yml', 'aggregate'),
 }
 
 
@@ -53,7 +56,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             if job == 'composite'
             else document['jobs'][job]['steps']
         )
-        caller = next(step for step in steps if step.get('uses') == WRAPPER)
+        caller = next(step for step in steps if step.get('uses') in WRAPPERS)
         manifest = caller['with']['required-files']
         context = context or {}
         output = re.fullmatch(
@@ -157,7 +160,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                                 },
                                 f'Raw download bypasses completeness: {location}',
                             )
-                        if action != WRAPPER:
+                        if action not in WRAPPERS:
                             continue
                         self.assertTrue(
                             step.get('with', {})
@@ -167,6 +170,63 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                         )
                         callers.append(location)
         self.assertCountEqual(callers, CALLERS)
+
+    def test_release_qualification_manifest_matches_attempt_bound_lane_artifacts(
+        self,
+    ):
+        document = workflow('release-qualification.yml')
+        producer = next(
+            step
+            for step in document['jobs']['images']['steps']
+            if step.get('uses', '').startswith('actions/upload-artifact@')
+        )
+        # Include an AMD64-only image to prove completeness follows the source
+        # matrix rather than assuming the tool branch's image/platform pairs.
+        lanes = [
+            {'name': 'legacy-api', 'arch': 'amd64'},
+            {'name': 'legacy-api', 'arch': 'arm64'},
+            {'name': 'legacy-proxy', 'arch': 'amd64'},
+        ]
+        for attempt in ('1', '17'):
+            with self.subTest(attempt=attempt):
+                context = {
+                    'inputs': {'request_id': 'a' * 32},
+                    'github': {'run_attempt': attempt},
+                    'needs': {
+                        'inventory': {
+                            'outputs': {
+                                'matrix': json.dumps({'include': lanes}),
+                            }
+                        }
+                    },
+                }
+                actual = self.required_files(
+                    '.github/workflows/release-qualification.yml',
+                    'aggregate',
+                    context,
+                )
+                expected = {
+                    render(
+                        producer['with']['name'], {**context, 'matrix': lane}
+                    )
+                    + '/'
+                    + filename
+                    for lane in lanes
+                    for filename in ('lane.json', 'scan.json')
+                }
+                self.assertEqual(actual, expected)
+                steps = document['jobs']['aggregate']['steps']
+                download = next(
+                    step for step in steps if step.get('uses') in WRAPPERS
+                )
+                verify = next(
+                    step
+                    for step in steps
+                    if 'ci_images_runner aggregate' in step.get('run', '')
+                )
+                self.assertLess(steps.index(download), steps.index(verify))
+                self.assertNotIn('continue-on-error', download)
+                self.assertNotIn('if', verify)
 
     def test_deploy_manifest_matches_ci_producers_and_modelcar_selection(self):
         built_images = {

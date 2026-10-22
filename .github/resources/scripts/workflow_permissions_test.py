@@ -25,6 +25,7 @@ WORKFLOWS = ROOT / '.github/workflows'
 # Each write grant must have an identified consumer. The generated analyzer's
 # issue output, cancellation, and inference grants stay in its source contract.
 WRITE_PERMISSIONS = {
+    'release-promote-latest.yml': {'promote': {'packages'}},
     'ai-analyzer.lock.yml': {
         'activation': {'issues'},
         'agent': {'copilot-requests'},
