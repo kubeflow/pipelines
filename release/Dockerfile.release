@@ -53,6 +53,7 @@ RUN chmod -R 777 $NVM_DIR && \
 # ip-address 10.7.2; pin its compatible security update until npm includes it.
 ENV NPM_VERSION=12.2.1
 RUN npm install --global "npm@${NPM_VERSION}" && \
+    npm pkg delete devDependencies workspaces --prefix "$(npm root --global)/npm" && \
     npm install --prefix "$(npm root --global)/npm" --omit=dev --ignore-scripts --no-audit --no-fund --save-exact ip-address@10.7.4 && \
     npm config set cache /tmp/.npm --global && \
     npm cache clean --force
