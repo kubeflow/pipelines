@@ -4,6 +4,30 @@ Changelog
 
 ### Upgrade notes
 
+#### Artifact ownership compatibility
+
+The stronger artifact ownership requirement is deferred to 3.0. Version 2.18
+preserves 2.17's MLMD-based access behavior: existing tracked custom roots do not
+require a new namespace prefix, and missing ownership evidence or unavailable
+MLMD does not introduce a new artifact-read failure. Known namespace mismatches
+and the existing untracked-artifact prefix/strict policies remain. Previously
+unsupported untracked roots do not become supported.
+
+The unreleased `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` enforce/audit setting is
+removed. No new artifact-root migration, storage-adoption configuration, or
+automatic storage-authorization rollout is introduced in 2.18. This is an explicit
+security deferral: shared or overly broad storage credentials can still expose
+other tenants' artifacts, and 2.18 is not claimed as a complete ownership fix.
+Authentication, namespace permissions, request/path validation, trusted endpoints,
+HTTP credential controls, filesystem containment and response hardening remain.
+
+Namespace HTTP artifact receivers retain their existing credential placement.
+Updated receivers enforce the independent HTTP protections; older receivers
+retain their prior behavior during rolling upgrades. Verify receiver rollout
+completion before treating those protections as fully deployed. See
+[artifact compatibility](frontend/README.md#artifact-ownership-compatibility-in-218)
+and [HTTP configuration](docs/operator-guides/server-config.md#http-artifact-migration-for-218).
+
 #### Python support in 2.18
 
 * **Python 3.10 is now the minimum for the KFP SDK and Kubernetes SDK

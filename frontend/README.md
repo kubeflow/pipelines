@@ -177,33 +177,46 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.yaml
 [KFP docs]: https://www.kubeflow.org/docs/components/pipelines/getting-started/
 
-## Artifact ownership migration in 2.18
+## Artifact ownership compatibility in 2.18
 
-Multi-user frontend previews and downloads enforce namespace-prefixed object keys by default:
-`private-artifacts/<namespace>/...` (or `ARTIFACT_NAMESPACE_KEY_PREFIX/<namespace>/...`).
-Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
-to direct and proxied MinIO, S3, GCS and HTTP(S) retrieval. Standalone mode is unchanged.
+The stronger artifact ownership requirement is deferred to 3.0. Version 2.18 keeps
+2.17's MLMD-based behavior for authenticated multi-user previews and downloads:
 
-Operators with legacy custom roots can temporarily set `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit`
-in the `pipeline-install-config` ConfigMap and restart the frontend deployment. The default is
-`enforce`; unknown values deny access. Audit is a **2.18 migration option, not a security fix**:
-matching metadata can refer to another tenant's object when downstream credentials are shared.
-Enable audit only after independently verifying storage and proxy/network isolation, and set a
-migration deadline before upgrading to 3.0. The 3.0 policy has no audit exception.
+- A recorded namespace mismatch is denied. Matching metadata may authorize an
+  existing custom root without imposing a new namespace-prefix layout.
+- Missing namespace context or unavailable MLMD/protobufs retains the previous
+  permissive ownership result. Authentication and namespace permission checks
+  still apply and deny access if they fail.
+- After a successful lookup returns no artifacts, `ARTIFACT_NAMESPACE_OWNERSHIP_MODE`
+  retains its existing `mlmd-then-prefix` default or `mlmd-only` strict behavior.
+  The former requires `private-artifacts/<namespace>/...`, or the single configured
+  `ARTIFACT_NAMESPACE_KEY_PREFIX`; the latter denies untracked objects.
+- Unsafe paths and malformed encoding remain rejected. Request identity, trusted
+  storage endpoints, HTTP destination/credential controls, filesystem containment,
+  and safe response handling remain enforced.
 
-Audit relaxes only an absent namespace prefix after successful MLMD lookup and matching namespace
-evidence for every returned artifact. It does not relax user authorization, explicit namespace
-mismatches, unsafe paths, missing protobufs, MLMD errors/timeouts or missing context evidence.
-For objects absent from MLMD, `mlmd-then-prefix` retains the validated namespace-prefix fallback;
-`mlmd-only` still denies them. Neither mode permits unavailable ownership checks to fail open.
+No new root migration, storage-adoption policy, or artifact audit setting is
+required for 2.18. The unreleased `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` control is
+removed. This preserves previously working access; it does not make previously
+unsupported, untracked custom-root objects readable.
 
-Each permitted legacy read emits an `artifact_ownership_audit` warning with namespace, source,
-route category and reason. Count these events in your log system to track migration; full object
-URIs, query strings and credentials are not included in the audit event. Audit also emits a startup
-warning. An event records permission to proceed, not proof that the downstream download succeeded.
+This compatibility decision leaves the artifact ownership advisory unresolved in
+2.18. Caller-associated metadata is not proof of object ownership, and permissive
+MLMD failure handling can expose other tenants' objects when serving credentials
+have broader access. Existing storage and network isolation remain necessary;
+do not disable authentication. The backend authorization work is tracked in
+[#14031](https://github.com/kubeflow/pipelines/issues/14031) for 3.0.
 
-Configure new pipeline roots with namespace-prefixed paths, then move/copy authorized existing
-objects and update their references. Metadata changes alone do not move storage objects. Switch
-back to `enforce` and verify preview/download before upgrading. Do not disable authentication to
-restore custom-root access. MLMD outages now deny artifact reads in both modes, including reads of
-otherwise correctly prefixed objects; restoring MLMD restores those reads.
+HTTP artifacts retain the existing direct or namespace-proxy route and its
+credential placement. Updated receivers apply independent HTTP protections;
+older receivers retain their previous behavior until replaced during rollout.
+See [HTTP artifact configuration](../docs/operator-guides/server-config.md#http-artifact-migration-for-218)
+for the supported base forms and receiver update checks.
+
+Path hardening remains independent of ownership compatibility. Authenticated
+artifact keys with traversal segments, malformed percent escapes, encoded path
+separators (including a literal `%2F` object-key segment), or internal empty
+segments remain rejected. A tracked directory prefix may end in one `/` without
+changing the URI sent to metadata or storage. Inventory unusual historical keys
+and test their actual authenticated read path; standalone storage success does
+not establish authenticated compatibility.

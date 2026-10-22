@@ -198,8 +198,9 @@ A fully qualified base cannot contain credentials, a query, or a fragment.
 Configure supported HTTP authentication through `HTTP_AUTHORIZATION_KEY` and
 `HTTP_AUTHORIZATION_DEFAULT_VALUE` on the serving process, rather than embedding
 credentials in the URL. The installation configuration propagates the base URL,
-not authentication credentials. Query-bearing signed URLs are not a replacement
-for the supported artifact path/authentication configuration.
+not authentication credentials. Query-bearing signed URLs used as initial artifact
+URIs are not a replacement for the supported path/authentication configuration;
+redirect queries follow the destination policy described below.
 
 The existing **scheme-less gateway form remains supported**:
 `HTTP_BASE_URL=gateway.example/artifacts/`, with an HTTP artifact request for
@@ -216,45 +217,48 @@ percent encoding, or embedded ASCII control characters (literal or percent-encod
 Correct these values in the installation configuration; they are rejected with
 HTTP 400 on artifact requests, without preventing server startup.
 
-The base is read at process startup. After applying the ConfigMap, restart
-`ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared
-UI even when namespace artifact proxies are enabled. Configure any HTTP
-authentication on the shared UI as well. Both the configured base boundary and
-the namespace ownership policy apply: artifact keys and redirects must stay under
-`private-artifacts/<namespace>/` (or the configured namespace prefix). For example,
-use `https://files.example:9443/private-artifacts/` as the base for namespace-scoped
-URIs; the `/reports/` example above applies to standalone deployments.
+The base is read at process startup. Preserve HTTP authentication and network
+access on the process that already serves the artifacts. With namespace artifact
+proxying enabled, the shared UI authorizes the caller and forwards HTTP requests
+to that namespace's receiver. Otherwise the shared UI serves the request. The
+2.18 upgrade does not require moving namespace-local HTTP credentials into the
+shared UI.
 
-Multi-user HTTP redirects cannot change origin or logical gateway bucket, and
-each redirected object must remain under the authorized namespace prefix. This
-object is also revalidated against the configured MLMD ownership policy: strict
-`mlmd-only` mode and conflicting ownership evidence continue to deny access. The
-check runs on the shared UI before contacting the redirect destination, including
-during rolling upgrades with older tenant proxies. Keep HTTP credentials and
-network access available to the shared UI; configuring them only on tenant
-proxies is insufficient. Redirect destinations containing queries or fragments
-are rejected, including redirects to query-signed download URLs. Use the supported
-HTTP header authentication configuration instead.
+Updated serving processes retain configured destination checks on every redirect.
+A fully qualified base confines redirects to its origin and path. The scheme-less
+gateway form retains redirects to allowed destinations, including another path or
+origin accepted by `ALLOWED_ARTIFACT_DOMAIN_REGEX`; authentication headers are
+removed when the origin changes. Redirect queries, including signed download
+queries, are allowed within the applicable destination policy. Redirect limits,
+URL/path validation and credential protections remain enforced.
 
-The temporary `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE=audit` setting still permits an
-initial custom-root read with matching MLMD evidence. That evidence does not
-authorize another object chosen by an HTTP redirect: custom-root redirects are
-denied unless the destination is the identical URL. Use the final artifact URL
-directly while migrating custom roots. Standalone deployments retain approved-base
-redirect behavior without namespace checks. Object-store downloads continue to
-use tenant proxies and support their legacy download route during rolling upgrades.
+The stronger artifact ownership requirement is deferred to 3.0. Initial requests
+retain 2.17's MLMD-based ownership behavior, including known namespace-mismatch
+rejection and the existing prefix fallback for untracked artifacts. Neither an
+initial tracked custom root nor its redirect acquires a new mandatory namespace
+prefix. Missing namespace evidence and unavailable MLMD retain their historical
+permissive ownership behavior; caller authentication and namespace permission
+checks still fail closed. This is a compatibility decision, not complete
+remediation of the cross-tenant artifact ownership advisory. The unreleased
+`KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` enforce/audit control is removed.
 
-The installation also propagates the base to profile proxies for their direct
-HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
-wait for its rollout to finish. The controller watches enabled Namespace objects;
-restarting its webhook does not enqueue them. Wait for the next hourly resync or
-change an annotation on each affected Namespace, as shown in the
-[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
-Confirm each generated `ml-pipeline-ui-artifact` pod template contains the expected
-`HTTP_BASE_URL` before checking its rollout status, which could otherwise report
-the previous rollout's completion. This propagation does not change the shared
-UI's authenticated HTTP serving path. Preserve the setting in your installation
-manifests for later upgrades.
+The installation propagates the configured base and allowed artifact endpoints
+to managed namespace receivers, not their HTTP authentication credentials. Keep
+custom receiver credential configuration in its existing deployment source and
+verify that reconciliation preserves it. The profile controller applies its
+configured frontend image and environment through ordinary Deployment rollouts.
+Restarting its webhook does not enqueue every namespace: existing namespaces
+reconcile on the normal hourly resync or when their watched configuration changes.
+The [profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
+shows how to request an earlier reconciliation when needed.
+
+Either shared-UI/receiver update order retains the established proxy path. During
+overlap, old receivers retain their old redirect behavior; the shared UI upgrade
+alone does not install the newer HTTP protections in them. Before considering the
+rollout complete, verify the serving receiver image and `HTTP_BASE_URL` in each
+pod template, its completed rollout, and that old receiver pods have exited.
+Custom/unmanaged receivers use their existing deployment mechanism. No new
+artifact approval or readiness protocol is required.
 
 When upgrading from manifests that did not emit `HTTP_BASE_URL` into profile
 proxy pods, the first reconciliation adds the entry even when its value is empty.

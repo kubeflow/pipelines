@@ -38,12 +38,9 @@ vi.mock('../gcs-helper.js', () => ({
 }));
 
 const mockedValidateArtifactNamespace = vi.fn();
-vi.mock('../helpers/mlmd-validator.js', () => ({
+vi.mock('../helpers/mlmd-validator.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../helpers/mlmd-validator.js')>()),
   validateArtifactNamespace: (...args: unknown[]) => mockedValidateArtifactNamespace(...args),
-  buildArtifactUri: (source: string, bucket: string, key: string) => {
-    const scheme = source === 'gcs' ? 'gs' : source;
-    return `${scheme}://${bucket}/${key}`;
-  },
 }));
 
 const mockedFetch = vi.fn();
@@ -497,28 +494,6 @@ describe('/artifacts authorization', () => {
       });
     };
 
-    it.each([
-      '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace&token=secret',
-      '/artifacts/minio/ml-pipeline/hello/world.txt?namespace=my-namespace&token=secret',
-    ])('logs a sanitized audit event for legacy retrieval: %s', async (path) => {
-      mockAuthPass();
-      mockedValidateArtifactNamespace.mockResolvedValue({
-        valid: true,
-        reason: 'audit-custom-root',
-      });
-      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      app = new UIServer(authEnabledConfigs());
-      await requests(app.app).get(path).set('kubeflow-userid', 'user@example.com').expect(200);
-      expect(warning).toHaveBeenCalledWith('[SECURITY] artifact_ownership_audit', {
-        namespace: 'my-namespace',
-        source: 'minio',
-        route: path.startsWith('/artifacts/get?') ? 'preview-or-download' : 'download',
-        reason: 'custom-root-would-deny',
-      });
-      expect(JSON.stringify(warning.mock.calls)).not.toContain('secret');
-      expect(JSON.stringify(warning.mock.calls)).not.toContain('hello/world.txt');
-    });
-
     it('rejects artifact access when MLMD shows namespace mismatch', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
@@ -574,7 +549,7 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('does not belong to the requested namespace');
     });
 
-    it('rejects when artifact is not found in MLMD (no ownership evidence)', async () => {
+    it('honors an explicit validator denial for an untracked artifact (strict policy)', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
         valid: false,
@@ -593,7 +568,7 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('does not belong to the requested namespace');
     });
 
-    it('falls through (fail-open) when MLMD is unreachable', async () => {
+    it('continues when the validator allows legacy fallback', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
         valid: true,

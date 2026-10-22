@@ -16,7 +16,7 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
-// Lazy proto load — a missing bundle denies retrieval instead of crashing at import.
+// Lazy proto load preserves the 2.17 compatibility behavior when the bundle is missing.
 let servicePb: any = null;
 let storePb: any = null;
 let protoLoadAttempted = false;
@@ -41,8 +41,9 @@ function loadProtos(): boolean {
   }
   if (!protoLoadAttempted) {
     console.warn(
-      `[SECURITY] MLMD proto bundle could not be loaded — namespace-ownership ` +
-        `validation cannot establish ownership; denying artifact access.`,
+      '[SECURITY] MLMD protobufs are unavailable; continuing artifact reads with 2.17 ' +
+        'compatibility without ownership verification. Restore the frontend MLMD protobuf ' +
+        'bundle to resume verification.',
     );
     protoLoadAttempted = true;
   }
@@ -60,16 +61,14 @@ const DEFAULT_TIMEOUT_MS = (() => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
 })();
 
-// When the metadata store has no record of an artifact, the artifact is still owned by
-// exactly one namespace, because both the Argo v1 `keyFormat` and the v2
-// `defaultPipelineRoot` store every object under a `private-artifacts/<namespace>/`
-// key prefix, and the per-namespace object-storage policy isolates each namespace to
-// its own prefix. Deriving the owning namespace from that prefix restores retrieval of
-// pod logs and other objects that are legitimately not tracked as metadata-store
-// artifacts, while still blocking cross-namespace access. Because nothing is ever
-// written to the bucket root, an object that carries no such prefix has no derivable
-// owning namespace and is denied. The strict upstream behavior that denies every
-// artifact absent from the metadata store is preserved under the `mlmd-only` mode.
+// After a successful metadata lookup returns no artifact records, the default
+// policy derives a namespace from the configured object-key prefix. Stock
+// namespace-isolated roots use private-artifacts/<namespace>/; custom roots do
+// not necessarily follow that layout and cannot use this no-record fallback.
+// Prefix naming is only meaningful alongside the deployment's storage policy.
+// This fallback is distinct from the 2.17 compatibility behavior for metadata
+// errors or records without namespace evidence. The mlmd-only setting rejects
+// every successful no-record lookup.
 //
 // The mode is normalized to lower case so that an operator-supplied value such as
 // `MLMD-ONLY` selects the strict mode instead of silently falling through to the
@@ -83,19 +82,6 @@ const NAMESPACE_OWNERSHIP_MODE = (
 const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
   .trim()
   .replace(/^\/+|\/+$/g, '');
-
-const KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE = (
-  process.env.KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE || 'enforce'
-)
-  .trim()
-  .toLowerCase();
-if (KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE === 'audit') {
-  console.warn(
-    '[SECURITY] Artifact ownership audit mode permits legacy custom-root reads with matching ' +
-      'MLMD evidence. Shared storage credentials can expose other tenants. Verify downstream ' +
-      'isolation and migrate to namespace-prefixed roots before 3.0; audit mode is temporary.',
-  );
-}
 
 export function namespaceFromArtifactUri(
   artifactUri: string,
@@ -296,18 +282,15 @@ export function decideFromContexts(
 ): ValidationResult {
   let hasNamespaceEvidence = false;
   let hadUnavailable = false;
-  let hadMissingEvidence = false;
   for (const { contexts } of contextResults) {
     if (contexts === null) {
       hadUnavailable = true;
       continue;
     }
-    let artifactHasEvidence = false;
     for (const ctx of contexts) {
       if (ctx.contextType !== PIPELINE_RUN_CONTEXT_TYPE) continue;
       if (!ctx.namespace) continue;
       hasNamespaceEvidence = true;
-      artifactHasEvidence = true;
       if (ctx.namespace !== claimedNamespace) {
         return {
           valid: false,
@@ -316,13 +299,12 @@ export function decideFromContexts(
         };
       }
     }
-    if (!artifactHasEvidence) hadMissingEvidence = true;
   }
   if (hadUnavailable) {
-    return { valid: false, reason: 'mlmd-unavailable' };
+    return { valid: true, reason: 'mlmd-unavailable' };
   }
-  if (!hasNamespaceEvidence || hadMissingEvidence) {
-    return { valid: false, reason: 'no-evidence' };
+  if (!hasNamespaceEvidence) {
+    return { valid: true, reason: 'no-evidence' };
   }
   return { valid: true };
 }
@@ -344,6 +326,27 @@ export function decideFromPrefixFallback(
   if (ownershipMode !== 'mlmd-then-prefix') {
     return { valid: false, reason: 'artifact-not-found' };
   }
+  const normalizedUri = normalizedArtifactUri(artifactUri);
+  if (normalizedUri === undefined) {
+    return { valid: false, reason: 'key-not-normalized' };
+  }
+  const prefixNamespace = namespaceFromArtifactUri(normalizedUri);
+  if (prefixNamespace === undefined) {
+    return { valid: false, reason: 'prefix-absent' };
+  }
+  if (prefixNamespace !== claimedNamespace) {
+    return {
+      valid: false,
+      actualNamespace: prefixNamespace,
+      reason: 'prefix-namespace-mismatch',
+    };
+  }
+  return { valid: true, reason: 'prefix-match' };
+}
+
+// Normalize only for the prefix comparison. Metadata lookups and storage reads keep
+// the original URI; decoding must not change which object is authorized or fetched.
+function normalizedArtifactUri(artifactUri: string): string | undefined {
   // The object key is caller-controlled and is later passed verbatim to the object
   // store, so a key containing empty or dot segments (for example
   // "private-artifacts/team-a/../victim-ns/obj") would carry the claimant's prefix
@@ -368,47 +371,24 @@ export function decideFromPrefixFallback(
     }
   });
   if (hasUnsafeSegment) {
-    return { valid: false, reason: 'key-not-normalized' };
+    return undefined;
   }
   const decodedKey = objectKey
     .split('/')
     .map((segment) => decodeURIComponent(segment))
     .join('/');
-  const prefixNamespace = namespaceFromArtifactUri(
-    artifactUri.slice(0, artifactUri.length - objectKey.length) + decodedKey,
-  );
-  if (prefixNamespace === undefined) {
-    return { valid: false, reason: 'prefix-absent' };
-  }
-  if (prefixNamespace !== claimedNamespace) {
-    return {
-      valid: false,
-      actualNamespace: prefixNamespace,
-      reason: 'prefix-namespace-mismatch',
-    };
-  }
-  return { valid: true, reason: 'prefix-match' };
+  return artifactUri.slice(0, artifactUri.length - objectKey.length) + decodedKey;
 }
 
-export function decideArtifactOwnership(
-  artifactUri: string,
-  claimedNamespace: string,
-  contextResults: { artifactId: number; contexts: ContextNamespace[] | null }[],
-  enforcementMode: string = KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE,
-): ValidationResult {
-  if (enforcementMode !== 'enforce' && enforcementMode !== 'audit') {
-    return { valid: false, reason: 'invalid-enforcement-mode' };
-  }
-  const decision = decideFromContexts(contextResults, claimedNamespace);
-  if (!decision.valid) return decision;
-  // The prefix is required even when MLMD has a caller-associated record. The audit
-  // exception relaxes only an absent prefix, never a mismatch or unsafe path.
-  const prefix = decideFromPrefixFallback(artifactUri, claimedNamespace, 'mlmd-then-prefix');
-  if (prefix.valid) return prefix;
-  if (enforcementMode === 'audit' && prefix.reason === 'prefix-absent') {
-    return { valid: true, reason: 'audit-custom-root' };
-  }
-  return prefix;
+// Key safety applies even when MLMD is not configured or is unavailable.
+export function validateArtifactKey(artifactUri: string): ValidationResult {
+  // A single terminal separator identifies a directory artifact. Check its path
+  // without that separator, but keep the original URI for metadata and storage.
+  // The no-record prefix fallback retains its existing stricter decision.
+  const pathToCheck = artifactUri.endsWith('/') ? artifactUri.slice(0, -1) : artifactUri;
+  return normalizedArtifactUri(pathToCheck) === undefined
+    ? { valid: false, reason: 'key-not-normalized' }
+    : { valid: true };
 }
 
 export async function validateArtifactNamespace(
@@ -416,24 +396,23 @@ export async function validateArtifactNamespace(
   artifactUri: string,
   claimedNamespace: string,
 ): Promise<ValidationResult> {
-  if (
-    KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE !== 'enforce' &&
-    KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE !== 'audit'
-  ) {
-    return { valid: false, reason: 'invalid-enforcement-mode' };
-  }
+  // Preserve path hardening independently of the deferred ownership enforcement.
+  const keyValidation = validateArtifactKey(artifactUri);
+  if (!keyValidation.valid) return keyValidation;
   if (!loadProtos()) {
-    return { valid: false, reason: 'protos-unavailable' };
+    return { valid: true, reason: 'protos-unavailable' };
   }
 
   let artifacts: ArtifactInfo[];
   try {
     artifacts = await getArtifactsByUri(envoyAddress, [artifactUri]);
-  } catch (error) {
+  } catch {
     console.warn(
-      `[SECURITY] MLMD artifact lookup failed for URI "${artifactUri}", ` + `denying access.`,
+      '[SECURITY] MLMD artifact lookup failed; continuing artifact reads with 2.17 ' +
+        'compatibility without ownership verification. Check MLMD availability and the ' +
+        'frontend Envoy configuration.',
     );
-    return { valid: false, reason: 'mlmd-unavailable' };
+    return { valid: true, reason: 'mlmd-unavailable' };
   }
 
   if (artifacts.length === 0) {
@@ -447,30 +426,33 @@ export async function validateArtifactNamespace(
         try {
           const contexts = await getContextsByArtifact(envoyAddress, artifact.id);
           return { artifactId: artifact.id, contexts };
-        } catch (error) {
+        } catch {
           console.warn(
-            `[SECURITY] MLMD context lookup failed for artifact ${artifact.id}, ` +
-              `marking as unavailable. Error: ${error}`,
+            `[SECURITY] MLMD context lookup failed for artifact ${artifact.id}; ` +
+              'checking remaining records for namespace mismatches. Check MLMD availability.',
           );
           return { artifactId: artifact.id, contexts: null };
         }
       }),
     );
-  } catch (error) {
-    console.warn(`[SECURITY] MLMD batch context lookup failed, ` + `denying access.`);
-    return { valid: false, reason: 'mlmd-unavailable' };
+  } catch {
+    console.warn(
+      '[SECURITY] MLMD context lookups failed; continuing artifact reads with 2.17 ' +
+        'compatibility without ownership verification. Check MLMD availability.',
+    );
+    return { valid: true, reason: 'mlmd-unavailable' };
   }
 
-  const decision = decideArtifactOwnership(artifactUri, claimedNamespace, contextResults);
+  const decision = decideFromContexts(contextResults, claimedNamespace);
   if (decision.reason === 'mlmd-unavailable') {
     console.warn(
-      `[SECURITY] At least one MLMD context lookup was unavailable for URI "${artifactUri}", ` +
-        `denying access.`,
+      '[SECURITY] Some MLMD contexts are unavailable and available contexts show no namespace ' +
+        'mismatch; continuing artifact reads with 2.17 compatibility. Check MLMD availability.',
     );
   } else if (decision.reason === 'no-evidence') {
     console.warn(
-      `[SECURITY] No PipelineRun namespace evidence found in MLMD for URI "${artifactUri}", ` +
-        `denying access.`,
+      '[SECURITY] MLMD has no PipelineRun namespace evidence; continuing artifact reads with ' +
+        '2.17 compatibility. Review MLMD context data and namespace storage isolation.',
     );
   }
   return decision;
