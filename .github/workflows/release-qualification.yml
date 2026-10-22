@@ -1,0 +1,178 @@
+# Success means complete build/scan evidence. kfpr centrally evaluates the
+# selected security policy before accepting qualification or publication.
+name: Release Image Qualification
+run-name: KFP image qualification ${{ inputs.version }} ${{ inputs.source_sha }} ${{ inputs.request_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact merged kubeflow/pipelines commit (40 lowercase hex characters)
+        type: string
+        required: true
+      version:
+        description: Release version (X.Y.Z)
+        type: string
+        required: true
+      request_id:
+        description: Unique qualification request (32 lowercase hex characters)
+        type: string
+        required: true
+permissions: {}
+
+env:
+  SOURCE_SHA: ${{ inputs.source_sha }}
+  VERSION: ${{ inputs.version }}
+  REQUEST_ID: ${{ inputs.request_id }}
+  WORKFLOW_SHA: ${{ github.workflow_sha }}
+  PYTHONPATH: ${{ github.workspace }}/tooling/release
+
+jobs:
+  inventory:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kubeflow/pipelines
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r tooling/.github/scripts/requirements.txt
+      - id: matrix
+        run: |
+          matrix=$(python -m kfpr.ci_images_runner matrix --source source)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  images:
+    permissions:
+      contents: read
+    needs: inventory
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.inventory.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kubeflow/pipelines
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r tooling/.github/scripts/requirements.txt
+      - name: Install checksum-pinned Trivy
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          case "$ARCH" in
+            amd64)
+              archive=trivy_0.76.0_Linux-64bit.tar.gz
+              checksum=e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
+              ;;
+            arm64)
+              archive=trivy_0.76.0_Linux-ARM64.tar.gz
+              checksum=aab21e677a7b7071fc79f1711480840754c18a1b9d9cefa7ccd06af63a0e8f4c
+              ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --silent --show-error --location \
+            "https://github.com/aquasecurity/trivy/releases/download/v0.76.0/$archive" \
+            --output "$RUNNER_TEMP/$archive"
+          echo "$checksum  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/trivy-bin"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/trivy-bin" trivy
+          echo "$RUNNER_TEMP/trivy-bin" >> "$GITHUB_PATH"
+      - name: Build and scan exact release image
+        env:
+          IMAGE_NAME: ${{ matrix.name }}
+          IMAGE_PLATFORM: ${{ matrix.platform }}
+        run: |
+          python -m kfpr.ci_images_runner lane --source source \
+            --name "$IMAGE_NAME" --platform "$IMAGE_PLATFORM" --output evidence
+      - name: Preserve lane evidence, including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kfpr-lane-${{ inputs.request_id }}-${{ github.run_attempt }}-${{ matrix.name }}-${{ matrix.arch }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+  aggregate:
+    permissions:
+      contents: read
+    needs: [inventory, images]
+    if: ${{ always() && needs.inventory.result == 'success' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kubeflow/pipelines
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r tooling/.github/scripts/requirements.txt
+      - name: Enumerate required lane evidence from source inventory
+        id: expected-lanes
+        env:
+          IMAGE_MATRIX: ${{ needs.inventory.outputs.matrix }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python - <<'PYTHON'
+          import json
+          import os
+
+          lanes = json.loads(os.environ['IMAGE_MATRIX'])['include']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              print('required-files<<EOF', file=output)
+              for lane in lanes:
+                  artifact = (f"kfpr-lane-{os.environ['REQUEST_ID']}-"
+                              f"{os.environ['RUN_ATTEMPT']}-{lane['name']}-{lane['arch']}")
+                  for filename in ('lane.json', 'scan.json'):
+                      print(f'{artifact}/{filename}', file=output)
+              print('EOF', file=output)
+          PYTHON
+      - uses: ./tooling/.github/actions/download-artifact-with-retry
+        with:
+          pattern: kfpr-lane-${{ inputs.request_id }}-${{ github.run_attempt }}-*
+          path: lanes
+          required-files: ${{ steps.expected-lanes.outputs.required-files }}
+      - name: Verify complete image inventory and raw evidence
+        run: |
+          python -m kfpr.ci_images_runner aggregate --source source \
+            --lanes lanes --output qualified
+      - name: Upload verified manifest and complete raw scans
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kfpr-images-${{ inputs.request_id }}-${{ github.run_attempt }}
+          path: qualified/
+          if-no-files-found: error
+          retention-days: 30

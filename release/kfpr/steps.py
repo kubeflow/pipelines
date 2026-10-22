@@ -1,6 +1,7 @@
 """Release steps and step registry."""
 
 import getpass
+import json
 import os
 import re
 import subprocess
@@ -12,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import rtd
+from . import qualification, rtd
 from .core import (
     REPO,
     ReleaseContext,
@@ -33,6 +34,7 @@ from .core import (
     watch_latest_workflow_run,
     watch_pr_ci,
 )
+from .packages import clean_legacy_distributions, validate_legacy_wheels
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,12 @@ sdk/python/kfp/server_api):"""
 5. Open https://app.readthedocs.org/projects/kfp-kubernetes/
 6. Confirm kfp-kubernetes-{metadata.major}.{metadata.minor} build succeeded.
 7. Set Default version to kfp-kubernetes-{metadata.major}.{metadata.minor}."""
+        if metadata.release_type == 'patch':
+            checklist = re.sub(
+                r'Set Default (?:version|branch) to [^\n]+\.',
+                'Preserve the existing project default.',
+                checklist,
+            )
         return underline_links(checklist)
     if step_id == 'confirm-website-and-slack':
         compatibility_steps = ''
@@ -95,11 +103,16 @@ sdk/python/kfp/server_api):"""
    pipeline component images.
    https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md"""
             slack_step += 1
-        return underline_links(f"""Manual final checkpoint:
-1. Open https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
+        website_steps = f"""1. Open https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
 2. Write the version without a trailing newline:
    echo -n {metadata.tag} > layouts/shortcodes/pipelines/latest-version.html
-3. Open a PR titled: pipelines: release kfp {metadata.tag}{compatibility_steps}
+3. Open a PR titled: pipelines: release kfp {metadata.tag}"""
+        if metadata.release_type == 'patch':
+            website_steps = f"""1. Preserve layouts/shortcodes/pipelines/latest-version.html; do not change the latest release pointer.
+2. Review any documentation updates needed for KFP {metadata.tag}.
+3. If documentation changes are needed, open a PR titled: pipelines: release kfp {metadata.tag}"""
+        return underline_links(f"""Manual final checkpoint:
+{website_steps}{compatibility_steps}
 {slack_step}. After the website PR merges, announce in #kubeflow-pipelines:
    KFP {metadata.tag} has officially been released!
 
@@ -330,6 +343,10 @@ def step_update_version_tags(context: ReleaseContext) -> None:
             ),
             cwd=root,
         )
+        if not context.runner.dry_run:
+            _fill_empty_backend_changelog(
+                root, metadata.tag, context.previous_release
+            )
         for path, expression in [
             (
                 'backend/api/Makefile',
@@ -377,7 +394,7 @@ def step_update_version_tags(context: ReleaseContext) -> None:
     if context.include_sdk:
         _update_sdk_version_files(context)
 
-    # Commit and tag
+    # Commit preparation; tags are created only after merged-source qualification.
     context.runner.run(['git', 'add', '--all'], cwd=root)
     _run_reviewed_commit(
         context,
@@ -390,49 +407,10 @@ def step_update_version_tags(context: ReleaseContext) -> None:
         ],
         cwd=root,
     )
-    if context.runner.dry_run:
-        print(f'[dry-run] would create tag: {metadata.tag}')
-        context.runner.run(
-            [
-                'git',
-                'tag',
-                '-a',
-                metadata.tag,
-                '-m',
-                f'Kubeflow Pipelines {metadata.tag} release',
-            ],
-            cwd=root,
-        )
-        return
-    existing_tag = context.runner.run(
-        ['git', 'rev-parse', '--verify', f'refs/tags/{metadata.tag}'],
-        cwd=root,
-        check=False,
-    )
-    if existing_tag.returncode == 0:
-        choice = prompt_choice(
-            f'Tag {metadata.tag} already exists. Use it or recreate it?',
-            ['u', 'r'],
-            default='u',
-        )
-        if choice == 'u':
-            return
-        context.runner.run(['git', 'tag', '-d', metadata.tag], cwd=root)
-    context.runner.run(
-        [
-            'git',
-            'tag',
-            '-a',
-            metadata.tag,
-            '-m',
-            f'Kubeflow Pipelines {metadata.tag} release',
-        ],
-        cwd=root,
-    )
 
 
 def step_merge_version_pr(context: ReleaseContext) -> None:
-    """Push release branch and tag, create version PR.
+    """Push the version branch, create the PR, and pin its verified merge.
 
     Args:
       context: Release context with runner, metadata, and fork_remote.
@@ -522,62 +500,285 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
                 cwd=context.root,
             )
     if context.runner.dry_run:
-        context.runner.run(
-            ['git', 'push', context.fork_remote, metadata.tag], cwd=context.root
-        )
         print(f'[dry-run] would open PR: version bump for {metadata.tag}')
         return
-    remote_tag = context.runner.run(
-        [
-            'git',
-            'ls-remote',
-            '--exit-code',
-            '--tags',
-            context.fork_remote,
-            metadata.tag,
-        ],
-        cwd=context.root,
-        check=False,
-    )
-    if remote_tag.returncode == 0:
-        choice = prompt_choice(
-            f'Remote tag {metadata.tag} already exists. Use it or recreate it?',
-            ['u', 'r'],
-            default='u',
-        )
-        if choice == 'r':
-            context.runner.run(
-                ['git', 'push', '--delete', context.fork_remote, metadata.tag],
-                cwd=context.root,
+    pr_url = str(context.state.answers.get('version_pr_url', ''))
+    if not pr_url:
+        existing = json.loads(
+            context.runner.capture(
+                [
+                    'gh',
+                    'pr',
+                    'list',
+                    '--repo',
+                    REPO,
+                    '--state',
+                    'all',
+                    '--base',
+                    metadata.release_branch,
+                    '--head',
+                    f'{owner}:{version_branch}',
+                    '--json',
+                    'url',
+                    '--limit',
+                    '100',
+                ]
             )
-            context.runner.run(
-                ['git', 'push', context.fork_remote, metadata.tag],
-                cwd=context.root,
-            )
-    else:
-        context.runner.run(
-            ['git', 'push', context.fork_remote, metadata.tag], cwd=context.root
         )
-    pr_url = context.runner.capture(
-        [
-            'gh',
-            'pr',
-            'create',
-            '--repo',
-            REPO,
-            '--base',
-            metadata.release_branch,
-            '--head',
-            f'{owner}:{version_branch}',
-            '--title',
-            f'chore(release): bump version to {metadata.tag}',
-            '--body',
-            f'Updates release branch version tags for KFP {metadata.tag}.',
-        ]
-    )
+        if len(existing) > 1:
+            raise RuntimeError(
+                'Multiple version PRs match; record the intended version_pr_url before continuing.'
+            )
+        if existing:
+            pr_url = existing[0]['url']
+    if not pr_url:
+        pr_url = context.runner.capture(
+            [
+                'gh',
+                'pr',
+                'create',
+                '--repo',
+                REPO,
+                '--base',
+                metadata.release_branch,
+                '--head',
+                f'{owner}:{version_branch}',
+                '--title',
+                f'chore(release): bump version to {metadata.tag}',
+                '--body',
+                f'Updates release branch version tags for KFP {metadata.tag}.',
+            ]
+        )
+    context.state.answers['version_pr_url'] = pr_url.strip()
+    context.state.save()
     print(underline_links(f'Version PR: {pr_url}'))
     watch_pr_ci(context.runner, pr_url)
     wait_for_pr_merge(context.runner, pr_url)
+    validate_release_pr(context)
+    context.state.save()
+
+
+def validate_release_pr(context: ReleaseContext) -> str:
+    """Revalidate the merged version PR and bind state to its tested head."""
+    url = str(context.state.answers.get('version_pr_url', ''))
+    if not re.fullmatch(
+        r'https://github[.]com/kubeflow/pipelines/pull/[0-9]+', url
+    ):
+        raise RuntimeError(
+            'The version PR must be recorded and merged before qualification.'
+        )
+    pr = json.loads(
+        context.runner.capture(
+            [
+                'gh',
+                'pr',
+                'view',
+                url,
+                '--repo',
+                REPO,
+                '--json',
+                'state,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
+            ],
+            cwd=context.root,
+        )
+    )
+    # The explicitly recorded PR may be a follow-up release fix on another
+    # branch; repository, destination, CI and immutable commits define trust.
+    if (
+        pr.get('state') != 'MERGED'
+        or pr.get('baseRefName') != context.metadata.release_branch
+    ):
+        raise RuntimeError(
+            'Version PR must be merged into the intended release branch.'
+        )
+    sha = (pr.get('mergeCommit') or {}).get('oid', '')
+    head = pr.get('headRefOid', '')
+    if not re.fullmatch(r'[0-9a-f]{40}', sha) or not re.fullmatch(
+        r'[0-9a-f]{40}', head
+    ):
+        raise RuntimeError(
+            'Version PR has no valid merged commit or tested head.'
+        )
+    checks = pr.get('statusCheckRollup') or []
+    passed = False
+    for check in checks:
+        # Tide reports merge-queue eligibility, not a CI result. Its pending
+        # status can remain on the tested head after the PR has been merged.
+        if (
+            check.get('__typename') == 'StatusContext'
+            and check.get('context') == 'tide'
+            and check.get('targetUrl') == 'https://oss.gprow.dev/tide'
+            and check.get('state') == 'PENDING'
+        ):
+            continue
+        status = check.get('status') or check.get('state')
+        result = check.get('conclusion') if status == 'COMPLETED' else status
+        if result not in ('SUCCESS', 'NEUTRAL', 'SKIPPED'):
+            raise RuntimeError(
+                f'Latest version PR CI is not green: {check.get("name") or check.get("context")}'
+            )
+        passed = passed or result == 'SUCCESS'
+    if not passed:
+        raise RuntimeError(
+            'Version PR requires successful CI on its latest head.'
+        )
+    for key, value in (('version_pr_head_sha', head), ('release_sha', sha)):
+        previous = context.state.answers.get(key)
+        if previous and previous != value:
+            raise RuntimeError(
+                f'{key} changed; qualify the new release commit explicitly.'
+            )
+        context.state.answers[key] = value
+    return sha
+
+
+def step_qualify_release(context: ReleaseContext) -> None:
+    """Qualify the exact merged release before any publication."""
+    qualification.qualify_release(context)
+
+
+def _ensure_release_tag(context: ReleaseContext, tag: str) -> None:
+    """Create an immutable upstream tag on the qualified merge commit."""
+    sha = str(context.state.answers.get('release_sha', ''))
+    if context.runner.dry_run:
+        print(f'[dry-run] would tag qualified merged commit as {tag}')
+        return
+    if not re.fullmatch(r'[0-9a-f]{40}', sha):
+        raise RuntimeError('No qualified merged release commit is recorded.')
+    upstream = f'https://github.com/{REPO}.git'
+    published = False
+    upstream_exists = False
+    for remote in dict.fromkeys((upstream, context.fork_remote)):
+        output = context.runner.capture(
+            [
+                'git',
+                'ls-remote',
+                '--tags',
+                remote,
+                f'refs/tags/{tag}',
+                f'refs/tags/{tag}^{{}}',
+            ],
+            cwd=context.root,
+        )
+        refs = dict(
+            line.split()[1::-1] for line in output.splitlines() if line.strip()
+        )
+        target = refs.get(f'refs/tags/{tag}^{{}}', refs.get(f'refs/tags/{tag}'))
+        if target:
+            if target != sha:
+                raise RuntimeError(
+                    f'Published tag {tag} on {remote} differs from qualified commit; refusing replacement.'
+                )
+            published = True
+            upstream_exists = upstream_exists or remote == upstream
+    context.runner.run(
+        ['git', 'fetch', '--no-tags', upstream, sha], cwd=context.root
+    )
+    local = context.runner.run(
+        ['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'],
+        cwd=context.root,
+        check=False,
+    )
+    local_sha = (
+        context.runner.capture(
+            ['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'],
+            cwd=context.root,
+        ).strip()
+        if local.returncode == 0
+        else ''
+    )
+    if local.returncode == 0 and local_sha != sha:
+        if published:
+            raise RuntimeError(
+                f'Local tag {tag} differs from a published tag; refusing replacement.'
+            )
+        context.runner.run(['git', 'tag', '-d', tag], cwd=context.root)
+        local = None
+    if local is None or local.returncode != 0:
+        context.runner.run(
+            [
+                'git',
+                'tag',
+                '-a',
+                tag,
+                sha,
+                '-m',
+                f'Kubeflow Pipelines {tag} release',
+            ],
+            cwd=context.root,
+        )
+    if not upstream_exists:
+        context.runner.run(
+            ['git', 'push', upstream, f'refs/tags/{tag}:refs/tags/{tag}'],
+            cwd=context.root,
+        )
+
+
+def _should_set_backend_latest(context: ReleaseContext) -> bool:
+    """Promote only a stable version at least as new as every backend
+    release."""
+    if context.runner.dry_run:
+        print(
+            '[dry-run] would compare published stable backend releases before selecting latest'
+        )
+        return False
+    version_pattern = re.compile(
+        r'^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+        r'(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?'
+        r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$'
+    )
+    target = version_pattern.fullmatch(context.metadata.tag)
+    if not target:
+        raise ValueError('Cannot select latest for a malformed release version')
+    if target.group(4):
+        return False
+    target_version = tuple(int(target.group(index)) for index in (1, 2, 3))
+    pages = json.loads(
+        context.runner.capture(
+            [
+                'gh',
+                'api',
+                '--paginate',
+                '--slurp',
+                f'repos/{REPO}/releases?per_page=100',
+            ],
+            cwd=context.root,
+        )
+    )
+    if not isinstance(pages, list) or any(
+        not isinstance(page, list) for page in pages
+    ):
+        raise ValueError(
+            'Malformed published release discovery; cannot select latest'
+        )
+    latest = (0, 0, 0)
+    for page in pages:
+        for release in page:
+            if (
+                not isinstance(release, dict)
+                or type(release.get('draft')) is not bool
+                or type(release.get('prerelease')) is not bool
+                or not isinstance(release.get('tag_name'), str)
+            ):
+                raise ValueError(
+                    'Malformed published release metadata; cannot select latest'
+                )
+            tag = release['tag_name']
+            if (
+                release['draft']
+                or release['prerelease']
+                or tag.startswith('sdk-')
+            ):
+                continue
+            version = version_pattern.fullmatch(tag)
+            if not version:
+                raise ValueError(f'Malformed stable backend release tag: {tag}')
+            if version.group(4):
+                continue
+            latest = max(
+                latest, tuple(int(version.group(index)) for index in (1, 2, 3))
+            )
+    return target_version >= latest
 
 
 def step_publish_images(context: ReleaseContext) -> None:
@@ -586,11 +787,22 @@ def step_publish_images(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner and metadata.
     """
-    context.runner.run(image_workflow_command(context.metadata))
+    qualification.require_qualification(context)
+    set_latest = _should_set_backend_latest(context)
+    _ensure_release_tag(context, context.metadata.tag)
+    context.runner.run(
+        image_workflow_command(
+            context.metadata,
+            source_sha=context.state.answers.get('release_sha'),
+            workflow_ref=context.metadata.tag,
+            set_latest=set_latest,
+        )
+    )
     watch_latest_workflow_run(
         context.runner,
         'image-builds-release.yml',
-        context.metadata.release_branch,
+        context.metadata.tag,
+        expected_sha=context.state.answers.get('release_sha'),
     )
 
 
@@ -654,8 +866,9 @@ def _sdk_release_note_section(title: str, items: list[str]) -> str:
 def _generate_conventional_release_notes(
     root: Path,
     tag_pattern: str,
-    include_scope: Callable[[str], bool],
+    include_commit: Callable[[str, str], bool],
     base_ref: str = '',
+    end_ref: str = 'HEAD',
 ) -> tuple[str, str]:
     if base_ref:
         last_tag = base_ref
@@ -680,7 +893,7 @@ def _generate_conventional_release_notes(
 
     try:
         subjects = subprocess.check_output(
-            ['git', 'log', f'{last_tag}..HEAD', '--pretty=%s'],
+            ['git', 'log', f'{last_tag}..{end_ref}', '--pretty=%s'],
             cwd=root,
             text=True,
         ).splitlines()
@@ -697,9 +910,13 @@ def _generate_conventional_release_notes(
     )
     for subject in subjects:
         match = pattern.match(subject)
-        if not match or not include_scope((match.group('scope') or '').lower()):
+        if not match:
             continue
         commit_type = match.group('type').lower()
+        if not include_commit(
+            (match.group('scope') or '').lower(), commit_type
+        ):
+            continue
         description = match.group('description')
         if match.group('breaking') or commit_type in {'break', 'breaking'}:
             groups['Breaking changes'].append(description)
@@ -719,19 +936,57 @@ def _generate_conventional_release_notes(
 
 def _generate_sdk_release_notes(root: Path) -> str:
     _, notes = _generate_conventional_release_notes(
-        root, 'sdk-*', lambda scope: 'sdk' in scope
+        root, 'sdk-*', lambda scope, commit_type: 'sdk' in scope
     )
     return notes
 
 
-def _generate_backend_release_notes(root: Path, last_release: str) -> str:
+def _generate_backend_release_notes(
+    root: Path, last_release: str, end_ref: str = 'HEAD'
+) -> str:
     _, notes = _generate_conventional_release_notes(
         root,
         '[0-9]*',
-        lambda scope: 'sdk' not in scope and scope != 'release',
+        lambda scope, commit_type: (
+            'sdk' not in scope
+            and not (scope == 'release' and commit_type == 'chore')
+        ),
         base_ref=last_release,
+        end_ref=end_ref,
     )
     return notes
+
+
+def _fill_empty_backend_changelog(
+    root: Path, version: str, previous_release: str
+) -> None:
+    """Retain commit subjects when git-cliff filters out every release
+    change."""
+    path = root / 'CHANGELOG.md'
+    if not path.exists():
+        return
+    text = path.read_text()
+    section = re.search(
+        rf'(?m)^(## {re.escape(version)}(?: [^\n]*)?\n)([\s\S]*?)(?=^## \d|\Z)',
+        text,
+    )
+    if not section or section.group(2).strip():
+        return
+    subjects = subprocess.check_output(
+        ['git', 'log', f'{previous_release}..HEAD', '--pretty=%s'],
+        cwd=root,
+        text=True,
+    ).splitlines()
+    if not subjects:
+        raise ValueError(
+            'No release changes found; check the previous release reference'
+        )
+    body = (
+        '\n### Changes\n\n'
+        + '\n'.join(f'- {subject}' for subject in subjects)
+        + '\n\n'
+    )
+    path.write_text(text[: section.start(2)] + body + text[section.end(2) :])
 
 
 def _update_sdk_release_notes(
@@ -754,7 +1009,7 @@ def _update_sdk_release_notes(
         return
     release_body = release_body or match.group(2).strip() or default_body
     path.write_text(
-        f'{match.group(1)}{default_body}\n\n# {version}\n\n{release_body}{match.group(3)}{text[match.end() :]}'
+        f'{match.group(1)}{default_body}\n\n# {version}\n\n{release_body}\n{match.group(3)}{text[match.end() :]}'
     )
 
 
@@ -933,7 +1188,13 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
         _refresh_uv_release_packages(context)
         return
 
-    # Older release branches still resolve unpublished dists with pip-compile.
+    # Retain imported helpers: release checkout may remove their source files.
+    if context.runner.dry_run:
+        print('[dry-run] would clean legacy release distributions')
+    else:
+        clean_legacy_distributions(root)
+    # Legacy wheels need generated sources before resolving unpublished dists.
+    context.runner.run(['make', 'python'], cwd=root / 'api')
     context.runner.run(
         [sys.executable, '-m', 'build', '.'], cwd=root / 'api/v2alpha1/python'
     )
@@ -949,53 +1210,24 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
         kubernetes_requirements_command(),
         cwd=root / 'kubernetes_platform/python',
     )
+    context.runner.run(
+        ['make', 'python', 'USE_FIND_LINKS=true'],
+        cwd=root / 'kubernetes_platform',
+    )
+    context.runner.run(
+        [sys.executable, '-m', 'build', '.'],
+        cwd=root / 'kubernetes_platform/python',
+    )
+    if context.runner.dry_run:
+        print('[dry-run] would validate legacy release wheels')
+    else:
+        validate_legacy_wheels(root, metadata.tag)
 
 
 def step_create_sdk_tag(context: ReleaseContext) -> None:
-    """Create the SDK tag without creating a GitHub release.
-
-    Args:
-      context: Release context with runner and metadata.
-    """
-    metadata = context.metadata
-    if context.runner.dry_run:
-        print(f'[dry-run] would create SDK tag: {metadata.sdk_tag}')
-        return
-    upstream_remote = f'https://github.com/{REPO}.git'
-    existing_tag = context.runner.run(
-        [
-            'gh',
-            'api',
-            '--silent',
-            f'repos/{REPO}/git/ref/tags/{metadata.sdk_tag}',
-        ],
-        check=False,
-    )
-    if existing_tag.returncode == 0:
-        choice = prompt_choice(
-            f'SDK tag {metadata.sdk_tag} already exists. Use it or recreate it?',
-            ['u', 'r'],
-            default='u',
-        )
-        if choice == 'u':
-            return
-    context.runner.run(
-        ['git', 'fetch', 'upstream', metadata.release_branch], cwd=context.root
-    )
-    context.runner.run(
-        [
-            'git',
-            'tag',
-            '-f',
-            metadata.sdk_tag,
-            f'upstream/{metadata.release_branch}',
-        ],
-        cwd=context.root,
-    )
-    context.runner.run(
-        ['git', 'push', '--force', upstream_remote, metadata.sdk_tag],
-        cwd=context.root,
-    )
+    """Publish the SDK tag only on the qualified merged commit."""
+    qualification.require_qualification(context)
+    _ensure_release_tag(context, context.metadata.sdk_tag)
 
 
 def _sdk_release_is_consolidated(context: ReleaseContext) -> bool:
@@ -1020,6 +1252,8 @@ def _sdk_release_is_consolidated(context: ReleaseContext) -> bool:
 
 def step_create_sdk_release(context: ReleaseContext) -> None:
     """Create SDK release notes for the target tag's packaging layout."""
+    qualification.require_qualification(context)
+    _ensure_release_tag(context, context.metadata.sdk_tag)
     metadata = context.metadata
     if context.runner.dry_run:
         print(f'[dry-run] would create SDK GitHub release: {metadata.sdk_tag}')
@@ -1095,12 +1329,14 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
         '--repo',
         REPO,
         '--target',
-        metadata.release_branch,
+        str(context.state.answers.get('release_sha', '')),
         '--title',
         f'KFP SDK v{metadata.tag}',
         '--notes',
         notes,
     ]
+    # GitHub's latest release is shared with backend releases, including SDK-only runs.
+    create_command.append('--latest=false')
     create_command.append('--verify-tag')
     context.runner.run(create_command)
 
@@ -1144,44 +1380,43 @@ def step_publish_sdks(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner and metadata.
     """
-    packages = []
-    if not context.runner.dry_run:
-        packages = (
-            ['kfp']
-            if _sdk_release_is_consolidated(context)
-            else [
-                'kfp-pipeline-spec',
-                'kfp-server-api',
-                'kfp',
-                'kfp-kubernetes',
-            ]
-        )
-    context.runner.run(sdk_workflow_command(context.metadata))
-    watch_latest_workflow_run(
-        context.runner, 'publish-packages.yml', context.metadata.release_branch
-    )
+    qualification.require_qualification(context)
+    _ensure_release_tag(context, context.metadata.sdk_tag)
     if context.runner.dry_run:
+        print(
+            '[dry-run] would inspect the SDK tag layout and PyPI, publish only '
+            'missing packages in dependency order, and wait for each to be public'
+        )
         return
-    missing = _wait_for_pypi_packages(context.metadata.tag, packages)
-    if not missing:
-        return
-    print(
-        f'SDK packages are missing from PyPI; rerunning publish-packages.yml for: {", ".join(missing)}'
+    packages = (
+        ['kfp']
+        if _sdk_release_is_consolidated(context)
+        else ['kfp-pipeline-spec', 'kfp-server-api', 'kfp', 'kfp-kubernetes']
     )
+    missing = [
+        package
+        for package in packages
+        if not _is_pypi_version_published(package, context.metadata.tag)
+    ]
     for package in missing:
         context.runner.run(
-            sdk_workflow_command(context.metadata, packages=package)
+            sdk_workflow_command(
+                context.metadata,
+                packages=package,
+                workflow_ref=context.metadata.sdk_tag,
+            )
         )
         watch_latest_workflow_run(
             context.runner,
             'publish-packages.yml',
-            context.metadata.release_branch,
+            context.metadata.sdk_tag,
+            expected_sha=context.state.answers.get('release_sha'),
         )
-    missing = _wait_for_pypi_packages(context.metadata.tag, packages)
-    if missing:
-        raise RuntimeError(
-            f'PyPI packages are still missing for {context.metadata.tag}.'
-        )
+        if _wait_for_pypi_packages(context.metadata.tag, [package]):
+            raise RuntimeError(
+                f'PyPI packages are still missing for {context.metadata.tag}: {package}. '
+                'Resume publish-sdks once publication or PyPI availability is resolved.'
+            )
 
 
 def step_create_kfp_kubernetes_docs_branch(context: ReleaseContext) -> None:
@@ -1330,6 +1565,7 @@ def step_confirm_rtd(context: ReleaseContext) -> None:
             metadata.tag,
             metadata.release_branch,
             consolidated=consolidated,
+            set_defaults=metadata.release_type != 'patch',
         )
         print('ReadTheDocs projects updated and verified.')
     except rtd.ReadTheDocsError as error:
@@ -1347,6 +1583,9 @@ def step_create_backend_release(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner, metadata, and state.
     """
+    qualification.require_qualification(context)
+    set_latest = _should_set_backend_latest(context)
+    _ensure_release_tag(context, context.metadata.tag)
     metadata = context.metadata
     checklist = manual_checklist('create-backend-release', metadata)
     if checklist:
@@ -1364,7 +1603,11 @@ def step_create_backend_release(context: ReleaseContext) -> None:
     last_release = prompt_required(
         'Last backend release tag for changelog comparison'
     )
-    changed = _generate_backend_release_notes(context.root, last_release)
+    changed = _generate_backend_release_notes(
+        context.root,
+        last_release,
+        end_ref=str(context.state.answers.get('release_sha', 'HEAD')),
+    )
     print(f'Last backend release tag for changelog comparison: {last_release}')
     print(f'Backend release notes body after "What Changed": {changed}')
 
@@ -1391,12 +1634,13 @@ the architecture of their execution nodes. See the [supported-platforms policy](
             '--repo',
             REPO,
             '--target',
-            metadata.release_branch,
+            str(context.state.answers.get('release_sha', '')),
             '--title',
             f'Version {metadata.tag}',
             '--notes',
             notes,
         ]
+        + [f'--latest={str(set_latest).lower()}']
     )
 
 
@@ -1406,6 +1650,13 @@ def step_sync_master(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner, metadata, and root path.
     """
+    qualification.require_qualification(context)
+    if context.metadata.release_type == 'patch':
+        print(
+            'Patch release: preserving master version and changelog; no sync required.'
+        )
+        return
+    _ensure_release_tag(context, context.metadata.tag)
     metadata = context.metadata
     root = context.root
     branch = f'chore-release-{metadata.tag}-master'
@@ -1549,6 +1800,13 @@ def build_steps(
                 'step_merge_version_pr',
             ),
         ]
+    )
+    steps.append(
+        Step(
+            'qualify-release',
+            'Qualify the merged release commit',
+            'step_qualify_release',
+        )
     )
     if include_backend:
         steps.append(

@@ -23,7 +23,7 @@ import re
 EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 TOKEN = re.compile(
     r"\s+|(?P<literal>'(?:[^']|'')*')|"
-    r'(?P<reference>(?:inputs|steps|github|env|needs)(?:\.[\w-]+)+)|'
+    r'(?P<reference>(?:inputs|steps|github|env|needs|matrix)(?:\.[\w-]+)+)|'
     r'(?P<word>true|false|null|always|cancelled|success|failure)\b|'
     r'(?P<operator>==|!=|&&|\|\||!|\(|\))'
 )

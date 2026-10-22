@@ -1,5 +1,6 @@
 """Typer CLI for Kubeflow Pipelines release automation."""
 
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -22,6 +23,12 @@ from .core import (
 from .steps import STEP_HANDLERS, Step, build_steps, manual_checklist, run_steps
 
 HELP_OPTION_NAMES = ['-h', '--help']
+
+
+class ImageQualification(str, Enum):
+    ci = 'ci'
+    local = 'local'
+
 
 app = typer.Typer(
     help='Kubeflow Pipelines release automation.',
@@ -58,6 +65,10 @@ def _context(
     previous_release: Optional[str] = None,
     save_state: bool = True,
     require_previous_release: bool = True,
+    qualification_pythons: Optional[str] = None,
+    security_policy: Optional[str] = None,
+    security_exceptions: Optional[Path] = None,
+    image_qualification: Optional[str] = None,
 ) -> ReleaseContext:
     state = _load_state(state_file)
     _set_answer(state, 'release_type', release_type)
@@ -73,6 +84,49 @@ def _context(
     if skip_local_review:
         state.answers['skip_local_review'] = True
     _set_answer(state, 'previous_release', previous_release)
+    _set_answer(state, 'qualification_pythons', qualification_pythons)
+    if security_policy not in (
+        None,
+        'zero-fixable',
+        'approved-exceptions',
+        '2.17.3-approved-exceptions-v1',
+    ):
+        raise typer.BadParameter(
+            'Unknown security policy', param_hint='--security-policy'
+        )
+    if security_exceptions is not None:
+        if security_policy not in (None, 'approved-exceptions'):
+            raise typer.BadParameter(
+                'Exception files require approved-exceptions policy',
+                param_hint='--security-exceptions',
+            )
+        from .security_exceptions import load_exceptions
+
+        try:
+            load_exceptions(security_exceptions)
+        except (ValueError, OSError) as error:
+            raise typer.BadParameter(
+                str(error), param_hint='--security-exceptions'
+            ) from error
+        state.answers['security_exceptions'] = str(
+            security_exceptions.resolve()
+        )
+        security_policy = 'approved-exceptions'
+    elif security_policy in ('zero-fixable', '2.17.3-approved-exceptions-v1'):
+        state.answers.pop('security_exceptions', None)
+    _set_answer(state, 'security_policy', security_policy)
+    if state.answers.get(
+        'security_policy'
+    ) == 'approved-exceptions' and not state.answers.get('security_exceptions'):
+        raise typer.BadParameter(
+            'Provide an exception file', param_hint='--security-exceptions'
+        )
+    _set_answer(state, 'image_qualification', image_qualification)
+    state.answers.setdefault('image_qualification', 'ci')
+    if state.answers['image_qualification'] not in ('ci', 'local'):
+        raise typer.BadParameter(
+            'Choose ci or local', param_hint='--image-qualification'
+        )
 
     if 'release_type' in state.answers and 'version' in state.answers:
         ReleaseMetadata.from_version(
@@ -214,6 +268,22 @@ def run(
         '--previous-release',
         help='Previous release tag for changelog generation.',
     ),
+    qualification_pythons: Optional[str] = typer.Option(
+        None,
+        help='Comma-separated Python executables covering every supported SDK minor version.',
+    ),
+    security_policy: Optional[str] = typer.Option(
+        None,
+        help='Security policy: zero-fixable (default), approved-exceptions, or historical 2.17.3-approved-exceptions-v1.',
+    ),
+    security_exceptions: Optional[Path] = typer.Option(
+        None,
+        help='JSON exception file with exact findings, justifications and expiries; selects approved-exceptions.',
+    ),
+    image_qualification: Optional[ImageQualification] = typer.Option(
+        None,
+        help='Image qualification: upstream CI by default, or explicit local builds with disposable builders.',
+    ),
 ) -> None:
     """Run the full checkpointed release flow."""
     if ctx.invoked_subcommand is not None:
@@ -239,9 +309,31 @@ def run(
         release_source_branch=release_source_branch,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        qualification_pythons=qualification_pythons,
+        security_policy=security_policy,
+        security_exceptions=security_exceptions,
+        image_qualification=image_qualification,
     )
     run_steps(context)
     typer.echo(f'Release flow complete for {context.metadata.tag}')
+
+
+@app.command(
+    'promote-latest', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def promote_latest(
+    version: str = typer.Option(
+        ..., help='Published stable backend release version.'
+    ),
+    dry_run: bool = typer.Option(
+        False, help='Preview CI promotion without dispatch.'
+    ),
+) -> None:
+    """Promote existing published image indexes through CI without
+    rebuilding."""
+    from .promotion import dispatch
+
+    dispatch(version, dry_run=dry_run)
 
 
 @app.command('steps', context_settings={'help_option_names': HELP_OPTION_NAMES})
@@ -513,6 +605,22 @@ def _make_step_command(step_id: str):
             '--previous-release',
             help='Previous release tag for changelog generation.',
         ),
+        qualification_pythons: Optional[str] = typer.Option(
+            None,
+            help='Comma-separated Python executables covering every supported SDK minor version.',
+        ),
+        security_policy: Optional[str] = typer.Option(
+            None,
+            help='Security policy: zero-fixable (default), approved-exceptions, or historical 2.17.3-approved-exceptions-v1.',
+        ),
+        security_exceptions: Optional[Path] = typer.Option(
+            None,
+            help='JSON exception file with exact findings, justifications and expiries; selects approved-exceptions.',
+        ),
+        image_qualification: Optional[ImageQualification] = typer.Option(
+            None,
+            help='Image qualification: upstream CI by default, or explicit local builds with disposable builders.',
+        ),
     ) -> None:
         if step_id != 'cherry-pick-prs' and patch_prs is None:
             patch_prs = 'not-needed'
@@ -531,6 +639,10 @@ def _make_step_command(step_id: str):
             include_sdk,
             skip_local_review=skip_local_review,
             previous_release=previous_release,
+            qualification_pythons=qualification_pythons,
+            security_policy=security_policy,
+            security_exceptions=security_exceptions,
+            image_qualification=image_qualification,
             save_state=done,
             require_previous_release=step_id
             in ('update-version-tags', 'sync-master'),

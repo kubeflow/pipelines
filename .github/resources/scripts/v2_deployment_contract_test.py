@@ -16,6 +16,7 @@
 
 import os
 import re
+import runpy
 import subprocess
 import tempfile
 import unittest
@@ -41,16 +42,66 @@ class V2DeploymentContractTest(unittest.TestCase):
                 )
                 self.assertNotIn('/apis/v1beta1', manifest)
 
-    def test_generation_and_release_only_generate_v2_clients(self):
+    def test_modern_generation_only_generates_v2_clients(self):
         for path in (
             'Makefile',
-            'release/kfpr/core.py',
             '.github/workflows/validate-generated-files.yml',
         ):
             with self.subTest(path=path):
                 text = (ROOT / path).read_text()
                 self.assertIn('v2', text)
                 self.assertNotIn('v1beta1', text)
+
+    def test_release_generates_legacy_api_only_when_protos_exist(self):
+        release_command = runpy.run_path(str(ROOT / 'release/kfpr/core.py'))[
+            'release_version_bump_command'
+        ]
+        for legacy_protos in (False, True):
+            with (
+                self.subTest(legacy_protos=legacy_protos),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                api = root / 'backend/api'
+                (api / 'v1beta1').mkdir(parents=True)
+                (api / 'v2').mkdir()
+                (api / 'v2/run.proto').write_text(
+                    (ROOT / 'backend/api/v2/run.proto').read_text()
+                )
+                if legacy_protos:
+                    (api / 'v1beta1/run.proto').write_text('package legacy;')
+                for path in (
+                    'hack/generator.sh',
+                    'build_kfp_server_api_python_package.sh',
+                ):
+                    generator = api / path
+                    generator.parent.mkdir(parents=True, exist_ok=True)
+                    generator.write_text(
+                        '#!/bin/bash\nprintf "%s\\n" "$API_VERSION"\n'
+                    )
+                    generator.chmod(0o755)
+                script = release_command(root, 'release-3.0', '2.17.3')[-1]
+                # Exercise generation after the unrelated tool and manifest checks.
+                generation = script.split(
+                    '"$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"\n',
+                    1,
+                )[1]
+                result = subprocess.run(
+                    ['bash', '-ec', generation],
+                    env={
+                        **os.environ,
+                        'REPO_ROOT': str(root),
+                        'API_VERSION': 'stale',
+                    },
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                self.assertEqual(
+                    result.stdout.splitlines(),
+                    (['v1beta1'] if legacy_protos else []) + ['v2', 'v2'],
+                )
 
     def test_backend_dev_targets_submit_ir_from_existing_sources(self):
         makefile = (ROOT / 'backend/src/v2/Makefile').read_text()

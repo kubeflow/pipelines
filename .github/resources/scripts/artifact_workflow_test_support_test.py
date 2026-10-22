@@ -26,6 +26,17 @@ class ArtifactExpressionTest(unittest.TestCase):
             render("${{ 'It''s ! unchanged' }}", {}), "It's ! unchanged"
         )
 
+    def test_matrix_references_render_literal_lane_values(self):
+        self.assertEqual(
+            render(
+                '${{ matrix.name }}-${{ matrix.arch }}',
+                {
+                    'matrix': {'name': 'legacy-proxy', 'arch': 'amd64'},
+                },
+            ),
+            'legacy-proxy-amd64',
+        )
+
     def test_actions_string_equality_ignores_case(self):
         self.assertTrue(
             evaluate(
