@@ -20,7 +20,7 @@ import subprocess
 import tempfile
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -32,22 +32,49 @@ from google.protobuf.json_format import ParseError
 from kfp.cli import visualization
 
 
-def _atomic_write(output: Path, content: str) -> None:
-    temporary = None
+def _output_paths(source: Path, output: Path, format_: str) -> dict[str, Path]:
+    if format_ == 'both':
+        paths = {
+            'html': output.with_suffix('.html').resolve(),
+            'markdown': output.with_suffix('.md').resolve(),
+        }
+    else:
+        paths = {format_: output.resolve()}
+    if len(set(paths.values())) != len(paths):
+        raise ValueError('HTML and Markdown outputs must be distinct files.')
+    for path in paths.values():
+        if path == source.resolve():
+            raise ValueError('Output must not overwrite the input file.')
+        if path.is_dir():
+            raise ValueError(f'Output is a directory: {path}. Choose a file.')
+        if not path.parent.is_dir():
+            raise ValueError(
+                'Output directory does not exist. Create it first.'
+            )
+    return paths
+
+
+def _write_exports(exports: dict[Path, str]) -> None:
+    temporary = []
     try:
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            encoding='utf-8',
-            dir=output.parent,
-            prefix=f'.{output.name}.',
-            delete=False,
-        ) as stream:
-            temporary = Path(stream.name)
-            stream.write(content)
-        temporary.replace(output)
+        # Stage every artifact before replacing any existing output. Each rename
+        # is atomic, but multiple files cannot form a filesystem transaction.
+        for output, content in exports.items():
+            with tempfile.NamedTemporaryFile(
+                mode='w',
+                encoding='utf-8',
+                dir=output.parent,
+                prefix=f'.{output.name}.',
+                delete=False,
+            ) as stream:
+                staged = Path(stream.name)
+                temporary.append((staged, output))
+                stream.write(content)
+        for staged, output in temporary:
+            staged.replace(output)
     finally:
-        if temporary:
-            temporary.unlink(missing_ok=True)
+        for staged, _ in temporary:
+            staged.unlink(missing_ok=True)
 
 
 def _fingerprint(source: Path) -> tuple:
@@ -76,7 +103,7 @@ def _fingerprint(source: Path) -> tuple:
 
 
 @contextmanager
-def _live_server(state: dict[str, Any]):
+def _live_server(state: dict[str, Any], *, live: bool = True):
     token = secrets.token_urlsafe(24)
     prefix = f'/{token}/'
 
@@ -89,7 +116,7 @@ def _live_server(state: dict[str, Any]):
                 self.send_error(403)
                 return
             if self.path == prefix:
-                content = visualization.render_html(state['current'], live=True)
+                content = visualization.render_html(state['current'], live=live)
                 content_type = 'text/html; charset=utf-8'
             elif self.path == prefix + 'state':
                 content = json.dumps(state['current'])
@@ -134,14 +161,20 @@ def _export(
         'error': None,
         'revision': state['current']['revision'] + 1,
     }
-    if format_ == 'html':
-        visualization.validate_spec(spec)
-        content = visualization.render_html(current)
+    paths = _output_paths(source, output, format_)
+    exports = {}
+    if 'markdown' in paths:
+        exports[paths['markdown']] = visualization.render_markdown(
+            visualization.build_view(spec)
+        )
     else:
-        content = visualization.render_markdown(visualization.build_view(spec))
-    _atomic_write(output, content)
+        visualization.validate_spec(spec)
+    if 'html' in paths:
+        exports[paths['html']] = visualization.render_html(current)
+    _write_exports(exports)
     state['current'] = current
-    click.echo(f'Wrote {output}')
+    for path in paths.values():
+        click.echo(f'Wrote {path}')
 
 
 def _update(
@@ -172,7 +205,7 @@ def _update(
         }
         click.echo(
             f'Preview not updated: {message}\n'
-            'Keeping the last successful export; waiting for changes.',
+            'Keeping the last successful preview state; waiting for changes.',
             err=True,
         )
 
@@ -204,14 +237,15 @@ def _watch(
     '-o',
     '--output',
     type=click.Path(dir_okay=False, path_type=Path),
-    help='Export path. Defaults to the input stem plus .html or .md.',
+    help='Export path; with --format both, a stem or .html/.md path for '
+    'the pair. Defaults to the input stem plus .html or .md.',
 )
 @click.option(
     '--format',
     'format_',
-    type=click.Choice(['html', 'markdown']),
-    help='HTML (React Flow) or Markdown (Mermaid). Inferred from '
-    '--output; defaults to HTML.',
+    type=click.Choice(['html', 'both', 'markdown']),
+    help='HTML (React Flow), Markdown (Mermaid), or both. Inferred from '
+    '--output when omitted; defaults to HTML.',
 )
 @click.option(
     '--function',
@@ -222,8 +256,14 @@ def _watch(
     '-w',
     '--watch',
     is_flag=True,
-    help='Re-export on saved changes. HTML '
-    'also serves a live viewer on a loopback URL.',
+    help='Re-export on saved changes without starting a server.',
+)
+@click.option(
+    '-s',
+    '--serve',
+    is_flag=True,
+    help='Serve an HTML preview on a loopback URL. Add --watch for live '
+    'updates. Available with any export format.',
 )
 def visualize(
     source: Path,
@@ -231,6 +271,7 @@ def visualize(
     format_: str | None,
     function: str | None,
     watch: bool,
+    serve: bool,
 ) -> None:
     """Visualize a local .py, .yaml, .yml, or .json pipeline.
 
@@ -248,39 +289,46 @@ def visualize(
     suffixes = {'.html': 'html', '.md': 'markdown'}
     if output:
         inferred = suffixes.get(output.suffix.lower())
-        if inferred is None:
-            raise click.UsageError('Output must end in .html or .md.')
-        if format_ and inferred != format_:
+        if inferred is None and not (format_ == 'both' and not output.suffix):
+            raise click.UsageError(
+                'Output must end in .html or .md, or be a stem with --format both.'
+            )
+        if format_ and format_ not in (inferred, 'both'):
             raise click.UsageError(
                 '--format conflicts with the output extension.'
             )
-        format_ = inferred
+        format_ = format_ or inferred
     format_ = format_ or 'html'
-    output = (
-        output or source.with_suffix('.html' if format_ == 'html' else '.md')
-    ).resolve()
-    if output == source:
-        raise click.UsageError('Output must not overwrite the input file.')
-    if not output.parent.is_dir():
-        raise click.UsageError(
-            'Output directory does not exist. Create it first.'
-        )
+    output = output or source.with_suffix(
+        '.md' if format_ == 'markdown' else '.html'
+    )
+    try:
+        _output_paths(source, output, format_)
+    except ValueError as error:
+        raise click.UsageError(str(error)) from error
 
     if source.suffix.lower() == '.py':
         click.echo(
             'Compiling trusted Python source (module-level code executes).'
         )
     state = {'current': {'spec': None, 'error': None, 'revision': 0}}
-    previous = _fingerprint(source)
+    previous = _fingerprint(source) if watch else ()
     _update(source, function, output, format_, state, watch)
     if watch:
         click.echo('Watching saved changes. Press Ctrl+C to stop.')
+    if watch or serve:
         try:
-            if format_ == 'html':
-                with _live_server(state) as url:
-                    click.echo(f'Live viewer: {url}')
+            with (
+                _live_server(state, live=watch) if serve else nullcontext()
+            ) as url:
+                if url:
+                    label = 'Live viewer' if watch else 'Viewer'
+                    click.echo(f'{label}: {url}')
+                    click.echo('Press Ctrl+C to stop serving.')
+                if watch:
                     _watch(source, function, output, format_, state, previous)
-            else:
-                _watch(source, function, output, format_, state, previous)
+                else:
+                    while True:
+                        time.sleep(1)
         except KeyboardInterrupt:
-            click.echo('\nStopped watching.')
+            click.echo('\nStopped watching.' if watch else '\nStopped serving.')

@@ -65,26 +65,25 @@ def pipeline():
 `;
       await writeFile(source, validSource);
       const logs = [];
-      for (const format of ['html', 'markdown']) {
-        const child = spawn(
-          python,
-          [
-            '-c',
-            'from kfp.cli.__main__ import main; main()',
-            'visualize',
-            source,
-            '--function',
-            'pipeline',
-            '--format',
-            format,
-            '--watch',
-          ],
-          { cwd: repo },
-        );
-        children.push(child);
-        child.stdout.on('data', (data) => logs.push(data.toString()));
-        child.stderr.on('data', (data) => logs.push(data.toString()));
-      }
+      const child = spawn(
+        python,
+        [
+          '-c',
+          'from kfp.cli.__main__ import main; main()',
+          'visualize',
+          source,
+          '--function',
+          'pipeline',
+          '--format',
+          'both',
+          '-w',
+          '-s',
+        ],
+        { cwd: repo },
+      );
+      children.push(child);
+      child.stdout.on('data', (data) => logs.push(data.toString()));
+      child.stderr.on('data', (data) => logs.push(data.toString()));
       let url;
       await until(
         () => {
@@ -180,11 +179,14 @@ def pipeline():
         'Markdown did not refresh',
       );
 
+      const lastHtml = await readFile(html, 'utf8');
+      assert.match(lastHtml, /"name": "other"/);
       const lastMarkdown = await readFile(markdown, 'utf8');
       await writeFile(source, 'invalid Python !!!');
       await live.getByRole('alert').waitFor();
       assert.equal(await live.locator('.react-flow__node-EXECUTION').count(), 2);
       assert.equal(await readFile(markdown, 'utf8'), lastMarkdown);
+      assert.equal(await readFile(html, 'utf8'), lastHtml);
       await writeFile(source, validSource);
       await live.getByRole('alert').waitFor({ state: 'hidden' });
       assert.deepEqual(errors, []);

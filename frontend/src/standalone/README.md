@@ -41,6 +41,14 @@ npm run test:viewer
 uv run pytest sdk/python/kfp/cli/visualize_test.py
 ```
 
+## Watch and serve
+
+`kfp visualize pipeline.py -w` updates the HTML artifact without a server.
+`--format both -w` updates both HTML and Mermaid Markdown from one compilation.
+Add `-s` / `--serve` to opt into the loopback HTML viewer; use `-w -s` for live
+updates, or `-s` alone to serve a snapshot. Serving is available with any export
+format. HTML is the default; `html`, `both`, and `markdown` are supported.
+
 ## Data and updates
 
 The CLI sends the validated **full PipelineSpec**, including deployment details,
@@ -58,8 +66,9 @@ DAGs, tasks, and dependency edges in total to prevent exponential output growth.
 Exceeding the budget reports an error and leaves the previous export intact;
 use HTML for heavily reused pipelines.
 
-The HTML embeds `{state, live}` as escaped JSON. Offline artifacts never fetch.
-The loopback watch page polls `./state`, using revisions to avoid re-layout on
+The HTML embeds `{state, live}` as escaped JSON. Offline artifacts and served
+snapshots never fetch. Only a page served with both `--watch` and `--serve`
+polls `./state`, using revisions to avoid re-layout on
 unchanged polls. A changed graph retains its canvas instance, zoom, and selected
 task, as well as inline expansion state. The inspector resolves its selection
 against the latest spec, updating renamed nodes and closing for deleted nodes.

@@ -18,6 +18,7 @@ import py_compile
 import subprocess
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -510,6 +511,162 @@ def test_watch_flag_aliases(source, monkeypatch, flag):
     assert source.with_suffix('.md').exists()
 
 
+@pytest.mark.parametrize('format_', ['html', 'both', 'markdown'])
+def test_watch_exports_without_serving(source, monkeypatch, format_):
+    calls = []
+    monkeypatch.setattr(visualize, '_watch', lambda *args: calls.append(args))
+
+    def unexpected_server(*args, **kwargs):
+        pytest.fail('Watch must not start a server without --serve')
+
+    monkeypatch.setattr(visualize, '_live_server', unexpected_server)
+    result = CliRunner().invoke(
+        visualize.visualize, [str(source), '-w', '--format', format_]
+    )
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert len(calls) == 1
+    assert 'viewer:' not in result.output.lower()
+    for suffix in (
+        ['.html', '.md']
+        if format_ == 'both'
+        else ['.html' if format_ == 'html' else '.md']
+    ):
+        assert source.with_suffix(suffix).exists()
+
+
+@pytest.mark.parametrize('flag', ['-s', '--serve'])
+@pytest.mark.parametrize('watch', [False, True])
+@pytest.mark.parametrize('format_', ['html', 'both', 'markdown'])
+def test_serve_is_independent_of_watching(
+    source, monkeypatch, flag, watch, format_
+):
+    served = []
+    watched = []
+
+    @contextmanager
+    def server(state, *, live):
+        served.append(live)
+        yield 'http://127.0.0.1:1234/test/'
+
+    def stop(_seconds):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(visualize, '_live_server', server)
+    monkeypatch.setattr(visualize, '_watch', lambda *args: watched.append(args))
+    monkeypatch.setattr(visualize.time, 'sleep', stop)
+    result = CliRunner().invoke(
+        visualize.visualize,
+        [str(source), flag, '--format', format_, *(['-w'] if watch else [])],
+    )
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert served == [watch]
+    assert len(watched) == int(watch)
+    assert 'http://127.0.0.1:1234/test/' in result.output
+
+
+@pytest.mark.parametrize('name', [None, 'report', 'report.html', 'report.md'])
+def test_both_formats_share_one_compilation(source, spec, monkeypatch, name):
+    calls = []
+
+    def load(path, function):
+        calls.append((path, function))
+        return spec
+
+    monkeypatch.setattr(visualization, 'load_spec', load)
+    output = source.parent / name if name else source.with_suffix('.html')
+    result = CliRunner().invoke(
+        visualize.visualize,
+        [
+            str(source),
+            '--format',
+            'both',
+            *(['-o', str(output)] if name else []),
+        ],
+    )
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert len(calls) == 1
+    assert '<!doctype html>' in output.with_suffix('.html').read_text()
+    assert '```mermaid' in output.with_suffix('.md').read_text()
+
+
+@pytest.mark.parametrize('renderer', ['render_html', 'render_markdown'])
+def test_both_render_failure_keeps_both_exports(source, monkeypatch, renderer):
+    output = source.with_suffix('.html')
+    markdown = source.with_suffix('.md')
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    visualize._update(source, None, output, 'both', state, watch=True)
+    previous = [output.read_bytes(), markdown.read_bytes()]
+    previous_state = state['current']
+
+    def fail(_view):
+        raise ValueError('Render failed')
+
+    monkeypatch.setattr(visualization, renderer, fail)
+    visualize._update(source, None, output, 'both', state, watch=True)
+    assert [output.read_bytes(), markdown.read_bytes()] == previous
+    assert state['current']['spec'] == previous_state['spec']
+    assert state['current']['error'] == 'Render failed'
+
+
+def test_both_stage_failure_keeps_both_exports(source, monkeypatch):
+    output = source.with_suffix('.html')
+    markdown = source.with_suffix('.md')
+    output.write_text('old html')
+    markdown.write_text('old markdown')
+    temporary_file = visualize.tempfile.NamedTemporaryFile
+    calls = 0
+
+    def fail_second(**kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise PermissionError('Cannot stage second output')
+        return temporary_file(**kwargs)
+
+    monkeypatch.setattr(visualize.tempfile, 'NamedTemporaryFile', fail_second)
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    with pytest.raises(PermissionError):
+        visualize._export(source, None, output, 'both', state)
+    assert output.read_text() == 'old html'
+    assert markdown.read_text() == 'old markdown'
+    assert not list(source.parent.glob('.pipeline.*'))
+
+
+def test_both_outputs_cannot_alias_input(source):
+    source.with_suffix('.md').symlink_to(source)
+    result = CliRunner().invoke(
+        visualize.visualize, [str(source), '--format', 'both']
+    )
+    assert result.exit_code == 2
+    assert 'overwrite the input' in result.output
+    assert not source.with_suffix('.html').exists()
+
+
+def test_watch_rechecks_output_symlinks(source):
+    output = source.with_suffix('.html')
+    markdown = source.with_suffix('.md')
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    visualize._update(source, None, output, 'both', state, watch=True)
+    previous_html, previous_source = output.read_bytes(), source.read_bytes()
+    markdown.unlink()
+    markdown.symlink_to(source)
+    visualize._update(source, None, output, 'both', state, watch=True)
+    assert 'overwrite the input' in state['current']['error']
+    assert output.read_bytes() == previous_html
+    assert source.read_bytes() == previous_source
+
+
+def test_both_outputs_cannot_alias_each_other(source):
+    source.with_suffix('.html').write_text('old html')
+    source.with_suffix('.md').symlink_to(source.with_suffix('.html'))
+    result = CliRunner().invoke(
+        visualize.visualize, [str(source), '--format', 'both']
+    )
+    assert result.exit_code == 2
+    assert 'distinct' in result.output
+    assert source.with_suffix('.html').read_text() == 'old html'
+
+
 def test_output_extension_infers_format(source):
     output = source.with_suffix('.md')
     result = CliRunner().invoke(
@@ -587,11 +744,12 @@ def test_fingerprint_tracks_imports_deletion_not_outputs(tmp_path):
     assert visualize._fingerprint(source) != initial
 
 
-def test_live_server_only_serves_viewer_and_state(spec):
+@pytest.mark.parametrize('live', [False, True])
+def test_live_server_only_serves_viewer_and_state(spec, live):
     state = {'current': {'spec': spec, 'error': None, 'revision': 1}}
-    with visualize._live_server(state) as url:
+    with visualize._live_server(state, live=live) as url:
         with urllib.request.urlopen(url) as response:
-            assert b'"live": true' in response.read()
+            assert f'"live": {str(live).lower()}'.encode() in response.read()
         with urllib.request.urlopen(url + 'state') as response:
             assert json.load(response)['revision'] == 1
             assert response.headers['Cache-Control'] == 'no-store'

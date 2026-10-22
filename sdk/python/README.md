@@ -54,12 +54,30 @@ kfp visualize pipeline.py --function training -o training.html
 kfp visualize pipeline.yaml -o pipeline.md
 # Equivalent: kfp visualize pipeline.yaml --format markdown
 
-# Regenerate HTML and print a local live-viewer URL.
-kfp visualize pipeline.py --watch
+# Regenerate HTML on saved changes, without starting a server.
+kfp visualize pipeline.py -w
 
 # Regenerate Markdown for an editor or third-party Mermaid viewer.
-kfp visualize pipeline.py --format markdown --watch
+kfp visualize pipeline.py --format markdown -w
+
+# Compile once per change and update both pipeline.html and pipeline.md.
+kfp visualize pipeline.py --format both -w
+# Choose another output stem: report.html and report.md.
+kfp visualize pipeline.py --format both -o report -w
+
+# Opt in to a live browser viewer as well as file exports.
+kfp visualize pipeline.py --format both -w -s
+
+# Serve a snapshot without watching for edits.
+kfp visualize pipeline.py -s
 ```
+
+`--format` accepts `html`, `both`, or `markdown`, defaulting to HTML. When
+`--format` is omitted, an explicit `.html` or `.md` output path selects the
+format. With `both`, `-o report`, `-o report.html`, and `-o report.md` all produce
+`report.html` and `report.md`. Both artifacts are rendered and staged before
+either destination is replaced. Each replacement is atomic, but the pair is
+not a filesystem transaction.
 
 HTML exports include JavaScript, styles, data, and third-party licenses: they
 work offline, including in HTML previewers that permit JavaScript. They contain
@@ -67,8 +85,8 @@ the same graph canvas, task/artifact cards, inline DAG expansion, controls, and
 node inspector as the KFP pipeline UI. Markdown exports contain one Mermaid
 task-dependency diagram per DAG and need a Mermaid-aware renderer. Both show
 static dependencies, including parameter/artifact inputs and explicit ordering;
-loops are not unrolled, and no runtime execution status is shown. Legacy Argo Workflow YAML and standalone component specs are
-not supported. Compiler multi-document YAML and Kubernetes `PipelineVersion`
+loops are not unrolled, and no runtime execution status is shown. Legacy Argo
+Workflow YAML and standalone component specs are not supported. Compiler multi-document YAML and Kubernetes `PipelineVersion`
 manifests are supported. JSON files use JSON parsing to preserve Unicode and
 numeric constants.
 
@@ -77,17 +95,21 @@ Markdown expands instance paths, with a limit of 10,000 DAGs, tasks, and
 dependency edges in total; use HTML for pipelines that exceed this limit.
 Missing or empty task display names are rejected before replacing an export.
 
-`-w` is a short alias for `--watch`. Watch mode observes **saved files**, not
-unsaved editor buffers. Python inputs
-are recompiled in a fresh process after changes to `.py` files beneath the
+`-w` is a short alias for `--watch`. Watching only updates files; it never
+starts a server unless `--serve` / `-s` is also supplied. Watch mode observes
+**saved files**, not unsaved editor buffers. Python inputs are recompiled in a
+fresh process after changes to `.py` files beneath the
 input's directory (excluding hidden directories, `venv`, `node_modules`, and
 `__pycache__`). Imports outside that directory and non-Python configuration files
 are not watched. YAML/JSON inputs watch only the input file. Compilation has a
-60-second timeout. Failed updates preserve the last successful export and print
-the error; the live HTML viewer also displays it and recovers on the next valid
-change. Markdown viewers control their own reload behavior.
+60-second timeout. Compilation, rendering, or staging failures preserve the
+last successful exports and print the error; the live HTML viewer also displays
+it and recovers on the next valid change. Third-party HTML/Markdown viewers
+control their own reload behavior.
 
-For live HTML updates, open the URL printed by `--watch`. It binds only to
+`--serve` / `-s` serves an HTML preview with any export format. By itself it
+serves a snapshot; combine it with `--watch` / `-w` for live updates. Open the
+printed URL in a browser. The server binds only to
 `127.0.0.1` on an automatically selected port and serves only the viewer and its
 graph data, not the workspace. Keep it private: the graph includes component
 specifications. A separately opened `.html` file is an offline snapshot, not a
