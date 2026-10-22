@@ -214,7 +214,7 @@ func NewScheduleHandoffContextError(err error) *UserError {
 		code = codes.DeadlineExceeded
 		message = "Recurring run request deadline expired while waiting for schedule writer handoff and was not applied; verify the rollout and request deadline before retrying."
 	}
-	return newUserError(err, message, code)
+	return newUserError(errors.Wrap(err, message), message, code)
 }
 
 // NewScheduleTransferHandoffError scopes the wait failure to schedule staging.
@@ -225,7 +225,7 @@ func NewScheduleTransferHandoffError(err error) *UserError {
 	if code == codes.FailedPrecondition {
 		message = "This schedule was not staged because schedule writer configuration is invalid; earlier import staging may exist. Verify writer identities and managed-writer RBAC, then resume the same archive."
 	}
-	return newUserError(err, message, code)
+	return newUserError(errors.New(message), message, code)
 }
 
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
