@@ -178,6 +178,13 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Multi-user artifact ownership
 
+These policies describe master and the proposed 3.0 storage-authorization work.
+They are not 2.18 migration instructions: the pending
+[2.18 compatibility rollback](https://github.com/kubeflow/pipelines/pull/15044)
+defers stronger ownership enforcement and removes its unreleased audit control.
+See [release scope and first adoption](../docs/operator-guides/artifact-authorization.md#release-scope-and-first-adoption)
+for the separate 3.0 migration work.
+
 With `ENABLE_AUTHZ=true`, explicit `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=key-prefix`
 or `auto` handling an unsupported custom store, artifact previews and downloads
 require an object key under
@@ -250,7 +257,8 @@ identities or verify their external IAM policies.
 Explicit `storage` remains available for reviewed custom identities and trusted
 namespace launcher-provider configuration; explicit `key-prefix` retains the
 prefix/metadata policy. Versioned receivers enforce namespace binding while legacy
-routes preserve old-UI compatibility during normal rolling deployment. No manual
-UI/controller ordering or opt-in is needed for the supported managed path; reads
-can need retry during convergence. See
+routes preserve receiver-protocol compatibility during normal rolling deployment
+between compatible UI/API versions. This does not restore APIs removed in 3.0 or
+establish a complete 2.18-to-3.0 upgrade. No manual UI/controller ordering or opt-in
+is needed for the supported managed path; reads can need retry during convergence. See
 [enforcement scope and rollout](../docs/operator-guides/artifact-authorization.md).

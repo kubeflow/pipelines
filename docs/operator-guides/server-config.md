@@ -107,6 +107,13 @@ in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/bl
 
 ### Artifact authorization boundary
 
+The storage modes and adoption resources below describe the proposed master/3.0
+implementation, not the 2.18 release plan. The 2.18 ownership enforce/audit control
+is being removed by the pending
+[compatibility rollback](https://github.com/kubeflow/pipelines/pull/15044). See
+[release scope and first adoption](artifact-authorization.md#release-scope-and-first-adoption)
+before planning a 2.18-to-3.0 migration.
+
 `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE` defaults to `auto`. Managed
 `minio://mlpipeline/...` artifacts and administrator-approved external S3
 credential-file brokers use centrally verified namespace readiness and the
@@ -181,7 +188,16 @@ just like this example in [sync.py](https://github.com/kubeflow/pipelines/blob/b
 the entry is identical to the environment variable instruction in Standalone Kubeflow Pipelines
 deployment.
 
-### HTTP artifact migration for 2.18
+<a id="http-artifact-migration-for-218"></a>
+<a id="http-artifact-migration-for-2-18"></a>
+
+### HTTP artifact configuration on master
+
+The authenticated serving path and ownership requirements below describe master.
+For 2.18, follow the separate [upgrade guide PR](https://github.com/kubeflow/pipelines/pull/14703)
+and pending [compatibility rollback](https://github.com/kubeflow/pipelines/pull/15044):
+namespace-proxied HTTP reads retain receiver-local credentials and the earlier
+ownership decisions. The 2.18 deferral does not change master's HTTP policy.
 
 For a standalone deployment with an existing artifact URI such as
 `https://files.example:9443/reports/result.json`, configure a fully qualified

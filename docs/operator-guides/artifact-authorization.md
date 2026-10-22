@@ -1,5 +1,27 @@
 # Artifact authorization and existing storage roots
 
+## Release scope and first adoption
+
+This guide describes the proposed master/3.0 implementation in
+[#14883](https://github.com/kubeflow/pipelines/pull/14883). Its storage modes,
+external approvals, readiness records and versioned receiver protocol are not part
+of the 2.18 release plan. Stronger artifact ownership enforcement is deferred from
+2.18; the selective compatibility rollback is tracked in
+[#15044](https://github.com/kubeflow/pipelines/pull/15044), with release-specific
+instructions in [the 2.18 upgrade guide PR](https://github.com/kubeflow/pipelines/pull/14703).
+Until that rollback merges, the release branch still has the stronger policy.
+The unreleased 2.18 ownership enforce/audit setting is being removed, not shipped
+as a migration option. This deferral does not fully remediate artifact ownership
+when storage credentials can read other tenants' objects.
+
+A 2.18-to-3.0 upgrade must support first adoption: it cannot assume these approvals,
+readiness records or receiver capabilities already exist, or require operators to
+move historical roots during an intermediate 2.18 upgrade. The backend authority
+and migration contract remain under discussion in
+[#14031](https://github.com/kubeflow/pipelines/issues/14031). The controls and
+limitations below describe the candidate implementation, not a finalized 3.0
+migration design. This release decision does not roll back master enforcement.
+
 KFP first authorizes the user for the requested namespace. For supported managed
 storage, the object store then decides what that namespace's storage identity may
 read. Artifact records describe provenance; registering another tenant's URI does
@@ -32,9 +54,9 @@ artifacts retain the shared-UI path, base-URL/redirect checks and ownership poli
 Archived pod logs and volume artifacts retain their separate serving policies.
 Standalone serving is unchanged.
 
-Master can additionally resolve trusted namespace launcher-provider configuration
-for explicit storage authorization. Browser-supplied provider selectors do not
-grant access to another identity. The external credential-file adapter below uses
+Explicit storage authorization can resolve trusted namespace launcher-provider
+configuration. Browser-supplied provider selectors do not grant access to another
+identity. The external credential-file adapter below uses
 its administrator-approved destination directly; it does not infer approval from
 a tenant launcher configuration.
 
@@ -138,11 +160,11 @@ Inventory old run references as well as current pipeline roots. Historical
 namespace-less outputs can remain denied even to their owning users: workflow
 names and object existence alone do not prove namespace ownership. Migrate only
 authorized objects and their persisted references to isolated namespace roots as
-needed. Changing the default root does not repair existing references. The narrow
-2.18 ownership audit still requires matching MLMD evidence; it cannot recover
-untracked V1 artifacts. Selecting `storage` does not disable this legacy-root
-check. Review broad storage grants separately; this guard does not make arbitrary
-administrator-added permissions safe.
+needed. Changing the default root does not repair existing references. This is a
+limitation of the proposed 3.0 policy, not a mandatory 2.18 migration step. There is
+no artifact audit option in this candidate to recover these reads. Selecting
+`storage` does not disable this legacy-root check. Review broad storage grants
+separately; this guard does not make arbitrary administrator-added permissions safe.
 
 ## Upgrade managed installations
 
@@ -176,9 +198,11 @@ This supports either component upgrade order for compatible UI/API versions;
 it does not make an old UI perform new authorization or promise uninterrupted
 reads during rollout. Receiver-protocol compatibility does not restore APIs
 removed in 3.0: the 2.17.2 shared UI requires the V1 authorization API, which
-master no longer serves. The 2.17.2 shared-UI overlap check therefore applies to
-release-2.18. Master checks old-receiver rejection and automatic replacement
-separately.
+master no longer serves. The deferred [#14884 prototype](https://github.com/kubeflow/pipelines/pull/14884)
+tested that old UI against a new receiver on a 2.18 base. That is historical
+prototype evidence, not a shipping 2.18 feature or proof of a complete 2.18-to-3.0
+upgrade. Master checks old-receiver rejection and automatic replacement separately;
+first adoption and full version-to-version compatibility still need qualification.
 
 During proxy startup or readiness convergence, affected reads can return an
 actionable HTTP 503 and need retry after reconciliation completes. Old UI replicas
@@ -225,7 +249,8 @@ network policy and storage configurations.
 namespace broker writes temporary credentials to a named shared-credentials file
 profile. Existing roots such as `s3://external-artifacts/model/team-a-training/`
 can remain unchanged when that identity already has permission to read them.
-This path is available on both master and 2.18 and does not require MLMD or audit.
+This proposed master/3.0 path does not require MLMD or an audit exception. It is
+not included in the 2.18 release plan.
 
 This is a supported credential-file adapter, not automatic discovery of every
 IRSA, STS or broker integration. The administrator must approve the broker's
@@ -560,9 +585,9 @@ ConfigMap or reports.
 Earlier runs whose artifacts still use
 `minio://mlpipeline/private-artifacts/<namespace>/...` will no longer open through
 that receiver after cutover, even if their objects and metadata remain intact.
-The approval covers only its declared S3 bucket and endpoint. Prefix mode, an
-audit setting or a broader grant on that external identity does not restore the
-old MinIO route. Existing roots are preserved only within the approved store.
+The approval covers only its declared S3 bucket and endpoint. Prefix mode or a
+broader grant on that external identity does not restore the old MinIO route.
+Existing roots are preserved only within the approved store.
 
 Before adopting a namespace that has bundled-store history:
 
@@ -625,7 +650,9 @@ infer isolation for arbitrary endpoints, workload identities or custom services.
 Those requests retain prefix/metadata enforcement unless the operator explicitly
 selects `storage` after review. An existing namespace storage grant may already be
 correct even when automatic recognition is unavailable; distinguish that from a
-missing permission before proposing object migration or audit.
+missing permission before proposing object migration. Review whether a supported
+storage mode can use the existing isolated identity; this candidate has no artifact
+audit fallback.
 
 ### Stores without the managed IAM API
 

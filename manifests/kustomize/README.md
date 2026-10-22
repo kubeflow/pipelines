@@ -316,6 +316,12 @@ without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
 Allowlisting does not grant bucket access or configure credentials.
 
+The storage modes and adoption resources below are proposed master/3.0 features,
+not 2.18 rollout requirements. The pending
+[2.18 compatibility rollback](https://github.com/kubeflow/pipelines/pull/15044)
+does not install these approvals, readiness records or receiver capabilities.
+See [release scope and first adoption](../../docs/operator-guides/artifact-authorization.md#release-scope-and-first-adoption).
+
 `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` uses namespace storage authorization
 for managed `minio://mlpipeline/...` artifacts and administrator-approved external
 S3 credential-file brokers after controller readiness. For the
@@ -357,9 +363,10 @@ ingress isolation. Explicit `key-prefix` retains namespace path checks. See
 
 The standard multi-user overlay enables managed proxies. Managed artifact upgrades
 accept either UI/controller order: the new receiver protocol enforces namespace
-binding, while the legacy route remains compatible with old UIs during overlap.
-Pending readiness or proxy startup can temporarily return HTTP 503; retry after
-reconciliation. The new UI never falls back to the old route or shared credentials
+binding, while the legacy route preserves receiver-protocol compatibility during
+overlap between compatible UI/API versions. It does not restore APIs removed in
+3.0 or establish a complete 2.18-to-3.0 upgrade. Pending readiness or proxy startup
+can temporarily return HTTP 503; retry after reconciliation. The new UI never falls back to the old route or shared credentials
 for a storage-authorized request. The generated standard NetworkPolicy must be
 enforced, and broader additive policies must not allow direct tenant access.
 

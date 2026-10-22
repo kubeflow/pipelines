@@ -1,5 +1,11 @@
 # Artifact authorization acceptance
 
+These fixtures validate the proposed master/3.0 storage-authorization work in
+[#14883](https://github.com/kubeflow/pipelines/pull/14883). They do not describe
+shipping 2.18 adoption resources or certify the separate
+[2.18 compatibility rollback](https://github.com/kubeflow/pipelines/pull/15044).
+See [release scope and first adoption](../../docs/operator-guides/artifact-authorization.md#release-scope-and-first-adoption).
+
 The `KFP E2E Pipeline tests` workflow automatically runs managed and external
 artifact authorization acceptance for pull requests and pushes selected by its
 path filters (and release-branch merge-queue events). It builds the tested revision
@@ -50,10 +56,14 @@ the running UI and real KFP API/SAR; the other test namespace remains unauthoriz
 Port forwarding supplies the trusted user header normally set by ingress, so this
 does not test ingress login or identity-header sanitization.
 
-Both branches test an actual 2.17.2 receiver followed by automatic replacement.
-The 2.18 branch also tests the 2.17.2 shared UI against a new receiver. Master
-records that old-UI check as inapplicable because it removed the V1 authorization
-API required by that UI; receiver compatibility is checked separately.
+Master tests an actual 2.17.2 receiver followed by automatic replacement. The
+deferred [#14884 prototype](https://github.com/kubeflow/pipelines/pull/14884) also
+tested the 2.17.2 shared UI against a new receiver on a 2.18 base. That is
+historical prototype evidence, not a shipping 2.18 capability. Master records that
+old-UI check as inapplicable because it removed the V1 authorization API required
+by that UI; receiver compatibility is checked separately. These checks do not
+establish a complete 2.18-to-3.0 upgrade or eliminate the need to qualify first
+adoption from a release without the new approval/readiness resources.
 
 Keep the smaller `test-artifact-proxy.sh` workflow-output smoke test and
 `test/seaweedfs/artifact_authorization_test.sh` storage/protocol suite. They cover

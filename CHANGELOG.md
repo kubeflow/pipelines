@@ -4,6 +4,16 @@ Changelog
 
 ### Upgrade notes
 
+The artifact changes below are the proposed master/3.0 implementation in
+[#14883](https://github.com/kubeflow/pipelines/pull/14883), not the 2.18 release plan.
+The pending [2.18 compatibility rollback](https://github.com/kubeflow/pipelines/pull/15044)
+removes its unreleased ownership enforce/audit control. A 3.0 upgrade must handle
+first adoption without assuming 2.18 installed approvals, readiness records or the
+new receiver protocol, or required historical-root migration. See
+[release scope and migration status](docs/operator-guides/artifact-authorization.md#release-scope-and-first-adoption).
+Master enforcement is unchanged by that release decision; the final 3.0 authority
+and migration design remain tracked in [#14031](https://github.com/kubeflow/pipelines/issues/14031).
+
 - The default `KFP_SECURITY_ARTIFACT_AUTHORIZATION_MODE=auto` preserves already
   authorized historical roots for managed `minio://mlpipeline/...` artifacts and
   administrator-approved external S3 credential-file brokers. Objects need not
@@ -26,9 +36,9 @@ Changelog
 - Both `auto` and explicit `storage` retain ownership/prefix checks for
   `minio://mlpipeline/artifacts/` and the root itself: pre-SeaweedFS
   V1 outputs used `artifacts/<workflow>/...`, and the stock shared grant must not
-  expose that tenant history. Old namespace-less outputs may need migration of
-  authorized objects and persisted references; untracked V1 artifacts cannot use
-  the narrow MLMD-backed audit exception available only in 2.18.
+  expose that tenant history. Under this candidate 3.0 policy, old namespace-less
+  outputs may need migration of authorized objects and persisted references; there
+  is no artifact audit exception. This is not a required 2.18 migration step.
 - Review effective namespace storage grants and namespace viewer roles **before
   upgrading**. Storage authorization makes existing read/list grants available to
   namespace viewers, including `shared/` and retained administrator additions.
@@ -44,9 +54,11 @@ Changelog
   S3 compatibility and distinct Secret names alone do not prove that isolation.
 - Standard multi-user manifests enable managed proxies. Controller readiness and
   a versioned receiver protocol support either UI/controller upgrade order. The
-  legacy receiver route supports old-UI overlap on 2.18; master/3.0 removed the V1
-  authorization API required by the 2.17.2 UI. Readiness convergence can return
-  actionable HTTP 503 responses that require retry. No storage-authorized request
+  deferred [#14884 prototype](https://github.com/kubeflow/pipelines/pull/14884)
+  tested old-UI overlap on a 2.18 base; that does not
+  establish shipping 2.18 capabilities or a complete 2.18-to-3.0 upgrade. Master/3.0
+  removed the V1 authorization API required by the 2.17.2 UI. Readiness convergence
+  can return actionable HTTP 503 responses that require retry. No storage-authorized request
   falls back to shared credentials after a readiness or receiver failure.
   Unapproved custom storage retains prefix enforcement; reviewed custom identities
   outside the adapter can explicitly select `storage`, while `key-prefix` remains
