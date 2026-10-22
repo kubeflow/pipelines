@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).with_name('uv.sh')
+SCRIPT = Path(__file__).resolve().parents[3] / 'backend/api/hack/uv.sh'
 
 
 class UvCompatibilityTest(unittest.TestCase):
