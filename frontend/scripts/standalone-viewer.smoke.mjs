@@ -116,6 +116,28 @@ def pipeline():
       );
       await offline.getByRole('button', { name: 'Expand Training pipeline' }).click();
       await offline.getByRole('button', { name: 'Train model', exact: true }).waitFor();
+      for (const name of ['Load data', 'model']) {
+        const node = offline.getByRole('button', { name, exact: true });
+        const shadow = () => node.evaluate((element) => getComputedStyle(element).boxShadow);
+        const unselected = await shadow();
+        await node.click();
+        // Allow the 150ms ring transition and 225ms inspector slide to finish.
+        await offline.waitForTimeout(250);
+        const focused = await shadow();
+        assert.notEqual(focused, unselected, `${name} should highlight when selected`);
+        await offline.getByRole('region', { name: 'Pipeline graph' }).focus();
+        await offline.waitForTimeout(250);
+        assert.equal(
+          await node.evaluate((element) =>
+            element.closest('.react-flow__node').classList.contains('selected'),
+          ),
+          true,
+        );
+        assert.equal(await shadow(), focused, `${name} must stay highlighted after focus moves`);
+        await offline.getByRole('button', { name: 'close', exact: true }).click();
+        await offline.waitForTimeout(250);
+        assert.equal(await shadow(), unselected, `${name} must lose its highlight when deselected`);
+      }
       if (process.env.KFP_VIEWER_SCREENSHOTS) {
         await offline.screenshot({
           path: path.join(process.env.KFP_VIEWER_SCREENSHOTS, 'kfp-viewer-desktop.png'),
@@ -165,12 +187,21 @@ def pipeline():
       await live.getByRole('button', { name: 'Collapse Training pipeline' }).click();
       await live.getByRole('button', { name: 'Load data', exact: true }).click();
       await live.getByText('Image', { exact: true }).waitFor();
+      await live.waitForTimeout(250);
+      const selectedNode = live.getByRole('button', { name: 'Load data', exact: true });
+      const selectedShadow = await selectedNode.evaluate(
+        (element) => getComputedStyle(element).boxShadow,
+      );
       await live.getByRole('button', { name: /zoom out/i }).click();
       await live.waitForTimeout(400); // Wait for the zoom animation before comparing transforms.
       const transform = await live.locator('.react-flow__viewport').getAttribute('style');
       await writeFile(helper, 'NAME = "other"\n');
       await live.getByRole('heading', { name: 'other', exact: true }).waitFor();
       assert.equal(await live.locator('.react-flow__viewport').getAttribute('style'), transform);
+      assert.equal(
+        await selectedNode.evaluate((element) => getComputedStyle(element).boxShadow),
+        selectedShadow,
+      );
       assert.equal(await live.getByRole('button', { name: 'Expand Training pipeline' }).count(), 1);
       await live.getByText('Image', { exact: true }).waitFor();
       await live.getByText('alpine', { exact: true }).waitFor();
