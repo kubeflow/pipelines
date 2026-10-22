@@ -137,6 +137,10 @@ func GetNamespace() string {
 func getPackagePath(subdir string) string {
 	repoName := *config.REPO_NAME
 
+	if config.SDKSourceSHA != "" {
+		return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, config.SDKSourceSHA, subdir)
+	}
+
 	pullNumber := *config.PULL_NUMBER
 	if pullNumber != "" {
 		return fmt.Sprintf("git+https://github.com/%s.git@refs/pull/%s/merge#subdirectory=%s", repoName, pullNumber, subdir)

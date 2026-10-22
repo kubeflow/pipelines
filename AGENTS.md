@@ -518,6 +518,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
+- `test-and-report` passes the actual checkout commit as `-sdkSourceSHA` for component SDK installs. This takes precedence over PR merge refs and branch defaults, so merging a PR cannot invalidate an in-flight SDK install. Local runs may omit the flag to retain PR/branch selection. Verify with `go test -p 1 ./backend/test/testutil -run TestPackagePathPinsCheckedOutSDKSource -count=1` and `python3 .github/resources/scripts/sdk_source_checkout_test.py`.
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
 - Release image callers explicitly grant the reusable build's package,
   attestation, and OIDC scopes; manifest promotion grants package write without
