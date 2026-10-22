@@ -26,7 +26,7 @@ ARG NODE_VERSION
 ENV NODE_VERSION=${NODE_VERSION}
 ENV NVM_DIR=/usr/local/nvm
 RUN mkdir -p $NVM_DIR && \
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash && \
     . $NVM_DIR/nvm.sh && \
     nvm install $NODE_VERSION && \
     nvm alias default $NODE_VERSION && \
@@ -35,22 +35,27 @@ ENV NODE_PATH=$NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 ENV GIT_CLIFF_VERSION=2.10.0
 
-# install java==11 python==3
-RUN apt-get update \
-    && apt-get install -y default-jdk python3-pip python3-setuptools \
-    && rm -rf /var/lib/apt/lists/*
-
-# install yq==3
-# Released in https://github.com/mikefarah/yq/releases/tag/3.4.1
-RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 && \
-    chmod +x /usr/local/bin/yq
+# Build the manifest-pinned yq with the image's patched Go compiler. Downloaded
+# upstream binaries retain the compiler and dependencies used at release time.
+RUN cd /tmp/api-generator-tools && \
+    GOTOOLCHAIN=local go build -mod=readonly -trimpath -o /usr/local/bin/yq github.com/mikefarah/yq/v4
 
 # Make all files accessible to non-root users.
 RUN chmod -R 777 $NVM_DIR && \
     chmod -R 777 /usr/local/bin
 
-# Configure npm cache location
-RUN npm config set cache /tmp/.npm --global
+# Update npm independently of Node's bundled copy. npm 12.2.1 still bundles
+# ip-address 10.7.2; pin its compatible security update until npm includes it.
+ENV NPM_VERSION=12.2.1
+RUN npm install --global "npm@${NPM_VERSION}" && \
+    npm install --prefix /tmp/npm-security --ignore-scripts --no-audit --no-fund --save-exact ip-address@10.7.4 && \
+    npm_root="$(npm root --global)" && \
+    node -e 'const p = require(process.argv[1]); if (p.version !== "10.7.2") throw new Error("Review npm ip-address patch");' "$npm_root/npm/node_modules/ip-address/package.json" && \
+    rm -rf "$npm_root/npm/node_modules/ip-address" && \
+    mv /tmp/npm-security/node_modules/ip-address "$npm_root/npm/node_modules/ip-address" && \
+    rm -rf /tmp/npm-security && \
+    npm config set cache /tmp/.npm --global && \
+    npm cache clean --force
 
 RUN curl -L -H "Accept: application/octet-stream" \
         https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz \
