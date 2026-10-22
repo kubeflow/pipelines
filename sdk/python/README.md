@@ -69,7 +69,13 @@ task-dependency diagram per DAG and need a Mermaid-aware renderer. Both show
 static dependencies, including parameter/artifact inputs and explicit ordering;
 loops are not unrolled, and no runtime execution status is shown. Legacy Argo Workflow YAML and standalone component specs are
 not supported. Compiler multi-document YAML and Kubernetes `PipelineVersion`
-manifests are supported.
+manifests are supported. JSON files use JSON parsing to preserve Unicode and
+numeric constants.
+
+HTML validates reusable DAG definitions once and keeps the spec compact.
+Markdown expands instance paths, with a limit of 10,000 DAGs, tasks, and
+dependency edges in total; use HTML for pipelines that exceed this limit.
+Missing or empty task display names are rejected before replacing an export.
 
 `-w` is a short alias for `--watch`. Watch mode observes **saved files**, not
 unsaved editor buffers. Python inputs

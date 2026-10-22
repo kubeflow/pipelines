@@ -129,17 +129,16 @@ def _export(
     state: dict[str, Any],
 ) -> None:
     spec = visualization.load_spec(source, function)
-    view = visualization.build_view(spec)
     current = {
         'spec': spec,
         'error': None,
         'revision': state['current']['revision'] + 1,
     }
-    content = (
-        visualization.render_html(current)
-        if format_ == 'html'
-        else visualization.render_markdown(view)
-    )
+    if format_ == 'html':
+        visualization.validate_spec(spec)
+        content = visualization.render_html(current)
+    else:
+        content = visualization.render_markdown(visualization.build_view(spec))
     _atomic_write(output, content)
     state['current'] = current
     click.echo(f'Wrote {output}')

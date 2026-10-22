@@ -70,9 +70,17 @@ def source(tmp_path, spec):
 
 def test_task_dependencies_and_nested_dags(spec):
     spec['components']['nested'] = {
-        'dag': {'tasks': {'child': {'componentRef': {'name': 'step'}}}}
+        'dag': {
+            'tasks': {
+                'child': {
+                    'componentRef': {'name': 'step'},
+                    'taskInfo': {'name': 'Child'},
+                }
+            }
+        }
     }
     spec['root']['dag']['tasks']['loop'] = {
+        'taskInfo': {'name': 'Loop'},
         'componentRef': {'name': 'nested'},
         'parameterIterator': {},
         'inputs': {
@@ -87,6 +95,7 @@ def test_task_dependencies_and_nested_dags(spec):
         },
     }
     spec['root']['dag']['tasks']['condition'] = {
+        'taskInfo': {'name': 'Condition'},
         'componentRef': {'name': 'nested'},
         'triggerPolicy': {'condition': 'true'},
     }
@@ -151,12 +160,207 @@ def test_invalid_graphs_rejected(spec, broken):
     else:
         spec['components']['recursive'] = {
             'dag': {
-                'tasks': {'recurse': {'componentRef': {'name': 'recursive'}}}
+                'tasks': {
+                    'recurse': {
+                        'componentRef': {'name': 'recursive'},
+                        'taskInfo': {'name': 'Recurse'},
+                    }
+                }
             }
         }
         tasks['load']['componentRef']['name'] = 'recursive'
-    with pytest.raises(ValueError):
+    messages = {
+        'component': 'missing component',
+        'dependency': 'invalid dependency',
+        'cycle': 'Cyclic task dependencies',
+        'recursive': 'Recursive DAG components',
+    }
+    with pytest.raises(ValueError, match=messages[broken]):
         visualization.build_view(spec)
+
+
+def _reused_dag_spec(depth):
+    components = {'step': {'executorLabel': 'exec-step'}}
+    reference = 'step'
+    for index in range(depth):
+        name = f'dag-{index}'
+        components[name] = {
+            'dag': {
+                'tasks': {
+                    key: {
+                        'componentRef': {'name': reference},
+                        'taskInfo': {'name': key},
+                    }
+                    for key in ('left', 'right')
+                }
+            }
+        }
+        reference = name
+    return {
+        'pipelineInfo': {'name': 'reused-dags'},
+        'deploymentSpec': {
+            'executors': {'exec-step': {'container': {'image': 'alpine'}}}
+        },
+        'components': components,
+        'root': {
+            'dag': {
+                'tasks': {
+                    'start': {
+                        'componentRef': {'name': reference},
+                        'taskInfo': {'name': 'Start'},
+                    }
+                }
+            }
+        },
+    }
+
+
+def test_html_validates_reusable_components_once(tmp_path, monkeypatch):
+    depth = 30
+    source = tmp_path / 'reused.json'
+    source.write_text(json.dumps(_reused_dag_spec(depth)))
+    producers = visualization._producers
+    calls = 0
+
+    def count_visits(inputs):
+        nonlocal calls
+        calls += 1
+        # Bound the old implementation too: fail before it exhausts memory.
+        assert calls <= 2 * depth + 1, 'Repeated validation of reusable DAGs'
+        return producers(inputs)
+
+    monkeypatch.setattr(visualization, '_producers', count_visits)
+    result = CliRunner().invoke(visualize.visualize, [str(source)])
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert calls == 2 * depth + 1
+    assert source.with_suffix('.html').exists()
+
+
+def test_reusable_component_cycle_is_rejected(tmp_path):
+    spec = _reused_dag_spec(30)
+    spec['components']['dag-0']['dag']['tasks']['left']['componentRef'][
+        'name'
+    ] = 'dag-29'
+    source = tmp_path / 'recursive.json'
+    source.write_text(json.dumps(spec))
+    result = CliRunner().invoke(visualize.visualize, [str(source)])
+    assert result.exit_code == 1
+    assert 'Recursive DAG components' in result.output
+    assert not source.with_suffix('.html').exists()
+
+
+def test_html_does_not_project_markdown(source, monkeypatch):
+    def unexpected_projection(_spec):
+        pytest.fail('HTML must not construct the path-expanded Markdown view')
+
+    monkeypatch.setattr(visualization, 'build_view', unexpected_projection)
+    result = CliRunner().invoke(visualize.visualize, [str(source)])
+    assert result.exit_code == 0, (result.output, result.exception)
+
+
+def test_markdown_expansion_limit_preserves_last_export(source, monkeypatch):
+    monkeypatch.setattr(
+        visualization, '_MAX_MARKDOWN_ELEMENTS', 20, raising=False
+    )
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    output = source.with_suffix('.md')
+    visualize._update(source, None, output, 'markdown', state, watch=True)
+    previous_file = output.read_bytes()
+    previous_spec = state['current']['spec']
+    source.write_text(json.dumps(_reused_dag_spec(6)))
+    visualize._update(source, None, output, 'markdown', state, watch=True)
+    assert 'Markdown expansion' in (state['current']['error'] or '')
+    assert output.read_bytes() == previous_file
+    assert state['current']['spec'] == previous_spec
+    visualize._update(
+        source, None, source.with_suffix('.html'), 'html', state, watch=True
+    )
+    assert state['current']['error'] is None
+    assert source.with_suffix('.html').exists()
+
+
+def test_markdown_limit_counts_dags_tasks_and_dependencies(spec, monkeypatch):
+    # One DAG, two tasks, and one deduplicated dependency edge.
+    monkeypatch.setattr(visualization, '_MAX_MARKDOWN_ELEMENTS', 3)
+    with pytest.raises(ValueError, match='Markdown expansion'):
+        visualization.build_view(spec)
+    monkeypatch.setattr(visualization, '_MAX_MARKDOWN_ELEMENTS', 4)
+    assert len(visualization.build_view(spec)['graphs']) == 1
+
+
+def test_json_preserves_surrogate_pairs(tmp_path, spec):
+    source = tmp_path / 'pipeline.json'
+    spec['root']['dag']['tasks']['load']['taskInfo']['name'] = 'Load 🚀'
+    source.write_text(json.dumps(spec))
+    loaded = visualization.load_spec(source)
+    assert (
+        loaded['root']['dag']['tasks']['load']['taskInfo']['name'] == 'Load 🚀'
+    )
+
+
+@pytest.mark.parametrize('value', [1e-6, 1e20])
+def test_json_preserves_exponent_numbers(tmp_path, spec, value):
+    source = tmp_path / 'pipeline.json'
+    spec['root']['dag']['tasks']['load']['inputs'] = {
+        'parameters': {'amount': {'runtimeValue': {'constant': value}}}
+    }
+    source.write_text(json.dumps(spec))
+    loaded = visualization.load_spec(source)
+    actual = loaded['root']['dag']['tasks']['load']['inputs']['parameters'][
+        'amount'
+    ]['runtimeValue']['constant']
+    assert isinstance(actual, float)
+    assert actual == value
+
+
+def test_json_rejects_yaml_syntax(tmp_path, spec):
+    source = tmp_path / 'pipeline.json'
+    source.write_text(yaml.safe_dump(spec))
+    with pytest.raises(json.JSONDecodeError):
+        visualization.load_spec(source)
+
+
+@pytest.mark.parametrize(
+    'format_,suffix', [('html', '.html'), ('markdown', '.md')]
+)
+@pytest.mark.parametrize('nested', [False, True])
+@pytest.mark.parametrize('task_info', [None, {}, {'name': ''}])
+def test_watch_rejects_unnamed_tasks_and_recovers(
+    source, spec, format_, suffix, nested, task_info
+):
+    task = spec['root']['dag']['tasks']['train']
+    if nested:
+        task['componentRef']['name'] = 'nested'
+        spec['components']['nested'] = {
+            'dag': {
+                'tasks': {
+                    'child': {
+                        'componentRef': {'name': 'step'},
+                        'taskInfo': {'name': 'Child'},
+                    }
+                }
+            }
+        }
+        task = spec['components']['nested']['dag']['tasks']['child']
+    source.write_text(yaml.safe_dump(spec))
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    output = source.with_suffix(suffix)
+    visualize._update(source, None, output, format_, state, watch=True)
+    previous_file = output.read_bytes()
+    previous_spec = state['current']['spec']
+    original = task.pop('taskInfo')
+    if task_info is not None:
+        task['taskInfo'] = task_info
+    source.write_text(yaml.safe_dump(spec))
+    visualize._update(source, None, output, format_, state, watch=True)
+    assert 'taskInfo.name' in (state['current']['error'] or '')
+    assert state['current']['spec'] == previous_spec
+    assert output.read_bytes() == previous_file
+    task['taskInfo'] = original
+    source.write_text(yaml.safe_dump(spec))
+    visualize._update(source, None, output, format_, state, watch=True)
+    assert state['current']['error'] is None
+    assert state['current']['spec'] == previous_spec
 
 
 @pytest.mark.parametrize('suffix', ['.yaml', '.yml', '.json'])

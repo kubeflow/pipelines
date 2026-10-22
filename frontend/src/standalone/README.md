@@ -50,9 +50,13 @@ Task/artifact cards, inline group expansion, graph controls, and the MUI theme
 are the application's own modules, not standalone copies. The bundle includes
 the application's generated Tailwind styles and matches its 13px root font.
 
-Python's `kfp.cli.visualization.build_view` validates DAG references for both
-formats and produces a task-only projection for Mermaid Markdown. That
-projection is not the HTML renderer's data model.
+Python's `kfp.cli.visualization.validate_spec` checks each reachable DAG
+component definition once, including task display names, references, and cycles.
+HTML never expands reusable-component instance paths. `build_view` validates
+and projects those paths only for Mermaid Markdown, with a budget of 10,000
+DAGs, tasks, and dependency edges in total to prevent exponential output growth.
+Exceeding the budget reports an error and leaves the previous export intact;
+use HTML for heavily reused pipelines.
 
 The HTML embeds `{state, live}` as escaped JSON. Offline artifacts never fetch.
 The loopback watch page polls `./state`, using revisions to avoid re-layout on

@@ -20,6 +20,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from graphlib import CycleError, TopologicalSorter
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -65,7 +66,12 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
                 )
             return load_spec(compiled)
 
-    documents = list(yaml.safe_load_all(path.read_text(encoding='utf-8')))
+    content = path.read_text(encoding='utf-8')
+    documents = (
+        [json.loads(content)]
+        if path.suffix.lower() == '.json'
+        else list(yaml.safe_load_all(content))
+    )
     # Compiler YAML may have a second document containing platform configuration.
     candidates = []
     for document in documents:
@@ -112,39 +118,104 @@ def _producers(inputs: dict[str, Any]) -> set[str]:
     }
 
 
-def build_view(spec: dict[str, Any]) -> dict[str, Any]:
-    """Validate DAG references and project task dependencies for Markdown.
+def _task_dependencies(tasks: dict[str, Any]) -> dict[str, set[str]]:
+    dependencies = {}
+    for key, task in tasks.items():
+        if not task.get('taskInfo', {}).get('name'):
+            raise ValueError(
+                f'Task {key!r} is missing a non-empty taskInfo.name. '
+                'Restore its display name before exporting.'
+            )
+        producers = set(task.get('dependentTasks', []))
+        producers.update(_producers(task.get('inputs', {})))
+        for producer in producers:
+            if producer not in tasks or producer == key:
+                raise ValueError(
+                    f'Task {key!r} has invalid dependency {producer!r}. '
+                    'Correct its task inputs or dependentTasks.'
+                )
+        dependencies[key] = producers
+    return dependencies
 
-    Each DAG is a separate view, preserving scope rather than pretending
-    loops are unrolled executions. Edges include explicit ordering and
-    data inputs.
-    """
-    graphs = []
+
+def validate_spec(spec: dict[str, Any]) -> None:
+    """Validate reachable DAG definitions once, without expanding instances."""
     components = spec.get('components', {})
-
-    def visit(
-        component: dict[str, Any], path: list[str], ancestors: tuple[str, ...]
-    ) -> None:
+    pending: list[str | None] = [None]
+    visited: set[str | None] = set()
+    component_dependencies: dict[str | None, set[str]] = {}
+    while pending:
+        reference = pending.pop()
+        if reference in visited:
+            continue
+        visited.add(reference)
+        component = spec['root'] if reference is None else components[reference]
         tasks = component['dag'].get('tasks', {})
-        nodes = []
-        edges = set()
-        children = []
-        for key, task in sorted(tasks.items()):
-            reference = task.get('componentRef', {}).get('name')
-            target = components.get(reference)
+        try:
+            TopologicalSorter(_task_dependencies(tasks)).prepare()
+        except CycleError as error:
+            raise ValueError(
+                'Cyclic task dependencies. Remove the cycle '
+                'before visualizing this pipeline.'
+            ) from error
+        nested = set()
+        for key, task in tasks.items():
+            target_reference = task.get('componentRef', {}).get('name')
+            target = components.get(target_reference)
             if target is None:
                 raise ValueError(
                     f'Task {key!r} references missing component '
-                    f'{reference!r}. Correct its componentRef.'
+                    f'{target_reference!r}. Correct its componentRef.'
                 )
-            child_path = [*path, key]
+            if 'dag' in target:
+                nested.add(target_reference)
+            elif not target.get('executorLabel'):
+                raise ValueError(
+                    f'Component {target_reference!r} has no DAG or '
+                    'executorLabel. Use a compiled pipeline spec.'
+                )
+        component_dependencies[reference] = nested
+        pending.extend(nested - visited)
+    try:
+        TopologicalSorter(component_dependencies).prepare()
+    except CycleError as error:
+        raise ValueError(
+            'Recursive DAG components. Remove the recursive component reference.'
+        ) from error
+
+
+# Reusable components can describe exponentially many instance paths.
+_MAX_MARKDOWN_ELEMENTS = 10_000
+
+
+def build_view(spec: dict[str, Any]) -> dict[str, Any]:
+    """Validate and project bounded instance paths for Mermaid Markdown.
+
+    The budget counts DAGs, tasks, and dependencies. HTML uses the
+    compact spec directly and does not need this expansion.
+    """
+    validate_spec(spec)
+    graphs = []
+    components = spec.get('components', {})
+    pending = [(spec['root'], [])]
+    remaining = _MAX_MARKDOWN_ELEMENTS
+    while pending:
+        component, path = pending.pop()
+        tasks = component['dag'].get('tasks', {})
+        dependencies = _task_dependencies(tasks)
+        remaining -= 1 + len(tasks) + sum(map(len, dependencies.values()))
+        if remaining < 0:
+            raise ValueError(
+                f'Markdown expansion exceeds {_MAX_MARKDOWN_ELEMENTS:,} '
+                'DAGs, tasks, and dependencies. Use --format html for a '
+                'compact visualization of this pipeline.'
+            )
+        nodes = []
+        children = []
+        for key, task in sorted(tasks.items()):
+            target = components[task['componentRef']['name']]
             kind = 'Task'
             if 'dag' in target:
-                if reference in ancestors:
-                    raise ValueError(
-                        f'Recursive DAG component {reference!r}. '
-                        'Remove the recursive component reference.'
-                    )
                 kind = (
                     'Loop'
                     if 'parameterIterator' in task or 'artifactIterator' in task
@@ -152,63 +223,29 @@ def build_view(spec: dict[str, Any]) -> dict[str, Any]:
                     if task.get('triggerPolicy', {}).get('condition')
                     else 'Sub-DAG'
                 )
-                children.append((target, child_path, (*ancestors, reference)))
-            elif not target.get('executorLabel'):
-                raise ValueError(
-                    f'Component {reference!r} has no DAG or '
-                    'executorLabel. Use a compiled pipeline spec.'
-                )
+                children.append((target, [*path, key]))
             nodes.append(
                 {
                     'id': key,
-                    'label': task.get('taskInfo', {}).get('name', key),
+                    'label': task['taskInfo']['name'],
                     'kind': kind,
                 }
             )
-            dependencies = set(task.get('dependentTasks', []))
-            dependencies.update(_producers(task.get('inputs', {})))
-            for producer in dependencies:
-                if producer not in tasks or producer == key:
-                    raise ValueError(
-                        f'Task {key!r} has invalid dependency '
-                        f'{producer!r}. Correct its task inputs '
-                        'or dependentTasks.'
-                    )
-                edges.add((producer, key))
-        # Reject dependency cycles instead of drawing a misleading pipeline.
-        remaining = {key: set() for key in tasks}
-        for source, target in edges:
-            remaining[target].add(source)
-        while remaining:
-            ready = {
-                key
-                for key, dependencies in remaining.items()
-                if not dependencies
-            }
-            if not ready:
-                raise ValueError(
-                    'Cyclic task dependencies. Remove the cycle '
-                    'before visualizing this pipeline.'
-                )
-            remaining = {
-                key: dependencies - ready
-                for key, dependencies in remaining.items()
-                if key not in ready
-            }
         graphs.append(
             {
                 'label': ' / '.join(path) if path else 'Pipeline',
                 'nodes': nodes,
                 'edges': [
                     {'source': source, 'target': target}
-                    for source, target in sorted(edges)
+                    for source, target in sorted(
+                        (source, target)
+                        for target, producers in dependencies.items()
+                        for source in producers
+                    )
                 ],
             }
         )
-        for target, child_path, ancestors in children:
-            visit(target, child_path, ancestors)
-
-    visit(spec['root'], [], ())
+        pending.extend(reversed(children))
     return {'name': spec['pipelineInfo']['name'], 'graphs': graphs}
 
 
