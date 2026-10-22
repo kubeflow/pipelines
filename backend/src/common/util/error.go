@@ -217,6 +217,17 @@ func NewScheduleHandoffContextError(err error) *UserError {
 	return newUserError(err, message, code)
 }
 
+// NewScheduleTransferHandoffError scopes the wait failure to schedule staging.
+// Catalog entries or earlier schedules may already have been staged by import.
+func NewScheduleTransferHandoffError(err error) *UserError {
+	code := ToGRPCStatus(err).Code()
+	message := "This schedule was not staged because schedule writer handoff did not complete; earlier import staging may exist. Verify the rollout and resume the same archive."
+	if code == codes.FailedPrecondition {
+		message = "This schedule was not staged because schedule writer configuration is invalid; earlier import staging may exist. Verify writer identities and managed-writer RBAC, then resume the same archive."
+	}
+	return newUserError(err, message, code)
+}
+
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
 	message := fmt.Sprintf(messageFormat, a...)
 	return newUserError(errors.Errorf("Invalid input error: %v", message), message, codes.InvalidArgument)

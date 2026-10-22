@@ -103,7 +103,7 @@ func (a transferSchedules) Prepare(ctx context.Context, source string, original 
 	// same old-writer fence as CreateJob, before returning a staging candidate.
 	if !dry {
 		if err := a.r.waitForScheduleWriters(ctx); err != nil {
-			return nil, err
+			return nil, util.NewScheduleTransferHandoffError(err)
 		}
 	}
 	j := *original

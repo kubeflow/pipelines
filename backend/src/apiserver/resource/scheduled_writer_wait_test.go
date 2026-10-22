@@ -98,7 +98,11 @@ func TestScheduleWriterWaitFailureDoesNotMutate(t *testing.T) {
 						marker = true
 					}
 				}
-				require.Equal(t, tc.code == codes.Unavailable, marker)
+				require.Equal(t, tc.code == codes.Unavailable && operation != "transfer", marker)
+				if operation == "transfer" {
+					require.Contains(t, status.Message(), "earlier import staging may exist")
+					require.NotContains(t, status.Message(), "request was not applied")
+				}
 				require.Empty(t, swfClient.client.Actions(), "waiting must precede any schedule Kubernetes access")
 				after, err := clients.JobStore().GetJob(job.UUID)
 				require.NoError(t, err)

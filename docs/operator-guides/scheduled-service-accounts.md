@@ -151,8 +151,10 @@ the old behavior until handoff; the new controller waits. This scheduling-write
 pause is automatic and requires no operator cutover.
 
 If handoff takes longer than the wait limit, the API returns retryable
-`Unavailable` **before any mutation**. A handoff rejection means the requested
-operation was **not applied**. In particular, a rejected disable request leaves
+`Unavailable` **before the schedule mutation**. For create and enable/disable,
+a handoff rejection means the requested operation was **not applied**. Transfer
+errors only guarantee that the current schedule was not staged: earlier import
+staging can already exist. Resume the same archive after resolving the error. In particular, a rejected disable request leaves
 the schedule enabled; do not report it as paused. Retry with bounded exponential
 backoff after the rollout completes, then read the schedule back to confirm its
 enabled state. If the retry budget expires, inspect the managed rollout and
