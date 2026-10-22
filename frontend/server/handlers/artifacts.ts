@@ -50,8 +50,8 @@ import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
 import {
   validateArtifactNamespace,
+  validateArtifactKey,
   buildArtifactUri,
-  decideFromPrefixFallback,
 } from '../helpers/mlmd-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
@@ -86,8 +86,6 @@ type AuthorizedArtifact = {
   bucket: string;
   key: string;
   namespace: string;
-  auditCustomRoot: boolean;
-  envoyAddress?: string;
 };
 
 // Keep authorization evidence separate from mutable Express route/query objects.
@@ -274,7 +272,7 @@ export function pipePreviewResponse(
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
  * @param envoyAddress MLMD Envoy address used for namespace-ownership
- *   validation (#9889). Required in multi-user mode.
+ *   validation (#9889). Existing access remains available when it is not configured.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
@@ -367,26 +365,22 @@ export function getArtifactsAuthMiddleware(
       return;
     }
     const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
-    let auditCustomRoot = false;
     if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
-      if (!envoyAddress) {
-        sendArtifactError(response, 503, 'Artifact ownership validation is unavailable');
-        return;
-      }
       const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
-      const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
-
-      if (validation.valid && validation.reason === 'audit-custom-root') {
-        auditCustomRoot = true;
-        console.warn('[SECURITY] artifact_ownership_audit', {
-          namespace,
-          source: coords.source,
-          route: request.path.endsWith('/artifacts/get') ? 'preview-or-download' : 'download',
-          reason: 'custom-root-would-deny',
-        });
-      }
+      const validation = envoyAddress
+        ? await validateArtifactNamespace(envoyAddress, artifactUri, namespace)
+        : validateArtifactKey(artifactUri);
 
       if (!validation.valid) {
+        if (validation.reason === 'key-not-normalized') {
+          sendArtifactError(
+            response,
+            403,
+            'Artifact object key is not normalized. Remove dot segments, encoded separators, ' +
+              'and malformed encoding.',
+          );
+          return;
+        }
         console.warn(
           `[SECURITY] IDOR blocked: artifact namespace mismatch. ` +
             `User: ${userId}, ` +
@@ -399,10 +393,7 @@ export function getArtifactsAuthMiddleware(
         return;
       }
     }
-    authorizedArtifacts.set(
-      request,
-      Object.freeze({ ...coords, namespace, auditCustomRoot, envoyAddress }),
-    );
+    authorizedArtifacts.set(request, Object.freeze({ ...coords, namespace }));
     next();
   };
 }
@@ -704,42 +695,6 @@ export function getArtifactsHandler({
           http.auth,
           peek,
           absoluteHttpBase ? new URL(http.baseUrl.trim()) : undefined,
-          authorized
-            ? async (target: URL) => {
-                const initial = new URL(httpUrl);
-                if (target.origin !== initial.origin || target.search || target.hash) return false;
-                // Audit evidence covers the initial custom-root object, not a new
-                // object selected by the storage server's redirect response.
-                if (authorized.auditCustomRoot) return target.href === initial.href;
-                let redirectedKey = target.pathname.slice(1);
-                if (!absoluteHttpBase) {
-                  const root = new URL(getHttpUrl(source, http.baseUrl, bucket, '')!);
-                  root.pathname = root.pathname.replace(/\/?$/, '/');
-                  if (!target.pathname.startsWith(root.pathname)) return false;
-                  try {
-                    redirectedKey = decodeURIComponent(target.pathname.slice(root.pathname.length));
-                  } catch {
-                    return false;
-                  }
-                }
-                const redirectedUri = buildArtifactUri(source, bucket, redirectedKey);
-                if (
-                  !authorized.envoyAddress ||
-                  !decideFromPrefixFallback(redirectedUri, authorized.namespace, 'mlmd-then-prefix')
-                    .valid
-                )
-                  return false;
-                // A matching prefix alone must not override strict MLMD mode
-                // or conflicting ownership evidence for the redirected object.
-                return (
-                  await validateArtifactNamespace(
-                    authorized.envoyAddress,
-                    redirectedUri,
-                    authorized.namespace,
-                  )
-                ).valid;
-              }
-            : undefined,
         )(req, res);
         break;
       }
@@ -1019,7 +974,6 @@ function getHttpArtifactsHandler(
   } = { key: '', defaultValue: '' },
   peek: number = 0,
   approvedBase?: URL,
-  authorizeRedirect?: (target: URL) => Promise<boolean>,
 ) {
   return async (req: Request, res: Response) => {
     const headers: Record<string, string> = {};
@@ -1053,10 +1007,6 @@ function getHttpArtifactsHandler(
           400,
           'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.',
         );
-        return;
-      }
-      if (hop > 0 && authorizeRedirect && !(await authorizeRedirect(new URL(allowedUrl)))) {
-        sendArtifactError(res, 403, 'Redirected artifact is outside the authorized artifact scope');
         return;
       }
       if (new URL(allowedUrl).origin !== credentialOrigin) {
@@ -1789,8 +1739,6 @@ export function getArtifactsProxyHandler({
         sendArtifactError(res, 403, 'Artifact request differs from the authorized artifact');
         return;
       }
-      // Older tenant services cannot enforce the central HTTP redirect policy.
-      if (authorized.source === 'http' || authorized.source === 'https') return next();
     }
     if (namespace && !isAllowedResourceName(namespace)) {
       sendArtifactError(res, 400, 'Invalid namespace');

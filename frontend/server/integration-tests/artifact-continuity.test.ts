@@ -57,14 +57,23 @@ describe('artifact authorization continuity through production handlers', () => 
     proxy = false,
     auth = true,
     base = 'https://files.example/private-artifacts/',
+    mlmd = true,
+    httpToken = '',
+    allowedDomain = '.*',
   }: {
     mutate?: RequestHandler;
     proxy?: boolean;
     auth?: boolean;
     base?: string;
+    mlmd?: boolean;
+    httpToken?: string;
+    allowedDomain?: string;
   } = {}) {
     const options = loadConfigs(['node', 'server', '/tmp', '3000'], {
       HTTP_BASE_URL: base,
+      ALLOWED_ARTIFACT_DOMAIN_REGEX: allowedDomain,
+      HTTP_AUTHORIZATION_KEY: httpToken ? 'Authorization' : '',
+      HTTP_AUTHORIZATION_DEFAULT_VALUE: httpToken,
       MINIO_HOST: 'synthetic-store',
       MINIO_NAMESPACE: 'kubeflow',
     });
@@ -72,7 +81,12 @@ describe('artifact authorization continuity through production handlers', () => 
     const app = express();
     app.get(
       '/artifacts/*',
-      getArtifactsAuthMiddleware(async () => undefined, auth, 'user', 'synthetic-mlmd'),
+      getArtifactsAuthMiddleware(
+        async () => undefined,
+        auth,
+        'user',
+        mlmd ? 'synthetic-mlmd' : undefined,
+      ),
       mutate ?? ((_req, _res, next) => next()),
       getArtifactsProxyHandler({
         enabled: proxy,
@@ -266,124 +280,210 @@ describe('artifact authorization continuity through production handlers', () => 
     expect(received).toEqual([key]);
   });
 
-  it('keeps authenticated HTTP serving central even when the proxy is enabled', async () => {
-    syntheticFetch.mockResolvedValue(new Response('central data'));
-    await get(buildApp({ proxy: true }), { source: 'https', bucket: 'files.example' }).expect(200);
-    expect(serviceGetter).not.toHaveBeenCalled();
-    expect(syntheticFetch).toHaveBeenCalledWith(`https://files.example/${key}`, expect.anything());
-  });
+  async function startTenant(tenant: ReturnType<typeof express>) {
+    tenantServer = await new Promise<Server>((resolve) => {
+      const server = tenant.listen(0, '127.0.0.1', () => resolve(server));
+    });
+    const address = tenantServer.address();
+    if (!address || typeof address === 'string') throw new Error('Missing test server port');
+    serviceGetter.mockReturnValue(`http://127.0.0.1:${address.port}`);
+  }
 
-  it.each([
-    ['same tenant', 'https://files.example/private-artifacts/team-a/final.txt', 200],
-    ['other tenant', 'https://files.example/private-artifacts/team-b/final.txt', 403],
-    ['encoded other tenant', 'https://files.example/private-artifacts/%74eam-b/final.txt', 403],
-    [
-      'encoded separator',
-      'https://files.example/private-artifacts/team-a%2F..%2Fteam-b/final.txt',
-      400,
-    ],
-    ['other origin', 'https://other.example/private-artifacts/team-a/final.txt', 400],
-    ['signed query', 'https://files.example/private-artifacts/team-a/final.txt?signature=x', 403],
-    ['fragment', 'https://files.example/private-artifacts/team-a/final.txt#other', 403],
-  ])('checks %s redirects before fetching their destination', async (_name, target, status) => {
-    syntheticFetch.mockResolvedValueOnce(
-      new Response(null, { status: 302, headers: { location: target } }),
-    );
-    syntheticFetch.mockResolvedValueOnce(new Response('final'));
-    await get(buildApp(), { source: 'https', bucket: 'files.example' }).expect(status as number);
-    expect(syntheticFetch).toHaveBeenCalledTimes(status === 200 ? 2 : 1);
-  });
-
-  it.each(['artifact-not-found', 'namespace-mismatch'] as const)(
-    'preserves target ownership denial (%s) after a same-tenant redirect',
-    async (reason) => {
-      vi.mocked(ownership.validateArtifactNamespace)
-        .mockResolvedValueOnce({ valid: true })
-        .mockResolvedValueOnce({ valid: false, reason });
-      syntheticFetch.mockResolvedValueOnce(
-        new Response(null, {
-          status: 302,
-          headers: {
-            location: 'https://files.example/private-artifacts/team-a/final.txt',
-          },
-        }),
+  it.each([false, true])(
+    'preserves custom-root reads without an MLMD endpoint (proxy=%s)',
+    async (proxy) => {
+      if (proxy) {
+        await startTenant(buildApp({ auth: false }));
+      }
+      await get(buildApp({ proxy, mlmd: false }), { key: 'historical/model/output.txt' }).expect(
+        200,
       );
-      await get(buildApp(), { source: 'https', bucket: 'files.example' }).expect(403);
-      expect(ownership.validateArtifactNamespace).toHaveBeenNthCalledWith(
-        2,
-        'synthetic-mlmd',
-        'https://files.example/private-artifacts/team-a/final.txt',
-        namespace,
+      expect(ownership.validateArtifactNamespace).not.toHaveBeenCalled();
+      expect(minioHelper.getObjectStream).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'historical/model/output.txt' }),
       );
-      expect(syntheticFetch).toHaveBeenCalledTimes(1);
     },
   );
 
-  it('allows same-tenant gateway redirects but rejects a different logical bucket', async () => {
-    syntheticFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'https://gateway.example/artifacts/data/private-artifacts/team-a/final.txt',
-        },
-      }),
-    );
-    syntheticFetch.mockResolvedValueOnce(new Response('final'));
-    await get(buildApp({ base: 'gateway.example/artifacts/' }), { source: 'https' }).expect(200);
-    syntheticFetch.mockReset();
-    syntheticFetch.mockImplementation(async () => new Response('synthetic data'));
-    syntheticFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'https://gateway.example/artifacts/other/private-artifacts/team-a/final.txt',
-        },
-      }),
-    );
-    await get(buildApp({ base: 'gateway.example/artifacts/' }), { source: 'https' }).expect(403);
-    expect(syntheticFetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('preserves audit custom-root initial reads without granting redirect authority', async () => {
-    vi.mocked(ownership.validateArtifactNamespace).mockResolvedValue({
-      valid: true,
-      reason: 'audit-custom-root',
+  describe.each([false, true])('key safety without an MLMD endpoint (proxy=%s)', (proxy) => {
+    it.each([
+      'historical/../team-b/model',
+      'historical/%2e%2e/team-b/model',
+      'historical/model%2F..%2Fteam-b/model',
+      'historical/%00model',
+      'historical/%ZZmodel',
+      'historical//model',
+    ])('rejects %s before storage or proxy access', async (unsafeKey) => {
+      await get(buildApp({ proxy, mlmd: false }), { key: unsafeKey }).expect(403);
+      expect(ownership.validateArtifactNamespace).not.toHaveBeenCalled();
+      expect(minioHelper.getObjectStream).not.toHaveBeenCalled();
+      expect(serviceGetter).not.toHaveBeenCalled();
     });
-    syntheticFetch.mockResolvedValueOnce(new Response('legacy custom root'));
-    await get(buildApp({ base: 'https://files.example/' }), {
-      source: 'https',
-      bucket: 'files.example',
-      key: 'legacy/result.txt',
-    }).expect(200);
-    syntheticFetch.mockReset();
-    syntheticFetch.mockImplementation(async () => new Response('synthetic data'));
+  });
+
+  it.each([false, true])(
+    'forwards HTTP %s downloads to the older namespace receiver during rollout',
+    async (download) => {
+      const tenant = express();
+      const received: Array<{ key: unknown; namespace: unknown }> = [];
+      // Model the two existing receiver routes, without requiring a new protocol.
+      tenant.get('/artifacts/get', (req, res) => {
+        received.push({ key: req.query.key, namespace: req.query.namespace });
+        res.send('legacy namespace response');
+      });
+      tenant.get('/artifacts/:source/:bucket/*', (req, res) => {
+        received.push({ key: req.params[0], namespace: req.query.namespace });
+        res.send('legacy namespace response');
+      });
+      await startTenant(tenant);
+      await get(buildApp({ proxy: true, base: '' }), {
+        source: 'https',
+        bucket: 'files.example',
+        key: 'reports/model%2Foutput.txt',
+        download: String(download),
+      }).expect(200);
+      expect(received).toEqual([{ key: 'reports/model%2Foutput.txt', namespace: undefined }]);
+      expect(syntheticFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    'uses only the updated namespace receiver HTTP credentials (download=%s)',
+    async (download) => {
+      await startTenant(
+        buildApp({
+          auth: false,
+          base: 'https://files.example/reports/',
+          httpToken: 'synthetic-namespace-token',
+        }),
+      );
+      syntheticFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: 'https://files.example/reports/final.txt' },
+        }),
+      );
+      syntheticFetch.mockResolvedValueOnce(new Response('namespace artifact'));
+      await get(buildApp({ proxy: true, base: '', httpToken: 'wrong-central-token' }), {
+        source: 'https',
+        bucket: 'files.example',
+        key: 'reports/result.txt',
+        download: String(download),
+      }).expect(200);
+      expect(syntheticFetch).toHaveBeenCalledTimes(2);
+      for (const call of syntheticFetch.mock.calls) {
+        expect(call[1]).toEqual({
+          headers: { Authorization: 'synthetic-namespace-token' },
+          redirect: 'manual',
+        });
+      }
+      // Ownership evidence applies to the requested artifact, not a new
+      // object selected by a redirect within the operator's approved boundary.
+      expect(ownership.validateArtifactNamespace).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    ['custom root', 'https://files.example/reports/final.txt', 200],
+    ['encoded filename', 'https://files.example/reports/final%20report.txt', 200],
+    ['outside base', 'https://files.example/reports-other/final.txt', 400],
+    ['other origin', 'https://other.example/reports/final.txt', 400],
+    ['signed foreign origin', 'https://other.example/reports/final.txt?signature=x', 400],
+    ['signed path escape', 'https://files.example/private/final.txt?signature=x', 400],
+    ['embedded credentials', 'https://user:pass@files.example/reports/final.txt', 400],
+    ['encoded traversal', 'https://files.example/reports/model%2F..%2F..%2Fprivate/file', 400],
+    ['signed query', 'https://files.example/reports/final.txt?signature=x', 200],
+    ['fragment', 'https://files.example/reports/final.txt#other', 200],
+  ])(
+    'checks %s redirects in updated receivers before fetching their destination',
+    async (_name, target, status) => {
+      await startTenant(
+        buildApp({
+          auth: false,
+          base: 'https://files.example/reports/',
+          httpToken: 'synthetic-namespace-token',
+        }),
+      );
+      syntheticFetch.mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: target } }),
+      );
+      syntheticFetch.mockResolvedValueOnce(new Response('final'));
+      await get(buildApp({ proxy: true, base: '' }), {
+        source: 'https',
+        bucket: 'files.example',
+        key: 'reports/result.txt',
+      }).expect(status as number);
+      expect(syntheticFetch).toHaveBeenCalledTimes(status === 200 ? 2 : 1);
+    },
+  );
+
+  it.each([
+    ['https://gateway.example/downloads/final.txt?signature=x', 'synthetic-namespace-token'],
+    ['https://cdn.example/downloads/final.txt?signature=x', undefined],
+  ])(
+    'preserves approved gateway redirects through the namespace receiver: %s',
+    async (target, expectedToken) => {
+      await startTenant(
+        buildApp({
+          auth: false,
+          base: 'gateway.example/artifacts/',
+          httpToken: 'synthetic-namespace-token',
+          allowedDomain: '^(gateway|cdn)\\.example$',
+        }),
+      );
+      syntheticFetch.mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: target! } }),
+      );
+      syntheticFetch.mockResolvedValueOnce(new Response('final'));
+      await get(buildApp({ proxy: true, base: '' }), {
+        source: 'https',
+        key: 'legacy/start.txt',
+      }).expect(200);
+      expect(syntheticFetch).toHaveBeenNthCalledWith(2, target, {
+        headers: expectedToken ? { Authorization: expectedToken } : {},
+        redirect: 'manual',
+      });
+    },
+  );
+
+  it('rejects a gateway redirect outside the receiver allowlist without forwarding credentials', async () => {
+    await startTenant(
+      buildApp({
+        auth: false,
+        base: 'gateway.example/artifacts/',
+        httpToken: 'synthetic-namespace-token',
+        allowedDomain: '^gateway\\.example$',
+      }),
+    );
     syntheticFetch.mockResolvedValueOnce(
       new Response(null, {
         status: 302,
-        headers: {
-          location: `https://files.example/${key}`,
-        },
+        headers: { location: 'http://169.254.169.254/private?signature=x' },
       }),
     );
-    await get(buildApp({ base: 'https://files.example/' }), {
+    await get(buildApp({ proxy: true, base: '' }), {
       source: 'https',
-      bucket: 'files.example',
-      key: 'legacy/result.txt',
-    }).expect(403);
+      key: 'legacy/start.txt',
+    }).expect(500);
     expect(syntheticFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('retains standalone HTTP redirect behavior within the approved base', async () => {
-    syntheticFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'https://files.example/private-artifacts/team-b/final.txt',
-        },
-      }),
-    );
-    syntheticFetch.mockResolvedValueOnce(new Response('standalone'));
-    await get(buildApp({ auth: false }), { source: 'https', bucket: 'files.example' }).expect(200);
-    expect(ownership.validateArtifactNamespace).not.toHaveBeenCalled();
-  });
+  it.each([false, true])(
+    'retains custom-root HTTP reads and redirects within the approved base (auth=%s)',
+    async (auth) => {
+      syntheticFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: 'https://files.example/reports/final.txt' },
+        }),
+      );
+      syntheticFetch.mockResolvedValueOnce(new Response('custom root'));
+      await get(buildApp({ auth, base: 'https://files.example/reports/' }), {
+        source: 'https',
+        bucket: 'files.example',
+        key: 'reports/start.txt',
+      }).expect(200);
+      expect(ownership.validateArtifactNamespace).toHaveBeenCalledTimes(auth ? 1 : 0);
+    },
+  );
 });
