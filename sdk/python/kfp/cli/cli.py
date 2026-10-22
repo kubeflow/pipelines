@@ -27,6 +27,7 @@ from kfp.cli import (
     pipeline,
     recurring_run,
     run,
+    visualize,
 )
 from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group, parsing
@@ -38,7 +39,12 @@ COMMANDS = {
         experiment.experiment,
         pipeline.pipeline,
     },
-    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl},
+    'no_client': {
+        diagnose_me_cli.diagnose_me,
+        component.component,
+        dsl.dsl,
+        visualize.visualize,
+    },
 }
 
 PROGRAM_NAME = 'kfp'
