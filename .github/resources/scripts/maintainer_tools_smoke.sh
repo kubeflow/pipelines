@@ -115,7 +115,11 @@ CONTAINER
 set -euo pipefail
 mkdir -p "$HOME"
 test "$(node --version)" = "v$(tr -d 'v\r\n' < frontend/.nvmrc)"
-npm --version
+test "$(npm --version)" = "$NPM_VERSION"
+mkdir -p /tmp/kfp-npm-smoke
+printf '%s\n' '{"name":"kfp-tooling-smoke","version":"1.0.0"}' > /tmp/kfp-npm-smoke/package.json
+npm pack /tmp/kfp-npm-smoke --pack-destination /tmp
+test -s /tmp/kfp-tooling-smoke-1.0.0.tgz
 yq --version | grep -F 'v4.54.1'
 test "$(git-cliff --version)" = "git-cliff ${GIT_CLIFF_VERSION}"
 python3 manifests/kustomize/hack/yq_release_test.py
