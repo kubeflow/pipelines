@@ -133,7 +133,24 @@ just like this example in [sync.py](https://github.com/kubeflow/pipelines/blob/b
 the entry is identical to the environment variable instruction in Standalone Kubeflow Pipelines
 deployment.
 
-### HTTP artifact migration for 2.18
+<a id="http-artifact-migration-for-218"></a>
+<a id="http-artifact-migration-for-2-18"></a>
+
+### HTTP artifact configuration on master
+
+This section describes the current master implementation for 3.0, including its
+shared-UI HTTP serving path and mandatory namespace-prefix checks. The 2.18
+release decision is different: [#15044](https://github.com/kubeflow/pipelines/pull/15044)
+restores the previous ownership behavior and namespace HTTP receiver routing,
+with [2.18 upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703).
+Those changes are pending; do not move namespace HTTP credentials into the shared
+UI solely to follow these master instructions during a 2.18 upgrade.
+
+The [3.0 artifact API migration](https://github.com/kubeflow/pipelines/issues/14031)
+must establish its boundary from the actual 2.18 installation. It must not assume
+prior storage approvals, readiness records or a versioned receiver protocol.
+The configuration below describes current master, not completed 3.0 migration
+support or the proposed storage-authorization implementation.
 
 For a standalone deployment with an existing artifact URI such as
 `https://files.example:9443/reports/result.json`, configure a fully qualified

@@ -178,6 +178,13 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 ## Multi-user artifact ownership
 
+This section describes the current **master / 3.0** implementation. The 2.18 release
+instead defers stronger ownership enforcement and retains the previous ownership behavior;
+that change is in [#15044](https://github.com/kubeflow/pipelines/pull/15044), with its
+[upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703). Both PRs are
+pending. Do not apply master's mandatory-prefix or shared-UI HTTP instructions below to
+that 2.18 upgrade.
+
 With `ENABLE_AUTHZ=true`, artifact previews and downloads require an object key under
 `private-artifacts/<namespace>/...`, or the equivalent prefix configured by the operator through
 `ARTIFACT_NAMESPACE_KEY_PREFIX`. This applies to MinIO, S3, GCS, and HTTP(S) artifacts, including
@@ -214,5 +221,15 @@ Standalone mode and namespace-proxied volume artifacts are unchanged.
   namespace path policy. It does not enable arbitrary custom roots.
 
 These values are not audit/enforce switches. Master/3.0 has no artifact audit exception and
-does not read the 2.18-only `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` setting. The configurable
-`ARTIFACT_NAMESPACE_KEY_PREFIX` changes the expected prefix, not the ownership requirement.
+does not read `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE`. That unreleased setting is being removed
+from 2.18 by [#15044](https://github.com/kubeflow/pipelines/pull/15044); it is not a supported
+2.18 migration option. The configurable `ARTIFACT_NAMESPACE_KEY_PREFIX` changes the expected
+prefix, not the ownership requirement.
+
+The [3.0 backend artifact API design](https://github.com/kubeflow/pipelines/issues/14031)
+must define first adoption from the retained 2.18 behavior. It cannot assume a 2.18
+installation already has storage approvals, readiness records or a new receiver protocol.
+[Master's proposed storage-authorization work](https://github.com/kubeflow/pipelines/pull/14883)
+is separate from the selected 2.18 baseline. See
+[HTTP configuration on master](../docs/operator-guides/server-config.md#http-artifact-configuration-on-master)
+for the current HTTP serving path.
