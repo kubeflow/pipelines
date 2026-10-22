@@ -59,7 +59,10 @@ are the application's own modules, not standalone copies. The bundle includes
 the application's generated Tailwind styles and matches its 13px root font.
 
 Python's `kfp.cli.visualization.validate_spec` checks each reachable DAG
-component definition once, including task display names, references, and cycles.
+component definition once, including task display names, producer references,
+and cycles. It also requires the `deploymentSpec` field (an empty object is
+allowed), matching the shared graph/inspector's contract. Incomplete references
+or missing deployment data fail before files or served state are replaced.
 HTML never expands reusable-component instance paths. `build_view` validates
 and projects those paths only for Mermaid Markdown, with a budget of 10,000
 DAGs, tasks, and dependency edges in total to prevent exponential output growth.

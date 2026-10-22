@@ -33,6 +33,9 @@ def spec():
     return {
         'pipelineInfo': {'name': 'example'},
         'schemaVersion': '2.1.0',
+        'deploymentSpec': {
+            'executors': {'exec-step': {'container': {'image': 'alpine'}}}
+        },
         'root': {
             'dag': {
                 'tasks': {
@@ -117,6 +120,131 @@ def test_task_dependencies_and_nested_dags(spec):
     markdown = visualization.render_markdown(view)
     assert markdown.count('```mermaid') == 3
     assert markdown.count('-->') == 2
+
+
+@pytest.mark.parametrize('format_', ['html', 'markdown', 'both'])
+@pytest.mark.parametrize(
+    'incomplete', ['missing', 'empty', 'null', 'empty-reference']
+)
+@pytest.mark.parametrize(
+    'kind,field,output_key',
+    [
+        ('parameters', 'taskOutputParameter', 'outputParameterKey'),
+        ('artifacts', 'taskOutputArtifact', 'outputArtifactKey'),
+        ('parameters', 'taskFinalStatus', None),
+    ],
+)
+def test_watch_rejects_incomplete_producers_and_recovers(
+    source, spec, format_, incomplete, kind, field, output_key
+):
+    reference = {'producerTask': 'load'}
+    if output_key:
+        reference[output_key] = 'data'
+    task = spec['root']['dag']['tasks']['train']
+    task.pop('dependentTasks')
+    task['inputs'] = {kind: {'data': {field: reference}}}
+    source.write_text(yaml.safe_dump(spec))
+    output = source.with_suffix('.md' if format_ == 'markdown' else '.html')
+    paths = visualize._output_paths(source, output, format_).values()
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    visualize._update(source, None, output, format_, state, watch=True)
+    previous_files = {path: path.read_bytes() for path in paths}
+    previous_spec = state['current']['spec']
+    original = reference.copy()
+    if incomplete == 'missing':
+        reference.pop('producerTask')
+    elif incomplete == 'empty-reference':
+        reference.clear()
+    else:
+        reference['producerTask'] = '' if incomplete == 'empty' else None
+    source.write_text(yaml.safe_dump(spec))
+    visualize._update(source, None, output, format_, state, watch=True)
+    assert 'producerTask' in (state['current']['error'] or '')
+    assert state['current']['spec'] == previous_spec
+    assert {
+        path: path.read_bytes() for path in previous_files
+    } == previous_files
+    reference.clear()
+    reference.update(original)
+    source.write_text(yaml.safe_dump(spec))
+    visualize._update(source, None, output, format_, state, watch=True)
+    assert state['current']['error'] is None
+    assert state['current']['spec'] == previous_spec
+    assert {
+        path: path.read_bytes()
+        for path in previous_files
+        if path.suffix == '.md'
+    } == {
+        path: content
+        for path, content in previous_files.items()
+        if path.suffix == '.md'
+    }
+
+
+def test_explicit_ordering_does_not_hide_incomplete_producer(spec):
+    spec['root']['dag']['tasks']['train']['inputs']['parameters']['data'][
+        'taskOutputParameter'
+    ].pop('producerTask')
+    with pytest.raises(ValueError, match='producerTask'):
+        visualization.validate_spec(spec)
+
+
+@pytest.mark.parametrize('format_', ['html', 'markdown', 'both'])
+@pytest.mark.parametrize('extension', ['.yaml', '.json'])
+@pytest.mark.parametrize('missing', [True, False])
+def test_watch_rejects_missing_deployment_and_recovers(
+    tmp_path, format_, extension, missing
+):
+    spec = _reused_dag_spec(2)
+    source = tmp_path / ('nested' + extension)
+    dump = yaml.safe_dump if extension == '.yaml' else json.dumps
+    source.write_text(dump(spec))
+    output = source.with_suffix('.md' if format_ == 'markdown' else '.html')
+    paths = visualize._output_paths(source, output, format_).values()
+    state = {'current': {'spec': None, 'error': None, 'revision': 0}}
+    visualize._update(source, None, output, format_, state, watch=True)
+    previous_files = {path: path.read_bytes() for path in paths}
+    previous_spec = state['current']['spec']
+    deployment = spec.pop('deploymentSpec')
+    if not missing:
+        spec['deploymentSpec'] = None
+    source.write_text(dump(spec))
+    visualize._update(source, None, output, format_, state, watch=True)
+    assert 'deploymentSpec' in (state['current']['error'] or '')
+    assert state['current']['spec'] == previous_spec
+    assert {
+        path: path.read_bytes() for path in previous_files
+    } == previous_files
+    spec['deploymentSpec'] = deployment
+    source.write_text(dump(spec))
+    visualize._update(source, None, output, format_, state, watch=True)
+    assert state['current']['error'] is None
+    assert state['current']['spec'] == previous_spec
+
+
+def test_serve_rejects_missing_deployment_with_markdown(
+    source, spec, monkeypatch
+):
+    spec.pop('deploymentSpec')
+    source.write_text(yaml.safe_dump(spec))
+
+    def unexpected_server(*args, **kwargs):
+        pytest.fail('An invalid spec must not be served')
+
+    monkeypatch.setattr(visualize, '_live_server', unexpected_server)
+    result = CliRunner().invoke(
+        visualize.visualize, [str(source), '--format', 'markdown', '-s']
+    )
+    assert result.exit_code == 1, (result.output, result.exception)
+    assert 'deploymentSpec' in result.output
+    assert not source.with_suffix('.md').exists()
+
+
+def test_empty_deployment_object_is_supported(source, spec):
+    spec['deploymentSpec'] = {}
+    source.write_text(yaml.safe_dump(spec))
+    result = CliRunner().invoke(visualize.visualize, [str(source)])
+    assert result.exit_code == 0, (result.output, result.exception)
 
 
 def test_graph_order_is_stable_across_spec_key_reordering(spec):

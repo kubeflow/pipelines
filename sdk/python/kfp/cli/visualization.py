@@ -105,17 +105,26 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
 
 def _producers(inputs: dict[str, Any]) -> set[str]:
     # Only inspect IR reference fields, never user JSON in runtime constants.
-    return {
-        source['producerTask']
-        for kind in ('parameters', 'artifacts')
-        for value in inputs.get(kind, {}).values()
-        for key in (
-            'taskOutputParameter',
-            'taskOutputArtifact',
-            'taskFinalStatus',
-        )
-        if (source := value.get(key)) and source.get('producerTask')
-    }
+    producers = set()
+    for kind in ('parameters', 'artifacts'):
+        for name, value in inputs.get(kind, {}).items():
+            for key in (
+                'taskOutputParameter',
+                'taskOutputArtifact',
+                'taskFinalStatus',
+            ):
+                if key not in value:
+                    continue
+                source = value[key]
+                if not isinstance(source, dict) or not source.get(
+                    'producerTask'
+                ):
+                    raise ValueError(
+                        f'Input {name!r} has {key} without a non-empty producerTask. '
+                        'Restore the producing task name before exporting.'
+                    )
+                producers.add(source['producerTask'])
+    return producers
 
 
 def _task_dependencies(tasks: dict[str, Any]) -> dict[str, set[str]]:
@@ -139,7 +148,14 @@ def _task_dependencies(tasks: dict[str, Any]) -> dict[str, set[str]]:
 
 
 def validate_spec(spec: dict[str, Any]) -> None:
-    """Validate reachable DAG definitions once, without expanding instances."""
+    """Validate a renderable spec without expanding reusable DAG instances."""
+    # The shared graph/inspector requires this field; an empty object is valid.
+    # Apply the same contract to all formats since Markdown may also be served.
+    if spec.get('deploymentSpec') is None:
+        raise ValueError(
+            'Missing deploymentSpec. Restore the deployment configuration '
+            'before exporting or serving this pipeline.'
+        )
     components = spec.get('components', {})
     pending: list[str | None] = [None]
     visited: set[str | None] = set()

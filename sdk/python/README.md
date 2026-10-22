@@ -93,7 +93,11 @@ numeric constants.
 HTML validates reusable DAG definitions once and keeps the spec compact.
 Markdown expands instance paths, with a limit of 10,000 DAGs, tasks, and
 dependency edges in total; use HTML for pipelines that exceed this limit.
-Missing or empty task display names are rejected before replacing an export.
+Missing/empty task display names and incomplete task-output or final-status
+producer references are rejected before replacing an export. All formats require
+a `deploymentSpec` field so their validated state can also be served by the shared
+KFP graph/inspector; an explicit empty object is supported. Removing the field
+or a producer name during an edit preserves the previous exports and preview.
 
 `-w` is a short alias for `--watch`. Watching only updates files; it never
 starts a server unless `--serve` / `-s` is also supplied. Watch mode observes
