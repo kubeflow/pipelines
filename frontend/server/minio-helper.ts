@@ -953,7 +953,7 @@ function containsInvalidSecondLayerEscape(rawPath: string): boolean {
 
 function normalizeGoEndpointPath(rawPath: string): string {
   const bytes: number[] = [];
-  for (let index = 0; index < rawPath.length; ) {
+  for (let index = 0; index < rawPath.length;) {
     if (rawPath[index] === '%' && /^[0-9a-f]{2}$/i.test(rawPath.slice(index + 1, index + 3))) {
       bytes.push(Number.parseInt(rawPath.slice(index + 1, index + 3), 16));
       index += 3;

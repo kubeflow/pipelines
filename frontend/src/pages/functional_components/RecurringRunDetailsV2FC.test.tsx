@@ -360,8 +360,7 @@ describe('RecurringRunDetailsV2FC', () => {
     });
 
     const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions.refresh.action as
-      | (() => Promise<void>)
-      | undefined;
+      (() => Promise<void>) | undefined;
     expect(refreshAction).toBeDefined();
     const refreshCallCount = getRecurringRunSpy.mock.calls.length;
 
