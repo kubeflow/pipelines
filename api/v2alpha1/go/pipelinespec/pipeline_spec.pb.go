@@ -1230,11 +1230,11 @@ type PipelineTaskSpec struct {
 	// values of input artifact or parameter. The current task will become the
 	// parent of all the fan-out tasks. The output of the current task follows
 	// the following conventions:
-	//   - Output artifacts with the same name of each iteration will be merged
-	//     into one output artifact channel of the parent iterator task.
-	//   - Output parameters with the same name of each iteration will be merged
-	//     into a string output parameter with the same name with content being a
-	//     JSON array.
+	// * Output artifacts with the same name of each iteration will be merged
+	//   into one output artifact channel of the parent iterator task.
+	// * Output parameters with the same name of each iteration will be merged
+	//   into a string output parameter with the same name with content being a
+	//   JSON array.
 	//
 	// For example, if an iterator starts two sub-tasks (t1 and t2) with the
 	// following outputs.
