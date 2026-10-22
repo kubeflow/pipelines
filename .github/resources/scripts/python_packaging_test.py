@@ -28,6 +28,8 @@ import tomllib
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 EXPORTS = (
     'requirements.txt',
@@ -404,6 +406,32 @@ class PythonPackagingTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 1)
             self.assertIn('included in kfp', result.stderr)
+
+    def test_readthedocs_bounds_font_download_concurrency(self) -> None:
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/readthedocs-builds.yml').read_text()
+        )
+        job = workflow['jobs']['test-readthedocs-builds']
+        variable = 'SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS'
+        environment = job.get('env', {})
+        self.assertEqual(int(environment.get(variable, 128)), 4)
+        self.assertFalse(job.get('continue-on-error', False))
+        builds = [
+            step
+            for step in job['steps']
+            if step['name']
+            in ('Build KFP SDK Docs', 'Build KFP Kubernetes SDK Docs')
+        ]
+        self.assertEqual(len(builds), 2)
+        for step in builds:
+            with self.subTest(step=step['name']):
+                effective = {**environment, **step.get('env', {})}
+                self.assertEqual(int(effective[variable]), 4)
+                self.assertEqual(
+                    step['run'].strip(),
+                    'uv run sphinx-build -b html . _build/html',
+                )
+                self.assertFalse(step.get('continue-on-error', False))
 
     def test_readthedocs_uses_generated_workspace_packages(self) -> None:
         """Build both documentation sites with uv rather than pip-installing

@@ -26,6 +26,9 @@ permissions:
 jobs:
   test-readthedocs-builds:
     runs-on: ubuntu-24.04
+    env:
+      # Avoid the theme's default burst of 128 Google Fonts fetch workers.
+      SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS: "4"
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

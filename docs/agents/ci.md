@@ -162,6 +162,8 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
 
+- Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
+
 - The standalone viewer's generated `sdk/python/kfp/cli/viewer_assets/viewer.js` and `viewer.css` are excluded only from pre-commit's end-of-file and trailing-whitespace rewriting hooks. Vite owns those bytes, including whitespace in bundled third-party template strings; rebuilding would undo manual whitespace edits. Source files, licenses, and non-rewriting checks remain covered. `.gitattributes` does not control pre-commit hook exclusions.
 
 - SDK client deployment failures collect full pod descriptions and current and previous container logs before Kind cleanup. Keep an explicit failure-status condition on collection and place its output under the uploaded `/tmp/tmp*/*` glob; otherwise setup crashes lose their termination evidence.
