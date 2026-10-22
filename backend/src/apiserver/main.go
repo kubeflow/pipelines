@@ -343,7 +343,7 @@ func main() {
 		}
 		kubeClient := clientManager.KubernetesCoreClient().GetClientSet()
 		writersReady := util.NewManagedScheduleWriterHandoff(kubeClient, namespace, podName)
-		resourceOptions.ScheduleWritersReady = writersReady
+		resourceOptions.ScheduleWritersReady = util.NewScheduleWriterHandoffWaiter(writersReady)
 		adoption := resource.NewAutomaticRecurringRunAdoption(resourceManager, writersReady)
 		resourceOptions.EnsureRecurringRunAdopted = adoption.Ensure
 		resourceOptions.EnsureRecurringRunModeChanged = adoption.EnsureAfterModeChange

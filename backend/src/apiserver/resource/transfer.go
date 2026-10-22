@@ -101,9 +101,9 @@ func (a transferSchedules) Prepare(ctx context.Context, source string, original 
 	// Even an existing staged CR can lead to a new SQL job when the engine
 	// finalizes this result. Keep all non-preview schedule creation behind the
 	// same old-writer fence as CreateJob, before returning a staging candidate.
-	if !dry && common.IsMultiUserMode() && a.r.options.ScheduleWritersReady != nil {
-		if err := a.r.options.ScheduleWritersReady(ctx); err != nil {
-			return nil, util.NewUnavailableServerError(err, "Recurring run transfer is waiting for schedule writer handoff; retry later")
+	if !dry {
+		if err := a.r.waitForScheduleWriters(ctx); err != nil {
+			return nil, err
 		}
 	}
 	j := *original

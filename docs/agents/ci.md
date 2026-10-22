@@ -206,3 +206,13 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the profile controller; the pin selects more than Istio images.
 
 - The shared deploy action provisions GitHub CLI before image artifact polling. It reuses an installed CLI or downloads a checksum-pinned Linux AMD64/ARM64 release into runner temporary storage and exports its path for later steps. Missing CLI prerequisites fail immediately instead of consuming the artifact wait window.
+
+- Adoption acceptance also exercises bounded server-side handoff waiting against
+  a replacement API Pod during a real rollout. A fixture-only, bounded controller
+  preStop hook holds a retiring writer alive; releasing it must let one pending
+  HTTP create succeed without retry. A separate request exhausts the 30-second
+  server wait, and a canceled request must not create SQL or CR state, including
+  after release. Health and list requests remain responsive. This controlled
+  overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
+  that upgrade or change production manifests. The fixture restores its original
+  controller template and records results in `reports/handoff-wait.json`.

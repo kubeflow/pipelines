@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-openapi/runtime"
@@ -203,6 +204,17 @@ func NewScheduleHandoffInProgressError() *UserError {
 	err := newUserError(errors.New(message), message, codes.Unavailable)
 	err.errorInfo = &errdetails.ErrorInfo{Reason: "SCHEDULE_HANDOFF_IN_PROGRESS", Domain: "kubeflow.org"}
 	return err
+}
+
+// NewScheduleHandoffContextError preserves cancellation before a schedule mutation.
+func NewScheduleHandoffContextError(err error) *UserError {
+	code := codes.Canceled
+	message := "Recurring run request was canceled while waiting for schedule writer handoff and was not applied; verify the rollout before submitting another request."
+	if errors.Is(err, context.DeadlineExceeded) {
+		code = codes.DeadlineExceeded
+		message = "Recurring run request deadline expired while waiting for schedule writer handoff and was not applied; verify the rollout and request deadline before retrying."
+	}
+	return newUserError(err, message, code)
 }
 
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
