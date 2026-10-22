@@ -15,11 +15,10 @@ output=$(cd "$2" && pwd)
 source_dir=$(mktemp -d)
 trap 'rm -rf -- "$source_dir"' EXIT
 git -C "$root" archive HEAD | tar -x -C "$source_dir"
-chmod -R a+rwX "$source_dir"
 index=0
 for image in kfp-api-generator:ci kfp-release:ci; do
   test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")" = linux/amd64
-  docker run --rm --interactive --user 65532:65532 \
+  docker run --rm --interactive --user "$(id -u):$(id -g)" \
     --env HOME=/tmp/kfp-smoke-home --env LC_ALL=C.UTF-8 --env TZ=UTC \
     --mount "type=bind,source=$source_dir,target=/go/src/github.com/kubeflow/pipelines" \
     --workdir /go/src/github.com/kubeflow/pipelines "$image" bash -se <<'CONTAINER'
@@ -61,7 +60,7 @@ PY
   index=$((index + 1))
 done
 diff -u "$output/api-sources-0.sha256" "$output/api-sources-1.sha256"
-docker run --rm --interactive --user 65532:65532 \
+docker run --rm --interactive --user "$(id -u):$(id -g)" \
   --env HOME=/tmp/kfp-smoke-home --env LC_ALL=C.UTF-8 \
   --mount "type=bind,source=$source_dir,target=/go/src/github.com/kubeflow/pipelines" \
   --workdir /go/src/github.com/kubeflow/pipelines kfp-release:ci bash -se <<'CONTAINER'
