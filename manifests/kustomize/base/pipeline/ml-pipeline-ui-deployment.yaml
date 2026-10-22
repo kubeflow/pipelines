@@ -83,9 +83,9 @@ spec:
           # (for example pod logs and other objects legitimately absent from the metadata
           # store). The default "mlmd-then-prefix" derives the owning namespace from the
           # "private-artifacts/<namespace>/" object-key prefix, restoring v1 and v2 artifact
-          # retrieval while still blocking cross-namespace access; an object that carries no
-          # such prefix has no derivable owner and is denied, because nothing is ever written
-          # to the bucket root. Set to "mlmd-only" to enforce the strict guard that denies
+          # retrieval for matching prefixes. An untracked object without that prefix is
+          # denied. This fallback does not establish ownership when MLMD is unavailable.
+          # Set to "mlmd-only" to enforce the existing guard that denies
           # every artifact absent from the metadata store. Deployments with a customized
           # Argo keyFormat / pipeline root can override the expected leading key segment
           # via ARTIFACT_NAMESPACE_KEY_PREFIX (default "private-artifacts").
@@ -94,15 +94,6 @@ spec:
               configMapKeyRef:
                 name: pipeline-install-config
                 key: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
-                optional: true
-          # Temporary 2.18 migration escape hatch. Defaults to enforce. Audit permits
-          # custom roots only with matching MLMD evidence and retains exposure with
-          # shared downstream credentials. Remove audit before upgrading to 3.0.
-          - name: KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE
-            valueFrom:
-              configMapKeyRef:
-                name: pipeline-install-config
-                key: KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE
                 optional: true
           # Leading object-key segment used by the "mlmd-then-prefix" mode above to derive
           # an artifact's owning namespace (the "<prefix>/<namespace>/" convention). Override
