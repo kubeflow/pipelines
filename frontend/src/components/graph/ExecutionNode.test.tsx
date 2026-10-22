@@ -25,6 +25,22 @@ describe('ExecutionNode', () => {
     return render(<ReactFlowProvider>{component}</ReactFlowProvider>);
   };
 
+  it('keeps the blue ring for selection without requiring focus', () => {
+    const node = (selected: boolean) => (
+      <ReactFlowProvider>
+        <ExecutionNode id='exec-1' data={{ label: 'train-step' }} selected={selected} />
+      </ReactFlowProvider>
+    );
+    const { rerender } = render(node(false));
+    const button = screen.getByRole('button', { name: 'train-step' });
+    expect(button).not.toHaveClass('ring');
+    rerender(node(true));
+    expect(button).not.toHaveFocus();
+    expect(button).toHaveClass('ring', 'focus:ring');
+    rerender(node(false));
+    expect(button).not.toHaveClass('ring');
+  });
+
   it('renders the execution label', () => {
     renderWithProvider(
       <ExecutionNode id='exec-1' data={{ label: 'train-step', state: undefined }} />,

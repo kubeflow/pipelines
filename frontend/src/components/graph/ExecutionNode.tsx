@@ -31,11 +31,11 @@ import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 export interface ExecutionNodeProps {
   id: string;
   data: ExecutionFlowElementData;
-  // selected: boolean;
+  selected?: boolean;
   // status: ExecutionNodeStatus;
 }
 
-function ExecutionNode({ id, data }: ExecutionNodeProps) {
+function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   // A lifecycle message is a warning, not a failure: the node only turns red once the
   // task itself is FAILED, so the failed icon takes precedence over the warning.
   const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
@@ -52,6 +52,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
           className={classes(
             'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
             fullWidth,
+            selected && 'ring',
           )}
         >
           <div className='flex justify-between flex-row relative w-full h-full'>
