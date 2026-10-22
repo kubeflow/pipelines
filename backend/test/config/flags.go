@@ -17,6 +17,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"regexp"
 )
 
 var (
@@ -38,10 +39,11 @@ var (
 )
 
 var (
-	REPO_NAME   = flag.String("repoName", "kubeflow/pipelines", "The name of the repository")
-	PULL_NUMBER = flag.String("pullNumber", "", "The pull number")
-	BRANCH_NAME = flag.String("branchName", "master", "The branch name")
-	BaseImage   = flag.String("baseImage", "", "The base image for components to override with")
+	SDKSourceSHA string
+	REPO_NAME    = flag.String("repoName", "kubeflow/pipelines", "The name of the repository")
+	PULL_NUMBER  = flag.String("pullNumber", "", "The pull number")
+	BRANCH_NAME  = flag.String("branchName", "master", "The branch name")
+	BaseImage    = flag.String("baseImage", "", "The base image for components to override with")
 )
 
 var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
@@ -63,3 +65,14 @@ var (
 var (
 	MLflowEnabled = flag.Bool("mlflowEnabled", false, "Whether MLflow is deployed and available for integration tests")
 )
+
+// Register an optional immutable source for SDK installs in compiled test pipelines.
+func init() {
+	flag.Func("sdkSourceSHA", "The checked-out 40-character SDK commit (overrides pullNumber and branchName)", func(value string) error {
+		if value != "" && !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(value) {
+			return fmt.Errorf("sdkSourceSHA must be a full lowercase 40-character commit SHA")
+		}
+		SDKSourceSHA = value
+		return nil
+	})
+}
