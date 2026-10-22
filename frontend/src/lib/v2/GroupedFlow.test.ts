@@ -12,7 +12,13 @@ import {
 } from 'src/data/test/groupedFlow';
 import { PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
-import { buildGroupedFlow, GROUP_HEADER_HEIGHT, GROUP_NODE_TYPE, layerNodeId } from './GroupedFlow';
+import {
+  buildGroupedFlow,
+  GROUP_HEADER_HEIGHT,
+  GROUP_PADDING,
+  GROUP_NODE_TYPE,
+  layerNodeId,
+} from './GroupedFlow';
 import { convertSubDagToFlowElements, NodeTypeNames } from './StaticFlow';
 import {
   createRuntimeLayerResolver,
@@ -38,17 +44,17 @@ describe('buildGroupedFlow', () => {
       const parent = graph.nodes[parentIndex];
       expect(parentIndex).toBeLessThan(index);
       expect(node.extent).toEqual([
-        [24, parent.data.headerHeight + 24],
-        [parent.width! - 24, parent.height! - 24],
+        [GROUP_PADDING, parent.data.headerHeight + GROUP_PADDING],
+        [parent.width! - GROUP_PADDING, parent.height! - GROUP_PADDING],
       ]);
-      expect(node.position.x).toBeGreaterThanOrEqual(24);
-      expect(node.position.y).toBeGreaterThanOrEqual(GROUP_HEADER_HEIGHT + 24);
-      expect(node.position.x + node.width!).toBeLessThanOrEqual(parent.width! - 24);
-      expect(node.position.y + node.height!).toBeLessThanOrEqual(parent.height! - 24);
+      expect(node.position.x).toBeGreaterThanOrEqual(GROUP_PADDING);
+      expect(node.position.y).toBeGreaterThanOrEqual(GROUP_HEADER_HEIGHT + GROUP_PADDING);
+      expect(node.position.x + node.width!).toBeLessThanOrEqual(parent.width! - GROUP_PADDING);
+      expect(node.position.y + node.height!).toBeLessThanOrEqual(parent.height! - GROUP_PADDING);
     }
   });
 
-  it('matches rem-sized cards and group headers with the application root font', () => {
+  it('keeps fixed pixel cards and group headers aligned at different root font sizes', () => {
     const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
     const graph = buildGroupedFlow(
       resolve(['root']),
@@ -59,9 +65,10 @@ describe('buildGroupedFlow', () => {
     );
     const group = graph.nodes.find((node) => node.id === 'task.workflow')!;
     const leaf = graph.nodes.find((node) => node.id === 'task.deploy')!;
-    expect(group.height).toBe(39);
-    expect(group.data.headerHeight).toBe(leaf.height);
-    expect(leaf.width).toBe(182);
+    expect(group.height).toBe(40);
+    expect(group.data.headerHeight).toBe(40);
+    expect(leaf.height).toBe(56);
+    expect(leaf.width).toBe(200);
   });
 
   it.each([1, 13 / 16])(
@@ -81,8 +88,8 @@ describe('buildGroupedFlow', () => {
       const parent = graph.nodes.find((node) => node.id === group.parentId)!;
       expect(group.data.collapsed).toBe(true);
       expect(group.extent).toEqual([
-        [24, GROUP_HEADER_HEIGHT * nodeScale + 24],
-        [parent.width! - 24, parent.height! - 24],
+        [GROUP_PADDING, GROUP_HEADER_HEIGHT + GROUP_PADDING],
+        [parent.width! - GROUP_PADDING, parent.height! - GROUP_PADDING],
       ]);
       expect(parent.extent).toBeUndefined();
     },
@@ -107,7 +114,7 @@ describe('buildGroupedFlow', () => {
   it('collapses only the requested instance, removes its internal edges, and reflows siblings', () => {
     const expanded = staticGraph(conditionSpec);
     const collapsed = staticGraph(conditionSpec, new Set(['task.accurate']));
-    expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBe(48);
+    expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBe(40);
     expect(collapsed.nodes.filter((node) => node.data.label === 'Train model')).toHaveLength(1);
     expect(collapsed.nodes.find((node) => node.id === 'task.accurate')?.height).toBeLessThan(
       expanded.nodes.find((node) => node.id === 'task.accurate')!.height!,
@@ -280,10 +287,10 @@ describe('buildGroupedFlow', () => {
       expect(Number.isFinite(node.position.x) && Number.isFinite(node.position.y)).toBe(true);
       if (!node.parentId) continue;
       const parent = nodes.get(node.parentId)!;
-      expect(node.position.x).toBeGreaterThanOrEqual(24);
-      expect(node.position.y).toBeGreaterThanOrEqual(GROUP_HEADER_HEIGHT + 24);
-      expect(node.position.x + node.width!).toBeLessThanOrEqual(parent.width! - 24);
-      expect(node.position.y + node.height!).toBeLessThanOrEqual(parent.height! - 24);
+      expect(node.position.x).toBeGreaterThanOrEqual(GROUP_PADDING);
+      expect(node.position.y).toBeGreaterThanOrEqual(GROUP_HEADER_HEIGHT + GROUP_PADDING);
+      expect(node.position.x + node.width!).toBeLessThanOrEqual(parent.width! - GROUP_PADDING);
+      expect(node.position.y + node.height!).toBeLessThanOrEqual(parent.height! - GROUP_PADDING);
     }
     const deepestLayers = [
       'root',

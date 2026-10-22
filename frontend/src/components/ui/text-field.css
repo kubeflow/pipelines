@@ -1,0 +1,54 @@
+.kfp-theme .kfp-text-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.kfp-theme .kfp-text-field > label {
+  font-weight: 500;
+}
+.kfp-theme .kfp-text-field-control {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.kfp-theme .kfp-text-field-control > input {
+  flex: 1;
+}
+.kfp-theme .kfp-text-field-textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 8px 12px;
+  resize: vertical;
+  border: 1px solid var(--muted-foreground);
+  border-radius: var(--kfp-radius);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  line-height: 1.5;
+}
+.kfp-theme .kfp-text-field-textarea[aria-invalid='true'] {
+  border-color: var(--status-failed);
+}
+.kfp-theme .kfp-text-field-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.kfp-theme .kfp-text-field-hint {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-theme .kfp-text-field-error {
+  color: var(--status-failed);
+  font-size: 12px;
+}
+
+/* Avoid Safari focus zoom while retaining user-controlled pinch zoom. */
+@media (pointer: coarse) {
+  .kfp-theme .kfp-text-field-textarea {
+    font-size: 16px;
+  }
+}

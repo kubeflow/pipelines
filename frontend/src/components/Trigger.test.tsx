@@ -19,517 +19,248 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import Trigger from './Trigger';
 
-const PARAMS_DEFAULT = {
-  catchup: true,
-  maxConcurrentRuns: '10',
-};
-const PERIODIC_DEFAULT = {
-  end_time: undefined,
-  interval_second: (60 * 60).toString(),
-  start_time: undefined,
-};
-const CRON_DEFAULT = { cron: '0 0 * * * ?', end_time: undefined, start_time: undefined };
+const defaults = { catchup: true, maxConcurrentRuns: '10' };
+const periodic = { interval_second: '3600', start_time: undefined, end_time: undefined };
 
-async function selectOption(selectElement: HTMLElement, optionText: string): Promise<void> {
-  fireEvent.mouseDown(selectElement);
-  const option = await screen.findByRole('option', { name: optionText });
-  fireEvent.click(option);
+function change(label: string, value: string) {
+  fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
 }
 
-function getTriggerTypeSelect(): HTMLElement {
-  return screen.getByRole('combobox', { name: /trigger type/i });
+function openAdvanced() {
+  fireEvent.click(screen.getByText('Advanced execution settings', { exact: true }));
 }
 
-function getIntervalCategorySelect(): HTMLElement {
-  const comboboxes = screen.getAllByRole('combobox');
-  return comboboxes[1];
-}
-
-describe('Trigger', () => {
-  const RealDate = Date;
-
-  function mockDate(isoDate: Date): void {
-    (global as any).Date = class extends RealDate {
-      constructor(...args: any[]) {
-        super();
-        if (args.length === 0) {
-          return new RealDate(isoDate);
-        }
-        return new (RealDate as any)(...args);
-      }
-    };
-  }
-
-  beforeAll(() => {
-    process.env.TZ = 'UTC';
-    const now = new Date(2018, 11, 21, 7, 53);
-    mockDate(now);
-  });
-
-  afterAll(() => {
-    (global as any).Date = RealDate;
-  });
-
-  it('renders periodic schedule controls for initial render', () => {
-    const { asFragment, unmount } = render(<Trigger />);
-    expect(asFragment()).toMatchSnapshot();
-    unmount();
-  });
-
-  it('renders periodic schedule controls if the trigger type is CRON', async () => {
-    const { asFragment, unmount } = render(<Trigger />);
-    await selectOption(getTriggerTypeSelect(), 'Cron');
-    expect(asFragment()).toMatchSnapshot();
-    unmount();
-  });
-
-  it('renders week days if the trigger type is CRON and interval is weekly', async () => {
-    const { asFragment, unmount } = render(<Trigger />);
-    await selectOption(getTriggerTypeSelect(), 'Cron');
-    await selectOption(getIntervalCategorySelect(), 'Week');
-    expect(asFragment()).toMatchSnapshot();
-    unmount();
-  });
-
-  it('renders all week days enabled', async () => {
-    const { asFragment, unmount } = render(<Trigger />);
-    await selectOption(getTriggerTypeSelect(), 'Cron');
-    await selectOption(getIntervalCategorySelect(), 'Week');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
-    expect(asFragment()).toMatchSnapshot();
-    unmount();
-  });
-
-  it('enables a single day on click', async () => {
-    const { asFragment, unmount } = render(<Trigger />);
-    await selectOption(getTriggerTypeSelect(), 'Cron');
-    await selectOption(getIntervalCategorySelect(), 'Week');
-    fireEvent.click(screen.getByRole('button', { name: 'M' }));
-    fireEvent.click(screen.getByRole('button', { name: 'W' }));
-    expect(asFragment()).toMatchSnapshot();
-    unmount();
-  });
-
-  describe('max concurrent run', () => {
-    it('shows error message if the input is invalid (non-integer)', () => {
-      render(<Trigger />);
-      const maxConcurrencyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrencyParam, { target: { value: '10a' } });
-      screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
-    });
-
-    it('shows error message if the input is invalid (negative integer)', () => {
-      render(<Trigger />);
-      const maxConcurrencyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrencyParam, { target: { value: '-10' } });
-      screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
+describe('Trigger schedule editor', () => {
+  it('defaults to an hourly interval and hides optional boundaries', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    expect(screen.getByLabelText('Repeat')).toHaveValue('interval');
+    expect(screen.queryByLabelText('Start date')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('End date')).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: { periodic_schedule: periodic },
     });
   });
 
-  describe('interval trigger', () => {
-    it('builds an every-hour trigger by default', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
+  it('keeps fixed intervals separate from calendar schedules', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Interval', '3');
+    change('Interval unit', 'Hour');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: {
+        periodic_schedule: { ...periodic, interval_second: '10800' },
+      },
+    });
+    expect(screen.queryByRole('option', { name: 'Months' })).not.toBeInTheDocument();
+  });
 
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: PERIODIC_DEFAULT,
+  it.each([
+    ['daily', '0 0 9 * * *'],
+    ['weekly', '0 0 9 * * 1,2,3,4,5'],
+    ['monthly', '0 0 9 1 * *'],
+  ])('builds the %s preset as a calendar schedule', (repeat, cron) => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Repeat', repeat);
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: {
+        cron_schedule: { cron, start_time: undefined, end_time: undefined },
+      },
+    });
+  });
+
+  it('updates calendar time and day independently of boundaries', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Repeat', 'monthly');
+    change('Day of month', '15');
+    change('Run at', '14:30');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: {
+        cron_schedule: { cron: '0 30 14 15 * *', start_time: undefined, end_time: undefined },
+      },
+    });
+  });
+
+  it('supports weekday selection and rejects an empty selection', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Repeat', 'weekly');
+    for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) {
+      fireEvent.click(screen.getByRole('button', { name: day, exact: true }));
+    }
+    expect(onChange).toHaveBeenLastCalledWith({ ...defaults, trigger: undefined });
+    fireEvent.click(screen.getByRole('button', { name: 'Saturday', exact: true }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: {
+        cron_schedule: { cron: '0 0 9 * * 6', start_time: undefined, end_time: undefined },
+      },
+    });
+  });
+
+  it('validates custom cron and recovers without silently changing it', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Repeat', 'custom');
+    change('Cron expression', 'invalid cron');
+    expect(onChange).toHaveBeenLastCalledWith({ ...defaults, trigger: undefined });
+    change('Cron expression', '0 15 8 ? * 1-5');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: {
+        cron_schedule: { cron: '0 15 8 ? * 1-5', start_time: undefined, end_time: undefined },
+      },
+    });
+  });
+
+  it.each(['0', '-1', '1.5'])('rejects invalid interval %s', (value) => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Interval unit', 'Second');
+    change('Interval', value);
+    expect(onChange).toHaveBeenLastCalledWith({ ...defaults, trigger: undefined });
+  });
+
+  it('accepts fractional hours that produce whole seconds', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Interval', '1.5');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: { periodic_schedule: { ...periodic, interval_second: '5400' } },
+    });
+  });
+
+  it('keeps concurrency and catchup settings in advanced options', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    openAdvanced();
+    change('Maximum concurrent runs', '3');
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Run missed schedules when resumed', exact: true }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith({
+      catchup: false,
+      maxConcurrentRuns: '3',
+      trigger: { periodic_schedule: periodic },
+    });
+  });
+
+  it.each(['0', '-1', '1.5', '11', 'abc'])('rejects invalid concurrency %s', (value) => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    openAdvanced();
+    change('Maximum concurrent runs', value);
+    expect(onChange.mock.lastCall?.[0].maxConcurrentRuns).toBeUndefined();
+  });
+
+  it.each(['Start', 'End'])(
+    'validates %s boundaries and removes them when deselected',
+    (boundary) => {
+      const onChange = vi.fn();
+      render(<Trigger onChange={onChange} />);
+      change(boundary === 'Start' ? 'Starts' : 'Ends', 'date');
+      change(`${boundary} date`, '2026-10-20');
+      change(`${boundary} time`, '');
+      expect(onChange).toHaveBeenLastCalledWith({ ...defaults, trigger: undefined });
+      expect(screen.getByLabelText(`${boundary} time`)).toBeInvalid();
+      change(`${boundary} time`, '08:35');
+      expect(screen.getByLabelText(`${boundary} time`)).toBeValid();
+      change(boundary === 'Start' ? 'Starts' : 'Ends', boundary === 'Start' ? 'now' : 'never');
+      expect(onChange).toHaveBeenLastCalledWith({
+        ...defaults,
+        trigger: { periodic_schedule: periodic },
+      });
+    },
+  );
+
+  it('converts chosen local boundaries to instants and rejects reversed windows', () => {
+    const onChange = vi.fn();
+    render(<Trigger onChange={onChange} />);
+    change('Starts', 'date');
+    change('Start date', '2026-10-20');
+    change('Start time', '08:35');
+    change('Ends', 'date');
+    change('End date', '2026-10-21');
+    change('End time', '18:45');
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...defaults,
+      trigger: {
+        periodic_schedule: {
+          ...periodic,
+          start_time: new Date(2026, 9, 20, 8, 35),
+          end_time: new Date(2026, 9, 21, 18, 45),
         },
-      });
+      },
     });
+    change('End date', '2026-10-19');
+    expect(onChange).toHaveBeenLastCalledWith({ ...defaults, trigger: undefined });
+  });
 
-    it('builds trigger with a start time if the checkbox is checked', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      const now = new Date(2018, 11, 21, 7, 53);
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: { ...PERIODIC_DEFAULT, start_time: now },
-        },
-      });
-    });
-
-    it('builds trigger with the entered start date/time', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      fireEvent.change(screen.getByLabelText('Start date'), {
-        target: { value: '2018-11-23' },
-      });
-      fireEvent.change(screen.getByLabelText('Start time'), {
-        target: { value: '08:35' },
-      });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: {
-            ...PERIODIC_DEFAULT,
-            start_time: new Date(2018, 10, 23, 8, 35),
-          },
-        },
-      });
-    });
-
-    it('builds trigger without the entered start date if no time is entered', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      fireEvent.change(screen.getByLabelText('Start date'), {
-        target: { value: '2018-11-23' },
-      });
-      fireEvent.change(screen.getByLabelText('Start time'), {
-        target: { value: '' },
-      });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: PERIODIC_DEFAULT,
-        },
-      });
-    });
-
-    it('builds trigger without the entered start time if no date is entered', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      fireEvent.change(screen.getByLabelText('Start date'), {
-        target: { value: '' },
-      });
-      fireEvent.change(screen.getByLabelText('Start time'), {
-        target: { value: '11:33' },
-      });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: PERIODIC_DEFAULT,
-        },
-      });
-    });
-
-    it('builds trigger with a date if both start and end checkboxes are checked', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
-      const now = new Date(2018, 11, 21, 7, 53);
-      const oneWeekLater = new Date(2018, 11, 28, 7, 53);
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: { ...PERIODIC_DEFAULT, end_time: oneWeekLater, start_time: now },
-        },
-      });
-    });
-
-    it('resets trigger to no start date if it is added then removed', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: PERIODIC_DEFAULT,
-        },
-      });
-    });
-
-    it('Show invalid start date/time format message if date has wrong format.', async () => {
-      render(<Trigger />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-
-      // jsdom sanitizes type="date" inputs, rejecting non-YYYY-MM-DD values.
-      // Temporarily switch to type="text" so the invalid value reaches handleChange.
-      const startDateInput = screen.getByLabelText('Start date') as HTMLInputElement;
-      startDateInput.type = 'text';
-      fireEvent.change(startDateInput, {
-        target: { value: 'this_is_not_valid_date_format' },
-      });
-      expect(
-        await screen.findByText("Invalid start date or time, start time won't be set"),
-      ).toBeInTheDocument();
-
-      fireEvent.change(screen.getByLabelText('Start date'), {
-        target: { value: '2021-01-01' },
-      });
-      expect(
-        screen.queryByText("Invalid start date or time, start time won't be set"),
-      ).not.toBeInTheDocument();
-    });
-
-    it('Hide invalid start date/time format message if start time checkbox is not selected.', async () => {
-      render(<Trigger />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-
-      const startDateInput = screen.getByLabelText('Start date') as HTMLInputElement;
-      startDateInput.type = 'text';
-      fireEvent.change(startDateInput, {
-        target: { value: 'this_is_not_valid_date_format' },
-      });
-      expect(
-        await screen.findByText("Invalid start date or time, start time won't be set"),
-      ).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      expect(
-        screen.queryByText("Invalid start date or time, start time won't be set"),
-      ).not.toBeInTheDocument();
-    });
-
-    it('Show invalid end date/time format message if date has wrong format.', async () => {
-      render(<Trigger />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
-
-      const endTimeInput = screen.getByLabelText('End time') as HTMLInputElement;
-      endTimeInput.type = 'text';
-      fireEvent.change(endTimeInput, {
-        target: { value: 'this_is_not_valid_time_format' },
-      });
-      expect(
-        await screen.findByText("Invalid end date or time, end time won't be set"),
-      ).toBeInTheDocument();
-
-      fireEvent.change(screen.getByLabelText('End time'), {
-        target: { value: '11:22' },
-      });
-      expect(
-        screen.queryByText("Invalid end date or time, end time won't be set"),
-      ).not.toBeInTheDocument();
-    });
-
-    it('Hide invalid end date/time format message if start time checkbox is not selected.', async () => {
-      render(<Trigger />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
-
-      const endTimeInput = screen.getByLabelText('End time') as HTMLInputElement;
-      endTimeInput.type = 'text';
-      fireEvent.change(endTimeInput, {
-        target: { value: 'this_is_not_valid_date_format' },
-      });
-      expect(
-        await screen.findByText("Invalid end date or time, end time won't be set"),
-      ).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
-      expect(
-        screen.queryByText("Invalid end date or time, end time won't be set"),
-      ).not.toBeInTheDocument();
-    });
-
-    it('builds trigger with a weekly interval', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getIntervalCategorySelect(), 'Weeks');
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: {
-            ...PERIODIC_DEFAULT,
-            interval_second: (7 * 24 * 60 * 60).toString(),
-          },
-        },
-      });
-    });
-
-    it('builds trigger with an every-three-months interval', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getIntervalCategorySelect(), 'Months');
-      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: 3 } });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          periodic_schedule: {
-            ...PERIODIC_DEFAULT,
-            interval_second: (3 * 30 * 24 * 60 * 60).toString(),
-          },
-        },
-      });
-    });
-
-    it('builds trigger with the specified max concurrency setting', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.change(screen.getByDisplayValue('10'), { target: { value: '3' } });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        maxConcurrentRuns: '3',
-        trigger: {
-          periodic_schedule: PERIODIC_DEFAULT,
-        },
-      });
-    });
-
-    it('builds trigger with the specified catchup setting', () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Catchup' }));
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        catchup: false,
-        trigger: {
-          periodic_schedule: PERIODIC_DEFAULT,
-        },
-      });
-    });
-
-    it('inits with cloned initial props', () => {
-      const spy = vi.fn();
-      const startTime = new Date('2020-01-01T23:53:00.000Z');
+  it.each(['17 15 8 ? * 1-5', '@every 90s', '@every .5h', '@every +1h', '@every 0'])(
+    'preserves existing cron %s and timestamp precision on unrelated changes',
+    (cron) => {
+      const onChange = vi.fn();
+      const start_time = new Date('2026-10-20T08:03:27.123Z');
+      const end_time = new Date('2026-11-20T18:49:53.456Z');
       render(
         <Trigger
-          onChange={spy}
+          onChange={onChange}
           initialProps={{
-            maxConcurrentRuns: '3',
             catchup: false,
-            trigger: {
-              periodic_schedule: {
-                interval_second: '' + 60 * 60 * 3,
-                start_time: startTime.toISOString() as any,
-              },
-            },
+            maxConcurrentRuns: '4',
+            trigger: { cron_schedule: { cron, start_time, end_time } },
           }}
         />,
       );
-      expect(spy).toHaveBeenLastCalledWith({
+      expect(screen.getByLabelText('Repeat')).toHaveValue('custom');
+      expect(screen.getByLabelText('Cron expression')).toHaveValue(cron);
+      expect(onChange).toHaveBeenLastCalledWith({
         catchup: false,
-        maxConcurrentRuns: '3',
-        trigger: {
-          periodic_schedule: {
-            end_time: undefined,
-            interval_second: '10800',
-            start_time: startTime,
-          },
-        },
+        maxConcurrentRuns: '4',
+        trigger: { cron_schedule: { cron, start_time, end_time } },
       });
-    });
-  });
-
-  describe('cron', () => {
-    it('builds a 1-hour cron trigger by default', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getTriggerTypeSelect(), 'Cron');
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          cron_schedule: CRON_DEFAULT,
-        },
+      openAdvanced();
+      change('Maximum concurrent runs', '5');
+      expect(onChange).toHaveBeenLastCalledWith({
+        catchup: false,
+        maxConcurrentRuns: '5',
+        trigger: { cron_schedule: { cron, start_time, end_time } },
       });
-    });
+    },
+  );
 
-    it('builds a 1-hour cron trigger with specified start date', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getTriggerTypeSelect(), 'Cron');
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has start date' }));
-      fireEvent.change(screen.getByLabelText('Start date'), {
-        target: { value: '2018-03-23' },
-      });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          cron_schedule: {
-            ...CRON_DEFAULT,
-            start_time: new Date(2018, 2, 23, 7, 53),
-            cron: '0 53 * * * ?',
-          },
-        },
-      });
-    });
-
-    it('builds a daily cron trigger with specified end date/time', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getTriggerTypeSelect(), 'Cron');
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Has end date' }));
-      await selectOption(getIntervalCategorySelect(), 'Day');
-      const oneWeekLater = new Date(2018, 11, 28, 7, 53);
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          cron_schedule: { ...CRON_DEFAULT, end_time: oneWeekLater, cron: '0 0 0 * * ?' },
-        },
-      });
-    });
-
-    it('builds a weekly cron trigger that runs every Monday, Friday, and Saturday', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getTriggerTypeSelect(), 'Cron');
-      await selectOption(getIntervalCategorySelect(), 'Week');
-
-      fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
-      fireEvent.click(screen.getByRole('button', { name: 'M' }));
-      fireEvent.click(screen.getByRole('button', { name: 'F' }));
-      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
-      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          cron_schedule: { ...CRON_DEFAULT, cron: '0 0 0 ? * 1,5,6' },
-        },
-      });
-    });
-
-    it('builds a cron with the manually specified cron string, even if days are toggled', async () => {
-      const spy = vi.fn();
-      render(<Trigger onChange={spy} />);
-      await selectOption(getTriggerTypeSelect(), 'Cron');
-      await selectOption(getIntervalCategorySelect(), 'Week');
-
-      fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
-      fireEvent.click(screen.getByRole('button', { name: 'M' }));
-      fireEvent.click(screen.getByRole('button', { name: 'F' }));
-      // Two "S" buttons exist (Sun, Sat); pick the second = Saturday
-      fireEvent.click(screen.getAllByRole('button', { name: 'S' })[1]);
-
-      fireEvent.click(screen.getByRole('checkbox', { name: /allow editing cron expression/i }));
-      fireEvent.change(screen.getByLabelText('cron expression'), {
-        target: { value: 'oops this will break!' },
-      });
-      expect(spy).toHaveBeenLastCalledWith({
-        ...PARAMS_DEFAULT,
-        trigger: {
-          cron_schedule: { ...CRON_DEFAULT, cron: 'oops this will break!' },
-        },
-      });
-    });
-
-    it('inits with cloned initial props', () => {
-      const spy = vi.fn();
-      const startTime = new Date('2020-01-01T00:00:00.000Z');
-      const endTime = new Date('2020-01-02T01:02:00.000Z');
+  it.each(['90', '3661', '7776000'])(
+    'preserves existing exact interval %s seconds',
+    (interval_second) => {
+      const onChange = vi.fn();
       render(
         <Trigger
-          onChange={spy}
-          initialProps={{
-            maxConcurrentRuns: '4',
-            catchup: true,
-            trigger: {
-              cron_schedule: {
-                cron: '0 0 0 ? * 1,5,6',
-                start_time: startTime.toISOString() as any,
-                end_time: endTime.toISOString() as any,
-              },
-            },
-          }}
+          onChange={onChange}
+          initialProps={{ ...defaults, trigger: { periodic_schedule: { interval_second } } }}
         />,
       );
-      expect(spy).toHaveBeenLastCalledWith({
-        catchup: true,
-        maxConcurrentRuns: '4',
+      expect(onChange).toHaveBeenLastCalledWith({
+        ...defaults,
         trigger: {
-          cron_schedule: {
-            cron: '0 0 0 ? * 1,5,6',
-            start_time: startTime,
-            end_time: endTime,
-          },
+          periodic_schedule: { ...periodic, interval_second },
         },
       });
-    });
-  });
+      openAdvanced();
+      change('Maximum concurrent runs', '2');
+      expect(onChange).toHaveBeenLastCalledWith({
+        ...defaults,
+        maxConcurrentRuns: '2',
+        trigger: {
+          periodic_schedule: { ...periodic, interval_second },
+        },
+      });
+    },
+  );
 });

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
 
@@ -66,5 +66,25 @@ describe('MarkdownViewer', () => {
     getByText('This markdown is too large to render completely.');
     getByText('X'.repeat(maximumMarkdownSize));
     expect(queryByText('X'.repeat(11))).toBeNull();
+  });
+  it('renders raw HTML as text and keeps external links isolated from row navigation', () => {
+    const navigate = vi.fn();
+    const config = {
+      markdownContent: '<button>Authored control</button>\n\n[Report](https://example.com/report)',
+      type: PlotType.MARKDOWN,
+    };
+    const { container } = render(
+      <div onClick={navigate}>
+        <MarkdownViewer configs={[config]} />
+      </div>,
+    );
+    expect(container.querySelector('button')).toBeNull();
+    expect(screen.getByText('<button>Authored control</button>')).toBeVisible();
+    const link = screen.getByRole('link', { name: 'Report' });
+    expect(link).toHaveAttribute('href', 'https://example.com/report');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    fireEvent.click(link);
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

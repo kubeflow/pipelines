@@ -61,10 +61,10 @@ format. HTML is the default; `html`, `both`, and `markdown` are supported.
 
 The CLI sends the validated **full PipelineSpec**, including deployment details,
 to the HTML viewer. The existing `StaticFlow`/`GroupedFlow` modules convert it;
-`PipelineGraph` supplies the shared canvas and `StaticNodeDetailsV2` inspector.
-Task/artifact cards, inline group expansion, graph controls, and the MUI theme
+`PipelineGraph` supplies the shared canvas and `StaticNodeDetails` inspector.
+Task/artifact cards, inline group expansion, graph controls, and theme tokens
 are the application's own modules, not standalone copies. The bundle includes
-the application's generated Tailwind styles and matches its 13px root font.
+the application's generated Tailwind styles and shared typography.
 
 Python's `kfp.cli.visualization.validate_spec` checks each reachable DAG
 component definition once, including task display names, producer references,

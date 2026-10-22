@@ -14,31 +14,48 @@
  * limitations under the License.
  */
 
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
+import ExecutionNode from './ExecutionNode';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
+beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
+
 describe('ExecutionNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {
-    return render(<ReactFlowProvider>{component}</ReactFlowProvider>);
+    return render(
+      <ThemeProvider>
+        <ReactFlowProvider>{component}</ReactFlowProvider>
+      </ThemeProvider>,
+    );
   };
 
   it('keeps the blue ring for selection without requiring focus', () => {
     const node = (selected: boolean) => (
-      <ReactFlowProvider>
-        <ExecutionNode id='exec-1' data={{ label: 'train-step' }} selected={selected} />
-      </ReactFlowProvider>
+      <ThemeProvider>
+        <ReactFlowProvider>
+          <ExecutionNode id='exec-1' data={{ label: 'train-step' }} selected={selected} />
+        </ReactFlowProvider>
+      </ThemeProvider>
     );
     const { rerender } = render(node(false));
     const button = screen.getByRole('button', { name: 'train-step' });
-    expect(button).not.toHaveClass('ring');
+    expect(button).not.toHaveAttribute('data-selected');
     rerender(node(true));
     expect(button).not.toHaveFocus();
-    expect(button).toHaveClass('ring', 'focus:ring');
+    expect(button).toHaveAttribute('data-selected', 'true');
     rerender(node(false));
-    expect(button).not.toHaveClass('ring');
+    expect(button).not.toHaveAttribute('data-selected');
   });
 
   it('renders the execution label', () => {
@@ -46,6 +63,11 @@ describe('ExecutionNode', () => {
       <ExecutionNode id='exec-1' data={{ label: 'train-step', state: undefined }} />,
     );
     expect(screen.getByText('train-step')).toBeInTheDocument();
+    const reserved = screen
+      .getByRole('button', { name: 'train-step' })
+      .querySelector('.kfp-graph-node-status');
+    expect(reserved).toBeEmptyDOMElement();
+    expect(reserved).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('renders with SUCCEEDED state and correct icon', () => {
@@ -56,7 +78,9 @@ describe('ExecutionNode', () => {
       />,
     );
     expect(screen.getByText('completed-step')).toBeInTheDocument();
-    expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'completed-step' })).toHaveAccessibleDescription(
+      'Succeeded',
+    );
   });
 
   it('renders with RUNNING state and correct icon', () => {
@@ -67,7 +91,9 @@ describe('ExecutionNode', () => {
       />,
     );
     expect(screen.getByText('running-step')).toBeInTheDocument();
-    expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'running-step' })).toHaveAccessibleDescription(
+      'Running',
+    );
   });
 
   it('renders with FAILED state and correct icon', () => {
@@ -78,7 +104,9 @@ describe('ExecutionNode', () => {
       />,
     );
     expect(screen.getByText('failed-step')).toBeInTheDocument();
-    expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'failed-step' })).toHaveAccessibleDescription(
+      'Failed',
+    );
   });
 
   it('shows a warning icon instead of the running icon when a lifecycle message is present', () => {
@@ -92,9 +120,9 @@ describe('ExecutionNode', () => {
         }}
       />,
     );
-    expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
-    expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="WARNING"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-state="RUNNING"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="FAILED"]')).not.toBeInTheDocument();
   });
 
   it('announces the warning in the node name', () => {
@@ -124,8 +152,8 @@ describe('ExecutionNode', () => {
         }}
       />,
     );
-    expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
-    expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="FAILED"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-state="WARNING"]')).not.toBeInTheDocument();
   });
 
   it('shows no warning when the lifecycle message is empty', () => {
@@ -135,8 +163,8 @@ describe('ExecutionNode', () => {
         data={{ label: 'healthy-step', state: PipelineTaskTaskState.RUNNING, lifecycleMessage: '' }}
       />,
     );
-    expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
-    expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="RUNNING"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-state="WARNING"]')).not.toBeInTheDocument();
   });
 
   it('sets the title attribute', () => {
@@ -170,42 +198,87 @@ describe('ExecutionNode', () => {
   });
 });
 
-describe('getIcon', () => {
-  it('returns null for undefined state', () => {
-    expect(getIcon(undefined)).toBeNull();
+describe('task state presentation', () => {
+  it.each([
+    [PipelineTaskTaskState.SUCCEEDED, 'Succeeded'],
+    [PipelineTaskTaskState.RUNNING, 'Running'],
+    [PipelineTaskTaskState.FAILED, 'Failed'],
+    [PipelineTaskTaskState.SKIPPED, 'Skipped'],
+    [PipelineTaskTaskState.CACHED, 'Cached'],
+    [PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED, 'Unknown'],
+    [undefined, 'Task'],
+  ] as const)('announces %s without depending on color', (state, label) => {
+    render(
+      <ThemeProvider>
+        <ReactFlowProvider>
+          <ExecutionNode id='task' data={{ label: 'Train', state }} />
+        </ReactFlowProvider>
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole('img', { name: 'Task' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Train' })).toHaveAccessibleDescription(label);
+    expect(screen.getByRole('button', { name: 'Train' })).toHaveStyle({
+      width: '200px',
+      height: '56px',
+    });
   });
 
-  it.each([
-    ['SUCCEEDED', PipelineTaskTaskState.SUCCEEDED, 'CheckCircleIcon', 'bg-mui-green-50'],
-    ['RUNNING', PipelineTaskTaskState.RUNNING, 'RefreshIcon', 'bg-mui-green-50'],
-    ['FAILED', PipelineTaskTaskState.FAILED, 'ErrorIcon', 'bg-mui-red-50'],
-    ['SKIPPED', PipelineTaskTaskState.SKIPPED, 'StopCircleIcon', 'bg-mui-grey-200'],
-    ['CACHED', PipelineTaskTaskState.CACHED, 'CloudDownloadIcon', 'bg-mui-green-50'],
-    [
-      'UNSPECIFIED',
-      PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
-      'MoreHorizIcon',
-      'bg-mui-grey-200',
-    ],
-  ] as const)(
-    'returns the correct icon for %s state',
-    (_label, state, iconTestId, backgroundClass) => {
-      render(getIcon(state)!);
-      const stateIcon = screen.getByTestId(iconTestId);
-      expect(stateIcon).toBeInTheDocument();
-      expect(stateIcon.parentElement).toHaveClass(backgroundClass);
-    },
-  );
+  it('activates task inspection using the keyboard', async () => {
+    const inspect = vi.fn();
+    render(
+      <ThemeProvider>
+        <ReactFlowProvider>
+          <div onClick={inspect}>
+            <ExecutionNode id='task' data={{ label: 'Train' }} />
+          </div>
+        </ReactFlowProvider>
+      </ThemeProvider>,
+    );
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
+    expect(inspect).toHaveBeenCalledTimes(1);
+  });
 });
 
-describe('getExecutionIcon', () => {
-  it('returns a default ListAlt icon for undefined state', () => {
-    render(getExecutionIcon(undefined));
-    expect(screen.getByTestId('execution-icon-default')).toBeInTheDocument();
-  });
+it('shows status on the right without a subtitle and exposes it on keyboard focus', async () => {
+  render(
+    <ThemeProvider defaultTheme='dark' storageKey='graph-tooltip-test'>
+      <ReactFlowProvider>
+        <ExecutionNode
+          id='compact'
+          data={{ label: 'Train', state: PipelineTaskTaskState.SUCCEEDED }}
+        />
+      </ReactFlowProvider>
+    </ThemeProvider>,
+  );
+  const node = screen.getByRole('button', { name: 'Train' });
+  expect(node.querySelector('.kfp-graph-node-meta')).toBeNull();
+  expect(node.querySelector('.kfp-graph-node-status [data-state="SUCCEEDED"]')).toBeInTheDocument();
+  expect(node).toHaveAccessibleDescription('Succeeded');
+  await userEvent.tab();
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent('Train · Succeeded');
+  expect(tooltip.closest('.kfp-theme')).toHaveClass('dark');
+});
 
-  it('returns an active ListAlt icon for defined state', () => {
-    render(getExecutionIcon(PipelineTaskTaskState.RUNNING));
-    expect(screen.getByTestId('execution-icon-active')).toBeInTheDocument();
-  });
+it('explains the status icon directly on hover and keyboard focus', async () => {
+  const user = userEvent.setup();
+  render(
+    <ThemeProvider>
+      <ReactFlowProvider>
+        <ExecutionNode
+          id='running'
+          data={{ label: 'Train', state: PipelineTaskTaskState.RUNNING }}
+        />
+      </ReactFlowProvider>
+    </ThemeProvider>,
+  );
+  const status = screen.getByRole('img', { name: 'Running' });
+  await user.hover(status);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(/^Running$/);
+  await user.unhover(status);
+  await user.tab();
+  await user.tab();
+  expect(status).toHaveFocus();
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(/^Running$/);
 });

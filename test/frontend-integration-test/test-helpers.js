@@ -101,10 +101,8 @@ async function waitForRunPageReady({
   return runFormSelectors;
 }
 async function getValueFromDetailsTable(key) {
-  // Find the span that shows the key, get its parent div (the row), then
-  // get that row's inner text, and remove the key.
-  const rowText = await $(`span=${key}`).$('..').getText();
-  return rowText.substr(`${key}\n`.length);
+  // Inspection fields expose each exact label as a term and its value as a definition.
+  return $(`dt=${key}`).$('..').$('dd').getText();
 }
 
 async function clearDefaultInput() {
@@ -118,6 +116,38 @@ function buildTableRowSelector(rowLabel, { containerXPath = '' } = {}) {
     rowLabel +
     '"]]';
   return containerXPath ? `${containerXPath}${rowSelector}` : rowSelector;
+}
+
+async function selectPipelineCard(pipelineName, { timeout = defaultTimeout } = {}) {
+  const filterSelector = 'input[type="search"][placeholder="Filter pipelines"]';
+  await waitForSelectorDisplayed(filterSelector, { timeout });
+  await $(filterSelector).setValue(pipelineName);
+
+  const checkboxSelector = `[role="checkbox"][aria-label="Select pipeline ${pipelineName}"]`;
+  await waitForCondition(
+    async () => {
+      const checkbox = await $(checkboxSelector);
+      return (
+        (await checkbox.isExisting()) &&
+        (await checkbox.isDisplayed()) &&
+        (await checkbox.isEnabled()) &&
+        (await checkbox.getAttribute('aria-disabled')) !== 'true'
+      );
+    },
+    {
+      timeout,
+      timeoutMsg: `expected the selection checkbox for pipeline ${pipelineName} after filtering`,
+    },
+  );
+
+  const checkbox = await $(checkboxSelector);
+  if ((await checkbox.getAttribute('aria-checked')) !== 'true') {
+    await checkbox.click();
+  }
+  await waitForCondition(
+    async () => (await $(checkboxSelector).getAttribute('aria-checked')) === 'true',
+    { timeout, timeoutMsg: `expected pipeline ${pipelineName} to be selected` },
+  );
 }
 
 async function saveDebugScreenshot(name) {
@@ -329,6 +359,7 @@ module.exports = {
   isSelectorDisplayed,
   runPhase,
   saveDebugScreenshot,
+  selectPipelineCard,
   selectPipelineForRun,
   waitForCondition,
   waitForGraphNodeCount,

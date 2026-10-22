@@ -1,0 +1,53 @@
+.kfp-theme .kfp-detail-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: var(--kfp-section-gap, 12px);
+  padding: 0 var(--kfp-page-gutter, 16px) var(--kfp-page-gutter, 16px);
+}
+
+.kfp-theme .kfp-detail-sections {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--kfp-section-gap, 12px);
+  min-width: 0;
+}
+
+.kfp-theme .kfp-detail-sections > .kfp-inspection-fields {
+  flex: 1 1 360px;
+  min-width: 0;
+  margin: 0;
+  padding: var(--kfp-page-gutter, 16px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+/* Visualizations and messages retain the full detail workspace width. */
+.kfp-theme .kfp-detail-sections > :not(.kfp-inspection-fields) {
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+.kfp-theme .kfp-artifact-overview {
+  padding-top: var(--kfp-section-gap, 12px);
+}
+
+@media (max-width: 600px) {
+  .kfp-theme .kfp-detail-page {
+    padding: 0 16px 16px;
+  }
+}
+
+.kfp-theme .kfp-recurring-detail {
+  overflow: auto;
+}
+.kfp-theme .kfp-detail-sections-stacked {
+  display: grid;
+  width: 100%;
+  max-width: 800px;
+  grid-template-columns: minmax(0, 1fr);
+}

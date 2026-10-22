@@ -15,14 +15,15 @@
  */
 
 import * as React from 'react';
-import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
+import Buttons from 'src/lib/Buttons';
 import CustomTable, {
   Column,
   Row,
   ExpandState,
   CustomRendererProps,
 } from 'src/components/CustomTable';
-import RunList from './RunList';
+import { ExperimentRunPreview } from 'src/components/runs/ExperimentRunPreview';
 import { produce as immerProduce } from 'immer';
 import {
   V2ListExperimentsResponse,
@@ -34,14 +35,15 @@ import { V2Run, V2RunStorageState } from 'src/apisv2/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
 import { Link } from 'react-router';
 import { Page, PageProps } from './Page';
-import { RoutePage, RouteParams } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { RoutePageFactory } from 'src/components/Router';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { statusToIcon } from './StatusV2';
+import { RecentRunHealth } from 'src/components/runs/RecentRunHealth';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { Tooltip } from '@mui/material';
+import 'src/components/runs/ExperimentWorkflows.css';
+
+import { DateListFilter } from 'src/components/tables/ColumnFilter';
 
 interface DisplayExperiment extends V2Experiment {
   last5Runs?: V2Run[];
@@ -51,11 +53,12 @@ interface DisplayExperiment extends V2Experiment {
 
 interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
-  selectedIds: string[];
-  selectedTab: number;
 }
 
-export class ExperimentList extends Page<{ namespace?: string }, ExperimentListState> {
+export class ExperimentList extends Page<
+  { namespace?: string; scopeControl?: React.ReactNode },
+  ExperimentListState
+> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -63,26 +66,13 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
 
     this.state = {
       displayExperiments: [],
-      selectedIds: [],
-      selectedTab: 0,
     };
   }
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: buttons
-        .newExperiment()
-        .compareRuns(() => this.state.selectedIds)
-        .cloneRun(() => this.state.selectedIds, false)
-        .archive(
-          'run',
-          () => this.state.selectedIds,
-          false,
-          (ids) => this._selectionChanged(ids),
-        )
-        .refresh(this.refresh.bind(this))
-        .getToolbarActionMap(),
+      actions: buttons.newExperiment().refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Experiments',
     };
@@ -99,11 +89,13 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       {
         flex: 2,
         label: 'Description',
+        width: '35%',
       },
       {
         customRenderer: this._last5RunsCustomRenderer,
         flex: 1,
-        label: 'Last 5 runs',
+        label: 'Recent runs · up to 5',
+        width: 240,
         sortKey: ExperimentSortKeys.LAST_RUN_CREATED_AT,
       },
     ];
@@ -116,25 +108,47 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         otherFields: [
           exp.display_name!,
           exp.description!,
-          exp.expandState === ExpandState.EXPANDED ? [] : exp.last5Runs,
+          exp.expandState === ExpandState.EXPANDED ? undefined : exp.last5Runs,
         ],
       };
     });
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable
-          columns={columns}
-          rows={rows}
-          ref={this._tableRef}
-          disableSelection={true}
-          initialSortColumn={ExperimentSortKeys.CREATED_AT}
-          reload={this._reload.bind(this)}
-          toggleExpansion={this._toggleRowExpand.bind(this)}
-          getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
-        />
+      <div className='kfp-workflow-page'>
+        <DateListFilter label='Recent activity' field='last_run_created_at'>
+          {(date) => (
+            <CustomTable
+              filterActions={this.props.scopeControl}
+              filterPredicates={date.predicates}
+              renderTable={(table) => (
+                <ResourceTable
+                  table={{
+                    ...table,
+                    emptyMessage: date.active
+                      ? 'No results match the selected filters.'
+                      : table.emptyMessage,
+                  }}
+                  headerActions={{ last_run_created_at: date.control }}
+                  activeFilters={date.chip}
+                  label='Experiments'
+                  minWidth={820}
+                  singular='experiment'
+                  plural='experiments'
+                />
+              )}
+              columns={columns}
+              rows={rows}
+              ref={this._tableRef}
+              disableSelection={true}
+              initialSortColumn={ExperimentSortKeys.CREATED_AT}
+              reload={this._reload.bind(this)}
+              toggleExpansion={this._toggleRowExpand.bind(this)}
+              getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
+              filterLabel='Search experiments'
+              emptyMessage='No experiments found. Click "Create experiment" to start.'
+            />
+          )}
+        </DateListFilter>
       </div>
     );
   }
@@ -150,33 +164,24 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
-        <Link
-          className={commonCss.link}
-          data-testid='experiment-name-link'
-          data-experiment-id={props.id}
-          data-experiment-name={props.value || ''}
-          onClick={(e) => e.stopPropagation()}
-          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
-        >
-          {props.value}
-        </Link>
-      </Tooltip>
+      <Link
+        className='kfp-workflow-link'
+        title={props.value || ''}
+        data-testid='experiment-name-link'
+        data-experiment-id={props.id}
+        data-experiment-name={props.value || ''}
+        onClick={(e) => e.stopPropagation()}
+        to={RoutePageFactory.experimentDetails(props.id)}
+      >
+        {props.value}
+      </Link>
     );
   };
 
   public _last5RunsCustomRenderer: React.FC<CustomRendererProps<V2Run[]>> = (
     props: CustomRendererProps<V2Run[]>,
   ) => {
-    return (
-      <div className={commonCss.flex}>
-        {(props.value || []).map((run, i) => (
-          <span key={i} style={{ margin: '0 1px' }}>
-            {statusToIcon(run.state, run.created_at)}
-          </span>
-        ))}
-      </div>
-    );
+    return props.value ? <RecentRunHealth runs={props.value} /> : null;
   };
 
   private async _reload(request: ListRequest): Promise<string> {
@@ -253,15 +258,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     return response.next_page_token || '';
   }
 
-  private _selectionChanged(selectedIds: string[]): void {
-    const actions = this.props.toolbarProps.actions;
-    actions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-    actions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
-    actions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
-    this.props.updateToolbar({ actions });
-    this.setState({ selectedIds });
-  }
-
   private _toggleRowExpand(rowIndex: number): void {
     const displayExperiments = immerProduce(this.state.displayExperiments, (draft) => {
       draft[rowIndex].expandState =
@@ -276,25 +272,20 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   private _getExpandedExperimentComponent(experimentIndex: number): React.JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
     return (
-      <RunList
-        hideExperimentColumn={true}
-        experimentIdMask={experiment.experiment_id}
-        onError={() => null}
-        {...this.props}
-        disablePaging={false}
-        selectedIds={this.state.selectedIds}
-        noFilterBox={true}
-        storageState={V2RunStorageState.AVAILABLE}
-        onSelectionChange={this._selectionChanged.bind(this)}
-        disableSorting={true}
+      <ExperimentRunPreview
+        experimentId={experiment.experiment_id!}
+        runs={experiment.last5Runs}
+        error={experiment.error}
       />
     );
   }
 }
 
-const EnhancedExperimentList: React.FC<PageProps> = (props) => {
+const ExperimentListWithContext: React.FC<PageProps & { scopeControl?: React.ReactNode }> = (
+  props,
+) => {
   const namespace = React.useContext(NamespaceContext);
   return <ExperimentList key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedExperimentList;
+export default ExperimentListWithContext;

@@ -60,6 +60,30 @@ describe('mock backend routes', () => {
   });
 
   describe('v2 fixture routes', () => {
+    it('resolves sample graph artifact links and their producer/consumer lineage', async () => {
+      const runId = 'sample-run-daily-success';
+      const artifactId = `${runId}-prepare-data-dataset`;
+      const artifact = await request.get(`/apis/v2/artifacts/${artifactId}`).expect(200);
+      expect(artifact.body).toMatchObject({
+        artifact_id: artifactId,
+        type: 'Dataset',
+        name: 'Prepared taxi features',
+      });
+      const lineage = await request
+        .get('/apis/v2/artifact_tasks')
+        .query({ artifact_ids: artifactId })
+        .expect(200);
+      expect(lineage.body.artifact_tasks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ task_id: `${runId}-prepare-data`, type: 'OUTPUT' }),
+          expect.objectContaining({ task_id: `${runId}-train-model`, type: 'TASK_OUTPUT_INPUT' }),
+        ]),
+      );
+      await request
+        .get('/apis/v2/artifacts/sample-run-training-failed-train-model-model')
+        .expect(404);
+    });
+
     it('lists pipelines with v2 field names, pagination, and total size', async () => {
       const response = await request.get('/apis/v2/pipelines?page_token=0&page_size=3').expect(200);
 
@@ -70,6 +94,34 @@ describe('mock backend routes', () => {
         pipeline_id: expect.any(String),
         display_name: expect.any(String),
       });
+    });
+
+    it('combines uploaded timestamps and name filters before pagination', async () => {
+      const all = await request.get('/apis/v2/pipelines?page_size=100').expect(200);
+      const pipeline = all.body.pipelines.find(
+        (item: { display_name: string }) => item.display_name === 'XGBoost',
+      );
+      const predicates = [
+        { key: 'name', operation: 'IS_SUBSTRING', string_value: 'XGBoost' },
+        {
+          key: 'created_at',
+          operation: 'GREATER_THAN_EQUALS',
+          timestamp_value: pipeline.created_at,
+        },
+      ];
+      const inclusive = await request
+        .get(
+          `/apis/v2/pipelines${buildQuery({ filter: JSON.stringify({ predicates }), page_size: '1' })}`,
+        )
+        .expect(200);
+      expect(inclusive.body.pipelines).toHaveLength(1);
+      predicates[1].timestamp_value = new Date(
+        new Date(pipeline.created_at).getTime() + 1000,
+      ).toISOString();
+      const excluded = await request
+        .get(`/apis/v2/pipelines${buildQuery({ filter: JSON.stringify({ predicates }) })}`)
+        .expect(200);
+      expect(excluded.body.pipelines || []).toHaveLength(0);
     });
 
     it('filters v2 pipelines by name', async () => {
@@ -148,6 +200,73 @@ describe('mock backend routes', () => {
       });
     });
 
+    it('filters review runs by status and relative date before pagination', async () => {
+      const query = {
+        experiment_id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
+        filter: JSON.stringify({
+          predicates: [
+            { key: 'state', operation: 'EQUALS', string_value: 'FAILED' },
+            { key: 'storage_state', operation: 'EQUALS', string_value: 'AVAILABLE' },
+            {
+              key: 'created_at',
+              operation: 'GREATER_THAN_EQUALS',
+              timestamp_value: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+            },
+          ],
+        }),
+        sort_by: 'created_at desc',
+        page_size: 1,
+      };
+      const first = await request.get(`/apis/v2/runs${buildQuery(query)}`).expect(200);
+      expect(first.body.total_size).toBe(2);
+      expect(first.body.runs[0].run_id).toBe('sample-run-training-failed');
+      const next = await request
+        .get(`/apis/v2/runs${buildQuery({ ...query, page_token: first.body.next_page_token })}`)
+        .expect(200);
+      expect(next.body.runs[0].run_id).toBe('sample-run-import-failed');
+      expect(next.body.next_page_token).toBe('');
+    });
+
+    it('keeps archived samples separate and unfinished runs without finish times', async () => {
+      const filter = JSON.stringify({
+        predicates: [{ key: 'storage_state', operation: 'EQUALS', string_value: 'ARCHIVED' }],
+      });
+      const archived = await request.get(`/apis/v2/runs${buildQuery({ filter })}`).expect(200);
+      expect(archived.body.total_size).toBe(2);
+      expect(
+        archived.body.runs.every(
+          (run: { storage_state: string }) => run.storage_state === 'ARCHIVED',
+        ),
+      ).toBe(true);
+      for (const id of ['training-running', 'validation-pending', 'refresh-canceling']) {
+        const response = await request.get(`/apis/v2/runs/sample-run-${id}`).expect(200);
+        expect(response.body.finished_at).toBeUndefined();
+      }
+    });
+
+    it.each(['nested-conditions', 'parallel-folds', 'regional-training'])(
+      'serves complex %s review runs and their saved versions',
+      async (id) => {
+        const run = (await request.get(`/apis/v2/runs/sample-run-${id}`).expect(200)).body;
+        expect(run.state_history[0]).toMatchObject({
+          state: 'RUNNING',
+          update_time: expect.any(String),
+        });
+        const version = (
+          await request.get(`/apis/v2/pipelines/${id}/versions/${id}-v1`).expect(200)
+        ).body;
+        expect(run.pipeline_spec).toEqual(version.pipeline_spec);
+        const tasks = (await request.get(`/apis/v2/runs/sample-run-${id}/tasks`).expect(200)).body
+          .tasks;
+        expect(tasks.length).toBeGreaterThan(5);
+        const leaf = tasks.find((task: { type: string }) => task.type === 'RUNTIME');
+        const fetched = (
+          await request.get(`/apis/v2/runs/sample-run-${id}/tasks/${leaf.task_id}`).expect(200)
+        ).body;
+        expect(fetched.task_id).toBe(leaf.task_id);
+      },
+    );
+
     it('fetches a v2 run by id', async () => {
       const response = await request
         .get('/apis/v2/runs/e0115ac1-0479-4194-a22d-01e65e09a32b')
@@ -192,15 +311,15 @@ describe('mock backend routes', () => {
       const listResponse = await request.get('/apis/v2/artifacts').expect(200);
 
       expect(listResponse.body).toMatchObject({
-        total_size: 1,
-        artifacts: [
-          {
+        total_size: 6,
+        artifacts: expect.arrayContaining([
+          expect.objectContaining({
             artifact_id: 'mock-artifact-1',
             name: 'mock-dataset',
             namespace: 'kubeflow-user-example-com',
             type: 'Dataset',
-          },
-        ],
+          }),
+        ]),
       });
 
       const artifactResponse = await request.get('/apis/v2/artifacts/mock-artifact-1').expect(200);
@@ -215,6 +334,78 @@ describe('mock backend routes', () => {
       });
     });
 
+    it('combines artifact type, date and name filters before pagination', async () => {
+      const predicates = [
+        { key: 'type', operation: 'IN', int_values: { values: [2, 3] } },
+        {
+          key: 'created_at',
+          operation: 'GREATER_THAN_EQUALS',
+          timestamp_value: '2026-01-01T00:00:00Z',
+        },
+        { key: 'name', operation: 'IS_SUBSTRING', string_value: 'dataset' },
+      ];
+      const query = { filter: JSON.stringify({ predicates }), page_size: 1, sort_by: 'name desc' };
+      const first = await request.get(`/apis/v2/artifacts${buildQuery(query)}`).expect(200);
+      expect(first.body.total_size).toBe(3);
+      expect(first.body.artifacts[0].artifact_id).toBe('mock-artifact-3');
+      const next = await request
+        .get(`/apis/v2/artifacts${buildQuery({ ...query, page_token: 1 })}`)
+        .expect(200);
+      expect(next.body.total_size).toBe(3);
+      expect(next.body.artifacts[0].artifact_id).toBe('mock-artifact-2');
+      expect(next.body.next_page_token).toBeTruthy();
+    });
+
+    it.each([
+      { key: 'type', operation: 'IN', int_values: { values: [4] } },
+      {
+        key: 'created_at',
+        operation: 'GREATER_THAN_EQUALS',
+        timestamp_value: '2026-02-01T00:00:00Z',
+      },
+    ])('excludes artifacts that fail a predicate: %j', async (predicate) => {
+      const response = await request
+        .get(
+          `/apis/v2/artifacts${buildQuery({ filter: JSON.stringify({ predicates: [predicate] }) })}`,
+        )
+        .expect(200);
+      expect(response.body).toMatchObject({ total_size: 0, artifacts: [] });
+    });
+
+    it('filters experiments by their latest run date and excludes experiments without runs', async () => {
+      const filter = JSON.stringify({
+        predicates: [
+          {
+            key: 'last_run_created_at',
+            operation: 'GREATER_THAN_EQUALS',
+            timestamp_value: '2026-01-01T00:00:00Z',
+          },
+        ],
+      });
+      const response = await request
+        .get(`/apis/v2/experiments${buildQuery({ filter })}`)
+        .expect(200);
+      expect(
+        response.body.experiments.map(
+          (experiment: { display_name: string }) => experiment.display_name,
+        ),
+      ).toEqual(['Default']);
+      expect(Date.parse(response.body.experiments[0].last_run_created_at)).toBeGreaterThan(
+        Date.now() - 2 * 86_400_000,
+      );
+    });
+
+    it('does not assign the original dataset lineage to additional sample artifacts', async () => {
+      const response = await request
+        .get('/apis/v2/artifact_tasks?artifact_ids=mock-artifact-4')
+        .expect(200);
+      expect(response.body.artifact_tasks).toEqual([]);
+      const original = await request
+        .get('/apis/v2/artifact_tasks?artifact_ids=mock-artifact-1')
+        .expect(200);
+      expect(original.body.artifact_tasks).toHaveLength(2);
+    });
+
     it('returns 404 for an unknown native artifact', async () => {
       await request
         .get('/apis/v2/artifacts/does-not-exist')
@@ -222,7 +413,10 @@ describe('mock backend routes', () => {
     });
 
     it('serves representative native artifact-task relationships', async () => {
-      const response = await request.get('/apis/v2/artifact_tasks').expect(200);
+      const response = await request
+        .get('/apis/v2/artifact_tasks')
+        .query({ artifact_ids: 'mock-artifact-1' })
+        .expect(200);
 
       expect(response.body.artifact_tasks).toEqual([
         expect.objectContaining({

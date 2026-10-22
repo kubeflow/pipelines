@@ -109,7 +109,7 @@ test(
         'Zoom in',
         'Zoom out',
         'Fit view',
-        'Unlock graph',
+        'Unlock node positions',
       ]);
       assert.equal(await page.getByText('Layers', { exact: true }).count(), 0);
       assert.equal(await page.getByRole('button', { name: 'Open Sub-DAG' }).count(), 0);

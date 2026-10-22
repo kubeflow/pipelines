@@ -19,16 +19,17 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
 import { V2RunStorageState } from 'src/apisv2/run';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedRunsState {
   selectedIds: string[];
 }
 
-export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState> {
+export class ArchivedRuns extends Page<
+  { namespace?: string; scopeControl?: React.ReactNode },
+  ArchivedRunsState
+> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -59,8 +60,9 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-runs-view'>
         <RunList
+          onLoadSuccess={this.clearBanner.bind(this)}
           namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
@@ -93,9 +95,9 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
   }
 }
 
-const EnhancedArchivedRuns = (props: PageProps) => {
+const ArchivedRunsWithContext = (props: PageProps & { scopeControl?: React.ReactNode }) => {
   const namespace = React.useContext(NamespaceContext);
   return <ArchivedRuns key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedArchivedRuns;
+export default ArchivedRunsWithContext;

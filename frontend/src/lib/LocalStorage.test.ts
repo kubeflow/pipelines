@@ -39,8 +39,8 @@ describe('LocalStorage', () => {
     expect(LocalStorage.isNavbarCollapsed()).toBe(true);
   });
 
-  it('returns default page size of 10 when no value is saved', () => {
-    expect(LocalStorage.getTablePageSize()).toBe(10);
+  it('returns default page size of 20 when no value is saved', () => {
+    expect(LocalStorage.getTablePageSize()).toBe(20);
   });
 
   it('reads and writes table page size', () => {
@@ -50,7 +50,7 @@ describe('LocalStorage', () => {
 
   it('returns default page size for invalid stored values', () => {
     localStorage.setItem(LocalStorageKey.tablePageSize, '25');
-    expect(LocalStorage.getTablePageSize()).toBe(10);
+    expect(LocalStorage.getTablePageSize()).toBe(20);
   });
 
   it('accepts all valid page size options', () => {
@@ -69,6 +69,82 @@ describe('LocalStorage', () => {
 
   it('returns default for a page with no saved value', () => {
     LocalStorage.saveTablePageSize(50, 'runs');
-    expect(LocalStorage.getTablePageSize('pipelines')).toBe(10);
+    expect(LocalStorage.getTablePageSize('pipelines')).toBe(20);
   });
+});
+
+it('keeps navigation usable when storage reads or writes are blocked', () => {
+  const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    throw new Error('blocked');
+  });
+  const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('quota');
+  });
+  try {
+    expect(LocalStorage.isNavbarCollapsed()).toBe(false);
+    expect(() => LocalStorage.saveNavbarCollapsed(true)).not.toThrow();
+  } finally {
+    read.mockRestore();
+    write.mockRestore();
+  }
+});
+
+it.each([undefined, 'runs'])(
+  'keeps page sizing usable when storage is blocked for %s',
+  (pageId) => {
+    const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    try {
+      expect(LocalStorage.getTablePageSize(pageId)).toBe(20);
+      expect(() => LocalStorage.saveTablePageSize(50, pageId)).not.toThrow();
+    } finally {
+      read.mockRestore();
+      write.mockRestore();
+    }
+  },
+);
+
+it('keeps page sizing usable when accessing localStorage itself throws', () => {
+  const storage = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+    throw new Error('SecurityError');
+  });
+  try {
+    expect(LocalStorage.getTablePageSize('runs')).toBe(20);
+    expect(() => LocalStorage.saveTablePageSize(50, 'runs')).not.toThrow();
+  } finally {
+    storage.mockRestore();
+  }
+});
+
+it('retains an explicitly saved ten-row preference', () => {
+  LocalStorage.saveTablePageSize(10, 'runs');
+  expect(LocalStorage.getTablePageSize('runs')).toBe(10);
+});
+
+it('persists and resets column sizes independently for each table', () => {
+  LocalStorage.saveTableColumnWidths('runs', [240, 120]);
+  expect(LocalStorage.getTableColumnWidths('runs')).toEqual([240, 120]);
+  expect(LocalStorage.getTableColumnWidths('artifacts')).toBeUndefined();
+  LocalStorage.saveTableColumnWidths('runs');
+  expect(LocalStorage.getTableColumnWidths('runs')).toBeUndefined();
+});
+
+it.each(['null', '{}', '[1, 200]', '[2001]', '["200"]', 'invalid'])(
+  'ignores malformed column sizes: %s',
+  (value) => {
+    localStorage.setItem('tableColumnWidths_invalid', value);
+    expect(LocalStorage.getTableColumnWidths('invalid')).toBeUndefined();
+  },
+);
+
+it('persists the flexible column and clears it with width reset', () => {
+  LocalStorage.saveTableColumnWidths('flex-test', [120, 240], 1);
+  expect(LocalStorage.getTableFlexibleColumn('flex-test')).toBe(1);
+  expect(LocalStorage.getTableColumnWidths('flex-test')).toEqual([120, 240]);
+  LocalStorage.saveTableColumnWidths('flex-test');
+  expect(LocalStorage.getTableFlexibleColumn('flex-test')).toBeUndefined();
 });

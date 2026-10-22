@@ -11,6 +11,7 @@ server/dependency-licenses.txt
 swagger-codegen-cli.jar
 
 # testing
+/browser-results
 /coverage
 
 # production
