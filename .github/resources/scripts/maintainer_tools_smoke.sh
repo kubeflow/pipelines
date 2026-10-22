@@ -99,7 +99,7 @@ backend/api/build_kfp_server_api_python_package.sh
 test -s backend/api/v2/go_client/run.pb.go
 test -s backend/api/v2/swagger/kfp_api_single_file.swagger.json
 test -s sdk/python/kfp/server_api/api_client.py
-python3 -m pip wheel --no-deps ./sdk/python --wheel-dir /tmp/kfp-smoke-dist
+uv build --wheel ./sdk/python --out-dir /tmp/kfp-smoke-dist
 compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl' >/dev/null
 CONTAINER
     snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}" \
@@ -116,10 +116,11 @@ set -euo pipefail
 mkdir -p "$HOME"
 test "$(node --version)" = "v$(tr -d 'v\r\n' < frontend/.nvmrc)"
 npm --version
-yq --version | grep -F '3.4.1'
+yq --version | grep -F 'v4.54.1'
 test "$(git-cliff --version)" = "git-cliff ${GIT_CLIFF_VERSION}"
+python3 manifests/kustomize/hack/yq_release_test.py
 manifests/kustomize/hack/release.sh 3.0.0-smoke
-test "$(yq r manifests/kustomize/base/installs/generic/pipeline-install-config.yaml data.appVersion)" = 3.0.0-smoke
+test "$(yq eval '.data.appVersion' manifests/kustomize/base/installs/generic/pipeline-install-config.yaml)" = 3.0.0-smoke
 # Synthetic history exercises the project's real changelog configuration without
 # needing credentials, tags, or a writable clone of the contributor's repository.
 git init -q

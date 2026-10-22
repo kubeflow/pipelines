@@ -740,7 +740,8 @@ class InlineCommandTest(unittest.TestCase):
         )
         self.assertIn('REQUIRED_NODE_VERSION=', script)
         self.assertIn('which node >/dev/null', script)
-        self.assertIn('yq -V | grep 3.', script)
+        self.assertIn('mikefarah/yq>=4.54.1 <5.0', script)
+        self.assertIn('version v4[.]', script)
         self.assertIn('python3 -c "import setuptools"', script)
         self.assertIn('go env GOPATH', script)
         self.assertNotIn('check-release-needed-tools.sh', script)
@@ -848,7 +849,7 @@ class InlineCommandTest(unittest.TestCase):
         self.assertIn(
             'uv build --package kfp-kubernetes --out-dir dist', script
         )
-        self.assertIn('python3 setup.py sdist', script)
+        self.assertIn('uv build --out-dir dist .', script)
         self.assertNotIn('make', command)
 
 

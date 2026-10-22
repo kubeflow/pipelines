@@ -443,9 +443,9 @@ ACTUAL_NODE_VERSION="$(normalize_node_version "$(node -v)")"
 test "${{ACTUAL_NODE_VERSION}}" = "${{REQUIRED_NODE_VERSION}}" || (echo "node version should match ${{REQUIRED_NODE_VERSION}}" && exit 1)
 echo "jq>=1.6"
 which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
-echo "yq>=3.3 <4.0"
+echo "mikefarah/yq>=4.54.1 <5.0"
 which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
-yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
+yq --version | grep -E '^yq [(]https://github.com/mikefarah/yq/[)] version v4[.]' || (echo "mikefarah/yq version 4.x should be used" && exit 1)
 echo "java>=11"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "python>3"
@@ -515,12 +515,9 @@ cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
 if [ -f pyproject.toml ]; then
-  python3 -m pip install --user --break-system-packages uv==0.13.4
-  ~/.local/bin/uv build --package kfp-kubernetes --out-dir dist
+  uv build --package kfp-kubernetes --out-dir dist
 else
-  python3 -m pip install --user --break-system-packages -r requirements.txt
-  python3 setup.py sdist
-  pip wheel --no-deps dist/*.tar.gz -w dist
+  uv build --out-dir dist .
 fi
 '''.strip()
     return [
