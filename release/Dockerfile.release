@@ -53,8 +53,12 @@ RUN chmod -R 777 $NVM_DIR && \
 # ip-address 10.7.2; pin its compatible security update until npm includes it.
 ENV NPM_VERSION=12.2.1
 RUN npm install --global "npm@${NPM_VERSION}" && \
-    npm pkg delete devDependencies workspaces --prefix "$(npm root --global)/npm" && \
-    npm install --prefix "$(npm root --global)/npm" --omit=dev --ignore-scripts --no-audit --no-fund --save-exact ip-address@10.7.4 && \
+    npm install --prefix /tmp/npm-security --ignore-scripts --no-audit --no-fund --save-exact ip-address@10.7.4 && \
+    npm_root="$(npm root --global)" && \
+    node -e 'const p = require(process.argv[1]); if (p.version !== "10.7.2") throw new Error("Review npm ip-address patch");' "$npm_root/npm/node_modules/ip-address/package.json" && \
+    rm -rf "$npm_root/npm/node_modules/ip-address" && \
+    mv /tmp/npm-security/node_modules/ip-address "$npm_root/npm/node_modules/ip-address" && \
+    rm -rf /tmp/npm-security && \
     npm config set cache /tmp/.npm --global && \
     npm cache clean --force
 
