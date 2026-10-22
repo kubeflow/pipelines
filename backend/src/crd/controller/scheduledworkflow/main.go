@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -56,6 +57,7 @@ var (
 	userIdentityHeader                string
 	userIdentityValue                 string
 	multiUser                         bool
+	leaderElect                       bool
 )
 
 const (
@@ -66,13 +68,15 @@ const (
 	mlPipelineAPIServerTLSEnabledFlagName = "mlPipelineServiceTLSEnabled"
 	caCertPathFlagName                    = "caCertPath"
 	apiTokenFile                          = "/var/run/secrets/kubeflow/tokens/scheduledworkflow-sa-token"
+	leaseName                             = "kfp-scheduledworkflow"
 )
 
 func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	ctx := signals.SetupSignalHandler()
+	stopCh := ctx.Done()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
@@ -166,8 +170,37 @@ func main() {
 
 	go startMetricsServer()
 
-	if err = controller.Run(2, stopCh); err != nil {
-		log.Fatalf("Error running controller: %s", err.Error())
+	if !leaderElect {
+		if err = controller.Run(2, stopCh); err != nil {
+			log.Fatalf("Error running controller: %s", err.Error())
+		}
+		return
+	}
+
+	// Every replica keeps its informers warm; only the lease holder runs the
+	// workers.
+	identity, err := commonutil.LeaderElectionIdentity()
+	if err != nil {
+		log.Fatalf("Error getting the leader election identity: %v", err)
+	}
+	err = commonutil.RunWithLeaderElection(ctx, kubeClient, commonutil.LeaderElectionConfig{
+		LeaseName: leaseName,
+		Namespace: os.Getenv("POD_NAMESPACE"),
+		Identity:  identity,
+		Run: func(leaderCtx context.Context) {
+			if err := controller.Run(2, leaderCtx.Done()); err != nil {
+				log.Fatalf("Error running controller: %s", err.Error())
+			}
+		},
+		OnLost: func() {
+			// Exit so that Kubernetes restarts the container as a standby. The
+			// work queue has been shut down and can't be reused, and workers
+			// may still have requests in flight.
+			log.Fatal("Lost the leader lease, exiting")
+		},
+	})
+	if err != nil {
+		log.Fatalf("Error running leader election: %v", err)
 	}
 }
 
@@ -214,6 +247,7 @@ func init() {
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	flag.IntVar(&recurringRunResyncIntervalSeconds, "recurringRunResyncIntervalSeconds", 30, "The full resync interval in seconds for recurring run reconciliations.")
 	flag.BoolVar(&multiUser, "multiUser", false, "Submit all scheduled runs through the API server using persisted recurring-run inputs.")
+	flag.BoolVar(&leaderElect, "leaderElect", false, "Run the controller only on the replica that holds the "+leaseName+" Lease in the POD_NAMESPACE namespace, so that more than one replica can run.")
 	flag.StringVar(&userIdentityHeader, "userIdentityHeader", "", "User identity metadata key for multi-user mode (e.g. kubeflow-userid). If set, the controller injects this key into the outgoing gRPC metadata when calling the API server. The key is normalized to lowercase and must be a valid gRPC metadata key.")
 	flag.StringVar(&userIdentityValue, "userIdentityValue", "", "Value for the user identity gRPC metadata key (e.g. system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow).")
 	var err error

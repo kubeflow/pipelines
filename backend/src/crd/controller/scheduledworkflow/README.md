@@ -10,6 +10,7 @@ The controller supports the following command-line flags:
 | `--clientBurst`                       | Maximum burst for throttle from this client. | `10` |
 | `--recurringRunResyncIntervalSeconds` | Full resync interval in seconds for recurring run reconciliations. | `30` |
 | `--metricsPort`                       | The port for the metrics endpoint. | `9090` |
+| `--leaderElect`                       | Run the controller only on the replica that holds the `kfp-scheduledworkflow` Lease in the `POD_NAMESPACE` namespace, so that more than one replica can run. Set with the `LEADER_ELECT` environment variable. | `false` |
 
 ## Prometheus Metrics
 

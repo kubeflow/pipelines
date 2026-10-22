@@ -81,6 +81,16 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          # Leader election (LEADER_ELECT=true) uses these for the Lease
+          # namespace and holder identity. Multi-user mode sets NAMESPACE to ''.
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
           - name: CRON_SCHEDULE_TIMEZONE
             valueFrom:
               configMapKeyRef:

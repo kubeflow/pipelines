@@ -49,3 +49,21 @@ rules:
   verbs:
   - create
   - patch
+# Leader election lease, used when LEADER_ELECT is true.
+# create cannot be restricted by resourceNames per Kubernetes RBAC specification
+# (https://kubernetes.io/docs/reference/access-authn-authz/rbac/#referring-to-resources).
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  resourceNames:
+  - kfp-scheduledworkflow
+  verbs:
+  - get
+  - update
