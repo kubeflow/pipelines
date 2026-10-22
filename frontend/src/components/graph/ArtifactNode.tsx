@@ -17,24 +17,28 @@
 import FolderIcon from '@mui/icons-material/Folder';
 import React from 'react';
 import { Artifact } from 'src/third_party/mlmd';
+import { classes } from 'typestyle';
 import { ArtifactFlowElementData } from './Constants';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 
 interface ArtifactNodeProps {
   id: string;
   data: ArtifactFlowElementData;
-  // selected: boolean;
+  selected?: boolean;
   // status: ExecutionNodeStatus;
   // tooltip: string;
 }
 
-function ArtifactNode({ id, data }: ArtifactNodeProps) {
+function ArtifactNode({ id, data, selected }: ArtifactNodeProps) {
   let icon = getIcon(data.state);
   return (
     <>
       <button
         title={data.label}
-        className='focus:ring flex items-stretch hover:scale-105 transition transform border-0 shadow-lg rounded-lg w-60 h-12'
+        className={classes(
+          'focus:ring flex items-stretch hover:scale-105 transition transform border-0 shadow-lg rounded-lg w-60 h-12',
+          selected && 'ring',
+        )}
       >
         <div className='flex items-center justify-between w-60 rounded-lg shadow-lg bg-white'>
           {icon}

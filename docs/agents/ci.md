@@ -37,6 +37,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 ## Common CI failures
 
+- Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
+
+- The `sdk-viewer-assets` pre-commit hook rebuilds the SDK bundle on frontend, bundled-asset, or hook/workflow configuration changes; modified outputs fail the check and must be committed. Pre-commit CI installs the pinned Node/npm toolchain and locked dependencies only for these changes or configuration smoke tests. Local contributors must run `npm ci` in `frontend` first, and again after lockfile changes. See [viewer build instructions](../../frontend/src/standalone/README.md#rebuild-the-sdk-assets).
+
+- The standalone viewer's generated `sdk/python/kfp/cli/viewer_assets/viewer.js` and `viewer.css` are excluded only from pre-commit's end-of-file and trailing-whitespace rewriting hooks. Vite owns those bytes, including whitespace in bundled third-party template strings; rebuilding would undo manual whitespace edits. Source files, licenses, and non-rewriting checks remain covered. `.gitattributes` does not control pre-commit hook exclusions.
+
 - SDK imports are checked by isort 5.10.1 in both lanes: `sdk/python/requirements-dev.txt` for the SDK presubmit, and the pre-commit hook's `additional_dependencies`. Keep the two pinned together; a newer pre-commit hook wraps long imports differently and conflicts with the SDK formatter.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Verify formatter upgrades by running the full hook chain twice on the updater and SDK structures files.
 - Registry pull failures for Kind, BuildKit, Python, or Alpine images are usually transient; retry before changing code.

@@ -32,9 +32,10 @@ import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 export interface ExecutionNodeProps {
   id: string;
   data: ExecutionFlowElementData;
+  selected?: boolean;
 }
 
-function ExecutionNode({ id, data }: ExecutionNodeProps) {
+function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   const icon = getIcon(data.state);
   const executionIcon = getExecutionIcon(data.state);
 
@@ -47,6 +48,7 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
           className={classes(
             'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
             fullWidth,
+            selected && 'ring',
           )}
         >
           <div className='flex justify-between flex-row relative w-full h-full'>

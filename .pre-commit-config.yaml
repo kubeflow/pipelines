@@ -9,9 +9,11 @@ repos:
         args: [--allow-multiple-documents]
       - id: check-json
       - id: end-of-file-fixer
+        # Preserve Vite's emitted bytes, including third-party template strings.
+        exclude: ^sdk/python/kfp/cli/viewer_assets/viewer\.(js|css)$
       - id: trailing-whitespace
-        # Snapshot whitespace represents rendered text and is owned by Vitest.
-        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$)
+        # Snapshots and bundled strings are owned by their generators.
+        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$|^sdk/python/kfp/cli/viewer_assets/viewer\.(js|css)$)
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
@@ -37,6 +39,13 @@ repos:
         exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: local
     hooks:
+      - id: sdk-viewer-assets
+        name: Rebuild SDK viewer assets (run npm ci in frontend first)
+        entry: npm --prefix frontend run build:viewer
+        language: system
+        files: ^(frontend/|sdk/python/kfp/cli/viewer_assets/|\.pre-commit-config\.yaml$|\.github/workflows/pre-commit\.yml$)
+        pass_filenames: false
+        require_serial: true
       - id: isort
         name: isort
         entry: isort --profile google
