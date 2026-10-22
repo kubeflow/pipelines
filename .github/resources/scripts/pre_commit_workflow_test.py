@@ -71,6 +71,30 @@ class PreCommitWorkflowTest(unittest.TestCase):
             self.workflow,
         )
 
+    def test_whitespace_hooks_preserve_generated_viewer_bundles(self):
+        config = yaml.safe_load(self.config)
+        hooks = {
+            hook['id']: hook
+            for repo in config['repos']
+            for hook in repo['hooks']
+        }
+        for hook_id in ('end-of-file-fixer', 'trailing-whitespace'):
+            exclude = re.compile(hooks[hook_id].get('exclude', r'^$'))
+            for name in ('viewer.js', 'viewer.css'):
+                path = f'sdk/python/kfp/cli/viewer_assets/{name}'
+                with self.subTest(hook=hook_id, generated_file=path):
+                    self.assertRegex(path, exclude)
+                    self.assertNotRegex(path, config['exclude'])
+            for path in (
+                'frontend/src/standalone/Viewer.tsx',
+                'frontend/src/standalone/viewer.css',
+                'frontend/vite.viewer.config.mts',
+                'sdk/python/kfp/cli/visualize.py',
+                'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
+            ):
+                with self.subTest(hook=hook_id, checked_file=path):
+                    self.assertNotRegex(path, exclude)
+
     def test_workflow_fails_closed_when_the_event_base_is_unavailable(self):
         self.assertIn('Unable to resolve the event base commit', self.workflow)
         self.assertNotIn('git rev-parse HEAD^', self.workflow)

@@ -9,9 +9,11 @@ repos:
         args: [--allow-multiple-documents]
       - id: check-json
       - id: end-of-file-fixer
+        # Preserve Vite's emitted bytes, including third-party template strings.
+        exclude: ^sdk/python/kfp/cli/viewer_assets/viewer\.(js|css)$
       - id: trailing-whitespace
-        # Snapshot whitespace represents rendered text and is owned by Vitest.
-        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$)
+        # Snapshots and bundled strings are owned by their generators.
+        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$|^sdk/python/kfp/cli/viewer_assets/viewer\.(js|css)$)
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test

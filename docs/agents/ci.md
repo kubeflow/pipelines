@@ -162,6 +162,8 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
 
+- The standalone viewer's generated `sdk/python/kfp/cli/viewer_assets/viewer.js` and `viewer.css` are excluded only from pre-commit's end-of-file and trailing-whitespace rewriting hooks. Vite owns those bytes, including whitespace in bundled third-party template strings; rebuilding would undo manual whitespace edits. Source files, licenses, and non-rewriting checks remain covered. `.gitattributes` does not control pre-commit hook exclusions.
+
 - SDK client deployment failures collect full pod descriptions and current and previous container logs before Kind cleanup. Keep an explicit failure-status condition on collection and place its output under the uploaded `/tmp/tmp*/*` glob; otherwise setup crashes lose their termination evidence.
 
 - The recurring-run cache integration test must use one concurrent execution and list only its own schedule's runs in ascending creation order. Concurrent cold runs may legitimately both execute; explicit filtering and ordering keep the assertion scoped to the intended warm run. Preserve the cached-state and no-executor-pod assertions.
