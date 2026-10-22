@@ -4,6 +4,18 @@ Changelog
 
 ### Upgrade notes
 
+- **Artifact compatibility reset (3.0 development):** matching native Artifact
+  records permit existing custom roots without a mandatory namespace prefix.
+  HTTP proxy mode again uses namespace receivers and their local credentials;
+  existing endpoint, credential, path, response and namespace-access checks remain.
+  Native lookup failures still deny access. This interim behavior does **not**
+  establish tenant isolation when native metadata can name objects readable by
+  broad/shared credentials; HTTP destination restrictions are not object grants.
+  The [backend-first artifact API](https://github.com/kubeflow/pipelines/issues/14031)
+  must provide the replacement authority before security remediation or supported
+  3.0 adoption is claimed. No prior 2.18 artifact approval/readiness rollout is
+  assumed. See [compatibility and remaining limits](frontend/README.md#multi-user-artifact-ownership).
+
 - **Recurring-run security:** multi-user recurring runs created before API-owned
   scheduling state must be reviewed and recreated through the API. Otherwise they
   stop submitting executions, even when shown as enabled. API startup logs now

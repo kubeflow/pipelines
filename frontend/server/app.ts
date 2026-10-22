@@ -190,8 +190,8 @@ function createUIServer(options: UIConfigs) {
   /**
    * Artifact Authorization Middleware
    * Security fix for https://github.com/kubeflow/pipelines/issues/9889
-   * This middleware validates namespace access before allowing artifact retrieval,
-   * preventing unauthorized cross-namespace artifact access.
+   * This middleware authorizes namespace access and checks artifact metadata/path consistency.
+   * A metadata match is not an independent grant to bytes accessible with shared credentials.
    */
   const artifactsAuthMiddleware = getArtifactsAuthMiddleware(
     authorizeFn,
