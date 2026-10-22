@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-10-21
+- Last updated: 2026-10-22
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -720,3 +720,5 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - The legacy cache fixture source and compiled YAML must use the same Python image listed in `.github/resources/runtime-base-images.txt`. Verify with `python3 .github/resources/scripts/runtime_fixture_images_test.py`; avoid registry aliases that bypass Kind preloads.
 
 - Cache-deployer intentionally excludes Cloud SDK; its scripts require Bash, CA certificates, curl, jq, kubectl and OpenSSL. Inverse-proxy retains Cloud SDK authentication, rebuilds the pinned agent with the release Go toolchain, and must preserve registration-script environment defaults. Run the built-image contract tests with `KFP_CACHE_DEPLOYER_IMAGE` / `KFP_INVERSE_PROXY_IMAGE` and scan each published architecture after changes to either Dockerfile.
+
+- Frontend images compile the server before pruning development-only dependencies with `npm prune --omit=dev --ignore-scripts`; preserve the qualified MinIO compatibility patch. Verify each built architecture with `KFP_FRONTEND_IMAGE=<image> python3 .github/resources/scripts/frontend_runtime_image_test.py` and a comprehensive vulnerability scan.
