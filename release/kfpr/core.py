@@ -452,7 +452,7 @@ mkdir -p api/v2alpha1/google/protobuf
 cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
-uv build --out-dir dist .
+"{repo_path}/backend/api/hack/uv.sh" build --out-dir dist .
 '''.strip()
     return [
         'docker',

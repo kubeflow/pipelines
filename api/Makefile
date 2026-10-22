@@ -74,7 +74,7 @@ ifeq ($(USE_PREBUILT_IMAGE),true)
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python && \
 		    python3 generate_proto.py && \
-            uv build --out-dir dist .'
+            /go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build --out-dir dist .'
 else
 	$(MAKE) python-from-source
 endif
@@ -89,7 +89,7 @@ python-from-source: ensure-api-generator-image fetch-protos
 		$(IMAGE_TAG) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python && \
 		    python3 generate_proto.py && \
-            uv build --out-dir dist .'
+            /go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build --out-dir dist .'
 
 # Build and locally install Python package using editable mode for development.
 .PHONY: python-dev
