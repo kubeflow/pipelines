@@ -26,6 +26,14 @@ Node or a CDN. Vite emits third-party licenses, which are embedded in exports.
 The checked-in frontend lockfile pins the renderer's dependencies; rebuilding
 these assets is required after upgrading those dependencies.
 
+The `sdk-viewer-assets` pre-commit hook rebuilds on frontend or bundled-asset
+changes and fails if generated files change. Stage the regenerated assets and
+retry the commit. Use the pinned Node/npm versions and rerun `npm ci` after
+lockfile changes; the hook uses installed dependencies rather than installing
+them on every commit. Pre-commit CI installs the pinned toolchain and locked
+dependencies before running the same hook. SDK users still need neither Node
+nor npm. Existing HTML exports must be regenerated after upgrading the SDK.
+
 ```sh
 # From frontend/
 npm run test:ui -- src/standalone/Viewer.test.tsx
