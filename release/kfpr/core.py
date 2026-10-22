@@ -53,18 +53,18 @@ class ReleaseMetadata:
     def from_version(cls, release_type: str, version: str) -> 'ReleaseMetadata':
         """Derive release metadata from release type and version.
 
-    Args:
-      release_type: One of 'major', 'minor', or 'patch'.
-      version: Semantic version string in MAJOR.MINOR.PATCH format.
+        Args:
+          release_type: One of 'major', 'minor', or 'patch'.
+          version: Semantic version string in MAJOR.MINOR.PATCH format.
 
-    Returns:
-      ReleaseMetadata instance with all derived fields.
+        Returns:
+          ReleaseMetadata instance with all derived fields.
 
-    Raises:
-      ValueError: If release_type is invalid, version format is invalid,
-        or version constraints are violated (major must be X.0.0, minor must
-        be X.Y.0).
-    """
+        Raises:
+          ValueError: If release_type is invalid, version format is invalid,
+            or version constraints are violated (major must be X.0.0, minor must
+            be X.Y.0).
+        """
         if release_type not in ('major', 'minor', 'patch'):
             raise ValueError(
                 f'release_type must be major, minor, or patch; got {release_type}'
@@ -116,8 +116,8 @@ class ReleaseMetadata:
 class ReleaseState:
     """Checkpoint for release process state.
 
-  Stores answers to prompts and completed steps in JSON format.
-  """
+    Stores answers to prompts and completed steps in JSON format.
+    """
 
     path: Path
     answers: Dict[str, str] = field(default_factory=dict)
@@ -127,15 +127,15 @@ class ReleaseState:
     def load(cls, path: Path) -> 'ReleaseState':
         """Load state from JSON file.
 
-    Args:
-      path: Path to state file.
+        Args:
+          path: Path to state file.
 
-    Returns:
-      ReleaseState instance with loaded data.
+        Returns:
+          ReleaseState instance with loaded data.
 
-    Raises:
-      ValueError: If the state file contains malformed JSON.
-    """
+        Raises:
+          ValueError: If the state file contains malformed JSON.
+        """
         if not path.exists():
             return cls(path)
         try:
@@ -162,10 +162,11 @@ class ReleaseState:
 
     def save(self) -> None:
         """Save state to JSON file atomically.
-    
-    Writes to a temporary file with .tmp suffix and then replaces the
-    original file to ensure atomicity and avoid corruption on partial writes.
-    """
+
+        Writes to a temporary file with .tmp suffix and then replaces
+        the original file to ensure atomicity and avoid corruption on
+        partial writes.
+        """
         data = {
             'answers': self.answers,
             'completed_steps': self.completed_steps,
@@ -186,20 +187,20 @@ class ReleaseState:
     def is_done(self, step_id: str) -> bool:
         """Check if a step has been marked as done.
 
-    Args:
-      step_id: Identifier for the step.
+        Args:
+          step_id: Identifier for the step.
 
-    Returns:
-      True if the step is in completed_steps, False otherwise.
-    """
+        Returns:
+          True if the step is in completed_steps, False otherwise.
+        """
         return step_id in self.completed_steps
 
     def mark_done(self, step_id: str) -> None:
         """Mark a step as done.
 
-    Args:
-      step_id: Identifier for the step.
-    """
+        Args:
+          step_id: Identifier for the step.
+        """
         if step_id not in self.completed_steps:
             self.completed_steps.append(step_id)
 
@@ -224,14 +225,14 @@ class CommandRunner:
             check: bool = True) -> subprocess.CompletedProcess[str]:
         """Run a command, recording it and optionally executing it.
 
-    Args:
-     command: Command as a list of strings.
-     cwd: Working directory for command execution.
-     check: Whether to raise on non-zero exit code.
+        Args:
+         command: Command as a list of strings.
+         cwd: Working directory for command execution.
+         check: Whether to raise on non-zero exit code.
 
-    Returns:
-     CompletedProcess instance.
-    """
+        Returns:
+         CompletedProcess instance.
+        """
         self.commands.append(command)
         print(f'+ {" ".join(command)}')
         if self.dry_run:
@@ -239,15 +240,16 @@ class CommandRunner:
         return subprocess.run(command, cwd=cwd, check=check, text=True)
 
     def capture(self, command: list[str], cwd: Path | None = None) -> str:
-        """Capture command output, recording command and optionally executing it.
+        """Capture command output, recording command and optionally executing
+        it.
 
-    Args:
-     command: Command as a list of strings.
-     cwd: Working directory for command execution.
+        Args:
+         command: Command as a list of strings.
+         cwd: Working directory for command execution.
 
-    Returns:
-     Command output as string (empty string in dry-run mode).
-    """
+        Returns:
+         Command output as string (empty string in dry-run mode).
+        """
         self.commands.append(command)
         print(f'+ {" ".join(command)}')
         if self.dry_run:
@@ -273,12 +275,12 @@ class ReleaseContext:
 def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
     """Build command to trigger image-builds-release.yml workflow.
 
-  Args:
-    metadata: Release metadata for version and branch info.
+    Args:
+      metadata: Release metadata for version and branch info.
 
-  Returns:
-    Command list for gh workflow run with appropriate parameters.
-  """
+    Returns:
+      Command list for gh workflow run with appropriate parameters.
+    """
     return [
         'gh',
         'workflow',
@@ -305,12 +307,12 @@ def sdk_workflow_command(metadata: ReleaseMetadata,
                          packages: str = 'all') -> list[str]:
     """Build command to trigger publish-packages.yml workflow.
 
-  Args:
-    metadata: Release metadata for tag and branch info.
+    Args:
+      metadata: Release metadata for tag and branch info.
 
-  Returns:
-    Command list for gh workflow run with appropriate parameters.
-  """
+    Returns:
+      Command list for gh workflow run with appropriate parameters.
+    """
     return [
         'gh',
         'workflow',
@@ -330,9 +332,9 @@ def sdk_workflow_command(metadata: ReleaseMetadata,
 def kfp_requirements_command() -> list[str]:
     """Build command for regenerating sdk/python requirements.
 
-  Returns:
-    Command list for pip-compile with local unpublished package dists.
-  """
+    Returns:
+      Command list for pip-compile with local unpublished package dists.
+    """
     return [
         'bash',
         '-c',
@@ -348,9 +350,9 @@ pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in
 def kubernetes_requirements_command() -> list[str]:
     """Build command for regenerating kubernetes_platform/python requirements.
 
-  Returns:
-    Command list for pip-compile with local unpublished package dists.
-  """
+    Returns:
+      Command list for pip-compile with local unpublished package dists.
+    """
     return [
         'bash',
         '-c',
@@ -368,7 +370,8 @@ def release_version_bump_command(root: Path,
                                  release_branch: str,
                                  previous_release: str,
                                  image_tag: str | None = None) -> list[str]:
-    """Build command that runs release version updates in the release container."""
+    """Build command that runs release version updates in the release
+    container."""
     image_tag = image_tag or release_branch
     repo_path = '/go/src/github.com/kubeflow/pipelines'
     script = f'''
@@ -431,7 +434,8 @@ export API_VERSION=v2beta1
 
 def kfp_kubernetes_docs_build_command(root: Path,
                                       release_branch: str) -> list[str]:
-    """Build command that regenerates the kfp-kubernetes Python package without Make."""
+    """Build command that regenerates the kfp-kubernetes Python package without
+    Make."""
     repo_path = '/go/src/github.com/kubeflow/pipelines'
     script = f'''
 set -e
@@ -484,7 +488,7 @@ def parse_github_owner(fork_remote: str) -> str:
     'user123'
     >>> parse_github_owner('https://github.com/user123/pipelines.git')
     'user123'
-  """
+    """
     # SSH format: git@github.com:USER/REPO.git
     ssh_match = re.match(r'^git@github\.com:([^/]+)/', fork_remote)
     if ssh_match:
@@ -615,10 +619,10 @@ def doctor_errors(answers: dict[str, object], root: Path) -> list[str]:
 def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
     """Poll PR status until merged.
 
-  Args:
-    runner: CommandRunner instance for executing gh commands.
-    pr_url: URL of the pull request to monitor.
-  """
+    Args:
+      runner: CommandRunner instance for executing gh commands.
+      pr_url: URL of the pull request to monitor.
+    """
     print(underline_links(f'Waiting for PR merge: {pr_url}'))
     if runner.dry_run:
         print('[dry-run] PR merge check skipped')
@@ -640,10 +644,10 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
 def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     """Poll PR checks until one fails or all reported checks complete.
 
-  Args:
-    runner: CommandRunner instance for executing gh commands.
-    pr_url: URL of the pull request to monitor.
-  """
+    Args:
+      runner: CommandRunner instance for executing gh commands.
+      pr_url: URL of the pull request to monitor.
+    """
     print(underline_links(f'Watching PR CI: {pr_url}'))
     if runner.dry_run:
         print('[dry-run] PR CI watch skipped')
@@ -709,11 +713,11 @@ def watch_latest_workflow_run(
 ) -> None:
     """Watch the latest workflow run for a given workflow and branch.
 
-  Args:
-    runner: CommandRunner instance for executing gh commands.
-    workflow: Workflow filename to watch.
-    branch: Branch name to filter runs by.
-  """
+    Args:
+      runner: CommandRunner instance for executing gh commands.
+      workflow: Workflow filename to watch.
+      branch: Branch name to filter runs by.
+    """
     if runner.dry_run:
         print(
             f'[dry-run] Watching latest workflow run skipped: {workflow} on {branch}'
@@ -760,14 +764,14 @@ def prompt_choice(question: str,
                   default: str | None = None) -> str:
     """Prompt user to choose from a list of options.
 
-  Args:
-    question: The question to ask.
-    choices: List of valid choices.
-    default: Default choice if user just presses enter.
+    Args:
+      question: The question to ask.
+      choices: List of valid choices.
+      default: Default choice if user just presses enter.
 
-  Returns:
-    The selected choice.
-  """
+    Returns:
+      The selected choice.
+    """
     suffix = f' [{default}]' if default else ''
     while True:
         answer = input(
@@ -795,12 +799,12 @@ def prompt_numbered_choice(question: str, choices: list[str]) -> str:
 def prompt_required(question: str) -> str:
     """Prompt user for required input.
 
-  Args:
-    question: The question to ask.
+    Args:
+      question: The question to ask.
 
-  Returns:
-    The user input (non-empty).
-  """
+    Returns:
+      The user input (non-empty).
+    """
     while True:
         answer = input(emphasize_prompt(f'{question}: ')).strip()
         if answer:
@@ -822,12 +826,12 @@ def prompt_validated(question: str, validator) -> str:
 def confirm(question: str) -> None:
     """Prompt user for confirmation.
 
-  Args:
-    question: The question to ask.
+    Args:
+      question: The question to ask.
 
-  Raises:
-    SystemExit: If user does not confirm.
-  """
+    Raises:
+      SystemExit: If user does not confirm.
+    """
     answer = prompt_choice(question, ['y', 'n'], default='n')
     if answer != 'y':
         raise SystemExit('Stopped by user.')
@@ -837,13 +841,13 @@ def collect_context(args: argparse.Namespace,
                     state: ReleaseState) -> ReleaseContext:
     """Collect release context from state and prompts.
 
-  Args:
-    args: Parsed command-line arguments.
-    state: Release state with answers and completed steps.
+    Args:
+      args: Parsed command-line arguments.
+      state: Release state with answers and completed steps.
 
-  Returns:
-    ReleaseContext instance with all required fields.
-  """
+    Returns:
+      ReleaseContext instance with all required fields.
+    """
     root = Path(
         subprocess.check_output(['git', 'rev-parse', '--show-toplevel'],
                                 text=True).strip())
