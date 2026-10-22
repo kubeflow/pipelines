@@ -77,7 +77,9 @@ main() {
   output=$(cd "$2" && pwd)
   source_dir=$(mktemp -d "${TMPDIR:-/tmp}/kfp-maintainer-smoke.XXXXXX")
   # This directory is exclusively owned by this run; never modify the checkout.
-  trap 'rm -rf -- "$source_dir"' EXIT
+  local cleanup_command
+  printf -v cleanup_command 'rm -rf -- %q' "$source_dir"
+  trap "$cleanup_command" EXIT
   git -C "$root" archive HEAD | tar -x -C "$source_dir"
 
   for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do

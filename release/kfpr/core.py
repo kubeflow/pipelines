@@ -515,9 +515,9 @@ cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
 if [ -f pyproject.toml ]; then
-  uv build --package kfp-kubernetes --out-dir dist
+  "{repo_path}/backend/api/hack/uv.sh" build --package kfp-kubernetes --out-dir dist
 else
-  uv build --out-dir dist .
+  "{repo_path}/backend/api/hack/uv.sh" build --out-dir dist .
 fi
 '''.strip()
     return [

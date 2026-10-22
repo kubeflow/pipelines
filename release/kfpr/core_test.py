@@ -847,9 +847,9 @@ class InlineCommandTest(unittest.TestCase):
         self.assertIn('python3 generate_proto.py', script)
         self.assertIn('if [ -f pyproject.toml ]; then', script)
         self.assertIn(
-            'uv build --package kfp-kubernetes --out-dir dist', script
+            'uv.sh" build --package kfp-kubernetes --out-dir dist', script
         )
-        self.assertIn('uv build --out-dir dist .', script)
+        self.assertIn('uv.sh" build --out-dir dist .', script)
         self.assertNotIn('make', command)
 
 

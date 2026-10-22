@@ -49,7 +49,7 @@ python: generate-python
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(GENERATOR_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-			uv build --package kfp --out-dir sdk/python/dist'
+			/go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build --package kfp --out-dir sdk/python/dist'
 
 # Build Python package by building api-generator image from source.
 .PHONY: python-from-source

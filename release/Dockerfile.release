@@ -43,7 +43,8 @@ ENV GIT_CLIFF_VERSION=2.10.0
 # Build the manifest-pinned yq with the image's patched Go compiler. Downloaded
 # upstream binaries retain the compiler and dependencies used at release time.
 RUN cd /tmp/api-generator-tools && \
-    GOTOOLCHAIN=local go build -mod=readonly -trimpath -o /usr/local/bin/yq github.com/mikefarah/yq/v4
+    GOTOOLCHAIN=local GOCACHE=/tmp/yq-build-cache go build -mod=readonly -trimpath -o /usr/local/bin/yq github.com/mikefarah/yq/v4 && \
+    rm -rf /tmp/yq-build-cache
 
 # Make all files accessible to non-root users.
 RUN chmod -R 777 $NVM_DIR && \
