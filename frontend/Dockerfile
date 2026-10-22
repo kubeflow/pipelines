@@ -51,6 +51,6 @@ EXPOSE 3000
 # race condition where parallel download workers collide on the same cache entry.
 RUN npm ci || (npm cache clean --force && npm ci)
 # npm is only needed to build the server; runtime starts Node directly.
-RUN npm run build && npm uninstall --global npm
+RUN npm run build && npm prune --omit=dev --ignore-scripts && npm uninstall --global npm
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000
