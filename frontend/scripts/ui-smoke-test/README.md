@@ -8,7 +8,7 @@ missing, degraded, stale, corrupt, or different beyond the configured threshold.
 
 ## Prerequisites
 
-- Node.js `24.14.0` and npm `11.17.0`, matching `frontend/.nvmrc` and
+- Node.js `24.15.0` and npm `11.17.0`, matching `frontend/.nvmrc` and
   `frontend/package.json`
 - Git, Docker, Kind, and `kubectl` for comparisons
 - `gh`, authenticated to the target repository, only when `--comment` is used

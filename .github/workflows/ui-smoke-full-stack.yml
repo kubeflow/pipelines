@@ -20,12 +20,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/github-disk-cleanup
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Install pinned npm and browser dependencies
@@ -35,7 +35,7 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Install disposable cluster tools
-        uses: helm/kind-action@v1.15.0
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
         with:
           version: v0.32.0
           kubectl_version: v1.35.0
@@ -55,7 +55,7 @@ jobs:
             --trust-local-head --pr-number "$PR_NUMBER"
       - name: Retain comparison evidence
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ui-smoke-full-stack-${{ github.run_id }}-${{ github.run_attempt }}
           include-hidden-files: true

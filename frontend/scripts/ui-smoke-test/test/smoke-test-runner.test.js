@@ -1070,7 +1070,7 @@ test('exact release resolution rejects a counterfeit local release tag', (t) => 
 test('runtime checks enforce the documented pinned Node and npm versions', () => {
   assert.doesNotThrow(() => assertNodeVersion(NODE_VERSION));
   assert.doesNotThrow(() => assertNpmVersion(NPM_VERSION));
-  assert.throws(() => assertNodeVersion('26.0.0'), /Node\.js 24\.14\.0 is required/);
+  assert.throws(() => assertNodeVersion('26.0.0'), { message: `Node.js ${NODE_VERSION} is required; found 26.0.0. Use frontend/.nvmrc.` });
   assert.throws(() => assertNpmVersion('11.19.0'), /npm 11\.17\.0 is required/);
 });
 
@@ -3177,4 +3177,9 @@ test('hosted tool qualification explicitly observes pixels without relaxing runt
     ]).failThreshold,
     0,
   );
+});
+
+test('comparison toolchain follows the repository Node pin', () => {
+  const expected = fs.readFileSync(path.resolve(__dirname, '../../../.nvmrc'), 'utf8').trim().replace(/^v/, '');
+  assert.equal(NODE_VERSION, expected);
 });
