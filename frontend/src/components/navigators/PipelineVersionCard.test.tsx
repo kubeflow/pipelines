@@ -14,147 +14,62 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
+import { render, screen } from '@testing-library/react';
 import { testBestPractices } from 'src/TestUtils';
 import { PipelineVersionCard } from './PipelineVersionCard';
 
-const OLD_VERSION_NAME = 'old version';
-const NEW_VERSION_NAME = 'new version';
-const TEST_PIPELINE_ID = 'pipeline-id';
-
-const OLD_TEST_PIPELINE_VERSION_ID = 'old-version-id';
-const OLD_TEST_PIPELINE_VERSION: V2PipelineVersion = {
+const pipeline = {
+  pipeline_id: 'pipeline-id',
+  created_at: new Date('2021-11-24T20:58:23.000Z'),
+  description: 'Pipeline **description**',
+};
+const selectedVersion = {
+  pipeline_version_id: 'version-id',
+  display_name: 'Version one',
+  description: 'Version description',
   code_source_url: 'https://github.com/kubeflow/pipelines',
-  created_at: new Date('2021-11-24T20:58:23.000Z'),
-  description: 'This is old version description.',
-  display_name: OLD_VERSION_NAME,
-  pipeline_id: TEST_PIPELINE_ID,
-  pipeline_version_id: OLD_TEST_PIPELINE_VERSION_ID,
 };
 
-const NEW_TEST_PIPELINE_VERSION_ID = 'new-version-id';
-const NEW_TEST_PIPELINE_VERSION: V2PipelineVersion = {
-  created_at: new Date('2021-12-24T20:58:23.000Z'),
-  description: 'This is new version description.',
-  display_name: NEW_VERSION_NAME,
-  pipeline_id: TEST_PIPELINE_ID,
-  pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
-};
-
-const TEST_PIPELINE_VERSIONS_LIST: V2PipelineVersion[] = [
-  OLD_TEST_PIPELINE_VERSION,
-  NEW_TEST_PIPELINE_VERSION,
-];
-
-const TEST_PIPELINE: V2Pipeline = {
-  created_at: new Date('2021-11-24T20:58:23.000Z'),
-  description: 'This is pipeline level description.',
-  display_name: 'v2_lightweight_python_functions_pipeline',
-  pipeline_id: TEST_PIPELINE_ID,
-};
 testBestPractices();
 describe('PipelineVersionCard', () => {
-  it('makes Show Summary button visible by default', async () => {
-    render(
-      <PipelineVersionCard
-        pipeline={TEST_PIPELINE}
-        selectedVersion={OLD_TEST_PIPELINE_VERSION}
-        versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={(versionId) => {
-          return Promise.resolve();
-        }}
-      ></PipelineVersionCard>,
+  it('renders pipeline and version metadata with formatted descriptions', () => {
+    render(<PipelineVersionCard pipeline={pipeline} selectedVersion={selectedVersion} />);
+    expect(screen.getByRole('region', { name: 'Pipeline details' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Version details' })).toBeInTheDocument();
+    expect(screen.getByText('pipeline-id')).toBeInTheDocument();
+    expect(screen.getByText('Version one')).toBeInTheDocument();
+    expect(screen.getByText('description').tagName).toBe('STRONG');
+    expect(screen.getByRole('link', { name: 'Version source' })).toHaveAttribute(
+      'href',
+      selectedVersion.code_source_url,
     );
-
-    screen.getByText('Show Summary');
-    expect(screen.queryByText('Hide')).toBeNull();
   });
 
-  it('clicks to open and hide Summary', async () => {
+  it('does not render an unsafe source link', () => {
     render(
       <PipelineVersionCard
-        pipeline={TEST_PIPELINE}
-        selectedVersion={OLD_TEST_PIPELINE_VERSION}
-        versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={(versionId) => {
-          return Promise.resolve();
-        }}
-      ></PipelineVersionCard>,
-    );
-
-    await userEvent.click(screen.getByText('Show Summary'));
-    expect(screen.queryByText('Show Summary')).toBeNull();
-    await userEvent.click(screen.getByText('Hide'));
-    screen.getByText('Show Summary');
-  });
-
-  it('shows Summary and checks detail', async () => {
-    render(
-      <PipelineVersionCard
-        pipeline={TEST_PIPELINE}
-        selectedVersion={OLD_TEST_PIPELINE_VERSION}
-        versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={(versionId) => {
-          return Promise.resolve();
-        }}
-      ></PipelineVersionCard>,
-    );
-
-    await userEvent.click(screen.getByText('Show Summary'));
-
-    screen.getByText('Pipeline ID');
-    screen.getByText(TEST_PIPELINE_ID);
-    screen.getByText('Version');
-    screen.getByText(OLD_VERSION_NAME);
-    const versionSource = screen.getByText('Version source');
-    expect(versionSource).toHaveAttribute('href', 'https://github.com/kubeflow/pipelines');
-    screen.getByText('Uploaded on');
-    screen.getByText('Pipeline Description');
-    screen.getByText('This is pipeline level description.');
-    screen.getByText('This is old version description.');
-  });
-
-  it('does not render the Version source link for an unsafe code_source_url scheme', async () => {
-    render(
-      <PipelineVersionCard
-        pipeline={TEST_PIPELINE}
+        pipeline={pipeline}
         selectedVersion={{
-          ...OLD_TEST_PIPELINE_VERSION,
+          ...selectedVersion,
           // eslint-disable-next-line no-script-url
           code_source_url: 'javascript:alert(1)',
         }}
-        versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={(versionId) => {
-          return Promise.resolve();
-        }}
-      ></PipelineVersionCard>,
+      />,
     );
-
-    await userEvent.click(screen.getByText('Show Summary'));
-
-    // The summary still renders, but the unsafe link is dropped entirely.
-    screen.getByText('Uploaded on');
-    expect(screen.queryByText('Version source')).toBeNull();
+    expect(screen.getByText('Version one')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Version source' })).not.toBeInTheDocument();
   });
 
-  it('shows version list', async () => {
-    const { getByRole } = render(
-      <PipelineVersionCard
-        pipeline={TEST_PIPELINE}
-        selectedVersion={OLD_TEST_PIPELINE_VERSION}
-        versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={(versionId) => {
-          return Promise.resolve();
-        }}
-      ></PipelineVersionCard>,
+  it('shows pipeline metadata without a selected version', () => {
+    render(<PipelineVersionCard pipeline={pipeline} selectedVersion={undefined} />);
+    expect(screen.getByText('pipeline-id')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Version details' })).not.toBeInTheDocument();
+  });
+
+  it('does not invent metadata before the pipeline loads', () => {
+    const { container } = render(
+      <PipelineVersionCard pipeline={null} selectedVersion={undefined} />,
     );
-
-    await userEvent.click(screen.getByText('Show Summary'));
-
-    fireEvent.mouseDown(getByRole('combobox'));
-    await screen.findByRole('listbox');
-    screen.getByRole('option', { name: NEW_VERSION_NAME });
+    expect(container).toBeEmptyDOMElement();
   });
 });

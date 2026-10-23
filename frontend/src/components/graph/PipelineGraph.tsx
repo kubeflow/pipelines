@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import { type ReactNode, useCallback, useMemo } from 'react';
-import { commonCss, padding } from 'src/Css';
-import SidePanel from 'src/components/SidePanel';
-import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
+import { InspectionPanel } from 'src/components/inspection/InspectionPanel';
+import { StaticNodeDetails } from 'src/components/tabs/StaticNodeDetails';
+import 'src/components/pipelines/Pipelines.css';
 import type {
   LayerElementsResolver,
   LayerFlowElement,
@@ -68,7 +68,7 @@ export default function PipelineGraph({
   }, [selection, elements, getSubDagElements]);
 
   return (
-    <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className='kfp-pipeline-graph'>
       <DagCanvas
         graphId={graphId}
         layers={ROOT_LAYERS}
@@ -79,24 +79,19 @@ export default function PipelineGraph({
       />
       {children}
       {templateString && (
-        <div className='z-20'>
-          <SidePanel
-            isOpen={!!currentSelection}
-            title={getNodeName(currentSelection?.element ?? null)}
-            onClose={() => onSelectionChange(null)}
-            defaultWidth='50%'
-          >
-            <div className={commonCss.page}>
-              <div className={padding(20, 'lr')}>
-                <StaticNodeDetailsV2
-                  templateString={templateString}
-                  layers={currentSelection?.layers ?? ROOT_LAYERS}
-                  element={currentSelection?.element ?? null}
-                />
-              </div>
-            </div>
-          </SidePanel>
-        </div>
+        <InspectionPanel
+          isOpen={!!currentSelection}
+          title={getNodeName(currentSelection?.element ?? null)}
+          onClose={() => onSelectionChange(null)}
+        >
+          <div className='kfp-pipeline-node-details'>
+            <StaticNodeDetails
+              templateString={templateString}
+              layers={currentSelection?.layers ?? ROOT_LAYERS}
+              element={currentSelection?.element ?? null}
+            />
+          </div>
+        </InspectionPanel>
       )}
     </div>
   );

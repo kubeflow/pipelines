@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
+import type { ToolbarProps, BannerProps, SnackbarProps } from 'src/lib/PageChromeTypes';
 import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 
-import { ToolbarProps } from '../components/Toolbar';
-import { BannerProps } from '../components/Banner';
-import { SnackbarProps } from '@mui/material/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
 
@@ -47,7 +45,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
 
   constructor(props: any) {
     super(props);
-    this.props.updateToolbar(this.getInitialToolbarState());
+    this.props.updateToolbar({ titleAccessory: undefined, ...this.getInitialToolbarState() });
   }
 
   public abstract render(): React.JSX.Element;

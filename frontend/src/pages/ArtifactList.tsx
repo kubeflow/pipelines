@@ -15,20 +15,22 @@
  */
 
 import * as React from 'react';
-import { Tooltip } from '@mui/material';
 import { Link } from 'react-router';
 import { ArtifactLink } from 'src/components/ArtifactLink';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import { RoutePageFactory } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { getArtifactTypeName } from 'src/lib/v2/RuntimeArtifactUtils';
 import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
 import { Page, PageProps } from 'src/pages/Page';
-import { classes } from 'typestyle';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
+import { V2PredicateOperation } from 'src/apisv2/filter';
+import './Artifacts.css';
+
+import { DateListFilter, ColumnFilter, FilterChip } from 'src/components/tables/ColumnFilter';
 
 interface ArtifactListProps {
   namespace?: string;
@@ -36,6 +38,7 @@ interface ArtifactListProps {
 
 interface ArtifactListState {
   rows: Row[];
+  selectedType: number;
 }
 
 interface ArtifactUriCell {
@@ -43,13 +46,41 @@ interface ArtifactUriCell {
   uri: string;
 }
 
+// Numeric values are the ArtifactType wire values in backend/api/v2/artifact.proto.
+// The list service filters its integer Type column; totals are not fetched for these choices.
+const TYPE_FILTERS = [
+  { label: 'All', values: [] },
+  { label: 'Model', values: [2] },
+  { label: 'Dataset', values: [3] },
+  { label: 'Metrics', values: [6, 7, 8] },
+  { label: 'HTML', values: [4] },
+];
+
 const COLUMNS: Column[] = [
-  { customRenderer: artifactNameRenderer, flex: 2, label: 'Name', sortKey: 'name' },
-  { customRenderer: artifactIdRenderer, flex: 1.5, label: 'ID', sortKey: 'artifact_id' },
-  { customRenderer: artifactTypeRenderer, flex: 2, label: 'Type', sortKey: 'type' },
+  { customRenderer: artifactNameRenderer, flex: 2, width: '28%', label: 'Name', sortKey: 'name' },
+  {
+    customRenderer: artifactIdRenderer,
+    flex: 1.5,
+    width: 160,
+    label: 'ID',
+    sortKey: 'artifact_id',
+  },
+  { customRenderer: artifactTypeRenderer, flex: 2, width: 160, label: 'Type', sortKey: 'type' },
   { customRenderer: artifactUriRenderer, flex: 1.8, label: 'URI', sortKey: 'uri' },
-  { customRenderer: wrappedTextRenderer, flex: 1.2, label: 'Namespace', sortKey: 'namespace' },
-  { customRenderer: artifactDateRenderer, flex: 1.5, label: 'Created at', sortKey: 'created_at' },
+  {
+    customRenderer: textRenderer,
+    flex: 1.2,
+    width: 160,
+    label: 'Namespace',
+    sortKey: 'namespace',
+  },
+  {
+    customRenderer: artifactDateRenderer,
+    flex: 1.5,
+    width: 190,
+    label: 'Created at',
+    sortKey: 'created_at',
+  },
 ];
 
 export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
@@ -58,7 +89,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private lastSuccessfulRequestKey?: string;
   private pageTokenTracker = new PageTokenTracker();
 
-  public state: ArtifactListState = { rows: [] };
+  public state: ArtifactListState = { rows: [], selectedType: 0 };
 
   public getInitialToolbarState(): ToolbarProps {
     return {
@@ -70,17 +101,83 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable
-          ref={this.tableRef}
-          columns={COLUMNS}
-          rows={this.state.rows}
-          disableSelection={true}
-          reload={this.reload}
-          initialSortColumn='created_at'
-          initialSortOrder='desc'
-          emptyMessage='No artifacts found.'
-        />
+      <div className='kfp-artifact-list'>
+        <DateListFilter label='Created' field='created_at'>
+          {(date) => (
+            <CustomTable
+              filterPredicates={[
+                ...date.predicates,
+                ...(TYPE_FILTERS[this.state.selectedType].values.length
+                  ? [
+                      {
+                        key: 'type',
+                        operation: V2PredicateOperation.IN,
+                        int_values: { values: TYPE_FILTERS[this.state.selectedType].values },
+                      },
+                    ]
+                  : []),
+              ]}
+              filterLabel='Search artifacts'
+              renderTable={(table) => (
+                <ResourceTable
+                  table={{
+                    ...table,
+                    emptyMessage:
+                      date.active || this.state.selectedType !== 0
+                        ? 'No results match the selected filters.'
+                        : table.emptyMessage,
+                  }}
+                  headerActions={{
+                    created_at: date.control,
+                    type: (
+                      <ColumnFilter
+                        label='Type'
+                        value={this.state.selectedType ? String(this.state.selectedType) : 'all'}
+                        options={TYPE_FILTERS.map((type, index) => ({
+                          value: index ? String(index) : 'all',
+                          label: type.label,
+                        }))}
+                        onChange={(value) => {
+                          this.activeReloadGeneration++;
+                          this.setState({
+                            selectedType: value === 'all' ? 0 : Number(value),
+                            rows: [],
+                          });
+                        }}
+                      />
+                    ),
+                  }}
+                  activeFilters={
+                    (date.active || this.state.selectedType !== 0) && (
+                      <>
+                        {date.chip}
+                        {this.state.selectedType !== 0 && (
+                          <FilterChip
+                            label={`Type: ${TYPE_FILTERS[this.state.selectedType].label}`}
+                            onClear={() => this.setState({ selectedType: 0 })}
+                          />
+                        )}
+                      </>
+                    )
+                  }
+                  onOpenRow={(id) => this.props.navigate(RoutePageFactory.artifactDetails(id))}
+                  label='Artifacts'
+                  singular='artifact'
+                  plural='artifacts'
+                  minWidth={1120}
+                />
+              )}
+              ref={this.tableRef}
+              columns={COLUMNS}
+              rows={this.state.rows}
+              disableSelection={true}
+              reload={this.reload}
+              initialSortColumn='created_at'
+              initialSortOrder='desc'
+              emptyMessage='No artifacts found.'
+            />
+          )}
+        </DateListFilter>
       </div>
     );
   }
@@ -171,6 +268,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private getPaginationContext(request: ListRequest) {
     return {
       filter: request.filter || '',
+      type: this.state.selectedType,
       namespace: this.props.namespace || '',
       pageSize: request.pageSize || 0,
       sortBy: request.sortBy || '',
@@ -182,8 +280,7 @@ function artifactNameRenderer({ id, value }: CustomRendererProps<string>) {
   return (
     <Link
       onClick={(event) => event.stopPropagation()}
-      className={commonCss.link}
-      style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+      className='kfp-artifact-link'
       title={value}
       to={RoutePageFactory.artifactDetails(id)}
     >
@@ -195,37 +292,35 @@ function artifactNameRenderer({ id, value }: CustomRendererProps<string>) {
 function artifactIdRenderer({ id, value = '' }: CustomRendererProps<string>) {
   const shortId = value.length > 16 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value;
   return (
-    <Tooltip title={value}>
+    <span title={value}>
       <Link
         aria-label={`Artifact ID ${value}`}
-        className={commonCss.link}
+        className='kfp-artifact-link'
         onClick={(event) => event.stopPropagation()}
         to={RoutePageFactory.artifactDetails(id)}
       >
         {shortId}
       </Link>
-    </Tooltip>
+    </span>
   );
 }
 
-function wrappedTextRenderer({ value }: CustomRendererProps<string>) {
-  return <span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{value}</span>;
+function textRenderer({ value }: CustomRendererProps<string>) {
+  return <span title={value}>{value}</span>;
 }
 
-function artifactTypeRenderer({ value }: CustomRendererProps<string>) {
+function artifactTypeRenderer({ value = '' }: CustomRendererProps<string>) {
+  const kind = value.includes('Dataset')
+    ? 'dataset'
+    : value.includes('Model')
+      ? 'model'
+      : value.includes('Metric')
+        ? 'metric'
+        : 'other';
   return (
-    <Tooltip title={value}>
-      <span
-        style={{
-          display: 'block',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {value}
-      </span>
-    </Tooltip>
+    <span title={value} className='kfp-artifact-type' data-kind={kind}>
+      {value}
+    </span>
   );
 }
 
@@ -236,19 +331,22 @@ function artifactDateRenderer({ value }: CustomRendererProps<Date | string | und
   }
   return (
     <time dateTime={date.toISOString()} title={formatDateString(date)}>
-      <span style={{ display: 'block', whiteSpace: 'nowrap' }}>{date.toLocaleDateString()}</span>
-      <span style={{ display: 'block', whiteSpace: 'nowrap' }}>{date.toLocaleTimeString()}</span>
+      {formatDateString(date)}
     </time>
   );
 }
 
 function artifactUriRenderer({ value }: CustomRendererProps<ArtifactUriCell>) {
-  return <ArtifactLink artifactUri={value?.uri || ''} namespace={value?.namespace} />;
+  return (
+    <span className='kfp-artifact-uri' title={value?.uri}>
+      <ArtifactLink artifactUri={value?.uri || ''} namespace={value?.namespace} />
+    </span>
+  );
 }
 
-const EnhancedArtifactList = (props: PageProps) => {
+const ArtifactListWithContext = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
   return <ArtifactList key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedArtifactList;
+export default ArtifactListWithContext;

@@ -15,7 +15,7 @@
  */
 
 import { logger } from 'src/lib/Utils';
-import { V2RuntimeState } from 'src/apisv2/run';
+import { PipelineTaskTaskState, V2RuntimeState } from 'src/apisv2/run';
 
 export const statusBgColors = {
   error: '#fce8e6',
@@ -38,6 +38,54 @@ export const statusProtoMap = new Map<V2RuntimeState, string>([
   [V2RuntimeState.CANCELED, 'Canceled'],
   [V2RuntimeState.PAUSED, 'Paused'],
 ]);
+
+export type StatusTone = 'succeeded' | 'running' | 'failed' | 'neutral' | 'warning';
+export interface StatusPresentation {
+  label: string;
+  tone: StatusTone;
+}
+
+const runtimeTones: Record<V2RuntimeState, StatusTone> = {
+  SUCCEEDED: 'succeeded',
+  RUNNING: 'running',
+  FAILED: 'failed',
+  PENDING: 'neutral',
+  CANCELING: 'running',
+  CANCELED: 'neutral',
+  PAUSED: 'warning',
+  SKIPPED: 'neutral',
+  RUNTIME_STATE_UNSPECIFIED: 'neutral',
+};
+
+// Task states are a distinct API domain: cached results are successful, and tasks
+// do not expose runtime-only states such as paused or canceling.
+const taskStates: Record<PipelineTaskTaskState, StatusPresentation> = {
+  SUCCEEDED: { label: 'Succeeded', tone: 'succeeded' },
+  RUNNING: { label: 'Running', tone: 'running' },
+  FAILED: { label: 'Failed', tone: 'failed' },
+  SKIPPED: { label: 'Skipped', tone: 'neutral' },
+  CACHED: { label: 'Cached', tone: 'succeeded' },
+  RUNTIME_STATE_UNSPECIFIED: { label: 'Unknown', tone: 'neutral' },
+};
+
+export function getRunStatus(state?: V2RuntimeState): StatusPresentation {
+  return {
+    label: (state && statusProtoMap.get(state)) || 'Unknown',
+    tone: (state && runtimeTones[state]) || 'neutral',
+  };
+}
+
+export function getTaskStatus(state?: PipelineTaskTaskState): StatusPresentation {
+  return state === undefined
+    ? { label: 'Task', tone: 'neutral' }
+    : taskStates[state] || taskStates.RUNTIME_STATE_UNSPECIFIED;
+}
+
+// Timeline bars describe execution time: a cache hit performed no execution, so
+// it stays neutral here even though the graph marks its result successful.
+export function getTaskTimelineTone(state?: PipelineTaskTaskState): StatusTone {
+  return state === PipelineTaskTaskState.CACHED ? 'neutral' : getTaskStatus(state).tone;
+}
 
 export function hasFinishedV2(state?: V2RuntimeState): boolean {
   switch (state) {

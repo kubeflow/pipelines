@@ -1,8 +1,8 @@
 .run-timeline {
   overflow: auto;
   padding: 16px 20px 24px;
-  color: #28344a;
-  background: #f8fafc;
+  color: var(--foreground);
+  background: var(--background);
   flex: 1;
   min-height: 0;
 }
@@ -19,7 +19,7 @@
   letter-spacing: 0.6px;
 }
 .run-timeline p {
-  color: #637087;
+  color: var(--muted-foreground);
   margin: 6px 0;
   font-size: 12px;
   line-height: 1.6;
@@ -28,7 +28,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.3px;
-  color: #68758b;
+  color: var(--muted-foreground);
 }
 .rt-refresh-warning {
   margin-bottom: 12px;
@@ -47,8 +47,8 @@
   align-items: start;
 }
 .rt-panel {
-  background: white;
-  border: 1px solid #dee5ee;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -67,7 +67,7 @@
   gap: 14px;
   align-items: center;
   min-height: 46px;
-  border-bottom: 1px solid #f0f3f7;
+  border-bottom: 1px solid var(--border);
 }
 .rt-chart-row:last-child {
   border-bottom: 0;
@@ -76,16 +76,16 @@
   cursor: pointer;
 }
 .rt-chart-row:not(.rt-axis):hover {
-  background: #f7faff;
+  background: var(--muted);
 }
 .rt-selected {
-  background: #edf4ff !important;
+  background: var(--primary-soft) !important;
 }
 .rt-axis {
   min-height: 44px;
   font-size: 11px;
   font-weight: 600;
-  color: #68758b;
+  color: var(--muted-foreground);
 }
 .rt-axis > span:first-child {
   padding-left: 12px;
@@ -108,13 +108,13 @@
   font: inherit;
   font-size: 12px;
   padding: 6px 0;
-  color: #28344a;
+  color: var(--foreground);
 }
 .rt-task-label > span {
-  color: #a8680c;
+  color: var(--status-warning);
 }
 .rt-task-label > small {
-  color: #637087;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 .rt-track {
@@ -122,8 +122,8 @@
   height: 46px;
   background: repeating-linear-gradient(
     to right,
-    #e9eef5 0,
-    #e9eef5 1px,
+    var(--border) 0,
+    var(--border) 1px,
     transparent 1px,
     transparent 16.6667%
   );
@@ -141,12 +141,12 @@
 }
 .rt-bar:hover {
   opacity: 1;
-  outline: 2px solid #a6c7f6;
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 .rt-bar:focus-visible,
 .run-timeline button:focus-visible {
-  outline: 2px solid #1a73e8;
+  outline: 2px solid var(--primary);
   outline-offset: 3px;
 }
 .rt-cached {
@@ -176,14 +176,14 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #1a73e8;
+  background: var(--primary);
   pointer-events: none;
 }
 .rt-untimed {
   line-height: 46px;
   font-size: 10px;
-  color: #68758b;
-  background: white;
+  color: var(--muted-foreground);
+  background: var(--card);
   padding-right: 8px;
 }
 .rt-inspector {
@@ -201,7 +201,7 @@
 .rt-big-duration small {
   display: block;
   font-size: 11px;
-  color: #68758b;
+  color: var(--muted-foreground);
   margin-top: 4px;
 }
 .rt-inspector dl {
@@ -212,12 +212,12 @@
   margin: 20px 0;
 }
 .rt-inspector dt {
-  color: #68758b;
+  color: var(--muted-foreground);
 }
 .rt-inspector dd {
   margin: 0;
 }
-.rt-inspector .MuiAlert-root {
+.rt-inspector .kfp-alert {
   font-size: 11px;
   margin-bottom: 16px;
 }
@@ -233,12 +233,12 @@
   gap: 8px;
   flex-wrap: wrap;
   padding: 7px 0;
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid var(--border);
 }
 .rt-history time,
 .rt-history small {
   font-size: 10px;
-  color: #68758b;
+  color: var(--muted-foreground);
 }
 .rt-history small {
   width: 100%;

@@ -4,13 +4,33 @@ This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 
 ## Current Stack
 
-- React 19 with TypeScript on Vite 7
-- MUI v5 with Emotion
+- React 19 with TypeScript on Vite 8
+- Tailwind CSS 4 with Base UI
 - TanStack Query v5
 - React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests
 - Vitest for frontend server tests
 - Storybook 10 for component development
+
+## Third-party notices
+
+Every production Vite build generates `build/THIRD_PARTY_NOTICES.txt`, served at
+`THIRD_PARTY_NOTICES.txt` beneath the UI base URL. Vite inventories the dependencies
+in the emitted browser chunks, including lazy-loaded code. The notices include
+full license texts, supplemental package notices, the Tailwind license for generated
+CSS, and the OFL licenses for copied fonts. This inventory covers browser assets, not the separate Node server.
+
+A bundled dependency without license text fails the build. Restore its packaged
+license or add a reviewed, version-pinned upstream copy. `victory-vendor@37.3.6`
+omits its root license from npm; [its retained license](third_party/victory-vendor/37.3.6/LICENSE)
+comes from the [matching upstream tag](https://github.com/FormidableLabs/victory/blob/v37.3.6/LICENSE.txt).
+Its packaged D3 vendor licenses are included too. Recheck this exception when
+upgrading Victory. Generated notices stay in build output, not source control.
+
+## Browser support
+
+See the [browser support policy](docs/browser-support.md) for supported channels,
+release qualification, and the distinction between product support and compiler targets.
 
 ## Quick Start Development
 

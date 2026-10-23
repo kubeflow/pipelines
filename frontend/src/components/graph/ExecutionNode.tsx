@@ -13,140 +13,174 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
-import ErrorIcon from '@mui/icons-material/Error';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { ReactElement } from 'react';
+
+import { Tooltip } from '@base-ui/react/tooltip';
+import { useTheme } from 'src/components/shell/ThemeProvider';
+import {
+  Box,
+  CircleCheck,
+  CircleX,
+  LoaderCircle,
+  SkipForward,
+  Database,
+  CircleHelp,
+  TriangleAlert,
+} from 'lucide-react';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
-import StopCircle from 'src/icons/StopCircle';
-import { classes } from 'typestyle';
-import { ExecutionFlowElementData } from './Constants';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { ExecutionFlowElementData, GRAPH_NODE_HEIGHT, GRAPH_NODE_WIDTH } from './Constants';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
+import { getTaskStatus } from 'src/lib/StatusUtils';
+import './Graph.css';
 
 export interface ExecutionNodeProps {
   id: string;
-  data: ExecutionFlowElementData;
   selected?: boolean;
-  // status: ExecutionNodeStatus;
+  data: ExecutionFlowElementData;
 }
 
-function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
-  // A lifecycle message is a warning, not a failure: the node only turns red once the
-  // task itself is FAILED, so the failed icon takes precedence over the warning.
-  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
-  let icon = showWarning ? getWarningIcon() : getIcon(data.state);
-  let executionIcon = getExecutionIcon(data.state);
+export function TaskStateIndicator({
+  state,
+  warning = false,
+}: {
+  state?: PipelineTaskTaskState;
+  warning?: boolean;
+}) {
+  if (warning) {
+    return (
+      <TriangleAlert
+        className='kfp-graph-state-icon'
+        data-state='WARNING'
+        style={{ color: 'var(--status-warning)' }}
+        size={16}
+        aria-hidden='true'
+      />
+    );
+  }
+  if (state === undefined) return null;
+  const Icon =
+    {
+      SUCCEEDED: CircleCheck,
+      FAILED: CircleX,
+      RUNNING: LoaderCircle,
+      SKIPPED: SkipForward,
+      CACHED: Database,
+      RUNTIME_STATE_UNSPECIFIED: CircleHelp,
+    }[state] || CircleHelp;
+  return <Icon className='kfp-graph-state-icon' data-state={state} size={16} aria-hidden='true' />;
+}
 
-  const fullWidth = icon ? 'w-64' : 'w-56';
-
+/** Focusable status help is shared by task cards and nested group headers. */
+export function TaskStatusTooltip({
+  state,
+  warning = false,
+  className,
+  id,
+  testId,
+}: {
+  state?: PipelineTaskTaskState;
+  warning?: boolean;
+  className: string;
+  id?: string;
+  testId?: string;
+}) {
+  const { themeClassName } = useTheme();
+  const label = warning ? 'Pod lifecycle warning' : getTaskStatus(state).label;
+  if (state === undefined && !warning) {
+    return (
+      <span
+        className={className}
+        id={id}
+        data-testid={testId}
+        data-empty='true'
+        aria-hidden='true'
+      />
+    );
+  }
   return (
-    <>
-      <div title={data.label} className='container'>
-        <button
-          aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
-          className={classes(
-            'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
-            fullWidth,
-            selected && 'ring',
-          )}
-        >
-          <div className='flex justify-between flex-row relative w-full h-full'>
-            <div className='w-8 pl-2 h-full flex flex-col justify-center rounded-l-lg'>
-              {executionIcon}
-            </div>
-            <div className='px-3 py-4 w-44 h-full flex justify-center items-center'>
-              <span className='w-44 text-sm truncate' id={id}>
-                {data.label}
-              </span>
-            </div>
-            {icon}
-          </div>
-        </button>
-      </div>
-      <ReadOnlyNodeHandles />
-    </>
+    <Tooltip.Root>
+      <Tooltip.Trigger
+        render={<span />}
+        tabIndex={0}
+        role='img'
+        aria-label={label}
+        className={className}
+        id={id}
+        data-testid={testId}
+        delay={150}
+      >
+        <TaskStateIndicator state={state} warning={warning} />
+      </Tooltip.Trigger>
+      <Tooltip.Portal className={themeClassName}>
+        <Tooltip.Positioner side='top' sideOffset={6}>
+          <Tooltip.Popup role='tooltip' className='kfp-graph-tooltip'>
+            {label}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
-export default ExecutionNode;
 
-export function getExecutionIcon(state: PipelineTaskTaskState | undefined) {
-  if (state === undefined) {
-    return <ListAltIcon data-testid='execution-icon-default' className='text-mui-grey-500' />;
-  }
-  return <ListAltIcon data-testid='execution-icon-active' className='text-mui-blue-600' />;
+export function hasLifecycleWarning(
+  data: Pick<ExecutionFlowElementData, 'state' | 'lifecycleMessage'>,
+) {
+  // A pod lifecycle warning must never replace the failed task indicator.
+  return !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
 }
 
-export function getIcon(state: PipelineTaskTaskState | undefined) {
-  if (state === undefined) {
-    return null;
-  }
-  switch (state) {
-    case PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED:
-      return getStateIconWrapper(
-        <MoreHorizIcon className='text-mui-grey-600' />,
-        'bg-mui-grey-200',
-      );
-
-    case PipelineTaskTaskState.RUNNING:
-      return getStateIconWrapper(<RefreshIcon className='text-mui-green-600' />, 'bg-mui-green-50');
-    case PipelineTaskTaskState.CACHED:
-      return getStateIconWrapper(
-        <CloudDownloadIcon className='text-mui-green-600' />,
-        'bg-mui-green-50',
-      );
-    case PipelineTaskTaskState.FAILED:
-      return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
-    case PipelineTaskTaskState.SKIPPED:
-      return getStateIconWrapper(
-        <StopCircle colorClass={'text-mui-grey-600'} />,
-        'bg-mui-grey-200',
-      );
-    case PipelineTaskTaskState.SUCCEEDED:
-      return getStateIconWrapper(
-        <CheckCircleIcon className='text-mui-green-600' />,
-        'bg-mui-green-50',
-      );
-    default:
-      console.error('Unknown exeuction state: ' + state);
-      return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
-  }
-}
-
-// The amber icon is hidden from screen readers, so the warning goes into the name of the
-// focusable node instead.
 export function getLifecycleWarningLabel(label: string) {
   return `${label}, pod lifecycle warning`;
 }
 
-export function getWarningIcon() {
-  return getStateIconWrapper(
-    <WarningAmberIcon className='text-mui-yellow-800' />,
-    'bg-mui-yellow-100',
-  );
-}
-
-function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
+export default function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
+  const { themeClassName } = useTheme();
+  const showWarning = hasLifecycleWarning(data);
+  const status = getTaskStatus(data.state);
+  const statusLabel = showWarning ? `${status.label}, pod lifecycle warning` : status.label;
   return (
-    <div
-      className={classes(
-        'px-2 h-full flex flex-col justify-center rounded-r-lg ',
-        backgroundClasses,
-      )}
-    >
-      {element}
-    </div>
+    <>
+      <Tooltip.Root>
+        <Tooltip.Trigger
+          render={<button type='button' />}
+          delay={150}
+          className='kfp-graph-node'
+          data-selected={selected || undefined}
+          style={{ width: GRAPH_NODE_WIDTH, height: GRAPH_NODE_HEIGHT }}
+          data-tone={showWarning ? 'warning' : status.tone}
+          title={data.state === undefined ? data.label : undefined}
+          aria-label={showWarning ? getLifecycleWarningLabel(data.label) : data.label}
+          aria-describedby={`${id}-status`}
+        >
+          <Box
+            className='kfp-graph-type-icon'
+            data-kind='component'
+            size={16}
+            role='img'
+            aria-label='Task'
+          />
+          <span className='kfp-graph-node-copy'>
+            <span className='kfp-graph-node-name' id={id}>
+              {data.label}
+            </span>
+          </span>
+          <TaskStatusTooltip
+            className='kfp-graph-node-status'
+            state={data.state}
+            warning={showWarning}
+          />
+          <span className='sr-only' id={`${id}-status`}>
+            {statusLabel}
+          </span>
+        </Tooltip.Trigger>
+        <Tooltip.Portal className={themeClassName}>
+          <Tooltip.Positioner side='top' sideOffset={6}>
+            <Tooltip.Popup role='tooltip' className='kfp-graph-tooltip'>
+              {data.label} · {statusLabel}
+            </Tooltip.Popup>
+          </Tooltip.Positioner>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+      <ReadOnlyNodeHandles />
+    </>
   );
 }
-
-// The following code can be used for `canceling state`
-// return (
-//   <div className='px-2 h-full self-stretch flex flex-col justify-center rounded-r-lg bg-mui-lightblue-100'>
-//     <CircularProgress size={24} />
-//     {/* <SyncDisabledIcon className=' text-mui-organge-300' /> */}
-//   </div>
-// );
