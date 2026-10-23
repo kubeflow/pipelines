@@ -44,7 +44,7 @@ const runStartTimeout = 30000;
 const runCompletionTimeout = 180000;
 const logsLoadTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
-const runsFilterSelector = 'input[type="search"][placeholder="Filter runs by name"]';
+const runsFilterSelector = 'input[type="search"][placeholder="Search runs"]';
 
 function getGraphNodeByLabel(label) {
   return $(
@@ -152,7 +152,12 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in its experiment and navigates back to it', async () => {
-    const experimentLink = await $(`a=${experimentName}`);
+    // Run details breadcrumbs reflect the entry path; find membership through the list.
+    await $('a[aria-label="Experiments"]').click();
+    await waitForHashPrefix('#/experiments', { timeout: uiTimeout });
+    const experimentLink = await $(
+      `[data-testid="experiment-name-link"][data-experiment-name="${experimentName}"]`,
+    );
     await experimentLink.waitForDisplayed({ timeout: uiTimeout });
     await experimentLink.click();
     await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
@@ -162,8 +167,8 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('switches to the details tab', async () => {
-    await $('button=Detail').waitForDisplayed({ timeout: uiTimeout });
-    await $('button=Detail').click();
+    await $('button=Details').waitForDisplayed({ timeout: uiTimeout });
+    await $('button=Details').click();
   });
 
   it('waits for run to finish', async () => {

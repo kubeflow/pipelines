@@ -271,8 +271,8 @@ async function waitForLogViewerText(
   try {
     await waitForCondition(
       async () => {
-        if (await isSelectorDisplayed('#logViewer')) {
-          const viewerText = await $('#logViewer').getText();
+        if (await isSelectorDisplayed('.kfp-log-viewer[aria-label="Component logs"]')) {
+          const viewerText = await $('.kfp-log-viewer[aria-label="Component logs"]').getText();
           lastViewerText = viewerText;
           if (!expectedText || viewerText.includes(expectedText)) {
             lastLogsState = 'viewer-ready';

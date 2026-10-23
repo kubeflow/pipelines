@@ -274,8 +274,8 @@ describe('deploy tensorboard example run', () => {
     });
 
     await runPhase('wait for run completion', async () => {
-      await $('button=Detail').waitForDisplayed({ timeout: uiTimeout });
-      await $('button=Detail').click();
+      await $('button=Details').waitForDisplayed({ timeout: uiTimeout });
+      await $('button=Details').click();
       await waitForRunToSucceed();
     });
 

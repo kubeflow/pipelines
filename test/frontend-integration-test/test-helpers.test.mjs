@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
-import { openNewExperiment, selectPipelineCard, waitForSelectorDisplayed } from './test-helpers.js';
+import { openNewExperiment, selectPipelineCard, waitForLogViewerText, waitForSelectorDisplayed } from './test-helpers.js';
 
 let originalBrowser;
 let originalSelector;
@@ -156,4 +156,23 @@ test('experiment creation navigates to its owning list before using the toolbar'
   await openNewExperiment({ timeout: 5000 });
   assert.deepEqual(clicks, ['a[aria-label="Experiments"]', '#newExperimentBtn']);
   assert.equal(hash, '#/experiments/new');
+});
+
+
+test('log wait reads component output instead of driver logs and waits for expected text', async () => {
+  let reads = 0;
+  globalThis.browser.execute = async () => false;
+  globalThis.browser.getUrl = async () => "http://localhost/#/runs/details/test";
+  globalThis.browser.saveScreenshot = async () => {};
+  globalThis.$ = (selector) => {
+    if (selector === '.kfp-log-viewer[aria-label="Component logs"]') {
+      return {
+        ...element(true),
+        getText: async () => ++reads === 1 ? 'still running' : 'Hello world from node: A',
+      };
+    }
+    return element(false, false);
+  };
+  await waitForLogViewerText('Hello world from node: A', { timeout: 5000 });
+  assert.equal(reads, 2, 'visible logs without the expected output must not pass');
 });
