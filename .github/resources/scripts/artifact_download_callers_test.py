@@ -31,7 +31,7 @@ from artifact_workflow_test_support import render
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
-CALLERS = {
+CALLERS = [
     ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
@@ -41,7 +41,16 @@ CALLERS = {
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
     ('.github/workflows/release-qualification.yml', 'aggregate'),
-}
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'browser-tests'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'vendor-browser'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'apple-browser'),
+    ('.github/workflows/frontend-deployment-qualification.yml', 'rehearsal'),
+    ('.github/workflows/frontend-deployment-qualification.yml', 'rehearsal'),
+]
 
 
 def workflow(name):
