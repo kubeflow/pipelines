@@ -97,7 +97,9 @@ jobs:
           --health-retries 24
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Set up Go
         uses: ./.github/actions/setup-go
       - name: Download Go modules
