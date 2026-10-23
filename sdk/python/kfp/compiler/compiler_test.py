@@ -2915,6 +2915,37 @@ class TestYamlComments(unittest.TestCase):
 
         self.assertIn(pattern_sample, yaml_content)
 
+    def test_comments_escape_newlines_in_string_defaults(self):
+
+        @dsl.component
+        def echo(config: str) -> str:
+            return config
+
+        @dsl.pipeline()
+        def my_pipeline(config: str = 'a: 1\nb: 2\n') -> str:
+            return echo(config=config).output
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path
+            )
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        # the header stays one comment line per input, and the file stays
+        # valid YAML
+        self.assertIn(
+            "#    config: str [Default: 'a: 1\\nb: 2\\n']", yaml_content
+        )
+        self.assertEqual(
+            yaml.safe_load(yaml_content)['root']['inputDefinitions'][
+                'parameters'
+            ]['config']['defaultValue'],
+            'a: 1\nb: 2\n',
+        )
+
     def test_verbose_comment_characteristics(self):
 
         @dsl.component

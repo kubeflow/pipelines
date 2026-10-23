@@ -2811,7 +2811,16 @@ def extract_comments_from_pipeline_spec(
                         parameter_name
                     ]['defaultValue']
                     if isinstance(data['defaultValue'], str):
-                        data['defaultValue'] = "'" + data['defaultValue'] + "'"
+                        # The default goes into a `#` comment line: a newline
+                        # inside it would end the comment and leave the rest
+                        # of the value as unparsable YAML.
+                        data['defaultValue'] = (
+                            "'"
+                            + data['defaultValue']
+                            .replace('\r', '\\r')
+                            .replace('\n', '\\n')
+                            + "'"
+                        )
                 array_of_signatures.append(data)
 
             for artifact_name, artifact_body in signature.get(

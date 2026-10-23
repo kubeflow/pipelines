@@ -59,6 +59,10 @@
 
 ## Bug fixes and other changes
 
+* Fixed the compiled pipeline's comment header when a string parameter's default
+  contains a newline: the newline ended the comment and left the file
+  unparsable as YAML.
+
 # 2.15.2
 
 ## Bug fixes and other changes
