@@ -39,6 +39,7 @@ on:
       # Artifact authorization changes must exercise the multi-user artifact
       # proxy and SeaweedFS namespace-isolation checks below.
       - 'frontend/server/handlers/artifacts.ts'
+      - 'test/seaweedfs/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
       # The artifact-proxy E2E script is exercised only by this workflow, so
