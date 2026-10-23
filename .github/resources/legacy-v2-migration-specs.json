@@ -1,0 +1,21 @@
+[
+  "LegacyCacheSingleRun",
+  "LegacyCacheRecurringRun",
+  "LegacyCachePVC",
+  "LegacyAPIHealth",
+  "LegacyAPITermination",
+  "LegacyAPIUploads",
+  "LegacyAPISortValidation",
+  "LegacyAPIURLImports",
+  "LegacyAPIEmbeddedRun",
+  "LegacyRecurringList",
+  "LegacyRecurringExecution",
+  "LegacyRecurringLatest",
+  "LegacyRecurringLifecycle",
+  "LegacyRecurringCatchupPeriodictrueNoCatchuptrue",
+  "LegacyRecurringCatchupPeriodictrueNoCatchupfalse",
+  "LegacyRecurringCatchupPeriodicfalseNoCatchuptrue",
+  "LegacyRecurringCatchupPeriodicfalseNoCatchupfalse",
+  "LegacyAPIPagination",
+  "LegacyAPIRunLists"
+]

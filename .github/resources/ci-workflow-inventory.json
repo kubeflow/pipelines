@@ -10,7 +10,7 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "d34af02c14292366d5464618afc1e931569eb95a506d2e101be05fe5a9f0ea68",
+      "header_sha256": "a4e91e3a38689342da33511715582776977c38537a193052e1c14ca5174fee39",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -23,11 +23,12 @@
           ".github/actions/test-and-report/**",
           ".github/actions/junit-summary/**",
           ".github/resources/**",
-          "backend/api/v2/**",
-          "backend/api/v2beta1/**",
-          "backend/src/**",
-          "backend/test/v2/api/**",
+          "api/**",
+          "go.mod",
+          "go.sum",
+          "backend/**",
           "backend/test/constants/**",
+          "test/**",
           "manifests/kustomize/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
@@ -136,7 +137,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "f8a9090c9bf7937b6417aca8767b52bb90c371a8ebf9496a369539ea3b289305",
+      "header_sha256": "46836ee48ba7c3a0f62df12f44ff6ec34384d350d2453b1ee8f5ef9fbd50d20f",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -160,6 +161,7 @@
           ".github/resources/scripts/*.py",
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
+          ".github/resources/legacy-v2-migration-specs.json",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",
