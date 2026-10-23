@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	api2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/require"
@@ -74,7 +74,7 @@ func TestPaginationRestartRequiredGRPCAndGateway(t *testing.T) {
 	raw, err = json.Marshal(fields)
 	require.NoError(t, err)
 	legacy := base64.StdEncoding.EncodeToString(raw)
-	for _, version := range []string{"v2beta1"} {
+	for _, version := range []string{"v2"} {
 		for _, repeat := range []bool{false, true} {
 			t.Run(version+map[bool]string{false: "_token_only", true: "_repeated_sort"}[repeat], func(t *testing.T) {
 				sortBy := ""
