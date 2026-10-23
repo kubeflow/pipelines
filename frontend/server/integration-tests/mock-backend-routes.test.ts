@@ -190,7 +190,7 @@ describe('mock backend routes', () => {
 
     it('serves deterministic retry and cache timings for the run timeline', async () => {
       const response = await request
-        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
+        .get('/apis/v2/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
         .expect(200);
       const retried = response.body.tasks.find((task) => task.task_id === 'mock-task-consumer');
       expect(retried.state_history.map((status) => status.state)).toEqual([
@@ -216,7 +216,7 @@ describe('mock backend routes', () => {
 
     it('fetches a native task by run and task id for artifact lineage', async () => {
       const response = await request
-        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks/mock-task-producer')
+        .get('/apis/v2/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks/mock-task-producer')
         .expect(200);
 
       expect(response.body).toMatchObject({
@@ -235,7 +235,7 @@ describe('mock backend routes', () => {
       ['does-not-exist', 'mock-task-producer'],
     ])('returns 404 for unavailable task %s/%s', async (runId, taskId) => {
       await request
-        .get(`/apis/v2beta1/runs/${runId}/tasks/${taskId}`)
+        .get(`/apis/v2/runs/${runId}/tasks/${taskId}`)
         .expect(404, `No task was found with ID: ${taskId} in run: ${runId}`);
     });
 
