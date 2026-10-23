@@ -83,6 +83,7 @@ class ArtifactTest(unittest.TestCase):
                     'target': 'source',
                     'python_version': None,
                     'source_root': '/ci/source',
+                    'unresolved_inventory': [],
                     'exit_code': 0,
                     **source,
                 }

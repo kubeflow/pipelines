@@ -212,6 +212,32 @@ class SecurityRunnerTest(unittest.TestCase):
         result = runner.verify_security(self.output, self.identity, [])
         self.assertEqual(result['scans'][0]['findings'][0]['id'], 'GHSA-test')
 
+    def test_source_scans_disable_supplemental_resolution_and_reachability(
+        self,
+    ):
+        self.collect(False)
+        command = self.commands[0][0]
+        self.assertIn('--no-resolve', command)
+        self.assertIn('--no-call-analysis=all', command)
+        self.assertIn('--all-vulns', command)
+
+    def test_partial_extraction_error_blocks_even_with_success_exit_code(self):
+        original = self.scan
+
+        def partial(command, **kwargs):
+            result = original(command, **kwargs)
+            kwargs['stderr'].write(
+                'Error during extraction: malformed lockfile'
+            )
+            return result
+
+        with mock.patch.object(runner.subprocess, 'run', side_effect=partial):
+            with self.assertRaisesRegex(
+                ValueError, 'incomplete source extraction'
+            ):
+                self.collect(False)
+        self.assertEqual(self.builds, [])
+
     def test_source_coverage_fails_before_build_and_preserves_evidence(self):
         self.drop_source = True
         with self.assertRaisesRegex(ValueError, 'source dependency coverage'):
@@ -321,6 +347,71 @@ class SecurityRunnerTest(unittest.TestCase):
             runner._verified_file(
                 self.output, '../source-scan.json', runner._digest(backup)
             )
+
+    def test_unversioned_source_declarations_remain_explicitly_unaudited(self):
+        original = self.scan
+
+        def unresolved(command, **kwargs):
+            completed = original(command, **kwargs)
+            if '--lockfile' not in command:
+                path = Path(command[command.index('--output-file') + 1])
+                data = json.loads(path.read_text())
+                data['results'].extend(
+                    clean_report(
+                        str(self.source / 'requirements.txt'),
+                        [
+                            {
+                                'name': 'unpinned',
+                                'version': '',
+                                'ecosystem': 'PyPI',
+                            }
+                        ],
+                    )['results']
+                )
+                path.write_text(json.dumps(data))
+            return completed
+
+        with mock.patch.object(
+            runner.subprocess, 'run', side_effect=unresolved
+        ):
+            document = self.collect(False)
+        expected = [
+            {
+                'target': str(self.source / 'requirements.txt'),
+                'ecosystem': 'PyPI',
+                'package': 'unpinned',
+                'installed_version': '',
+            }
+        ]
+        self.assertEqual(document['scans'][0]['unresolved_inventory'], expected)
+        verified = runner.verify_security(self.output, self.identity, [])
+        self.assertEqual(verified['scans'][0]['unresolved_inventory'], expected)
+        self.mutate(
+            lambda data: data['scans'][0].update(unresolved_inventory=[])
+        )
+        with self.assertRaisesRegex(ValueError, 'Unresolved source inventory'):
+            runner.verify_security(self.output, self.identity, [])
+
+    def test_unresolved_packages_cannot_supply_required_manifest_coverage(self):
+        data = clean_report(
+            str(self.source / 'go.mod'),
+            [{'name': 'local', 'version': '', 'ecosystem': 'Go'}],
+        )
+        data['results'].extend(
+            clean_report(
+                str(self.source / 'frontend/package-lock.json'),
+                [{'name': 'package', 'version': '1.0', 'ecosystem': 'npm'}],
+            )['results']
+        )
+        with self.assertRaisesRegex(ValueError, 'coverage: go.mod'):
+            runner._source_coverage(data, str(self.source))
+
+    def test_installed_python_unresolved_version_remains_invalid(self):
+        self.packages[-1]['version'] = ''
+        with self.assertRaisesRegex(
+            ValueError, 'Invalid installed distribution'
+        ):
+            self.collect()
 
     def test_generated_tracked_changes_fail_qualification(self):
         original = self.check_output

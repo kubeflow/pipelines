@@ -26,7 +26,7 @@ def _name(name, ecosystem):
     return re.sub(r'[-_.]+', '-', name).lower() if ecosystem == 'PyPI' else name
 
 
-def _packages(report):
+def _packages(report, allow_unresolved=False):
     report = _object(report, 'report')
     if report.get('experimental_generic_findings'):
         raise ValueError('OSV generic findings require explicit policy support')
@@ -46,15 +46,42 @@ def _packages(report):
             package = _object(item.get('package'), 'package')
             name = _text(package.get('name'), 'package name')
             ecosystem = _text(package.get('ecosystem'), 'package ecosystem')
-            version = _text(package.get('version'), 'installed version')
+            version = package.get('version')
+            if not (
+                allow_unresolved
+                and version == ''
+                and source['type'] == 'lockfile'
+            ):
+                _text(version, 'installed version')
+            elif _list(item.get('vulnerabilities', []), 'vulnerabilities'):
+                raise ValueError(
+                    'OSV unresolved dependency has vulnerability findings'
+                )
             yield path, ecosystem, name, version, item
 
 
-def inventory(report: dict) -> list[tuple[str, str, str, str]]:
+def inventory(
+    report: dict, *, allow_unresolved=False
+) -> list[tuple[str, str, str, str]]:
     """Return (source path, ecosystem, package name, installed version)."""
     return [
         (path, eco, name, version)
-        for path, eco, name, version, _ in _packages(report)
+        for path, eco, name, version, _ in _packages(report, allow_unresolved)
+    ]
+
+
+def unresolved(report: dict) -> list[dict]:
+    """Report unversioned source declarations; these are not audited
+    packages."""
+    return [
+        {
+            'target': path,
+            'ecosystem': eco,
+            'package': name,
+            'installed_version': version,
+        }
+        for path, eco, name, version in inventory(report, allow_unresolved=True)
+        if not version
     ]
 
 
@@ -112,10 +139,12 @@ def _fixed_versions(vulnerability, name, ecosystem):
     return sorted(fixed)
 
 
-def findings(report: dict) -> list[dict]:
+def findings(report: dict, *, allow_unresolved=False) -> list[dict]:
     """Preserve all advisories; fixes belong only to the scanned package."""
     findings = []
-    for path, ecosystem, name, version, item in _packages(report):
+    for path, ecosystem, name, version, item in _packages(
+        report, allow_unresolved
+    ):
         for vulnerability in _list(
             item.get('vulnerabilities', []), 'vulnerabilities'
         ):

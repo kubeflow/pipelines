@@ -138,6 +138,66 @@ class ReportsTest(unittest.TestCase):
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                 osv_reports.findings(data)
 
+    def test_unresolved_source_entries_are_explicit_and_not_audited(self):
+        # Hosted release-2.17.3 source output includes these unpinned declarations
+        # and local Go replacements, without vulnerability findings.
+        cases = [
+            ('PyPI', name)
+            for name in (
+                'future',
+                'future',
+                'fire',
+                'setuptools',
+                'setuptools',
+                'pytest',
+                'pytest-lazy-fixture',
+                'requests',
+                'requests',
+                'absl-py',
+                'cloudpickle',
+                'deprecated',
+                'fire',
+                'jsonschema',
+                'strip-hints',
+                'uritemplate',
+                'typer',
+            )
+        ]
+        cases += [
+            ('Go', name)
+            for name in ('./api', './kubernetes_platform', '../api')
+        ]
+        for ecosystem, name in cases:
+            data = report(name, ecosystem)
+            item = data['results'][0]['packages'][0]
+            item['package']['version'] = ''
+            with self.assertRaisesRegex(ValueError, 'unresolved dependency'):
+                osv_reports.findings(data, allow_unresolved=True)
+            del item['vulnerabilities']
+            with self.assertRaises(ValueError):
+                osv_reports.findings(data)
+            self.assertEqual(
+                osv_reports.findings(data, allow_unresolved=True), []
+            )
+            self.assertEqual(
+                osv_reports.inventory(data, allow_unresolved=True),
+                [('requirements.txt', ecosystem, name, '')],
+            )
+            self.assertEqual(
+                osv_reports.unresolved(data),
+                [
+                    {
+                        'target': 'requirements.txt',
+                        'ecosystem': ecosystem,
+                        'package': name,
+                        'installed_version': '',
+                    }
+                ],
+            )
+            data['results'][0]['source']['type'] = 'artifact'
+            with self.assertRaises(ValueError):
+                osv_reports.inventory(data, allow_unresolved=True)
+
     def test_empty_targets_fail(self):
         for data in (
             {},

@@ -81,6 +81,13 @@ tests and vulnerability scans run in CI:
 
 - Source dependencies are scanned with checksum-pinned OSV Scanner 2.5.0 before
   wheel generation. The report must cover the root Go module and frontend lockfile.
+  Source scans audit declared versions without speculative dependency resolution or
+  reachability filtering; installed environments and images supply runtime coverage.
+  Extraction errors block acceptance, even if OSV returns a findings exit code.
+  Unpinned source requirements and local Go replacements without a version remain
+  explicitly listed as unaudited declarations in the evidence, not clean packages.
+  They cannot satisfy required manifest coverage; installed Python environments
+  and image packages still require exact versions and complete inventory coverage.
 - The SDK job builds release wheels once, installs them in fresh environments for
   every Python minor advertised by the selected source commit, checks distribution
   versions and dependency consistency, and compiles a pipeline using Kubernetes

@@ -56,7 +56,9 @@ def _packages(packages: list) -> set[tuple[str, str]]:
 
 def _source_coverage(report: dict, source_root: str) -> None:
     paths = {
-        entry[0].replace('\\', '/') for entry in osv_reports.inventory(report)
+        entry[0].replace('\\', '/')
+        for entry in osv_reports.inventory(report, allow_unresolved=True)
+        if entry[3]
     }
     for required in ('go.mod', 'frontend/package-lock.json'):
         if source_root.rstrip('/') + '/' + required not in paths:
@@ -102,6 +104,8 @@ def _scan(source: Path, output: Path, name: str, arguments: list[str]) -> dict:
         str(config),
         '--all-packages',
         '--all-vulns',
+        '--no-call-analysis=all',
+        '--no-resolve',
         '--format',
         'json',
         '--output-file',
@@ -113,12 +117,23 @@ def _scan(source: Path, output: Path, name: str, arguments: list[str]) -> dict:
         result = subprocess.run(
             command, cwd=output, env=environment, stderr=errors, check=False
         )
+    diagnostics = raw.with_suffix('.stderr.log').read_text()
+    if any(
+        marker in diagnostics
+        for marker in (
+            'Error during extraction:',
+            'Failed to run code analysis',
+        )
+    ):
+        raise ValueError(
+            'OSV reported incomplete source extraction; inspect scanner diagnostics'
+        )
     if result.returncode not in (0, 1):
         raise subprocess.CalledProcessError(result.returncode, command)
     if not raw.is_file() or raw.is_symlink():
         raise ValueError('OSV produced no regular JSON report')
     report = json.loads(raw.read_text())
-    findings = osv_reports.findings(report)
+    findings = osv_reports.findings(report, allow_unresolved=name == 'source')
     if bool(findings) != (result.returncode == 1):
         raise ValueError('OSV exit code does not match vulnerability findings')
     return {
@@ -128,6 +143,11 @@ def _scan(source: Path, output: Path, name: str, arguments: list[str]) -> dict:
         'raw_report': raw.relative_to(output).as_posix(),
         'sha256': _digest(raw),
         'exit_code': result.returncode,
+        **(
+            {'unresolved_inventory': osv_reports.unresolved(report)}
+            if name == 'source'
+            else {}
+        ),
     }
 
 
@@ -400,7 +420,7 @@ def verify_security(
             raise ValueError('Security scan path does not match its target')
         raw = _verified_file(directory, scan['raw_report'], scan.get('sha256'))
         data = json.loads(raw.read_text())
-        findings = osv_reports.findings(data)
+        findings = osv_reports.findings(data, allow_unresolved=name == 'source')
         code = scan.get('exit_code')
         if (
             type(code) is not int
@@ -409,6 +429,10 @@ def verify_security(
         ):
             raise ValueError('Security scan did not complete consistently')
         if name == 'source':
+            if scan.get('unresolved_inventory') != osv_reports.unresolved(data):
+                raise ValueError(
+                    'Unresolved source inventory does not match the raw report'
+                )
             source_root = scan.get('source_root')
             if not isinstance(source_root, str) or not source_root.startswith(
                 '/'

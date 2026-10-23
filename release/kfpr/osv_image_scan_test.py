@@ -166,12 +166,15 @@ class OsvImageScanTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     osv.validate_report(report, self.image_id)
 
-    def invoke(self, code=0, report=None, write=True, report_format='sarif'):
+    def invoke(
+        self, code=0, report=None, write=True, report_format='sarif', stderr=''
+    ):
         def run(command, **kwargs):
             if command[0] == 'docker':
                 self.assertEqual(command[-1], self.image_id)
                 self.archive(Path(command[3]))
             else:
+                kwargs['stderr'].write(stderr)
                 self.assertEqual(
                     command[:4], ['osv-scanner', 'scan', 'image', '--archive']
                 )
@@ -264,3 +267,15 @@ class OsvImageScanTest(unittest.TestCase):
             osv.validate_report(
                 json_envelope('sha256:' + 'f' * 64), self.image_id, 'json'
             )
+
+    def test_json_rejects_partial_extraction_even_with_valid_findings(self):
+        with self.assertRaisesRegex(
+            ValueError, 'incomplete package extraction'
+        ):
+            self.invoke(
+                code=1,
+                report=json_report(True),
+                report_format='json',
+                stderr='Error during extraction: incomplete lockfile\n',
+            )
+        self.assertFalse((self.root / 'scan.json').exists())
