@@ -145,3 +145,61 @@ test("the WebdriverIO adapter executes Mocha tests and hooks", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("pipeline uploads attach browser-visible files without the removed upload API", async () => {
+  const { default: vm } = await import("node:vm");
+  for (const [spec, testName, filename] of [
+    ["helloworld.spec.js", "uploads the sample pipeline", "helloworld.yaml"],
+    [
+      "literal-input.spec.js",
+      "uploads the literal-input pipeline",
+      "literal-input.yaml",
+    ],
+    [
+      "tensorboard-example.spec.js",
+      "deploys the tensorboard example and opens tensorboard",
+      "tensorboard-example.yaml",
+    ],
+  ]) {
+    const cases = new Map();
+    const uploaded = [];
+    const finished = new Error("file attached");
+    const element = {
+      click: async () => {},
+      waitForDisplayed: async () => {},
+      setFiles: async (file) => {
+        uploaded.push(file);
+        throw finished;
+      },
+    };
+    const helpers = new Proxy(
+      {},
+      {
+        get: (_, key) =>
+          key === "runPhase" ? async (_, fn) => fn() : async () => {},
+      },
+    );
+    const nativeRequire = createRequire(import.meta.url);
+    const context = {
+      require: (name) =>
+        name === "./test-helpers" ? helpers : nativeRequire(name),
+      describe: (_, fn) => fn(),
+      it: (name, fn) => cases.set(name, fn),
+      before: () => {},
+      after: () => {},
+      beforeEach: () => {},
+      afterEach: () => {},
+      browser: {},
+      $: () => element,
+      process,
+      console,
+      URL,
+    };
+    vm.runInNewContext(
+      await readFile(new URL(spec, import.meta.url), "utf8"),
+      context,
+    );
+    await assert.rejects(cases.get(testName), (error) => error === finished);
+    assert.deepEqual(uploaded, [path.resolve(filename)]);
+  }
+});

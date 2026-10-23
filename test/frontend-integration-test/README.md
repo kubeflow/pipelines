@@ -128,3 +128,9 @@ The browser tests upload KFP v2 pipeline IR only. Regenerate the hello-world and
 TensorBoard fixtures with `python compile_fixtures.py` in an environment with the
 v2 `kfp` SDK installed. TensorBoard exercises UI metadata carried as a native
 `system.Artifact`, not an Argo workflow upload.
+
+Pipeline file inputs use WebdriverIO 10 `setFiles` with absolute paths. The test
+runner and Selenium browser share `/src` in the integration image; an external
+Selenium host must expose the same fixture paths. `setFiles` requires a BiDi
+session and does not transfer files to a remote host. The dependency regression
+executes the upload step from each pipeline spec to catch removed runner APIs.

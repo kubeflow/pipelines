@@ -13,6 +13,7 @@
 // limitations under the License.
 
 const assert = require('assert');
+const path = require('path');
 const URL = require('url').URL;
 const {
   buildTableRowSelector,
@@ -112,8 +113,7 @@ describe('deploy helloworld sample run', () => {
 
   it('uploads the sample pipeline', async () => {
     await $('#localPackageBtn').click();
-    const remoteFilePath = await browser.uploadFile('./helloworld.yaml');
-    await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+    await $('#dropZone input[type="file"]').setFiles(path.resolve('./helloworld.yaml'));
     await $('#newPipelineName').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
