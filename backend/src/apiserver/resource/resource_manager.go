@@ -2412,7 +2412,10 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
-		pipelineSpec := recurringJob.PipelineSpec
+		pipelineSpec, err := r.reportedRecurringRunPipelineSpec(recurringJob, execSpec)
+		if err != nil {
+			return nil, err
+		}
 		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
