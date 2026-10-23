@@ -92,23 +92,27 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials. Authenticated
-multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
-operator-configured namespace prefix), including through tenant proxies. Configuring
-an endpoint or proxy does not make an existing custom-root object belong to a
-namespace. See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership)
-for migrating those object paths.
+Allowlisting does not grant bucket access or configure credentials.
+
+KFP 2.18 retains the 2.17 artifact ownership policy. Complete ownership remediation
+is deferred to 3.0; this upgrade does not require a new key layout, external-storage
+approval policy, controller readiness record or automatic storage adoption.
+Existing untracked-object prefix/strict settings remain. Missing or unavailable
+ownership evidence retains the older permissive behavior, so the artifact-ownership
+security issue remains unresolved for affected deployments. See the
+[upgrade guide](../../docs/operator-guides/upgrade-2.18.md#artifact-compatibility-and-retained-exposure).
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
-providers require namespace-isolated artifact proxies. Set
-`ARTIFACTS_PROXY_ENABLED: "true"` in the installation configuration if needed.
+providers require namespace-isolated artifact proxies. Keep
+`ARTIFACTS_PROXY_ENABLED` enabled in installations that use namespace proxying; this release does not introduce a new default or enable new receivers.
 Adding an origin alone does not enable these providers through the shared UI.
 The profile controller propagates the allowlist to profile artifact proxies;
 configuring `AWS_S3_ENDPOINT` directly on the shared UI does not propagate that
 trust to those proxies.
 
-After applying the configuration, restart the processes that consume these
-settings as environment variables. For the standard multi-user installation
+For changes to `ALLOWED_ARTIFACT_ENDPOINTS`, restart the processes that consume
+that setting as an environment variable. These restarts have no required relative
+order. For the standard multi-user installation
 (replace `kubeflow` with your installation namespace):
 
 ```sh
@@ -119,11 +123,11 @@ kubectl -n kubeflow rollout status deployment/kubeflow-pipelines-profile-control
 ```
 
 After the controller rollout completes, it must reconcile the new environment
-into each enabled Namespace's `ml-pipeline-ui-artifact` Deployment. The controller
-watches Namespace objects; restarting its webhook does not enqueue them. Wait for
-the next hourly resync or change an annotation on each affected Namespace. For
-example, use a fresh timestamp on the enabled Namespace named `tenant` (replace
-it with your profile namespace):
+into each enabled Namespace's `ml-pipeline-ui-artifact` Deployment. Restarting its
+webhook does not itself enqueue Namespace reconciliation for these environment
+changes. Wait for the next hourly resync or change an annotation on each affected
+Namespace. For example, use a fresh timestamp on the enabled Namespace named
+`tenant` (replace it with your profile namespace):
 
 ```sh
 kubectl annotate namespace tenant \
@@ -136,6 +140,15 @@ otherwise, the status may describe the previous completed rollout. Wait for the
 updated rollout to complete before testing a custom artifact preview or download.
 Standalone installations only need the UI restart. Preserve these settings in the
 manifests used for future upgrades.
+
+HTTP/HTTPS artifact reads also retain namespace receiver routing when namespace
+proxying is enabled. Keep the necessary HTTP authentication and network access on
+those receivers; directly served reads use the UI's configuration. Custom HTTP
+credentials and Secret mounts must be preserved by your provisioning configuration
+through profile reconciliation; the stock controller does not provision arbitrary
+tenant HTTP credentials. Updated receivers enforce the retained destination and
+redirect protections. Old receivers keep their older behavior until rollout
+converges, so verify both the deployed images and actual previews/downloads.
 
 Archived logs have a separate credential constraint: for runs outside the UI
 server's namespace, the shared UI uses its own `MINIO_ACCESS_KEY` and
