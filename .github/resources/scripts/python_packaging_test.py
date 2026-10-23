@@ -32,8 +32,9 @@ class PythonPackagingTest(unittest.TestCase):
         self.assertEqual(int(environment.get(variable, 128)), 4)
         self.assertFalse(job.get('continue-on-error', False))
         builds = [
-            step for step in job['steps'] if step['name'] in
-            ('Build KFP SDK Docs', 'Build KFP Kubernetes SDK Docs')
+            step for step in job['steps']
+            if step['name'] in ('Build KFP SDK Docs',
+                                'Build KFP Kubernetes SDK Docs')
         ]
         self.assertEqual(len(builds), 2)
         for step in builds:

@@ -70,8 +70,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
     def test_whitespace_hooks_preserve_generated_viewer_bundles(self):
         config = yaml.safe_load(self.config)
         hooks = {
-            hook['id']: hook
-            for repo in config['repos']
+            hook['id']: hook for repo in config['repos']
             for hook in repo['hooks']
         }
         for hook_id in ('end-of-file-fixer', 'trailing-whitespace'):
@@ -82,19 +81,18 @@ class PreCommitWorkflowTest(unittest.TestCase):
                     self.assertRegex(path, exclude)
                     self.assertNotRegex(path, config['exclude'])
             for path in (
-                'frontend/src/standalone/Viewer.tsx',
-                'frontend/src/standalone/viewer.css',
-                'frontend/vite.viewer.config.mts',
-                'sdk/python/kfp/cli/visualize.py',
-                'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
+                    'frontend/src/standalone/Viewer.tsx',
+                    'frontend/src/standalone/viewer.css',
+                    'frontend/vite.viewer.config.mts',
+                    'sdk/python/kfp/cli/visualize.py',
+                    'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
             ):
                 with self.subTest(hook=hook_id, checked_file=path):
                     self.assertNotRegex(path, exclude)
 
     def test_viewer_hook_rebuilds_shared_sources_and_bundled_assets(self):
         hooks = {
-            hook['id']: hook
-            for repo in yaml.safe_load(self.config)['repos']
+            hook['id']: hook for repo in yaml.safe_load(self.config)['repos']
             for hook in repo['hooks']
         }
         self.assertIn('sdk-viewer-assets', hooks)
@@ -107,17 +105,17 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertFalse(hook['pass_filenames'])
         self.assertTrue(hook['require_serial'])
         for path in (
-            'frontend/src/components/graph/PipelineGraph.tsx',
-            'frontend/src/standalone/Viewer.tsx',
-            'frontend/src/tailwind.css',
-            'frontend/package-lock.json',
-            'frontend/.nvmrc',
-            'frontend/vite.viewer.config.mts',
-            'sdk/python/kfp/cli/viewer_assets/viewer.js',
-            'sdk/python/kfp/cli/viewer_assets/viewer.css',
-            'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
-            '.pre-commit-config.yaml',
-            '.github/workflows/pre-commit.yml',
+                'frontend/src/components/graph/PipelineGraph.tsx',
+                'frontend/src/standalone/Viewer.tsx',
+                'frontend/src/tailwind.css',
+                'frontend/package-lock.json',
+                'frontend/.nvmrc',
+                'frontend/vite.viewer.config.mts',
+                'sdk/python/kfp/cli/viewer_assets/viewer.js',
+                'sdk/python/kfp/cli/viewer_assets/viewer.css',
+                'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
+                '.pre-commit-config.yaml',
+                '.github/workflows/pre-commit.yml',
         ):
             with self.subTest(path=path):
                 self.assertRegex(path, hook['files'])
@@ -128,22 +126,18 @@ class PreCommitWorkflowTest(unittest.TestCase):
     def test_viewer_ci_installs_pinned_toolchain_before_hooks(self):
         steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
         node_steps = [
-            step
-            for step in steps
+            step for step in steps
             if step.get('uses', '').startswith('actions/setup-node@')
         ]
         self.assertEqual(len(node_steps), 1)
         node = node_steps[0]
         self.assertEqual(node['with']['node-version-file'], 'frontend/.nvmrc')
         install = next(
-            step
-            for step in steps
-            if step.get('name') == 'Install viewer build dependencies'
-        )
+            step for step in steps
+            if step.get('name') == 'Install viewer build dependencies')
         self.assertEqual(install['working-directory'], 'frontend')
-        self.assertIn(
-            'require("./package.json").packageManager', install['run']
-        )
+        self.assertIn('require("./package.json").packageManager',
+                      install['run'])
         self.assertIn('npm ci', install['run'])
         condition = "steps.pre-commit-range.outputs.viewer-required == 'true'"
         self.assertEqual(node['if'], condition)
@@ -151,20 +145,15 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertLess(steps.index(node), steps.index(install))
         self.assertLess(
             steps.index(install),
-            next(
-                i
-                for i, step in enumerate(steps)
-                if step.get('uses', '').startswith('pre-commit/action@')
-            ),
+            next(i for i, step in enumerate(steps)
+                 if step.get('uses', '').startswith('pre-commit/action@')),
         )
 
     def test_viewer_ci_setup_covers_hook_inputs_and_config_smoke(self):
         steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
-        command = next(
-            step['run']
-            for step in steps
-            if step.get('id') == 'pre-commit-range'
-        )
+        command = next(step['run']
+                       for step in steps
+                       if step.get('id') == 'pre-commit-range')
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
 

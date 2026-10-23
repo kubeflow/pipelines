@@ -13,24 +13,25 @@
 # limitations under the License.
 """Export and watch local pipelines without a KFP server."""
 
+from contextlib import contextmanager
+from contextlib import nullcontext
+from http.server import BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer
 import json
 import os
+from pathlib import Path
 import secrets
 import subprocess
 import tempfile
 import threading
 import time
-import webbrowser
-from contextlib import contextmanager, nullcontext
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 from typing import Any
+import webbrowser
 
 import click
-import yaml
 from google.protobuf.json_format import ParseError
-
 from kfp.cli import visualization
+import yaml
 
 
 def _output_paths(source: Path, output: Path, format_: str) -> dict[str, Path]:
@@ -50,8 +51,7 @@ def _output_paths(source: Path, output: Path, format_: str) -> dict[str, Path]:
             raise ValueError(f'Output is a directory: {path}. Choose a file.')
         if not path.parent.is_dir():
             raise ValueError(
-                'Output directory does not exist. Create it first.'
-            )
+                'Output directory does not exist. Create it first.')
     return paths
 
 
@@ -62,11 +62,11 @@ def _write_exports(exports: dict[Path, str]) -> None:
         # is atomic, but multiple files cannot form a filesystem transaction.
         for output, content in exports.items():
             with tempfile.NamedTemporaryFile(
-                mode='w',
-                encoding='utf-8',
-                dir=output.parent,
-                prefix=f'.{output.name}.',
-                delete=False,
+                    mode='w',
+                    encoding='utf-8',
+                    dir=output.parent,
+                    prefix=f'.{output.name}.',
+                    delete=False,
             ) as stream:
                 staged = Path(stream.name)
                 temporary.append((staged, output))
@@ -83,14 +83,15 @@ def _fingerprint(source: Path) -> tuple:
         paths = []
         for directory, folders, files in os.walk(source.parent):
             folders[:] = [
-                name
-                for name in folders
-                if not name.startswith('.')
-                and name not in ('__pycache__', 'node_modules', 'venv')
+                name for name in folders
+                if not name.startswith('.') and name not in ('__pycache__',
+                                                             'node_modules',
+                                                             'venv')
             ]
             paths.extend(
-                Path(directory) / name for name in files if name.endswith('.py')
-            )
+                Path(directory) / name
+                for name in files
+                if name.endswith('.py'))
     else:
         paths = [source]
     fingerprint = []
@@ -109,11 +110,10 @@ def _live_server(state: dict[str, Any], *, live: bool = True):
     prefix = f'/{token}/'
 
     class Handler(BaseHTTPRequestHandler):
+
         def do_GET(self):
-            if (
-                self.headers.get('Host')
-                != f'127.0.0.1:{self.server.server_port}'
-            ):
+            if (self.headers.get('Host')
+                    != f'127.0.0.1:{self.server.server_port}'):
                 self.send_error(403)
                 return
             if self.path == prefix:
@@ -171,8 +171,7 @@ def _launch_browser(url: str):
 
     try:
         threading.Thread(
-            target=launch, name='kfp-preview-browser', daemon=True
-        ).start()
+            target=launch, name='kfp-preview-browser', daemon=True).start()
         yield
     finally:
         stopped.set()
@@ -195,8 +194,7 @@ def _export(
     exports = {}
     if 'markdown' in paths:
         exports[paths['markdown']] = visualization.render_markdown(
-            visualization.build_view(spec)
-        )
+            visualization.build_view(spec))
     else:
         visualization.validate_spec(spec)
     if 'html' in paths:
@@ -218,12 +216,12 @@ def _update(
     try:
         _export(source, function, output, format_, state)
     except (
-        OSError,
-        ValueError,
-        ParseError,
-        yaml.YAMLError,
-        subprocess.TimeoutExpired,
-        RecursionError,
+            OSError,
+            ValueError,
+            ParseError,
+            yaml.YAMLError,
+            subprocess.TimeoutExpired,
+            RecursionError,
     ) as error:
         message = str(error)
         if not watch:
@@ -261,8 +259,7 @@ def _watch(
 
 @click.command()
 @click.argument(
-    'source', type=click.Path(exists=True, dir_okay=False, path_type=Path)
-)
+    'source', type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option(
     '-o',
     '--output',
@@ -319,8 +316,7 @@ def visualize(
     source = source.resolve()
     if source.suffix.lower() not in ('.py', '.yaml', '.yml', '.json'):
         raise click.UsageError(
-            'Input must be a .py, .yaml, .yml, or .json file.'
-        )
+            'Input must be a .py, .yaml, .yml, or .json file.')
     if function and source.suffix.lower() != '.py':
         raise click.UsageError('--function is only valid for Python inputs.')
     suffixes = {'.html': 'html', '.md': 'markdown'}
@@ -332,13 +328,11 @@ def visualize(
             )
         if format_ and format_ not in (inferred, 'both'):
             raise click.UsageError(
-                '--format conflicts with the output extension.'
-            )
+                '--format conflicts with the output extension.')
         format_ = format_ or inferred
     format_ = format_ or 'html'
-    output = output or source.with_suffix(
-        '.md' if format_ == 'markdown' else '.html'
-    )
+    output = output or source.with_suffix('.md' if format_ ==
+                                          'markdown' else '.html')
     try:
         _output_paths(source, output, format_)
     except ValueError as error:
@@ -346,8 +340,7 @@ def visualize(
 
     if source.suffix.lower() == '.py':
         click.echo(
-            'Compiling trusted Python source (module-level code executes).'
-        )
+            'Compiling trusted Python source (module-level code executes).')
     state = {'current': {'spec': None, 'error': None, 'revision': 0}}
     previous = _fingerprint(source) if watch else ()
     _update(source, function, output, format_, state, watch)
@@ -355,22 +348,17 @@ def visualize(
         click.echo('Watching saved changes. Press Ctrl+C to stop.')
     if watch or serve:
         try:
-            with (
-                _live_server(state, live=watch) if serve else nullcontext()
-            ) as url:
+            with (_live_server(state, live=watch)
+                  if serve else nullcontext()) as url:
                 if url:
                     label = 'Live viewer' if watch else 'Viewer'
                     click.echo(f'{label}: {url}')
                     click.echo('Press Ctrl+C to stop serving.')
-                with (
-                    _launch_browser(url)
-                    if url and not no_open
-                    else nullcontext()
-                ):
+                with (_launch_browser(url)
+                      if url and not no_open else nullcontext()):
                     if watch:
-                        _watch(
-                            source, function, output, format_, state, previous
-                        )
+                        _watch(source, function, output, format_, state,
+                               previous)
                     else:
                         while True:
                             time.sleep(1)

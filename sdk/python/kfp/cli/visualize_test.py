@@ -12,25 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib import contextmanager
+from html.parser import HTMLParser
 import json
 import os
+from pathlib import Path
 import py_compile
 import subprocess
 import sys
 import threading
+from unittest.mock import Mock
 import urllib.error
 import urllib.request
 import webbrowser
-from contextlib import contextmanager
-from html.parser import HTMLParser
-from pathlib import Path
-from unittest.mock import Mock
 
+from click.testing import CliRunner
+from kfp.cli import cli
+from kfp.cli import visualization
+from kfp.cli import visualize
 import pytest
 import yaml
-from click.testing import CliRunner
-
-from kfp.cli import cli, visualization, visualize
 
 
 @pytest.fixture(autouse=True)
@@ -64,21 +65,37 @@ def _finish_browser_launch(launcher):
 @pytest.fixture
 def spec():
     return {
-        'pipelineInfo': {'name': 'example'},
+        'pipelineInfo': {
+            'name': 'example'
+        },
         'schemaVersion': '2.1.0',
         'deploymentSpec': {
-            'executors': {'exec-step': {'container': {'image': 'alpine'}}}
+            'executors': {
+                'exec-step': {
+                    'container': {
+                        'image': 'alpine'
+                    }
+                }
+            }
         },
         'root': {
             'dag': {
                 'tasks': {
                     'load': {
-                        'componentRef': {'name': 'step'},
-                        'taskInfo': {'name': 'Load data'},
+                        'componentRef': {
+                            'name': 'step'
+                        },
+                        'taskInfo': {
+                            'name': 'Load data'
+                        },
                     },
                     'train': {
-                        'componentRef': {'name': 'step'},
-                        'taskInfo': {'name': 'Train'},
+                        'componentRef': {
+                            'name': 'step'
+                        },
+                        'taskInfo': {
+                            'name': 'Train'
+                        },
                         'dependentTasks': ['load'],
                         'inputs': {
                             'parameters': {
@@ -94,7 +111,11 @@ def spec():
                 }
             }
         },
-        'components': {'step': {'executorLabel': 'exec-step'}},
+        'components': {
+            'step': {
+                'executorLabel': 'exec-step'
+            }
+        },
     }
 
 
@@ -110,15 +131,23 @@ def test_task_dependencies_and_nested_dags(spec):
         'dag': {
             'tasks': {
                 'child': {
-                    'componentRef': {'name': 'step'},
-                    'taskInfo': {'name': 'Child'},
+                    'componentRef': {
+                        'name': 'step'
+                    },
+                    'taskInfo': {
+                        'name': 'Child'
+                    },
                 }
             }
         }
     }
     spec['root']['dag']['tasks']['loop'] = {
-        'taskInfo': {'name': 'Loop'},
-        'componentRef': {'name': 'nested'},
+        'taskInfo': {
+            'name': 'Loop'
+        },
+        'componentRef': {
+            'name': 'nested'
+        },
         'parameterIterator': {},
         'inputs': {
             'artifacts': {
@@ -132,16 +161,28 @@ def test_task_dependencies_and_nested_dags(spec):
         },
     }
     spec['root']['dag']['tasks']['condition'] = {
-        'taskInfo': {'name': 'Condition'},
-        'componentRef': {'name': 'nested'},
-        'triggerPolicy': {'condition': 'true'},
+        'taskInfo': {
+            'name': 'Condition'
+        },
+        'componentRef': {
+            'name': 'nested'
+        },
+        'triggerPolicy': {
+            'condition': 'true'
+        },
     }
     view = visualization.build_view(spec)
     assert len(view['graphs']) == 3
     root = view['graphs'][0]
     assert root['edges'] == [
-        {'source': 'load', 'target': 'train'},
-        {'source': 'train', 'target': 'loop'},
+        {
+            'source': 'load',
+            'target': 'train'
+        },
+        {
+            'source': 'train',
+            'target': 'loop'
+        },
     ]
     nodes = {node['id']: node for node in root['nodes']}
     assert nodes['loop']['kind'] == 'Loop'
@@ -156,9 +197,8 @@ def test_task_dependencies_and_nested_dags(spec):
 
 
 @pytest.mark.parametrize('format_', ['html', 'markdown', 'both'])
-@pytest.mark.parametrize(
-    'incomplete', ['missing', 'empty', 'null', 'empty-reference']
-)
+@pytest.mark.parametrize('incomplete',
+                         ['missing', 'empty', 'null', 'empty-reference'])
 @pytest.mark.parametrize(
     'kind,field,output_key',
     [
@@ -168,8 +208,7 @@ def test_task_dependencies_and_nested_dags(spec):
     ],
 )
 def test_watch_rejects_incomplete_producers_and_recovers(
-    source, spec, format_, incomplete, kind, field, output_key
-):
+        source, spec, format_, incomplete, kind, field, output_key):
     reference = {'producerTask': 'load'}
     if output_key:
         reference[output_key] = 'data'
@@ -194,9 +233,7 @@ def test_watch_rejects_incomplete_producers_and_recovers(
     visualize._update(source, None, output, format_, state, watch=True)
     assert 'producerTask' in (state['current']['error'] or '')
     assert state['current']['spec'] == previous_spec
-    assert {
-        path: path.read_bytes() for path in previous_files
-    } == previous_files
+    assert {path: path.read_bytes() for path in previous_files} == previous_files
     reference.clear()
     reference.update(original)
     source.write_text(yaml.safe_dump(spec))
@@ -216,8 +253,7 @@ def test_watch_rejects_incomplete_producers_and_recovers(
 
 def test_explicit_ordering_does_not_hide_incomplete_producer(spec):
     spec['root']['dag']['tasks']['train']['inputs']['parameters']['data'][
-        'taskOutputParameter'
-    ].pop('producerTask')
+        'taskOutputParameter'].pop('producerTask')
     with pytest.raises(ValueError, match='producerTask'):
         visualization.validate_spec(spec)
 
@@ -225,9 +261,8 @@ def test_explicit_ordering_does_not_hide_incomplete_producer(spec):
 @pytest.mark.parametrize('format_', ['html', 'markdown', 'both'])
 @pytest.mark.parametrize('extension', ['.yaml', '.json'])
 @pytest.mark.parametrize('missing', [True, False])
-def test_watch_rejects_missing_deployment_and_recovers(
-    tmp_path, format_, extension, missing
-):
+def test_watch_rejects_missing_deployment_and_recovers(tmp_path, format_,
+                                                       extension, missing):
     spec = _reused_dag_spec(2)
     source = tmp_path / ('nested' + extension)
     dump = yaml.safe_dump if extension == '.yaml' else json.dumps
@@ -245,9 +280,7 @@ def test_watch_rejects_missing_deployment_and_recovers(
     visualize._update(source, None, output, format_, state, watch=True)
     assert 'deploymentSpec' in (state['current']['error'] or '')
     assert state['current']['spec'] == previous_spec
-    assert {
-        path: path.read_bytes() for path in previous_files
-    } == previous_files
+    assert {path: path.read_bytes() for path in previous_files} == previous_files
     spec['deploymentSpec'] = deployment
     source.write_text(dump(spec))
     visualize._update(source, None, output, format_, state, watch=True)
@@ -255,9 +288,8 @@ def test_watch_rejects_missing_deployment_and_recovers(
     assert state['current']['spec'] == previous_spec
 
 
-def test_serve_rejects_missing_deployment_with_markdown(
-    source, spec, monkeypatch
-):
+def test_serve_rejects_missing_deployment_with_markdown(source, spec,
+                                                        monkeypatch):
     spec.pop('deploymentSpec')
     source.write_text(yaml.safe_dump(spec))
 
@@ -265,9 +297,8 @@ def test_serve_rejects_missing_deployment_with_markdown(
         pytest.fail('An invalid spec must not be served')
 
     monkeypatch.setattr(visualize, '_live_server', unexpected_server)
-    result = CliRunner().invoke(
-        visualize.visualize, [str(source), '--format', 'markdown', '-s']
-    )
+    result = CliRunner().invoke(visualize.visualize,
+                                [str(source), '--format', 'markdown', '-s'])
     assert result.exit_code == 1, (result.output, result.exception)
     assert 'deploymentSpec' in result.output
     assert not source.with_suffix('.md').exists()
@@ -283,8 +314,7 @@ def test_empty_deployment_object_is_supported(source, spec):
 def test_graph_order_is_stable_across_spec_key_reordering(spec):
     expected = visualization.build_view(spec)
     spec['root']['dag']['tasks'] = dict(
-        reversed(list(spec['root']['dag']['tasks'].items()))
-    )
+        reversed(list(spec['root']['dag']['tasks'].items())))
     assert visualization.build_view(spec) == expected
 
 
@@ -293,24 +323,30 @@ def test_final_status_dependency_and_runtime_constants(spec):
     task.pop('dependentTasks')
     task['inputs'] = {
         'parameters': {
-            'status': {'taskFinalStatus': {'producerTask': 'load'}},
+            'status': {
+                'taskFinalStatus': {
+                    'producerTask': 'load'
+                }
+            },
             'config': {
                 'runtimeValue': {
                     'constant': {
-                        'taskOutputParameter': {'producerTask': 'not-a-task'}
+                        'taskOutputParameter': {
+                            'producerTask': 'not-a-task'
+                        }
                     }
                 }
             },
         }
     }
-    assert visualization.build_view(spec)['graphs'][0]['edges'] == [
-        {'source': 'load', 'target': 'train'}
-    ]
+    assert visualization.build_view(spec)['graphs'][0]['edges'] == [{
+        'source': 'load',
+        'target': 'train'
+    }]
 
 
-@pytest.mark.parametrize(
-    'broken', ['component', 'dependency', 'cycle', 'recursive']
-)
+@pytest.mark.parametrize('broken',
+                         ['component', 'dependency', 'cycle', 'recursive'])
 def test_invalid_graphs_rejected(spec, broken):
     tasks = spec['root']['dag']['tasks']
     if broken == 'component':
@@ -324,8 +360,12 @@ def test_invalid_graphs_rejected(spec, broken):
             'dag': {
                 'tasks': {
                     'recurse': {
-                        'componentRef': {'name': 'recursive'},
-                        'taskInfo': {'name': 'Recurse'},
+                        'componentRef': {
+                            'name': 'recursive'
+                        },
+                        'taskInfo': {
+                            'name': 'Recurse'
+                        },
                     }
                 }
             }
@@ -350,26 +390,41 @@ def _reused_dag_spec(depth):
             'dag': {
                 'tasks': {
                     key: {
-                        'componentRef': {'name': reference},
-                        'taskInfo': {'name': key},
-                    }
-                    for key in ('left', 'right')
+                        'componentRef': {
+                            'name': reference
+                        },
+                        'taskInfo': {
+                            'name': key
+                        },
+                    } for key in ('left', 'right')
                 }
             }
         }
         reference = name
     return {
-        'pipelineInfo': {'name': 'reused-dags'},
+        'pipelineInfo': {
+            'name': 'reused-dags'
+        },
         'deploymentSpec': {
-            'executors': {'exec-step': {'container': {'image': 'alpine'}}}
+            'executors': {
+                'exec-step': {
+                    'container': {
+                        'image': 'alpine'
+                    }
+                }
+            }
         },
         'components': components,
         'root': {
             'dag': {
                 'tasks': {
                     'start': {
-                        'componentRef': {'name': reference},
-                        'taskInfo': {'name': 'Start'},
+                        'componentRef': {
+                            'name': reference
+                        },
+                        'taskInfo': {
+                            'name': 'Start'
+                        },
                     }
                 }
             }
@@ -401,8 +456,7 @@ def test_html_validates_reusable_components_once(tmp_path, monkeypatch):
 def test_reusable_component_cycle_is_rejected(tmp_path):
     spec = _reused_dag_spec(30)
     spec['components']['dag-0']['dag']['tasks']['left']['componentRef'][
-        'name'
-    ] = 'dag-29'
+        'name'] = 'dag-29'
     source = tmp_path / 'recursive.json'
     source.write_text(json.dumps(spec))
     result = CliRunner().invoke(visualize.visualize, [str(source)])
@@ -412,6 +466,7 @@ def test_reusable_component_cycle_is_rejected(tmp_path):
 
 
 def test_html_does_not_project_markdown(source, monkeypatch):
+
     def unexpected_projection(_spec):
         pytest.fail('HTML must not construct the path-expanded Markdown view')
 
@@ -422,8 +477,7 @@ def test_html_does_not_project_markdown(source, monkeypatch):
 
 def test_markdown_expansion_limit_preserves_last_export(source, monkeypatch):
     monkeypatch.setattr(
-        visualization, '_MAX_MARKDOWN_ELEMENTS', 20, raising=False
-    )
+        visualization, '_MAX_MARKDOWN_ELEMENTS', 20, raising=False)
     state = {'current': {'spec': None, 'error': None, 'revision': 0}}
     output = source.with_suffix('.md')
     visualize._update(source, None, output, 'markdown', state, watch=True)
@@ -435,8 +489,7 @@ def test_markdown_expansion_limit_preserves_last_export(source, monkeypatch):
     assert output.read_bytes() == previous_file
     assert state['current']['spec'] == previous_spec
     visualize._update(
-        source, None, source.with_suffix('.html'), 'html', state, watch=True
-    )
+        source, None, source.with_suffix('.html'), 'html', state, watch=True)
     assert state['current']['error'] is None
     assert source.with_suffix('.html').exists()
 
@@ -456,21 +509,25 @@ def test_json_preserves_surrogate_pairs(tmp_path, spec):
     source.write_text(json.dumps(spec))
     loaded = visualization.load_spec(source)
     assert (
-        loaded['root']['dag']['tasks']['load']['taskInfo']['name'] == 'Load 🚀'
-    )
+        loaded['root']['dag']['tasks']['load']['taskInfo']['name'] == 'Load 🚀')
 
 
 @pytest.mark.parametrize('value', [1e-6, 1e20])
 def test_json_preserves_exponent_numbers(tmp_path, spec, value):
     source = tmp_path / 'pipeline.json'
     spec['root']['dag']['tasks']['load']['inputs'] = {
-        'parameters': {'amount': {'runtimeValue': {'constant': value}}}
+        'parameters': {
+            'amount': {
+                'runtimeValue': {
+                    'constant': value
+                }
+            }
+        }
     }
     source.write_text(json.dumps(spec))
     loaded = visualization.load_spec(source)
     actual = loaded['root']['dag']['tasks']['load']['inputs']['parameters'][
-        'amount'
-    ]['runtimeValue']['constant']
+        'amount']['runtimeValue']['constant']
     assert isinstance(actual, float)
     assert actual == value
 
@@ -482,14 +539,12 @@ def test_json_rejects_yaml_syntax(tmp_path, spec):
         visualization.load_spec(source)
 
 
-@pytest.mark.parametrize(
-    'format_,suffix', [('html', '.html'), ('markdown', '.md')]
-)
+@pytest.mark.parametrize('format_,suffix', [('html', '.html'),
+                                            ('markdown', '.md')])
 @pytest.mark.parametrize('nested', [False, True])
 @pytest.mark.parametrize('task_info', [None, {}, {'name': ''}])
-def test_watch_rejects_unnamed_tasks_and_recovers(
-    source, spec, format_, suffix, nested, task_info
-):
+def test_watch_rejects_unnamed_tasks_and_recovers(source, spec, format_, suffix,
+                                                  nested, task_info):
     task = spec['root']['dag']['tasks']['train']
     if nested:
         task['componentRef']['name'] = 'nested'
@@ -497,8 +552,12 @@ def test_watch_rejects_unnamed_tasks_and_recovers(
             'dag': {
                 'tasks': {
                     'child': {
-                        'componentRef': {'name': 'step'},
-                        'taskInfo': {'name': 'Child'},
+                        'componentRef': {
+                            'name': 'step'
+                        },
+                        'taskInfo': {
+                            'name': 'Child'
+                        },
                     }
                 }
             }
@@ -529,24 +588,31 @@ def test_watch_rejects_unnamed_tasks_and_recovers(
 def test_load_spec_formats(tmp_path, spec, suffix):
     source = tmp_path / ('pipeline' + suffix)
     source.write_text(
-        json.dumps(spec) if suffix == '.json' else yaml.safe_dump(spec)
-    )
+        json.dumps(spec) if suffix == '.json' else yaml.safe_dump(spec))
     assert visualization.load_spec(source)['pipelineInfo']['name'] == 'example'
 
 
 def test_manifest_and_platform_documents(source, spec):
     source.write_text(
-        yaml.safe_dump_all([spec, {'platforms': {'kubernetes': {}}}])
-    )
+        yaml.safe_dump_all([spec, {
+            'platforms': {
+                'kubernetes': {}
+            }
+        }]))
     assert visualization.load_spec(source)['root'] == spec['root']
     source.write_text(
-        yaml.safe_dump_all(
-            [
-                {'kind': 'Pipeline', 'spec': {}},
-                {'kind': 'PipelineVersion', 'spec': {'pipelineSpec': spec}},
-            ]
-        )
-    )
+        yaml.safe_dump_all([
+            {
+                'kind': 'Pipeline',
+                'spec': {}
+            },
+            {
+                'kind': 'PipelineVersion',
+                'spec': {
+                    'pipelineSpec': spec
+                }
+            },
+        ]))
     assert visualization.load_spec(source)['root'] == spec['root']
 
 
@@ -567,8 +633,7 @@ def test_invalid_inputs_fail_without_overwriting(source, tmp_path, content):
     output = tmp_path / 'pipeline.md'
     output.write_text('previous export')
     result = CliRunner().invoke(
-        visualize.visualize, [str(source), '-o', str(output)]
-    )
+        visualize.visualize, [str(source), '-o', str(output)])
     assert result.exit_code != 0
     assert output.read_text() == 'previous export'
 
@@ -586,18 +651,14 @@ def step() -> dsl.ContainerSpec:
 def pipeline():
     step()
 """)
-    assert (
-        visualization.load_spec(source, 'pipeline')['pipelineInfo']['name']
-        == 'first'
-    )
+    assert (visualization.load_spec(
+        source, 'pipeline')['pipelineInfo']['name'] == 'first')
     cached_mtime = helper.stat().st_mtime
     py_compile.compile(str(helper))
     helper.write_text('NAME = "other"\n')
     os.utime(helper, (cached_mtime, cached_mtime))
-    assert (
-        visualization.load_spec(source, 'pipeline')['pipelineInfo']['name']
-        == 'other'
-    )
+    assert (visualization.load_spec(
+        source, 'pipeline')['pipelineInfo']['name'] == 'other')
     source.write_text('this is invalid Python')
     with pytest.raises(ValueError, match='SyntaxError'):
         visualization.load_spec(source)
@@ -605,8 +666,7 @@ def pipeline():
 
 def test_labels_cannot_escape_exports(spec):
     payload = (
-        '</script><script>alert(1)</script>```\nclick n0 "javascript:alert(1)"'
-    )
+        '</script><script>alert(1)</script>```\nclick n0 "javascript:alert(1)"')
     spec['pipelineInfo']['name'] = payload
     spec['root']['dag']['tasks']['load']['taskInfo']['name'] = payload
     view = visualization.build_view(spec)
@@ -620,7 +680,9 @@ def test_labels_cannot_escape_exports(spec):
     assert '\\u003c/script\\u003e' in artifact
     assert 'third-party-licenses' in artifact
     assert '"live": false' in artifact
+
     class ScriptParser(HTMLParser):
+
         def handle_starttag(self, tag, attrs):
             if tag == 'script':
                 assert 'src' not in dict(attrs)
@@ -629,20 +691,17 @@ def test_labels_cannot_escape_exports(spec):
     ScriptParser().feed(artifact)
 
 
-@pytest.mark.parametrize(
-    'format_,suffix', [('html', '.html'), ('markdown', '.md')]
-)
-def test_export_command_without_cluster(
-    source, format_, suffix, monkeypatch, browser_launcher
-):
+@pytest.mark.parametrize('format_,suffix', [('html', '.html'),
+                                            ('markdown', '.md')])
+def test_export_command_without_cluster(source, format_, suffix, monkeypatch,
+                                        browser_launcher):
 
     def no_client(*args, **kwargs):
         pytest.fail('Visualization must not create a cluster client')
 
     monkeypatch.setattr(cli.client, 'Client', no_client)
     result = CliRunner().invoke(
-        cli.cli, ['visualize', str(source), '--format', format_]
-    )
+        cli.cli, ['visualize', str(source), '--format', format_])
     assert result.exit_code == 0, result.output
     assert source.with_suffix(suffix).exists()
     browser_launcher.assert_not_called()
@@ -652,7 +711,10 @@ def test_html_exports_full_spec_for_shared_kfp_renderer(source, spec):
     spec['deploymentSpec'] = {
         'executors': {
             'exec-step': {
-                'container': {'image': 'alpine', 'command': ['echo', 'hello']}
+                'container': {
+                    'image': 'alpine',
+                    'command': ['echo', 'hello']
+                }
             }
         }
     }
@@ -660,9 +722,8 @@ def test_html_exports_full_spec_for_shared_kfp_renderer(source, spec):
     result = CliRunner().invoke(visualize.visualize, [str(source)])
     assert result.exit_code == 0, result.output
     artifact = source.with_suffix('.html').read_text()
-    data = artifact.split('<script id="kfp-data" type="application/json">', 1)[
-        1
-    ]
+    data = artifact.split('<script id="kfp-data" type="application/json">',
+                          1)[1]
     state = json.loads(data.split('</script>', 1)[0])['state']
     assert state['spec']['deploymentSpec'] == spec['deploymentSpec']
     assert state['spec']['components'] == spec['components']
@@ -673,18 +734,16 @@ def test_html_exports_full_spec_for_shared_kfp_renderer(source, spec):
 def test_watch_flag_aliases(source, monkeypatch, flag):
     calls = []
     monkeypatch.setattr(visualize, '_watch', lambda *args: calls.append(args))
-    result = CliRunner().invoke(
-        visualize.visualize, [str(source), '--format', 'markdown', flag]
-    )
+    result = CliRunner().invoke(visualize.visualize,
+                                [str(source), '--format', 'markdown', flag])
     assert result.exit_code == 0, result.output
     assert len(calls) == 1
     assert source.with_suffix('.md').exists()
 
 
 @pytest.mark.parametrize('format_', ['html', 'both', 'markdown'])
-def test_watch_exports_without_serving(
-    source, monkeypatch, format_, browser_launcher
-):
+def test_watch_exports_without_serving(source, monkeypatch, format_,
+                                       browser_launcher):
     calls = []
     monkeypatch.setattr(visualize, '_watch', lambda *args: calls.append(args))
 
@@ -692,18 +751,14 @@ def test_watch_exports_without_serving(
         pytest.fail('Watch must not start a server without --serve')
 
     monkeypatch.setattr(visualize, '_live_server', unexpected_server)
-    result = CliRunner().invoke(
-        visualize.visualize, [str(source), '-w', '--format', format_]
-    )
+    result = CliRunner().invoke(visualize.visualize,
+                                [str(source), '-w', '--format', format_])
     assert result.exit_code == 0, (result.output, result.exception)
     assert len(calls) == 1
     assert 'viewer:' not in result.output.lower()
     browser_launcher.assert_not_called()
-    for suffix in (
-        ['.html', '.md']
-        if format_ == 'both'
-        else ['.html' if format_ == 'html' else '.md']
-    ):
+    for suffix in (['.html', '.md'] if format_ == 'both' else
+                   ['.html' if format_ == 'html' else '.md']):
         assert source.with_suffix(suffix).exists()
 
 
@@ -711,9 +766,8 @@ def test_watch_exports_without_serving(
 @pytest.mark.parametrize('watch', [False, True])
 @pytest.mark.parametrize('format_', ['html', 'both', 'markdown'])
 @pytest.mark.parametrize('no_open', [None, '-n', '--no-open'])
-def test_serve_is_independent_of_watching(
-    source, monkeypatch, flag, watch, format_, no_open, browser_launcher
-):
+def test_serve_is_independent_of_watching(source, monkeypatch, flag, watch,
+                                          format_, no_open, browser_launcher):
     served = []
     watched = []
 
@@ -758,8 +812,7 @@ def test_serve_is_independent_of_watching(
 
 
 def test_blocked_browser_does_not_block_watch_or_shutdown(
-    source, spec, monkeypatch, browser_launcher, capsys
-):
+        source, spec, monkeypatch, browser_launcher, capsys):
     release = threading.Event()
     closed = threading.Event()
     observed = []
@@ -781,20 +834,16 @@ def test_blocked_browser_does_not_block_watch_or_shutdown(
         nonlocal ticks
         assert browser_launcher.started.wait(timeout=3)
         assert not release.is_set(), (
-            'Watch must run while the browser opener is blocked'
-        )
+            'Watch must run while the browser opener is blocked')
         if ticks == 0:
             spec['pipelineInfo']['name'] = 'updated'
             source.write_text(yaml.safe_dump(spec))
         elif ticks == 2:
-            assert (
-                observed[0]['current']['spec']['pipelineInfo']['name']
-                == 'updated'
-            )
+            assert (observed[0]['current']['spec']['pipelineInfo']['name'] ==
+                    'updated')
             assert '# updated' in source.with_suffix('.md').read_text()
-            assert (
-                '"name": "updated"' in source.with_suffix('.html').read_text()
-            )
+            assert ('"name": "updated"'
+                    in source.with_suffix('.html').read_text())
             raise KeyboardInterrupt
         ticks += 1
 
@@ -808,13 +857,11 @@ def test_blocked_browser_does_not_block_watch_or_shutdown(
     fallback.start()
     try:
         result = CliRunner().invoke(
-            visualize.visualize, [str(source), '--format', 'both', '-w', '-s']
-        )
+            visualize.visualize, [str(source), '--format', 'both', '-w', '-s'])
         assert result.exit_code == 0, (result.output, result.exception)
         assert closed.is_set()
         assert not release.is_set(), (
-            'Shutdown must not wait for the browser to exit'
-        )
+            'Shutdown must not wait for the browser to exit')
         assert browser_launcher.threads[0].daemon
     finally:
         fallback.cancel()
@@ -842,7 +889,8 @@ visualize._watch = watch
 visualize.visualize(args=sys.argv[1:], standalone_mode=False)
 """
     result = subprocess.run(
-        [sys.executable, '-c', script, str(source), '-w', '-s'],
+        [sys.executable, '-c', script,
+         str(source), '-w', '-s'],
         capture_output=True,
         text=True,
         timeout=10,
@@ -851,9 +899,8 @@ visualize.visualize(args=sys.argv[1:], standalone_mode=False)
     assert 'Stopped watching.' in result.stdout
 
 
-def test_browser_opens_only_after_server_is_ready(
-    source, monkeypatch, browser_launcher
-):
+def test_browser_opens_only_after_server_is_ready(source, monkeypatch,
+                                                  browser_launcher):
     responses = []
 
     def open_browser(url):
@@ -877,12 +924,13 @@ def test_browser_opens_only_after_server_is_ready(
 
 @pytest.mark.parametrize(
     'failure',
-    [False, webbrowser.Error('No browser'), OSError('Cannot launch')],
+    [False, webbrowser.Error('No browser'),
+     OSError('Cannot launch')],
     ids=['unavailable', 'browser-error', 'os-error'],
 )
-def test_browser_launch_failure_keeps_serving(
-    source, monkeypatch, browser_launcher, failure
-):
+def test_browser_launch_failure_keeps_serving(source, monkeypatch,
+                                              browser_launcher, failure):
+
     @contextmanager
     def server(state, *, live):
         yield 'http://127.0.0.1:1234/test/'
@@ -904,9 +952,8 @@ def test_browser_launch_failure_keeps_serving(
 
 
 @pytest.mark.parametrize('name', [None, 'report', 'report.html', 'report.md'])
-def test_both_formats_share_one_compilation(
-    source, spec, monkeypatch, name, browser_launcher
-):
+def test_both_formats_share_one_compilation(source, spec, monkeypatch, name,
+                                            browser_launcher):
     calls = []
 
     def load(path, function):
@@ -976,9 +1023,8 @@ def test_both_stage_failure_keeps_both_exports(source, monkeypatch):
 
 def test_both_outputs_cannot_alias_input(source):
     source.with_suffix('.md').symlink_to(source)
-    result = CliRunner().invoke(
-        visualize.visualize, [str(source), '--format', 'both']
-    )
+    result = CliRunner().invoke(visualize.visualize,
+                                [str(source), '--format', 'both'])
     assert result.exit_code == 2
     assert 'overwrite the input' in result.output
     assert not source.with_suffix('.html').exists()
@@ -1001,9 +1047,8 @@ def test_watch_rechecks_output_symlinks(source):
 def test_both_outputs_cannot_alias_each_other(source):
     source.with_suffix('.html').write_text('old html')
     source.with_suffix('.md').symlink_to(source.with_suffix('.html'))
-    result = CliRunner().invoke(
-        visualize.visualize, [str(source), '--format', 'both']
-    )
+    result = CliRunner().invoke(visualize.visualize,
+                                [str(source), '--format', 'both'])
     assert result.exit_code == 2
     assert 'distinct' in result.output
     assert source.with_suffix('.html').read_text() == 'old html'
@@ -1012,8 +1057,7 @@ def test_both_outputs_cannot_alias_each_other(source):
 def test_output_extension_infers_format(source):
     output = source.with_suffix('.md')
     result = CliRunner().invoke(
-        visualize.visualize, [str(source), '-o', str(output)]
-    )
+        visualize.visualize, [str(source), '-o', str(output)])
     assert result.exit_code == 0, result.output
     assert '```mermaid' in output.read_text()
 
@@ -1032,12 +1076,10 @@ def test_invalid_options(source, options):
     assert result.exit_code == 2
 
 
-@pytest.mark.parametrize(
-    'format_,suffix', [('html', '.html'), ('markdown', '.md')]
-)
-def test_watch_keeps_export_on_error_and_recovers(
-    source, spec, format_, suffix
-):
+@pytest.mark.parametrize('format_,suffix', [('html', '.html'),
+                                            ('markdown', '.md')])
+def test_watch_keeps_export_on_error_and_recovers(source, spec, format_,
+                                                  suffix):
     state = {'current': {'spec': None, 'error': None, 'revision': 0}}
     output = source.with_suffix(suffix)
     visualize._update(source, None, output, format_, state, watch=True)
@@ -1060,13 +1102,11 @@ def test_watch_debounces_and_detects_changes_during_export(source, monkeypatch):
     monkeypatch.setattr(visualize, '_fingerprint', lambda _: next(snapshots))
     monkeypatch.setattr(visualize.time, 'sleep', lambda _: None)
     calls = []
-    monkeypatch.setattr(
-        visualize, '_update', lambda *args, **kwargs: calls.append(args)
-    )
+    monkeypatch.setattr(visualize, '_update',
+                        lambda *args, **kwargs: calls.append(args))
     with pytest.raises(StopIteration):
-        visualize._watch(
-            source, None, source.with_suffix('.md'), 'markdown', {}, (0,)
-        )
+        visualize._watch(source, None, source.with_suffix('.md'), 'markdown',
+                         {}, (0,))
     assert len(calls) == 2
 
 

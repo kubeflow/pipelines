@@ -13,22 +13,22 @@
 # limitations under the License.
 """Portable, read-only views of compiled KFP pipeline specifications."""
 
+from importlib import resources
 import functools
+from graphlib import CycleError
+from graphlib import TopologicalSorter
 import html
 import json
+from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
-from graphlib import CycleError, TopologicalSorter
-from importlib import resources
-from pathlib import Path
 from typing import Any
 
-import yaml
 from google.protobuf import json_format
-
 from kfp.pipeline_spec import pipeline_spec_pb2
+import yaml
 
 
 def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
@@ -56,22 +56,16 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
             if function:
                 command.extend(['--function', function])
             result = subprocess.run(
-                command, capture_output=True, text=True, timeout=60
-            )
+                command, capture_output=True, text=True, timeout=60)
             if result.returncode:
-                raise ValueError(
-                    result.stderr.strip()
-                    or result.stdout.strip()
-                    or 'Pipeline compilation failed.'
-                )
+                raise ValueError(result.stderr.strip() or
+                                 result.stdout.strip() or
+                                 'Pipeline compilation failed.')
             return load_spec(compiled)
 
     content = path.read_text(encoding='utf-8')
-    documents = (
-        [json.loads(content)]
-        if path.suffix.lower() == '.json'
-        else list(yaml.safe_load_all(content))
-    )
+    documents = ([json.loads(content)] if path.suffix.lower() == '.json' else
+                 list(yaml.safe_load_all(content)))
     # Compiler YAML may have a second document containing platform configuration.
     candidates = []
     for document in documents:
@@ -87,19 +81,14 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
     if len(candidates) != 1:
         raise ValueError(
             'Expected one KFP v2 pipeline spec with a root DAG. '
-            'Choose a compiled pipeline YAML/JSON or a Python file.'
-        )
-    message = json_format.ParseDict(
-        candidates[0], pipeline_spec_pb2.PipelineSpec()
-    )
+            'Choose a compiled pipeline YAML/JSON or a Python file.')
+    message = json_format.ParseDict(candidates[0],
+                                    pipeline_spec_pb2.PipelineSpec())
     spec = json_format.MessageToDict(message)
     if not spec.get('pipelineInfo', {}).get('name') or 'dag' not in spec.get(
-        'root', {}
-    ):
-        raise ValueError(
-            'Expected a named KFP v2 pipeline with a root DAG, '
-            'not an individual component.'
-        )
+            'root', {}):
+        raise ValueError('Expected a named KFP v2 pipeline with a root DAG, '
+                         'not an individual component.')
     return spec
 
 
@@ -109,20 +98,18 @@ def _producers(inputs: dict[str, Any]) -> set[str]:
     for kind in ('parameters', 'artifacts'):
         for name, value in inputs.get(kind, {}).items():
             for key in (
-                'taskOutputParameter',
-                'taskOutputArtifact',
-                'taskFinalStatus',
+                    'taskOutputParameter',
+                    'taskOutputArtifact',
+                    'taskFinalStatus',
             ):
                 if key not in value:
                     continue
                 source = value[key]
-                if not isinstance(source, dict) or not source.get(
-                    'producerTask'
-                ):
+                if not isinstance(source,
+                                  dict) or not source.get('producerTask'):
                     raise ValueError(
                         f'Input {name!r} has {key} without a non-empty producerTask. '
-                        'Restore the producing task name before exporting.'
-                    )
+                        'Restore the producing task name before exporting.')
                 producers.add(source['producerTask'])
     return producers
 
@@ -133,16 +120,14 @@ def _task_dependencies(tasks: dict[str, Any]) -> dict[str, set[str]]:
         if not task.get('taskInfo', {}).get('name'):
             raise ValueError(
                 f'Task {key!r} is missing a non-empty taskInfo.name. '
-                'Restore its display name before exporting.'
-            )
+                'Restore its display name before exporting.')
         producers = set(task.get('dependentTasks', []))
         producers.update(_producers(task.get('inputs', {})))
         for producer in producers:
             if producer not in tasks or producer == key:
                 raise ValueError(
                     f'Task {key!r} has invalid dependency {producer!r}. '
-                    'Correct its task inputs or dependentTasks.'
-                )
+                    'Correct its task inputs or dependentTasks.')
         dependencies[key] = producers
     return dependencies
 
@@ -154,8 +139,7 @@ def validate_spec(spec: dict[str, Any]) -> None:
     if spec.get('deploymentSpec') is None:
         raise ValueError(
             'Missing deploymentSpec. Restore the deployment configuration '
-            'before exporting or serving this pipeline.'
-        )
+            'before exporting or serving this pipeline.')
     components = spec.get('components', {})
     pending: list[str | None] = [None]
     visited: set[str | None] = set()
@@ -170,10 +154,8 @@ def validate_spec(spec: dict[str, Any]) -> None:
         try:
             TopologicalSorter(_task_dependencies(tasks)).prepare()
         except CycleError as error:
-            raise ValueError(
-                'Cyclic task dependencies. Remove the cycle '
-                'before visualizing this pipeline.'
-            ) from error
+            raise ValueError('Cyclic task dependencies. Remove the cycle '
+                             'before visualizing this pipeline.') from error
         nested = set()
         for key, task in tasks.items():
             target_reference = task.get('componentRef', {}).get('name')
@@ -181,15 +163,13 @@ def validate_spec(spec: dict[str, Any]) -> None:
             if target is None:
                 raise ValueError(
                     f'Task {key!r} references missing component '
-                    f'{target_reference!r}. Correct its componentRef.'
-                )
+                    f'{target_reference!r}. Correct its componentRef.')
             if 'dag' in target:
                 nested.add(target_reference)
             elif not target.get('executorLabel'):
                 raise ValueError(
                     f'Component {target_reference!r} has no DAG or '
-                    'executorLabel. Use a compiled pipeline spec.'
-                )
+                    'executorLabel. Use a compiled pipeline spec.')
         component_dependencies[reference] = nested
         pending.extend(nested - visited)
     try:
@@ -224,8 +204,7 @@ def build_view(spec: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(
                 f'Markdown expansion exceeds {_MAX_MARKDOWN_ELEMENTS:,} '
                 'DAGs, tasks, and dependencies. Use --format html for a '
-                'compact visualization of this pipeline.'
-            )
+                'compact visualization of this pipeline.')
         nodes = []
         children = []
         for key, task in sorted(tasks.items()):
@@ -233,34 +212,28 @@ def build_view(spec: dict[str, Any]) -> dict[str, Any]:
             kind = 'Task'
             if 'dag' in target:
                 kind = (
-                    'Loop'
-                    if 'parameterIterator' in task or 'artifactIterator' in task
-                    else 'Condition'
-                    if task.get('triggerPolicy', {}).get('condition')
-                    else 'Sub-DAG'
-                )
+                    'Loop' if 'parameterIterator' in task or
+                    'artifactIterator' in task else 'Condition' if task.get(
+                        'triggerPolicy', {}).get('condition') else 'Sub-DAG')
                 children.append((target, [*path, key]))
-            nodes.append(
-                {
-                    'id': key,
-                    'label': task['taskInfo']['name'],
-                    'kind': kind,
-                }
-            )
-        graphs.append(
-            {
-                'label': ' / '.join(path) if path else 'Pipeline',
-                'nodes': nodes,
-                'edges': [
-                    {'source': source, 'target': target}
-                    for source, target in sorted(
-                        (source, target)
-                        for target, producers in dependencies.items()
-                        for source in producers
-                    )
-                ],
-            }
-        )
+            nodes.append({
+                'id': key,
+                'label': task['taskInfo']['name'],
+                'kind': kind,
+            })
+        graphs.append({
+            'label':
+                ' / '.join(path) if path else 'Pipeline',
+            'nodes':
+                nodes,
+            'edges': [{
+                'source': source,
+                'target': target
+            } for source, target in sorted(
+                (source, target)
+                for target, producers in dependencies.items()
+                for source in producers)],
+        })
         pending.extend(reversed(children))
     return {'name': spec['pipelineInfo']['name'], 'graphs': graphs}
 
@@ -279,14 +252,12 @@ def render_markdown(view: dict[str, Any]) -> str:
         '',
     ]
     for graph in view['graphs']:
-        lines.extend(
-            [
-                f'## {_markdown_text(graph["label"])}',
-                '',
-                '```mermaid',
-                'flowchart TD',
-            ]
-        )
+        lines.extend([
+            f'## {_markdown_text(graph["label"])}',
+            '',
+            '```mermaid',
+            'flowchart TD',
+        ])
         identifiers = {
             node['id']: f'n{index}' for index, node in enumerate(graph['nodes'])
         }
@@ -295,18 +266,12 @@ def render_markdown(view: dict[str, Any]) -> str:
             if node['kind'] != 'Task':
                 label += f' ({node["kind"]})'
             # Mermaid numeric entities keep user labels out of its grammar.
-            label = ''.join(
-                character
-                if character.isalnum() or character == ' '
-                else f'#{ord(character)};'
-                for character in label
-            )
+            label = ''.join(character if character.isalnum() or character == ' '
+                            else f'#{ord(character)};' for character in label)
             lines.append(f'  {identifiers[node["id"]]}["{label}"]')
         for edge in graph['edges']:
-            lines.append(
-                f'  {identifiers[edge["source"]]} --> '
-                f'{identifiers[edge["target"]]}'
-            )
+            lines.append(f'  {identifiers[edge["source"]]} --> '
+                         f'{identifiers[edge["target"]]}')
         lines.extend(['```', ''])
     return '\n'.join(lines)
 
@@ -326,10 +291,8 @@ def render_html(state: dict[str, Any], live: bool = False) -> str:
     script, style, licenses = _viewer_assets()
     data = json.dumps({'state': state, 'live': live}, ensure_ascii=True)
     data = (
-        data.replace('<', '\\u003c')
-        .replace('>', '\\u003e')
-        .replace('&', '\\u0026')
-    )
+        data.replace('<', '\\u003c').replace('>',
+                                             '\\u003e').replace('&', '\\u0026'))
     script = re.sub(r'</script', r'<\\/script', script, flags=re.IGNORECASE)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
