@@ -23,8 +23,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
@@ -163,6 +165,67 @@ func TestRunWithLeaderElection_OnLostWhenRenewalFails(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("RunWithLeaderElection didn't return after losing the lease")
 	}
+}
+
+func TestRunWithLeaderElection_MissingLeasePermissions(t *testing.T) {
+	client := fake.NewClientset()
+	client.PrependReactor("create", "leases", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(schema.GroupResource{Group: "coordination.k8s.io", Resource: "leases"}, testLeaseName, errors.New("RBAC: access denied"))
+	})
+	a := startCandidate(t, client, "a")
+
+	// Without permission to create the Lease, the replica stays a standby:
+	// it never runs, and it keeps retrying until it's stopped.
+	time.Sleep(3 * testTimings.leaseDuration)
+	assert.Equal(t, int32(0), a.started.Load(), "Run must not be called without the Lease")
+	select {
+	case <-a.done:
+		t.Fatal("RunWithLeaderElection must keep retrying while the Lease can't be created")
+	default:
+	}
+
+	a.cancel()
+	select {
+	case err := <-a.done:
+		assert.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("RunWithLeaderElection didn't return after its context was canceled")
+	}
+	assert.Equal(t, int32(0), a.lost.Load(), "OnLost must not be called for a replica that never led")
+}
+
+func TestRunWithLeaderElection_ShutdownWaitsForInFlightWork(t *testing.T) {
+	client := fake.NewClientset()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	var running, finished atomic.Bool
+	done := make(chan error, 1)
+	go func() {
+		done <- runWithLeaderElection(ctx, client, LeaderElectionConfig{
+			LeaseName: testLeaseName,
+			Namespace: testNamespace,
+			Identity:  "a",
+			Run: func(leaderCtx context.Context) {
+				running.Store(true)
+				<-leaderCtx.Done()
+				// Simulate a request that is still in flight when shutdown begins.
+				time.Sleep(300 * time.Millisecond)
+				finished.Store(true)
+			},
+			OnLost: func() { t.Error("OnLost must not be called on shutdown") },
+		}, testTimings)
+	}()
+	require.Eventually(t, running.Load, 5*time.Second, 10*time.Millisecond)
+
+	cancel()
+	select {
+	case err := <-done:
+		assert.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("RunWithLeaderElection didn't return after its context was canceled")
+	}
+	assert.True(t, finished.Load(), "RunWithLeaderElection must wait for Run's in-flight work")
+	assert.Equal(t, "a", leaseHolder(t, client), "the lease must stay held after shutdown, until it expires")
 }
 
 func TestLeaderElectionIdentity(t *testing.T) {
