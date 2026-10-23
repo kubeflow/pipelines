@@ -54,17 +54,30 @@ export interface ValidationResult {
   reason?: string;
 }
 
-function matchNamespaceSegment(
-  artifactUri: string,
+/** Matches the actual storage key without decoding its literal percent signs. */
+export function namespaceFromArtifactStorageKey(
+  key: string,
   keyPrefix: string = NAMESPACE_KEY_PREFIX,
 ): string | undefined {
   if (!keyPrefix) {
     return undefined;
   }
   const escapedPrefix = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return artifactUri.match(
-    new RegExp(`^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+/${escapedPrefix}/([^/]+)/`),
-  )?.[1];
+  // A namespace root can be listed/downloaded even without a trailing slash.
+  return key.match(new RegExp(`^${escapedPrefix}/([^/]+)(?:/|$)`))?.[1];
+}
+
+function matchNamespaceSegment(
+  artifactUri: string,
+  keyPrefix: string = NAMESPACE_KEY_PREFIX,
+): string | undefined {
+  const key = artifactUri.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\/(.*)$/)?.[1];
+  if (key === undefined) {
+    return undefined;
+  }
+  const namespace = namespaceFromArtifactStorageKey(key, keyPrefix);
+  // Preserve the existing URI prefix shortcut, which requires a slash after the namespace.
+  return namespace && key.startsWith(`${keyPrefix}/${namespace}/`) ? namespace : undefined;
 }
 
 export function namespaceFromArtifactUri(

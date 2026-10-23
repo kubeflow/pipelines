@@ -15,6 +15,7 @@
 import {
   buildArtifactUri,
   namespaceFromArtifactUri,
+  namespaceFromArtifactStorageKey,
   normalizeArtifactOwnershipMode,
   requiresArtifactOwnershipValidation,
   resolveArtifactValidationTimeoutMs,
@@ -36,6 +37,39 @@ describe('artifact-validator', () => {
     'https://files.example/reports/a//b',
   ])('checks key safety independently of a namespace prefix: %s', (artifactUri) => {
     expect(validateArtifactKeySafety(artifactUri)).toEqual({ valid: true });
+  });
+
+  it.each([
+    ['private-artifacts/team-b/model', 'team-b'],
+    ['private-artifacts/team-b', 'team-b'],
+    ['private-artifacts/team-b/', 'team-b'],
+    ['private-artifacts/team-b/model%ZZ', 'team-b'],
+    ['private-artifacts/%74eam-b/model', '%74eam-b'],
+    ['%70rivate-artifacts/team-b/model', undefined],
+    ['private-artifacts-other/team-b/model', undefined],
+    ['other/private-artifacts/team-b/model', undefined],
+  ])('matches storage namespaces without URI decoding: %s', (key, namespace) => {
+    expect(namespaceFromArtifactStorageKey(key)).toBe(namespace);
+  });
+
+  it('matches custom multi-segment storage prefixes literally', () => {
+    expect(
+      namespaceFromArtifactStorageKey('tenant.data/models/team-b/model', 'tenant.data/models'),
+    ).toBe('team-b');
+    expect(
+      namespaceFromArtifactStorageKey('tenantXdata/models/team-b/model', 'tenant.data/models'),
+    ).toBeUndefined();
+    expect(namespaceFromArtifactStorageKey('tenant.data/models/team-b', 'tenant.data/models')).toBe(
+      'team-b',
+    );
+    expect(namespaceFromArtifactStorageKey('private-artifacts/team-b/model', '')).toBeUndefined();
+  });
+
+  it('does not broaden the no-record URI shortcut to namespace roots', () => {
+    expect(validateArtifactKeyPrefix('s3://bucket/private-artifacts/team-a', 'team-a')).toEqual({
+      valid: false,
+      reason: 'artifact-not-found',
+    });
   });
 
   it('extracts only a leading namespace key prefix', () => {

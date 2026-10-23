@@ -57,6 +57,7 @@ import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
 import {
+  namespaceFromArtifactStorageKey,
   validateArtifactKeySafety,
   validateArtifactNamespace,
 } from '../helpers/artifact-validator.js';
@@ -528,6 +529,13 @@ export function getArtifactsAuthMiddleware(
       const artifactUri = buildArtifactCoordinateUri(coordinates);
       if (!validateArtifactKeySafety(artifactUri).valid) {
         sendArtifactError(response, 403, 'Artifact path is unsafe. Use a normalized object key.');
+        return;
+      }
+      // Metadata keeps its exact URI spelling; ownership must also match the bytes served.
+      const storageKey = normalizeArtifactStorageCoordinates(coordinates).key;
+      const storageNamespace = namespaceFromArtifactStorageKey(storageKey);
+      if (storageNamespace !== undefined && storageNamespace !== namespace) {
+        sendArtifactError(response, 403, 'Artifact does not belong to the requested namespace');
         return;
       }
     }
