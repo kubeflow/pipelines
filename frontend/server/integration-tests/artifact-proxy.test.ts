@@ -3,7 +3,7 @@ import { UIServer } from '../app.js';
 import { commonSetup, buildQuery } from './test-helper.js';
 import requests from 'supertest';
 import { loadConfigs } from '../configs.js';
-import * as minioHelper from '../minio-helper.js';
+import * as minioHelper from '../artifact-store.js';
 import { PassThrough } from 'stream';
 import express, { type RequestHandler } from 'express';
 import { Server } from 'http';

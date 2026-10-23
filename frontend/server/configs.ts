@@ -13,7 +13,7 @@
 // limitations under the License.
 import { randomBytes } from 'crypto';
 import * as path from 'path';
-import { getArtifactStoreOrigin, parseArtifactStoreEndpoint } from './minio-helper.js';
+import { getArtifactStoreOrigin, parseArtifactStoreEndpoint } from './artifact-store.js';
 import { loadJSON } from './utils.js';
 import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts.js';
 export const BASEPATH = '/pipeline';

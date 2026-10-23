@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { vi, describe, it, expect, afterAll, afterEach, beforeEach, MockInstance } from 'vitest';
-import * as minio from 'minio';
+
 import { PassThrough, Readable } from 'stream';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
@@ -24,8 +24,12 @@ import * as serverInfo from '../helpers/server-info.js';
 import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
-const MinioClient = minio.Client;
-vi.mock('minio');
+import { MockS3Client } from './s3-client-test-helper.js';
+vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>();
+  const { createS3Mock } = await import('./s3-client-test-helper.js');
+  return { ...actual, S3Client: createS3Mock(actual) };
+});
 vi.mock('@aws-sdk/credential-providers');
 vi.mock('../k8s-helper.js', () => ({
   getArgoWorkflow: vi.fn(),
@@ -88,8 +92,8 @@ describe('/artifacts authorization', () => {
     // Default: ArtifactService validation passes (artifact belongs to claimed namespace)
     mockedValidateArtifactNamespace.mockResolvedValue({ valid: true });
 
-    const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function () {
+    const mockedMockS3Client = MockS3Client as any;
+    mockedMockS3Client.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -106,7 +110,7 @@ describe('/artifacts authorization', () => {
             throw new Error(`Unable to retrieve ${bucket}/${key} artifact.`);
           }
         },
-        listObjectsV2Query: vi.fn(),
+        listPage: vi.fn(),
       };
     });
   });
