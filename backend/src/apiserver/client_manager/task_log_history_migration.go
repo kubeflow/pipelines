@@ -34,7 +34,7 @@ const taskLogHistoryMigrationLock = "kfp_task_log_history_v1"
 func createTaskLogHistory(db *gorm.DB) (result error) {
 	ctx, cancel := context.WithTimeout(db.Statement.Context, 10*time.Second)
 	defer cancel()
-	if db.Dialector.Name() == "sqlite" {
+	if db.Name() == "sqlite" {
 		if db.Migrator().HasTable(&model.TaskLogHistory{}) {
 			return nil
 		}
@@ -52,7 +52,7 @@ func createTaskLogHistory(db *gorm.DB) (result error) {
 	session := db.Session(&gorm.Session{NewDB: true}).WithContext(ctx)
 	session.Statement.ConnPool = conn
 
-	// Cleanup uses a fresh bounded context even if startup was cancelled. If
+	// Cleanup uses a fresh bounded context even if startup was canceled. If
 	// session settings/ownership cannot be restored, discard this connection.
 	var cleanup func(context.Context) error
 	defer func() {
@@ -66,7 +66,7 @@ func createTaskLogHistory(db *gorm.DB) (result error) {
 			result = errors.Join(result, fmt.Errorf("release retry log migration session: %w", err))
 		}
 	}()
-	switch db.Dialector.Name() {
+	switch db.Name() {
 	case "mysql":
 		cleanup = func(ctx context.Context) error {
 			var released sql.NullInt64
@@ -118,13 +118,13 @@ func createTaskLogHistory(db *gorm.DB) (result error) {
 			return err
 		}
 	default:
-		return fmt.Errorf("retry log history migration does not support database %q", db.Dialector.Name())
+		return fmt.Errorf("retry log history migration does not support database %q", db.Name())
 	}
 	if session.Migrator().HasTable(&model.TaskLogHistory{}) {
 		return nil
 	}
 	create := func(tx *gorm.DB) error { return tx.Migrator().CreateTable(&model.TaskLogHistory{}) }
-	if db.Dialector.Name() == "postgres" {
+	if db.Name() == "postgres" {
 		err = session.Transaction(create)
 	} else {
 		err = create(session)

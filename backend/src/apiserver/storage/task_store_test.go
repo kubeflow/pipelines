@@ -17,10 +17,10 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"sync"
 	"testing"
 
+	sq "github.com/Masterminds/squirrel"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
