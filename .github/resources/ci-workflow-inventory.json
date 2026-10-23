@@ -136,7 +136,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "c5fae9758a6c6669cc9d58b574c84466b37e685606ee32cfb13aece9e568fdc2",
+      "header_sha256": "f8a9090c9bf7937b6417aca8767b52bb90c371a8ebf9496a369539ea3b289305",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -201,6 +201,7 @@
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
           "release/kfpr/branch_scan*.py",
+          "release/kfpr/osv_image_scan*.py",
           "release/kfpr/ci_images_runner*.py",
           "release/kfpr/qualification.py",
           "release/kfpr/security.py",
