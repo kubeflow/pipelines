@@ -147,6 +147,7 @@ updates:
       - "/components/google-cloud"
       - "/docs"
       - "/release"
+      - "/samples/core/artifact_previews"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

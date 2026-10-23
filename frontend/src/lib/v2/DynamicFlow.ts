@@ -560,9 +560,7 @@ function getArtifactRuntimeInfo(
   const [taskName, artifactKey] = getKeysFromArtifactNodeKey(element.id);
 
   if (!taskName) {
-    const artifactGroup = runtimeContext.task?.inputs?.artifacts?.find(
-      (group) => group.artifact_key === artifactKey,
-    );
+    const artifactGroup = findArtifactGroup(runtimeContext.task?.inputs?.artifacts, artifactKey);
     return artifactGroup ? { task: runtimeContext.task, artifactGroup } : {};
   }
 
@@ -573,17 +571,32 @@ function getArtifactRuntimeInfo(
     return {};
   }
 
-  let artifactGroup = task.outputs?.artifacts?.find((group) => group.artifact_key === artifactKey);
+  let artifactGroup = findArtifactGroup(task.outputs?.artifacts, artifactKey);
   if (!artifactGroup && artifactData.producerSubtask && artifactData.outputArtifactKey) {
     const producerTask = getTasksUnderContext({ task }, taskIndex).find(
       (candidate) => candidate.name === artifactData.producerSubtask,
     );
-    artifactGroup = producerTask?.outputs?.artifacts?.find(
-      (group) => group.artifact_key === artifactData.outputArtifactKey,
+    artifactGroup = findArtifactGroup(
+      producerTask?.outputs?.artifacts,
+      artifactData.outputArtifactKey,
     );
     return artifactGroup ? { task: producerTask, artifactGroup } : { task };
   }
   return artifactGroup ? { task, artifactGroup } : { task };
+}
+
+/** Native task hydration can return a separate group for each collected list member. */
+function findArtifactGroup(
+  groups: InputOutputsIOArtifact[] | undefined,
+  artifactKey: string,
+): InputOutputsIOArtifact | undefined {
+  const matches = groups?.filter((group) => group.artifact_key === artifactKey);
+  if (!matches?.length) {
+    return undefined;
+  }
+  return matches.length === 1
+    ? matches[0]
+    : { ...matches[0], artifacts: matches.flatMap((group) => group.artifacts || []) };
 }
 
 function getTasksUnderContext(
