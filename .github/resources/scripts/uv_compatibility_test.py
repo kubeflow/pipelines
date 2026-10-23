@@ -5,6 +5,7 @@
 
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -13,6 +14,36 @@ SCRIPT = Path(__file__).resolve().parents[3] / 'backend/api/hack/uv.sh'
 
 
 class UvCompatibilityTest(unittest.TestCase):
+
+    def test_kubernetes_make_build_passes_each_local_index_separately(self):
+        for target in ('python', 'python-from-source'):
+            for enabled in ('true', 'false', ''):
+                with self.subTest(target=target, enabled=enabled):
+                    result = subprocess.run([
+                        'make', '--no-print-directory', '-n', '-o',
+                        'fetch-protos', '-o', 'ensure-api-generator-image',
+                        target, f'USE_FIND_LINKS={enabled}',
+                        'FIND_LINKS_PATH=/first/dist /second/dist /third/dist'
+                    ],
+                                            cwd=SCRIPT.parents[3] /
+                                            'kubernetes_platform',
+                                            check=True,
+                                            text=True,
+                                            capture_output=True)
+                    command = result.stdout.replace('\\\n', '')
+                    script = shlex.split(command.split('sh -c ', 1)[1])[0]
+                    arguments = shlex.split(script.rsplit('&&', 1)[1])
+                    expected = [
+                        str('/go/src/github.com/kubeflow/pipelines/'
+                            'backend/api/hack/uv.sh'), 'build'
+                    ]
+                    if enabled == 'true':
+                        for path in ('/first/dist', '/second/dist',
+                                     '/third/dist'):
+                            expected.extend(['--find-links', path])
+                    expected.extend(['--out-dir', 'dist', '.'])
+                    self.assertEqual(arguments, expected)
+                    self.assertNotIn('UV_FIND_LINKS=', command)
 
     def test_bundled_uv_preserves_arguments_without_bootstrap(self):
         with tempfile.TemporaryDirectory() as directory:
