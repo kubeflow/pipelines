@@ -40,12 +40,30 @@ During a rolling upgrade, old and new API server replicas run at the same time. 
 the steps that keep recurring runs consistent, see
 [Upgrade and revocation](scheduled-service-accounts.md#upgrade-and-revocation).
 
+### Scheduled workflow controller leader election
+
+The scheduled workflow controller uses leader election only when its `LEADER_ELECT`
+environment variable is `"true"`; otherwise, keep it at one replica, because every
+replica would start each scheduled run. With leader election, only the replica holding
+the `kfp-scheduledworkflow` Lease starts scheduled runs. If it stops renewing the
+Lease, another replica takes over once the Lease expires, 15 seconds after the last
+renewal.
+
+A rolling update can briefly run an old Pod without leader election next to a new
+leader, so stop all replicas while you change the setting:
+
+1. Scale `ml-pipeline-scheduledworkflow` to 0.
+2. Set `LEADER_ELECT` to `"true"` (or remove it to disable leader election).
+3. Scale back up: to the number of replicas you want, or to 1 if you disabled leader
+   election.
+
 ## Example overlay
 
 The following overlay sets two replicas for each component that supports it, spreads
 them across nodes, and adds a PDB for each. Replace `<version>` with your Kubeflow
-Pipelines release (2.18.0 or later for the profile controller), and the base with the
-environment you install.
+Pipelines release (2.18.0 or later for the profile controller, and a release that
+includes [kubeflow/pipelines#15043](https://github.com/kubeflow/pipelines/pull/15043)
+for the scheduled workflow controller), and the base with the environment you install.
 
 ```yaml
 # kustomization.yaml
@@ -61,10 +79,35 @@ replicas:
   count: 2
 - name: kubeflow-pipelines-profile-controller
   count: 2
+- name: ml-pipeline-scheduledworkflow
+  count: 2
 patches:
 - path: spread-ml-pipeline.yaml
 - path: spread-ml-pipeline-ui.yaml
 - path: spread-kubeflow-pipelines-profile-controller.yaml
+- path: spread-ml-pipeline-scheduledworkflow.yaml
+- path: scheduledworkflow-leader-election.yaml
+```
+
+`scheduledworkflow-leader-election.yaml` turns on
+[leader election](#scheduled-workflow-controller-leader-election) for the scheduled
+workflow controller. To add it to an existing install, follow the steps in that
+section.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-scheduledworkflow
+  namespace: kubeflow
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-pipeline-scheduledworkflow
+        env:
+        - name: LEADER_ELECT
+          value: "true"
 ```
 
 Each `spread-<deployment>.yaml` patch adds preferred pod anti-affinity, so the
@@ -91,7 +134,7 @@ spec:
                   app: ml-pipeline-ui
 ```
 
-The other two patches are identical apart from the Deployment name and `app` label.
+The other spread patches are identical apart from the Deployment name and `app` label.
 To spread replicas across zones instead of nodes, use
 `topologyKey: topology.kubernetes.io/zone` or
 [topology spread constraints](https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/).
@@ -110,7 +153,8 @@ spec:
     matchLabels:
       app: ml-pipeline-ui
 ---
-# Repeat for ml-pipeline and kubeflow-pipelines-profile-controller.
+# Repeat for ml-pipeline, kubeflow-pipelines-profile-controller, and
+# ml-pipeline-scheduledworkflow.
 ```
 
 ## Pod disruption budgets
@@ -124,58 +168,6 @@ Pod would violate the budget, so the eviction is always refused, and node drains
 including those during cluster or node upgrades, never complete. Use `maxUnavailable: 1`, which allows one Pod at a time to
 be evicted at any replica count, or don't define a PDB for single-replica components.
 :::
-
-## Scheduled workflow controller leader election
-
-By default, the scheduled workflow controller doesn't use leader election, and every
-replica would try to start each scheduled run, so keep it at one replica. To run more
-replicas, set the `LEADER_ELECT` environment variable to `"true"`. Every replica then
-keeps its caches in sync, but only the replica holding the `kfp-scheduledworkflow`
-Lease starts scheduled runs. If that replica stops renewing the Lease, another replica
-takes over once the Lease expires, 15 seconds after the last renewal. A replica that loses the
-Lease exits, and Kubernetes restarts it as a standby.
-
-The base manifests already grant the Lease permissions and set the `POD_NAMESPACE`
-environment variable that leader election uses.
-
-Leader election makes overlap unlikely but doesn't prevent it: a replica that pauses,
-then resumes after another replica took over, can still send a request it had in
-progress. Duplicate runs are rejected: in multi-user mode, the API server refuses a
-second claim of the same scheduled run, and in single-user mode, the Workflow name for
-each scheduled time is fixed, so a second `Create` fails with `AlreadyExists`.
-
-### Enabling and disabling leader election
-
-A rolling update can briefly run an old Pod without leader election next to a new
-leader, even at one replica. To avoid this, stop all replicas while you change the
-setting:
-
-1. Scale `ml-pipeline-scheduledworkflow` to 0.
-2. Set `LEADER_ELECT` to `"true"` (or remove it to disable leader election).
-3. Scale back up: to the number of replicas you want, or to 1 if you disabled leader
-   election.
-
-While the controller is scaled to 0, scheduled runs don't start; when it's back, it
-catches up as after any restart (a recurring run with `noCatchup` starts only the
-latest missed run). Runs that are already executing aren't affected.
-
-To keep this setting in a Kustomize overlay, add the variable with a patch:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ml-pipeline-scheduledworkflow
-  namespace: kubeflow
-spec:
-  template:
-    spec:
-      containers:
-      - name: ml-pipeline-scheduledworkflow
-        env:
-        - name: LEADER_ELECT
-          value: "true"
-```
 
 ## Components that must stay at one replica
 
