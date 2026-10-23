@@ -9922,10 +9922,10 @@ func TestGetRunWithHydration_OrdinaryRead_PreservesRetryClaim(t *testing.T) {
 	oldWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		ObjectMeta: v1.ObjectMeta{
-			Name:        run.K8SName,
-			UID:         types.UID(run.UUID),
-			Namespace:   "ns1",
-			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Annotations: map[string]string{
 				"workflows.argoproj.io/pod-name-format": "v1",
 				util.AnnotationKeyRetryGeneration:       "1",
@@ -10011,10 +10011,10 @@ func TestSynchronizeRunFromLiveWorkflow_TaskLevelRejectionPreventsRunLevelFailur
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		ObjectMeta: v1.ObjectMeta{
-			Name:        run.K8SName,
-			UID:         types.UID(run.UUID),
-			Namespace:   "ns1",
-			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Annotations: map[string]string{
 				"workflows.argoproj.io/pod-name-format": "v1",
 				util.AnnotationKeyRetryGeneration:       "1",
