@@ -35,3 +35,8 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp import components  # noqa: keep unused import
     from kfp import dsl  # noqa: keep unused import
     from kfp.client import Client  # noqa: keep unused import
+
+# set_task_stage is exported unconditionally: components call it at runtime, where
+# the _KFP_RUNTIME guard above is active. task_stage is stdlib-only, so importing
+# it never pulls in the heavier compile-time dependencies.
+from kfp.task_stage import set_task_stage  # noqa: keep unused import
