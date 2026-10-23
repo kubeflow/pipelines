@@ -76,32 +76,22 @@ export async function listGCSObjectNames(options: {
   return objectNames;
 }
 
+type GCSRequestSignal = NonNullable<Parameters<GCSClient['request']>[0]>['signal'];
+
 export async function downloadGCSObjectStream(options: {
   bucket: string;
   objectName: string;
   credentials?: CredentialBody;
   client?: GCSClient;
-  universeDomain?: string;
   signal?: AbortSignal;
 }): Promise<Readable> {
-  const { anonymous, bucket, objectName, credentials, client, universeDomain, signal } = options;
-  const url = getDownloadObjectUrl(bucket, objectName, universeDomain);
-  if (anonymous) {
-    const response = await (signal ? fetch(url, { signal }) : fetch(url));
-    if (!response.ok || !response.body) {
-      await response.body?.cancel();
-      throw Object.assign(
-        new Error(`Anonymous GCS download request failed with HTTP ${response.status}.`),
-        { status: response.status },
-      );
-    }
-    return Readable.fromWeb(response.body);
-  }
-  const resolvedClient = client ?? (await getGCSClient(credentials, universeDomain));
+  const { bucket, objectName, credentials, client, signal } = options;
+  const resolvedClient = client ?? (await getGCSClient(credentials));
   const response = await resolvedClient.request<Readable>({
     responseType: 'stream',
-    url,
-    ...(signal ? { signal } : {}),
+    url: getDownloadObjectUrl(bucket, objectName),
+    // gaxios 4 types its polyfilled AbortSignal; node-fetch accepts the native one at runtime.
+    ...(signal ? { signal: signal as unknown as GCSRequestSignal } : {}),
   });
   return response.data;
 }

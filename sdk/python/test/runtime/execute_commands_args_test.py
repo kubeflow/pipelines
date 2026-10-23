@@ -14,6 +14,7 @@
 import dataclasses
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -21,9 +22,10 @@ import tempfile
 from typing import Any, Dict
 
 import kfp
+from kfp import compiler
+from kfp import dsl
 import pytest
 import yaml
-from kfp import compiler, dsl
 
 from ..test_utils.file_utils import FileUtils
 
@@ -155,37 +157,20 @@ class TestRuntime:
             config=config,
             temp_dir=self.temp_dir,
         )
-        assert process.returncode == 0, (
-            f'Process failed with error={process.stderr}'
-        )
-        output_file = Path(
-            config.executor_input['outputs']['outputFile'].replace(
-                '/gcs/', f'{self.temp_dir}/'
-            )
-        )
-        assert output_file.is_file()
-        installation = self.get_installation()
-        assert installation['origin']['url'] == self.wheel.as_uri()
-        assert set(installation['packages']) == self.seed_packages | {'kfp'}
+        assert process.returncode == 0, f"Process failed with error={process.stderr}"
 
     @pytest.mark.parametrize(
-        ('pipeline_enabled', 'component_enabled', 'env_passthrough'),
-        [
+        ('pipeline_enabled', 'component_enabled', 'env_passthrough'), [
             (True, True, False),
             (True, False, False),
             (False, True, False),
             (False, False, False),
             (False, True, True),
-        ],
-    )
-    def test_compiled_artifact_preview_policy(
-        self,
-        pipeline_enabled: bool,
-        component_enabled: bool,
-        env_passthrough: bool,
-    ) -> None:
-        """Execute the actual compiled policy with only the installed SDK
-        wheel.
+        ])
+    def test_compiled_artifact_preview_policy(self, pipeline_enabled: bool,
+                                              component_enabled: bool,
+                                              env_passthrough: bool) -> None:
+        """Execute the compiled preview policy.
 
         The harness runs compiled commands and arguments without task
         environment variables, as capture-only TaskConfig ENV
@@ -196,9 +181,7 @@ class TestRuntime:
             base_image='python:3.11',
             artifact_previews=component_enabled,
             task_config_passthroughs=[dsl.TaskConfigField.ENV]
-            if env_passthrough
-            else None,
-        )
+            if env_passthrough else None)
         def produce(dataset: dsl.Output[dsl.Dataset]) -> None:
             from pathlib import Path
 
@@ -208,18 +191,17 @@ class TestRuntime:
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(
-                artifact_previews=pipeline_enabled
-            )
-        )
+                artifact_previews=pipeline_enabled))
         def pipeline() -> None:
             task = produce()
             if env_passthrough:
                 task.set_env_variable('UNRELATED', 'captured')
 
-        package = self.temp_dir / 'preview-policy.yaml'
+        temp_dir = Path(self.temp_dir)
+        package = temp_dir / 'preview-policy.yaml'
         compiler.Compiler().compile(pipeline, str(package))
-        dataset = self.temp_dir / 'dataset'
-        output_file = self.temp_dir / 'executor_output.json'
+        dataset = temp_dir / 'dataset'
+        output_file = temp_dir / 'executor_output.json'
         config = RuntimeTestConfig(
             pipeline_file_relpath=str(package),
             executor_name='exec-produce',
@@ -228,33 +210,25 @@ class TestRuntime:
                 'outputs': {
                     'artifacts': {
                         'dataset': {
-                            'artifacts': [
-                                {
-                                    'uri': str(dataset),
-                                    'type': {'schemaTitle': 'system.Dataset'},
-                                }
-                            ],
+                            'artifacts': [{
+                                'uri': str(dataset),
+                                'type': {
+                                    'schemaTitle': 'system.Dataset'
+                                },
+                            }],
                         },
                     },
                     'outputFile': str(output_file),
                 },
-            },
-        )
-        process = run_commands_and_args(
-            config, self.temp_dir, self.wheel, self.environment
-        )
+            })
+        process = run_commands_and_args(config, self.temp_dir)
         assert process.returncode == 0, process.stderr
         assert (dataset / 'data.csv').read_text() == 'value\n1\n'
-        metadata = json.loads(output_file.read_text())['artifacts']['dataset'][
-            'artifacts'
-        ][0]['metadata']
+        metadata = json.loads(output_file.read_text(
+        ))['artifacts']['dataset']['artifacts'][0]['metadata']
         enabled = pipeline_enabled and component_enabled
         assert ('_kfp_preview' in metadata) is enabled
         assert (dataset / 'preview.json').exists() is enabled
         if enabled:
-            assert json.loads((dataset / 'preview.json').read_text())[
-                'rows'
-            ] == [['1']]
-        installation = self.get_installation()
-        assert installation['origin']['url'] == self.wheel.as_uri()
-        assert set(installation['packages']) == self.seed_packages | {'kfp'}
+            assert json.loads(
+                (dataset / 'preview.json').read_text())['rows'] == [['1']]

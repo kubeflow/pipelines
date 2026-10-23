@@ -13,14 +13,7 @@
 // limitations under the License.
 
 import { Node } from '@xyflow/react';
-import {
-  ArtifactArtifactType,
-  PipelineTaskTaskState,
-  PipelineTaskTaskType,
-  V2PipelineTask,
-} from 'src/apisv2/run';
 import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
-import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import {
@@ -272,80 +265,17 @@ describe('DynamicFlow', () => {
       expect(nodeMlmdInfo).toEqual({});
     });
 
-    it.each(['input', 'output', 'subtask output'])(
-      'retains every separately hydrated collected member for an %s node',
-      (source) => {
-        const artifacts = [1, 2, 3].map((index) => ({
-          artifact_id: `dataset-${index}`,
-          name: 'dataset',
-          type: ArtifactArtifactType.Dataset,
-        }));
-        const groups = [
-          { artifact_key: 'datasets', artifacts: artifacts.slice(0, 1) },
-          { artifact_key: 'unrelated', artifacts: [{ artifact_id: 'excluded' }] },
-          { artifact_key: 'datasets', artifacts: artifacts.slice(1) },
-        ];
-        const root = { ...rootTask };
-        const task: V2PipelineTask = {
-          task_id: 'producer',
-          parent_task_id: root.task_id,
-          name: 'exec',
-        };
-        const child: V2PipelineTask = {
-          task_id: 'child',
-          parent_task_id: task.task_id,
-          name: 'child',
-        };
-        const element: Node<ArtifactFlowElementData> = {
-          id: source === 'input' ? 'artifact..datasets' : 'artifact.exec.datasets',
-          data: { label: 'datasets' },
-          type: NodeTypeNames.ARTIFACT,
-          position: { x: 0, y: 0 },
-        };
-        let producer = task;
-        if (source === 'input') {
-          root.inputs = { artifacts: groups };
-          producer = root;
-        } else if (source === 'subtask output') {
-          child.outputs = { artifacts: groups };
-          element.data.producerSubtask = 'child';
-          element.data.outputArtifactKey = 'datasets';
-          producer = child;
-        } else {
-          task.outputs = { artifacts: groups };
-        }
-        expect(getNodeRuntimeInfo(element, [root, task, child], ['root'])).toEqual({
-          task: producer,
-          artifactGroup: { artifact_key: 'datasets', artifacts },
-        });
-        expect(groups[0].artifacts).toHaveLength(1);
-      },
-    );
-
-    it('filters loop body tasks by selected iteration', () => {
-      const loopTask: V2PipelineTask = {
-        task_id: 'loop-task',
-        parent_task_id: rootTask.task_id,
-        name: 'loop',
-        type: PipelineTaskTaskType.LOOP,
-        type_attributes: { iteration_count: '2' },
-      };
-      const iterationZero: V2PipelineTask = {
-        task_id: 'body-0',
-        parent_task_id: loopTask.task_id,
-        name: 'body',
-        type_attributes: { iteration_index: '0' },
-      };
-      const iterationOne: V2PipelineTask = {
-        task_id: 'body-1',
-        parent_task_id: loopTask.task_id,
-        name: 'body',
-        type_attributes: { iteration_index: '1' },
-      };
-      const element: Node<FlowElementDataBase> = {
-        id: 'task.body',
-        data: { label: 'body' },
-        type: NodeTypeNames.EXECUTION,
+    it('artifact found', () => {
+      const elem: Node<FlowElementDataBase> = {
+        id: 'artifact.exec.arti',
+        // updateFlowElementsState stamps the resolved artifact id + producer execution id
+        // onto the node; the side panel resolves by those rather than by (task_name,
+        // artifact_name).
+        data: {
+          mlmdId: 2,
+          producerExecutionId: 1,
+        },
+        type: NodeTypeNames.ARTIFACT,
         position: { x: 1, y: 2 },
       };
 

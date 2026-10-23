@@ -11,32 +11,46 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { ArtifactArtifactType, V2Artifact } from 'src/apisv2/run';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Apis } from 'src/lib/Apis';
+import { Artifact, Value } from 'src/third_party/mlmd';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { ArtifactContentPreviews } from './ArtifactContentPreview';
-import type { MockInstance } from 'vitest';
+import { ArtifactContentPreview, hasArtifactContentPreview } from './ArtifactContentPreview';
 import dataset from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 import model from '../../../mock-backend/data/v2/artifact-previews/model.json';
 
-const artifact: V2Artifact = {
-  artifact_id: 'dataset-1',
-  name: 'training data',
-  type: ArtifactArtifactType.Dataset,
-  namespace: 'team-a',
-  uri: 's3://bucket/private-artifacts/team-a/dataset',
-  metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
-};
+function buildArtifact(
+  declaration: unknown = { version: 1, path: 'preview.json' },
+  uri = 's3://bucket/private-artifacts/team-a/dataset',
+): Artifact {
+  const artifact = new Artifact();
+  artifact.setId(1);
+  artifact.setUri(uri);
+  if (declaration !== null) {
+    // The launcher stores dictionary metadata wrapped under a "struct" key.
+    artifact
+      .getCustomPropertiesMap()
+      .set(
+        '_kfp_preview',
+        new Value().setStructValue(Struct.fromJavaScript({ struct: declaration as never })),
+      );
+  }
+  return artifact;
+}
 
-function view(artifacts = [artifact], active = true, sourceFinished = false) {
+function view(
+  artifact = buildArtifact(),
+  typeName = 'system.Dataset',
+  namespace: string | undefined = 'team-a',
+) {
   return (
     <CommonTestWrapper>
-      <ArtifactContentPreviews
-        artifacts={artifacts}
-        active={active}
-        sourceFinished={sourceFinished}
+      <ArtifactContentPreview
+        artifact={artifact}
+        artifactTypeName={typeName}
+        namespace={namespace}
+        providerInfo='{"provider":"minio"}'
       />
     </CommonTestWrapper>
   );
@@ -44,102 +58,71 @@ function view(artifacts = [artifact], active = true, sourceFinished = false) {
 
 afterEach(() => vi.restoreAllMocks());
 
-function completedRequests(read: MockInstance<typeof Apis.getArtifactContentPreview>) {
-  // React StrictMode cancels its first mount's request; only live requests can supply the preview.
-  return read.mock.calls.filter(([, , signal]) => !signal?.aborted);
-}
-
 describe('artifact content previews', () => {
-  it('loads only after opening, preserves sample order, and shows dimensions and dtypes', async () => {
+  it('reads the preview beneath the artifact and shows dimensions and dtypes', async () => {
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
       .mockResolvedValue(JSON.stringify(dataset));
     const rawRead = vi.spyOn(Apis, 'readFile');
-    const { rerender } = render(view([artifact], false));
-    expect(read).not.toHaveBeenCalled();
-    rerender(view());
+    render(view());
     const table = await screen.findByRole('table', { name: 'Dataset sample' });
     expect(within(table).getAllByRole('row')).toHaveLength(11);
     expect(within(table).getAllByRole('row')[1]).toHaveTextContent('0.1');
-    expect(within(table).getAllByRole('row')[2]).toHaveTextContent('0.8');
     expect(screen.getByRole('status')).toHaveTextContent('Showing 10 of 1000 rows; 3 of 3 columns');
     expect(screen.getByText('float64')).toBeVisible();
-    expect(screen.getByText('Only sampled rows are shown.')).toBeVisible();
-    expect(completedRequests(read)).toEqual([
-      ['dataset-1', 'team-a', expect.objectContaining({ aborted: false })],
-    ]);
+    expect(read).toHaveBeenCalledWith({
+      path: { source: 's3', bucket: 'bucket', key: 'private-artifacts/team-a/dataset' },
+      namespace: 'team-a',
+      providerInfo: '{"provider":"minio"}',
+      signal: expect.anything(),
+    });
     expect(rawRead).not.toHaveBeenCalled();
   });
 
   it('keeps missing and malformed declarations out of the network path', () => {
     const read = vi.spyOn(Apis, 'getArtifactContentPreview');
-    const { rerender } = render(view([{ ...artifact, metadata: {} }]));
+    const { rerender } = render(view(buildArtifact(null)));
     expect(screen.getByText(/pipeline and component preview settings/)).toBeVisible();
-    rerender(
-      view([{ ...artifact, metadata: { _kfp_preview: { version: 2, path: 'preview.json' } } }]),
-    );
+    rerender(view(buildArtifact({ version: 2, path: 'preview.json' })));
     expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
     expect(read).not.toHaveBeenCalled();
   });
 
-  it('preserves multi-artifact selection across refreshes and reordering', async () => {
-    const second: V2Artifact = { ...artifact, artifact_id: 'dataset-2', name: 'second data' };
-    const read = vi
-      .spyOn(Apis, 'getArtifactContentPreview')
-      .mockResolvedValue(JSON.stringify(dataset));
-    const { rerender } = render(view([artifact, second]));
+  it('only previews Dataset and Model artifacts that declare a preview', () => {
+    expect(hasArtifactContentPreview(buildArtifact(), 'system.Dataset')).toBe(true);
+    expect(hasArtifactContentPreview(buildArtifact(), 'system.Model')).toBe(true);
+    expect(hasArtifactContentPreview(buildArtifact(), 'system.Metrics')).toBe(false);
+    expect(hasArtifactContentPreview(buildArtifact(null), 'system.Dataset')).toBe(false);
+    const read = vi.spyOn(Apis, 'getArtifactContentPreview');
+    const { container } = render(view(buildArtifact(), 'system.Metrics'));
+    expect(container).toBeEmptyDOMElement();
     expect(read).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Artifact preview' }));
-    fireEvent.click(screen.getByRole('option', { name: 'second data' }));
-    await screen.findByRole('table', { name: 'Dataset sample' });
-    expect(completedRequests(read)).toEqual([
-      ['dataset-2', 'team-a', expect.objectContaining({ aborted: false })],
-    ]);
-    const attempts = read.mock.calls.length;
-    rerender(view([{ ...second }, { ...artifact }]));
-    expect(screen.getByRole('combobox')).toHaveTextContent('second data');
-    expect(read).toHaveBeenCalledTimes(attempts);
   });
 
-  it('does not refetch completion updates until the visualization is visible', async () => {
+  it('separates cached previews by namespace', async () => {
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
       .mockResolvedValue(JSON.stringify(dataset));
     const { rerender } = render(view());
     await screen.findByRole('table', { name: 'Dataset sample' });
-    rerender(view([artifact], false, true));
-    expect(completedRequests(read)).toHaveLength(1);
-    rerender(view([artifact], true, true));
-    await waitFor(() => expect(completedRequests(read)).toHaveLength(2));
+    rerender(view(buildArtifact(), 'system.Dataset', 'team-b'));
+    await waitFor(() =>
+      expect(read).toHaveBeenLastCalledWith(expect.objectContaining({ namespace: 'team-b' })),
+    );
   });
 
-  it('cancels in-flight reads when the preview is closed', async () => {
+  it('cancels in-flight reads when the preview unmounts', async () => {
     let requestSignal: AbortSignal | undefined;
-    vi.spyOn(Apis, 'getArtifactContentPreview').mockImplementation((_id, _namespace, signal) => {
+    vi.spyOn(Apis, 'getArtifactContentPreview').mockImplementation(({ signal }) => {
       requestSignal = signal;
       return new Promise((_resolve, reject) => {
         signal?.addEventListener('abort', () => reject(new Error('cancelled')), { once: true });
       });
     });
-    const { rerender } = render(view());
+    const { unmount } = render(view());
     await screen.findByText('Artifact preview is loading.');
-    rerender(view([artifact], false));
+    unmount();
     expect(requestSignal?.aborted).toBe(true);
-  });
-
-  it('separates cached previews by artifact and namespace', async () => {
-    const read = vi
-      .spyOn(Apis, 'getArtifactContentPreview')
-      .mockResolvedValue(JSON.stringify(dataset));
-    const { rerender } = render(view());
-    await screen.findByRole('table', { name: 'Dataset sample' });
-    rerender(view([{ ...artifact, namespace: 'team-b' }]));
-    await waitFor(() => expect(completedRequests(read)).toHaveLength(2));
-    expect(read).toHaveBeenLastCalledWith(
-      'dataset-1',
-      'team-b',
-      expect.objectContaining({ aborted: false }),
-    );
   });
 
   it('shows read errors with an explicit retry and rejects malformed files', async () => {
@@ -148,7 +131,6 @@ describe('artifact content previews', () => {
       .mockRejectedValue(new Error('preview.json is missing'));
     render(view());
     await screen.findByText('Unable to display the artifact preview.');
-    expect(completedRequests(read)).toHaveLength(1);
     const attempts = read.mock.calls.length;
     read.mockResolvedValue('{not JSON');
     fireEvent.click(screen.getByRole('button', { name: 'Retry preview' }));
@@ -164,10 +146,7 @@ describe('artifact content previews', () => {
 
   it('renders values as text and distinguishes null and empty strings', async () => {
     vi.spyOn(Apis, 'getArtifactContentPreview').mockResolvedValue(
-      JSON.stringify({
-        ...dataset,
-        rows: [['<script>alert(1)</script>', null, '']],
-      }),
+      JSON.stringify({ ...dataset, rows: [['<script>alert(1)</script>', null, '']] }),
     );
     const { container } = render(view());
     expect(await screen.findByText('<script>alert(1)</script>')).toBeVisible();
@@ -178,40 +157,25 @@ describe('artifact content previews', () => {
 
   it('renders model identity, recorded parameters, and structural facts separately', async () => {
     vi.spyOn(Apis, 'getArtifactContentPreview').mockResolvedValue(JSON.stringify(model));
-    render(view([{ ...artifact, type: ArtifactArtifactType.Model }]));
+    render(
+      view(
+        buildArtifact({ version: 1, path: 'preview.json' }, 's3://bucket/model'),
+        'system.Model',
+      ),
+    );
     expect(await screen.findByRole('region', { name: 'Model preview' })).toBeVisible();
     expect(screen.getByText('xgboost.XGBClassifier')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Recorded hyperparameters' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Structural information' })).toBeVisible();
-    expect(screen.getByText('max_depth')).toBeVisible();
-    expect(screen.getByText('tree_count')).toBeVisible();
     const parameters = screen.getByRole('table', { name: 'Recorded hyperparameters' });
-    const structure = screen.getByRole('table', { name: 'Structural information' });
-    expect(within(parameters).getAllByRole('row')).toHaveLength(
-      Object.keys(model.hyperparameters).length + 1,
-    );
     expect(
       within(parameters)
         .getAllByRole('rowheader')
         .map((cell) => cell.textContent),
     ).toEqual(Object.keys(model.hyperparameters).sort());
+    const structure = screen.getByRole('table', { name: 'Structural information' });
     expect(within(structure).getAllByRole('row')).toHaveLength(
       Object.keys(model.structure).length + 1,
     );
-    expect(screen.queryByText('Rows per page:')).toBeNull();
-  });
-
-  it('keeps every recorded model entry visible without spacer rows or pagination', async () => {
-    const hyperparameters = Object.fromEntries(
-      Array.from({ length: 100 }, (_, index) => [`parameter_${index}`, index]),
-    );
-    vi.spyOn(Apis, 'getArtifactContentPreview').mockResolvedValue(
-      JSON.stringify({ ...model, hyperparameters, structure: {} }),
-    );
-    render(view([{ ...artifact, type: ArtifactArtifactType.Model }]));
-    const table = await screen.findByRole('table', { name: 'Recorded hyperparameters' });
-    expect(within(table).getAllByRole('row')).toHaveLength(101);
-    expect(within(table).getAllByRole('rowheader')).toHaveLength(100);
-    expect(screen.getByText('Not recorded.')).toBeVisible();
   });
 });

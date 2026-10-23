@@ -19,7 +19,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
 from kfp import dsl
-from kfp.dsl import _artifact_preview, task_final_status
+from kfp.dsl import _artifact_preview
+from kfp.dsl import task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -32,9 +33,8 @@ class Executor:
     def __init__(
         self,
         executor_input: Dict,
-        function_to_execute: Union[
-            Callable, 'python_component.PythonComponent'
-        ],
+        function_to_execute: Union[Callable,
+                                   'python_component.PythonComponent'],
         *,
         artifact_previews: bool = True,
         artifact_preview_rows: bool = True,
@@ -60,12 +60,9 @@ class Executor:
         self.return_annotation = inspect.signature(self.func).return_annotation
         self.excutor_output = {}
         self._artifact_previews = (
-            _artifact_preview.ArtifactPreviewSession(
-                self.output_artifacts, artifact_preview_rows
-            )
-            if artifact_previews
-            else None
-        )
+            _artifact_preview.ArtifactPreviewSession(self.output_artifacts,
+                                                     artifact_preview_rows)
+            if artifact_previews else None)
 
     def assign_input_and_output_artifacts(self) -> None:
         for name, artifacts in self.executor_input.get('inputs',

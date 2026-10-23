@@ -23,7 +23,9 @@ const MAX_MODEL_VALUE_DEPTH = 4;
 export type PreviewKind = 'dataset' | 'model';
 export type PreviewScalar = string | number | boolean | null;
 export type ModelPreviewValue =
-  PreviewScalar | ModelPreviewValue[] | { [key: string]: ModelPreviewValue };
+  | PreviewScalar
+  | ModelPreviewValue[]
+  | { [key: string]: ModelPreviewValue };
 
 export interface ArtifactPreviewDescriptor {
   version: 1;

@@ -29,7 +29,6 @@ import {
   getArtifactsRateLimiter,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
-import { getArtifactPreviewHandler } from './handlers/artifact-preview.js';
 import { getAuthorizeFn } from './helpers/auth.js';
 import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
@@ -172,11 +171,6 @@ function createUIServer(options: UIConfigs) {
 
   /** Authorize function - created early so it can be used by artifact handlers */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
-  const artifactsRateLimiter = getArtifactsRateLimiter({
-    authEnabled: options.auth.enabled,
-    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
-    disabled: options.artifacts.rateLimitDisabled,
-  });
 
   /**
    * Artifact Authorization Middleware
@@ -190,12 +184,12 @@ function createUIServer(options: UIConfigs) {
     options.auth.kubeflowUserIdHeader,
     envoyServiceAddress,
   );
-
-  app.get(
-    ['/artifacts/:artifactId/preview', `${basePath}/artifacts/:artifactId/preview`],
-    artifactsRateLimiter,
-    getArtifactPreviewHandler(options, apiServerAddress, authorizeFn),
-  );
+  // One shared limiter keeps aliases and base-path routes in the same request budget.
+  const artifactsRateLimiter = getArtifactsRateLimiter({
+    authEnabled: options.auth.enabled,
+    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    disabled: options.artifacts.rateLimitDisabled,
+  });
 
   /** Artifact */
   // Authorization middleware runs once on the catch-all /artifacts/* route,
@@ -224,6 +218,20 @@ function createUIServer(options: UIConfigs) {
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
+
+  // /artifacts/preview reads only the bounded preview.json beneath the authorized parent artifact.
+  for (const previewPath of ['/artifacts/preview', `${basePath}/artifacts/preview`]) {
+    app.get(
+      previewPath,
+      getArtifactsHandler({
+        artifactsConfigs: options.artifacts,
+        useParameter: false,
+        tryExtract: false,
+        options: options,
+        contentPreview: true,
+      }),
+    );
+  }
 
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
   app.get(

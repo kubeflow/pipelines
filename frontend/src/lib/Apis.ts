@@ -327,14 +327,21 @@ export class Apis {
     return this._fetch(query);
   }
 
-  /** Reads only the registered artifact's bounded, producer-generated preview. */
-  public static getArtifactContentPreview(
-    artifactId: string,
-    namespace?: string,
-    signal?: AbortSignal,
-  ): Promise<string> {
+  /** Reads only the bounded, producer-generated preview beneath a registered artifact. */
+  public static getArtifactContentPreview({
+    path,
+    namespace,
+    providerInfo,
+    signal,
+  }: {
+    path: StoragePath;
+    namespace?: string;
+    providerInfo?: string;
+    signal?: AbortSignal;
+  }): Promise<string> {
+    const { source, bucket, key } = path;
     return this._fetch(
-      `artifacts/${encodeURIComponent(artifactId)}/preview${buildQuery({ namespace })}`,
+      `artifacts/preview${buildQuery({ source, namespace, providerInfo, bucket, key })}`,
       undefined,
       undefined,
       { signal, cache: 'no-store' },

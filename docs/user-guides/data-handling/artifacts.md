@@ -479,9 +479,9 @@ serialization or convert single-file artifacts into directories.
 For `dsl.ParallelFor` producers followed by `dsl.Collected`, each producing task
 generates a preview for its own artifact. Collection groups the artifact
 references; it does not combine their data or create a new preview task.
-The Visualization tab lets you select a member and fetches only that member's
-preview. Its identity, limits, and access checks remain independent of the
-other members.
+Selecting a member artifact and opening **Visualization** fetches only that
+member's preview. Its identity, limits, and access checks remain independent of
+the other members.
 
 The [example](../../../samples/core/artifact_previews/artifact_previews.py)
 includes a pipeline returning collected Dataset and Model lists. This does not

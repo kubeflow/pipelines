@@ -30,17 +30,15 @@ import warnings
 import docstring_parser
 import kfp
 from kfp import dsl
-from kfp.dsl import (
-    constants,
-    container_component_artifact_channel,
-    container_component_class,
-    graph_component,
-    pipeline_config,
-    placeholders,
-    python_component,
-    structures,
-    task_final_status,
-)
+from kfp.dsl import constants
+from kfp.dsl import container_component_artifact_channel
+from kfp.dsl import container_component_class
+from kfp.dsl import graph_component
+from kfp.dsl import pipeline_config
+from kfp.dsl import placeholders
+from kfp.dsl import python_component
+from kfp.dsl import structures
+from kfp.dsl import task_final_status
 from kfp.dsl.component_task_config import TaskConfigPassthrough
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
@@ -831,11 +829,9 @@ def create_component_from_func(
     """
 
     if not isinstance(artifact_previews, bool) or not isinstance(
-        artifact_preview_rows, bool
-    ):
+            artifact_preview_rows, bool):
         raise TypeError(
-            'artifact_previews and artifact_preview_rows must be booleans.'
-        )
+            'artifact_previews and artifact_preview_rows must be booleans.')
     packages_to_install_command = _get_packages_to_install_command(
         install_kfp_package=install_kfp_package,
         target_image=target_image,

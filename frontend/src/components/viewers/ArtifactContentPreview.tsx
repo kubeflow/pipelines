@@ -14,10 +14,6 @@
 
 import {
   Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -26,128 +22,117 @@ import {
   TableRow,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useId, useState } from 'react';
-import { V2Artifact } from 'src/apisv2/run';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
-import { padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import {
-  ArtifactContentPreview,
+  ArtifactContentPreview as ArtifactContentPreviewData,
+  ARTIFACT_PREVIEW_METADATA_KEY,
   DatasetPreview,
   getArtifactPreviewDescriptor,
   ModelPreview,
   ModelPreviewValue,
   parseArtifactContentPreview,
+  PreviewKind,
   PreviewScalar,
 } from 'src/lib/v2/ArtifactContentPreview';
-import {
-  getArtifactContentPreviewKind,
-  getArtifactDisplayName,
-  getArtifactIdentity,
-} from 'src/lib/v2/RuntimeArtifactUtils';
+import WorkflowParser from 'src/lib/WorkflowParser';
+import { Artifact } from 'src/third_party/mlmd';
 
-interface PreviewContext {
-  namespace?: string;
-  active?: boolean;
-  sourceFinished?: boolean;
-  refreshGeneration?: number;
+const PREVIEW_ARTIFACT_KINDS: { [typeName: string]: PreviewKind } = {
+  'system.Dataset': 'dataset',
+  'system.Model': 'model',
+};
+
+/** Returns the preview kind for MLMD artifact types that can carry a content preview. */
+export function getArtifactContentPreviewKind(
+  artifactTypeName: string | undefined,
+): PreviewKind | undefined {
+  return artifactTypeName ? PREVIEW_ARTIFACT_KINDS[artifactTypeName] : undefined;
 }
 
-/** Selects one artifact without eagerly downloading previews for the rest of an output group. */
-export function ArtifactContentPreviews({
-  artifacts,
-  active = true,
-  ...context
-}: PreviewContext & { artifacts: V2Artifact[] }) {
-  const labelId = useId();
-  const [selectedKey, setSelectedKey] = useState('');
-  const entries = [
-    ...new Map(
-      artifacts.map((artifact, index) => [
-        JSON.stringify([
-          artifact.namespace || context.namespace,
-          getArtifactIdentity(artifact) || index,
-        ]),
-        artifact,
-      ]),
-    ).entries(),
-  ];
-  const selected =
-    entries.find(([key]) => key === selectedKey) || (entries.length === 1 ? entries[0] : undefined);
-  if (!entries.length) {
-    return null;
+/**
+ * Returns the artifact's preview declaration as producer metadata.
+ *
+ * The launcher stores dictionary metadata as an MLMD struct wrapped under a "struct" key.
+ */
+export function getMlmdArtifactPreviewMetadata(
+  artifact: Artifact,
+): Record<string, unknown> | undefined {
+  const value = artifact.getCustomPropertiesMap().get(ARTIFACT_PREVIEW_METADATA_KEY);
+  if (!value) {
+    return undefined;
   }
+  const stored = value.getStructValue()?.toJavaScript();
+  const declaration =
+    stored && Object.keys(stored).length === 1 && 'struct' in stored ? stored.struct : stored;
+  return { [ARTIFACT_PREVIEW_METADATA_KEY]: declaration ?? null };
+}
+
+/** Returns whether a Dataset or Model artifact declares a producer-generated preview. */
+export function hasArtifactContentPreview(
+  artifact: Artifact,
+  artifactTypeName: string | undefined,
+): boolean {
   return (
-    <div className={padding(20, 'lrt')}>
-      {entries.length > 1 && (
-        <FormControl variant='standard' style={{ minWidth: 240 }}>
-          <InputLabel id={labelId}>Artifact preview</InputLabel>
-          <Select
-            labelId={labelId}
-            value={selected?.[0] || ''}
-            onChange={(event) => setSelectedKey(event.target.value)}
-            inputProps={{ 'aria-label': 'Artifact preview' }}
-          >
-            <MenuItem value=''>Choose an artifact</MenuItem>
-            {entries.map(([key, artifact], index) => (
-              <MenuItem key={key} value={key}>
-                {getArtifactDisplayName(artifact, undefined, index, artifacts)}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-      {active && selected && (
-        <SelectedArtifactPreview key={selected[0]} artifact={selected[1]} {...context} />
-      )}
-    </div>
+    !!getArtifactContentPreviewKind(artifactTypeName) && !!getMlmdArtifactPreviewMetadata(artifact)
   );
 }
 
-function SelectedArtifactPreview({
+interface ArtifactContentPreviewProps {
+  artifact: Artifact;
+  artifactTypeName: string | undefined;
+  namespace?: string;
+  /** Non-default object store session for the artifact, from its store_session_info property. */
+  providerInfo?: string;
+}
+
+/** Reads and renders only the bounded preview.json beneath one Dataset or Model artifact. */
+export function ArtifactContentPreview({
   artifact,
+  artifactTypeName,
   namespace,
-  sourceFinished,
-  refreshGeneration = 0,
-}: PreviewContext & { artifact: V2Artifact }) {
-  const kind = getArtifactContentPreviewKind(artifact);
-  const effectiveNamespace = artifact.namespace || namespace;
+  providerInfo,
+}: ArtifactContentPreviewProps) {
+  const kind = getArtifactContentPreviewKind(artifactTypeName);
+  const metadata = getMlmdArtifactPreviewMetadata(artifact);
+  const uri = artifact.getUri();
   let descriptor;
   let descriptorError: string | undefined;
   try {
-    descriptor = getArtifactPreviewDescriptor(artifact.metadata);
+    descriptor = getArtifactPreviewDescriptor(metadata);
   } catch (error) {
     descriptorError = error instanceof Error ? error.message : String(error);
   }
-  const { data, error, isFetching, refetch } = useQuery<ArtifactContentPreview, Error>({
+  const { data, error, isFetching, refetch } = useQuery<ArtifactContentPreviewData, Error>({
     queryKey: queryKeys.artifactContentPreview(
-      artifact.artifact_id,
-      artifact.uri,
+      artifact.getId(),
+      uri,
       kind,
-      effectiveNamespace,
-      JSON.stringify(artifact.metadata?._kfp_preview),
-      sourceFinished,
-      refreshGeneration,
+      namespace,
+      providerInfo,
+      JSON.stringify(metadata?.[ARTIFACT_PREVIEW_METADATA_KEY]),
     ),
     queryFn: async ({ signal }) => {
-      if (!artifact.artifact_id || !kind) {
-        throw new Error(
-          'The artifact must be registered as a Dataset or Model before it can be previewed.',
-        );
+      if (!kind) {
+        throw new Error('Only Dataset and Model artifacts can be previewed.');
       }
-      const content = await Apis.getArtifactContentPreview(
-        artifact.artifact_id,
-        effectiveNamespace,
+      const content = await Apis.getArtifactContentPreview({
+        path: WorkflowParser.parseStoragePath(uri),
+        namespace,
+        providerInfo,
         signal,
-      );
+      });
       return parseArtifactContentPreview(content, kind);
     },
-    enabled: !!descriptor && !!kind && !!artifact.artifact_id,
+    enabled: !!descriptor && !!kind && !!uri,
     staleTime: Infinity,
     retry: false,
   });
+  if (!kind) {
+    return null;
+  }
   if (descriptorError) {
     return (
       <Banner
@@ -157,19 +142,11 @@ function SelectedArtifactPreview({
       />
     );
   }
-  if (!descriptor) {
+  if (!descriptor || !uri) {
     return (
       <Banner
         mode='info'
         message='No preview is available for this artifact. Check the pipeline and component preview settings, supported formats, component SDK, and logs.'
-      />
-    );
-  }
-  if (!artifact.artifact_id) {
-    return (
-      <Banner
-        mode='info'
-        message='The artifact preview will be available after the artifact is registered.'
       />
     );
   }

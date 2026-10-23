@@ -97,13 +97,12 @@ export const queryKeys = {
   // --- Viewer configs ---
 
   artifactContentPreview: (
-    artifactId: string | undefined,
+    artifactId: number | undefined,
     uri: string | undefined,
     kind: string | undefined,
     namespace: string | undefined,
+    providerInfo: string | undefined,
     descriptor: string | undefined,
-    sourceFinished: boolean | undefined,
-    refreshGeneration: number,
   ) =>
     [
       'artifact_content_preview',
@@ -111,24 +110,12 @@ export const queryKeys = {
       uri,
       kind,
       namespace,
+      providerInfo,
       descriptor,
-      sourceFinished,
-      refreshGeneration,
     ] as const,
 
-  runtimeArtifactVisualization: (
-    artifactId: string | undefined,
-    artifactType: string | undefined,
-    namespace?: string,
-    sourceFinished?: boolean,
-  ) =>
-    [
-      'runtime_artifact_visualization',
-      artifactId,
-      artifactType,
-      namespace,
-      sourceFinished,
-    ] as const,
+  viewConfig: (artifactId: number | undefined, executionState: number, namespace?: string) =>
+    ['viewconfig', { artifact: artifactId, state: executionState, namespace }] as const,
 
   htmlViewerConfig: (artifactIds: number[], executionState: number, namespace?: string) =>
     ['htmlViewerConfig', { artifacts: artifactIds, state: executionState, namespace }] as const,

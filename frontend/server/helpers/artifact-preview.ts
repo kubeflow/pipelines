@@ -13,72 +13,49 @@
 // limitations under the License.
 
 import type { Readable } from 'stream';
-import { ArtifactCoordinates, resolveArtifactCoordinates } from './artifact-coordinates.js';
-import { isLauncherArtifactSource, LauncherArtifactSource } from './artifact-sources.js';
 
 export const MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024;
-export const ARTIFACT_PREVIEW_RESPONSE_HEADER = 'X-KFP-Artifact-Preview';
+export const ARTIFACT_PREVIEW_FILE_NAME = 'preview.json';
+const PREVIEW_SOURCES = new Set(['gcs', 'minio', 's3']);
+const MAX_OBJECT_KEY_LENGTH = 1024;
 
 export class ArtifactPreviewError extends Error {
   constructor(
     public readonly status: number,
     message: string,
-    /** Delay in seconds that a rate-limited caller should wait before retrying. */
-    public readonly retryAfterSeconds?: string,
   ) {
     super(message);
     this.name = 'ArtifactPreviewError';
   }
 }
 
-export interface ArtifactContentPreviewRequest {
-  parent: ArtifactCoordinates<LauncherArtifactSource>;
-  namespace: string;
-  signal: AbortSignal;
-}
-
-/** Resolves persisted identity without URL normalization changing the object or its owner. */
-export function parsePreviewParentUri(uri: string): ArtifactCoordinates<LauncherArtifactSource> {
-  const match = /^(gs|s3|minio):\/\/([^/?#]+)\/([^?#]+)(?:\?([^#]+))?$/.exec(uri);
-  if (!match) {
+/**
+ * Returns the fixed preview object beneath an authorized parent artifact directory.
+ *
+ * The parent key, not the derived child, is the authorization identity: preview.json has no
+ * metadata record of its own, so it is only readable through its registered parent.
+ */
+export function getPreviewObjectKey(source: string, parentKey: string): string {
+  if (!PREVIEW_SOURCES.has(source)) {
     throw new ArtifactPreviewError(
       422,
       'Previews require a directory artifact on S3, MinIO, or GCS.',
     );
   }
-  const source = match[1] === 'gs' ? 'gcs' : match[1];
-  let key: string;
-  try {
-    key = decodeURIComponent(match[3]).replace(/\/$/, '');
-  } catch {
-    throw new ArtifactPreviewError(
-      422,
-      'The parent artifact URI has invalid encoding. Correct its URI.',
-    );
-  }
-  const coordinates = resolveArtifactCoordinates({
-    path: '/artifacts/get',
-    query: {
-      source,
-      bucket: match[2],
-      key,
-      uriKey: match[3],
-      artifactUriQuery: match[4] || '',
-    },
-  });
+  const key = parentKey.replace(/\/$/, '');
+  const segments = key.split('/');
   if (
-    !coordinates ||
-    !isLauncherArtifactSource(coordinates.source) ||
     !key ||
     key.includes('*') ||
-    key.length + '/preview.json'.length > 1024
+    segments.some((segment) => !segment || segment === '.' || segment === '..') ||
+    key.length + ARTIFACT_PREVIEW_FILE_NAME.length + 1 > MAX_OBJECT_KEY_LENGTH
   ) {
     throw new ArtifactPreviewError(
       422,
       'The parent artifact URI is not a supported exact directory path.',
     );
   }
-  return { ...coordinates, source: coordinates.source };
+  return `${key}/${ARTIFACT_PREVIEW_FILE_NAME}`;
 }
 
 /** Collects one small file, cancelling the source instead of draining an oversized object. */

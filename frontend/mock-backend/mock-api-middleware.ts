@@ -85,157 +85,8 @@ const confusionMatrixPath = './model-output/confusion_matrix.csv';
 const helloWorldHtmlPath = './model-output/hello-world.html';
 const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
-const v2Prefix = '/apis/v2';
-const mockNativeRunId = 'e0115ac1-0479-4194-a22d-01e65e09a32b';
-
-const mockV2Artifacts: V2Artifact[] = [
-  {
-    artifact_id: 'mock-artifact-1',
-    created_at: new Date('2026-01-01T00:00:00.000Z'),
-    description: 'Representative native artifact for local frontend development.',
-    name: 'mock-dataset',
-    namespace: 'kubeflow-user-example-com',
-    type: ArtifactArtifactType.Dataset,
-    uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-dataset',
-    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
-  },
-  {
-    artifact_id: 'mock-model-1',
-    name: 'mock-model',
-    namespace: 'kubeflow-user-example-com',
-    type: ArtifactArtifactType.Model,
-    uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-model',
-    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
-  },
-];
-const mockV2Tasks: V2PipelineTask[] = [
-  {
-    child_tasks: [
-      { name: 'chicago-taxi-trips-dataset', task_id: 'mock-task-producer' },
-      { name: 'convert-csv-to-apache-parquet', task_id: 'mock-task-consumer' },
-      { name: 'xgboost-train', task_id: 'mock-task-trainer' },
-    ],
-    create_time: new Date('2026-01-01T00:00:00.000Z'),
-    display_name: 'xgboost-sample-pipeline',
-    end_time: new Date('2026-01-01T00:03:00.000Z'),
-    name: 'root',
-    run_id: mockNativeRunId,
-    scope_path: 'root',
-    state: PipelineTaskTaskState.SUCCEEDED,
-    task_id: 'mock-task-root',
-    type: PipelineTaskTaskType.ROOT,
-  },
-  {
-    create_time: new Date('2026-01-01T00:00:10.000Z'),
-    display_name: 'Chicago taxi trips dataset',
-    end_time: new Date('2026-01-01T00:01:00.000Z'),
-    name: 'chicago-taxi-trips-dataset',
-    outputs: {
-      artifacts: [
-        {
-          artifact_key: 'table',
-          artifacts: [mockV2Artifacts[0]],
-          type: V2IOType.OUTPUT,
-        },
-      ],
-    },
-    parent_task_id: 'mock-task-root',
-    pods: [
-      {
-        name: 'mock-chicago-taxi-trips-dataset-executor',
-        type: PipelineTaskTaskPodType.EXECUTOR,
-        uid: 'mock-producer-pod-uid',
-      },
-    ],
-    run_id: mockNativeRunId,
-    scope_path: 'root.chicago-taxi-trips-dataset',
-    state: PipelineTaskTaskState.SUCCEEDED,
-    task_id: 'mock-task-producer',
-    type: PipelineTaskTaskType.RUNTIME,
-  },
-  {
-    create_time: new Date('2026-01-01T00:01:05.000Z'),
-    display_name: 'Convert CSV to Apache Parquet',
-    end_time: new Date('2026-01-01T00:02:00.000Z'),
-    inputs: {
-      artifacts: [
-        {
-          artifact_key: 'data',
-          artifacts: [mockV2Artifacts[0]],
-          producer: { task_name: 'chicago-taxi-trips-dataset' },
-          type: V2IOType.TASK_OUTPUT_INPUT,
-        },
-      ],
-    },
-    name: 'convert-csv-to-apache-parquet',
-    parent_task_id: 'mock-task-root',
-    pods: [
-      {
-        name: 'mock-convert-csv-to-apache-parquet-driver',
-        type: PipelineTaskTaskPodType.DRIVER,
-        uid: 'mock-consumer-driver-pod-uid',
-      },
-      {
-        name: 'mock-convert-csv-to-apache-parquet-executor',
-        type: PipelineTaskTaskPodType.EXECUTOR,
-        uid: 'mock-consumer-executor-pod-uid',
-      },
-    ],
-    run_id: mockNativeRunId,
-    scope_path: 'root.convert-csv-to-apache-parquet',
-    state: PipelineTaskTaskState.SUCCEEDED,
-    task_id: 'mock-task-consumer',
-    type: PipelineTaskTaskType.RUNTIME,
-  },
-  {
-    create_time: new Date('2026-01-01T00:02:05.000Z'),
-    display_name: 'XGBoost train',
-    end_time: new Date('2026-01-01T00:02:30.000Z'),
-    name: 'xgboost-train',
-    outputs: {
-      artifacts: [
-        {
-          artifact_key: 'model',
-          artifacts: [mockV2Artifacts[1]],
-          type: V2IOType.OUTPUT,
-        },
-      ],
-    },
-    parent_task_id: 'mock-task-root',
-    run_id: mockNativeRunId,
-    scope_path: 'root.xgboost-train',
-    state: PipelineTaskTaskState.SUCCEEDED,
-    task_id: 'mock-task-trainer',
-    type: PipelineTaskTaskType.RUNTIME,
-  },
-];
-const mockV2ArtifactTasks: V2ArtifactTask[] = [
-  {
-    artifact_id: 'mock-model-1',
-    id: 'mock-model-task-output',
-    key: 'model',
-    run_id: mockNativeRunId,
-    task_id: 'mock-task-trainer',
-    type: V2IOType.OUTPUT,
-  },
-  {
-    artifact_id: 'mock-artifact-1',
-    id: 'mock-artifact-task-output',
-    key: 'table',
-    run_id: mockNativeRunId,
-    task_id: 'mock-task-producer',
-    type: V2IOType.OUTPUT,
-  },
-  {
-    artifact_id: 'mock-artifact-1',
-    id: 'mock-artifact-task-input',
-    key: 'data',
-    producer: { task_name: 'chicago-taxi-trips-dataset' },
-    run_id: mockNativeRunId,
-    task_id: 'mock-task-consumer',
-    type: V2IOType.TASK_OUTPUT_INPUT,
-  },
-];
+const v1beta1Prefix = '/apis/v1beta1';
+const v2beta1Prefix = '/apis/v2beta1';
 
 let tensorboardPod = '';
 
@@ -847,15 +698,541 @@ export default (app: express.Application) => {
     res.sendStatus(200);
   });
 
-  app.get('/artifacts/:artifactId/preview', (req, res) => {
-    const preview =
-      req.params.artifactId === 'mock-artifact-1'
-        ? datasetPreview
-        : req.params.artifactId === 'mock-model-1'
-          ? modelPreview
-          : undefined;
+  app.get(v1beta1Prefix + '/jobs', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
+    const response: ApiListJobsResponse = {
+      jobs: [],
+      next_page_token: '',
+    };
+
+    let jobs: ApiJob[] = fixedData.jobs;
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      jobs = filterResources(fixedData.jobs, filterQuery);
+    }
+
+    jobs = sortV1Resources(jobs, ExperimentSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
+
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
+    response.jobs = jobs.slice(start, end);
+
+    if (end < jobs.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
+  });
+
+  app.get(v1beta1Prefix + '/experiments', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
+    const response: ApiListExperimentsResponse = {
+      experiments: [],
+      next_page_token: '',
+    };
+
+    let experiments: ApiExperiment[] = fixedData.experiments;
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      experiments = filterResources(fixedData.experiments, filterQuery);
+    }
+
+    experiments = sortV1Resources(
+      experiments,
+      ExperimentSortKeys.NAME,
+      getQueryString(req.query.sortBy),
+    );
+
+    const start = getQueryNumber(req.query.pageToken) || 0;
+    const end = start + (getQueryNumber(req.query.pageSize) || 20);
+    response.experiments = experiments.slice(start, end);
+
+    if (end < experiments.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
+  });
+
+  app.post(v1beta1Prefix + '/experiments', (req, res) => {
+    const experiment: ApiExperiment = req.body;
+    if (
+      fixedData.experiments.find((e) => e.name!.toLowerCase() === experiment.name!.toLowerCase())
+    ) {
+      res.status(404).send('An experiment with the same name already exists');
+      return;
+    }
+    experiment.id = 'new-experiment-' + (fixedData.experiments.length + 1);
+    fixedData.experiments.push(experiment);
+
+    setTimeout(() => {
+      res.send(fixedData.experiments[fixedData.experiments.length - 1]);
+    }, 1000);
+  });
+
+  app.get(v1beta1Prefix + '/experiments/:eid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const experiment = fixedData.experiments.find((exp) => exp.id === req.params.eid);
+    if (!experiment) {
+      res.status(404).send(`No experiment was found with ID: ${req.params.eid}`);
+      return;
+    }
+    res.json(experiment);
+  });
+
+  app.post(v1beta1Prefix + '/jobs', (req, res) => {
+    const job: ApiJob = req.body;
+    job.id = 'new-job-' + (fixedData.jobs.length + 1);
+    job.created_at = new Date();
+    job.updated_at = new Date();
+    job.enabled = !!job.trigger;
+    fixedData.jobs.push(job);
+
+    const date = new Date().toISOString();
+    fixedData.runs.push({
+      pipeline_runtime: {
+        workflow_manifest: JSON.stringify(helloWorldRuntime),
+      },
+      run: {
+        created_at: new Date(),
+        id: 'job-at-' + date,
+        name: 'job-' + job.name + date,
+        scheduled_at: new Date(),
+        status: 'Running',
+      },
+    });
+    setTimeout(() => {
+      res.send(fixedData.jobs[fixedData.jobs.length - 1]);
+    }, 1000);
+  });
+
+  app.all(v1beta1Prefix + '/jobs/:jid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    switch (req.method) {
+      case 'DELETE':
+        const i = fixedData.jobs.findIndex((j) => j.id === req.params.jid);
+        if (fixedData.jobs[i].name!.startsWith('Cannot be deleted')) {
+          res.status(502).send(`Deletion failed for job: '${fixedData.jobs[i].name}'`);
+        } else {
+          // Delete the job from fixedData.
+          fixedData.jobs.splice(i, 1);
+          res.json({});
+        }
+        break;
+      case 'GET':
+        const job = fixedData.jobs.find((j) => j.id === req.params.jid);
+        if (job) {
+          res.json(job);
+        } else {
+          res.status(404).send(`No job was found with ID: ${req.params.jid}`);
+        }
+        break;
+      default:
+        res.status(405).send('Unsupported request type: ' + req.method);
+    }
+  });
+
+  app.get(v1beta1Prefix + '/runs', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
+    const response: ApiListRunsResponse = {
+      next_page_token: '',
+      runs: [],
+    };
+
+    let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
+
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      runs = filterResources(runs, filterQuery);
+    }
+
+    const resourceReferenceType = getQueryString(req.query['resource_reference_key.type']);
+    const resourceReferenceId = getQueryString(req.query['resource_reference_key.id']);
+    if (resourceReferenceType === ApiResourceType.EXPERIMENT && resourceReferenceId) {
+      runs = runs.filter((r) =>
+        RunUtils.getAllExperimentReferences(r).some(
+          (ref) => (ref.key && ref.key.id && ref.key.id === resourceReferenceId) || false,
+        ),
+      );
+    }
+
+    runs = sortV1Resources(runs, RunSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
+
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
+    response.runs = runs.slice(start, end);
+
+    if (end < runs.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
+  });
+
+  app.get(v1beta1Prefix + '/runs/:rid', (req, res) => {
+    const rid = req.params.rid;
+    const run = fixedData.runs.find((r) => r.run!.id === rid);
+    if (!run) {
+      res.status(404).send('Cannot find a run with id: ' + rid);
+      return;
+    }
+    res.json(run);
+  });
+
+  app.post(v1beta1Prefix + '/runs', (req, res) => {
+    const date = new Date();
+    const run: ApiRun = req.body;
+    run.id = 'new-run-' + (fixedData.runs.length + 1);
+    run.created_at = date;
+    run.scheduled_at = date;
+    run.status = 'Running';
+
+    fixedData.runs.push({
+      pipeline_runtime: {
+        workflow_manifest: JSON.stringify(helloWorldRuntime),
+      },
+      run,
+    });
+    setTimeout(() => {
+      res.send(fixedData.jobs[fixedData.jobs.length - 1]);
+    }, 1000);
+  });
+
+  app.post<{ rid: string; method: string }>(v1beta1Prefix + '/runs/:rid\\::method', (req, res) => {
+    if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
+      res.status(500).send('Bad method');
+    }
+    const runDetail = fixedData.runs.find((r) => r.run!.id === req.params.rid);
+    if (runDetail) {
+      runDetail.run!.storage_state =
+        req.params.method === 'archive'
+          ? ApiRunStorageState.STORAGESTATE_ARCHIVED
+          : ApiRunStorageState.STORAGESTATE_AVAILABLE;
+      res.json({});
+    } else {
+      res.status(500).send('Cannot find a run with id ' + req.params.rid);
+    }
+  });
+
+  app.post(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
+    setTimeout(() => {
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
+      if (job) {
+        job.enabled = true;
+        res.json({});
+      } else {
+        res.status(500).send('Cannot find a job with id ' + req.params.jid);
+      }
+    }, 1000);
+  });
+
+  app.post(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
+    setTimeout(() => {
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
+      if (job) {
+        job.enabled = false;
+        res.json({});
+      } else {
+        res.status(500).send('Cannot find a job with id ' + req.params.jid);
+      }
+    }, 1000);
+  });
+
+  function filterResources(resources: BaseResource[], filterString?: string): BaseResource[] {
+    if (!filterString) {
+      return resources;
+    }
+    const filter: ApiFilter = JSON.parse(decodeURIComponent(filterString));
+    ((filter && filter.predicates) || []).forEach((p) => {
+      resources = resources.filter((r) => {
+        switch (p.op) {
+          case PredicateOp.EQUALS:
+            if (p.key === 'name') {
+              return (
+                r.name && r.name.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase()
+              );
+            } else if (p.key === 'storage_state') {
+              return (
+                (r as ApiRun).storage_state &&
+                (r as ApiRun).storage_state!.toString() === p.string_value
+              );
+            } else {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+          case PredicateOp.NOT_EQUALS:
+            if (p.key === 'name') {
+              return (
+                r.name && r.name.toLocaleLowerCase() !== (p.string_value || '').toLocaleLowerCase()
+              );
+            } else if (p.key === 'storage_state') {
+              return ((r as ApiRun).storage_state || {}).toString() !== p.string_value;
+            } else {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+          case PredicateOp.IS_SUBSTRING:
+            if (p.key !== 'name') {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+            return (
+              r.name &&
+              r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase())
+            );
+          case PredicateOp.GREATER_THAN:
+          // Fall through
+          case PredicateOp.GREATER_THAN_EQUALS:
+          // Fall through
+          case PredicateOp.LESS_THAN:
+          // Fall through
+          case PredicateOp.LESS_THAN_EQUALS:
+            // Fall through
+            throw new Error(`Op: ${p.op} is not yet supported by the mock API server`);
+          default:
+            throw new Error(`Unknown Predicate op: ${p.op}`);
+        }
+      });
+    });
+    return resources;
+  }
+
+  app.get(v1beta1Prefix + '/pipelines', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const response: ApiListPipelinesResponse = {
+      next_page_token: '',
+      pipelines: [],
+    };
+
+    let pipelines: ApiPipeline[] = fixedData.pipelines;
+    const filterQuery = getQueryString(req.query.filter);
+    if (filterQuery) {
+      pipelines = filterResources(fixedData.pipelines, filterQuery);
+    }
+
+    pipelines = sortV1Resources(
+      pipelines,
+      PipelineSortKeys.CREATED_AT,
+      getQueryString(req.query.sort_by),
+    );
+
+    const start = getQueryNumber(req.query.page_token) || 0;
+    const end = start + (getQueryNumber(req.query.page_size) || 20);
+    response.pipelines = pipelines.slice(start, end);
+
+    if (end < pipelines.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
+  });
+
+  app.delete(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
+
+    if (i === -1) {
+      res.status(404).send(`No pipelines was found with ID: ${req.params.pid}`);
+      return;
+    }
+
+    if (fixedData.pipelines[i].name!.startsWith('Cannot be deleted')) {
+      res.status(502).send(`Deletion failed for pipeline: '${fixedData.pipelines[i].name}'`);
+      return;
+    }
+    // Delete the pipelines from fixedData.
+    fixedData.pipelines.splice(i, 1);
+    res.json({});
+  });
+
+  app.get(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    res.json(pipeline);
+  });
+
+  app.get<{ pid: string }>(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
+    res.header('Content-Type', 'text/x-yaml');
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    let filePath = '';
+    if (req.params.pid === namedPipelines.noParams.id) {
+      filePath = './mock-backend/data/v1/template/mock-conditional-template.yaml';
+    } else if (req.params.pid === namedPipelines.unstructuredText.id) {
+      filePath = './mock-backend/data/v1/template/mock-recursive-template.yaml';
+    } else {
+      filePath = './mock-backend/data/v1/template/mock-template.yaml';
+    }
+    if (v2PipelineSpecMap.has(req.params.pid)) {
+      const specPath = v2PipelineSpecMap.get(req.params.pid);
+      if (specPath) {
+        filePath = specPath;
+      }
+      console.log(filePath);
+    }
+    res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
+  });
+
+  app.get<{ pid: string }>(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
+    res.header('Content-Type', 'text/x-yaml');
+
+    // Find v2 pipeline template
+    const templatePath = v2PipelineSpecMap.get(req.params.pid);
+    if (templatePath != null) {
+      console.log(templatePath);
+      res.send(JSON.stringify({ template: fs.readFileSync(templatePath, 'utf-8') }));
+      return;
+    }
+
+    // Default and v1 version list. Return mock template consistently.
+    const version = fixedData.versions.find((p) => p.id === req.params.pid);
+    if (!version) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    const filePath = './mock-backend/mock-recursive-template.yaml';
+
+    res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const pipeline = PIPELINE_VERSIONS_LIST_FULL.find((p) => p.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    res.json(pipeline);
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions', (req, res) => {
+    // Sample query format:
+    // query: {
+    //   'resource_key.type': 'PIPELINE',
+    //   'resource_key.id': '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+    //   page_size: '50',
+    //   sort_by: 'created_at desc'
+    // },
+    const resourceKeyId = getQueryString(req.query['resource_key.id']);
+    const resourceKeyType = getQueryString(req.query['resource_key.type']);
+    const pageSize = getQueryNumber(req.query.page_size);
+    if (resourceKeyId && resourceKeyType === 'PIPELINE' && (pageSize || 0) > 0) {
+      const response: ApiListPipelineVersionsResponse = {
+        next_page_token: '',
+        versions: [],
+      };
+
+      let versions: ApiPipelineVersion[] = PIPELINE_VERSIONS_LIST_MAP.get(resourceKeyId) || [];
+
+      if (versions.length === 0) {
+        const pipeline = fixedData.pipelines.find((p) => p.id === resourceKeyId);
+
+        if (pipeline == null || !pipeline.default_version) {
+          return;
+        }
+
+        // Default version list is pipeline with single default version.
+        const pipeline_versions_list_response: ApiListPipelineVersionsResponse = {
+          total_size: 1,
+          versions: [pipeline.default_version],
+        };
+        res.json(pipeline_versions_list_response);
+        return;
+      }
+
+      const start = getQueryNumber(req.query.page_token) || 0;
+      const end = start + (pageSize || 20);
+      response.versions = versions.slice(start, end);
+
+      if (end < versions.length) {
+        response.next_page_token = end + '';
+      }
+
+      res.json(response);
+
+      return;
+    }
+    return;
+  });
+
+  app.get(v1beta1Prefix + '/pipeline_versions/:pid', (req, res) => {
+    // TODO: Temporary returning default version only. It requires
+    // keeping a record of all pipeline id in order to search non-default version.
+    res.header('Content-Type', 'application/json');
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
+    if (!pipeline) {
+      res
+        .status(404)
+        .send(
+          `No pipeline found with ID: ${req.params.pid}, non-default version can't be found yet.`,
+        );
+      return;
+    }
+    if (pipeline.default_version) {
+      res.json(pipeline.default_version);
+    }
+  });
+
+  function mockCreatePipeline(res: Response, name: string, body?: any): void {
+    res.header('Content-Type', 'application/json');
+    // Don't allow uploading multiple pipelines with the same name
+    if (fixedData.pipelines.find((p) => p.name === name)) {
+      res
+        .status(502)
+        .send(`A Pipeline named: "${name}" already exists. Please choose a different name.`);
+    } else {
+      const pipeline = body || {};
+      pipeline.id = 'new-pipeline-' + (fixedData.pipelines.length + 1);
+      pipeline.name = name;
+      pipeline.created_at = new Date();
+      pipeline.description =
+        'TODO: the mock middleware does not actually use the uploaded pipeline';
+      pipeline.parameters = [
+        {
+          name: 'output',
+        },
+        {
+          name: 'param-1',
+        },
+        {
+          name: 'param-2',
+        },
+      ];
+      fixedData.pipelines.push(pipeline);
+      setTimeout(() => {
+        res.send(fixedData.pipelines[fixedData.pipelines.length - 1]);
+      }, 1000);
+    }
+  }
+
+  app.post(v1beta1Prefix + '/pipelines', (req, res) => {
+    mockCreatePipeline(res, req.body.name);
+  });
+
+  app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
+    const pipelineName = getRequiredDecodedQueryString(res, req.query.name, 'name');
+    if (!pipelineName) {
+      return;
+    }
+    mockCreatePipeline(res, pipelineName, req.body);
+  });
+
+  app.get('/artifacts/preview', (req, res) => {
+    const key = typeof req.query.key === 'string' ? req.query.key.replace(/\/$/, '') : '';
+    const preview = key.endsWith('dataset')
+      ? datasetPreview
+      : key.endsWith('model')
+        ? modelPreview
+        : undefined;
     if (!preview) {
-      res.status(404).send('No preview is enabled for this artifact.');
+      res.status(404).send('preview.json is missing.');
       return;
     }
     res.set('Cache-Control', 'no-store').json(preview);

@@ -30,19 +30,17 @@ import kfp
 from kfp import dsl
 from kfp.compiler import compiler_utils
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
-from kfp.dsl import (
-    component_factory,
-    constants,
-    for_loop,
-    pipeline_channel,
-    pipeline_config,
-    pipeline_context,
-    pipeline_task,
-    placeholders,
-    structures,
-    tasks_group,
-    utils,
-)
+from kfp.dsl import component_factory
+from kfp.dsl import constants
+from kfp.dsl import for_loop
+from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_config
+from kfp.dsl import pipeline_context
+from kfp.dsl import pipeline_task
+from kfp.dsl import placeholders
+from kfp.dsl import structures
+from kfp.dsl import tasks_group
+from kfp.dsl import utils
 from kfp.dsl.component_task_config import TaskConfigField
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -2161,8 +2159,7 @@ def create_pipeline_spec(
     if pipeline_config is not None and not pipeline_config.artifact_previews:
         _disable_artifact_previews(deployment_config)
         pipeline_spec.deployment_spec.update(
-            json_format.MessageToDict(deployment_config)
-        )
+            json_format.MessageToDict(deployment_config))
 
     _build_dag_outputs(
         component_spec=pipeline_spec.root,
@@ -2181,7 +2178,7 @@ _PYTHON_EXECUTOR_FUNCTION_FLAG = '--function_to_execute'
 
 
 def _runs_python_executor(
-    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec,
+    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
 ) -> bool:
     """Returns whether a container runs the KFP Python component executor.
 
@@ -2192,18 +2189,15 @@ def _runs_python_executor(
         True when the command invokes the KFP executor module and the
         arguments name the function to execute.
     """
-    return any(
-        component_factory.EXECUTOR_MODULE in part for part in container.command
-    ) and any(
-        arg == _PYTHON_EXECUTOR_FUNCTION_FLAG
-        or arg.startswith(f'{_PYTHON_EXECUTOR_FUNCTION_FLAG}=')
-        for arg in container.args
-    )
+    return any(component_factory.EXECUTOR_MODULE in part
+               for part in container.command) and any(
+                   arg == _PYTHON_EXECUTOR_FUNCTION_FLAG or
+                   arg.startswith(f'{_PYTHON_EXECUTOR_FUNCTION_FLAG}=')
+                   for arg in container.args)
 
 
 def _disable_artifact_previews(
-    deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
-) -> None:
+        deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig) -> None:
     """Adds the preview opt-out flag to every KFP Python executor.
 
     Executor arguments always reach the producer, whereas capture-only
@@ -2220,10 +2214,8 @@ def _disable_artifact_previews(
         if not executor.HasField('container'):
             continue
         container = executor.container
-        if (
-            _runs_python_executor(container)
-            and constants.DISABLE_ARTIFACT_PREVIEWS_FLAG not in container.args
-        ):
+        if (_runs_python_executor(container) and
+                constants.DISABLE_ARTIFACT_PREVIEWS_FLAG not in container.args):
             container.args.append(constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
 
 

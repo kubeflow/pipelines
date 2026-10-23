@@ -48,8 +48,8 @@ describe('artifact request rate limiting', () => {
     const paths = [
       `/artifacts/get${query}`,
       `/custom/artifacts/get${query}`,
-      '/artifacts/artifact-1/preview?namespace=team-a',
-      '/custom/artifacts/artifact-1/preview?namespace=team-a',
+      `/artifacts/preview${query}`,
+      `/custom/artifacts/preview${query}`,
     ];
 
     for (let index = 0; index < 300; index++) {
@@ -97,7 +97,7 @@ describe('artifact request rate limiting', () => {
         .expect(400);
     }
     await request
-      .get('/artifacts/artifact-1/preview')
+      .get('/artifacts/preview?source=s3&bucket=bucket&key=data')
       .set('x-kubeflow-user', 'another-reader')
       .set('X-Forwarded-For', '198.51.100.1')
       .expect(429);
@@ -129,7 +129,9 @@ describe('artifact request rate limiting', () => {
       const response = await request.get('/artifacts/get');
       expect(response.status, `Unauthenticated request ${index}: ${response.text}`).toBe(401);
     }
-    await request.get('/artifacts/artifact-1/preview?namespace=team-a').expect(429);
+    await request
+      .get('/artifacts/preview?source=s3&bucket=bucket&key=data&namespace=team-a')
+      .expect(429);
     expect(fetchArtifact).not.toHaveBeenCalled();
   });
 });

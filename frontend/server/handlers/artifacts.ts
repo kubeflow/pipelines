@@ -55,32 +55,11 @@ import {
   buildArtifactUri,
 } from '../helpers/mlmd-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import { ArtifactPreviewObjectOpener, sendArtifactContentPreview } from './artifact-preview.js';
 import {
-  ArtifactCoordinates,
-  buildArtifactCoordinateUri,
-  isCanonicalArtifactUriKey,
-  normalizeArtifactStorageCoordinates,
-  resolveArtifactCoordinates,
-} from '../helpers/artifact-coordinates.js';
-import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from '../helpers/artifact-path.js';
-import {
-  ArtifactSource,
-  isArtifactSource,
-  isLauncherArtifactSource,
-  LauncherArtifactSource,
-  requiresArtifactOwnershipValidation,
-} from '../helpers/artifact-sources.js';
-import { AuthorizeResourcesEnum, AuthorizeVerbEnum } from '../src/generated/apisv2/auth/index.js';
-import {
-  getLauncherProviderInfo,
-  LauncherConfigError,
-  LauncherConfigValidationError,
-} from '../helpers/launcher-config.js';
-import {
-  ArtifactContentPreviewRequest,
-  ArtifactPreviewError,
-  readArtifactPreviewBytes,
-} from '../helpers/artifact-preview.js';
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -336,17 +315,14 @@ export function pipePreviewResponse(
  * @param authorizeFn The authorization function to validate permissions
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
- * @param apiServerAddress KFP API server address used for namespace-ownership validation (#9889).
- * @param artifactProxyEnabled Whether volume artifacts are delegated to a namespace proxy.
- * @param contentPreview Server-resolved preview parent and cancellation context, never browser input.
+ * @param envoyAddress MLMD Envoy address used for namespace-ownership
+ *   validation (#9889). Existing access remains available when it is not configured.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
-  apiServerAddress?: string,
-  artifactProxyEnabled = false,
-  contentPreview?: ArtifactContentPreviewRequest,
+  envoyAddress?: string,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     hardenArtifactResponse(response);
@@ -403,16 +379,13 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const authError = await waitForArtifactOperation(
-      authorizeFn(
-        {
-          verb: AuthorizeVerbEnum.GET,
-          resources: AuthorizeResourcesEnum.VIEWERS,
-          namespace: namespace,
-        },
-        request,
-      ),
-      contentPreview?.signal,
+    const authError = await authorizeFn(
+      {
+        verb: AuthorizeRequestVerb.GET,
+        resources: AuthorizeRequestResources.VIEWERS,
+        namespace: namespace,
+      },
+      request,
     );
 
     if (authError) {
@@ -426,8 +399,8 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const coordinates = contentPreview?.parent ?? resolveArtifactCoordinates(request);
-    if (coordinates === null) {
+    const coords = resolveArtifactCoordinates(request);
+    if (coords === null) {
       console.warn(
         `[SECURITY] Malformed percent-encoding in artifact path. ` +
           `User: ${userId}, Path: ${request.path}`,
@@ -442,63 +415,13 @@ export function getArtifactsAuthMiddleware(
         ? await validateArtifactNamespace(envoyAddress, artifactUri, namespace)
         : validateArtifactKey(artifactUri);
 
-    if (
-      !coordinates ||
-      !isArtifactSource(coordinates.source) ||
-      !coordinates.bucket ||
-      !coordinates.key
-    ) {
-      console.warn(
-        `[SECURITY] Rejected artifact request with coordinates that cannot be authorized. ` +
-          `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
-      );
-      sendArtifactError(
-        response,
-        403,
-        'Artifact source, bucket, and key are required and must use a supported storage source',
-      );
-      return;
-    }
-
-    if (coordinates.source === 'volume') {
-      if (!artifactProxyEnabled) {
-        console.warn(
-          `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
-            `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
-        );
-        sendArtifactError(
-          response,
-          403,
-          'Volume artifacts require a namespace-isolated artifact service in multi-user mode',
-        );
-        return;
-      }
-      if (
-        !isAllowedResourceName(coordinates.bucket) ||
-        applyArtifactPathPolicy(coordinates.key, ARTIFACT_PATH_POLICIES.volume) === undefined
-      ) {
-        sendArtifactError(response, 400, 'Invalid volume artifact bucket or path');
-        return;
-      }
-    }
-
-    if (apiServerAddress) {
-      if (requiresArtifactOwnershipValidation(coordinates.source)) {
-        const artifactUri = buildArtifactCoordinateUri(coordinates);
-        const validationHeaders = { [kubeflowUserIdHeader]: userId };
-        const validation = await waitForArtifactOperation(
-          validateArtifactNamespace(apiServerAddress, artifactUri, namespace, validationHeaders),
-          contentPreview?.signal,
-        );
-
-        if (!validation.valid) {
-          console.warn(
-            `[SECURITY] IDOR blocked: artifact namespace mismatch. ` +
-              `User: ${userId}, ` +
-              `Claimed namespace: ${namespace}, ` +
-              `Actual namespace: ${validation.actualNamespace}, ` +
-              `URI: ${artifactUri}, ` +
-              `Path: ${request.path}`,
+      if (!validation.valid) {
+        if (validation.reason === 'key-not-normalized') {
+          sendArtifactError(
+            response,
+            403,
+            'Artifact object key is not normalized. Remove dot segments, encoded separators, ' +
+              'and malformed encoding.',
           );
           return;
         }
@@ -528,13 +451,14 @@ export function getArtifactsAuthMiddleware(
  * @param tryExtract whether preview responses may extract content from *.tar.gz files.
  * Download routes pass false so S3 and MinIO archives are returned byte-for-byte
  * with an attachment filename; preview routes may extract the first tar entry.
+ * @param contentPreview read only the bounded preview.json beneath the requested parent artifact.
  */
 export function getArtifactsHandler({
   artifactsConfigs,
   useParameter,
   tryExtract,
   options,
-  contentPreview,
+  contentPreview = false,
 }: {
   artifactsConfigs: {
     aws: AWSConfigs;
@@ -547,7 +471,7 @@ export function getArtifactsHandler({
   tryExtract: boolean;
   useParameter: boolean;
   options: UIConfigs;
-  contentPreview?: ArtifactContentPreviewRequest;
+  contentPreview?: boolean;
 }): Handler {
   const { aws, http, minio, allowedDomain, allowedEndpoints, allowOfficialAwsEndpoints } =
     artifactsConfigs;
@@ -564,74 +488,22 @@ export function getArtifactsHandler({
     // hardening headers before parsing so every early error and storage path is
     // protected. Inline previews use fetch(), which ignores Content-Disposition.
     hardenArtifactResponse(res);
-    const artifactRequest = contentPreview
-      ? {
-          ...contentPreview.parent,
-          keyEncoding: contentPreview.parent.keyEncoding ?? 'storage',
-          artifactUriQuery: contentPreview.parent.artifactUriQuery || '',
-          namespace: contentPreview.namespace,
-          providerInfo: '',
-          peek: 0,
-          download: false,
-        }
-      : parseArtifactRequest(req, useParameter, options.server.serverNamespace);
+    const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
     if ('error' in artifactRequest) {
       sendArtifactError(res, artifactRequest.error.status, artifactRequest.error.message);
       return;
     }
-    const {
-      source,
-      bucket,
-      key,
-      keyEncoding,
-      artifactUriQuery,
-      peek,
-      providerInfo,
-      namespace,
-      download,
-    } = artifactRequest;
-    const routeCoordinates =
-      contentPreview?.parent ??
-      (useParameter ||
-      req.path.endsWith('/artifacts/get') ||
-      req.path.endsWith('/pipeline/artifacts/get') ||
-      isLauncherArtifactSource(source)
-        ? resolveArtifactCoordinates(req)
-        : undefined);
-    if (routeCoordinates === null) {
-      sendArtifactError(res, 400, INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
-      return;
-    }
-    const trustedRouteCoordinates: ArtifactCoordinates<ArtifactSource> | undefined =
-      routeCoordinates &&
-      isArtifactSource(routeCoordinates.source) &&
-      routeCoordinates.bucket &&
-      routeCoordinates.key
-        ? { ...routeCoordinates, source: routeCoordinates.source }
-        : undefined;
-    const coordinates: ArtifactCoordinates<ArtifactSource> = trustedRouteCoordinates ?? {
-      source,
-      bucket,
-      key,
-      keyEncoding,
-      artifactUriQuery,
-    };
-    const requestedArtifactUri = buildArtifactCoordinateUri(coordinates);
-    // The authorization middleware and storage handler parse independently. Pin artifact identity
-    // to the exact URI that was authorized; storage-key decoding below is then determined only by
-    // this route's trusted keyEncoding classification.
-    if (options.auth.enabled && res.locals.authorizedArtifactUri !== requestedArtifactUri) {
-      console.warn(
-        '[SECURITY] Rejected artifact request whose coordinates changed after authorization',
-      );
-      sendArtifactError(res, 403, 'Artifact request coordinates changed after authorization');
+    const { source, bucket, key, peek, providerInfo, namespace, download } = artifactRequest;
+    const authorized = authorizedArtifacts.get(req);
+    if (
+      (options.auth.enabled && !authorized) ||
+      (authorized && !matchesAuthorizedArtifact(authorized, artifactRequest))
+    ) {
+      sendArtifactError(res, 403, 'Artifact request differs from the authorized artifact');
       return;
     }
     const keyBaseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
     const setArtifactFilename = (transformed: boolean) => {
-      const keyBaseName = contentPreview
-        ? 'preview.json'
-        : storageKey.replace(/\/+$/, '').split('/').pop() || 'artifact';
       res.setHeader(
         'Content-Disposition',
         buildAttachmentDisposition(transformed ? 'artifact' : keyBaseName),
@@ -658,20 +530,7 @@ export function getArtifactsHandler({
       sendArtifactError(res, 500, 'Object key too long');
       return;
     }
-    let storageKey = key;
-    if (isLauncherArtifactSource(source)) {
-      try {
-        storageKey = normalizeArtifactStorageCoordinates({ ...coordinates, source }).key;
-      } catch {
-        sendArtifactError(res, 400, MALFORMED_ARTIFACT_KEY_MESSAGE);
-        return;
-      }
-    }
-    const objectKey = contentPreview ? `${storageKey}/preview.json` : storageKey;
-    console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
-    if (source !== 'minio' && source !== 's3') {
-      setArtifactFilename(false);
-    }
+    console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
 
     // Security: The ml-pipeline-ui service account is only permitted to read
     // Secrets from its own (server) namespace. Secret-backed provider info
@@ -687,75 +546,45 @@ export function getArtifactsHandler({
     // auth middleware rejects namespace-less requests whenever auth is enabled, so
     // treating it as server-local cannot be triggered by a multi-user caller.
     const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
-    let resolvedProviderInfo = '';
-    if (isLauncherArtifactSource(source)) {
-      try {
-        resolvedProviderInfo =
-          (await waitForArtifactOperation(
-            getLauncherProviderInfo(
-              { ...coordinates, key: storageKey, keyEncoding: 'storage', source },
-              namespace,
-            ),
-            contentPreview?.signal,
-          )) || '';
-      } catch (error) {
-        contentPreview?.signal.throwIfAborted();
-        // Direct mode must not substitute central credentials when native provider validation or
-        // trusted launcher configuration fails. The namespace-isolated proxy has its own explicit
-        // delegation path for ConfigMap availability failures.
-        const status = error instanceof LauncherConfigValidationError ? 400 : 500;
-        sendArtifactError(
-          res,
-          status,
-          `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
-        );
-        return;
-      }
-    }
-
-    // Preserve legacy single-user store_session_info links only when trusted launcher
-    // configuration does not select a provider. Authenticated and proxied requests never
-    // accept browser-supplied provider authority.
-    if (!options.auth.enabled && !resolvedProviderInfo) {
-      resolvedProviderInfo = providerInfo;
-    }
-
-    let effectiveProviderInfo: string;
-    try {
-      effectiveProviderInfo = allowProviderSecrets
-        ? resolvedProviderInfo
-        : retainDestinationSafeProviderInfo(resolvedProviderInfo);
-    } catch (error) {
-      if (error instanceof NamespaceIsolatedProviderRequiredError) {
-        sendArtifactError(
-          res,
-          400,
-          `${error.message} Enable the namespace-isolated artifact proxy and retry the request.`,
-        );
-        return;
-      }
-      sendArtifactError(
-        res,
-        400,
-        `Invalid artifact provider configuration. Correct it and retry: ${error}`,
+    if (!allowProviderSecrets && providerInfo) {
+      console.warn(
+        `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
+          `only be read from the server namespace; falling back to environment credentials.`,
       );
     }
     const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
 
-    const retryAbortController = new AbortController();
-    const storageSignal = contentPreview
-      ? AbortSignal.any([retryAbortController.signal, contentPreview.signal])
-      : retryAbortController.signal;
-    const abortRetry = () => retryAbortController.abort();
-    const cleanupRetryAbort = () => req.removeListener('aborted', abortRetry);
-    if (req.aborted) {
-      retryAbortController.abort();
-    } else {
-      req.once('aborted', abortRetry);
-      res.once('finish', cleanupRetryAbort);
-      res.once('close', () => {
-        if (!res.writableFinished) {
-          retryAbortController.abort();
+    // Provider endpoints are request-controlled. A hostname regex cannot reliably
+    // distinguish a restrictive allowlist from an equivalent allow-all expression,
+    // so this SSRF-sensitive path requires an exact effective-origin match against
+    // the endpoint configured for the selected store.
+    if ((source === 's3' || source === 'minio') && effectiveProviderInfo) {
+      const parsedProviderInfo = parseJSONString<unknown>(effectiveProviderInfo);
+      if (
+        !parsedProviderInfo ||
+        typeof parsedProviderInfo !== 'object' ||
+        Array.isArray(parsedProviderInfo) ||
+        !('Params' in parsedProviderInfo) ||
+        !parsedProviderInfo.Params ||
+        typeof parsedProviderInfo.Params !== 'object' ||
+        Array.isArray(parsedProviderInfo.Params)
+      ) {
+        sendArtifactError(res, 400, 'Invalid artifact store provider info');
+        return;
+      }
+      const providerParams = parsedProviderInfo.Params as Record<string, unknown>;
+      if (providerParams.fromEnv !== 'true' && providerParams.fromEnv !== 'false') {
+        sendArtifactError(res, 400, 'Artifact store fromEnv must be true or false');
+        return;
+      }
+      // fromEnv configurations do not control the endpoint and are ignored by
+      // createMinioClient, so only validate the secret-backed form that can
+      // actually change the outbound destination.
+      if (providerParams.fromEnv === 'false') {
+        const providerEndpoint = providerParams.endpoint;
+        if (providerEndpoint !== undefined && typeof providerEndpoint !== 'string') {
+          sendArtifactError(res, 400, 'Artifact store endpoint must be a string');
+          return;
         }
         const disableSSL = providerParams.disableSSL;
         if (disableSSL !== undefined && typeof disableSSL !== 'string') {
@@ -847,87 +676,87 @@ export function getArtifactsHandler({
       }
     }
 
+    if (contentPreview) {
+      const openPreviewObject: ArtifactPreviewObjectOpener = async (objectKey, signal) => {
+        if (source === 'gcs') {
+          const credentials = await getGCSCredentials(effectiveProviderInfo, namespace);
+          const gcsClient = await waitForArtifactOperation(getGCSClient(credentials), signal);
+          return waitForArtifactOperation(
+            downloadGCSObjectStream({
+              bucket,
+              objectName: objectKey,
+              credentials,
+              client: gcsClient,
+              signal,
+            }),
+            signal,
+            (lateStream) => lateStream.destroy(),
+          );
+        }
+        const storeClient = await waitForArtifactOperation(
+          createMinioClient(
+            source === 'minio' ? minio : aws,
+            source,
+            effectiveProviderInfo,
+            namespace,
+          ),
+          signal,
+        );
+        return waitForArtifactOperation(
+          storeClient.getObject(bucket, objectKey),
+          signal,
+          (lateStream) => lateStream.destroy(),
+        );
+      };
+      await sendArtifactContentPreview(req, res, source, key, openPreviewObject);
+      return;
+    }
+
     let client: MinioClient;
     switch (source) {
       case 'gcs':
         await getGCSArtifactHandler(
-          { bucket, key: objectKey },
+          { bucket, key },
           peek,
           effectiveProviderInfo,
           namespace,
           useParameter || download,
-          contentPreview?.signal,
         )(req, res);
         break;
       case 'minio':
         try {
-          client = await waitForArtifactOperation(
-            createArtifactStoreClient(
-              { minio, s3: aws },
-              'minio',
-              effectiveProviderInfo,
-              namespace,
-              storageSignal,
-              authorizeEndpoint,
-            ),
-            contentPreview?.signal,
-          );
+          client = await createMinioClient(minio, 'minio', effectiveProviderInfo, namespace);
         } catch (e) {
-          contentPreview?.signal.throwIfAborted();
-          sendArtifactError(
-            res,
-            e instanceof ArtifactStoreConfigurationError ? 400 : 500,
-            `Failed to initialize Minio Client for Minio Provider: ${e}`,
-          );
+          sendArtifactError(res, 500, `Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
         }
         await getMinioArtifactHandler(
           {
             bucket,
             client,
-            key: objectKey,
-            signal: storageSignal,
+            key,
             tryExtract: tryExtract && !download,
             onTransformationDetermined: setArtifactFilename,
           },
           peek,
-          !!contentPreview,
         )(req, res);
         break;
       case 's3':
         try {
-          client = await waitForArtifactOperation(
-            createMinioClient(
-              aws,
-              's3',
-              effectiveProviderInfo,
-              namespace,
-              undefined,
-              storageSignal,
-              authorizeEndpoint,
-            ),
-            contentPreview?.signal,
-          );
+          client = await createMinioClient(aws, 's3', effectiveProviderInfo, namespace);
         } catch (e) {
-          contentPreview?.signal.throwIfAborted();
-          sendArtifactError(
-            res,
-            e instanceof ArtifactStoreConfigurationError ? 400 : 500,
-            `Failed to initialize Minio Client for S3 Provider: ${e}`,
-          );
+          sendArtifactError(res, 500, `Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;
         }
         await getMinioArtifactHandler(
           {
             bucket,
             client,
-            key: objectKey,
-            signal: storageSignal,
+            key,
             tryExtract: tryExtract && !download,
             onTransformationDetermined: setArtifactFilename,
           },
           peek,
-          !!contentPreview,
         )(req, res);
         break;
       case 'http':
@@ -1322,32 +1151,8 @@ function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string
   }
 }
 
-function getMinioArtifactHandler(
-  options: MinioRequestConfig,
-  peek: number = 0,
-  contentPreview = false,
-) {
-  return async (req: Request, res: Response) => {
-    if (contentPreview) {
-      const signal = options.signal || new AbortController().signal;
-      try {
-        const stream = await waitForArtifactOperation(
-          options.client.getObject(options.bucket, options.key),
-          signal,
-          (lateStream) => lateStream.destroy(),
-        );
-        res.type('application/json').send(await readArtifactPreviewBytes(stream, signal));
-      } catch (error) {
-        if (isNoSuchKeyError(error)) {
-          throw new ArtifactPreviewError(
-            404,
-            'preview.json is missing. Regenerate the artifact with its preview file.',
-          );
-        }
-        throw error;
-      }
-      return;
-    }
+function getMinioArtifactHandler(options: MinioRequestConfig, peek: number = 0) {
+  return async (_: Request, res: Response) => {
     let handlingError = false;
     const handleObjectFailure = async (err: unknown) => {
       if (handlingError) {
@@ -1547,19 +1352,16 @@ export async function streamDirectoryAsTarGz(
 }
 
 /**
- * Wait for one artifact operation while sharing a request or archive lifecycle
- * signal. The listener is explicitly removed when the operation
+ * Wait for one bounded artifact operation while sharing a single archive
+ * lifecycle signal. The listener is explicitly removed when the operation
  * settles so a large directory cannot retain one archive-lifetime promise
  * reaction per object.
  */
 export function waitForArtifactOperation<T>(
   operation: Promise<T>,
-  signal?: AbortSignal,
+  signal: AbortSignal,
   onLateSuccess?: (value: T) => void,
 ): Promise<T> {
-  if (!signal) {
-    return operation;
-  }
   return new Promise<T>((resolve, reject) => {
     let settled = false;
     const cleanup = () => signal.removeEventListener('abort', rejectOnAbort);
@@ -1712,6 +1514,24 @@ async function parseGCSProviderInfo(
   }
 }
 
+/** Resolves explicit GCS secret credentials, or undefined for the server's own identity. */
+async function getGCSCredentials(
+  providerInfoString?: string,
+  namespace?: string,
+): Promise<CredentialBody | undefined> {
+  if (!providerInfoString) {
+    return undefined;
+  }
+  const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
+  if (!providerInfo || providerInfo.Params.fromEnv !== 'false') {
+    return undefined;
+  }
+  if (!namespace) {
+    throw new Error('Failed to parse provider info. Reason: No namespace provided');
+  }
+  return parseGCSProviderInfo(providerInfo, namespace);
+}
+
 async function readGCSObject(
   bucket: string,
   objectName: string,
@@ -1732,7 +1552,6 @@ function getGCSArtifactHandler(
   providerInfoString?: string,
   namespace?: string,
   isDownloadRoute: boolean = false,
-  previewSignal?: AbortSignal,
 ) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
@@ -1749,10 +1568,7 @@ function getGCSArtifactHandler(
             );
             return;
           } else {
-            credentials = await waitForArtifactOperation(
-              parseGCSProviderInfo(providerInfo, namespace),
-              previewSignal,
-            );
+            credentials = await parseGCSProviderInfo(providerInfo, namespace);
           }
         }
       }
@@ -1762,27 +1578,7 @@ function getGCSArtifactHandler(
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const client = anonymous
-        ? undefined
-        : await waitForArtifactOperation(getGCSClient(credentials, universeDomain), previewSignal);
-      const universeOptions = { universeDomain };
-      const accessOptions = anonymous
-        ? { anonymous: true, ...universeOptions }
-        : { client, credentials, ...universeOptions };
-      if (previewSignal) {
-        const stream = await waitForArtifactOperation(
-          downloadGCSObjectStream({
-            ...accessOptions,
-            bucket,
-            objectName: key,
-            signal: previewSignal,
-          }),
-          previewSignal,
-          (lateStream) => lateStream.destroy(),
-        );
-        res.type('application/json').send(await readArtifactPreviewBytes(stream, previewSignal));
-        return;
-      }
+      const client = await getGCSClient(credentials);
       const matchingFiles = (
         await listGCSObjectNames({
           bucket,
@@ -1840,29 +1636,6 @@ function getGCSArtifactHandler(
       }
       res.type('text/plain').send(contents);
     } catch (err) {
-      if (previewSignal) {
-        if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
-          throw new ArtifactPreviewError(
-            404,
-            'preview.json is missing. Regenerate the artifact with its preview file.',
-          );
-        }
-        if (
-          err &&
-          typeof err === 'object' &&
-          'response' in err &&
-          err.response &&
-          typeof err.response === 'object' &&
-          'status' in err.response &&
-          err.response.status === 404
-        ) {
-          throw new ArtifactPreviewError(
-            404,
-            'preview.json is missing. Regenerate the artifact with its preview file.',
-          );
-        }
-        throw err;
-      }
       sendArtifactError(res, 500, 'Failed to download GCS file(s). Error: ' + err);
     }
   };

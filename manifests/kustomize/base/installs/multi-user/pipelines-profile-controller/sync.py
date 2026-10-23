@@ -37,14 +37,10 @@ def _normalize_domain(domain):
     return domain if domain.startswith('.') else '.' + domain
 
 
-def artifact_server_environment(
-    namespace,
-    cluster_domain,
-    allowed_artifact_endpoints,
-    allowed_gcs_universe_domains='googleapis.com',
-    http_base_url='',
-    user_id_header: str | None = None,
-):
+def artifact_server_environment(namespace,
+                                cluster_domain,
+                                allowed_artifact_endpoints,
+                                http_base_url=""):
     return [
         {
             "name": "MINIO_ACCESS_KEY",
@@ -68,16 +64,6 @@ def artifact_server_environment(
             "name": "ML_PIPELINE_SERVICE_HOST",
             "value": f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
         },
-        *(
-            [
-                {
-                    'name': 'KUBEFLOW_USERID_HEADER',
-                    'value': user_id_header,
-                }
-            ]
-            if user_id_header is not None
-            else []
-        ),
         {
             "name": "ML_PIPELINE_SERVICE_PORT",
             "value": "8888"
@@ -101,8 +87,8 @@ def artifact_server_environment(
         # The shared UI server limits each user before proxying. With auth
         # disabled here, a second limit would key every user by its address.
         {
-            'name': 'ARTIFACTS_RATE_LIMIT_DISABLED',
-            'value': 'true',
+            "name": "ARTIFACTS_RATE_LIMIT_DISABLED",
+            "value": "true",
         },
     ]
 
@@ -125,21 +111,16 @@ def main():
     server.serve_forever()
 
 
-def get_settings_from_env(
-    controller_port=None,
-    frontend_image=None,
-    frontend_tag=None,
-    disable_istio_sidecar=None,
-    artifacts_proxy_enabled=None,
-    allowed_artifact_endpoints=None,
-    allowed_gcs_universe_domains=None,
-    artifact_retention_days=None,
-    cluster_domain=None,
-    object_store_host=None,
-    http_base_url=None,
-    driver_agent_ca_cert_path=None,
-    user_id_header: str | None = None,
-):
+def get_settings_from_env(controller_port=None,
+                          frontend_image=None,
+                          frontend_tag=None,
+                          disable_istio_sidecar=None,
+                          artifacts_proxy_enabled=None,
+                          allowed_artifact_endpoints=None,
+                          artifact_retention_days=None,
+                          cluster_domain=None,
+                          object_store_host=None,
+                          http_base_url=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -185,12 +166,6 @@ def get_settings_from_env(
         object_store_host or \
         os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
 
-    settings['user_id_header'] = (
-        user_id_header
-        if user_id_header is not None
-        else os.environ.get('USERID_HEADER')
-    )
-
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -206,22 +181,17 @@ def get_settings_from_env(
     return settings
 
 
-def server_factory(
-    frontend_image,
-    frontend_tag,
-    disable_istio_sidecar,
-    artifacts_proxy_enabled,
-    artifact_retention_days,
-    allowed_artifact_endpoints='',
-    cluster_domain='.svc.cluster.local',
-    object_store_host='seaweedfs',
-    allowed_gcs_universe_domains='googleapis.com',
-    url='',
-    controller_port=8080,
-    http_base_url='',
-    driver_agent_ca_cert_path='',
-    user_id_header: str | None = None,
-):
+def server_factory(frontend_image,
+                   frontend_tag,
+                   disable_istio_sidecar,
+                   artifacts_proxy_enabled,
+                   artifact_retention_days,
+                   allowed_artifact_endpoints="",
+                   cluster_domain=".svc.cluster.local",
+                   object_store_host="seaweedfs",
+                   url="",
+                   controller_port=8080,
+                   http_base_url=""):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
@@ -487,106 +457,9 @@ def server_factory(
                 },
             ]
 
-            executor_plugin_resources = self.executor_plugin_resources(
-                namespace
-            )
-            desired_resources.extend(executor_plugin_resources)
-            if driver_agent_ca_secret:
-                desired_resources.append(driver_agent_ca_secret)
-
-            if artifacts_proxy_enabled.lower() == 'true':
-                desired_resources.extend(
-                    [
-                        {
-                            'apiVersion': 'apps/v1',
-                            'kind': 'Deployment',
-                            'metadata': {
-                                'labels': {'app': 'ml-pipeline-ui-artifact'},
-                                'name': 'ml-pipeline-ui-artifact',
-                                'namespace': namespace,
-                            },
-                            'spec': {
-                                'selector': {
-                                    'matchLabels': {
-                                        'app': 'ml-pipeline-ui-artifact'
-                                    }
-                                },
-                                'template': {
-                                    'metadata': {
-                                        'labels': {
-                                            'app': 'ml-pipeline-ui-artifact'
-                                        },
-                                        'annotations': {
-                                            **(
-                                                {
-                                                    'sidecar.istio.io/inject': 'false'
-                                                }
-                                                if disable_istio_sidecar
-                                                else {}
-                                            ),
-                                            'kubeflow-pipelines/image-spec-hash': hashlib.sha256(
-                                                f'{frontend_image}:{frontend_tag}'.encode()
-                                            ).hexdigest()[:16],
-                                        },
-                                    },
-                                    'spec': {
-                                        'containers': [
-                                            {
-                                                'name': 'ml-pipeline-ui-artifact',
-                                                'image': f'{frontend_image}:{frontend_tag}',
-                                                'imagePullPolicy': 'IfNotPresent',
-                                                'ports': [
-                                                    {'containerPort': 3000}
-                                                ],
-                                                'env': artifact_server_environment(
-                                                    namespace,
-                                                    cluster_domain,
-                                                    allowed_artifact_endpoints,
-                                                    allowed_gcs_universe_domains,
-                                                    http_base_url,
-                                                    user_id_header,
-                                                ),
-                                                'resources': {
-                                                    'requests': {
-                                                        'cpu': '10m',
-                                                        'memory': '70Mi',
-                                                    },
-                                                    'limits': {
-                                                        'cpu': '100m',
-                                                        'memory': '500Mi',
-                                                    },
-                                                },
-                                            }
-                                        ],
-                                        'serviceAccountName': 'default-editor',
-                                    },
-                                },
-                            },
-                        },
-                        {
-                            'apiVersion': 'v1',
-                            'kind': 'Service',
-                            'metadata': {
-                                'name': 'ml-pipeline-ui-artifact',
-                                'namespace': namespace,
-                                'labels': {'app': 'ml-pipeline-ui-artifact'},
-                            },
-                            'spec': {
-                                'ports': [
-                                    {
-                                        'name': 'http',  # name is required to let istio understand request protocol
-                                        'port': 80,
-                                        'protocol': 'TCP',
-                                        'targetPort': 3000,
-                                    }
-                                ],
-                                'selector': {'app': 'ml-pipeline-ui-artifact'},
-                            },
-                        },
-                    ]
-                )
-            desired_resources.extend(
-                [
+            # Add artifact fetcher related resources if enabled
+            if artifacts_proxy_enabled.lower() == "true":
+                desired_resources.extend([
                     {
                         "apiVersion": "apps/v1",
                         "kind": "Deployment",

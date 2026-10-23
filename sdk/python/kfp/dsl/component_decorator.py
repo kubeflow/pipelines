@@ -35,9 +35,8 @@ def component(
     use_venv: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
     embedded_artifact_path: Optional[str] = None,
-    task_config_passthroughs: Optional[
-        List[Union[TaskConfigPassthrough, TaskConfigField]]
-    ] = None,
+    task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
+                                                  TaskConfigField]]] = None,
     artifact_previews: bool = True,
     artifact_preview_rows: bool = True,
 ):
@@ -178,8 +177,7 @@ def component(
             additional_funcs=additional_funcs,
             artifact_previews=artifact_previews,
             artifact_preview_rows=artifact_preview_rows,
-            task_config_passthroughs=task_config_passthroughs_formatted,
-        )
+            task_config_passthroughs=task_config_passthroughs_formatted)
 
     return component_factory.create_component_from_func(
         func,
@@ -196,5 +194,4 @@ def component(
         additional_funcs=additional_funcs,
         artifact_previews=artifact_previews,
         artifact_preview_rows=artifact_preview_rows,
-        task_config_passthroughs=task_config_passthroughs_formatted,
-    )
+        task_config_passthroughs=task_config_passthroughs_formatted)

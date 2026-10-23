@@ -7,6 +7,38 @@ customizations are available for more advanced usage.
 When deploying Kubeflow Pipelines servers, you can pass various environment variables
 to customize the behavior of servers.
 
+## Run retention and index preparation
+
+Retention is disabled unless `RUNS_RETENTION_TIME` (archive) or
+`ARCHIVED_RUNS_RETENTION_TIME` (delete) is configured. When enabled, the API server
+prepares the required database indexes in the background before collection;
+API startup does not wait for these builds. If retention was already configured
+but paused because indexes were missing, upgrading can now start preparation and
+subsequent archival/deletion automatically. Use prepare-only across all replicas
+to review that backlog before allowing catch-up.
+
+| Setting | Default | Behavior |
+| --- | --- | --- |
+| `RUNS_GC_INDEX_BUILD_TIMEOUT` | `12h` | Positive Go duration for each sequential online build attempt; metadata-lock waits stay bounded at five seconds. Server cleanup may continue after cancellation. |
+| `RUNS_GC_INDEX_PREPARE_ONLY` | `false` | When true, prepare indexes but never archive/delete runs. Works with retention disabled so indexes can be prepared ahead of activation. |
+| `RUNS_GC_INTERVAL` | `6h` | Collection interval; a new leader, completed build or recovery waits a full interval before catch-up. |
+| `RUNS_GC_BATCH_SIZE` | `100` | Maximum rows per existing collection batch; catch-up may drain many batches. |
+
+Use prepare-only consistently across all API replicas and installations sharing
+the database. It cannot pause an old leader before its configuration is updated.
+For first adoption, leave retention disabled, prepare the indexes, then enable
+the desired windows and clear prepare-only when ready for catch-up. Invalid
+prepare-only/timeout values fail configuration validation.
+
+Build failures pause GC, not API availability, and retry with bounded backoff.
+Interrupted PostgreSQL builds with the exact managed index definition recover
+automatically using concurrent drop/rebuild. Active DDL defers recovery; conflicting
+definitions require inspection. Coordinate manual changes to managed indexes by
+stopping preparation across all replicas first.
+Online DDL can still consume substantial resources and briefly delay writes at
+metadata locks. Review the [preparation and recovery procedure](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#run-garbage-collection-database-migration)
+for capacity planning, PostgreSQL invalid-index recovery and staged activation.
+
 ## Automatic artifact preview generation
 
 Automatic artifact preview generation is **enabled by default** for supported
@@ -30,14 +62,6 @@ only dataset schema with `@dsl.component(artifact_preview_rows=False)`.
 Disabling generation does not remove or hide previously generated, cached,
 imported, or manually written previews, and does not change ordinary artifact
 production, downloads, or access controls.
-
-The profile controller also propagates `pipeline-install-config`'s
-`USERID_HEADER` into namespace artifact servers as `KUBEFLOW_USERID_HEADER`.
-This preserves the shared UI's authenticated identity for preview metadata
-lookups. If the installation key is absent, both services retain their common
-server default. Reload the shared UI's configuration and restart the profile
-controller, then wait for its artifact-server Deployment rollouts after changing
-that installation setting.
 
 See [Dataset and Model previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews)
 for supported formats, pipeline/component privacy settings, and the file contract.

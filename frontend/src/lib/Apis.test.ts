@@ -153,6 +153,23 @@ describe('Apis', () => {
     });
   });
 
+  it('getArtifactContentPreview reads only the preview route without caching', async () => {
+    const spy = fetchSpy('{"version":1}');
+    const controller = new AbortController();
+    expect(
+      await Apis.getArtifactContentPreview({
+        path: { source: StorageService.MINIO, key: 'run/dataset', bucket: 'mlpipeline' },
+        namespace: 'team-a',
+        providerInfo: '{"Provider":"minio"}',
+        signal: controller.signal,
+      }),
+    ).toEqual('{"version":1}');
+    expect(spy).toHaveBeenCalledWith(
+      'artifacts/preview?source=minio&namespace=team-a&providerInfo=%7B%22Provider%22%3A%22minio%22%7D&bucket=mlpipeline&key=run%2Fdataset',
+      { credentials: 'same-origin', signal: controller.signal, cache: 'no-store' },
+    );
+  });
+
   it('buildReadFileUrl', () => {
     expect(
       Apis.buildReadFileUrl({
@@ -167,19 +184,6 @@ describe('Apis', () => {
     ).toEqual(
       'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
     );
-  });
-
-  it('reads a structured preview by artifact ID with cancellation and no browser cache', async () => {
-    const spy = fetchSpy('{"version":1,"kind":"model"}');
-    const signal = new AbortController().signal;
-    expect(await Apis.getArtifactContentPreview('artifact-1', 'team-a', signal)).toContain(
-      '"model"',
-    );
-    expect(spy).toHaveBeenCalledWith('artifacts/artifact-1/preview?namespace=team-a', {
-      signal,
-      cache: 'no-store',
-      credentials: 'same-origin',
-    });
   });
 
   it('buildReadFileUrl for download carries providerInfo', () => {

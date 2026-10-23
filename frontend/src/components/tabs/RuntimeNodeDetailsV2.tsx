@@ -50,6 +50,10 @@ import DetailsTable from 'src/components/DetailsTable';
 import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
+import {
+  ArtifactContentPreview,
+  getArtifactContentPreviewKind,
+} from 'src/components/viewers/ArtifactContentPreview';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import RuntimeInputOutputTab, {
   getArtifactParamList,
@@ -379,6 +383,8 @@ interface ArtifactNodeDetailProps {
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
   const { data } = useArtifactTypes();
+  const artifactTypeName =
+    data && linkedArtifact ? getArtifactTypeName(data, [linkedArtifact])[0] : undefined;
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (
@@ -389,19 +395,32 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
         onSwitch={(tab) => setSelectedTab(tab)}
       />
       <div className={padding(20)}>
-        <div hidden={selectedTab !== 0}>
-          <ArtifactInfo task={task} artifactGroup={artifactGroup} namespace={namespace} />
-        </div>
-        {(selectedTab === 1 || hasOpenedVisualization) && (
-          <div hidden={selectedTab !== 1}>
-            <RuntimeMetricsVisualizations
-              artifacts={artifacts}
-              active={selectedTab === 1}
-              artifactKey={artifactGroup.artifact_key}
-              namespace={namespace}
-              sourceFinished={sourceFinished || isTaskFinished(task.state)}
-            />
-          </div>
+        {/* Artifact Info tab */}
+        {selectedTab === 0 && (
+          <ArtifactInfo
+            execution={execution}
+            artifactTypes={data}
+            linkedArtifact={linkedArtifact}
+            namespace={namespace}
+          ></ArtifactInfo>
+        )}
+
+        {/* Visualization tab */}
+        {selectedTab === 1 && linkedArtifact && getArtifactContentPreviewKind(artifactTypeName) && (
+          <ArtifactContentPreview
+            artifact={linkedArtifact.artifact}
+            artifactTypeName={artifactTypeName}
+            namespace={namespace}
+            providerInfo={getStoreSessionInfoFromArtifact(linkedArtifact)}
+          />
+        )}
+        {selectedTab === 1 && execution && !getArtifactContentPreviewKind(artifactTypeName) && (
+          <MetricsVisualizations
+            linkedArtifacts={linkedArtifact ? [linkedArtifact] : []}
+            artifactTypes={data ? data : []}
+            execution={execution}
+            namespace={namespace}
+          />
         )}
       </div>
     </div>

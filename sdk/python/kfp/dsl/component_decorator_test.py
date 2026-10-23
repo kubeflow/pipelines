@@ -17,8 +17,11 @@ import tempfile
 from typing import Dict, List, NamedTuple
 import unittest
 
-from kfp import compiler, components, dsl
-from kfp.dsl import python_component, structures
+from kfp import compiler
+from kfp import components
+from kfp import dsl
+from kfp.dsl import python_component
+from kfp.dsl import structures
 from kfp.dsl.component_decorator import component
 
 
@@ -72,22 +75,17 @@ class TestComponentDecorator(unittest.TestCase):
                         'tensorflow' in concat_command)
 
     def test_default_artifact_previews_do_not_require_extra_executor_arguments(
-        self,
-    ):
+            self):
 
         @component(base_image='python:3.11')
         def produce() -> str:
             return 'unchanged'
 
         self.assertIsNone(produce.component_spec.implementation.container.env)
-        self.assertNotIn(
-            '--artifact_previews',
-            produce.component_spec.implementation.container.args,
-        )
-        self.assertNotIn(
-            '--disable_artifact_previews',
-            produce.component_spec.implementation.container.args,
-        )
+        self.assertNotIn('--artifact_previews',
+                         produce.component_spec.implementation.container.args)
+        self.assertNotIn('--disable_artifact_previews',
+                         produce.component_spec.implementation.container.args)
 
     def test_artifact_preview_schema_only_is_preserved_in_component_spec(self):
 
@@ -95,25 +93,19 @@ class TestComponentDecorator(unittest.TestCase):
         def produce() -> str:
             return 'schema only'
 
-        self.assertNotIn(
-            '--disable_artifact_previews',
-            produce.component_spec.implementation.container.args,
-        )
-        self.assertIn(
-            '--artifact_preview_schema_only',
-            produce.component_spec.implementation.container.args,
-        )
+        self.assertNotIn('--disable_artifact_previews',
+                         produce.component_spec.implementation.container.args)
+        self.assertIn('--artifact_preview_schema_only',
+                      produce.component_spec.implementation.container.args)
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'component.yaml')
             produce.component_spec.save_to_component_yaml(path)
             with open(path) as source:
                 loaded = structures.ComponentSpec.from_yaml_documents(
-                    source.read()
-                )
+                    source.read())
             self.assertEqual(
                 loaded.implementation.container.args,
-                produce.component_spec.implementation.container.args,
-            )
+                produce.component_spec.implementation.container.args)
             loaded_component = components.load_component_from_file(path)
 
             @dsl.pipeline
@@ -121,8 +113,7 @@ class TestComponentDecorator(unittest.TestCase):
                 loaded_component()
 
             compiler.Compiler().compile(
-                reloaded_pipeline, os.path.join(directory, 'pipeline.yaml')
-            )
+                reloaded_pipeline, os.path.join(directory, 'pipeline.yaml'))
 
     def test_artifact_preview_opt_out_is_preserved_in_component_spec(self):
 
@@ -138,24 +129,21 @@ class TestComponentDecorator(unittest.TestCase):
             produce.component_spec.save_to_component_yaml(path)
             loaded = components.load_component_from_file(path)
             self.assertEqual(
-                loaded.component_spec.implementation.container.args, args
-            )
+                loaded.component_spec.implementation.container.args, args)
 
             @dsl.pipeline
             def reloaded_pipeline():
                 loaded()
 
             compiler.Compiler().compile(
-                reloaded_pipeline, os.path.join(directory, 'pipeline.yaml')
-            )
+                reloaded_pipeline, os.path.join(directory, 'pipeline.yaml'))
 
     def test_containerized_components_support_automatic_previews(self):
 
         @component(
             base_image='python:3.11',
             target_image='registry.example/component:latest',
-            artifact_previews=True,
-        )
+            artifact_previews=True)
         def produce() -> str:
             return 'preview'
 

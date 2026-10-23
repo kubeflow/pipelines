@@ -18,14 +18,11 @@ import os
 from pathlib import Path
 from typing import List, NamedTuple
 
-from kfp import compiler, dsl
+from kfp import compiler
+from kfp import dsl
 
-_REQUIREMENTS = (
-    Path(__file__)
-    .with_name('requirements.txt')
-    .read_text(encoding='utf-8')
-    .splitlines()
-)
+_REQUIREMENTS = Path(__file__).with_name('requirements.txt').read_text(
+    encoding='utf-8').splitlines()
 _PACKAGES = [line for line in _REQUIREMENTS if not line.startswith('--')]
 _PACKAGE_INDEXES = ['https://pypi.org/simple'] + [
     line.split(maxsplit=1)[1]
@@ -126,26 +123,18 @@ def create_dataframe_artifact(
     }
     if library == 'pandas':
         import pandas as pd
-
         frame = pd.DataFrame(data)
     elif library == 'polars':
         import polars as pl
-
         frame = pl.DataFrame(data)
     else:
         raise ValueError(f'Unsupported dataframe library: {library}')
 
     if file_format in ('arrow', 'arrow-stream'):
-        table = (
-            pa.Table.from_pandas(frame, preserve_index=False)
-            if library == 'pandas'
-            else frame.to_arrow()
-        )
-        writer = (
-            pa.ipc.new_stream
-            if file_format == 'arrow-stream'
-            else pa.ipc.new_file
-        )
+        table = pa.Table.from_pandas(
+            frame,
+            preserve_index=False) if library == 'pandas' else frame.to_arrow()
+        writer = pa.ipc.new_stream if file_format == 'arrow-stream' else pa.ipc.new_file
         with pa.OSFile(str(directory / 'data.arrow'), 'wb') as output:
             with writer(output, table.schema) as stream:
                 stream.write_table(table, max_chunksize=8)
@@ -165,26 +154,20 @@ def create_dataframe_artifact(
         else:
             frame.write_ipc(directory / 'data.feather', compression='lz4')
     elif file_format in ('json', 'jsonl', 'json-columns', 'json-split'):
-        path = directory / (
-            'data.jsonl' if file_format == 'jsonl' else 'data.json'
-        )
+        path = directory / ('data.jsonl'
+                            if file_format == 'jsonl' else 'data.json')
         if library == 'pandas':
-            orientation = (
-                file_format.removeprefix('json-')
-                if '-' in file_format
-                else 'records'
-            )
+            orientation = file_format.removeprefix(
+                'json-') if '-' in file_format else 'records'
             frame.to_json(
-                path, orient=orientation, lines=file_format == 'jsonl'
-            )
+                path, orient=orientation, lines=file_format == 'jsonl')
         elif file_format == 'json':
             frame.write_json(path)
         elif file_format == 'jsonl':
             frame.write_ndjson(path)
         else:
             raise ValueError(
-                'Columns/split JSON is a Pandas format in this sample.'
-            )
+                'Columns/split JSON is a Pandas format in this sample.')
     else:
         raise ValueError(f'Unsupported dataframe format: {file_format}')
     dataset.metadata['dataframe_library'] = library
@@ -220,26 +203,25 @@ def create_model_artifact(
     torch.set_num_threads(1)
     if framework == 'pytorch':
         network = torch.nn.Sequential(
-            torch.nn.Linear(4, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2)
-        )
+            torch.nn.Linear(4, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2))
         network.eval()
         if serialization == 'state_dict':
             torch.save(network.state_dict(), directory / 'model.pt')
         elif serialization == 'checkpoint':
-            torch.save(
-                {'model_state_dict': network.state_dict(), 'epoch': 0},
-                directory / 'model.pt',
-            )
+            torch.save({
+                'model_state_dict': network.state_dict(),
+                'epoch': 0
+            }, directory / 'model.pt')
         elif serialization == 'module':
             torch.save(network, directory / 'model.pt')
         elif serialization == 'torchscript':
             torch.jit.save(torch.jit.script(network), directory / 'model.pt')
         else:
             raise ValueError(
-                f'Unsupported PyTorch serialization: {serialization}'
-            )
+                f'Unsupported PyTorch serialization: {serialization}')
     elif framework == 'transformers':
-        from transformers import BertConfig, BertForSequenceClassification
+        from transformers import BertConfig
+        from transformers import BertForSequenceClassification
 
         configuration = BertConfig(
             vocab_size=32,
@@ -248,8 +230,7 @@ def create_model_artifact(
             num_attention_heads=2,
             intermediate_size=32,
             max_position_embeddings=32,
-            num_labels=2,
-        )
+            num_labels=2)
         network = BertForSequenceClassification(configuration)
         network.eval()
         network.save_pretrained(directory)
@@ -266,62 +247,46 @@ def artifact_preview_pipeline() -> None:
 
 @dsl.pipeline(
     name='artifact-previews-disabled',
-    pipeline_config=dsl.PipelineConfig(artifact_previews=False),
-)
+    pipeline_config=dsl.PipelineConfig(artifact_previews=False))
 def artifact_preview_disabled_pipeline() -> None:
     """Write the same native artifacts without generating previews."""
     create_preview_artifacts()
 
 
 @dsl.pipeline(name='artifact-preview-lists')
-def artifact_preview_list_pipeline() -> NamedTuple(
-    'Outputs', [('datasets', List[dsl.Dataset]), ('models', List[dsl.Model])]
-):
+def artifact_preview_list_pipeline() -> NamedTuple('Outputs', [(
+    'datasets', List[dsl.Dataset]), ('models', List[dsl.Model])]):
     """Collect artifact references while retaining each member's own
     preview."""
     with dsl.ParallelFor([42, 43], parallelism=1) as seed:
         task = create_preview_artifacts(seed=seed)
-    outputs = NamedTuple(
-        'Outputs',
-        [('datasets', List[dsl.Dataset]), ('models', List[dsl.Model])],
-    )
+    outputs = NamedTuple('Outputs', [('datasets', List[dsl.Dataset]),
+                                     ('models', List[dsl.Model])])
     return outputs(
         dsl.Collected(task.outputs['dataset']),
-        dsl.Collected(task.outputs['model']),
-    )
+        dsl.Collected(task.outputs['model']))
 
 
 @dsl.pipeline(name='artifact-preview-formats')
-def artifact_preview_formats_pipeline() -> NamedTuple(
-    'Outputs',
-    [('dataframes', List[dsl.Dataset]), ('pytorch_models', List[dsl.Model])],
-):
+def artifact_preview_formats_pipeline() -> NamedTuple('Outputs', [(
+    'dataframes', List[dsl.Dataset]), ('pytorch_models', List[dsl.Model])]):
     """Exercise file formats and per-member previews without extra preview
     tasks."""
     with dsl.ParallelFor(
-        ['parquet', 'csv', 'json', 'jsonl', 'arrow', 'feather'], parallelism=1
-    ) as file_format:
+        ['parquet', 'csv', 'json', 'jsonl', 'arrow', 'feather'],
+            parallelism=1) as file_format:
         dataframe = create_dataframe_artifact(
-            library='polars', file_format=file_format
-        )
-    with dsl.ParallelFor(
-        ['state_dict', 'checkpoint', 'module', 'torchscript'], parallelism=1
-    ) as serialization:
+            library='polars', file_format=file_format)
+    with dsl.ParallelFor(['state_dict', 'checkpoint', 'module', 'torchscript'],
+                         parallelism=1) as serialization:
         pytorch_model = create_model_artifact(serialization=serialization)
     create_model_artifact(framework='transformers')
-    outputs = NamedTuple(
-        'Outputs',
-        [
-            ('dataframes', List[dsl.Dataset]),
-            ('pytorch_models', List[dsl.Model]),
-        ],
-    )
+    outputs = NamedTuple('Outputs', [('dataframes', List[dsl.Dataset]),
+                                     ('pytorch_models', List[dsl.Model])])
     return outputs(
-        dsl.Collected(dataframe.output), dsl.Collected(pytorch_model.output)
-    )
+        dsl.Collected(dataframe.output), dsl.Collected(pytorch_model.output))
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        artifact_preview_pipeline, package_path='artifact_previews.yaml'
-    )
+        artifact_preview_pipeline, package_path='artifact_previews.yaml')

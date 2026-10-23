@@ -15,41 +15,41 @@
 import { getEventListeners } from 'events';
 import { PassThrough, Readable } from 'stream';
 import { describe, expect, it } from 'vitest';
-import { buildArtifactCoordinateUri } from './artifact-coordinates.js';
 import {
+  getPreviewObjectKey,
   MAX_ARTIFACT_PREVIEW_BYTES,
-  parsePreviewParentUri,
   readArtifactPreviewBytes,
 } from './artifact-preview.js';
 
-describe('preview parent identity', () => {
+describe('preview object key', () => {
   it.each([
-    's3://bucket/private-artifacts/team-a/run/dataset',
-    'minio://bucket/private-artifacts/team-a/run/dataset/',
-    'gs://bucket/private-artifacts/team-a/with%20space?anonymous=true',
-    's3://bucket/private-artifacts/team-a/%E2%82%AC/100%25?region=us-west-1',
-    's3://bucket/%70rivate-artifacts/team-a/output',
-  ])('preserves the exact registered identity: %s', (uri) => {
-    expect(buildArtifactCoordinateUri(parsePreviewParentUri(uri))).toBe(uri);
+    ['s3', 'private-artifacts/team-a/run/dataset'],
+    ['minio', 'v2/artifacts/pipeline/run/task/dataset/'],
+    ['gcs', 'root/with space/model'],
+  ])('reads only preview.json beneath the %s parent %s', (source, key) => {
+    expect(getPreviewObjectKey(source, key)).toBe(`${key.replace(/\/$/, '')}/preview.json`);
   });
 
   it.each([
-    's3://bucket/',
-    's3://bucket/parent//',
-    's3://bucket/parent/../another',
-    's3://bucket/parent/%2e%2e/another',
-    's3://bucket/parent/%2Fanother',
-    's3://bucket/parent/%26another',
-    's3://bucket/parent/%3Fanother',
-    's3://bucket/parent/%',
-    's3://bucket/parent/%2a',
-    's3://bucket/parent?',
-    's3://bucket/parent#fragment',
-    'https://example.com/parent',
-    'volume://pvc/parent',
-    'oci://registry/model',
-  ])('rejects unsupported or ambiguous parent paths: %s', (uri) => {
-    expect(() => parsePreviewParentUri(uri)).toThrow();
+    ['s3', ''],
+    ['s3', '/'],
+    ['s3', 'parent//'],
+    ['s3', 'parent//child'],
+    ['s3', '/parent'],
+    ['s3', 'parent/../another'],
+    ['s3', 'parent/./child'],
+    ['s3', 'parent/*'],
+    ['s3', 'a'.repeat(1024 - 'preview.json'.length)],
+    ['http', 'parent'],
+    ['https', 'parent'],
+    ['volume', 'parent'],
+  ])('rejects unsupported or ambiguous %s parent %s', (source, key) => {
+    expect(() => getPreviewObjectKey(source, key)).toThrow();
+  });
+
+  it('accepts the longest parent whose preview key fits the object-key limit', () => {
+    const key = 'a'.repeat(1024 - '/preview.json'.length);
+    expect(getPreviewObjectKey('s3', key)).toHaveLength(1024);
   });
 });
 
