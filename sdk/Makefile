@@ -38,7 +38,7 @@ ifeq ($(USE_PREBUILT_IMAGE),true)
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
-			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+			/go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build --out-dir dist .'
 else
 	$(MAKE) python-from-source
 endif
@@ -52,7 +52,7 @@ python-from-source: ensure-api-generator-image
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(IMAGE_TAG) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
-			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+			/go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build --out-dir dist .'
 
 .PHONY: clean-python
 clean-python:

@@ -31,6 +31,7 @@ IMAGE_TAG=kfp-api-generator
 # applies to `make python` and make pythone-dev` commands.
 # e.g. make python USE_FIND_LINKS=true FIND_LINKS_PATH="path1 path2 ..."
 FIND_LINKS_PATH := /go/src/github.com/kubeflow/pipelines/sdk/python/dist /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/dist /go/src/github.com/kubeflow/pipelines/backend/api/v2beta1/python_http_client/dist
+UV_FIND_LINKS_FLAGS = $(if $(filter true,$(USE_FIND_LINKS)),$(foreach path,$(FIND_LINKS_PATH),--find-links "$(path)"))
 
 .PHONY: all
 all: golang python
@@ -78,13 +79,11 @@ ifeq ($(USE_PREBUILT_IMAGE),true)
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
-		$(if $(USE_FIND_LINKS),-e PIP_FIND_LINKS="$(FIND_LINKS_PATH)") \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
 		    python3 generate_proto.py && \
-		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    /go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build $(UV_FIND_LINKS_FLAGS) --out-dir dist .'
 else
 	$(MAKE) python-from-source
 endif
@@ -95,13 +94,11 @@ python-from-source: ensure-api-generator-image proto/kubernetes_executor_config.
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
-		$(if $(USE_FIND_LINKS),-e PIP_FIND_LINKS="$(FIND_LINKS_PATH)") \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(IMAGE_TAG) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
 		    python3 generate_proto.py && \
-		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    /go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build $(UV_FIND_LINKS_FLAGS) --out-dir dist .'
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
