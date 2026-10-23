@@ -2613,6 +2613,7 @@ module.exports = {
   extractRunBinding,
   field,
   semanticManifestForRevision,
+  validateDriverLogGroups,
   validateCombinedSemanticManifest,
   validateRevisionSemanticManifest,
 };

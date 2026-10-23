@@ -1007,6 +1007,91 @@ test('legacy catalogs cover every MLMD execution and pair executor-log attempts 
   assert.equal(evidence.totalReplacementCount, 2);
 });
 
+test('driver-log identifiers use shared strict validation through native capture catalogs', () => {
+  const manifest = strictSemanticFixtureManifest();
+  for (const [runKey, run] of Object.entries(manifest.deployments.head.bindings.runs)) {
+    for (const [taskKey, instances] of Object.entries(run.taskInstances)) {
+      for (const [index, instance] of instances.entries()) {
+        instance.artifactReferences ||= { inputs: [], outputs: [] };
+        instance.artifactReferences.outputs.push({
+          key: 'driver-logs',
+          artifacts: [
+            {
+              artifactId: `driver-${runKey}-${taskKey}-${index}`,
+              name: 'driver-logs',
+              type: 'Artifact',
+              uri: `s3://fixtures/${runKey}/${taskKey}/${index}/driver/6f0ad7be-0cb6-4a8e-a8ef-524e56c01ce4-logs`,
+            },
+          ],
+        });
+      }
+    }
+  }
+  validateCombinedSemanticManifest(manifest);
+  const catalog = capture.buildSemanticIdentifierCatalog(manifest, 'head');
+  assert.ok(catalog.some((entry) => entry.semanticId.endsWith('/artifact.driver-logs[0]/uri')));
+  const original = capture.buildSemanticIdentifierCatalog(strictSemanticFixtureManifest(), 'head');
+  assert.deepEqual(
+    catalog.filter((entry) => !entry.semanticId.includes('/artifact.driver-logs[')),
+    original,
+  );
+  for (const mutation of ['type', 'uri', 'collision', 'input', 'legacy']) {
+    const invalid = structuredClone(manifest);
+    const run = invalid.deployments.head.bindings.runs['run.training-1'];
+    const refs = run.taskInstances['task.write-metrics'][0].artifactReferences;
+    const group = refs.outputs.find((entry) => entry.key === 'driver-logs');
+    if (mutation === 'type') group.artifacts[0].type = 'Dataset';
+    if (mutation === 'uri') group.artifacts[0].uri = 's3://fixtures/user-output';
+    if (mutation === 'collision')
+      group.artifacts[0].artifactId = run.artifacts['artifact.html-report'].records[0].artifactId;
+    if (mutation === 'input') {
+      refs.inputs.push(group);
+      refs.outputs = refs.outputs.filter((entry) => entry !== group);
+    }
+    if (mutation === 'legacy')
+      invalid.deployments.base.bindings.runs['run.training-1'].taskInstances[
+        'task.write-metrics'
+      ][0].artifactReferences = refs;
+    assert.throws(
+      () =>
+        capture.buildSemanticIdentifierCatalog(invalid, mutation === 'legacy' ? 'base' : 'head'),
+      undefined,
+      mutation,
+    );
+  }
+});
+
+test('native shared driver pods have resource identities without collapsing tasks or executors', () => {
+  const manifest = strictSemanticFixtureManifest();
+  const run = manifest.deployments.head.bindings.runs['run.training-1'];
+  const tasks = [
+    run.taskInstances['task.write-metrics'][0],
+    run.taskInstances['task.consume-metrics'][0],
+  ];
+  for (const task of tasks) {
+    task.podBindings = [{ type: 'DRIVER', name: 'shared-agent', uid: 'shared-agent-uid' }];
+  }
+  const catalog = capture.buildSemanticIdentifierCatalog(manifest, 'head');
+  const shared = catalog.filter((entry) => entry.semanticId.includes('/pod.shared-driver['));
+  assert.equal(shared.length, 2);
+  assert.equal(shared.filter((entry) => entry.value === 'shared-agent').length, 1);
+  const taskEntries = catalog.filter((entry) => entry.kind === 'task');
+  assert.equal(new Set(taskEntries.map((entry) => entry.value)).size, taskEntries.length);
+  const inconsistent = structuredClone(manifest);
+  inconsistent.deployments.head.bindings.runs['run.training-1'].taskInstances[
+    'task.consume-metrics'
+  ][0].podBindings[0].uid = 'different-uid';
+  assert.throws(
+    () => capture.buildSemanticIdentifierCatalog(inconsistent, 'head'),
+    /inconsistent UIDs/,
+  );
+  for (const task of tasks) task.podBindings[0].type = 'EXECUTOR';
+  assert.throws(
+    () => capture.buildSemanticIdentifierCatalog(manifest, 'head'),
+    /ambiguously bound/,
+  );
+});
+
 test('semantic identifier catalog rejects task references outside declared artifact bindings', () => {
   const manifest = semanticIdentifierManifest('head', 'head');
   manifest.deployments.head.bindings.runs['run.training-1'].taskInstances[

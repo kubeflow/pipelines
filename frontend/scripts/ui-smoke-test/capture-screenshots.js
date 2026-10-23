@@ -35,6 +35,7 @@ const {
   SEMANTIC_SCHEMA_VERSION,
   TASK_FIXTURES,
   validateRevisionSemanticManifest,
+  validateDriverLogGroups,
 } = require('./semantic-manifest.js');
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -696,6 +697,34 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
       displayLabel: manifest.logical?.resources?.[runKey]?.displayName,
       observedDisplayLabel: run?.displayName,
     });
+    // Native executor-plugin tasks can share one agent pod. Give that observed
+    // resource a run-level identity; task and executor identities remain distinct.
+    const sharedDriverPods = new Map();
+    if (revisionRole === 'head') {
+      const observed = new Map();
+      for (const collection of [run.taskInstances, run.scopeInstances]) {
+        for (const [taskKey, instances] of Object.entries(collection || {}).sort(([a], [b]) =>
+          a.localeCompare(b),
+        )) {
+          for (const [index, instance] of instances.entries()) {
+            for (const pod of instance.podBindings || []) {
+              if (String(pod.type).toLowerCase() !== 'driver' || !pod.name || !pod.uid) continue;
+              const previous = observed.get(pod.name);
+              if (previous && previous.uid !== pod.uid) {
+                throw semanticIdNormalizationError(`Driver pod ${pod.name} has inconsistent UIDs.`);
+              }
+              const consumers = previous?.consumers || new Set();
+              consumers.add(`${taskKey}[${index}]`);
+              observed.set(pod.name, { uid: pod.uid, consumers });
+            }
+          }
+        }
+      }
+      for (const [name, pod] of observed) {
+        if (pod.consumers.size > 1)
+          sharedDriverPods.set(name, `${runKey}/pod.shared-driver[${sharedDriverPods.size}]`);
+      }
+    }
     const taskArtifactReferences = [];
     const runProfile = manifest.logical?.runProfiles?.[run.fixtureProfile];
     if (run.rootTask) {
@@ -794,7 +823,9 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
           }
           const podIndex = podIndexesByRole.get(role) || 0;
           podIndexesByRole.set(role, podIndex + 1);
-          const podSemanticId = `${taskSemanticId}/pod.${role}[${podIndex}]`;
+          const podSemanticId =
+            (role === 'driver' && sharedDriverPods.get(pod.name)) ||
+            `${taskSemanticId}/pod.${role}[${podIndex}]`;
           add('pod', `${podSemanticId}/name`, pod?.name, {
             tokenKind: 'pod',
             tokenSemanticId: `${podSemanticId}/name`,
@@ -851,7 +882,9 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
           }
           const podIndex = podIndexesByRole.get(role) || 0;
           podIndexesByRole.set(role, podIndex + 1);
-          const podSemanticId = `${scopeSemanticId}/pod.${role}[${podIndex}]`;
+          const podSemanticId =
+            (role === 'driver' && sharedDriverPods.get(pod.name)) ||
+            `${scopeSemanticId}/pod.${role}[${podIndex}]`;
           add('pod', `${podSemanticId}/name`, pod?.name, {
             tokenKind: 'pod',
             tokenSemanticId: `${podSemanticId}/name`,
@@ -963,12 +996,36 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
       }
     }
 
+    const driverLogIds = new Set();
+    const driverLogUris = new Set();
     for (const { references, taskKey, taskSemanticId } of taskArtifactReferences) {
+      const acceptsDriverLogs = revisionRole === 'head' && Boolean(TASK_FIXTURES[taskKey]);
+      if (acceptsDriverLogs && Array.isArray(references?.outputs)) {
+        const errors = [];
+        validateDriverLogGroups(
+          `${taskSemanticId}/outputs`,
+          references.outputs,
+          errors,
+          new Set(artifactSemanticIdsByValue.keys()),
+          new Set(
+            identifiers
+              .filter((entry) => entry.kind === 'artifact-uri')
+              .map((entry) => entry.value),
+          ),
+          driverLogIds,
+          driverLogUris,
+        );
+        if (errors.length > 0) {
+          throw semanticIdNormalizationError(errors.join('; '), 'missing_fixture');
+        }
+      }
       let executorLogGroupCount = 0;
       for (const direction of ['outputs', 'inputs']) {
         for (const [groupIndex, group] of (references?.[direction] || []).entries()) {
           const groupKey = semanticIdentifierSegment(group?.key, 'artifact');
           const groupSemanticId = `${taskSemanticId}/${direction}.${groupKey}[${groupIndex}]`;
+          const isNativeDriverLogs =
+            acceptsDriverLogs && direction === 'outputs' && group?.key === 'driver-logs';
           const isNativeExecutorLogs =
             revisionRole === 'head' && direction === 'outputs' && group?.key === 'executor-logs';
           let artifactEntries = (group?.artifacts || []).map((record, artifactIndex) => ({
@@ -1009,6 +1066,12 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
           }
           for (const { artifactIndex, record } of artifactEntries) {
             const rawArtifactId = String(record?.artifactId || '');
+            if (isNativeDriverLogs) {
+              const artifactSemanticId = `${taskSemanticId}/artifact.driver-logs[0]`;
+              add('artifact', artifactSemanticId, rawArtifactId);
+              add('artifact-uri', `${artifactSemanticId}/uri`, record.uri);
+              continue;
+            }
             if (isNativeExecutorLogs) {
               const rawUri = String(record?.uri || '');
               const recordKeys = Object.keys(record || {}).sort();
