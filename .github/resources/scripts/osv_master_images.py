@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Resolve one successful master publication and validate its image records."""
 
 import argparse
@@ -79,7 +78,8 @@ def repository_name(image):
 
 
 def merge_published_images(images, records, source_sha, owner):
-    """Replace only known KFP repositories and include runtime driver/launcher."""
+    """Replace only known KFP repositories and include runtime
+    driver/launcher."""
     refs = image_refs(records, source_sha, 'published')
     repositories = {f'ghcr.io/{owner.lower()}/{name}' for name in IMAGES}
     if {repository_name(ref) for ref in refs.values()} != repositories:

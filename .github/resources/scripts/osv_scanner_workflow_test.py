@@ -31,6 +31,29 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             encoding='utf-8'
         )
 
+    def test_producer_data_never_precedes_executable_steps(self):
+        jobs = yaml.safe_load(self.workflow)['jobs']
+        discovery = jobs['discover-images']['steps']
+        for step in discovery:
+            if step.get('uses', '').startswith('actions/checkout@'):
+                self.assertEqual(
+                    step['with']['ref'], '${{ github.workflow_sha }}'
+                )
+        self.assertTrue(
+            any(
+                'osv_manifest_source.py' in step.get('run', '')
+                for step in discovery
+            )
+        )
+        scan = jobs['scan-images']['steps']
+        producer_index = next(
+            i
+            for i, step in enumerate(scan)
+            if step.get('with', {}).get('path') == 'producer'
+        )
+        self.assertEqual(producer_index, len(scan) - 2)
+        self.assertIn('upload-sarif@', scan[-1]['uses'])
+
     def test_scanner_release_is_pinned_and_checksum_verified(self):
         self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"), 2)
         scanner_checksum = (

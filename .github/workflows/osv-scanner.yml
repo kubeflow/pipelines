@@ -138,13 +138,6 @@ jobs:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
-      - name: Checkout producer manifests
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-        with:
-          ref: ${{ needs.resolve-images.outputs.sha }}
-          path: producer
-          persist-credentials: false
-
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
@@ -180,6 +173,15 @@ jobs:
           path: published-indexes
           merge-multiple: 'true'
           required-files: ${{ steps.image-records.outputs.required-files }}
+
+      - name: Download producer manifests as data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ needs.resolve-images.outputs.sha }}
+        run: |
+          python3 .github/resources/scripts/osv_manifest_source.py \
+            --repository "${REPOSITORY}" --sha "${SOURCE_SHA}" --destination producer
 
       - name: Render manifests and collect images
         id: images
@@ -217,13 +219,6 @@ jobs:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
-      - name: Checkout producer source for scan attribution
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-        with:
-          ref: ${{ needs.discover-images.outputs.sha }}
-          path: producer
-          persist-credentials: false
-
       - name: Install OSV-Scanner
         env:
           OSV_SCANNER_VERSION: '2.5.0'
@@ -259,6 +254,14 @@ jobs:
           python3 .github/resources/scripts/deduplicate_sarif.py \
             --input osv-image-results.sarif \
             --output osv-image-results-deduplicated.sarif
+
+      - name: Checkout producer source for scan attribution
+        if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ needs.discover-images.outputs.sha }}
+          path: producer
+          persist-credentials: false
 
       - name: Upload image results to GitHub Security
         if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''

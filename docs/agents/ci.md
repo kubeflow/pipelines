@@ -232,3 +232,5 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   invoked without `gh`; missing runner dependencies are not publication delays.
 
 - `release-promote-latest.yml` is upstream/master dispatch-only. Its read-only job derives the image matrix from the immutable published release tag commit. The serialized promotion job alone has `packages: write`, rechecks highest stable release eligibility, snapshots every published full index, and copies only `@digest` to `:latest` without builds. It verifies full indexes and unchanged versioned tags and always uploads partial/success evidence. Dispatch through `kfpr promote-latest --version X.Y.Z`; this workflow must first be merged upstream. Test with `PYTHONPATH=release python -m unittest kfpr.promotion_test`.
+
+- OSV image discovery downloads the exact successful producer SHA as a data archive and extracts only regular files under `manifests/`, rejecting traversal and links. Scanner tools remain at `github.workflow_sha`. Image scan attribution checks out the producer only after executable scan steps, immediately before SARIF upload; its git HEAD must match the reported producer SHA.
