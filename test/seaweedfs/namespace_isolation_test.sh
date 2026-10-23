@@ -6,7 +6,8 @@ echo "SeaweedFS Security Test - Namespace Isolation + KServe HeadBucket Check"
 # Requires SeaweedFS >= 4.32 (PR #9792): older builds ignore the s3:prefix
 # condition on ListBucket and leak cross-namespace listings.
 #
-# s3_helper.py exit codes: 0 = ALLOWED, 1 = DENIED/failed.
+# s3_helper.py exit codes: 0 = ALLOWED, 1 = DENIED, 2 = ERROR.
+# An ERROR fails the check, so a broken environment cannot pass a deny check.
 # This script runs ALL checks and reports each, so a single run shows the full
 # picture instead of bailing on the first failure.
 
@@ -20,6 +21,7 @@ CREDENTIAL_POLL_INTERVAL_SECONDS="${CREDENTIAL_POLL_INTERVAL_SECONDS:-5}"
 port_forward_pid=""
 cleanup() {
     [ -n "$port_forward_pid" ] && kill "$port_forward_pid" 2>/dev/null || true
+    rm -rf "$PYTHON_ENVIRONMENT"
     kubectl delete profile test-profile-1 test-profile-2 --ignore-not-found
 }
 create_profiles() {
@@ -104,7 +106,7 @@ run_as() {
     local access_key secret_key
     access_key=$(kubectl get secret -n "$namespace" "$SECRET" -o jsonpath='{.data.accesskey}' | base64 -d)
     secret_key=$(kubectl get secret -n "$namespace" "$SECRET" -o jsonpath='{.data.secretkey}' | base64 -d)
-    python3 "$HELPER" "$1" \
+    "${PYTHON[@]}" "$HELPER" "$1" \
         --access-key "$access_key" --secret-key "$secret_key" \
         --endpoint-url "$ENDPOINT" --bucket "$BUCKET" "${@:2}"
 }
@@ -122,8 +124,17 @@ failures=0
 # check <description> <expected: allow|deny> <run_as args...>
 check() {
     local desc=$1 expect=$2; shift 2
-    local result
-    if run_as "$@"; then result=allow; else result=deny; fi
+    local result status=0
+    run_as "$@" || status=$?
+    case "$status" in
+        0) result=allow ;;
+        1) result=deny ;;
+        *)
+            echo "FAIL [error, exit status $status]: $desc"
+            failures=$((failures + 1))
+            return
+            ;;
+    esac
     if [ "$result" = "$expect" ]; then
         echo "PASS [$result]: $desc"
     else
@@ -136,7 +147,18 @@ main() {
     for cmd in kubectl python3; do
         command -v "$cmd" >/dev/null || { echo "Error: $cmd is required"; exit 1; }
     done
-    python3 -c "import boto3" 2>/dev/null || pip3 install boto3
+    # Run the helper in its own virtual environment, so packages left in the user
+    # site-packages of a persistent runner cannot break or influence the test. If
+    # the venv module is unavailable, ignore the user site-packages and rely on the
+    # system boto3 instead.
+    PYTHON_ENVIRONMENT=$(mktemp -d)
+    if python3 -m venv "$PYTHON_ENVIRONMENT" >/dev/null 2>&1; then
+        "$PYTHON_ENVIRONMENT/bin/python" -m pip install --quiet boto3
+        PYTHON=("$PYTHON_ENVIRONMENT/bin/python")
+    else
+        PYTHON=(python3 -s)
+    fi
+    "${PYTHON[@]}" -c "import boto3" || { echo "Error: boto3 cannot be imported"; exit 1; }
     trap cleanup EXIT
 
     create_profiles
