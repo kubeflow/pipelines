@@ -156,10 +156,9 @@ def _dataset_preview(directory: Path, include_rows: bool) -> dict[str, Any]:
         '.feather'
     }
     candidates = list(
-        itertools.islice(
-            (path for path in directory.iterdir() if
-             path.suffix.lower() in extensions and path.name != 'preview.json'),
-            2))
+        itertools.islice((path for path in directory.iterdir()
+                          if path.suffix.lower() in extensions and
+                          path.name != '_kfp_preview.json'), 2))
     if len(candidates) != 1 or candidates[0].is_symlink(
     ) or not candidates[0].is_file():
         raise PreviewGenerationError(
@@ -935,10 +934,10 @@ class ArtifactPreviewSession:
         if len(content) > MAX_BYTES:
             raise PreviewGenerationError(
                 'Preview exceeds 64 KiB; no preview was published.')
-        destination = directory / 'preview.json'
+        destination = directory / '_kfp_preview.json'
         if destination.exists() or destination.is_symlink():
             raise PreviewGenerationError(
-                'preview.json already exists without a descriptor; it was not overwritten.'
+                '_kfp_preview.json already exists without a descriptor; it was not overwritten.'
             )
         temporary = None
         try:
@@ -952,7 +951,7 @@ class ArtifactPreviewSession:
             temporary.replace(destination)
             artifact.metadata['_kfp_preview'] = {
                 'version': 1,
-                'path': 'preview.json'
+                'path': '_kfp_preview.json'
             }
         finally:
             if temporary is not None and temporary.exists():

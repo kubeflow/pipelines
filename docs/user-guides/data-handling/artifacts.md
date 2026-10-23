@@ -316,7 +316,7 @@ On the [KFP open source][oss-be] UI, `ClassificationMetrics`, `SlicedClassificat
 ### Dataset and Model previews
 
 By default, supported Python components include a small, versioned
-`preview.json` **file** in Dataset and Model output directories. Pipeline and
+`_kfp_preview.json` **file** in Dataset and Model output directories. Pipeline and
 component authors can disable generation as described below. Select that same artifact
 in the run graph and open **Visualization** to view it. On the artifact's own
 details page, select **Show artifact visualization** in Overview.
@@ -337,7 +337,7 @@ into a directory: its consumers must know which data/model file to read.
 
 Automatic generation is **enabled by default**. With a supporting component SDK,
 keep writing the native data/model files normally: the SDK generates
-`preview.json` and its metadata
+`_kfp_preview.json` and its metadata
 descriptor inside that component. No adapter call or hand-written JSON is
 required, and no deployment configuration or explicit opt-in is needed.
 
@@ -389,6 +389,12 @@ opt-out also applies to components loaded from YAML. To change a setting,
 recompile the pipeline and submit the new definition; runs of earlier
 definitions keep their compiled settings. There is no deployment, launcher, or
 environment variable switch.
+
+The sidecar's leading underscore makes PyArrow and pandas directory reads, such
+as `pq.read_table(dataset.path)`, ignore it. Polars directory reads, such as
+`pl.read_parquet(dataset.path)`, reject any non-Parquet file in the directory.
+Have Polars consumers read the data file or a `*.parquet` glob, or disable
+previews for the producing component.
 
 These settings affect generated previews, not native output files. They do not
 remove or hide previously generated, cached, imported, or manually written
@@ -498,11 +504,11 @@ then advertise it in the artifact's metadata:
 ```python
 artifact.metadata['_kfp_preview'] = {
     'version': 1,
-    'path': 'preview.json',
+    'path': '_kfp_preview.json',
 }
 ```
 
-The path must be the literal `preview.json`; external URLs and other paths are
+The path must be the literal `_kfp_preview.json`; external URLs and other paths are
 not accepted. The preview is part of the existing artifact, not a separate HTML
 or metadata artifact. The normal launcher upload copies the directory's files.
 Manually produced and imported directory artifacts can use the same contract.
@@ -511,7 +517,7 @@ same data/model version.
 
 Before setting the metadata, serialize with `json.dumps(..., allow_nan=False)`,
 verify the encoded content fits **64 KiB**, and atomically rename a temporary
-file to `preview.json`. Only the producer decides what to include: the UI does
+file to `_kfp_preview.json`. Only the producer decides what to include: the UI does
 not create or repair previews. Missing files, unsupported versions, invalid
 payloads, and access failures produce a preview error without breaking artifact
 information or downloads.

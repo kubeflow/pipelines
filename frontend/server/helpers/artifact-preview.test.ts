@@ -26,8 +26,8 @@ describe('preview object key', () => {
     ['s3', 'private-artifacts/team-a/run/dataset'],
     ['minio', 'v2/artifacts/pipeline/run/task/dataset/'],
     ['gcs', 'root/with space/model'],
-  ])('reads only preview.json beneath the %s parent %s', (source, key) => {
-    expect(getPreviewObjectKey(source, key)).toBe(`${key.replace(/\/$/, '')}/preview.json`);
+  ])('reads only _kfp_preview.json beneath the %s parent %s', (source, key) => {
+    expect(getPreviewObjectKey(source, key)).toBe(`${key.replace(/\/$/, '')}/_kfp_preview.json`);
   });
 
   it.each([
@@ -39,7 +39,7 @@ describe('preview object key', () => {
     ['s3', 'parent/../another'],
     ['s3', 'parent/./child'],
     ['s3', 'parent/*'],
-    ['s3', 'a'.repeat(1024 - 'preview.json'.length)],
+    ['s3', 'a'.repeat(1024 - '_kfp_preview.json'.length)],
     ['http', 'parent'],
     ['https', 'parent'],
     ['volume', 'parent'],
@@ -48,7 +48,7 @@ describe('preview object key', () => {
   });
 
   it('accepts the longest parent whose preview key fits the object-key limit', () => {
-    const key = 'a'.repeat(1024 - '/preview.json'.length);
+    const key = 'a'.repeat(1024 - '/_kfp_preview.json'.length);
     expect(getPreviewObjectKey('s3', key)).toHaveLength(1024);
   });
 });

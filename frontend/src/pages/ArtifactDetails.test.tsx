@@ -406,7 +406,7 @@ describe('ArtifactDetails', () => {
           .set(
             '_kfp_preview',
             new Value().setStructValue(
-              Struct.fromJavaScript({ struct: { version: 1, path: 'preview.json' } }),
+              Struct.fromJavaScript({ struct: { version: 1, path: '_kfp_preview.json' } }),
             ),
           );
       }

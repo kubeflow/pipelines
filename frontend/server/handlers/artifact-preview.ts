@@ -24,7 +24,7 @@ import { isNoSuchKeyError } from '../minio-helper.js';
 
 const PREVIEW_REQUEST_TIMEOUT_MS = 30_000;
 const MISSING_PREVIEW_MESSAGE =
-  'preview.json is missing. Regenerate the artifact with its preview file.';
+  '_kfp_preview.json is missing. Regenerate the artifact with its preview file.';
 
 /** Opens one object from the storage provider already selected for the parent artifact. */
 export type ArtifactPreviewObjectOpener = (
@@ -73,7 +73,7 @@ function sendPreviewFailure(error: unknown, response: Response): void {
 }
 
 /**
- * Sends the bounded preview.json beneath an already authorized parent artifact.
+ * Sends the bounded _kfp_preview.json beneath an already authorized parent artifact.
  *
  * Callers must authorize and resolve storage for the parent coordinates. This function derives
  * only the fixed child object, so a request cannot select another object through the preview

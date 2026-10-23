@@ -88,7 +88,7 @@ interface ArtifactContentPreviewProps {
   providerInfo?: string;
 }
 
-/** Reads and renders only the bounded preview.json beneath one Dataset or Model artifact. */
+/** Reads and renders only the bounded _kfp_preview.json beneath one Dataset or Model artifact. */
 export function ArtifactContentPreview({
   artifact,
   artifactTypeName,

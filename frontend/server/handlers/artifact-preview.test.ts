@@ -94,7 +94,7 @@ describe('artifact preview endpoint', () => {
 
   afterAll(() => vi.unstubAllGlobals());
 
-  it.each(['minio', 's3'])('reads only preview.json beneath a %s parent', async (source) => {
+  it.each(['minio', 's3'])('reads only _kfp_preview.json beneath a %s parent', async (source) => {
     const response = await request(false, {
       AWS_ACCESS_KEY_ID: 'aws',
       AWS_SECRET_ACCESS_KEY: 'aws-secret',
@@ -105,18 +105,18 @@ describe('artifact preview endpoint', () => {
     expect(response.headers['content-type']).toContain('application/json');
     expect(response.headers['cache-control']).toBe('no-store');
     expect(response.headers['x-content-type-options']).toBe('nosniff');
-    expect(response.headers['content-disposition']).toContain('preview.json');
-    expect(getObject).toHaveBeenCalledWith('bucket', 'v2/artifacts/model/preview.json');
+    expect(response.headers['content-disposition']).toContain('_kfp_preview.json');
+    expect(getObject).toHaveBeenCalledWith('bucket', 'v2/artifacts/model/_kfp_preview.json');
     expect(listObjects).not.toHaveBeenCalled();
   });
 
-  it('reads only preview.json beneath a GCS parent', async () => {
+  it('reads only _kfp_preview.json beneath a GCS parent', async () => {
     const response = await request()
       .get('/artifacts/preview?source=gcs&bucket=bucket&key=root%2Fdataset')
       .expect(200);
     expect(response.text).toBe(content);
     expect(gcsDownload).toHaveBeenCalledWith(
-      expect.objectContaining({ bucket: 'bucket', objectName: 'root/dataset/preview.json' }),
+      expect.objectContaining({ bucket: 'bucket', objectName: 'root/dataset/_kfp_preview.json' }),
     );
     expect(gcsList).not.toHaveBeenCalled();
   });
@@ -214,7 +214,7 @@ describe('artifact preview endpoint', () => {
     const response = await request()
       .get('/artifacts/preview?source=minio&bucket=bucket&key=model')
       .expect(404);
-    expect(response.text).toContain('preview.json is missing');
+    expect(response.text).toContain('_kfp_preview.json is missing');
 
     gcsDownload.mockRejectedValue(Object.assign(new Error('missing'), { status: 404 }));
     await request().get('/artifacts/preview?source=gcs&bucket=bucket&key=model').expect(404);

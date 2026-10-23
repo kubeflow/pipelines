@@ -15,7 +15,7 @@
 import type { Readable } from 'stream';
 
 export const MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024;
-export const ARTIFACT_PREVIEW_FILE_NAME = 'preview.json';
+export const ARTIFACT_PREVIEW_FILE_NAME = '_kfp_preview.json';
 const PREVIEW_SOURCES = new Set(['gcs', 'minio', 's3']);
 const MAX_OBJECT_KEY_LENGTH = 1024;
 
@@ -32,7 +32,7 @@ export class ArtifactPreviewError extends Error {
 /**
  * Returns the fixed preview object beneath an authorized parent artifact directory.
  *
- * The parent key, not the derived child, is the authorization identity: preview.json has no
+ * The parent key, not the derived child, is the authorization identity: _kfp_preview.json has no
  * metadata record of its own, so it is only readable through its registered parent.
  */
 export function getPreviewObjectKey(source: string, parentKey: string): string {
@@ -83,7 +83,7 @@ export async function readArtifactPreviewBytes(
       if (size > MAX_ARTIFACT_PREVIEW_BYTES) {
         throw new ArtifactPreviewError(
           413,
-          'Preview exceeds 64 KiB. Regenerate a smaller preview.json.',
+          'Preview exceeds 64 KiB. Regenerate a smaller _kfp_preview.json.',
         );
       }
     }
@@ -94,7 +94,7 @@ export async function readArtifactPreviewBytes(
     } catch {
       throw new ArtifactPreviewError(
         422,
-        'Preview is not valid UTF-8. Regenerate preview.json as UTF-8 JSON.',
+        'Preview is not valid UTF-8. Regenerate _kfp_preview.json as UTF-8 JSON.',
       );
     }
     return result;

@@ -131,7 +131,8 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.addCleanup(self.import_module.stop)
 
     def load_preview(self, artifact: dsl.Artifact) -> dict:
-        return json.loads((Path(artifact.path) / 'preview.json').read_bytes())
+        return json.loads(
+            (Path(artifact.path) / '_kfp_preview.json').read_bytes())
 
     def runtime_input(self, **artifacts: dsl.Artifact) -> dict:
         """Build executor inputs for the declared output artifacts."""
@@ -181,7 +182,8 @@ class ArtifactPreviewTest(unittest.TestCase):
             self.assertNotIn(
                 '_kfp_preview',
                 metadata['artifacts'][name]['artifacts'][0]['metadata'])
-            self.assertFalse((Path(artifact.path) / 'preview.json').exists())
+            self.assertFalse(
+                (Path(artifact.path) / '_kfp_preview.json').exists())
         self.assertEqual((Path(dataset.path) / 'data.parquet').read_bytes(),
                          b'native-parquet')
         self.assertEqual((Path(self.model.path) / 'model.ubj').read_bytes(),
@@ -189,11 +191,11 @@ class ArtifactPreviewTest(unittest.TestCase):
 
     def test_disabled_previews_keep_producer_written_previews(self) -> None:
         """Opting out stops generation without hiding a manual preview."""
-        descriptor = {'version': 1, 'path': 'preview.json'}
+        descriptor = {'version': 1, 'path': '_kfp_preview.json'}
         content = b'{"version":1,"kind":"model"}'
 
         def produce(model: dsl.Output[dsl.Model]) -> None:
-            (Path(model.path) / 'preview.json').write_bytes(content)
+            (Path(model.path) / '_kfp_preview.json').write_bytes(content)
             model.metadata['_kfp_preview'] = descriptor
 
         result = executor.Executor(
@@ -204,8 +206,8 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertEqual(
             metadata['artifacts']['model']['artifacts'][0]['metadata']
             ['_kfp_preview'], descriptor)
-        self.assertEqual((Path(self.model.path) / 'preview.json').read_bytes(),
-                         content)
+        self.assertEqual(
+            (Path(self.model.path) / '_kfp_preview.json').read_bytes(), content)
 
     def test_previews_do_not_read_deployment_configuration(self) -> None:
         with mock.patch.object(
@@ -238,7 +240,7 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertEqual(preview['structure']['tree_count'], 5)
         self.assertEqual(self.model.metadata['_kfp_preview'], {
             'version': 1,
-            'path': 'preview.json',
+            'path': '_kfp_preview.json',
         })
         self.assertEqual((Path(self.model.path) / 'model.ubj').read_bytes(),
                          b'native-model')
@@ -288,7 +290,7 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertIn('output artifact path changed',
                       '\n'.join(messages.output))
         self.assertNotIn('_kfp_preview', self.model.metadata)
-        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
+        self.assertFalse((Path(self.model.path) / '_kfp_preview.json').exists())
 
     def test_resaving_the_same_model_keeps_the_final_configuration(
             self) -> None:
@@ -512,14 +514,14 @@ class ArtifactPreviewTest(unittest.TestCase):
                 first.__exit__()
             second.__exit__()
         self.assertIs(FakeEstimator.save_model, original)
-        self.assertTrue((Path(other.path) / 'preview.json').exists())
+        self.assertTrue((Path(other.path) / '_kfp_preview.json').exists())
 
     def test_manual_previews_are_not_overwritten(self) -> None:
         self.model.metadata['_kfp_preview'] = {
             'version': 1,
-            'path': 'preview.json'
+            'path': '_kfp_preview.json'
         }
-        path = Path(self.model.path) / 'preview.json'
+        path = Path(self.model.path) / '_kfp_preview.json'
         path.write_text('existing preview')
         with previews.ArtifactPreviewSession({'model': self.model}) as session:
             FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
@@ -527,7 +529,7 @@ class ArtifactPreviewTest(unittest.TestCase):
         self.assertEqual(path.read_text(), 'existing preview')
 
     def test_unadvertised_existing_file_is_not_overwritten(self) -> None:
-        path = Path(self.model.path) / 'preview.json'
+        path = Path(self.model.path) / '_kfp_preview.json'
         path.write_text('user file')
         with previews.ArtifactPreviewSession({'model': self.model}) as session:
             FakeEstimator().save_model(Path(self.model.path) / 'model.ubj')
@@ -730,7 +732,7 @@ class ArtifactPreviewTest(unittest.TestCase):
                          metadata['model']['artifacts'][0]['metadata'])
         self.assertIn('_kfp_preview',
                       metadata['dataset']['artifacts'][0]['metadata'])
-        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
+        self.assertFalse((Path(self.model.path) / '_kfp_preview.json').exists())
         self.assertEqual((Path(self.model.path) / 'config.json').read_text(),
                          config)
         self.assertEqual(
@@ -774,7 +776,7 @@ class ArtifactPreviewTest(unittest.TestCase):
         metadata = json.loads(Path(result).read_text())['artifacts']
         self.assertNotIn('_kfp_preview',
                          metadata['failing']['artifacts'][0]['metadata'])
-        self.assertFalse((Path(failing.path) / 'preview.json').exists())
+        self.assertFalse((Path(failing.path) / '_kfp_preview.json').exists())
         self.assertEqual((Path(failing.path) / 'data.csv').read_text(),
                          'value\n1\n')
         for name in ('dataset', 'model'):
@@ -801,7 +803,7 @@ class ArtifactPreviewTest(unittest.TestCase):
             previews.ArtifactPreviewSession._publish(
                 Path(self.model.path), self.model,
                 {'value': 'x' * previews.MAX_BYTES})
-        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
+        self.assertFalse((Path(self.model.path) / '_kfp_preview.json').exists())
         self.assertEqual(self.model.metadata, {})
 
     def test_executor_automatically_generates_preview_without_a_user_adapter_call(
@@ -817,7 +819,7 @@ class ArtifactPreviewTest(unittest.TestCase):
             metadata['artifacts']['model']['artifacts'][0]['metadata']
             ['_kfp_preview'], {
                 'version': 1,
-                'path': 'preview.json',
+                'path': '_kfp_preview.json',
             })
 
     def test_executor_cli_defaults_to_previews_with_schema_only_support(
@@ -921,4 +923,4 @@ class ArtifactPreviewTest(unittest.TestCase):
             self.assertIsNone(
                 executor.Executor(
                     runtime_input, produce, artifact_previews=True).execute())
-        self.assertFalse((Path(self.model.path) / 'preview.json').exists())
+        self.assertFalse((Path(self.model.path) / '_kfp_preview.json').exists())

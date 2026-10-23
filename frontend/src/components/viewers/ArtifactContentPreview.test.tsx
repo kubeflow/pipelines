@@ -21,7 +21,7 @@ import dataset from '../../../mock-backend/data/v2/artifact-previews/dataset.jso
 import model from '../../../mock-backend/data/v2/artifact-previews/model.json';
 
 function buildArtifact(
-  declaration: unknown = { version: 1, path: 'preview.json' },
+  declaration: unknown = { version: 1, path: '_kfp_preview.json' },
   uri = 's3://bucket/private-artifacts/team-a/dataset',
 ): Artifact {
   const artifact = new Artifact();
@@ -83,7 +83,7 @@ describe('artifact content previews', () => {
     const read = vi.spyOn(Apis, 'getArtifactContentPreview');
     const { rerender } = render(view(buildArtifact(null)));
     expect(screen.getByText(/pipeline and component preview settings/)).toBeVisible();
-    rerender(view(buildArtifact({ version: 2, path: 'preview.json' })));
+    rerender(view(buildArtifact({ version: 2, path: '_kfp_preview.json' })));
     expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
     expect(read).not.toHaveBeenCalled();
   });
@@ -128,7 +128,7 @@ describe('artifact content previews', () => {
   it('shows read errors with an explicit retry and rejects malformed files', async () => {
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
-      .mockRejectedValue(new Error('preview.json is missing'));
+      .mockRejectedValue(new Error('_kfp_preview.json is missing'));
     render(view());
     await screen.findByText('Unable to display the artifact preview.');
     const attempts = read.mock.calls.length;
@@ -159,7 +159,7 @@ describe('artifact content previews', () => {
     vi.spyOn(Apis, 'getArtifactContentPreview').mockResolvedValue(JSON.stringify(model));
     render(
       view(
-        buildArtifact({ version: 1, path: 'preview.json' }, 's3://bucket/model'),
+        buildArtifact({ version: 1, path: '_kfp_preview.json' }, 's3://bucket/model'),
         'system.Model',
       ),
     );
