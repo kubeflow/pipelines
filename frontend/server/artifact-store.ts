@@ -505,6 +505,12 @@ function createConfiguredS3Store(
       },
     },
   });
+  if (!isAWSS3Endpoint(origin)) {
+    // Custom endpoints use opaque signing regions, not AWS hostname/FIPS selectors.
+    // Override the SDK's normalized providers for both initial and discovered regions.
+    client.config.region = async () => resolvedRegion;
+    client.config.useFipsEndpoint = async () => false;
+  }
   if (config.useSSL === false) {
     // S3 endpoint rules choose HTTPS even when the generic SDK tls option is false.
     // Apply the already-authorized transport scheme before signing, retaining regional routing.

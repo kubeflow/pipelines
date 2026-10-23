@@ -46,6 +46,7 @@ export function createS3Mock(actual: typeof import('@aws-sdk/client-s3')) {
   return vi.fn(function (config: S3ClientConfig) {
     const fixture = MockS3Client(config);
     return {
+      config: { ...config },
       middlewareStack: { add: vi.fn() },
       destroy: vi.fn(),
       async send(

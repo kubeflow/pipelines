@@ -57,8 +57,21 @@ SDK read must fail with `400 AuthorizationHeaderMalformed`, verifying the MinIO
 region setting before testing adapter recovery. Region correction consumes an attempt,
 so the adapter uses a three-attempt budget.
 
+To exercise explicit custom regions through both direct configuration and provider
+info, run the same contract against each region:
+
+```bash
+for region in Region_One region-fips fips-region; do
+  KFP_MINIO_REGION="$region" MINIO_BINARY=/tmp/kfp-contract-minio \
+    bash frontend/scripts/test-artifact-store-contract.sh
+done
+```
+
+The adapter treats a custom endpoint's region as a signing value. AWS hostname
+validation and FIPS-name normalization apply only to AWS endpoints.
+
 For services already running with the fixture credentials (and MinIO configured
-with `MINIO_SITE_REGION=RegionOne`), run directly:
+with `MINIO_SITE_REGION=RegionOne`; set `KFP_MINIO_REGION` to match when using another region), run directly:
 
 ```bash
 cd frontend/server

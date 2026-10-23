@@ -283,6 +283,40 @@ describe('S3 artifact store wire contract', () => {
     },
   );
 
+  it.each(
+    ['Region_One', 'region-fips', 'fips-region'].flatMap((region) =>
+      ['direct configuration', 'provider info'].map((source) => ({ region, source })),
+    ),
+  )('preserves explicit custom region $region from $source', async ({ region, source }) => {
+    const requests: IncomingMessage[] = [];
+    const port = await wireServer((req, res) => {
+      requests.push(req);
+      if (!req.headers.authorization?.includes(`/${region}/s3/aws4_request`)) {
+        errorResponse(res, 400, 'AuthorizationHeaderMalformed');
+      } else res.end('custom region artifact');
+    });
+    const store = await createS3ArtifactStore(
+      {
+        endPoint: '127.0.0.1',
+        port,
+        useSSL: false,
+        accessKey: credentials.accessKeyId,
+        secretKey: credentials.secretAccessKey,
+        maxAttempts: 1,
+        ...(source === 'direct configuration' ? { region } : {}),
+      },
+      'minio',
+      'bucket',
+      source === 'provider info'
+        ? JSON.stringify({ Provider: 's3', Params: { fromEnv: 'true', region } })
+        : undefined,
+    );
+    expect(await streamToString(await store.openRead('artifact'))).toBe('custom region artifact');
+    expect(requests).toHaveLength(1);
+    expect(requests[0].headers.authorization).toContain(`/${region}/s3/aws4_request`);
+    expect(requests[0].headers.host).toBe(`127.0.0.1:${port}`);
+  });
+
   it('caches the corrected bucket region across reads and listing pages', async () => {
     const requests: IncomingMessage[] = [];
     const port = await wireServer((req, res) => {
@@ -536,12 +570,17 @@ for (const [service, variable] of [
     it('reads encoded keys, lists over 1000 objects, handles missing objects and public reads', async () => {
       const endpoint = new URL(process.env[variable]!);
       const bucket = `kfp-contract-${randomUUID()}`;
+      const region =
+        service === 'MinIO' ? process.env.KFP_MINIO_REGION || 'RegionOne' : 'us-east-1';
       const fixture = new S3Client({
         endpoint: endpoint.origin,
-        region: service === 'MinIO' ? 'RegionOne' : 'us-east-1',
+        region: 'us-east-1',
         forcePathStyle: true,
         credentials,
       });
+      // Fixture setup must preserve MinIO signing regions independently of adapter behavior.
+      fixture.config.region = async () => region;
+      fixture.config.useFipsEndpoint = async () => false;
       const keys = Array.from({ length: 1003 }, (_, i) => `prefix/${String(i).padStart(4, '0')}`);
       const special = 'prefix/space + percent% unicode雪/%2F.txt';
       keys.push(special);
@@ -593,6 +632,21 @@ for (const [service, variable] of [
           secretKey: credentials.secretAccessKey,
           maxAttempts: 3,
         };
+        if (service === 'MinIO') {
+          for (const source of ['direct configuration', 'provider info']) {
+            const explicitStore = await createS3ArtifactStore(
+              { ...config, ...(source === 'direct configuration' ? { region } : {}) },
+              'minio',
+              bucket,
+              source === 'provider info'
+                ? JSON.stringify({ Provider: 's3', Params: { fromEnv: 'true', region } })
+                : undefined,
+            );
+            expect(await streamToString(await explicitStore.openRead(special))).toBe(
+              'encoded artifact 雪',
+            );
+          }
+        }
         const store = await createS3ArtifactStore(config, 's3', bucket);
         expect(await streamToString(await store.openRead(special))).toBe('encoded artifact 雪');
         const objects = [];
