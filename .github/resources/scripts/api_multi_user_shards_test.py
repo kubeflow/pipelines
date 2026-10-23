@@ -218,12 +218,38 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                     actual,
                     {
                         'NUMBER_OF_NODES': inputs['number_of_parallel_tests'],
-                        'TEST_LABEL': inputs['test_label'],
+                        'TEST_LABEL': (
+                            f'({inputs["test_label"]}) && !LegacyCache'
+                            if row['cache_enabled'] == 'false'
+                            else inputs['test_label']
+                        ),
                         'NAMESPACE': inputs['namespace'],
                     },
                 )
 
-    def test_automatic_runs_combine_shards_with_legacy_compatibility(self):
+    def test_manual_default_and_explicit_cache_labels_respect_disabled_cache(
+        self,
+    ):
+        for label in ('ApiServerTests', 'LegacyCache'):
+            for row in self.matrix_rows('workflow_dispatch'):
+                with self.subTest(label=label, row=row):
+                    actual = self.configure(
+                        row,
+                        'workflow_dispatch',
+                        {
+                            'number_of_parallel_tests': '5',
+                            'test_label': label,
+                            'namespace': 'kubeflow',
+                        },
+                    )
+                    expected = (
+                        f'({label}) && !LegacyCache'
+                        if row['cache_enabled'] == 'false'
+                        else label
+                    )
+                    self.assertEqual(actual['TEST_LABEL'], expected)
+
+    def test_automatic_runs_combine_cache_shards_and_legacy_compatibility(self):
         # Populated dispatch inputs must have no effect on an automatic run.
         inputs = {
             'number_of_parallel_tests': '7',
@@ -233,13 +259,18 @@ class ApiMultiUserShardsTest(unittest.TestCase):
         for row in self.matrix_rows('pull_request'):
             with self.subTest(row=row):
                 actual = self.configure(row, 'pull_request', inputs)
+                expected_label = (
+                    f'({BASE_FILTERS[row["cache_enabled"]]}) && '
+                    f'{SHARD_FILTERS[row["test_shard"]]}'
+                )
+                expected_label = f'({expected_label}) || LegacyAPICompatibility'
+                if row['cache_enabled'] == 'false':
+                    expected_label = f'({expected_label}) && !LegacyCache'
                 self.assertEqual(
                     actual,
                     {
                         'NUMBER_OF_NODES': '2',
-                        'TEST_LABEL': f'(({BASE_FILTERS[row["cache_enabled"]]}) && '
-                        f'{SHARD_FILTERS[row["test_shard"]]}) || '
-                        'LegacyAPICompatibility',
+                        'TEST_LABEL': expected_label,
                         'NAMESPACE': 'kubeflow',
                     },
                 )
