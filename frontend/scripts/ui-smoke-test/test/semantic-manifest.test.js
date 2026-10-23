@@ -1766,3 +1766,95 @@ test('builds and combines revision deployments by semantic key with provenance a
     /logical fixtures do not match/,
   );
 });
+
+test('native task driver logs are optional system outputs with strict artifact identity', () => {
+  const manifest = strictSemanticFixtureManifest();
+  const run = manifest.deployments.head.bindings.runs['run.training-1'];
+  for (const observedRun of Object.values(manifest.deployments.head.bindings.runs)) {
+    for (const [taskKey, instances] of Object.entries(observedRun.taskInstances)) {
+      for (const [index, instance] of instances.entries()) {
+        instance.artifactReferences ||= { inputs: [], outputs: [] };
+        instance.artifactReferences.outputs.push({
+          key: 'driver-logs',
+          artifacts: [
+            {
+              artifactId: `driver-${taskKey}-${index}`,
+              name: 'driver-logs',
+              type: 'Artifact',
+              uri: `s3://ui-smoke/${taskKey}/${index}/driver-logs`,
+            },
+          ],
+        });
+      }
+    }
+  }
+  assert.equal(validateCombinedSemanticManifest(manifest), manifest);
+  for (const [name, mutate, pattern] of [
+    [
+      'wrong type',
+      (group) => {
+        group.artifacts[0].type = 'Dataset';
+      },
+      /type must be Artifact/,
+    ],
+    [
+      'wrong name',
+      (group) => {
+        group.artifacts[0].name = 'metrics';
+      },
+      /name must be driver-logs/,
+    ],
+    [
+      'wrong URI',
+      (group) => {
+        group.artifacts[0].uri += '?download=true';
+      },
+      /URI must end exactly in driver-logs/,
+    ],
+    [
+      'extra record',
+      (group) => {
+        group.artifacts.push(structuredClone(group.artifacts[0]));
+      },
+      /exactly one driver-log record/,
+    ],
+    [
+      'semantic identity collision',
+      (group) => {
+        group.artifacts[0].artifactId = run.artifacts['artifact.html-report'].records[0].artifactId;
+      },
+      /collides with a declared semantic artifact/,
+    ],
+  ]) {
+    const invalid = structuredClone(manifest);
+    const group = invalid.deployments.head.bindings.runs['run.training-1'].taskInstances[
+      'task.write-metrics'
+    ][0].artifactReferences.outputs.find((entry) => entry.key === 'driver-logs');
+    mutate(group);
+    assert.throws(() => validateCombinedSemanticManifest(invalid), pattern, name);
+  }
+  const forbiddenInput = structuredClone(manifest);
+  const references =
+    forbiddenInput.deployments.head.bindings.runs['run.training-1'].taskInstances[
+      'task.write-metrics'
+    ][0].artifactReferences;
+  references.inputs.push(
+    structuredClone(references.outputs.find((group) => group.key === 'driver-logs')),
+  );
+  assert.throws(() => validateCombinedSemanticManifest(forbiddenInput), /unexpected driver-logs/);
+  const collision = structuredClone(manifest);
+  const collisionOutputs =
+    collision.deployments.head.bindings.runs['run.training-1'].taskInstances[
+      'task.write-metrics'
+    ][0].artifactReferences.outputs;
+  collisionOutputs.find((group) => group.key === 'driver-logs').artifacts[0].artifactId =
+    collisionOutputs.find((group) => group.key === 'executor-logs').artifacts[0].artifactId;
+  assert.throws(() => validateCombinedSemanticManifest(collision), /duplicate executor-log IDs/);
+  const duplicate = structuredClone(manifest);
+  const outputs =
+    duplicate.deployments.head.bindings.runs['run.training-1'].taskInstances[
+      'task.write-metrics'
+    ][0].artifactReferences.outputs;
+  outputs.push(structuredClone(outputs.find((group) => group.key === 'driver-logs')));
+  assert.throws(() => validateCombinedSemanticManifest(duplicate), /duplicate driver-logs group/);
+});

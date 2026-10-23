@@ -1373,6 +1373,52 @@ function artifactGroupKeySetErrors(label, groups, expectedKeys) {
   ];
 }
 
+// Driver logs are optional native system artifacts, including on DAG tasks.
+// Validate them separately so they cannot satisfy or alias a user artifact port.
+function validateDriverLogGroups(
+  label,
+  groups,
+  errors,
+  declaredIds,
+  declaredUris,
+  observedIds,
+  observedUris,
+) {
+  const driverGroups = groups.filter((group) => group?.key === 'driver-logs');
+  if (driverGroups.length > 1) errors.push(`${label} contains duplicate driver-logs group`);
+  for (const group of driverGroups) {
+    if (!Array.isArray(group.artifacts) || group.artifacts.length !== 1) {
+      errors.push(`${label} must contain exactly one driver-log record`);
+      continue;
+    }
+    const record = group.artifacts[0];
+    if (!isRecordValue(record)) {
+      errors.push(`${label} driver-log record must be an object`);
+      continue;
+    }
+    errors.push(...exactKeySetErrors(label, record, ['artifactId', 'name', 'type', 'uri']));
+    if (record.name !== 'driver-logs') errors.push(`${label}.name must be driver-logs`);
+    if (record.type !== 'Artifact') errors.push(`${label}.type must be Artifact`);
+    const id = canonicalIdentifier(record.artifactId, false);
+    if (id === null) errors.push(`${label}.artifactId is not a valid nonempty scalar ID`);
+    else {
+      if (declaredIds.has(id))
+        errors.push(`${label}.artifactId collides with a declared semantic artifact`);
+      if (observedIds.has(id)) errors.push(`${label} contains duplicate system-log artifact IDs`);
+      observedIds.add(id);
+    }
+    if (typeof record.uri !== 'string' || !/^[^\s?#]+\/driver-logs$/.test(record.uri)) {
+      errors.push(`${label} driver-log URI must end exactly in driver-logs`);
+    } else {
+      if (declaredUris.has(record.uri))
+        errors.push(`${label}.uri collides with a declared semantic artifact`);
+      if (observedUris.has(record.uri)) errors.push(`${label} contains duplicate system-log URIs`);
+      observedUris.add(record.uri);
+    }
+  }
+  return groups.filter((group) => group?.key !== 'driver-logs');
+}
+
 function validateTaskArtifactReferences(
   label,
   value,
@@ -1408,10 +1454,21 @@ function validateTaskArtifactReferences(
   }
   let allowedExecutorLogGroupCount = 0;
   for (const direction of ['inputs', 'outputs']) {
-    const groups = value[direction];
+    let groups = value[direction];
     if (!Array.isArray(groups)) {
       errors.push(`${label}.${direction} must be an array`);
       continue;
+    }
+    if (!allowLegacyNumeric && direction === 'outputs' && TASK_FIXTURES[taskKey]) {
+      groups = validateDriverLogGroups(
+        `${label}.outputs`,
+        groups,
+        errors,
+        declaredIds,
+        declaredUris,
+        observedExecutorLogIds,
+        observedExecutorLogUris,
+      );
     }
     errors.push(
       ...artifactGroupKeySetErrors(
