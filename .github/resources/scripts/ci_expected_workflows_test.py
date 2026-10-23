@@ -190,7 +190,7 @@ def good_run(**overrides):
 
 
 class ExpectedWorkflowsTest(unittest.TestCase):
-    def test_completion_selector_covers_every_pr_workflow(self):
+    def test_completion_selector_covers_master_and_release_workflows(self):
         inventory = json.loads(
             (ROOT / '.github/resources/ci-workflow-inventory.json').read_text()
         )
@@ -199,6 +199,10 @@ class ExpectedWorkflowsTest(unittest.TestCase):
             for workflow in inventory['workflows']
             if workflow['pull_request'] is not None
         ]
+        # The default-branch publisher also handles release-branch reruns.
+        legacy = 'KFP API Integration V2 (Legacy)'
+        if legacy not in expected:
+            expected.append(legacy)
         workflow = (ROOT / '.github/workflows/ci-checks.yml').read_text()
         selector = workflow.split('  workflow_run:\n', 1)[1].split(
             '    workflows:\n', 1

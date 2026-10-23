@@ -27,6 +27,8 @@ on:
       - 'KFP SDK Tests'
       - 'KFP SDK Unit Tests'
       - 'KFP Webhook Integration'
+      # Release branches still run legacy CI; their reruns must update ci-passed.
+      - 'KFP API Integration V2 (Legacy)'
       - 'KFP Manifests'
       - 'KFP Kubernetes Native Migration Tests'
       - 'pre-commit'
